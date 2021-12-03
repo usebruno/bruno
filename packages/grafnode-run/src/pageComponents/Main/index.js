@@ -1,5 +1,9 @@
 import React from 'react';
-import {Navbar, Sidebar} from '@grafnode/components';
+import {
+  Navbar,
+  RequestTabs,
+  Sidebar
+} from '@grafnode/components';
 import actions from 'providers/Store/actions';
 import { useStore } from 'providers/Store';
 import StyledWrapper from './StyledWrapper';
@@ -9,6 +13,7 @@ export default function Main() {
 
   const {
     collections,
+    requestTabs,
     activeRequestTabId
   } = state;
 
@@ -25,7 +30,12 @@ export default function Main() {
           activeRequestTabId={activeRequestTabId}
         />
         <section className='mt-4 flex flex-grow flex-col'>
-          Request & Response Tabs
+          <RequestTabs
+            requestTabs={requestTabs}
+            actions={actions}
+            dispatch={dispatch}
+            activeRequestTabId={activeRequestTabId}
+          />
         </section>
       </StyledWrapper>
     </div>

@@ -25,6 +25,7 @@ module.exports = {
     'styled-components': 'styled-components',
     '@tabler/icon': '@tabler/icon',
     '@fortawesome/free-solid-svg-icons': '@fortawesome/free-solid-svg-icons',
-    '@fortawesome/react-fontawesome': '@fortawesome/react-fontawesome'
+    '@fortawesome/react-fontawesome': '@fortawesome/react-fontawesome',
+    'classnames': 'classnames'
   }
 };
