@@ -1,0 +1,79 @@
+import React, { useContext, useReducer, createContext } from 'react';
+import reducer from './reducer';
+import { nanoid } from 'nanoid';
+
+export const StoreContext = createContext();
+
+const tabId1 = nanoid();
+
+const collection = {
+  "id": nanoid(),
+	"name": "SpaceX",
+	"items": [
+		{
+      "id": nanoid(),
+      "name": "Launches",
+      "depth": 1,
+			"items": [
+				{
+          "id": nanoid(),
+          "depth": 2,
+					"name": "Capsules",
+					"request": {
+						"url": "https://api.spacex.land/graphql/",
+						"method": "POST",
+						"headers": [],
+						"body": {
+							"mimeType": "application/graphql",
+							"graphql": {
+								"query": "{\n  launchesPast(limit: 10) {\n    mission_name\n    launch_date_local\n    launch_site {\n      site_name_long\n    }\n    links {\n      article_link\n      video_link\n    }\n    rocket {\n      rocket_name\n      first_stage {\n        cores {\n          flight\n          core {\n            reuse_count\n            status\n          }\n        }\n      }\n      second_stage {\n        payloads {\n          payload_type\n          payload_mass_kg\n          payload_mass_lbs\n        }\n      }\n    }\n    ships {\n      name\n      home_port\n      image\n    }\n  }\n}",
+								"variables": ""
+							}
+						}
+					}
+				},
+				{
+          "id": nanoid(),
+          "depth": 2,
+					"name": "Missions",
+					"request": {
+						"url": "https://api.spacex.land/graphql/",
+						"method": "POST",
+						"headers": [],
+						"body": {
+							"mimeType": "application/graphql",
+							"graphql": {
+								"query": "{\n  launches {\n    launch_site {\n      site_id\n      site_name\n      site_name_long\n    }\n    launch_success\n  }\n}",
+								"variables": ""
+							}
+						}
+					}
+				}
+			]
+		}
+	]
+};
+
+const initialState = {
+  collections: [collection],
+  activeRequestTabId: null,
+  requestTabs: []
+};
+
+export const StoreProvider = props => {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  return <StoreContext.Provider value={[state, dispatch]} {...props} />;
+};
+
+export const useStore = () => {
+  const context = useContext(StoreContext);
+
+  if (context === undefined) {
+    throw new Error(`useStore must be used within a StoreProvider`);
+  }
+
+  return context;
+};
+
+export default StoreProvider;

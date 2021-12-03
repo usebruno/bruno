@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import Navbar from '@grafnode/components';
+import Main from 'pageComponents/Main';
 
 export default function Home() {
   return (
@@ -10,7 +10,7 @@ export default function Home() {
       </Head>
 
       <main>
-        <Navbar />
+        <Main />
       </main>
     </div>
   )
