@@ -17,6 +17,6 @@
   },
   "homepage": "https://github.com/grafnode/grafnode#readme",
   "dependencies": {
-    "@grafnode/www": "0.0.1"
+    "@grafnode/www": "^0.0.1"
   }
 }
