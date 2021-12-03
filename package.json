@@ -5,7 +5,21 @@
     "packages/grafnode-components",
     "packages/grafnode-www"
   ],
+  "dependencies": {
+    "@tabler/icons": "^1.44.0"
+  },
   "devDependencies": {
-    "lerna": "^4.0.0"
+    "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.4",
+    "@babel/preset-react": "^7.16.0",
+    "@babel/runtime": "^7.16.3",
+    "babel-loader": "^8.2.3",
+    "css-loader": "^6.5.1",
+    "html-loader": "^3.0.1",
+    "html-webpack-plugin": "^5.5.0",
+    "lerna": "^4.0.0",
+    "style-loader": "^3.3.1",
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1"
   }
 }

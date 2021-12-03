@@ -1,6 +1,10 @@
 {
+  "version": "0.0.1",
   "packages": [
     "packages/*"
   ],
-  "version": "0.0.1"
+  "publish": {
+    "message": "chore(release): publish",
+    "registry": "https://registry.npmjs.org"
+  }
 }
