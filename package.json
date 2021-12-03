@@ -6,7 +6,6 @@
     "packages/grafnode-www"
   ],
   "dependencies": {
-    "@tabler/icons": "^1.44.0"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",

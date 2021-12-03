@@ -1,5 +1,5 @@
 {
-  "name": "@grafnode/www",
+  "name": "@grafnode/run",
   "version": "0.0.1",
   "description": "",
   "main": "src/index.js",
@@ -32,6 +32,8 @@
     "tailwindcss": "^2.2.19"
   },
   "devDependencies": {
+    "babel-plugin-styled-components": "^2.0.2",
+    "babel-preset-next": "^1.4.0",
     "eslint": "7.32.0",
     "eslint-config-next": "12.0.4"
   }
