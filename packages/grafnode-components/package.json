@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
+    "watch:build": "webpack --watch --mode development",
     "build": "webpack --mode production",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,6 +25,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
     "classnames": "^2.3.1",
+    "codemirror": "^5.64.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-tabs": "^3.2.3",
