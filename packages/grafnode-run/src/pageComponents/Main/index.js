@@ -14,6 +14,8 @@ import 'codemirror/addon/edit/matchbrackets';
 import 'codemirror/addon/fold/brace-fold';
 import 'codemirror/addon/fold/foldgutter';
 
+import 'codemirror-graphql/mode';
+
 import 'codemirror/addon/fold/foldgutter.css';
 
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });

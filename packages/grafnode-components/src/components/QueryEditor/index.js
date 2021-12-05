@@ -10,7 +10,13 @@ const QueryEditor = ({query, onChange, width}) => {
     if (editor.current && !cmEditor) {
       const _cmEditor = CodeMirror.fromTextArea(editor.current, {
         value: '',
-        lineNumbers: true
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: "graphql",
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        lineWrapping: true
       });
 
       _cmEditor.setValue(query || 'query { }');
