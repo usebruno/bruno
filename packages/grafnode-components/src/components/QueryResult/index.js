@@ -12,7 +12,13 @@ const QueryResult = ({data, isLoading, width}) => {
     if (editor.current && !cmEditor) {
       const _cmEditor = CodeMirror.fromTextArea(editor.current, {
         value: '',
-        lineNumbers: true
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        mode: "application/json",
+        foldGutter: true,
+        gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        lineWrapping: true
       });
 
       setCmEditor(_cmEditor);

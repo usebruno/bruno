@@ -9,6 +9,13 @@ import actions from 'providers/Store/actions';
 import { useStore } from '../../providers/Store/index';
 import StyledWrapper from './StyledWrapper';
 
+import 'codemirror/mode/javascript/javascript';
+import 'codemirror/addon/edit/matchbrackets';
+import 'codemirror/addon/fold/brace-fold';
+import 'codemirror/addon/fold/foldgutter';
+
+import 'codemirror/addon/fold/foldgutter.css';
+
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });
 
 export default function Main() {
