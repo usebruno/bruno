@@ -8,6 +8,7 @@ import {
   flattenItems,
   findItem
 } from '../../utils';
+import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -19,6 +20,9 @@ const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
   let asideWidth = 200;
   let [data, setData] = useState({});
   let [url, setUrl] = useState('https://api.spacex.land/graphql');
+  let {
+    schema 
+  } = useGraphqlSchema('https://api.spacex.land/graphql');
   let [query, setQuery] = useState('');
   let [isLoading, setIsLoading] = useState(false);
   const [leftPaneWidth, setLeftPaneWidth] = useState(500);
@@ -49,12 +53,8 @@ const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
     };
   }, [dragging, leftPaneWidth]);
 
-  const onUrlChange = (value) => {
-    setUrl(value);
-  };
-  const onQueryChange = (value) => {
-    setQuery(value);
-  };
+  const onUrlChange = (value) => setUrl(value);
+  const onQueryChange = (value) => setQuery(value);
 
   if(!activeRequestTabId) {
     return (
@@ -116,8 +116,10 @@ const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
         <section className="request-pane px-4">
           <div style={{width: `${leftPaneWidth}px`}}>
             <RequestPane
+              onRunQuery={runQuery}
+              schema={schema}
               leftPaneWidth={leftPaneWidth}
-              query={item.request.body.graphql.query}
+              value={item.request.body.graphql.query}
               onQueryChange={onQueryChange}
             />
           </div>

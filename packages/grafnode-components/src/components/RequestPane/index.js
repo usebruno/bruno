@@ -3,7 +3,7 @@ import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import StyledWrapper from './StyledWrapper';
 import QueryEditor from '../QueryEditor';
 
-const RequestPane = ({leftPaneWidth, query, onQueryChange}) => {
+const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
   return (
     <StyledWrapper className="">
       <Tabs className='react-tabs mt-1 flex flex-grow flex-col' forceRenderTabPanel>
@@ -13,8 +13,10 @@ const RequestPane = ({leftPaneWidth, query, onQueryChange}) => {
         </TabList>
         <TabPanel>
           <QueryEditor
+            schema={schema}
             width={leftPaneWidth}
-            query={query}
+            value={value}
+            onRunQuery={onRunQuery}
             onChange={onQueryChange}
           />
         </TabPanel>

@@ -13,10 +13,23 @@ import 'codemirror/mode/javascript/javascript';
 import 'codemirror/addon/edit/matchbrackets';
 import 'codemirror/addon/fold/brace-fold';
 import 'codemirror/addon/fold/foldgutter';
+import 'codemirror/addon/hint/show-hint';
+import 'codemirror/keymap/sublime';
+import 'codemirror/addon/comment/comment';
+import 'codemirror/addon/edit/closebrackets';
+import 'codemirror/addon/search/search';
+import 'codemirror/addon/search/searchcursor';
+import 'codemirror/addon/search/jump-to-line';
+import 'codemirror/addon/dialog/dialog';
 
+import 'codemirror-graphql/hint';
+import 'codemirror-graphql/lint';
+import 'codemirror-graphql/info';
+import 'codemirror-graphql/jump';
 import 'codemirror-graphql/mode';
 
 import 'codemirror/addon/fold/foldgutter.css';
+import 'codemirror/addon/hint/show-hint.css';
 
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });
 

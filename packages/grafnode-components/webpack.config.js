@@ -37,6 +37,9 @@ module.exports = {
     'classnames': 'classnames',
     'react-tabs': 'react-tabs',
     'codemirror': 'codemirror',
+    'graphql': 'graphql',
+    'escape-html': 'escape-html',
+    'markdown-it': 'markdown-it',
     'graphql-request': 'graphql-request'
   },
   plugins: [
