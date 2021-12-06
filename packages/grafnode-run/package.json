@@ -30,6 +30,7 @@
     "codemirror": "^5.64.0",
     "codemirror-graphql": "^1.2.5",
     "escape-html": "^1.0.3",
+    "graphiql": "^1.5.9",
     "graphql-request": "^3.7.0",
     "immer": "^9.0.7",
     "lodash": "^4.17.21",
