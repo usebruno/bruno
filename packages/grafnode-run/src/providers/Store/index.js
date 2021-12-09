@@ -30,7 +30,8 @@ const collection = {
 								"variables": ""
 							}
 						}
-					}
+					},
+					"response": null
 				},
 				{
           "id": nanoid(),
@@ -43,11 +44,12 @@ const collection = {
 						"body": {
 							"mimeType": "application/graphql",
 							"graphql": {
-								"query": "{\n  launches {\n    launch_site {\n      site_id\n      site_name\n      site_name_long\n    }\n    launch_success\n  }\n}",
+								"query": "{\n  launches {\n    launch_site {\n      site_id\n      site_name\n    }\n    launch_success\n  }\n}",
 								"variables": ""
 							}
 						}
-					}
+					},
+					"response": null
 				}
 			]
 		}

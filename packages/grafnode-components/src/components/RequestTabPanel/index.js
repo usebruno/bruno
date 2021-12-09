@@ -12,7 +12,7 @@ import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
 
-const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
+const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, requestTabs}) => {
   if(typeof window == 'undefined') {
     return <div></div>;
   }
@@ -84,6 +84,15 @@ const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
     console.log(data);
     console.log(headers);
 
+    if(data && !errors) {
+      dispatch({
+        type: actions.RESPONSE_RECEIVED,
+        response: data,
+        requestTab: focusedTab,
+        collectionId: collection.id
+      });
+    }
+
     // request(item.request.url, gql`${item.request.body.graphql.query}`)
     //   .then((data, stuff) => {
     //     console.log(data);
@@ -131,7 +140,7 @@ const RequestTabPanel = ({collections, activeRequestTabId, requestTabs}) => {
         <section className="response-pane px-4 flex-grow">
           <ResponsePane
             rightPaneWidth={rightPaneWidth}
-            data={data}
+            data={item.response}
             isLoading={isLoading}
           />
         </section>

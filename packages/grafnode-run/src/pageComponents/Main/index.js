@@ -65,6 +65,8 @@ export default function Main() {
             activeRequestTabId={activeRequestTabId}
           />
           <RequestTabPanel
+            actions={actions}
+            dispatch={dispatch}
             collections={collections}
             requestTabs={requestTabs}
             activeRequestTabId={activeRequestTabId}

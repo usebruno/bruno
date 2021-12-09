@@ -13,20 +13,20 @@ const reducer = (state, action) => {
   switch (action.type) {
     case actions.SIDEBAR_COLLECTION_CLICK: {
       return produce(state, (draft) => {
-        const collecton = find(draft.collections, (c) => c.id === action.id);
+        const collection = find(draft.collections, (c) => c.id === action.id);
 
-        if(collecton) {
-          collecton.collapsed = !collecton.collapsed;
+        if(collection) {
+          collection.collapsed = !collection.collapsed;
         }
       });
     }
 
     case actions.SIDEBAR_COLLECTION_ITEM_CLICK: {
       return produce(state, (draft) => {
-        const collecton = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
 
-        if(collecton) {
-          let flattenedItems = flattenItems(collecton.items);
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
           let item = findItem(flattenedItems, action.itemId);
           
           if(item) {
@@ -40,7 +40,7 @@ const reducer = (state, action) => {
                   id: item.id,
                   name: item.name,
                   method: item.request.method,
-                  collectionId: collecton.id
+                  collectionId: collection.id
                 });
                 draft.activeRequestTabId = item.id;
               }
@@ -53,6 +53,21 @@ const reducer = (state, action) => {
     case actions.REQUEST_TAB_CLICK: {
       return produce(state, (draft) => {
         draft.activeRequestTabId = action.requestTab.id;
+      });
+    }
+
+    case actions.RESPONSE_RECEIVED: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.requestTab.id);
+          
+          if(item) {
+            item.response = action.response;
+          }
+        }
       });
     }
 
