@@ -39,13 +39,17 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
     });
   };
 
+  const addRequest = () => {
+    dispatch({
+      type: actions.ADD_REQUEST,
+      itemId: item.id,
+      collectionId: collectionId
+    });
+  };
+
   let indents = range(item.depth);
 
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
-
-  const stopEventPropogation = (event) => {
-    event.stopPropagation();
-  };
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -87,8 +91,7 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
               <div>
                 <div className="dropdown-item" onClick={(e) => {
                   dropdownTippyRef.current.hide();
-                  stopEventPropogation(e);
-                  console.log('Clicked');
+                  addRequest();
                 }}>
                   Add Request
                 </div>
@@ -102,7 +105,7 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
         <div>
           {item.items && item.items.length ? item.items.map((i) => {
             return <CollectionItem
-              key={i.name}
+              key={i.id}
               item={i}
               collectionId={collectionId}
               actions={actions}

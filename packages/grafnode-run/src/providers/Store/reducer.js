@@ -1,4 +1,5 @@
 import produce from 'immer';
+import {nanoid} from 'nanoid';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import actions from './actions';
@@ -81,6 +82,44 @@ const reducer = (state, action) => {
           console.log(draft.activeRequestTabId);
         } else {
           draft.activeRequestTabId = null;
+        }
+      });
+    }
+
+    case actions.ADD_REQUEST: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        console.log('a');
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.itemId);
+        console.log('b');
+          
+          if(item) {
+        console.log('c');
+            if(!isItemARequest(item)) {
+              console.log('d');
+              item.items.push({
+                "id": nanoid(),
+                "depth": 2,
+                "name": "Capsules 2",
+                "request": {
+                  "url": "https://api.spacex.land/graphql/",
+                  "method": "POST",
+                  "headers": [],
+                  "body": {
+                    "mimeType": "application/graphql",
+                    "graphql": {
+                      "query": "{\n  launchesPast(limit: 10) {\n    mission_name\n    launch_date_local\n    launch_site {\n      site_name_long\n    }\n    links {\n      article_link\n      video_link\n    }\n    rocket {\n      rocket_name\n      first_stage {\n        cores {\n          flight\n          core {\n            reuse_count\n            status\n          }\n        }\n      }\n      second_stage {\n        payloads {\n          payload_type\n          payload_mass_kg\n          payload_mass_lbs\n        }\n      }\n    }\n    ships {\n      name\n      home_port\n      image\n    }\n  }\n}",
+                      "variables": ""
+                    }
+                  }
+                },
+                "response": null
+              });
+            }
+          }
         }
       });
     }
