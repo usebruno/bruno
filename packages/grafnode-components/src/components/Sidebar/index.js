@@ -1,10 +1,12 @@
 import React from 'react';
 import Collections from './Collections';
+import Navbar from '../Navbar';
 import { IconDatabase, IconSearch } from '@tabler/icons';
 
 const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
   return (
     <aside>
+      <Navbar />
       <div className="mt-4 px-2 flex">
         <IconDatabase size={20} strokeWidth={1.5}/>
         <span className="ml-1">No Environment</span>

@@ -1,7 +1,6 @@
 import React from 'react';
 import dynamic from 'next/dynamic'
 import {
-  Navbar,
   RequestTabs,
   Sidebar
 } from '@grafnode/components';
@@ -49,7 +48,6 @@ export default function Main() {
 
   return (
     <div>
-      <Navbar />
       <StyledWrapper>
         <Sidebar
           collections={collections}
@@ -57,7 +55,7 @@ export default function Main() {
           dispatch={dispatch}
           activeRequestTabId={activeRequestTabId}
         />
-        <section className='mt-4 flex flex-grow flex-col'>
+        <section className='flex flex-grow flex-col'>
           <RequestTabs
             requestTabs={requestTabs}
             actions={actions}
