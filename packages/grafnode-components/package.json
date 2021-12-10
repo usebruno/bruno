@@ -24,6 +24,7 @@
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
+    "@tabler/icons": "^1.46.0",
     "classnames": "^2.3.1",
     "codemirror": "^5.64.0",
     "escape-html": "^1.0.3",

@@ -9,7 +9,7 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
       <Navbar />
       <div className="mt-4 px-2 flex">
         <IconDatabase size={20} strokeWidth={1.5}/>
-        <span className="ml-1">No Environment</span>
+        <span className="ml-2">No Environment</span>
       </div>
 
       <div className="mt-4 relative collection-filter px-2">

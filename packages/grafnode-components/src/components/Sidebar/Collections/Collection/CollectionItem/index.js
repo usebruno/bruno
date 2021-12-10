@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useRef, forwardRef } from 'react';
 import range from 'lodash/range';
-import { IconChevronRight } from '@tabler/icons';
+import get from 'lodash/get';
+import { IconChevronRight, IconDots } from '@tabler/icons';
 import classnames from 'classnames';
+import Dropdown from '../../../../Dropdown';
 
 import StyledWrapper from './StyledWrapper';
 
 const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTabId}) => {
+  const dropdownTippyRef = useRef();
+
+  const MenuIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref}>
+        <IconDots size={22} style={{color: 'rgb(110 110 110)'}}/>
+      </div>
+    );
+  });
 
   const iconClassName = classnames({
     'rotate-90': item.collapsed
@@ -15,7 +26,12 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
     'item-focused-in-tab': item.id == activeRequestTabId
   });
 
-  const handleClick = () => {
+  const handleClick = (event) => {
+    let tippyEl = get(dropdownTippyRef, 'current.reference');
+    if(tippyEl && tippyEl.contains && tippyEl.contains(event.target)) {
+      return;
+    }
+
     dispatch({
       type: actions.SIDEBAR_COLLECTION_ITEM_CLICK,
       itemId: item.id,
@@ -24,6 +40,12 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
   };
 
   let indents = range(item.depth);
+
+  const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
+
+  const stopEventPropogation = (event) => {
+    event.stopPropagation();
+  };
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -59,6 +81,19 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
             </div>
             
             <span className="ml-1">{item.name}</span>
+          </div>
+          <div className="menu-icon pr-2">
+            <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
+              <div>
+                <div className="dropdown-item" onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  stopEventPropogation(e);
+                  console.log('Clicked');
+                }}>
+                  Add Request
+                </div>
+              </div>
+            </Dropdown>
           </div>
         </div>
       </div>
