@@ -79,7 +79,6 @@ const reducer = (state, action) => {
 
         if(draft.requestTabs && draft.requestTabs.length) {
           draft.activeRequestTabId = draft.requestTabs[0].id;
-          console.log(draft.activeRequestTabId);
         } else {
           draft.activeRequestTabId = null;
         }
@@ -89,18 +88,14 @@ const reducer = (state, action) => {
     case actions.ADD_REQUEST: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.id === action.collectionId);
-        console.log('a');
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
           let item = findItem(flattenedItems, action.itemId);
-        console.log('b');
           
           if(item) {
-        console.log('c');
             if(!isItemARequest(item)) {
-              console.log('d');
-              item.items.push({
+              let newRequest =  {
                 "id": nanoid(),
                 "depth": 2,
                 "name": "Capsules 2",
@@ -117,6 +112,14 @@ const reducer = (state, action) => {
                   }
                 },
                 "response": null
+              };
+              draft.activeRequestTabId = newRequest.id;
+              item.items.push(newRequest);
+              draft.requestTabs.push({
+                id: newRequest.id,
+                name: newRequest.name,
+                method: newRequest.request.method,
+                collectionId: collection.id
               });
             }
           }
