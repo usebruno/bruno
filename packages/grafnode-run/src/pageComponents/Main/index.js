@@ -33,11 +33,6 @@ import 'codemirror/addon/hint/show-hint.css';
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });
 
 export default function Main() {
-  // disable ssr
-  if(typeof window === 'undefined') {
-    return null;
-  }
-
   const [state, dispatch] = useStore();
 
   const {
@@ -72,5 +67,6 @@ export default function Main() {
         </section>
       </StyledWrapper>
     </div>
-  )
-}
+  );
+};
+
