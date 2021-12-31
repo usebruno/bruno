@@ -2,6 +2,7 @@ import React from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import StyledWrapper from './StyledWrapper';
 import QueryEditor from '../QueryEditor';
+import RequestHeaders from '../RequestHeaders';
 
 const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
   return (
@@ -21,7 +22,7 @@ const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) 
           />
         </TabPanel>
         <TabPanel>
-          Headers
+          <RequestHeaders />
         </TabPanel>
       </Tabs>
     </StyledWrapper>
