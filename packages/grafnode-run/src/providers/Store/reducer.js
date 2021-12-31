@@ -67,6 +67,7 @@ const reducer = (state, action) => {
           
           if(item) {
             item.response = action.response;
+            item.responseHeaders = action.responseHeaders;
           }
         }
       });

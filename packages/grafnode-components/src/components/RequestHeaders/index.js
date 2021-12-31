@@ -45,7 +45,7 @@ const RequestHeaders = () => {
           </tr>
         </thead>
         <tbody>
-          {headers && headers.length && headers.map((header, index) => {
+          {headers && headers.length ? headers.map((header, index) => {
             return (
               <tr key={header.uid}>
                 <td>
@@ -87,7 +87,7 @@ const RequestHeaders = () => {
                 </td>
               </tr>
             );
-          })}
+          }) : null}
         </tbody>
       </table>
       <button className="btn-add-header" onClick={addHeader}>+ Add Header</button>

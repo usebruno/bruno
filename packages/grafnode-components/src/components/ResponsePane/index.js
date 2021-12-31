@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import classnames from 'classnames';
 import QueryResult from '../QueryResult';
+import ResponseHeaders from '../ResponseHeaders';
 import StyledWrapper from './StyledWrapper';
 
-const ResponsePane = ({rightPaneWidth, data, isLoading}) => {
+const ResponsePane = ({rightPaneWidth, data, isLoading, headers}) => {
   const [selectedTab, setSelectedTab] = useState('response');
 
   const getTabClassname = (tabName) => {
@@ -24,7 +25,9 @@ const ResponsePane = ({rightPaneWidth, data, isLoading}) => {
         );
       }
       case 'headers': {
-        return <div>Headers</div>;
+        return (
+          <ResponseHeaders headers={headers}/>
+        );
       }
 
       default: {

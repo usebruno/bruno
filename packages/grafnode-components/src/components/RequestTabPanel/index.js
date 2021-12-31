@@ -81,29 +81,17 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     const { data, errors, extensions, headers, status } = await rawRequest(item.request.url, query);
     setData(data);
     setIsLoading(false);
-    console.log(data);
     console.log(headers);
 
     if(data && !errors) {
       dispatch({
         type: actions.RESPONSE_RECEIVED,
         response: data,
+        responseHeaders: Object.entries(headers.map),
         requestTab: focusedTab,
         collectionId: collection.id
       });
     }
-
-    // request(item.request.url, gql`${item.request.body.graphql.query}`)
-    //   .then((data, stuff) => {
-    //     console.log(data);
-    //     console.log(stuff);
-    //     setData(data);
-    //     setIsLoading(false);
-    //   })
-    //   .catch((err) => {
-    //     setIsLoading(false);
-    //     console.log(err);
-      // });
   };
 
   return (
@@ -141,6 +129,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
           <ResponsePane
             rightPaneWidth={rightPaneWidth}
             data={item.response}
+            headers={item.responseHeaders}
             isLoading={isLoading}
           />
         </section>
