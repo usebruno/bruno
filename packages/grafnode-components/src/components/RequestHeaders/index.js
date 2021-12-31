@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
+import { nanoid } from 'nanoid';
 import StyledWrapper from './StyledWrapper';
 
+const initialState = [{
+  uid: nanoid(),
+  enabled: true
+}];
+
 const RequestHeaders = () => {
-  const [headers, setHeaders] = useState([{enabled: true}]);
+  const [headers, setHeaders] = useState(initialState);
 
   const addHeader = () => {
     let newHeader = {
+      uid: nanoid(),
       key: '',
       value: '',
       description: '',
-      enabled: true,
+      enabled: true
     };
 
     let newHeaders = [...headers, newHeader];
@@ -22,7 +29,7 @@ const RequestHeaders = () => {
   
   const handleRemoveHeader = (index) => {
     headers.splice(index, 1);
-    setHeaders(...headers);
+    setHeaders([...headers]);
   };
   
   return (
@@ -40,7 +47,7 @@ const RequestHeaders = () => {
         <tbody>
           {headers && headers.length && headers.map((header, index) => {
             return (
-              <tr key={index}>
+              <tr key={header.uid}>
                 <td>
                   <input
                     type="checkbox"
@@ -79,7 +86,7 @@ const RequestHeaders = () => {
                   </button>
                 </td>
               </tr>
-            )
+            );
           })}
         </tbody>
       </table>

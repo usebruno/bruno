@@ -40,6 +40,7 @@ module.exports = {
     'graphql': 'graphql',
     'escape-html': 'escape-html',
     'markdown-it': 'markdown-it',
+    'nanoid': 'nanoid',
     'graphql-request': 'graphql-request'
   },
   plugins: [
