@@ -86,11 +86,15 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     console.log(headers);
 
     if(data && !errors) {
+      // todo: alternate way to calculate length when content length is not present
+      const size = headers.map["content-length"];
+
       dispatch({
         type: actions.RESPONSE_RECEIVED,
         response: {
           data: data,
           headers: Object.entries(headers.map),
+          size: size,
           status: status,
           duration: timeEnd - timeStart
         },
