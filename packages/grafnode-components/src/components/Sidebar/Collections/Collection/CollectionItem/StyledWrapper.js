@@ -16,14 +16,28 @@ const Wrapper = styled.div`
       transform: rotateZ(90deg);
     }
 
-    &.item-focused-in-tab {
-      background:#ededed;
-    }
-
     &:hover {
       background: #f7f7f7;
       .menu-icon {
         display: flex;
+      }
+    }
+
+    .menu-icon {
+      color: rgb(110 110 110);
+    }
+
+    &.item-focused-in-tab {
+      background: #2383e0;
+      color: white;
+
+      &:hover {
+        background: #2383e0 !important;
+        color: white !important;
+      }
+
+      .menu-icon {
+        color: white !important;
       }
     }
 

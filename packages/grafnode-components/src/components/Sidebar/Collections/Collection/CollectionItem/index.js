@@ -13,7 +13,7 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
   const MenuIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref}>
-        <IconDots size={22} style={{color: 'rgb(110 110 110)'}}/>
+        <IconDots size={22}/>
       </div>
     );
   });
