@@ -7,6 +7,10 @@ const Wrapper = styled.div`
     justify-content: flex-end;
   }
 
+  .indent-block {
+    border-right: solid 1px #e1e1e1;
+  }
+
   .collection-item-name {
     height: 1.875rem;
     cursor: pointer;
@@ -38,6 +42,10 @@ const Wrapper = styled.div`
 
       .menu-icon {
         color: white !important;
+      }
+
+      .indent-block {
+        border-right: solid 1px #6faaea;
       }
     }
 

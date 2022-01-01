@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef } from 'react';
-import { IconChevronRight, IconDots, IconDatabase } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconWorld } from '@tabler/icons';
 import CollectionItem from './CollectionItem';
 import Dropdown from '../../../Dropdown';
 import get from 'lodash/get';
@@ -13,7 +13,7 @@ const Collection = ({collection, actions, dispatch, activeRequestTabId}) => {
   const EnvIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="mr-2">
-        <IconDatabase size={18} strokeWidth={1.5}/>
+        <IconWorld size={18} strokeWidth={1.5}/>
       </div>
     );
   });

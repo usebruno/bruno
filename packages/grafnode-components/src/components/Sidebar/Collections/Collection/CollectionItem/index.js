@@ -61,11 +61,11 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
           {indents && indents.length ? indents.map((i) => {
             return (
               <div
+                className="indent-block"
                 key={i}
                 style = {{
                   width: 16,
-                  height: '100%',
-                  borderRight: 'solid 1px #e1e1e1'
+                  height: '100%'
                 }}
               >
                 &nbsp;{/* Indent */}
