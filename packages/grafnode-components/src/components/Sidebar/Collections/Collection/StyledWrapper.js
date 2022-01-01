@@ -13,6 +13,23 @@ const Wrapper = styled.div`
     .rotate-90 {
       transform: rotateZ(90deg);
     }
+
+    .collection-actions {
+      display: none;
+      flex-grow: 1;
+      justify-content: flex-end;
+
+      svg {
+        height: 22px;
+        color: rgb(110 110 110);
+      }
+    }
+
+    &:hover {
+      .collection-actions {
+        display: flex;
+      }
+    }
   }
 `;
 
