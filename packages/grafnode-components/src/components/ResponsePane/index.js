@@ -7,8 +7,10 @@ import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
 import StyledWrapper from './StyledWrapper';
 
-const ResponsePane = ({rightPaneWidth, data, isLoading, headers}) => {
+const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
   const [selectedTab, setSelectedTab] = useState('response');
+
+  response = response || {};
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
@@ -22,14 +24,14 @@ const ResponsePane = ({rightPaneWidth, data, isLoading, headers}) => {
         return (
           <QueryResult
             width={rightPaneWidth}
-            data={data}
+            data={response.data}
             isLoading={isLoading}
           />
         );
       }
       case 'headers': {
         return (
-          <ResponseHeaders headers={headers}/>
+          <ResponseHeaders headers={response.headers}/>
         );
       }
 
@@ -44,11 +46,13 @@ const ResponsePane = ({rightPaneWidth, data, isLoading, headers}) => {
       <div className="flex items-center tabs mt-1" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => setSelectedTab('response')}>Response</div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setSelectedTab('headers')}>Headers</div>
-        <div className="flex flex-grow justify-end items-center">
-          <StatusCode />
-          <ResponseTime />
-          <ResponseSize />
-        </div>
+        {!isLoading ? (
+          <div className="flex flex-grow justify-end items-center">
+            <StatusCode status={response.status}/>
+            <ResponseTime />
+            <ResponseSize />
+          </div>
+        ) : null }
       </div>
       <section>
         {getTabPanel(selectedTab)}

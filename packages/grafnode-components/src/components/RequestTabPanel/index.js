@@ -86,8 +86,11 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     if(data && !errors) {
       dispatch({
         type: actions.RESPONSE_RECEIVED,
-        response: data,
-        responseHeaders: Object.entries(headers.map),
+        response: {
+          data: data,
+          headers: Object.entries(headers.map),
+          status: status
+        },
         requestTab: focusedTab,
         collectionId: collection.id
       });
@@ -128,8 +131,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
         <section className="response-pane px-4 flex-grow">
           <ResponsePane
             rightPaneWidth={rightPaneWidth}
-            data={item.response}
-            headers={item.responseHeaders}
+            response={item.response}
             isLoading={isLoading}
           />
         </section>
