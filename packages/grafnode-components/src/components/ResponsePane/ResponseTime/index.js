@@ -1,10 +1,20 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const ResponseTime = () => {
+const ResponseTime = ({duration}) => {
+  let durationToDisplay = ''
+
+  if(duration > 1000 ) { // duration greater than a second
+    let seconds =  Math.floor(duration / 1000);
+    let decimal =  ((duration % 1000) / 1000).toFixed(2) * 100;
+    durationToDisplay = seconds + '.' +  decimal + 's';
+  } else {
+    durationToDisplay = duration + 'ms'
+  }
+
   return (
     <StyledWrapper className="mt-3 ml-4">
-      2.8s
+      {durationToDisplay}
     </StyledWrapper>
   )
 };

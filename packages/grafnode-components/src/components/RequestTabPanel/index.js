@@ -78,7 +78,9 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     const query = gql`${item.request.body.graphql.query}`;
 
     setIsLoading(true);
+    const timeStart = Date.now();
     const { data, errors, extensions, headers, status } = await rawRequest(item.request.url, query);
+    const timeEnd = Date.now();
     setData(data);
     setIsLoading(false);
     console.log(headers);
@@ -89,7 +91,8 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
         response: {
           data: data,
           headers: Object.entries(headers.map),
-          status: status
+          status: status,
+          duration: timeEnd - timeStart
         },
         requestTab: focusedTab,
         collectionId: collection.id

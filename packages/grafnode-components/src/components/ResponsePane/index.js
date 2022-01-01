@@ -49,7 +49,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             <StatusCode status={response.status}/>
-            <ResponseTime />
+            <ResponseTime duration={response.duration}/>
             <ResponseSize />
           </div>
         ) : null }
