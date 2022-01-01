@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import classnames from 'classnames';
-import QueryResult from '../QueryResult';
-import ResponseHeaders from '../ResponseHeaders';
+import QueryResult from './QueryResult';
+import ResponseHeaders from './ResponseHeaders';
 import StyledWrapper from './StyledWrapper';
 
 const ResponsePane = ({rightPaneWidth, data, isLoading, headers}) => {

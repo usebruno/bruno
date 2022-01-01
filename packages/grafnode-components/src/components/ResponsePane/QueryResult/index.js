@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { IconRefresh } from '@tabler/icons';
-import StopWatch from '../StopWatch';
+import StopWatch from '../../StopWatch';
 import * as CodeMirror from 'codemirror';
 import StyledWrapper from './StyledWrapper';
 
