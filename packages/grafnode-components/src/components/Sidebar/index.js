@@ -1,16 +1,46 @@
-import React from 'react';
+import React, { forwardRef, useRef } from 'react';
 import Collections from './Collections';
 import Navbar from '../Navbar';
-import { IconBox, IconSearch } from '@tabler/icons';
+import Dropdown from '../Dropdown';
+import { IconBox, IconSearch, IconDots } from '@tabler/icons';
+import StyledWrapper from './StyledWrapper';
 
 const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
+  const menuDropdownTippyRef = useRef();
+  const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
+  const MenuIcon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="dropdown-icon cursor-pointer">
+        <IconDots size={22}/>
+      </div>
+    );
+  });
+
   return (
-    <aside>
+    <StyledWrapper>
       <Navbar />
 
-      <div className="mt-4 px-2 flex">
-        <IconBox size={20} strokeWidth={1.5}/>
+      <div className="mt-4 px-2 py-1 flex collection-title">
+        <IconBox size={22} strokeWidth={1.5}/>
         <span className="ml-2">Collections</span>
+        <div className="collection-dropdown flex flex-grow items-center justify-end">
+          <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
+            <div>
+              <div className="dropdown-item" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+              }}>
+                Create Collection
+              </div>
+            </div>
+            <div>
+              <div className="dropdown-item" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+              }}>
+                Settings
+              </div>
+            </div>
+          </Dropdown>
+        </div>
       </div>
 
       <div className="mt-4 relative collection-filter px-2">
@@ -34,7 +64,7 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
         dispatch={dispatch}
         activeRequestTabId={activeRequestTabId}
       />
-    </aside>
+    </StyledWrapper>
   );
 };
 

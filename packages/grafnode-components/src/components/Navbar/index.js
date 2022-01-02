@@ -7,7 +7,7 @@ import StyledWrapper from './StyledWrapper';
 const Navbar = () => {
   return (
     <StyledWrapper className="px-2 py-2 flex items-center">
-      <IconLayoutGrid size={18} strokeWidth={1.5}/>
+      <IconLayoutGrid size={20} strokeWidth={1.5}/>
       <span className="ml-2">My Workspace</span>
       <FontAwesomeIcon className="ml-2" icon={faCaretDown} style={{fontSize: 13}}/>
     </StyledWrapper>
