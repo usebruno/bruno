@@ -88,13 +88,26 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
           </div>
           <div className="menu-icon pr-2">
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
-              <div>
-                <div className="dropdown-item" onClick={(e) => {
-                  dropdownTippyRef.current.hide();
-                  addRequest();
-                }}>
-                  Add Request
-                </div>
+              <div className="dropdown-item" onClick={(e) => {
+                dropdownTippyRef.current.hide();
+                addRequest();
+              }}>
+                Add Request
+              </div>
+              <div className="dropdown-item" onClick={(e) => {
+                dropdownTippyRef.current.hide();
+              }}>
+                Add Folder
+              </div>
+              <div className="dropdown-item" onClick={(e) => {
+                dropdownTippyRef.current.hide();
+              }}>
+                Rename
+              </div>
+              <div className="dropdown-item" onClick={(e) => {
+                dropdownTippyRef.current.hide();
+              }}>
+                Delete
               </div>
             </Dropdown>
           </div>
