@@ -1,11 +1,14 @@
-import React, { forwardRef, useRef } from 'react';
+import React, { useState, forwardRef, useRef } from 'react';
 import Collections from './Collections';
+import Modal from '../Modal';
 import Navbar from '../Navbar';
 import Dropdown from '../Dropdown';
 import { IconBox, IconSearch, IconDots } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
+  const [modalOpen, setModalOpen] = useState(true);
+
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
   const MenuIcon = forwardRef((props, ref) => {
@@ -16,8 +19,27 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
     );
   });
 
+  const handleCancel = () => {
+    setModalOpen(false);
+  };
+
+  const handleConfirm = () => {
+    setModalOpen(false);
+  };
+
   return (
     <StyledWrapper>
+      {modalOpen && (
+        <Modal
+          size="md"
+          title='Create Collection'
+          handleCancel={handleCancel}
+          handleConfirm={handleConfirm}
+        >
+          Hello
+        </Modal>
+      )}
+
       <Navbar />
 
       <div className="mt-4 px-2 py-1 flex collection-title">
@@ -28,6 +50,7 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
             <div>
               <div className="dropdown-item" onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                setModalOpen(true);
               }}>
                 Create Collection
               </div>

@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Main from 'pageComponents/Main';
+import GlobalStyle from '../globalStyles';
 
 export default function Home() {
   return (
@@ -8,6 +9,8 @@ export default function Home() {
         <title>grafnode</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
+      <GlobalStyle />
 
       <main>
         <Main />
