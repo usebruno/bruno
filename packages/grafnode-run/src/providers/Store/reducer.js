@@ -57,6 +57,27 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.ADD_NEW_HTTP_REQUEST: {
+      return produce(state, (draft) => {
+        const uid = nanoid();
+        draft.requestTabs.push({
+          id: uid,
+          name: 'Untitled Request',
+          method: 'GET',
+          request: {
+            url: 'https://api.spacex.land/graphql/',
+            body: {
+              graphql: {
+                query: '{}'
+              }
+            }
+          },
+          collectionId: null
+        });
+        draft.activeRequestTabId = uid;
+      });
+    }
+
     case actions.RESPONSE_RECEIVED: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.id === action.collectionId);

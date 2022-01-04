@@ -4,6 +4,7 @@ import { rawRequest, gql } from 'graphql-request';
 import QueryUrl from '../QueryUrl';
 import RequestPane from '../RequestPane';
 import ResponsePane from '../ResponsePane';
+import Welcome from '../Welcome';
 import {
   flattenItems,
   findItem
@@ -58,7 +59,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
 
   if(!activeRequestTabId) {
     return (
-      <div className="pb-4 px-4">No request selected</div>
+      <Welcome dispatch={dispatch} actions={actions}/>
     );
   }
 
@@ -70,9 +71,16 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     );
   }
 
-  const collection = find(collections, (c) => c.id === focusedTab.collectionId);
-  const flattenedItems = flattenItems(collection.items);
-  const item = findItem(flattenedItems, activeRequestTabId);
+  let collection;
+  let item;
+
+  if(focusedTab.collectionId) {
+    collection = find(collections, (c) => c.id === focusedTab.collectionId);
+    let flattenedItems = flattenItems(collection.items);
+    item = findItem(flattenedItems, activeRequestTabId);
+  } else {
+    item = focusedTab;
+  }
 
   const runQuery = async () => {
     const query = gql`${item.request.body.graphql.query}`;

@@ -7,7 +7,7 @@ import { IconBox, IconSearch, IconDots } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
-  const [modalOpen, setModalOpen] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
