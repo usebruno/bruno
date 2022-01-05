@@ -10,7 +10,7 @@ The project is still under active development.
 * revision control - git like functionality for managing team collections
 * data privacy - e2ee for hosted api collections
 * minimalist - avoid feature bloat
-* open source - all functionality released with [BSL 1.1](LICENSE) license
+* open source - all functionality released with [MIT](LICENSE) license
 
 ### License
 [MIT](LICENSE)
