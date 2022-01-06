@@ -6,6 +6,8 @@ import 'react-tabs/style/react-tabs.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 
+import '../styles/app.scss';
+
 function SafeHydrate({ children }) {
   return (
     <div suppressHydrationWarning>
