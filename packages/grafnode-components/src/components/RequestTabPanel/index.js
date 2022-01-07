@@ -113,7 +113,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="flex flex-col flex-grow">
       <div
         className="pb-4 px-4"
         style={{
@@ -128,9 +128,9 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
           collections={collections}
         />
       </div>
-      <section className="main">
+      <section className="main flex flex-grow">
         <section className="request-pane px-4">
-          <div style={{width: `${leftPaneWidth}px`}}>
+          <div style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}>
             <RequestPane
               onRunQuery={runQuery}
               schema={schema}

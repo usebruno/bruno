@@ -12,7 +12,7 @@ const Wrapper = styled.div`
     background-color: white;
     font-size: 0.8125rem;
     color: rgb(48 48 48);
-    background: #f9f9f9;
+    background: #fff;
     box-shadow: rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px;
 
     .tippy-content {

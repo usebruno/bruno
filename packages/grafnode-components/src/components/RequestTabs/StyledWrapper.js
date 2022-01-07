@@ -21,6 +21,7 @@ const Wrapper = styled.div`
       padding-left: 0;
       padding-right: 0;
       cursor: pointer;
+      font-size: 0.8125rem;
 
       .tab-container {
         border-left: 1px solid #dcdcdc;

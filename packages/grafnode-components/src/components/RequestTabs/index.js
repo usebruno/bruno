@@ -50,7 +50,7 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
             return <li key={rt.id} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
               <div className="flex items-center justify-between tab-container">
                 <div className="flex items-center tab-label">
-                  <span className="tab-method" style={{fontSize: 13, color: getMethodColor(rt.method)}}>{rt.method}</span>
+                  <span className="tab-method" style={{color: getMethodColor(rt.method)}}>{rt.method}</span>
                   <span className="text-gray-700 ml-1 tab-name">{rt.name}</span>
                 </div>
                 {rt.id === activeRequestTabId ? (

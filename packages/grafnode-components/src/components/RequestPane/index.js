@@ -6,8 +6,8 @@ import RequestHeaders from '../RequestHeaders';
 
 const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
   return (
-    <StyledWrapper className="">
-      <Tabs className='react-tabs mt-1 flex flex-grow flex-col' forceRenderTabPanel>
+    <StyledWrapper className="h-full">
+      <Tabs className='react-tabs mt-1 flex flex-grow flex-col h-full' forceRenderTabPanel>
         <TabList>
           <Tab tabIndex="-1">Query</Tab>
           <Tab tabIndex="-1">Headers</Tab>

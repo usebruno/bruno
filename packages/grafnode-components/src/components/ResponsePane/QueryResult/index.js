@@ -37,7 +37,7 @@ const QueryResult = ({data, isLoading, width}) => {
   }, [editor.current, cmEditor, data]);
 
   return (
-    <StyledWrapper className="mt-4" style={{position: 'relative'}}>
+    <StyledWrapper className="mt-4 w-full" style={{position: 'relative', height: '90%'}}>
       {isLoading && (
         <div className="overlay">
           <div style={{marginBottom: 15, fontSize: 26}}>
@@ -58,7 +58,6 @@ const QueryResult = ({data, isLoading, width}) => {
           id="operation"
           style={{
             width: `${width}px`,
-            height: '400px'
           }}
           ref={editor}
           className="cm-editor"

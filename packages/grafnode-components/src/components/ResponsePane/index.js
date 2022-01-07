@@ -42,7 +42,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
   }
 
   return (
-    <StyledWrapper className="">
+    <StyledWrapper className="flex flex-col h-full">
       <div className="flex items-center tabs mt-1" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => setSelectedTab('response')}>Response</div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setSelectedTab('headers')}>Headers</div>
@@ -54,7 +54,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
           </div>
         ) : null }
       </div>
-      <section>
+      <section className="flex flex-grow">
         {getTabPanel(selectedTab)}
       </section>
     </StyledWrapper>

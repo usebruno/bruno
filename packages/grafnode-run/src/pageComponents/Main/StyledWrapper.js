@@ -4,11 +4,12 @@ const Wrapper = styled.div`
   display: flex;
   width: 100%;
   height: 100%;
-  min-height: calc(100vh - 38px);
+  min-height: 100vh;
 
   aside {
     min-width: 230px;
     border-right: solid 1px #e1e1e1;
+    background-color: #F6F8FA;
   }
 
   section.main {

@@ -1,6 +1,10 @@
 import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
+  .CodeMirror-gutters {
+    background-color: #f6f8fa;
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;

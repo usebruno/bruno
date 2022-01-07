@@ -7,7 +7,6 @@ const Wrapper = styled.div`
     user-select: none;
     padding-left: 8px;
     padding-right: 8px;
-    background-color: #f4f4f4;
     font-weight: 600;
 
     .rotate-90 {
