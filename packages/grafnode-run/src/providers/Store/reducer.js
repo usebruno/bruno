@@ -62,7 +62,7 @@ const reducer = (state, action) => {
         const uid = nanoid();
         draft.requestTabs.push({
           id: uid,
-          name: 'Untitled Request',
+          name: 'New Tab',
           method: 'GET',
           request: {
             url: 'https://api.spacex.land/graphql/',

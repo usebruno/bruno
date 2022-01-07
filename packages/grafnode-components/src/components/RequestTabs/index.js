@@ -3,9 +3,10 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
 const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
-  const getTabClassname = (tab) => {
+  const getTabClassname = (tab, index) => {
     return classnames("request-tab select-none", {
-      'active': tab.id === activeRequestTabId
+      'active': tab.id === activeRequestTabId,
+      'last-tab': requestTabs && requestTabs.length && (index === requestTabs.length - 1) 
     });
   };
 
@@ -45,9 +46,9 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
     <StyledWrapper className="mt-3 flex items-center">
       {requestTabs && requestTabs.length ? (
         <ul role="tablist">
-          {requestTabs && requestTabs.length ? requestTabs.map((rt) => {
-            return <li key={rt.id} className={getTabClassname(rt)} role="tab" onClick={() => handleClick(rt)}>
-              <div className="flex items-center justify-between">
+          {requestTabs && requestTabs.length ? requestTabs.map((rt, index) => {
+            return <li key={rt.id} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
+              <div className="flex items-center justify-between tab-container">
                 <div className="flex items-center tab-label">
                   <span className="tab-method" style={{fontSize: 13, color: getMethodColor(rt.method)}}>{rt.method}</span>
                   <span className="text-gray-700 ml-1 tab-name">{rt.name}</span>
@@ -62,6 +63,20 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
               </div>
             </li>
           }) : null}
+          <li className="select-none new-tab ml-1">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"  viewBox="0 0 16 16">
+                <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+              </svg>
+            </div>
+          </li>
+          <li className="select-none new-tab choose-request">
+            <div className="flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+              </svg>
+            </div>
+          </li>
         </ul>
       ) : null}
     </StyledWrapper>
