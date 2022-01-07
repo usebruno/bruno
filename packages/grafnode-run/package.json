@@ -21,8 +21,10 @@
   },
   "homepage": "https://github.com/grafnode/grafnode#readme",
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
+    "@grafnode/components": "^0.0.1",
     "@grafnode/www": "^0.0.1",
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
@@ -31,6 +33,7 @@
     "codemirror-graphql": "^1.2.5",
     "escape-html": "^1.0.3",
     "graphiql": "^1.5.9",
+    "graphql": "^16.2.0",
     "graphql-request": "^3.7.0",
     "immer": "^9.0.7",
     "lodash": "^4.17.21",

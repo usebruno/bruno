@@ -125,6 +125,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
           value = {url}
           onChange={onUrlChange}
           handleRun={runQuery}
+          collections={collections}
         />
       </div>
       <section className="main">

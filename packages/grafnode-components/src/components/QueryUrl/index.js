@@ -4,8 +4,9 @@ import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import Dropdown from '../Dropdown';
 import StyledWrapper from './StyledWrapper';
+import SaveRequestButton from '../SaveRequest';
 
-const QueryUrl = ({value, onChange, handleRun}) => {
+const QueryUrl = ({value, onChange, handleRun, collections}) => {
   const dropdownTippyRef = useRef();
   const viewProfile = () => {};
 
@@ -93,7 +94,8 @@ const QueryUrl = ({value, onChange, handleRun}) => {
         onClick={handleRun}
       >
         <span style={{marginLeft: 5}}>Send</span>
-       </button>
+      </button>
+      <SaveRequestButton folders={collections}/>
     </StyledWrapper>
   )
 };

@@ -18,8 +18,7 @@
     "url": "https://github.com/grafnode/grafnode/issues"
   },
   "homepage": "https://github.com/grafnode/grafnode#readme",
-  "dependencies": {
-  },
+  "dependencies": {},
   "peerDependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
