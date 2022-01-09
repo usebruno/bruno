@@ -2,6 +2,7 @@ import produce from 'immer';
 import {nanoid} from 'nanoid';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
+import last from 'lodash/last';
 import actions from './actions';
 import {
   flattenItems,
@@ -93,13 +94,13 @@ const reducer = (state, action) => {
       });
     }
 
-
     case actions.REQUEST_TAB_CLOSE: {
       return produce(state, (draft) => {
         draft.requestTabs = filter(draft.requestTabs, (rt) => rt.id !== action.requestTab.id);
 
         if(draft.requestTabs && draft.requestTabs.length) {
-          draft.activeRequestTabId = draft.requestTabs[0].id;
+          // todo: closing tab needs to focus on the right adjacent tab
+          draft.activeRequestTabId = last(draft.requestTabs).id;
         } else {
           draft.activeRequestTabId = null;
         }
