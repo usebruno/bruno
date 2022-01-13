@@ -1,6 +1,6 @@
 import React, { useState, forwardRef, useRef } from 'react';
 import Collections from './Collections';
-import Modal from '../Modal';
+import CreateCollection from './CreateCollection';
 import Navbar from '../Navbar';
 import Dropdown from '../Dropdown';
 import { IconBox, IconSearch, IconDots } from '@tabler/icons';
@@ -29,16 +29,14 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
 
   return (
     <StyledWrapper>
-      {modalOpen && (
-        <Modal
-          size="md"
-          title='Create Collection'
+      {modalOpen ? (
+        <CreateCollection
           handleCancel={handleCancel}
           handleConfirm={handleConfirm}
-        >
-          Hello
-        </Modal>
-      )}
+          actions={actions}
+          dispatch={dispatch}
+        />
+      ) : null}
 
       <Navbar />
 

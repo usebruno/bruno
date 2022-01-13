@@ -5,6 +5,27 @@ const GlobalStyle = createGlobalStyle`
     background-color: #f6f8fa;
   }
 
+  .grafnode-form {
+    .textbox {
+      line-height: 1.42857143;
+      background-color: #fff;
+      background-image: none;
+      border: 1px solid #ccc;
+      padding: 0.45rem;
+      box-shadow: none;
+      border-radius: 0px;
+      outline: none;
+      box-shadow: none;
+      transition: border-color ease-in-out .1s;
+      border-radius: 3px;
+
+      &:focus {
+        border: solid 1px #8b8b8b !important;
+        outline: none !important;
+      }
+    }
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
