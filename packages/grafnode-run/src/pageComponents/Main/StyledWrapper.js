@@ -8,6 +8,7 @@ const Wrapper = styled.div`
 
   aside {
     min-width: 230px;
+    width: 230px;
     border-right: solid 1px #e1e1e1;
     background-color: #F6F8FA;
   }

@@ -25,8 +25,6 @@ const Wrapper = styled.div`
 
       .tab-container {
         border-left: 1px solid #dcdcdc;
-        padding-left: 12px;
-        padding-right: 12px;
       }
 
       &.active {
@@ -55,10 +53,13 @@ const Wrapper = styled.div`
         .close-icon {
           color: #9f9f9f;
           width: 8px;
+          padding-bottom: 3px;
+          padding-top: 3px;
         }
 
         &:hover .close-icon{
           color: rgb(142, 68, 173);
+          transform: scale(1.1);
         }
       }
 

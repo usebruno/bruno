@@ -45,20 +45,21 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
         <span className="ml-2">Collections</span>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
-            <div>
-              <div className="dropdown-item" onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setModalOpen(true);
-              }}>
-                Create Collection
-              </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+              setModalOpen(true);
+            }}>
+              Create Collection
             </div>
-            <div>
-              <div className="dropdown-item" onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-              }}>
-                Settings
-              </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+            }}>
+              Import Collection
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+            }}>
+              Settings
             </div>
           </Dropdown>
         </div>
