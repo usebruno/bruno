@@ -9,7 +9,7 @@ const Wrapper = styled.div`
     border-bottom: 1px solid #cfcfcf;
 
     li {
-      display: inline-block;
+      display: inline-flex;
       width: 150px;
       border: 1px solid transparent;
       border-bottom: none;
@@ -22,8 +22,10 @@ const Wrapper = styled.div`
       padding-right: 0;
       cursor: pointer;
       font-size: 0.8125rem;
+      height: 40px;
 
       .tab-container {
+        width: 100%;
         border-left: 1px solid #dcdcdc;
       }
 
@@ -49,17 +51,31 @@ const Wrapper = styled.div`
 
       .close-icon-container {
         min-height: 20px;
+        border-radius: 3px;
+        display: none;
 
         .close-icon {
           color: #9f9f9f;
           width: 8px;
-          padding-bottom: 3px;
-          padding-top: 3px;
+          padding-bottom: 6px;
+          padding-top: 6px;
         }
 
-        &:hover .close-icon{
-          color: rgb(142, 68, 173);
-          transform: scale(1.1);
+        &:hover, &:hover .close-icon {
+          background-color: #eaeaea;
+          color: rgb(76 76 76);
+        }
+      }
+
+      &.active {
+        .close-icon-container {
+          display: block;
+        }
+      }
+
+      &:hover{
+        .close-icon-container {
+          display: block;
         }
       }
 
