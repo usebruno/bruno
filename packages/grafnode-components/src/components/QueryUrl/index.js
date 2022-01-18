@@ -85,7 +85,8 @@ const QueryUrl = ({value, onChange, handleRun, collections}) => {
       <div className="flex items-center flex-grow input-container h-full">
         <input
           className="px-3 w-full"
-          type="text" value={value} onChange={(event) => onChange(event.target.value)}
+          type="text" defaultValue={value}
+          onChange={(event) => onChange(event.target.value)}
         />
       </div>
       <button

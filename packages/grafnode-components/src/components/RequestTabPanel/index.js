@@ -18,7 +18,6 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   }
 
   let asideWidth = 200;
-  let [url, setUrl] = useState('https://api.spacex.land/graphql');
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');
@@ -41,17 +40,25 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     e.preventDefault();
     setDragging(true);
   };
-  useEffect(() => {
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousemove', handleMouseMove);
+  // useEffect(() => {
+  //   document.addEventListener('mouseup', handleMouseUp);
+  //   document.addEventListener('mousemove', handleMouseMove);
 
-    return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [dragging, leftPaneWidth]);
+  //   return () => {
+  //     document.removeEventListener('mouseup', handleMouseUp);
+  //     document.removeEventListener('mousemove', handleMouseMove);
+  //   };
+  // }, [dragging, leftPaneWidth]);
 
-  const onUrlChange = (value) => setUrl(value);
+  const onUrlChange = (value) => {
+    dispatch({
+      type: actions.REQUEST_URL_CHANGED,
+      url: value,
+      requestTab: focusedTab,
+      collectionId: collection ? collection.id : null
+    });
+  };
+
   const onQueryChange = (value) => setQuery(value);
 
   if(!activeRequestTabId) {
@@ -97,7 +104,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
       >
         <div className="pt-2 text-gray-600">{item.name}</div>
         <QueryUrl
-          value = {url}
+          value = {item.request.url}
           onChange={onUrlChange}
           handleRun={runQuery}
           collections={collections}

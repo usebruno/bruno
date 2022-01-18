@@ -58,6 +58,21 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.REQUEST_URL_CHANGED: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.requestTab.id);
+          
+          if(item) {
+            item.request.url = action.url;
+          }
+        }
+      });
+    }
+
     case actions.ADD_NEW_HTTP_REQUEST: {
       return produce(state, (draft) => {
         const uid = nanoid();
