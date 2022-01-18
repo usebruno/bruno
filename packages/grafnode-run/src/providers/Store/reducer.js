@@ -66,6 +66,25 @@ const reducer = (state, action) => {
           name: 'New Tab',
           method: 'GET',
           request: {
+            type: 'http',
+            url: 'https://api.spacex.land/graphql/',
+            body: {}
+          },
+          collectionId: null
+        });
+        draft.activeRequestTabId = uid;
+      });
+    }
+
+    case actions.ADD_NEW_GQL_REQUEST: {
+      return produce(state, (draft) => {
+        const uid = nanoid();
+        draft.requestTabs.push({
+          id: uid,
+          name: 'New Tab',
+          method: 'GET',
+          request: {
+            type: 'graphql',
             url: 'https://api.spacex.land/graphql/',
             body: {
               graphql: {
@@ -79,13 +98,49 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.RESPONSE_RECEIVED: {
+    case actions.SEND_REQUEST: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.id === action.collectionId);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
           let item = findItem(flattenedItems, action.requestTab.id);
+          
+          if(item) {
+            item.response = item.response || {};
+            item.response.state = 'queued';
+            draft.requestQueuedToSend = {
+              collectionId: action.collectionId,
+              request: item
+            }
+          }
+        }
+      });
+    }
+
+    case actions.SENDING_REQUEST: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.request.id);
+          
+          if(item) {
+            item.response.state = 'sending';
+            draft.requestQueuedToSend = null;
+          }
+        }
+      });
+    }
+
+    case actions.RESPONSE_RECEIVED: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.request.id);
           
           if(item) {
             item.response = action.response;
@@ -122,6 +177,7 @@ const reducer = (state, action) => {
                 "depth": 2,
                 "name": "Capsules 2",
                 "request": {
+                  "type": "graphql",
                   "url": "https://api.spacex.land/graphql/",
                   "method": "POST",
                   "headers": [],

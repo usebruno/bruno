@@ -1,5 +1,6 @@
-import React, { useContext, useReducer, createContext } from 'react';
+import React, { useEffect, useContext, useReducer, createContext } from 'react';
 import reducer from './reducer';
+import { sendRequest } from '../../network';
 import { nanoid } from 'nanoid';
 
 export const StoreContext = createContext();
@@ -108,12 +109,24 @@ const collection2 = {
 
 const initialState = {
   collections: [collection, collection2],
-  activeRequestTabId: null,
+	activeRequestTabId: null,
+	requestQueuedToSend: null,
   requestTabs: []
 };
 
 export const StoreProvider = props => {
-  const [state, dispatch] = useReducer(reducer, initialState);
+	const [state, dispatch] = useReducer(reducer, initialState);
+	
+	useEffect(() => {
+		if(state.requestQueuedToSend) {
+			const {
+				request,
+				collectionId
+			} = state.requestQueuedToSend;
+	
+			sendRequest(request, collectionId, dispatch)
+		}
+	}, [state.requestQueuedToSend]);
 
   return <StoreContext.Provider value={[state, dispatch]} {...props} />;
 };

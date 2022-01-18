@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
-import { rawRequest, gql } from 'graphql-request';
 import QueryUrl from '../QueryUrl';
 import RequestPane from '../RequestPane';
 import ResponsePane from '../ResponsePane';
@@ -19,13 +18,11 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   }
 
   let asideWidth = 200;
-  let [data, setData] = useState({});
   let [url, setUrl] = useState('https://api.spacex.land/graphql');
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');
   let [query, setQuery] = useState('');
-  let [isLoading, setIsLoading] = useState(false);
   const [leftPaneWidth, setLeftPaneWidth] = useState(500);
   const [rightPaneWidth, setRightPaneWidth] = useState(window.innerWidth - 700 - asideWidth);
   const [dragging, setDragging] = useState(false);
@@ -83,33 +80,11 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   }
 
   const runQuery = async () => {
-    const query = gql`${item.request.body.graphql.query}`;
-
-    setIsLoading(true);
-    const timeStart = Date.now();
-    const { data, errors, extensions, headers, status } = await rawRequest(item.request.url, query);
-    const timeEnd = Date.now();
-    setData(data);
-    setIsLoading(false);
-    console.log(headers);
-
-    if(data && !errors) {
-      // todo: alternate way to calculate length when content length is not present
-      const size = headers.map["content-length"];
-
-      dispatch({
-        type: actions.RESPONSE_RECEIVED,
-        response: {
-          data: data,
-          headers: Object.entries(headers.map),
-          size: size,
-          status: status,
-          duration: timeEnd - timeStart
-        },
-        requestTab: focusedTab,
-        collectionId: collection.id
-      });
-    }
+    dispatch({
+      type: actions.SEND_REQUEST,
+      requestTab: focusedTab,
+      collectionId: collection ? collection.id : null
+    });
   };
 
   return (
@@ -148,7 +123,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
           <ResponsePane
             rightPaneWidth={rightPaneWidth}
             response={item.response}
-            isLoading={isLoading}
+            isLoading={item.response && item.response.state === 'sending' ? true : false}
           />
         </section>
       </section>

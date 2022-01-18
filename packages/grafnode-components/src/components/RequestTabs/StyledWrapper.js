@@ -22,7 +22,7 @@ const Wrapper = styled.div`
       padding-right: 0;
       cursor: pointer;
       font-size: 0.8125rem;
-      height: 40px;
+      height: 38px;
 
       .tab-container {
         width: 100%;
