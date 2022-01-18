@@ -23,7 +23,8 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
     setModalOpen(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (values) => {
+    console.log(values);
     setModalOpen(false);
   };
 
