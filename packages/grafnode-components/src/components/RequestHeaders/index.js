@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { nanoid } from 'nanoid';
+import { IconTrash } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const initialState = [{
@@ -37,10 +38,9 @@ const RequestHeaders = () => {
       <table>
         <thead>
           <tr>
-            <td></td>
-            <td>KEY</td>
-            <td>VALUE</td>
-            <td>DESCRIPTION</td>
+            <td>Key</td>
+            <td>Value</td>
+            <td>Description</td>
             <td></td>
           </tr>
         </thead>
@@ -50,16 +50,9 @@ const RequestHeaders = () => {
               <tr key={header.uid}>
                 <td>
                   <input
-                    type="checkbox"
-                    defaultChecked={header.enabled}
-                    name="enabled"
-                    onChange={(e) => handleHeaderValueChange(e, index, 'enabled')}
-                  />
-                </td>
-                <td>
-                  <input
                     type="text"
                     name="key"
+                    autocomplete="off"
                     defaultValue={headers[index].key}
                     onChange={(e) => handleHeaderValueChange(e, index, 'key')}
                   />
@@ -68,6 +61,7 @@ const RequestHeaders = () => {
                   <input
                     type="text"
                     name="value"
+                    autocomplete="off"
                     defaultValue={headers[index].value}
                     onChange={(e) => handleHeaderValueChange(e, index, 'value')}
                   />
@@ -76,14 +70,24 @@ const RequestHeaders = () => {
                   <input
                     type="text"
                     name="description"
+                    autocomplete="off"
                     defaultValue={headers[index].description}
                     onChange={(e) => handleHeaderValueChange(e, index, 'description')}
                   />
                 </td>
                 <td>
-                  <button onClick={() => handleRemoveHeader(index)}>
-                    remove
-                  </button>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      className="mr-3"
+                      defaultChecked={header.enabled}
+                      name="enabled"
+                      onChange={(e) => handleHeaderValueChange(e, index, 'enabled')}
+                    />
+                    <button onClick={() => handleRemoveHeader(index)}>
+                      <IconTrash strokeWidth={1.5} size={20}/>
+                    </button>
+                  </div>
                 </td>
               </tr>
             );

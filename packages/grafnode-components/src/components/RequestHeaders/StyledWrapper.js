@@ -11,7 +11,7 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: #777777;
+      color: #616161;
       font-size: 0.75rem;
     }
     td {
@@ -33,6 +33,10 @@ const Wrapper = styled.div`
       outline: none !important;
       border: solid 1px transparent;
     }
+  }
+
+  input[type="checkbox"] {
+    cursor: pointer;
   }
 `;
 
