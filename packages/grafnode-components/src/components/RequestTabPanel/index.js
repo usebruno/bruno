@@ -21,7 +21,6 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');
-  let [query, setQuery] = useState('');
   const [leftPaneWidth, setLeftPaneWidth] = useState(500);
   const [rightPaneWidth, setRightPaneWidth] = useState(window.innerWidth - 700 - asideWidth);
   const [dragging, setDragging] = useState(false);
@@ -59,7 +58,15 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     });
   };
 
-  const onQueryChange = (value) => setQuery(value);
+  const onGraphqlQueryChange = (value) => {
+    console.log(value);
+    dispatch({
+      type: actions.REQUEST_GQL_QUERY_CHANGED,
+      query: value,
+      requestTab: focusedTab,
+      collectionId: collection ? collection.id : null
+    });
+  };
 
   if(!activeRequestTabId) {
     return (
@@ -118,7 +125,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
               schema={schema}
               leftPaneWidth={leftPaneWidth}
               value={item.request.body.graphql.query}
-              onQueryChange={onQueryChange}
+              onQueryChange={onGraphqlQueryChange}
             />
           </div>
         </section>

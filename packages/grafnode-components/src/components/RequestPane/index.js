@@ -18,7 +18,7 @@ const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) 
             width={leftPaneWidth}
             value={value}
             onRunQuery={onRunQuery}
-            onChange={onQueryChange}
+            onEdit={onQueryChange}
           />
         </TabPanel>
         <TabPanel>

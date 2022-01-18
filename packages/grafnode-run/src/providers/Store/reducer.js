@@ -73,6 +73,21 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.REQUEST_GQL_QUERY_CHANGED: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+
+        if(collection) {
+          let flattenedItems = flattenItems(collection.items);
+          let item = findItem(flattenedItems, action.requestTab.id);
+          
+          if(item) {
+            item.request.body.graphql.query = action.query;
+          }
+        }
+      });
+    }
+
     case actions.ADD_NEW_HTTP_REQUEST: {
       return produce(state, (draft) => {
         const uid = nanoid();
