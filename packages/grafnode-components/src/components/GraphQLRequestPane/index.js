@@ -4,7 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import QueryEditor from '../QueryEditor';
 import RequestHeaders from '../RequestHeaders';
 
-const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
+const GraphQLRequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
   return (
     <StyledWrapper className="h-full">
       <Tabs className='react-tabs mt-1 flex flex-grow flex-col h-full' forceRenderTabPanel>
@@ -29,4 +29,4 @@ const RequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) 
   )
 };
 
-export default RequestPane;
+export default GraphQLRequestPane;

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import QueryUrl from '../QueryUrl';
-import RequestPane from '../RequestPane';
+import GraphQLRequestPane from '../GraphQLRequestPane';
+import HttpRequestPane from '../HttpRequestPane';
 import ResponsePane from '../ResponsePane';
 import Welcome from '../Welcome';
 import {
@@ -120,13 +121,21 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
       <section className="main flex flex-grow">
         <section className="request-pane px-4">
           <div style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}>
-            <RequestPane
-              onRunQuery={runQuery}
-              schema={schema}
-              leftPaneWidth={leftPaneWidth}
-              value={item.request.body.graphql.query}
-              onQueryChange={onGraphqlQueryChange}
-            />
+            {item.request.type === 'graphql' ? (
+              <GraphQLRequestPane
+                onRunQuery={runQuery}
+                schema={schema}
+                leftPaneWidth={leftPaneWidth}
+                value={item.request.body.graphql.query}
+                onQueryChange={onGraphqlQueryChange}
+              />
+            ) : null}
+
+            {item.request.type === 'http' ? (
+              <HttpRequestPane
+                leftPaneWidth={leftPaneWidth}
+              />
+            ) : null}
           </div>
         </section>
 
