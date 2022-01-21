@@ -21,6 +21,7 @@ const collection = {
           "depth": 2,
 					"name": "Capsules",
 					"request": {
+						"type": "graphql",
 						"url": "https://api.spacex.land/graphql/",
 						"method": "POST",
 						"headers": [],
@@ -39,6 +40,7 @@ const collection = {
           "depth": 2,
 					"name": "Missions",
 					"request": {
+						"type": "graphql",
 						"url": "https://api.spacex.land/graphql/",
 						"method": "POST",
 						"headers": [],
@@ -71,6 +73,7 @@ const collection2 = {
           "depth": 2,
 					"name": "Create",
 					"request": {
+						"type": "graphql",
 						"url": "https://api.spacex.land/graphql/",
 						"method": "POST",
 						"headers": [],
@@ -89,6 +92,7 @@ const collection2 = {
           "depth": 2,
 					"name": "Update",
 					"request": {
+						"type": "graphql",
 						"url": "https://api.spacex.land/graphql/",
 						"method": "POST",
 						"headers": [],

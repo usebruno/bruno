@@ -6,19 +6,19 @@ const Wrapper = styled.div`
   div.method-selector {
     border: solid 1px #cfcfcf;
     border-right: none;
-    background-color: #F6F8FA;
+    background-color: #f3f3f3;
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
   }
 
   div.input-container {
     border: solid 1px #cfcfcf;
-    background-color: #F6F8FA;
+    background-color: #f3f3f3;
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
 
     input {
-      background-color: #F6F8FA;
+      background-color: #f3f3f3;
       outline: none;
       box-shadow: none;
 

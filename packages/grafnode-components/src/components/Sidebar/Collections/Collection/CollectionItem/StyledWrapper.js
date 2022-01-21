@@ -21,7 +21,7 @@ const Wrapper = styled.div`
     }
 
     &:hover {
-      background: #f7f7f7;
+      background: #e7e7e7;
       .menu-icon {
         display: flex;
       }

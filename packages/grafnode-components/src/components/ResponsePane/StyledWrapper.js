@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
       border: none;
       border-bottom: solid 2px transparent;
       margin-right: 20px;
-      color: rgb(117 117 117);
+      color: rgb(125 125 125);
       cursor: pointer;
 
       &:focus, &:active, &:focus-within, &:focus-visible, &:target {

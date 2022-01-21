@@ -10,13 +10,12 @@ const StyledWrapper = styled.div`
     margin: 0;
 
     .react-tabs__tab {
-      font-size: 14px;
       padding: 6px 0px;
       border: none;
       user-select: none;
       border-bottom: solid 2px transparent;
-      margin-right: 20px;
-      color: rgb(117 117 117);
+      margin-right: 24px;
+      color: rgb(125 125 125);
       outline: none !important;
 
       &:focus, &:active, &:focus-within, &:focus-visible, &:target {

@@ -10,7 +10,9 @@ const HttpRequestPane = ({leftPaneWidth}) => {
       <Tabs className='react-tabs mt-1 flex flex-grow flex-col h-full' forceRenderTabPanel>
         <TabList>
           <Tab tabIndex="-1">Params</Tab>
+          <Tab tabIndex="-1">Body</Tab>
           <Tab tabIndex="-1">Headers</Tab>
+          <Tab tabIndex="-1">Authorization</Tab>
         </TabList>
         <TabPanel>
           <QueryParams />
