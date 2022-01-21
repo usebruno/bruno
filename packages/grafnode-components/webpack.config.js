@@ -47,9 +47,11 @@ module.exports = {
     'codemirror': 'codemirror',
     'graphql': 'graphql',
     'escape-html': 'escape-html',
+    'formik': 'formik',
     'markdown-it': 'markdown-it',
     'nanoid': 'nanoid',
-    'graphql-request': 'graphql-request'
+    'graphql-request': 'graphql-request',
+    'yup': 'yup'
   },
   plugins: [
     new MiniCssExtractPlugin()

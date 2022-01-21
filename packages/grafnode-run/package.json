@@ -32,6 +32,7 @@
     "codemirror": "^5.64.0",
     "codemirror-graphql": "^1.2.5",
     "escape-html": "^1.0.3",
+    "formik": "^2.2.9",
     "graphiql": "^1.5.9",
     "graphql": "^16.2.0",
     "graphql-request": "^3.7.0",
@@ -45,7 +46,8 @@
     "react-tabs": "^3.2.3",
     "sass": "^1.46.0",
     "styled-components": "^5.3.3",
-    "tailwindcss": "^2.2.19"
+    "tailwindcss": "^2.2.19",
+    "yup": "^0.32.11"
   },
   "devDependencies": {
     "babel-plugin-styled-components": "^2.0.2",
