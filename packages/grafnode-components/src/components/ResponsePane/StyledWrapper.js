@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
 
       &.active {
         color: #322e2c !important;
-        border-bottom: solid 2px #8e44ad !important;
+        border-bottom: solid 2px var(--color-tab-active-border) !important;
       }
     }
   }

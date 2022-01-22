@@ -90,7 +90,7 @@ const QueryUrl = ({value, onChange, handleRun, collections}) => {
         />
       </div>
       <button
-        style={{backgroundColor: '#8e44ad'}}
+        style={{backgroundColor: 'var(--color-brand)'}}
         className="flex items-center h-full text-white active:bg-blue-600 font-bold text-xs px-4 py-2 ml-2 uppercase rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
         onClick={handleRun}
       >

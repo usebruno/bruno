@@ -14,3 +14,9 @@ html, body {
 body {
   font-size: 0.875rem;
 }
+
+:root {
+  --color-brand: #546de5;
+  --color-sidebar-collection-item-focused-indent-border: #7b8de3;
+  --color-tab-active-border: #4d4d4d;
+}

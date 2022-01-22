@@ -32,11 +32,11 @@ const Wrapper = styled.div`
     }
 
     &.item-focused-in-tab {
-      background: #2383e0;
+      background: var(--color-brand);
       color: white;
 
       &:hover {
-        background: #2383e0 !important;
+        background: var(--color-brand) !important;
         color: white !important;
       }
 
@@ -45,7 +45,7 @@ const Wrapper = styled.div`
       }
 
       .indent-block {
-        border-right: solid 1px #6faaea;
+        border-right: solid 1px var(--color-sidebar-collection-item-focused-indent-border);
       }
     }
 
