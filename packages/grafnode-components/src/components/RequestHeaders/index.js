@@ -52,7 +52,7 @@ const RequestHeaders = () => {
                   <input
                     type="text"
                     name="key"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={headers[index].key}
                     onChange={(e) => handleHeaderValueChange(e, index, 'key')}
                   />
@@ -61,7 +61,7 @@ const RequestHeaders = () => {
                   <input
                     type="text"
                     name="value"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={headers[index].value}
                     onChange={(e) => handleHeaderValueChange(e, index, 'value')}
                   />
@@ -70,7 +70,7 @@ const RequestHeaders = () => {
                   <input
                     type="text"
                     name="description"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={headers[index].description}
                     onChange={(e) => handleHeaderValueChange(e, index, 'description')}
                   />

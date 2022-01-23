@@ -52,7 +52,7 @@ const QueryParams = () => {
                   <input
                     type="text"
                     name="key"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={params[index].key}
                     onChange={(e) => handleParamValueChange(e, index, 'key')}
                   />
@@ -61,7 +61,7 @@ const QueryParams = () => {
                   <input
                     type="text"
                     name="value"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={params[index].value}
                     onChange={(e) => handleParamValueChange(e, index, 'value')}
                   />
@@ -70,7 +70,7 @@ const QueryParams = () => {
                   <input
                     type="text"
                     name="description"
-                    autocomplete="off"
+                    autoComplete="off"
                     defaultValue={params[index].description}
                     onChange={(e) => handleParamValueChange(e, index, 'description')}
                   />
