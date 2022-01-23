@@ -25,6 +25,10 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
 
   const handleConfirm = (values) => {
     console.log(values);
+    dispatch({
+      name: values.collectionName,
+      type: actions.COLLECTION_CREATE
+    });
     setModalOpen(false);
   };
 

@@ -52,6 +52,18 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.COLLECTION_CREATE: {
+      return produce(state, (draft) => {
+        // todo: collection names must be unique across a user account
+        draft.collections = draft.collections || [];
+        draft.collections.push({
+          id: nanoid(),
+          name: action.name,
+          items: []
+        });
+      });
+    }
+
     case actions.REQUEST_TAB_CLICK: {
       return produce(state, (draft) => {
         draft.activeRequestTabId = action.requestTab.id;
