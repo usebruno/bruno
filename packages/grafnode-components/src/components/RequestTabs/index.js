@@ -60,9 +60,15 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
                   <span className="text-gray-700 ml-1 tab-name">{rt.name}</span>
                 </div>
                 <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e, rt)}>
-                  <svg focusable="false" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
-                    <path fill="currentColor" d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"></path>
-                  </svg>
+                  {!rt.hasChanges ? (
+                    <svg focusable="false"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
+                      <path fill="currentColor" d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"></path>
+                    </svg>
+                  ) : (
+                    <svg focusable="false" xmlns="http://www.w3.org/2000/svg" width="8" height="16" fill="#cc7b1b" class="has-changes-icon" viewBox="0 0 8 8">
+                      <circle cx="4" cy="4" r="3"/>
+                    </svg>
+                  ) }
                 </div>
               </div>
             </li>

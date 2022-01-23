@@ -27,6 +27,7 @@ const Wrapper = styled.div`
       .tab-container {
         width: 100%;
         border-left: 1px solid #dcdcdc;
+        border-right: 1px solid transparent;
       }
 
       &.active {
@@ -52,9 +53,9 @@ const Wrapper = styled.div`
       .close-icon-container {
         min-height: 20px;
         border-radius: 3px;
-        display: none;
 
         .close-icon {
+          display: none;
           color: #9f9f9f;
           width: 8px;
           padding-bottom: 6px;
@@ -65,16 +66,20 @@ const Wrapper = styled.div`
           background-color: #eaeaea;
           color: rgb(76 76 76);
         }
+
+        .has-changes-icon  {
+          height: 24px;
+        }
       }
 
       &.active {
-        .close-icon-container {
+        .close-icon-container .close-icon {
           display: block;
         }
       }
 
       &:hover{
-        .close-icon-container {
+        .close-icon-container .close-icon {
           display: block;
         }
       }

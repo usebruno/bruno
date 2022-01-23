@@ -8,7 +8,9 @@ import {
   flattenItems,
   findItem,
   isItemARequest,
-  itemIsOpenedInTabs
+  itemIsOpenedInTabs,
+  cloneItem,
+  updateRequestTabAsChanged
 } from './utils';
 
 const reducer = (state, action) => {
@@ -42,7 +44,8 @@ const reducer = (state, action) => {
                   id: item.id,
                   name: item.name,
                   method: item.request.method,
-                  collectionId: collection.id
+                  collectionId: collection.id,
+                  hasChanges: false
                 });
                 draft.activeRequestTabId = item.id;
               }
@@ -79,7 +82,11 @@ const reducer = (state, action) => {
           let item = findItem(flattenedItems, action.requestTab.id);
           
           if(item) {
-            item.request.url = action.url;
+            if(!item.draft) {
+              item.draft = cloneItem(item);
+            }
+            item.draft.request.url = action.url;
+            updateRequestTabAsChanged(draft.requestTabs, item.id);
           }
         }
       });

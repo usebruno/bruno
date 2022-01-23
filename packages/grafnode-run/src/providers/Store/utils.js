@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import find from 'lodash/find';
+import cloneDeep from 'lodash/cloneDeep';
 
 export const flattenItems = (items = []) => {
   const flattenedItems = [];
@@ -29,4 +30,15 @@ export const isItemARequest = (item) => {
 
 export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.id === item.id);
+};
+
+export const cloneItem = (item) => {
+  return cloneDeep(item);
+};
+
+export const updateRequestTabAsChanged = (requestTabs, itemId) => {
+  let currentTab = find(requestTabs, (rt) => rt.id == itemId);
+  if(currentTab) {
+    currentTab.hasChanges = true;
+  }
 };
