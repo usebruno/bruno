@@ -2,7 +2,8 @@ import { createGlobalStyle } from 'styled-components';
 
 const GlobalStyle = createGlobalStyle`
   .CodeMirror-gutters {
-    background-color: #f6f8fa;
+    background-color: var(--color-codemirror-background);
+    border-right: solid 1px var(--color-codemirror-border);
   }
 
   .grafnode-form {

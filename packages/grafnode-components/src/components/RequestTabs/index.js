@@ -49,7 +49,7 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
   };
 
   return (
-    <StyledWrapper className="mt-3 flex items-center">
+    <StyledWrapper className="mt-2 flex items-center">
       {requestTabs && requestTabs.length ? (
         <ul role="tablist">
           {requestTabs && requestTabs.length ? requestTabs.map((rt, index) => {

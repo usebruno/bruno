@@ -6,7 +6,7 @@ const Wrapper = styled.div`
     padding: 0;
     margin: 0 0 10px;
     padding-left: 1rem;
-    border-bottom: 1px solid #cfcfcf;
+    border-bottom: 1px solid var(--color-layout-border);
 
     li {
       display: inline-flex;
@@ -31,7 +31,7 @@ const Wrapper = styled.div`
       }
 
       &.active {
-        border-color: #cfcfcf;
+        border-color: var(--color-layout-border);
         background: #fff;
         border-radius: 5px 5px 0 0;
 

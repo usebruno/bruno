@@ -1,3 +1,15 @@
+
+:root {
+  --color-brand: #546de5;
+  --color-sidebar-collection-item-focused-indent-border: #7b8de3;
+  --color-sidebar-background: #f6f8fa;
+  --color-request-dragbar-background: #e2e2e2;
+  --color-tab-active-border: #4d4d4d;
+  --color-layout-border: #dedede;
+  --color-codemirror-border: #efefef;
+  --color-codemirror-background: #f6f8fa;
+}
+
 html, body {
   margin: 0;
   padding: 0;
@@ -15,8 +27,15 @@ body {
   font-size: 0.875rem;
 }
 
-:root {
-  --color-brand: #546de5;
-  --color-sidebar-collection-item-focused-indent-border: #7b8de3;
-  --color-tab-active-border: #4d4d4d;
+body::-webkit-scrollbar, .CodeMirror-vscrollbar::-webkit-scrollbar {
+  width: 0.6rem;
+}
+ 
+body::-webkit-scrollbar-track, .CodeMirror-vscrollbar::-webkit-scrollbar-track {
+  background-color: #f1f1f1;
+}
+ 
+body::-webkit-scrollbar-thumb, .CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
+  background-color: #cdcdcd;
+  border-radius: 5rem;
 }

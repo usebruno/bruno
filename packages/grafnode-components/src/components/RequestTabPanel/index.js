@@ -107,7 +107,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
       <div
         className="pb-4 px-4"
         style={{
-          borderBottom: 'solid 1px #e1e1e1'
+          borderBottom: 'solid 1px var(--color-layout-border)'
         }}
       >
         <div className="pt-2 text-gray-600">{item.name}</div>

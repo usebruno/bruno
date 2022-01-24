@@ -9,7 +9,7 @@ const Wrapper = styled.div`
   aside {
     min-width: 230px;
     width: 230px;
-    border-right: solid 1px #e1e1e1;
+    border-right: solid 1px var(--color-layout-border);
     background-color: #F6F8FA;
   }
 
@@ -25,7 +25,7 @@ const Wrapper = styled.div`
     width: 1px;
     padding: 0;
     cursor: col-resize;
-    background: #e1e1e1;
+    background: var(--color-request-dragbar-background);
 
     &:hover {
       background: silver;
