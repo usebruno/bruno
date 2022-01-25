@@ -37,7 +37,7 @@ const QueryResult = ({data, isLoading, width}) => {
   }, [editor.current, cmEditor, data]);
 
   return (
-    <StyledWrapper className="mt-4 w-full" style={{position: 'relative', height: '90%'}}>
+    <StyledWrapper className="mt-4 w-full">
       {isLoading && (
         <div className="overlay">
           <div style={{marginBottom: 15, fontSize: 26}}>
@@ -53,7 +53,7 @@ const QueryResult = ({data, isLoading, width}) => {
           </button>
         </div>
       )}
-      <div>
+      <div className="h-full">
         <textarea
           id="operation"
           style={{

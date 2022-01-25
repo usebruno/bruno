@@ -6,8 +6,8 @@ const ResponseTime = ({duration}) => {
 
   if(duration > 1000 ) { // duration greater than a second
     let seconds =  Math.floor(duration / 1000);
-    let decimal =  ((duration % 1000) / 1000).toFixed(2) * 100;
-    durationToDisplay = seconds + '.' +  decimal + 's';
+    let decimal =  ((duration % 1000) / 1000) * 100;
+    durationToDisplay = seconds + '.' +  decimal.toFixed(0) + 's';
   } else {
     durationToDisplay = duration + 'ms'
   }

@@ -50,9 +50,6 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .react-tabs__tab-panel--selected {
-    height: 90%;
-  }
 `;
 
 export default StyledWrapper;

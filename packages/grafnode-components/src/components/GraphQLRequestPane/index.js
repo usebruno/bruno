@@ -13,13 +13,15 @@ const GraphQLRequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryCh
           <Tab tabIndex="-1">Headers</Tab>
         </TabList>
         <TabPanel>
-          <QueryEditor
-            schema={schema}
-            width={leftPaneWidth}
-            value={value}
-            onRunQuery={onRunQuery}
-            onEdit={onQueryChange}
-          />
+          <div className="mt-4">
+            <QueryEditor
+              schema={schema}
+              width={leftPaneWidth}
+              value={value}
+              onRunQuery={onRunQuery}
+              onEdit={onQueryChange}
+            />
+          </div>
         </TabPanel>
         <TabPanel>
           <RequestHeaders />
