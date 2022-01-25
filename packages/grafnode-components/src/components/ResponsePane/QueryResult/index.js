@@ -15,7 +15,7 @@ const QueryResult = ({data, isLoading, width}) => {
         lineNumbers: true,
         matchBrackets: true,
         autoCloseBrackets: true,
-        mode: "application/json",
+        mode: "application/ld+json",
         foldGutter: true,
         gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
         lineWrapping: true
