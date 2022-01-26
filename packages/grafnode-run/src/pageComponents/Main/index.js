@@ -28,6 +28,7 @@ import 'codemirror-graphql/jump';
 import 'codemirror-graphql/mode';
 
 import 'codemirror/addon/fold/foldgutter.css';
+import 'codemirror/addon/dialog/dialog.css';
 import 'codemirror/addon/hint/show-hint.css';
 
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });

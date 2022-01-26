@@ -20,18 +20,6 @@ const Wrapper = styled.div`
     }
   }
 
-  div.drag-request {
-    display: flex;
-    width: 1px;
-    padding: 0;
-    cursor: col-resize;
-    background: var(--color-request-dragbar-background);
-
-    &:hover {
-      background: silver;
-    }
-  }
-
   .fw-600 {
     font-weight: 600;
   }

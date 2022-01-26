@@ -18,37 +18,41 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     return <div></div>;
   }
 
-  let asideWidth = 200;
+  let asideWidth = 230;
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');
-  const [leftPaneWidth, setLeftPaneWidth] = useState(500);
-  const [rightPaneWidth, setRightPaneWidth] = useState(window.innerWidth - 700 - asideWidth);
+  const [leftPaneWidth, setLeftPaneWidth] = useState((window.innerWidth - asideWidth)/2 - 10); // 10 is for dragbar
+  const [rightPaneWidth, setRightPaneWidth] = useState((window.innerWidth - asideWidth)/2);
+  console.log((window.innerWidth - asideWidth)/2);
   const [dragging, setDragging] = useState(false);
   const handleMouseMove = (e) => {
-    e.preventDefault();
     if(dragging) {
-      setLeftPaneWidth(e.clientX - asideWidth );
+      e.preventDefault();
+      setLeftPaneWidth(e.clientX - asideWidth);
       setRightPaneWidth(window.innerWidth - (e.clientX));
     }
   };
   const handleMouseUp = (e) => {
-    e.preventDefault();
-    setDragging(false);
+    if(dragging) {
+      e.preventDefault();
+      setDragging(false);
+    }
   };
-  const handleMouseDown = (e) => {
+  const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
   };
-  // useEffect(() => {
-  //   document.addEventListener('mouseup', handleMouseUp);
-  //   document.addEventListener('mousemove', handleMouseMove);
 
-  //   return () => {
-  //     document.removeEventListener('mouseup', handleMouseUp);
-  //     document.removeEventListener('mousemove', handleMouseMove);
-  //   };
-  // }, [dragging, leftPaneWidth]);
+  useEffect(() => {
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [dragging, leftPaneWidth]);
 
   const onUrlChange = (value) => {
     dispatch({
@@ -119,8 +123,11 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
         />
       </div>
       <section className="main flex flex-grow">
-        <section className="request-pane px-4">
-          <div style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}>
+        <section className="request-pane">
+          <div
+            className="px-4"
+            style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}
+          >
             {item.request.type === 'graphql' ? (
               <GraphQLRequestPane
                 onRunQuery={runQuery}
@@ -139,7 +146,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleMouseDown}>
+        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
         </div>
 
         <section className="response-pane px-4 flex-grow">
