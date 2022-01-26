@@ -149,7 +149,7 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
         <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
         </div>
 
-        <section className="response-pane px-4 flex-grow">
+        <section className="response-pane flex-grow">
           <ResponsePane
             rightPaneWidth={rightPaneWidth}
             response={item.response}

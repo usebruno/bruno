@@ -178,13 +178,6 @@ export default class QueryEditor extends React.Component {
     );
   }
 
-  /**
-   * Public API for retrieving the DOM client height for this component.
-   */
-  getClientHeight() {
-    return this._node && this._node.clientHeight;
-  }
-
   _onKeyUp = (_cm, event) => {
     if (AUTO_COMPLETE_AFTER_KEY.test(event.key) && this.editor) {
       this.editor.execCommand('autocomplete');

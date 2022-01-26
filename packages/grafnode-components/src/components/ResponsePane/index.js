@@ -43,7 +43,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full">
-      <div className="flex items-center tabs mt-1" role="tablist">
+      <div className="flex items-center px-3 tabs mt-1" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => setSelectedTab('response')}>Response</div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setSelectedTab('headers')}>Headers</div>
         {!isLoading ? (

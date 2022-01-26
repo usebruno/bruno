@@ -7,6 +7,10 @@ const StyledWrapper = styled.div`
     height: calc(100vh - 230px);
   }
 
+  textarea.cm-editor {
+    position: relative;
+  }
+
   div.overlay{
     position: absolute;
     top: 0;
