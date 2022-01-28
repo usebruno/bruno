@@ -10,22 +10,6 @@ const StyledWrapper = styled.div`
   textarea.cm-editor {
     position: relative;
   }
-
-  div.overlay{
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 9;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    text-align: center;
-    background: rgb(243 243 243 / 78%);
-  }
 `;
 
 export default StyledWrapper;

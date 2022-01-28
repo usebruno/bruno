@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import classnames from 'classnames';
 import QueryResult from './QueryResult';
+import Overlay from './Overlay';
 import ResponseHeaders from './ResponseHeaders';
 import StatusCode from './StatusCode';
 import ResponseTime from './ResponseTime';
@@ -41,8 +42,16 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
     }
   }
 
+  if(isLoading) {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <Overlay />
+      </StyledWrapper>
+    );
+  }
+
   return (
-    <StyledWrapper className="flex flex-col h-full">
+    <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex items-center px-3 tabs mt-1" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => setSelectedTab('response')}>Response</div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => setSelectedTab('headers')}>Headers</div>
