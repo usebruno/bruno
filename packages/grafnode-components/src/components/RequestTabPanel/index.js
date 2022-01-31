@@ -18,13 +18,12 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
     return <div></div>;
   }
 
-  let asideWidth = 230;
+  let asideWidth = 270;
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');
   const [leftPaneWidth, setLeftPaneWidth] = useState((window.innerWidth - asideWidth)/2 - 10); // 10 is for dragbar
   const [rightPaneWidth, setRightPaneWidth] = useState((window.innerWidth - asideWidth)/2);
-  console.log((window.innerWidth - asideWidth)/2);
   const [dragging, setDragging] = useState(false);
   const handleMouseMove = (e) => {
     if(dragging) {
@@ -64,7 +63,6 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   };
 
   const onGraphqlQueryChange = (value) => {
-    console.log(value);
     dispatch({
       type: actions.REQUEST_GQL_QUERY_CHANGED,
       query: value,

@@ -6,13 +6,6 @@ const Wrapper = styled.div`
   height: 100%;
   min-height: 100vh;
 
-  aside {
-    min-width: 230px;
-    width: 230px;
-    border-right: solid 1px var(--color-layout-border);
-    background-color: #F6F8FA;
-  }
-
   section.main {
     display: flex;
 

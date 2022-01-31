@@ -32,20 +32,14 @@ const Wrapper = styled.div`
     }
 
     &.item-focused-in-tab {
-      background: var(--color-brand);
-      color: white;
+      background: var(--color-sidebar-collection-item-active-background);
 
       &:hover {
-        background: var(--color-brand) !important;
-        color: white !important;
-      }
-
-      .menu-icon {
-        color: white !important;
+        background: var(--color-sidebar-collection-item-active-background) !important;
       }
 
       .indent-block {
-        border-right: solid 1px var(--color-sidebar-collection-item-focused-indent-border);
+        border-right: solid 1px var(--color-sidebar-collection-item-active-indent-border);
       }
     }
 

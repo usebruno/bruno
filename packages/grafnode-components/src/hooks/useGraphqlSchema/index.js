@@ -31,7 +31,6 @@ const useGraphqlSchema =(endpoint) => {
       })
       .catch((err) => {
         setError(err);
-        console.log(err);
       });
   }, []);
 

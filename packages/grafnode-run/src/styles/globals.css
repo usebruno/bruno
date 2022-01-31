@@ -1,14 +1,15 @@
 
 :root {
   --color-brand: #546de5;
-  --color-sidebar-collection-item-focused-indent-border: #7b8de3;
-  --color-sidebar-background: #f6f8fa;
+  --color-sidebar-collection-item-active-indent-border: #d0d0d0;
+  --color-sidebar-collection-item-active-background: #dddddd;
+  --color-sidebar-background: rgb(243, 243, 243);
   --color-request-dragbar-background: #e2e2e2;
   --color-request-dragbar-background-active: #bbb;
   --color-tab-active-border: #4d4d4d;
   --color-layout-border: #dedede;
   --color-codemirror-border: #efefef;
-  --color-codemirror-background: #f6f8fa;
+  --color-codemirror-background: rgb(243, 243, 243);
 }
 
 html, body {
