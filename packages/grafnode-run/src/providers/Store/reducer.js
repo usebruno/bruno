@@ -15,6 +15,14 @@ import {
 
 const reducer = (state, action) => {
   switch (action.type) {
+    case actions.IDB_CONNECTION_READY: {
+      return produce(state, (draft) => {
+        draft.idbConnection = action.connection;
+
+        console.log("here");
+      });
+    }
+
     case actions.SIDEBAR_COLLECTION_CLICK: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.id === action.id);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import Mousetrap from 'mousetrap';
 
 export const HotkeysContext = React.createContext();
@@ -17,7 +17,7 @@ export const HotkeysProvider = props => {
   }, []);
 
   return (
-    <HotkeysContext.Provider {...props}>
+    <HotkeysContext.Provider {...props} value='hotkey'>
       {props.children}
     </HotkeysContext.Provider>
   );

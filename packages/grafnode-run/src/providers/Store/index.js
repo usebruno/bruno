@@ -1,11 +1,10 @@
 import React, { useEffect, useContext, useReducer, createContext } from 'react';
 import reducer from './reducer';
+import useIdb from './useIdb';
 import { sendRequest } from '../../network';
 import { nanoid } from 'nanoid';
 
 export const StoreContext = createContext();
-
-const tabId1 = nanoid();
 
 const collection = {
   "id": nanoid(),
@@ -112,6 +111,7 @@ const collection2 = {
 };
 
 const initialState = {
+	idbConnection: null,
   collections: [collection, collection2],
 	activeRequestTabId: null,
 	requestQueuedToSend: null,
@@ -131,6 +131,8 @@ export const StoreProvider = props => {
 			sendRequest(request, collectionId, dispatch)
 		}
 	}, [state.requestQueuedToSend]);
+
+	useIdb(dispatch);
 
   return <StoreContext.Provider value={[state, dispatch]} {...props} />;
 };
