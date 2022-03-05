@@ -5,10 +5,20 @@
     "packages/grafnode-components",
     "packages/grafnode-www"
   ],
-  "main": "main.js",
+  "main": "main/index.js",
   "scripts": {
+    "clean": "rimraf dist renderer/.next renderer/out",
     "start": "electron .",
-    "watch": "nodemon --exec electron ."
+    "build": "next build renderer && next export renderer",
+    "pack-app": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "asar": true,
+    "files": [
+      "main",
+      "renderer/out"
+    ]
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
@@ -19,14 +29,21 @@
     "babel-loader": "^8.2.3",
     "css-loader": "^6.5.1",
     "electron": "^17.1.0",
+    "electron-builder": "^22.14.13",
     "file-loader": "^6.2.0",
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
     "lerna": "^4.0.0",
     "mini-css-extract-plugin": "^2.4.5",
-    "nodemon": "^2.0.15",
+    "next": "^12.1.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "style-loader": "^3.3.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
+  },
+  "dependencies": {
+    "electron-is-dev": "^2.0.0",
+    "electron-next": "^3.1.5"
   }
 }
