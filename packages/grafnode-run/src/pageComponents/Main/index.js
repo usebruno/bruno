@@ -31,6 +31,8 @@ import 'codemirror/addon/fold/foldgutter.css';
 import 'codemirror/addon/dialog/dialog.css';
 import 'codemirror/addon/hint/show-hint.css';
 
+import { IconStack, IconGitFork } from '@tabler/icons';
+
 const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });
 
 export default function Main() {
@@ -52,6 +54,12 @@ export default function Main() {
           activeRequestTabId={activeRequestTabId}
         />
         <section className='flex flex-grow flex-col'>
+          <div className="flex items-center" style={{"padding": "8px", "padding-bottom": "4px"}}>
+            <IconStack size={18} strokeWidth={1.5}/>
+            <span className="ml-2 mr-4 font-semibold">spacex</span>
+            <IconGitFork size={16} strokeWidth={1}/>
+            <span className="ml-1 text-xs">main</span>
+          </div>
           <RequestTabs
             requestTabs={requestTabs}
             actions={actions}

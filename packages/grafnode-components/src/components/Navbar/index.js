@@ -21,8 +21,8 @@ const Navbar = () => {
   return (
     <StyledWrapper className="px-2 py-2 flex items-center">
       <div>
-        <span className="ml-2">My Workspace</span>
-        <FontAwesomeIcon className="ml-2" icon={faCaretDown} style={{fontSize: 13}}/>
+        <span className="ml-2">Collections</span>
+        {/* <FontAwesomeIcon className="ml-2" icon={faCaretDown} style={{fontSize: 13}}/> */}
       </div>
       <div className="collection-dropdown flex flex-grow items-center justify-end">
         <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
