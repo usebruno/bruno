@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings, IconLayoutGrid, IconBuilding } from '@tabler/icons';
+import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings,IconBuilding } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const MenuBar = () => {
@@ -17,9 +17,6 @@ const MenuBar = () => {
         </div>
         <div className="menu-item">
           <IconUsers size={28} strokeWidth={1.5}/>
-        </div>
-        <div className="menu-item">
-          <IconLayoutGrid size={28} strokeWidth={1.5}/>
         </div>
       </div>
       <div className="flex flex-col flex-grow justify-end">

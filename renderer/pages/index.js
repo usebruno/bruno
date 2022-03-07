@@ -1,46 +1,20 @@
-import { useState, useEffect } from 'react'
+import Head from 'next/head';
+import Main from 'pageComponents/Main';
+import GlobalStyle from '../globalStyles';
 
-const Home = () => {
-  const [input, setInput] = useState('')
-  const [message, setMessage] = useState(null)
-
-  useEffect(() => {
-    const handleMessage = (event, message) => setMessage(message)
-    window.electron.message.on(handleMessage)
-
-    return () => {
-      window.electron.message.off(handleMessage)
-    }
-  }, [])
-
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    window.electron.message.send(input)
-    setMessage(null)
-  }
-
+export default function Home() {
   return (
     <div>
-      <h1>Hello Electron!</h1>
+      <Head>
+        <title>grafnode</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
 
-      {message && <p>{message}</p>}
+      <GlobalStyle />
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-      </form>
-
-      <style jsx>{`
-        h1 {
-          color: red;
-          font-size: 50px;
-        }
-      `}</style>
+      <main>
+        <Main />
+      </main>
     </div>
   )
 }
-
-export default Home;

@@ -1,10 +1,6 @@
 {
   "name": "grafnode",
   "private": true,
-  "workspaces": [
-    "packages/grafnode-components",
-    "packages/grafnode-www"
-  ],
   "main": "main/index.js",
   "scripts": {
     "clean": "rimraf dist renderer/.next renderer/out",
@@ -19,6 +15,37 @@
       "main",
       "renderer/out"
     ]
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.36",
+    "@fortawesome/free-solid-svg-icons": "^5.15.4",
+    "@fortawesome/react-fontawesome": "^0.1.16",
+    "@tabler/icons": "^1.46.0",
+    "@tippyjs/react": "^4.2.6",
+    "classnames": "^2.3.1",
+    "codemirror": "^5.64.0",
+    "codemirror-graphql": "^1.2.5",
+    "electron-is-dev": "^2.0.0",
+    "electron-next": "^3.1.5",
+    "escape-html": "^1.0.3",
+    "formik": "^2.2.9",
+    "graphiql": "^1.5.9",
+    "graphql": "^16.2.0",
+    "graphql-request": "^3.7.0",
+    "idb": "^7.0.0",
+    "immer": "^9.0.7",
+    "lodash": "^4.17.21",
+    "markdown-it": "^12.2.0",
+    "mousetrap": "^1.6.5",
+    "nanoid": "^3.1.30",
+    "next": "12.0.4",
+    "react": "17.0.2",
+    "react-dom": "17.0.2",
+    "react-tabs": "^3.2.3",
+    "sass": "^1.46.0",
+    "styled-components": "^5.3.3",
+    "tailwindcss": "^2.2.19",
+    "yup": "^0.32.11"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
@@ -41,9 +68,5 @@
     "style-loader": "^3.3.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"
-  },
-  "dependencies": {
-    "electron-is-dev": "^2.0.0",
-    "electron-next": "^3.1.5"
   }
 }

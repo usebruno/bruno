@@ -1,42 +1,43 @@
 import React from 'react';
-import dynamic from 'next/dynamic'
-import {
-  RequestTabs,
-  Sidebar
-} from '@grafnode/components';
+import RequestTabs from 'components/RequestTabs';
+import RequestTabPanel from 'components/RequestTabPanel';
+import Sidebar from 'components/Sidebar';
 import actions from 'providers/Store/actions';
 import { useStore } from '../../providers/Store/index';
 import StyledWrapper from './StyledWrapper';
 
-import 'codemirror/mode/javascript/javascript';
-import 'codemirror/addon/edit/matchbrackets';
-import 'codemirror/addon/fold/brace-fold';
-import 'codemirror/addon/fold/foldgutter';
-import 'codemirror/addon/hint/show-hint';
-import 'codemirror/keymap/sublime';
-import 'codemirror/addon/comment/comment';
-import 'codemirror/addon/edit/closebrackets';
-import 'codemirror/addon/search/search';
-import 'codemirror/addon/search/searchcursor';
-import 'codemirror/addon/search/jump-to-line';
-import 'codemirror/addon/dialog/dialog';
-
-import 'codemirror-graphql/hint';
-import 'codemirror-graphql/lint';
-import 'codemirror-graphql/info';
-import 'codemirror-graphql/jump';
-import 'codemirror-graphql/mode';
-
-import 'codemirror/addon/fold/foldgutter.css';
-import 'codemirror/addon/dialog/dialog.css';
-import 'codemirror/addon/hint/show-hint.css';
-
 import { IconStack, IconGitFork } from '@tabler/icons';
 
-const RequestTabPanel = dynamic(import('@grafnode/components').then(mod => mod.RequestTabPanel), { ssr: false });
+const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+if(!SERVER_RENDERED) {
+  require('codemirror/mode/javascript/javascript');
+  require('codemirror/mode/javascript/javascript');
+  require('codemirror/addon/edit/matchbrackets');
+  require('codemirror/addon/fold/brace-fold');
+  require('codemirror/addon/fold/foldgutter');
+  require('codemirror/addon/hint/show-hint');
+  require('codemirror/keymap/sublime');
+  require('codemirror/addon/comment/comment');
+  require('codemirror/addon/edit/closebrackets');
+  require('codemirror/addon/search/search');
+  require('codemirror/addon/search/searchcursor');
+  require('codemirror/addon/search/jump-to-line');
+  require('codemirror/addon/dialog/dialog');
+
+  require('codemirror-graphql/hint');
+  require('codemirror-graphql/lint');
+  require('codemirror-graphql/info');
+  require('codemirror-graphql/jump');
+  require('codemirror-graphql/mode');
+}
+
 
 export default function Main() {
   const [state, dispatch] = useStore();
+
+  if (SERVER_RENDERED) {
+    return null;
+  }
 
   const {
     collections,
@@ -54,7 +55,7 @@ export default function Main() {
           activeRequestTabId={activeRequestTabId}
         />
         <section className='flex flex-grow flex-col'>
-          <div className="flex items-center" style={{"padding": "8px", "padding-bottom": "4px"}}>
+          <div className="flex items-center" style={{padding: "8px", paddingBottom: "4px"}}>
             <IconStack size={18} strokeWidth={1.5}/>
             <span className="ml-2 mr-4 font-semibold">spacex</span>
             <IconGitFork size={16} strokeWidth={1}/>

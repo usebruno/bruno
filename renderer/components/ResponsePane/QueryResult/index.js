@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import * as CodeMirror from 'codemirror';
 import StyledWrapper from './StyledWrapper';
+
+let CodeMirror;
+const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+
+if (!SERVER_RENDERED) {
+  CodeMirror = require('codemirror');
+}
 
 const QueryResult = ({data, isLoading, width}) => {
   const [cmEditor, setCmEditor] = useState(null);

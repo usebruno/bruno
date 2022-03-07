@@ -6,11 +6,17 @@
  */
 
 import React from 'react';
-import CodeMirror from 'codemirror';
 import MD from 'markdown-it';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
+
+let CodeMirror;
+const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+
+if (!SERVER_RENDERED) {
+  CodeMirror = require('codemirror');
+}
 
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
@@ -202,6 +208,17 @@ export default class QueryEditor extends React.Component {
   };
 
   _onBeforeChange(_instance, change) {
+    const normalizeWhitespace = (line) => {
+      // Unicode whitespace characters that break the interface.
+      const invalidCharacters = Array.from({ length: 11 }, (_, i) => {
+        // \u2000 -> \u200a
+        return String.fromCharCode(0x2000 + i);
+      }).concat(['\u2028', '\u2029', '\u202f', '\u00a0']);
+
+      const sanitizeRegex = new RegExp('[' + invalidCharacters.join('') + ']', 'g');
+      return line.replace(sanitizeRegex, ' ');
+    };
+
     // The update function is only present on non-redo, non-undo events.
     if (change.origin === 'paste') {
       const text = change.text.map(normalizeWhitespace);

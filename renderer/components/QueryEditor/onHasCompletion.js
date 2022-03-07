@@ -9,9 +9,7 @@ import MD from 'markdown-it';
 
 import {
   GraphQLNonNull,
-  GraphQLList,
-  GraphQLType,
-  GraphQLField,
+  GraphQLList
 } from 'graphql';
 
 const md = new MD();
