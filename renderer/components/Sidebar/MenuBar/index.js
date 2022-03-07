@@ -1,4 +1,5 @@
 import React from 'react';
+import Link from 'next/link';
 import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings,IconBuilding } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
@@ -7,7 +8,9 @@ const MenuBar = () => {
     <StyledWrapper className="h-full flex flex-col">
       <div className="flex flex-col">
         <div className="menu-item active">
-          <IconCode size={28} strokeWidth={1.5}/>
+          <Link href="/">
+            <IconCode size={28} strokeWidth={1.5}/>
+          </Link>
         </div>
         <div className="menu-item">
           <IconStack size={28} strokeWidth={1.5}/>
@@ -25,7 +28,9 @@ const MenuBar = () => {
           <IconBuilding size={28} strokeWidth={1.5}/>
         </div> */}
         <div className="menu-item">
-          <IconUser size={28} strokeWidth={1.5}/>
+          <Link href="/login">
+            <IconUser size={28} strokeWidth={1.5}/>
+          </Link>
         </div>
         <div className="menu-item">
           <IconSettings size={28} strokeWidth={1.5}/>

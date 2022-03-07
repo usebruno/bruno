@@ -10,6 +10,7 @@
   --color-layout-border: #dedede;
   --color-codemirror-border: #efefef;
   --color-codemirror-background: rgb(243, 243, 243);
+  --color-text-link: #1663bb;
 }
 
 html, body {

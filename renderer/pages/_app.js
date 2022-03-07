@@ -1,5 +1,6 @@
 import { StoreProvider } from 'providers/Store';
 import { HotkeysProvider } from 'providers/Hotkeys';
+import { AuthProvider } from 'providers/Auth';
 
 import '../styles/globals.css'
 import 'tailwindcss/dist/tailwind.min.css';
@@ -20,11 +21,13 @@ function SafeHydrate({ children }) {
 function MyApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
-      <HotkeysProvider>
-        <StoreProvider>
-          <Component {...pageProps} />
-        </StoreProvider>
-      </HotkeysProvider>
+      <AuthProvider>
+        <HotkeysProvider>
+          <StoreProvider>
+            <Component {...pageProps} />
+          </StoreProvider>
+        </HotkeysProvider>
+      </AuthProvider>
     </SafeHydrate>
   );
 }

@@ -1,5 +1,6 @@
 import Head from 'next/head';
-import Main from 'pageComponents/Main';
+import Login from 'pageComponents/Login';
+import MenuBar from 'components/Sidebar/MenuBar';
 import GlobalStyle from '../globalStyles';
 
 export default function Home() {
@@ -13,7 +14,12 @@ export default function Home() {
       <GlobalStyle />
 
       <main>
-        <Main />
+        <div className="flex flex-row h-full">
+          <MenuBar />
+          <div className="flex flex-grow h-full">
+            <Login />
+          </div>
+        </div>
       </main>
     </div>
   );
