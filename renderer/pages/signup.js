@@ -1,9 +1,9 @@
 import Head from 'next/head';
-import Login from 'pageComponents/Login';
+import SignUp from 'pageComponents/SignUp';
 import MenuBar from 'components/Sidebar/MenuBar';
 import GlobalStyle from '../globalStyles';
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
     <div>
       <Head>
@@ -17,7 +17,7 @@ export default function LoginPage() {
         <div className="flex flex-row h-full">
           <MenuBar />
           <div className="flex flex-grow h-full">
-            <Login />
+            <SignUp />
           </div>
         </div>
       </main>
