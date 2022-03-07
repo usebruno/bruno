@@ -3,7 +3,7 @@ import * as Yup from 'yup';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from 'providers/Auth';
-import IdentityApi from 'api/identity';
+import AuthApi from 'api/auth';
 import { useFormik } from 'formik';
 import StyledWrapper from './StyledWrapper';
 
@@ -31,7 +31,7 @@ const Login = () => {
      }),
      onSubmit: (values, { resetForm }) => {
       setLoggingIn(true);
-      IdentityApi
+      AuthApi
         .login({
           email: values.email,
           password: values.password
@@ -54,7 +54,7 @@ const Login = () => {
   };
 
   if(currentUser) {
-    router.push('/home');
+    router.push('/');
     return null;
   };
 

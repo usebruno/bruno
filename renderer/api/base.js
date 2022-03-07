@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API
+  baseURL: process.env.NEXT_PUBLIC_GRAFNODE_SERVER_API
 });
 
 apiClient.interceptors.request.use((config) => {

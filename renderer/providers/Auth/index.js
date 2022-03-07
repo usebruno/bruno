@@ -1,6 +1,6 @@
 import React, { useEffect, useReducer } from 'react';
 import { useRouter } from 'next/router';
-import IdentityApi from 'api/identity';
+import AuthApi from 'api/auth';
 import reducer from './reducer';
 
 const AuthContext = React.createContext();
@@ -16,7 +16,7 @@ export const AuthProvider = props => {
   const [state, dispatch] = useReducer(reducer, initialState);
   
   useEffect(() => {
-    IdentityApi
+    AuthApi
       .whoami()
       .then((response) => {
         let data = response.data;
@@ -39,7 +39,7 @@ export const AuthProvider = props => {
 
   useEffect(() => {
     if(state.lastStateTransition === 'LOGIN_SUCCESS') {
-      router.push('/home');
+      router.push('/');
     }
     if(state.lastStateTransition === 'WHOAMI_ERROR') {
       // Todo: decide action

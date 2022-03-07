@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Link from 'next/link';
 import StyledWrapper from './StyledWrapper';
-import IdentityApi from 'api/identity';
+import AuthApi from 'api/auth';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useRouter } from 'next/router';
@@ -39,7 +39,7 @@ const SignUp = () => {
     }),
     onSubmit: (values, { resetForm }) => {
       setSigningUp(true);
-      IdentityApi
+      AuthApi
         .signup({
           name: values.name,
           email: values.email,
@@ -54,7 +54,7 @@ const SignUp = () => {
         .catch((error) => {
           setSigningUp(false);
           setErrorSigningUp(true);
-          setErrorMsg(error.message)
+          setErrorMsg(error.message || 'An error occured during signup')
         });
       setSigningUp(false);
     },
@@ -162,7 +162,7 @@ const SignUp = () => {
               </div>
             ) : 
               <div>
-                {errorSigningUp && errorMsg.length ? (
+                {errorSigningUp ? (
                   <div className="field-error error-msg mb-2 text-red-500 ml-1 mt-1">{errorMsg}</div>
                 ) : null}
                 <div className="text-center pt-4">
