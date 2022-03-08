@@ -97,6 +97,16 @@ const Wrapper = styled.div`
           padding: 3px 4px;
         }
 
+        > div.home-icon-container {
+          padding: 3px 7px;
+        }
+
+        &.choose-request {
+          > div {
+            padding: 3px 5px;
+          }
+        }
+
         svg {
           height: 22px;
         }

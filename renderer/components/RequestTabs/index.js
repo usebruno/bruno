@@ -1,5 +1,6 @@
 import React from 'react';
 import classnames from 'classnames';
+import { IconHome2 } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
@@ -52,6 +53,11 @@ const RequestTabs = ({actions, dispatch, activeRequestTabId, requestTabs}) => {
     <StyledWrapper className="mt-2 flex items-center">
       {requestTabs && requestTabs.length ? (
         <ul role="tablist">
+          <li className="select-none new-tab mr-1" onClick={createNewTab}>
+            <div className="flex items-center home-icon-container">
+              <IconHome2 size={18} strokeWidth={1.5}/>
+            </div>
+          </li>
           {requestTabs && requestTabs.length ? requestTabs.map((rt, index) => {
             return <li key={rt.id} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
               <div className="flex items-center justify-between tab-container px-1">
