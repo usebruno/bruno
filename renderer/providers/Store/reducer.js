@@ -18,8 +18,6 @@ const reducer = (state, action) => {
     case actions.IDB_CONNECTION_READY: {
       return produce(state, (draft) => {
         draft.idbConnection = action.connection;
-
-        console.log("here");
       });
     }
 

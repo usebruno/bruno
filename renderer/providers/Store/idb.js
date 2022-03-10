@@ -1,4 +1,4 @@
-export const saveCollectionToIdb = (connection, domain, collection) => {
+export const saveCollectionToIdb = (connection, collection) => {
   return new Promise((resolve, reject) => {
     connection
       .then((db) => {

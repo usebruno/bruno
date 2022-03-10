@@ -9,7 +9,7 @@ const useIdb = (dispatch) => {
       upgrade(db, oldVersion, newVersion, transaction) {
         switch(oldVersion) {
           case 0:
-            const collectionStore = db.createObjectStore('collection', { keyPath: 'id' });
+            const collectionStore = db.createObjectStore('collection', { keyPath: 'uid' });
             collectionStore.createIndex('transactionIdIndex', 'transaction_id');
         }
       }
