@@ -3,10 +3,8 @@ import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import actions from 'providers/Store/actions';
-import { useStore } from '../../providers/Store/index';
+import { useStore } from 'providers/Store';
 import StyledWrapper from './StyledWrapper';
-
-import { IconStack, IconGitFork } from '@tabler/icons';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if(!SERVER_RENDERED) {
@@ -55,18 +53,7 @@ export default function Main() {
           activeRequestTabId={activeRequestTabId}
         />
         <section className='flex flex-grow flex-col'>
-          <div className="flex items-center" style={{padding: "8px", paddingBottom: "4px"}}>
-            <IconStack size={18} strokeWidth={1.5}/>
-            <span className="ml-2 mr-4 font-semibold">spacex</span>
-            <IconGitFork size={16} strokeWidth={1}/>
-            <span className="ml-1 text-xs">main</span>
-          </div>
-          <RequestTabs
-            requestTabs={requestTabs}
-            actions={actions}
-            dispatch={dispatch}
-            activeRequestTabId={activeRequestTabId}
-          />
+          <RequestTabs/>
           <RequestTabPanel
             actions={actions}
             dispatch={dispatch}
