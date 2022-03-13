@@ -59,6 +59,7 @@ const TitleBar = ({dispatch, actions}) => {
     saveCollectionToIdb(store.idbConnection, newCollection)
       .then(() => console.log('Collection created'))
       .catch((err) => {
+        console.log(err);
         setShowToast({
           show: true,
           type: 'error',

@@ -1,15 +1,17 @@
-import React, { forwardRef, useRef } from 'react';
+import React, { useState, forwardRef, useRef } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import actions from 'providers/Store/actions'
 import { useStore } from 'providers/Store';
+import AddFolder from 'components/Sidebar/AddFolder';
 import CollectionItem from './CollectionItem';
 
 import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection}) => {
+  const [showAddFolderModal, setShowAddFolderModal] = useState(false);
   const [store, storeDispatch] = useStore();
 
   const {
@@ -42,17 +44,18 @@ const Collection = ({collection}) => {
     });
   };
 
-  const addFolder = () => {
-    storeDispatch({
-      type: actions.SIDEBAR_COLLECTION_ADD_FOLDER,
-      collectionUid: collection.uid
-    });
-  };
-
+  const hideAddFolderModal = () => setShowAddFolderModal(false);
   const collectionItems = get(collection, 'current.items');
 
   return (
     <StyledWrapper className="flex flex-col">
+      {showAddFolderModal && (
+        <AddFolder
+          collectionUid={collection.uid}
+          handleCancel={hideAddFolderModal}
+          handleClose={hideAddFolderModal}
+        />
+      )}
       <div className="flex py-1 collection-name items-center" onClick={handleClick}>
         <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
         <span className="ml-1">{collection.current.name}</span>
@@ -68,7 +71,7 @@ const Collection = ({collection}) => {
             <div>
               <div className="dropdown-item" onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                addFolder();
+                setShowAddFolderModal(true)
               }}>
                 Add Folder
               </div>

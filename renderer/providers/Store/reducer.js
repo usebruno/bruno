@@ -76,7 +76,7 @@ const reducer = (state, action) => {
         if(collection) {
           collection.current.items.push({
             "uid": nanoid(),
-            "name": "New Folder",
+            "name": action.folderName,
             "depth": 1,
             "items": []
           });

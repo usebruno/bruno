@@ -20,7 +20,8 @@ const useIdb = (dispatch) => {
         type: actions.IDB_CONNECTION_READY,
         connection: connection
       });
-    });
+    })
+    .catch((err) => console.log(err));
   }, []);
 };
 
