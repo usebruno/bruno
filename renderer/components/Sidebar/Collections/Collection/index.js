@@ -88,9 +88,6 @@ const Collection = ({collection}) => {
                 key={i.uid}
                 item={i}
                 collectionId={collection.id}
-                actions={actions}
-                dispatch={storeDispatch}
-                activeRequestTabId={activeRequestTabId}
               />
             }) : null}
           </div>

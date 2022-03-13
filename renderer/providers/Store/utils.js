@@ -42,3 +42,7 @@ export const updateRequestTabAsChanged = (requestTabs, itemId) => {
     currentTab.hasChanges = true;
   }
 };
+
+export const findCollectionByUid = (collections, collectionUid) => {
+  return find(collections, (c) => c.uid === collectionUid);
+};

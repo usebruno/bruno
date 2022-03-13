@@ -11,7 +11,8 @@ import {
   isItemARequest,
   itemIsOpenedInTabs,
   cloneItem,
-  updateRequestTabAsChanged
+  updateRequestTabAsChanged,
+  findCollectionByUid
 } from './utils';
 
 const reducer = (state, action) => {
@@ -42,7 +43,7 @@ const reducer = (state, action) => {
 
     case actions.SIDEBAR_COLLECTION_CLICK: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.id);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           collection.collapsed = !collection.collapsed;
@@ -52,7 +53,7 @@ const reducer = (state, action) => {
 
     case actions.SIDEBAR_COLLECTION_ITEM_CLICK: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -82,7 +83,7 @@ const reducer = (state, action) => {
 
     case actions.SIDEBAR_COLLECTION_ADD_FOLDER: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.uid === action.collectionUid);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           collection.current.items.push({
@@ -116,7 +117,7 @@ const reducer = (state, action) => {
 
     case actions.REQUEST_URL_CHANGED: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -135,7 +136,7 @@ const reducer = (state, action) => {
 
     case actions.REQUEST_GQL_QUERY_CHANGED: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -190,7 +191,7 @@ const reducer = (state, action) => {
 
     case actions.SEND_REQUEST: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -210,7 +211,7 @@ const reducer = (state, action) => {
 
     case actions.SENDING_REQUEST: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -226,7 +227,7 @@ const reducer = (state, action) => {
 
     case actions.RESPONSE_RECEIVED: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
@@ -254,7 +255,7 @@ const reducer = (state, action) => {
 
     case actions.ADD_REQUEST: {
       return produce(state, (draft) => {
-        const collection = find(draft.collections, (c) => c.id === action.collectionId);
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
