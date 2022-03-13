@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useContext, useReducer, createContext } from 'react';
-import map from 'lodash/map';
-import filter from 'lodash/filter';
+import { nanoid } from 'nanoid';
 import reducer from './reducer';
 import useIdb from './useIdb';
+import useLoadCollectionsFromIdb from './useLoadCollectionsFromIdb';
+import useSyncCollectionsToIdb from './useSyncCollectionsToIdb';
 import { sendRequest } from '../../network';
-import { nanoid } from 'nanoid';
 import actions from './actions';
-import {getCollectionsFromIdb, saveCollectionToIdb} from './idb';
 
 export const StoreContext = createContext();
 
@@ -125,7 +124,6 @@ const initialState = {
 
 export const StoreProvider = props => {
 	const [state, dispatch] = useReducer(reducer, initialState);
-	const [collectionsSyncingToIdb, setCollectionsSyncingToIdb] = useState(false);
 
 	const {
 		collections,
@@ -144,48 +142,9 @@ export const StoreProvider = props => {
 		}
 	}, [state.requestQueuedToSend]);
 
-	useEffect(() => {
-		if(idbConnection) {
-			getCollectionsFromIdb(idbConnection)
-				.then((collections) => {
-					dispatch({
-						type: actions.LOAD_COLLECTIONS_FROM_IDB,
-						collections: collections
-					});
-				})
-				.catch((err) => console.log(err));
-		}
-	}, [idbConnection]);
-
-	useEffect(() => {
-		if(collectionsSyncingToIdb) {
-			return;
-		}
-		if(collectionsToSyncToIdb && collectionsToSyncToIdb.length) {
-			setCollectionsSyncingToIdb(true);
-			const _collections = filter(collections, (c) => {
-				return collectionsToSyncToIdb.indexOf(c.uid) > -1;
-			});
-			dispatch({
-				type: actions.IDB_COLLECTIONS_SYNC_STARTED
-			});
-			saveCollectionToIdb(idbConnection, _collections)
-				.then(() => {
-					setCollectionsSyncingToIdb(false);
-				})
-				.catch((err) => {
-					setCollectionsSyncingToIdb(false);
-					dispatch({
-						type: actions.IDB_COLLECTIONS_SYNC_ERROR,
-						collectionUids: map(collections, (c) => c.uid)
-					});
-					console.log(err);
-				});
-			
-		}
-	}, [collectionsToSyncToIdb]);
-
 	useIdb(dispatch);
+	useLoadCollectionsFromIdb(idbConnection, dispatch);
+	useSyncCollectionsToIdb(collectionsToSyncToIdb, collections, idbConnection, dispatch);
 
   return <StoreContext.Provider value={[state, dispatch]} {...props} />;
 };
