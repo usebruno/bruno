@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import { IconHome2 } from '@tabler/icons';
 import { useStore } from 'providers/Store';
 import actions from 'providers/Store/actions';
-import CollectionTitleBar from './CollectionTitleBar';
+import CollectionToolBar from './CollectionToolBar';
 import StyledWrapper from './StyledWrapper';
 
 const RequestTabs = () => {
@@ -75,7 +75,7 @@ const RequestTabs = () => {
     <StyledWrapper>
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionTitleBar collection={activeCollection}/>
+          <CollectionToolBar collection={activeCollection}/>
           <div className="mt-1 flex items-center">
             <ul role="tablist">
               <li className="select-none new-tab mr-1" onClick={createNewTab}>

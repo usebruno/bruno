@@ -1,5 +1,5 @@
 import React, { forwardRef, useRef } from 'react';
-import { IconChevronRight, IconDots, IconWorld } from '@tabler/icons';
+import { IconChevronRight, IconDots } from '@tabler/icons';
 import CollectionItem from './CollectionItem';
 import Dropdown from '../../../Dropdown';
 import get from 'lodash/get';
@@ -9,14 +9,6 @@ import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection, actions, dispatch, activeRequestTabId}) => {
   const envDropdownTippyRef = useRef();
-  const onEnvDropdownCreate = (ref) => envDropdownTippyRef.current = ref;
-  const EnvIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="mr-2">
-        <IconWorld size={18} strokeWidth={1.5}/>
-      </div>
-    );
-  });
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
@@ -50,16 +42,6 @@ const Collection = ({collection, actions, dispatch, activeRequestTabId}) => {
         <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
         <span className="ml-1">{collection.name}</span>
         <div className="collection-actions">
-          <Dropdown onCreate={onEnvDropdownCreate} icon={<EnvIcon />} placement='bottom-start'>
-            <div>
-              <div className="dropdown-item" onClick={(e) => {
-                envDropdownTippyRef.current.hide();
-              }}>
-                No Environment Selected
-              </div>
-            </div>
-          </Dropdown>
-
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
             <div>
               <div className="dropdown-item" onClick={(e) => {
