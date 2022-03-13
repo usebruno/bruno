@@ -1,10 +1,12 @@
-import React, { useEffect, useContext, useReducer, createContext } from 'react';
+import React, { useState, useEffect, useContext, useReducer, createContext } from 'react';
+import map from 'lodash/map';
+import filter from 'lodash/filter';
 import reducer from './reducer';
 import useIdb from './useIdb';
 import { sendRequest } from '../../network';
 import { nanoid } from 'nanoid';
 import actions from './actions';
-import {getCollectionsFromIdb} from './idb';
+import {getCollectionsFromIdb, saveCollectionToIdb} from './idb';
 
 export const StoreContext = createContext();
 
@@ -117,14 +119,18 @@ const initialState = {
   collections: [],
 	activeRequestTabId: null,
 	requestQueuedToSend: null,
-  requestTabs: []
+	requestTabs: [],
+	collectionsToSyncToIdb: []
 };
 
 export const StoreProvider = props => {
 	const [state, dispatch] = useReducer(reducer, initialState);
+	const [collectionsSyncingToIdb, setCollectionsSyncingToIdb] = useState(false);
 
 	const {
-		idbConnection
+		collections,
+		idbConnection,
+		collectionsToSyncToIdb
 	} = state;
 	
 	useEffect(() => {
@@ -150,6 +156,34 @@ export const StoreProvider = props => {
 				.catch((err) => console.log(err));
 		}
 	}, [idbConnection]);
+
+	useEffect(() => {
+		if(collectionsSyncingToIdb) {
+			return;
+		}
+		if(collectionsToSyncToIdb && collectionsToSyncToIdb.length) {
+			setCollectionsSyncingToIdb(true);
+			const _collections = filter(collections, (c) => {
+				return collectionsToSyncToIdb.indexOf(c.uid) > -1;
+			});
+			dispatch({
+				type: actions.IDB_COLLECTIONS_SYNC_STARTED
+			});
+			saveCollectionToIdb(idbConnection, _collections)
+				.then(() => {
+					setCollectionsSyncingToIdb(false);
+				})
+				.catch((err) => {
+					setCollectionsSyncingToIdb(false);
+					dispatch({
+						type: actions.IDB_COLLECTIONS_SYNC_ERROR,
+						collectionUids: map(collections, (c) => c.uid)
+					});
+					console.log(err);
+				});
+			
+		}
+	}, [collectionsToSyncToIdb]);
 
 	useIdb(dispatch);
 

@@ -1,6 +1,7 @@
 import produce from 'immer';
 import {nanoid} from 'nanoid';
 import find from 'lodash/find';
+import union from 'lodash/union';
 import filter from 'lodash/filter';
 import last from 'lodash/last';
 import actions from './actions';
@@ -21,9 +22,20 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.IDB_COLLECTIONS_SYNC_STARTED: {
+      return produce(state, (draft) => {
+        draft.collectionsToSyncToIdb = [];
+      });
+    }
+
+    case actions.IDB_COLLECTIONS_SYNC_ERROR: {
+      return produce(state, (draft) => {
+        draft.collectionsToSyncToIdb = union(draft.collectionsToSyncToIdb, action.collectionUids);
+      });
+    }
+
     case actions.LOAD_COLLECTIONS_FROM_IDB: {
       return produce(state, (draft) => {
-        console.log(action.collections);
         draft.collections = action.collections;
       });
     }
@@ -71,7 +83,6 @@ const reducer = (state, action) => {
     case actions.SIDEBAR_COLLECTION_ADD_FOLDER: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.uid === action.collectionUid);
-        console.log(collection.current.items);
 
         if(collection) {
           collection.current.items.push({
@@ -80,6 +91,7 @@ const reducer = (state, action) => {
             "depth": 1,
             "items": []
           });
+          draft.collectionsToSyncToIdb.push(collection.uid);
         }
       });
     }
