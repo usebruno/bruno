@@ -33,8 +33,12 @@ const Collection = ({collection}) => {
   });
 
   const handleClick = (event) => {
-    let envTippyEl = get(menuDropdownTippyRef, 'current.reference');
-    if(envTippyEl && envTippyEl.contains && envTippyEl.contains(event.target)) {
+    let tippyEl = get(menuDropdownTippyRef, 'current.reference');
+    if(tippyEl && tippyEl.contains && tippyEl.contains(event.target)) {
+      return;
+    }
+
+    if(event && event.target && event.target.className === 'dropdown-item') {
       return;
     }
 
@@ -61,20 +65,16 @@ const Collection = ({collection}) => {
         <span className="ml-1">{collection.current.name}</span>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
-            <div>
-              <div className="dropdown-item" onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-              }}>
-                Add Request
-              </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+            }}>
+              Add Request
             </div>
-            <div>
-              <div className="dropdown-item" onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setShowAddFolderModal(true)
-              }}>
-                Add Folder
-              </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+              setShowAddFolderModal(true)
+            }}>
+              Add Folder
             </div>
           </Dropdown>
         </div>

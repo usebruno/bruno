@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 const Dropdown = ({icon, children, onCreate, placement}) => {
   return (
     <StyledWrapper className="dropdown">
-      <Tippy 
+      <Tippy
         content={children} 
         placement={placement || "bottom-end"}
         animation={false}

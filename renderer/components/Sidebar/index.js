@@ -12,7 +12,7 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
       <div className="flex flex-row h-full">
         <MenuBar />
 
-        <div>
+        <div className="flex flex-col flex-grow">
           <TitleBar
             actions={actions}
             dispatch={dispatch}
