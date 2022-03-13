@@ -5,7 +5,7 @@ import Modal from 'components/Modal';
 import actions from 'providers/Store/actions'
 import { useStore } from 'providers/Store';
 
-const AddFolder = ({collectionUid, handleCancel, handleClose}) => {
+const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
   const [store, storeDispatch] = useStore();
   const inputRef = useRef();
   const formik = useFormik({
@@ -40,8 +40,8 @@ const AddFolder = ({collectionUid, handleCancel, handleClose}) => {
   return (
     <Modal
       size="sm"
-      title='Add Folder'
-      confirmText='Add Folder'
+      title='New Folder'
+      confirmText='Create'
       handleConfirm={onSubmit}
       handleCancel={handleCancel}
     >
@@ -64,4 +64,4 @@ const AddFolder = ({collectionUid, handleCancel, handleClose}) => {
   );
 };
 
-export default AddFolder;
+export default NewFolder;

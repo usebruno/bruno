@@ -5,13 +5,13 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import actions from 'providers/Store/actions'
 import { useStore } from 'providers/Store';
-import AddFolder from 'components/Sidebar/AddFolder';
+import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 
 import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection}) => {
-  const [showAddFolderModal, setShowAddFolderModal] = useState(false);
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [store, storeDispatch] = useStore();
 
   const {
@@ -48,13 +48,13 @@ const Collection = ({collection}) => {
     });
   };
 
-  const hideAddFolderModal = () => setShowAddFolderModal(false);
+  const hideAddFolderModal = () => setShowNewFolderModal(false);
   const collectionItems = get(collection, 'current.items');
 
   return (
     <StyledWrapper className="flex flex-col">
-      {showAddFolderModal && (
-        <AddFolder
+      {showNewFolderModal && (
+        <NewFolder
           collectionUid={collection.uid}
           handleCancel={hideAddFolderModal}
           handleClose={hideAddFolderModal}
@@ -68,13 +68,13 @@ const Collection = ({collection}) => {
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
             }}>
-              Add Request
+              New Request
             </div>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
-              setShowAddFolderModal(true)
+              setShowNewFolderModal(true)
             }}>
-              Add Folder
+              New Folder
             </div>
           </Dropdown>
         </div>

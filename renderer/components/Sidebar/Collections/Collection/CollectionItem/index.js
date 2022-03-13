@@ -98,12 +98,12 @@ const CollectionItem = ({item, collectionId}) => {
                 dropdownTippyRef.current.hide();
                 addRequest();
               }}>
-                Add Request
+                New Request
               </div>
               <div className="dropdown-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
               }}>
-                Add Folder
+                New Folder
               </div>
               <div className="dropdown-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
