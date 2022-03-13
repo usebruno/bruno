@@ -1,9 +1,19 @@
 import React from 'react';
 import Link from 'next/link';
-import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings,IconBuilding } from '@tabler/icons';
+import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings, IconBuilding, IconChevronsLeft} from '@tabler/icons';
+import actions from 'providers/Store/actions';
+import { useStore } from 'providers/Store';
 import StyledWrapper from './StyledWrapper';
 
 const MenuBar = () => {
+  const [store, storeDispatch] = useStore();
+
+  const hideMenuBar = () => {
+    storeDispatch({
+      type: actions.TOGGLE_LEFT_MENUBAR
+    })
+  };
+
   return (
     <StyledWrapper className="h-full flex flex-col">
       <div className="flex flex-col">
@@ -34,6 +44,9 @@ const MenuBar = () => {
         </div>
         <div className="menu-item">
           <IconSettings size={28} strokeWidth={1.5}/>
+        </div>
+        <div className="menu-item" onClick={hideMenuBar}>
+          <IconChevronsLeft size={28} strokeWidth={1.5}/>
         </div>
       </div>
     </StyledWrapper>

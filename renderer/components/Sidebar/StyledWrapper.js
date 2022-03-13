@@ -1,9 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.aside`
-  min-width: 270px;
-  width: 270px;
-  /* background-color: #F6F8FA; */
   background-color: var(--color-sidebar-background);
 
   .collection-title {
