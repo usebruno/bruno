@@ -5,6 +5,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import actions from 'providers/Store/actions'
 import { useStore } from 'providers/Store';
+import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 
@@ -12,11 +13,8 @@ import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection}) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [store, storeDispatch] = useStore();
-
-  const {
-    activeRequestTabId
-  } = store;
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
@@ -48,25 +46,33 @@ const Collection = ({collection}) => {
     });
   };
 
-  const hideAddFolderModal = () => setShowNewFolderModal(false);
-  const collectionItems = get(collection, 'current.items');
+  const hideNewFolderModal = () => setShowNewFolderModal(false);
+  const hideNewRequestModal = () => setShowNewRequestModal(false);
 
   return (
     <StyledWrapper className="flex flex-col">
+      {showNewRequestModal && (
+        <NewRequest
+          collectionUid={collection.uid}
+          handleCancel={hideNewRequestModal}
+          handleClose={hideNewRequestModal}
+        />
+      )}
       {showNewFolderModal && (
         <NewFolder
           collectionUid={collection.uid}
-          handleCancel={hideAddFolderModal}
-          handleClose={hideAddFolderModal}
+          handleCancel={hideNewFolderModal}
+          handleClose={hideNewFolderModal}
         />
       )}
       <div className="flex py-1 collection-name items-center" onClick={handleClick}>
         <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
-        <span className="ml-1">{collection.current.name}</span>
+        <span className="ml-1">{collection.name}</span>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
+              setShowNewRequestModal(true)
             }}>
               New Request
             </div>
@@ -83,11 +89,11 @@ const Collection = ({collection}) => {
       <div>
         {collection.collapsed ? (
           <div>
-            {collectionItems && collectionItems.length ? collectionItems.map((i) => {
+            {collection.items && collection.items.length ? collection.items.map((i) => {
               return <CollectionItem
                 key={i.uid}
                 item={i}
-                collectionId={collection.id}
+                collectionUid={collection.uid}
               />
             }) : null}
           </div>

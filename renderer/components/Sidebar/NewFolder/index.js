@@ -21,7 +21,7 @@ const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
     }),
     onSubmit: (values) => {
       storeDispatch({
-        type: actions.SIDEBAR_COLLECTION_ADD_FOLDER,
+        type: actions.SIDEBAR_COLLECTION_NEW_FOLDER,
         collectionUid: collectionUid,
         folderName: values.folderName
       });

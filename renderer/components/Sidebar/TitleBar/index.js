@@ -2,13 +2,14 @@ import React, { useState, forwardRef, useRef } from 'react';
 import {nanoid} from 'nanoid';
 import Toast from 'components/Toast';
 import Dropdown from 'components/Dropdown';
+import actions from 'providers/Store/actions'
 import { saveCollectionToIdb } from 'providers/Store/idb';
 import { useStore } from 'providers/Store';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
-const TitleBar = ({dispatch, actions}) => {
+const TitleBar = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [store, storeDispatch] = useStore();
   const [showToast, setShowToast] = useState({show: false});
@@ -32,7 +33,6 @@ const TitleBar = ({dispatch, actions}) => {
     //   type: actions.COLLECTION_CREATE
     // });
     setModalOpen(false);
-    console.log(store.idbConnection);
     if(!store.idbConnection) {
       setShowToast({
         show: true,
@@ -42,18 +42,12 @@ const TitleBar = ({dispatch, actions}) => {
       return;
     }
 
-    const collectionUid = nanoid();
     const newCollection = {
-      uid: collectionUid,
-      base: null,
-      current: {
-        uid: collectionUid,
-        name: values.collectionName,
-        items: []
-      },
-      userId: null,
-      hasChangedSinceLastSync: false,
-      disableSync: true
+      uid: nanoid(),
+      name: values.collectionName,
+      items: [],
+      environments: [],
+      userId: null
     };
 
     saveCollectionToIdb(store.idbConnection, newCollection)
@@ -76,7 +70,7 @@ const TitleBar = ({dispatch, actions}) => {
           handleCancel={handleCancel}
           handleConfirm={handleConfirm}
           actions={actions}
-          dispatch={dispatch}
+          dispatch={storeDispatch}
         />
       ) : null}
 

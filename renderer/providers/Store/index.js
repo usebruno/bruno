@@ -116,7 +116,7 @@ const collection2 = {
 const initialState = {
 	idbConnection: null,
   collections: [],
-	activeRequestTabId: null,
+	activeRequestTabUid: null,
 	requestQueuedToSend: null,
 	requestTabs: [],
 	collectionsToSyncToIdb: []
@@ -135,10 +135,10 @@ export const StoreProvider = props => {
 		if(state.requestQueuedToSend) {
 			const {
 				request,
-				collectionId
+				collectionUid
 			} = state.requestQueuedToSend;
 	
-			sendRequest(request, collectionId, dispatch)
+			sendRequest(request, collectionUid, dispatch)
 		}
 	}, [state.requestQueuedToSend]);
 

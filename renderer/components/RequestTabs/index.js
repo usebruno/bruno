@@ -14,12 +14,12 @@ const RequestTabs = () => {
   const {
     collections,
     requestTabs,
-    activeRequestTabId
+    activeRequestTabUid
   } = store;
 
   const getTabClassname = (tab, index) => {
     return classnames("request-tab select-none", {
-      'active': tab.id === activeRequestTabId,
+      'active': tab.uid === activeRequestTabUid,
       'last-tab': requestTabs && requestTabs.length && (index === requestTabs.length - 1) 
     });
   };
@@ -62,21 +62,29 @@ const RequestTabs = () => {
     });
   };
 
-  if(!activeRequestTabId) {
+  if(!activeRequestTabUid) {
     return null;
   }
 
-  const activeRequestTab = find(requestTabs, (t) => t.id === activeRequestTabId);
-  const activeCollection = find(collections, (c) => c.id === activeRequestTab.collectionId);
-  const collectionRequestTabs = filter(requestTabs, (t) => t.collectionId === activeRequestTab.collectionId);
-  console.log(activeRequestTab);
+  const activeRequestTab = find(requestTabs, (t) => t.uid === activeRequestTabUid);
+  console.log(requestTabs);
+  if(!activeRequestTab) {
+    return (
+      <StyledWrapper>
+        Something went wrong!
+      </StyledWrapper>
+    );
+  }
+
+  const activeCollection = find(collections, (c) => c.uid === activeRequestTab.collectionUid);
+  const collectionRequestTabs = filter(requestTabs, (t) => t.collectionUid === activeRequestTab.collectionUid);
 
   return (
     <StyledWrapper>
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection}/>
-          <div className="mt-1 flex items-center">
+          <div className="flex items-center">
             <ul role="tablist">
               <li className="select-none new-tab mr-1" onClick={createNewTab}>
                 <div className="flex items-center home-icon-container">
@@ -84,7 +92,7 @@ const RequestTabs = () => {
                 </div>
               </li>
               {collectionRequestTabs && collectionRequestTabs.length ? collectionRequestTabs.map((rt, index) => {
-                return <li key={rt.id} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
+                return <li key={rt.uid} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
                   <div className="flex items-center justify-between tab-container px-1">
                     <div className="flex items-center tab-label pl-2">
                       <span className="tab-method" style={{color: getMethodColor(rt.method)}}>{rt.method}</span>

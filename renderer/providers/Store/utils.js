@@ -20,8 +20,8 @@ export const flattenItems = (items = []) => {
   return flattenedItems;
 };
 
-export const findItem = (items = [], itemId) => {
-  return find(items, (i) => i.id === itemId);
+export const findItem = (items = [], itemUid) => {
+  return find(items, (i) => i.uid === itemUid);
 };
 
 export const isItemARequest = (item) => {
@@ -29,15 +29,15 @@ export const isItemARequest = (item) => {
 };
 
 export const itemIsOpenedInTabs = (item, tabs) => {
-  return find(tabs, (t) => t.id === item.id);
+  return find(tabs, (t) => t.uid === item.uid);
 };
 
 export const cloneItem = (item) => {
   return cloneDeep(item);
 };
 
-export const updateRequestTabAsChanged = (requestTabs, itemId) => {
-  let currentTab = find(requestTabs, (rt) => rt.id == itemId);
+export const updateRequestTabAsChanged = (requestTabs, itemUid) => {
+  let currentTab = find(requestTabs, (rt) => rt.uid == itemUid);
   if(currentTab) {
     currentTab.hasChanges = true;
   }

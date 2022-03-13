@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
-import QueryUrl from '../QueryUrl';
-import GraphQLRequestPane from '../GraphQLRequestPane';
-import HttpRequestPane from '../HttpRequestPane';
-import ResponsePane from '../ResponsePane';
-import Welcome from '../Welcome';
+import { useStore } from 'providers/Store';
+import actions from 'providers/Store/actions';
+import QueryUrl from 'components/QueryUrl';
+import GraphQLRequestPane from 'components/GraphQLRequestPane';
+import HttpRequestPane from 'components/HttpRequestPane';
+import ResponsePane from 'components/ResponsePane';
+import Welcome from 'components/Welcome';
 import {
   flattenItems,
   findItem
@@ -13,10 +15,17 @@ import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
 
-const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, requestTabs}) => {
+const RequestTabPanel = () => {
   if(typeof window == 'undefined') {
     return <div></div>;
   }
+  const [store, storeDispatch] = useStore();
+
+  const {
+    collections,
+    requestTabs,
+    activeRequestTabUid
+  } = store;
 
   let asideWidth = 270;
   let {
@@ -54,32 +63,32 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   }, [dragging, leftPaneWidth]);
 
   const onUrlChange = (value) => {
-    dispatch({
+    storeDispatch({
       type: actions.REQUEST_URL_CHANGED,
       url: value,
       requestTab: focusedTab,
-      collectionId: collection ? collection.id : null
+      collectionUid: collection ? collection.uid : null
     });
   };
 
   const onGraphqlQueryChange = (value) => {
-    dispatch({
+    storeDispatch({
       type: actions.REQUEST_GQL_QUERY_CHANGED,
       query: value,
       requestTab: focusedTab,
-      collectionId: collection ? collection.id : null
+      collectionUid: collection ? collection.uid : null
     });
   };
 
-  if(!activeRequestTabId) {
+  if(!activeRequestTabUid) {
     return (
-      <Welcome dispatch={dispatch} actions={actions}/>
+      <Welcome dispatch={storeDispatch} actions={actions}/>
     );
   }
 
-  const focusedTab = find(requestTabs, (rt) => rt.id === activeRequestTabId);
+  const focusedTab = find(requestTabs, (rt) => rt.uid === activeRequestTabUid);
 
-  if(!focusedTab || !focusedTab.id) {
+  if(!focusedTab || !focusedTab.uid) {
     return (
       <div className="pb-4 px-4">An error occured!</div>
     );
@@ -88,19 +97,19 @@ const RequestTabPanel = ({dispatch, actions, collections, activeRequestTabId, re
   let collection;
   let item;
 
-  if(focusedTab.collectionId) {
-    collection = find(collections, (c) => c.id === focusedTab.collectionId);
+  if(focusedTab.collectionUid) {
+    collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
     let flattenedItems = flattenItems(collection.items);
-    item = findItem(flattenedItems, activeRequestTabId);
+    item = findItem(flattenedItems, activeRequestTabUid);
   } else {
     item = focusedTab;
   }
 
   const runQuery = async () => {
-    dispatch({
+    storeDispatch({
       type: actions.SEND_REQUEST,
       requestTab: focusedTab,
-      collectionId: collection ? collection.id : null
+      collectionUid: collection ? collection.uid : null
     });
   };
 

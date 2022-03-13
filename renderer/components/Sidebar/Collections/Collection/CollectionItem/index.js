@@ -9,11 +9,11 @@ import Dropdown from 'components/Dropdown';
 
 import StyledWrapper from './StyledWrapper';
 
-const CollectionItem = ({item, collectionId}) => {
+const CollectionItem = ({item, collectionUid}) => {
   const [store, storeDispatch] = useStore();
 
   const {
-    activeRequestTabId
+    activeRequestTabUid
   } = store;
 
   const dropdownTippyRef = useRef();
@@ -30,7 +30,7 @@ const CollectionItem = ({item, collectionId}) => {
   });
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
-    'item-focused-in-tab': item.id == activeRequestTabId
+    'item-focused-in-tab': item.uid == activeRequestTabUid
   });
 
   const handleClick = (event) => {
@@ -41,16 +41,16 @@ const CollectionItem = ({item, collectionId}) => {
 
     storeDispatch({
       type: actions.SIDEBAR_COLLECTION_ITEM_CLICK,
-      itemId: item.id,
-      collectionId: collectionId
+      itemUid: item.uid,
+      collectionUid: collectionUid
     });
   };
 
   const addRequest = () => {
     storeDispatch({
       type: actions.ADD_REQUEST,
-      itemId: item.id,
-      collectionId: collectionId
+      itemUid: item.uid,
+      collectionUid: collectionUid
     });
   };
 
@@ -124,9 +124,9 @@ const CollectionItem = ({item, collectionId}) => {
         <div>
           {item.items && item.items.length ? item.items.map((i) => {
             return <CollectionItem
-              key={i.id}
+              key={i.uid}
               item={i}
-              collectionId={collectionId}
+              collectionUid={collectionUid}
             />
           }) : null}
         </div>

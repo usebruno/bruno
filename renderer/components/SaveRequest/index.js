@@ -46,7 +46,7 @@ const SaveRequestButton = ({folders}) => {
           <div className="folder-list">
             {showFolders && showFolders.length ?  showFolders.map((folder) => (
                 <div 
-                  key={folder.id}
+                  key={folder.uid}
                   className="folder-name"
                   onClick={() => handleFolderClick(folder)}
                 >

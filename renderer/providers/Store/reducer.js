@@ -1,6 +1,5 @@
 import produce from 'immer';
 import {nanoid} from 'nanoid';
-import find from 'lodash/find';
 import union from 'lodash/union';
 import filter from 'lodash/filter';
 import last from 'lodash/last';
@@ -57,23 +56,23 @@ const reducer = (state, action) => {
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.itemId);
+          let item = findItem(flattenedItems, action.itemUid);
           
           if(item) {
             item.collapsed = !item.collapsed;
 
             if(isItemARequest(item)) {
               if(itemIsOpenedInTabs(item, draft.requestTabs)) {
-                draft.activeRequestTabId = item.id;
+                draft.activeRequestTabUid = item.uid;
               } else {
                 draft.requestTabs.push({
-                  id: item.id,
+                  uid: item.uid,
                   name: item.name,
                   method: item.request.method,
-                  collectionId: collection.id,
+                  collectionUid: collection.uid,
                   hasChanges: false
                 });
-                draft.activeRequestTabId = item.id;
+                draft.activeRequestTabUid = item.uid;
               }
             }
           }
@@ -81,16 +80,50 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.SIDEBAR_COLLECTION_ADD_FOLDER: {
+    case actions.SIDEBAR_COLLECTION_NEW_REQUEST: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);
 
         if(collection) {
-          collection.current.items.push({
-            "uid": nanoid(),
-            "name": action.folderName,
-            "depth": 1,
-            "items": []
+          const uid = nanoid();
+          const item = {
+            uid: uid,
+            name: action.requestName,
+            request: {
+              type: 'http',
+              method: 'GET',
+              url: 'https://reqbin.com/echo/get/json',
+              headers: [],
+              body: null
+            },
+            depth: 1
+          };
+          collection.items.push(item);
+
+          draft.requestTabs.push({
+            uid: item.uid,
+            name: item.name,
+            method: item.request.method,
+            collectionUid: collection.uid,
+            hasChanges: false
+          });
+          draft.activeRequestTabUid = uid;
+          draft.collectionsToSyncToIdb.push(collection.uid);
+        }
+      });
+    }
+
+    case actions.SIDEBAR_COLLECTION_NEW_FOLDER: {
+      return produce(state, (draft) => {
+        const collection = findCollectionByUid(draft.collections, action.collectionUid);
+
+        if(collection) {
+          collection.items.push({
+            uid: nanoid(),
+            name: action.folderName,
+            items: [],
+            // todo: this will be autoassigned
+            depth: 1
           });
           draft.collectionsToSyncToIdb.push(collection.uid);
         }
@@ -102,7 +135,7 @@ const reducer = (state, action) => {
         // todo: collection names must be unique across a user account
         draft.collections = draft.collections || [];
         draft.collections.push({
-          id: nanoid(),
+          uid: nanoid(),
           name: action.name,
           items: []
         });
@@ -111,7 +144,7 @@ const reducer = (state, action) => {
 
     case actions.REQUEST_TAB_CLICK: {
       return produce(state, (draft) => {
-        draft.activeRequestTabId = action.requestTab.id;
+        draft.activeRequestTabUid = action.requestTab.uid;
       });
     }
 
@@ -153,7 +186,7 @@ const reducer = (state, action) => {
       return produce(state, (draft) => {
         const uid = nanoid();
         draft.requestTabs.push({
-          id: uid,
+          uid: uid,
           name: 'New Tab',
           method: 'GET',
           request: {
@@ -161,9 +194,9 @@ const reducer = (state, action) => {
             url: 'https://api.spacex.land/graphql/',
             body: {}
           },
-          collectionId: null
+          collectionUid: null
         });
-        draft.activeRequestTabId = uid;
+        draft.activeRequestTabUid = uid;
       });
     }
 
@@ -171,7 +204,7 @@ const reducer = (state, action) => {
       return produce(state, (draft) => {
         const uid = nanoid();
         draft.requestTabs.push({
-          id: uid,
+          uid: uid,
           name: 'New Tab',
           method: 'GET',
           request: {
@@ -183,9 +216,9 @@ const reducer = (state, action) => {
               }
             }
           },
-          collectionId: null
+          collectionUid: null
         });
-        draft.activeRequestTabId = uid;
+        draft.activeRequestTabUid = uid;
       });
     }
 
@@ -201,7 +234,7 @@ const reducer = (state, action) => {
             item.response = item.response || {};
             item.response.state = 'queued';
             draft.requestQueuedToSend = {
-              collectionId: action.collectionId,
+              collectionUid: action.collectionUid,
               request: item
             }
           }
@@ -246,9 +279,9 @@ const reducer = (state, action) => {
 
         if(draft.requestTabs && draft.requestTabs.length) {
           // todo: closing tab needs to focus on the right adjacent tab
-          draft.activeRequestTabId = last(draft.requestTabs).id;
+          draft.activeRequestTabUid = last(draft.requestTabs).uid;
         } else {
-          draft.activeRequestTabId = null;
+          draft.activeRequestTabUid = null;
         }
       });
     }
@@ -264,7 +297,7 @@ const reducer = (state, action) => {
           if(item) {
             if(!isItemARequest(item)) {
               let newRequest =  {
-                "id": nanoid(),
+                "uid": nanoid(),
                 "depth": 2,
                 "name": "Capsules 2",
                 "request": {
@@ -282,13 +315,13 @@ const reducer = (state, action) => {
                 },
                 "response": null
               };
-              draft.activeRequestTabId = newRequest.id;
+              draft.activeRequestTabUid = newRequest.uid;
               item.items.push(newRequest);
               draft.requestTabs.push({
-                id: newRequest.id,
+                uid: newRequest.uid,
                 name: newRequest.name,
                 method: newRequest.request.method,
-                collectionId: collection.id
+                collectionUid: collection.id
               });
             }
           }

@@ -21,7 +21,7 @@ const EnvironmentSelector = () => {
   return (
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector pr-3">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-start'>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
           <div className="dropdown-item" onClick={() => {
             dropdownTippyRef.current.hide();
           }}>

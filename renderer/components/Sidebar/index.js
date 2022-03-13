@@ -5,18 +5,14 @@ import TitleBar from './TitleBar';
 import { IconSearch } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
-
+const Sidebar = () => {
   return (
     <StyledWrapper>
       <div className="flex flex-row h-full">
         <MenuBar />
 
         <div className="flex flex-col flex-grow">
-          <TitleBar
-            actions={actions}
-            dispatch={dispatch}
-          />
+          <TitleBar />
 
           <div className="mt-4 relative collection-filter px-2">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -33,12 +29,7 @@ const Sidebar = ({collections, actions, dispatch, activeRequestTabId}) => {
             />
           </div>
 
-          <Collections
-            collections={collections}
-            actions={actions}
-            dispatch={dispatch}
-            activeRequestTabId={activeRequestTabId}
-          />
+          <Collections />
         </div>
       </div>
     </StyledWrapper>
