@@ -13,7 +13,7 @@ export const saveCollectionToIdb = (connection, collection) => {
   });
 };
 
-export const getCollectionsFromIdb = (connection, domain) => {
+export const getCollectionsFromIdb = (connection) => {
   return new Promise((resolve, reject) => {
     connection
       .then((db) => {

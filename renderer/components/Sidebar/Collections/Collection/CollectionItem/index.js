@@ -1,15 +1,22 @@
 import React, { useRef, forwardRef } from 'react';
 import range from 'lodash/range';
 import get from 'lodash/get';
+import actions from 'providers/Store/actions'
+import { useStore } from 'providers/Store';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import classnames from 'classnames';
-import Dropdown from '../../../../Dropdown';
+import Dropdown from 'components/Dropdown';
 
 import StyledWrapper from './StyledWrapper';
 
-const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTabId}) => {
-  const dropdownTippyRef = useRef();
+const CollectionItem = ({item, collectionId}) => {
+  const [store, storeDispatch] = useStore();
 
+  const {
+    activeRequestTabId
+  } = store;
+
+  const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref}>
@@ -32,7 +39,7 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
       return;
     }
 
-    dispatch({
+    storeDispatch({
       type: actions.SIDEBAR_COLLECTION_ITEM_CLICK,
       itemId: item.id,
       collectionId: collectionId
@@ -40,7 +47,7 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
   };
 
   const addRequest = () => {
-    dispatch({
+    storeDispatch({
       type: actions.ADD_REQUEST,
       itemId: item.id,
       collectionId: collectionId
@@ -48,7 +55,6 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
   };
 
   let indents = range(item.depth);
-
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
 
   return (
@@ -121,9 +127,6 @@ const CollectionItem = ({item, collectionId, actions, dispatch, activeRequestTab
               key={i.id}
               item={i}
               collectionId={collectionId}
-              actions={actions}
-              dispatch={dispatch}
-              activeRequestTabId={activeRequestTabId}
             />
           }) : null}
         </div>

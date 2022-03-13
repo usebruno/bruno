@@ -29,6 +29,12 @@ const Wrapper = styled.div`
         display: flex;
       }
     }
+
+    div.tippy-box {
+      position: relative;
+      top: -0.625rem;
+      font-weight: 400;
+    }
   }
 `;
 

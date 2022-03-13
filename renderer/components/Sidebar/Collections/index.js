@@ -7,7 +7,7 @@ const Collections = ({collections, actions, dispatch, activeRequestTabId}) => {
       {collections && collections.length ? collections.map((c) => {
         return <Collection
           collection={c}
-          key={c.id}
+          key={c.uid}
           actions={actions}
           dispatch={dispatch}
           activeRequestTabId={activeRequestTabId}

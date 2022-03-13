@@ -3,6 +3,8 @@ import reducer from './reducer';
 import useIdb from './useIdb';
 import { sendRequest } from '../../network';
 import { nanoid } from 'nanoid';
+import actions from './actions';
+import {getCollectionsFromIdb} from './idb';
 
 export const StoreContext = createContext();
 
@@ -112,7 +114,7 @@ const collection2 = {
 
 const initialState = {
 	idbConnection: null,
-  collections: [collection, collection2],
+  collections: [],
 	activeRequestTabId: null,
 	requestQueuedToSend: null,
   requestTabs: []
@@ -120,6 +122,10 @@ const initialState = {
 
 export const StoreProvider = props => {
 	const [state, dispatch] = useReducer(reducer, initialState);
+
+	const {
+		idbConnection
+	} = state;
 	
 	useEffect(() => {
 		if(state.requestQueuedToSend) {
@@ -131,6 +137,19 @@ export const StoreProvider = props => {
 			sendRequest(request, collectionId, dispatch)
 		}
 	}, [state.requestQueuedToSend]);
+
+	useEffect(() => {
+		if(idbConnection) {
+			getCollectionsFromIdb(idbConnection)
+				.then((collections) => {
+					dispatch({
+						type: actions.LOAD_COLLECTIONS_FROM_IDB,
+						collections: collections
+					});
+				})
+				.catch((err) => console.log(err));
+		}
+	}, [idbConnection]);
 
 	useIdb(dispatch);
 

@@ -47,11 +47,13 @@ const TitleBar = ({dispatch, actions}) => {
       uid: collectionUid,
       base: null,
       current: {
-        id: collectionUid,
+        uid: collectionUid,
         name: values.collectionName,
         items: []
       },
-      requestSync: true
+      userId: null,
+      hasChangedSinceLastSync: false,
+      disableSync: true
     };
 
     saveCollectionToIdb(store.idbConnection, newCollection)

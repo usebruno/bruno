@@ -21,6 +21,13 @@ const reducer = (state, action) => {
       });
     }
 
+    case actions.LOAD_COLLECTIONS_FROM_IDB: {
+      return produce(state, (draft) => {
+        console.log(action.collections);
+        draft.collections = action.collections;
+      });
+    }
+
     case actions.SIDEBAR_COLLECTION_CLICK: {
       return produce(state, (draft) => {
         const collection = find(draft.collections, (c) => c.id === action.id);
@@ -57,6 +64,22 @@ const reducer = (state, action) => {
               }
             }
           }
+        }
+      });
+    }
+
+    case actions.SIDEBAR_COLLECTION_ADD_FOLDER: {
+      return produce(state, (draft) => {
+        const collection = find(draft.collections, (c) => c.uid === action.collectionUid);
+        console.log(collection.current.items);
+
+        if(collection) {
+          collection.current.items.push({
+            "uid": nanoid(),
+            "name": "New Folder",
+            "depth": 1,
+            "items": []
+          });
         }
       });
     }
