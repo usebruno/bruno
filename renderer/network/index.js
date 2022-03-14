@@ -17,6 +17,7 @@ const sendRequest = async (item, collectionUid, dispatch) => {
         dispatch({
           type: actions.RESPONSE_RECEIVED,
           response: {
+            state: 'success',
             data: response.data,
             headers: Object.entries(response.headers),
             size: response.headers["content-length"],

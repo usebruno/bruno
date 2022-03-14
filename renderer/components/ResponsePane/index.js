@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import classnames from 'classnames';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
+import Placeholder from './Placeholder';
 import ResponseHeaders from './ResponseHeaders';
 import StatusCode from './StatusCode';
 import ResponseTime from './ResponseTime';
@@ -46,6 +47,14 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
     return (
       <StyledWrapper className="flex h-full relative">
         <Overlay />
+      </StyledWrapper>
+    );
+  }
+
+  if(response.state !== 'success') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <Placeholder />
       </StyledWrapper>
     );
   }
