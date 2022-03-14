@@ -6,6 +6,7 @@ import { useStore } from 'providers/Store';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import classnames from 'classnames';
 import Dropdown from 'components/Dropdown';
+import RequestMethod from './RequestMethod';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -90,7 +91,10 @@ const CollectionItem = ({item, collectionUid}) => {
               ) : null}
             </div>
             
-            <span className="ml-1">{item.name}</span>
+            <div className="ml-1 flex items-center">
+              <RequestMethod item={item}/>
+              {item.name}
+            </div>
           </div>
           <div className="menu-icon pr-2">
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>

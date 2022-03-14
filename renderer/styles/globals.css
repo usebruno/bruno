@@ -11,6 +11,11 @@
   --color-codemirror-border: #efefef;
   --color-codemirror-background: rgb(243, 243, 243);
   --color-text-link: #1663bb;
+  --color-method-get: rgb(5, 150, 105);
+  --color-method-post: #8e44ad;
+  --color-method-put: #8e44ad;
+  --color-method-delete: #8e44ad;
+  --color-method-patch: #8e44ad;
 }
 
 html, body {
