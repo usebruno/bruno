@@ -27,7 +27,6 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
           <QueryResult
             width={rightPaneWidth}
             data={response.data}
-            isLoading={isLoading}
           />
         );
       }

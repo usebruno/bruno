@@ -8,7 +8,7 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 }
 
-const QueryResult = ({data, isLoading, width}) => {
+const QueryResult = ({data, width}) => {
   const [cmEditor, setCmEditor] = useState(null);
   const editor = useRef();
 
@@ -28,7 +28,7 @@ const QueryResult = ({data, isLoading, width}) => {
       setCmEditor(_cmEditor);
     }
 
-    if(editor.current && cmEditor && data && !isLoading) {
+    if(editor.current && cmEditor && data) {
       cmEditor.setValue(JSON.stringify(data, null, 2));
     }
 
