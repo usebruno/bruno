@@ -18,6 +18,10 @@ const Wrapper = styled.div`
 
     td {
       padding: 6px 10px;
+
+      &.value {
+        word-break: break-all;
+      }
     }
   }
 `;

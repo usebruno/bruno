@@ -1,7 +1,55 @@
 import actions from '../providers/Store/actions';
 import { rawRequest, gql } from 'graphql-request';
 
-const sendRequest = async (request, collectionId, dispatch) => {
+const sendRequest = async (item, collectionUid, dispatch) => {
+  if(item.type === 'http-request') {
+    dispatch({
+      type: actions.SENDING_REQUEST,
+      collectionUid: collectionUid,
+      itemUid: item.uid
+    });
+
+    const timeStart = Date.now();
+    sendHttpRequest(item.request)
+      .then((response) => {
+        console.log(response);
+        const timeEnd = Date.now();
+        dispatch({
+          type: actions.RESPONSE_RECEIVED,
+          response: {
+            data: response.data,
+            headers: Object.entries(response.headers),
+            size: response.headers["content-length"],
+            status: response.status,
+            duration: timeEnd - timeStart
+          },
+          collectionUid: collectionUid,
+          itemUid: item.uid
+        });
+      })
+      .catch((err) => console.log(err));
+  }
+};
+
+const sendHttpRequest = async (request) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window.require("electron");
+
+    console.log(request);
+
+    let options = {
+      method: request.method,
+      url: request.url,
+    };
+
+    ipcRenderer
+      .invoke('send-http-request', options)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+const sendGraphqlRequest = async (request, collectionId, dispatch) => {
   dispatch({
     type: actions.SENDING_REQUEST,
     request: request,
@@ -34,5 +82,6 @@ const sendRequest = async (request, collectionId, dispatch) => {
 };
 
 export {
-  sendRequest
+  sendRequest,
+  sendGraphqlRequest
 };

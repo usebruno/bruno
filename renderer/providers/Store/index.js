@@ -5,7 +5,6 @@ import useIdb from './useIdb';
 import useLoadCollectionsFromIdb from './useLoadCollectionsFromIdb';
 import useSyncCollectionsToIdb from './useSyncCollectionsToIdb';
 import { sendRequest } from '../../network';
-import actions from './actions';
 
 export const StoreContext = createContext();
 

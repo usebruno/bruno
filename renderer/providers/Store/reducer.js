@@ -89,8 +89,8 @@ const reducer = (state, action) => {
           const item = {
             uid: uid,
             name: action.requestName,
+            type: 'http-request',
             request: {
-              type: 'http',
               method: 'GET',
               url: 'https://reqbin.com/echo/get/json',
               headers: [],
@@ -188,9 +188,9 @@ const reducer = (state, action) => {
         draft.requestTabs.push({
           uid: uid,
           name: 'New Tab',
-          method: 'GET',
+          type: 'http-request',
           request: {
-            type: 'http',
+            method: 'GET',
             url: 'https://api.spacex.land/graphql/',
             body: {}
           },
@@ -206,9 +206,9 @@ const reducer = (state, action) => {
         draft.requestTabs.push({
           uid: uid,
           name: 'New Tab',
-          method: 'GET',
+          type: 'graphql-request',
           request: {
-            type: 'graphql',
+            method: 'GET',
             url: 'https://api.spacex.land/graphql/',
             body: {
               graphql: {
@@ -228,7 +228,7 @@ const reducer = (state, action) => {
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.requestTab.id);
+          let item = findItem(flattenedItems, action.requestTab.uid);
           
           if(item) {
             item.response = item.response || {};
@@ -245,14 +245,18 @@ const reducer = (state, action) => {
     case actions.SENDING_REQUEST: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);
+        console.log('collection');
+        console.log(collection);
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.request.id);
+          let item = findItem(flattenedItems, action.itemUid);
+          console.log('citemllection');
+          console.log(item);
           
           if(item) {
+            item.response = item.response || {};
             item.response.state = 'sending';
-            draft.requestQueuedToSend = null;
           }
         }
       });
@@ -264,7 +268,7 @@ const reducer = (state, action) => {
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.request.id);
+          let item = findItem(flattenedItems, action.itemUid);
           
           if(item) {
             item.response = action.response;
@@ -300,8 +304,8 @@ const reducer = (state, action) => {
                 "uid": nanoid(),
                 "depth": 2,
                 "name": "Capsules 2",
+                "type": "graphql-request",
                 "request": {
-                  "type": "graphql",
                   "url": "https://api.spacex.land/graphql/",
                   "method": "POST",
                   "headers": [],

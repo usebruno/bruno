@@ -46,3 +46,13 @@ ipcMain.handle('grafnode-account-request', async (_, request) => {
   const result = await axios(request)
   return { data: result.data, status: result.status }
 })
+
+// handler for sending http request
+ipcMain.handle('send-http-request', async (_, request) => {
+  const result = await axios(request)
+  return {
+    status: result.status,
+    headers: result.headers,
+    data: result.data
+  };
+})

@@ -11,6 +11,7 @@ import {
   flattenItems,
   findItem
 } from '../../utils';
+import { sendRequest } from '../../network';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -88,22 +89,21 @@ const RequestTabPanel = () => {
 
   const focusedTab = find(requestTabs, (rt) => rt.uid === activeRequestTabUid);
 
-  if(!focusedTab || !focusedTab.uid) {
+  if(!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
     return (
       <div className="pb-4 px-4">An error occured!</div>
     );
   }
 
-  let collection;
-  let item;
-
-  if(focusedTab.collectionUid) {
-    collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
-    let flattenedItems = flattenItems(collection.items);
-    item = findItem(flattenedItems, activeRequestTabUid);
-  } else {
-    item = focusedTab;
+  let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
+  if(!collection || !collection.uid) {
+    return (
+      <div className="pb-4 px-4">Collection not found!</div>
+    );
   }
+
+  let flattenedItems = flattenItems(collection.items);
+  let item = findItem(flattenedItems, activeRequestTabUid);
 
   const runQuery = async () => {
     storeDispatch({
@@ -111,6 +111,10 @@ const RequestTabPanel = () => {
       requestTab: focusedTab,
       collectionUid: collection ? collection.uid : null
     });
+  };
+
+  const sendNetworkRequest =  async () => {
+    sendRequest(item, collection.uid, storeDispatch);
   };
 
   return (
@@ -125,7 +129,7 @@ const RequestTabPanel = () => {
         <QueryUrl
           value = {item.request.url}
           onChange={onUrlChange}
-          handleRun={runQuery}
+          handleRun={sendNetworkRequest}
           collections={collections}
         />
       </div>
@@ -135,7 +139,7 @@ const RequestTabPanel = () => {
             className="px-4"
             style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}
           >
-            {item.request.type === 'graphql' ? (
+            {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
                 onRunQuery={runQuery}
                 schema={schema}
@@ -145,7 +149,7 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-            {item.request.type === 'http' ? (
+            {item.type === 'http-request' ? (
               <HttpRequestPane
                 leftPaneWidth={leftPaneWidth}
               />

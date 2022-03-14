@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ResponseHeaders = ({headers}) => {
   return (
-    <StyledWrapper className="mt-3 px-3">
+    <StyledWrapper className="mt-3 px-3 pb-4">
       <table>
         <thead>
           <tr>
@@ -15,8 +15,8 @@ const ResponseHeaders = ({headers}) => {
           {headers && headers.length ? headers.map((header, index) => {
             return (
               <tr key={index}>
-                <td>{header[0]}</td>
-                <td>{header[1]}</td>
+                <td className="key">{header[0]}</td>
+                <td className="value">{header[1]}</td>
               </tr>
             );
           }) : null}
