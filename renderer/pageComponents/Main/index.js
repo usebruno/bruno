@@ -2,6 +2,7 @@ import React from 'react';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
+import { useStore } from 'providers/Store';
 import StyledWrapper from './StyledWrapper';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -29,6 +30,11 @@ if(!SERVER_RENDERED) {
 
 
 export default function Main() {
+  const [store, storeDispatch] = useStore();
+  const {
+    activeRequestTabUid
+  } = store;
+
   if (SERVER_RENDERED) {
     return null;
   }
@@ -39,7 +45,7 @@ export default function Main() {
         <Sidebar />
         <section className='flex flex-grow flex-col'>
           <RequestTabs />
-          <RequestTabPanel />
+          <RequestTabPanel key={activeRequestTabUid}/>
         </section>
       </StyledWrapper>
     </div>
