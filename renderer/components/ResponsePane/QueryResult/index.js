@@ -22,6 +22,7 @@ const QueryResult = ({data, width}) => {
         mode: "application/ld+json",
         foldGutter: true,
         gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+        readOnly: true,
         lineWrapping: true
       });
 
@@ -39,6 +40,7 @@ const QueryResult = ({data, width}) => {
       }
     }
   }, [editor.current, cmEditor, data]);
+
 
   return (
     <StyledWrapper className="mt-4 px-3 w-full" style={{maxWidth: width}}>
