@@ -5,10 +5,6 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
 
-    thead, td {
-      border: 1px solid #efefef;
-    }
-
     thead {
       color: #777777;
       font-size: 0.75rem;
@@ -21,6 +17,12 @@ const Wrapper = styled.div`
 
       &.value {
         word-break: break-all;
+      }
+    }
+
+    tbody {
+      tr:nth-child(odd) {
+        background-color: var(--color-table-stripe);
       }
     }
   }

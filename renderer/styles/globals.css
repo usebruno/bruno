@@ -16,6 +16,7 @@
   --color-method-put: #8e44ad;
   --color-method-delete: #8e44ad;
   --color-method-patch: #8e44ad;
+  --color-table-stripe: #f3f3f3;
 }
 
 html, body {

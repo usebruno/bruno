@@ -125,7 +125,7 @@ const RequestTabPanel = () => {
           borderBottom: 'solid 1px var(--color-layout-border)'
         }}
       >
-        <div className="pt-2 text-gray-600">{item.name}</div>
+        <div className="pt-1 text-gray-600">{item.name}</div>
         <QueryUrl
           value = {item.request.url}
           onChange={onUrlChange}
