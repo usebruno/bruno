@@ -70,11 +70,11 @@ export default function onHasCompletion(
         ? md.render(ctx.description)
         : 'Self descriptive.';
       const type = ctx.type
-        ? '<span class="infoType">' + renderType(ctx.type) + '</span>'
+        ? '<span className="infoType">' + renderType(ctx.type) + '</span>'
         : '';
 
       information.innerHTML =
-        '<div class="content">' +
+        '<div className="content">' +
         (description.slice(0, 3) === '<p>'
           ? '<p>' + type + description.slice(3)
           : type + description) +
@@ -85,7 +85,7 @@ export default function onHasCompletion(
           ? md.render(ctx.deprecationReason)
           : '';
         deprecation.innerHTML =
-          '<span class="deprecation-label">Deprecated</span>' + reason;
+          '<span className="deprecation-label">Deprecated</span>' + reason;
         deprecation.style.display = 'block';
       } else if (deprecation) {
         deprecation.style.display = 'none';
@@ -106,5 +106,5 @@ function renderType(type) {
   if (type instanceof GraphQLList) {
     return `[${renderType(type.ofType)}]`;
   }
-  return `<a class="typeName">${escapeHTML(type.name)}</a>`;
+  return `<a className="typeName">${escapeHTML(type.name)}</a>`;
 }
