@@ -1,7 +1,6 @@
 import React, { useRef, forwardRef } from 'react';
 import PropTypes from 'prop-types';
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconCaretDown } from '@tabler/icons';
 import Dropdown from '../Dropdown';
 import StyledWrapper from './StyledWrapper';
 import SaveRequestButton from '../SaveRequest';
@@ -12,8 +11,8 @@ const QueryUrl = ({value, onChange, handleRun, collections}) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="user-icon items-center justify-center pl-3 py-2 select-none">
-        GET <FontAwesomeIcon className="ml-4 mr-1 text-gray-500" icon={faCaretDown} style={{fontSize: 13}}/>
+      <div ref={ref} className="flex items-center justify-center pl-3 py-2 select-none">
+        GET <IconCaretDown className="caret ml-2 mr-1" size={14} strokeWidth={2}/>
       </div>
     );
   });

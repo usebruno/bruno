@@ -1,8 +1,6 @@
 import React, { useRef, forwardRef } from 'react';
 import Dropdown from 'components/Dropdown';
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { IconAdjustmentsHorizontal } from '@tabler/icons';
+import { IconAdjustmentsHorizontal, IconCaretDown } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentSelector = () => {
@@ -11,7 +9,8 @@ const EnvironmentSelector = () => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="current-enviroment flex items-center justify-center px-3 py-1 select-none">
-        No Environment <FontAwesomeIcon className="ml-2 text-gray-500" icon={faCaretDown} style={{fontSize: 13}}/>
+        No Environment
+        <IconCaretDown className="caret" size={14} strokeWidth={2}/>
       </div>
     );
   });
