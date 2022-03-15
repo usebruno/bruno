@@ -28,7 +28,7 @@ const sendRequest = async (item, collectionUid, dispatch) => {
           itemUid: item.uid
         });
       })
-      .catch((err) => console.log(err));
+      .catch((err) => console.error(err));
   }
 };
 
