@@ -4,6 +4,8 @@ import filter from 'lodash/filter';
 import actions from './actions';
 import { saveCollectionToIdb } from './idb';
 
+// This hook listens to changes in 'collectionsToSyncToIdb' and syncs them to idb
+// The app uses this when collections are created as well as when collections get updated
 const useSyncCollectionsToIdb = (collectionsToSyncToIdb, collections, idbConnection, dispatch) => {
 	const [collectionsSyncingToIdb, setCollectionsSyncingToIdb] = useState(false);
 

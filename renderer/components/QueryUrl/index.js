@@ -84,7 +84,7 @@ const QueryUrl = ({value, onChange, handleRun, collections}) => {
       </div>
       <div className="flex items-center flex-grow input-container h-full">
         <input
-          className="px-3 w-full"
+          className="px-3 w-full mousetrap"
           type="text" defaultValue={value}
           onChange={(event) => onChange(event.target.value)}
         />

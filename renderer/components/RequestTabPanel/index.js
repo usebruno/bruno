@@ -63,15 +63,6 @@ const RequestTabPanel = () => {
     };
   }, [dragging, leftPaneWidth]);
 
-  const onUrlChange = (value) => {
-    storeDispatch({
-      type: actions.REQUEST_URL_CHANGED,
-      url: value,
-      requestTab: focusedTab,
-      collectionUid: collection ? collection.uid : null
-    });
-  };
-
   const onGraphqlQueryChange = (value) => {
     storeDispatch({
       type: actions.REQUEST_GQL_QUERY_CHANGED,
@@ -104,6 +95,15 @@ const RequestTabPanel = () => {
 
   let flattenedItems = flattenItems(collection.items);
   let item = findItem(flattenedItems, activeRequestTabUid);
+
+  const onUrlChange = (value) => {
+    storeDispatch({
+      type: actions.REQUEST_URL_CHANGED,
+      url: value,
+      itemUid: item.uid,
+      collectionUid: collection ? collection.uid : null
+    });
+  };
 
   const runQuery = async () => {
     storeDispatch({

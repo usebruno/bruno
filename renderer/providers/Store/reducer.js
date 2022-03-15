@@ -1,6 +1,7 @@
 import produce from 'immer';
 import {nanoid} from 'nanoid';
 import union from 'lodash/union';
+import find from 'lodash/find';
 import filter from 'lodash/filter';
 import last from 'lodash/last';
 import actions from './actions';
@@ -154,14 +155,14 @@ const reducer = (state, action) => {
 
         if(collection) {
           let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.requestTab.id);
+          let item = findItem(flattenedItems, action.itemUid);
           
           if(item) {
             if(!item.draft) {
               item.draft = cloneItem(item);
             }
             item.draft.request.url = action.url;
-            updateRequestTabAsChanged(draft.requestTabs, item.id);
+            updateRequestTabAsChanged(draft.requestTabs, item.uid);
           }
         }
       });
@@ -337,6 +338,35 @@ const reducer = (state, action) => {
       return produce(state, (draft) => {
         draft.leftMenuBarOpen = !draft.leftMenuBarOpen;
         draft.asideWidth = draft.leftMenuBarOpen ? 270 : 222;
+      });
+    }
+
+    case actions.HOTKEY_SAVE: {
+      return produce(state, (draft) => {
+        if(!draft.activeRequestTabUid) {
+          return;
+        }
+
+        // find request tab
+        const activeRequestTab = find(draft.requestTabs, (t) => t.uid === draft.activeRequestTabUid);
+
+        // resolve item, save and delete draft
+        if(activeRequestTab) {
+          const collection = findCollectionByUid(draft.collections, activeRequestTab.collectionUid);
+
+          if(collection) {
+            let flattenedItems = flattenItems(collection.items);
+            let item = findItem(flattenedItems, activeRequestTab.uid);
+            
+            if(item && item.draft) {
+              item.name = item.draft.name;
+              item.request = item.draft.request;
+              item.draft = null;
+              activeRequestTab.hasChanges = false;
+              draft.collectionsToSyncToIdb.push(collection.uid);
+            }
+          }
+        }
       });
     }
 

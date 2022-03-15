@@ -22,11 +22,11 @@ function MyApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
       <AuthProvider>
-        <HotkeysProvider>
-          <StoreProvider>
+        <StoreProvider>
+          <HotkeysProvider>
             <Component {...pageProps} />
-          </StoreProvider>
-        </HotkeysProvider>
+          </HotkeysProvider>
+        </StoreProvider>
       </AuthProvider>
     </SafeHydrate>
   );
