@@ -86,7 +86,7 @@ const CollectionItem = ({item, collectionUid}) => {
             }}
           >
             <div style={{width:16}}>
-              {item.items && item.items.length ? (
+              {item.type === 'folder' ? (
                 <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{color: 'rgb(160 160 160)'}}/>
               ) : null}
             </div>

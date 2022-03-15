@@ -122,6 +122,7 @@ const reducer = (state, action) => {
           collection.items.push({
             uid: nanoid(),
             name: action.folderName,
+            type: 'folder',
             items: [],
             // todo: this will be autoassigned
             depth: 1
