@@ -25,12 +25,12 @@ const ModalFooter = ({confirmText, cancelText, handleSubmit, handleCancel, confi
   return (
     <div className="flex justify-end p-4 grafnode-modal-footer">
       <span className="mr-2">
-        <button type="button" onClick={handleCancel} className="btn btn-sm btn-close">
+        <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
           {cancelText}
         </button>
       </span>
       <span className="">
-        <button type="submit" className="submit btn btn-sm btn-secondary" disabled={confirmDisabled} onClick={handleSubmit} >
+        <button type="submit" className="submit btn btn-md btn-secondary" disabled={confirmDisabled} onClick={handleSubmit} >
           {confirmText}
         </button>
       </span>
