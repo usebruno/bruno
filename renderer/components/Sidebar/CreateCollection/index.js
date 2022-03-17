@@ -3,7 +3,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from '../../Modal';
 
-const CreateCollection = ({handleConfirm, handleCancel, actions, dispatch}) => {
+const CreateCollection = ({handleConfirm, handleCancel}) => {
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,

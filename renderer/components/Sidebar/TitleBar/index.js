@@ -1,18 +1,16 @@
 import React, { useState, forwardRef, useRef } from 'react';
-import {nanoid} from 'nanoid';
 import Toast from 'components/Toast';
 import Dropdown from 'components/Dropdown';
-import actions from 'providers/Store/actions'
-import { saveCollectionToIdb } from 'providers/Store/idb';
-import { useStore } from 'providers/Store';
+import { useDispatch } from 'react-redux';
+import { createCollection } from 'providers/ReduxStore/slices/collections';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [store, storeDispatch] = useStore();
   const [showToast, setShowToast] = useState({show: false});
+  const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
@@ -28,38 +26,8 @@ const TitleBar = () => {
   const handleCloseToast = () => setShowToast({show: false});
 
   const handleConfirm = (values) => {
-    // dispatch({
-    //   name: values.collectionName,
-    //   type: actions.COLLECTION_CREATE
-    // });
     setModalOpen(false);
-    if(!store.idbConnection) {
-      setShowToast({
-        show: true,
-        type: 'error',
-        text: 'IndexedDB Error: idb connection is null'
-      });
-      return;
-    }
-
-    const newCollection = {
-      uid: nanoid(),
-      name: values.collectionName,
-      items: [],
-      environments: [],
-      userId: null
-    };
-
-    saveCollectionToIdb(store.idbConnection, newCollection)
-      .then(() => console.log('Collection created'))
-      .catch((err) => {
-        console.error(err);
-        setShowToast({
-          show: true,
-          type: 'error',
-          text: 'IndexedDB Error: Unable to save collection'
-        });
-      });
+    dispatch(createCollection(values.collectionName))
   };
 
   return (
@@ -69,8 +37,6 @@ const TitleBar = () => {
         <CreateCollection
           handleCancel={handleCancel}
           handleConfirm={handleConfirm}
-          actions={actions}
-          dispatch={storeDispatch}
         />
       ) : null}
 
