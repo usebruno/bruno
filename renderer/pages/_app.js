@@ -1,6 +1,7 @@
 import { StoreProvider } from 'providers/Store';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { AuthProvider } from 'providers/Auth';
+import { AppProvider } from 'providers/App';
 import ReduxStore from 'providers/ReduxStore';
 import { Provider } from 'react-redux';
 
@@ -25,11 +26,13 @@ function MyApp({ Component, pageProps }) {
     <SafeHydrate>
       <AuthProvider>
         <Provider store={ReduxStore}>
-          <StoreProvider>
-            <HotkeysProvider>
-              <Component {...pageProps} />
-            </HotkeysProvider>
-          </StoreProvider>
+          <AppProvider>
+            <StoreProvider>
+              <HotkeysProvider>
+                <Component {...pageProps} />
+              </HotkeysProvider>
+            </StoreProvider>
+          </AppProvider>
         </Provider>
       </AuthProvider>
     </SafeHydrate>
