@@ -41,16 +41,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.SIDEBAR_COLLECTION_CLICK: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          collection.collapsed = !collection.collapsed;
-        }
-      });
-    }
-
     case actions.SIDEBAR_COLLECTION_ITEM_CLICK: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);

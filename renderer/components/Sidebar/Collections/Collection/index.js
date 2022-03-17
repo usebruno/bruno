@@ -3,8 +3,8 @@ import get from 'lodash/get';
 import classnames from 'classnames';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import actions from 'providers/Store/actions'
-import { useStore } from 'providers/Store';
+import { collectionClicked } from 'providers/ReduxStore/slices/collections';
+import { useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
@@ -14,7 +14,7 @@ import StyledWrapper from './StyledWrapper';
 const Collection = ({collection}) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-  const [store, storeDispatch] = useStore();
+  const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
@@ -40,10 +40,7 @@ const Collection = ({collection}) => {
       return;
     }
 
-    storeDispatch({
-      type: actions.SIDEBAR_COLLECTION_CLICK,
-      collectionUid: collection.uid
-    });
+    dispatch(collectionClicked(collection.uid));
   };
 
   const hideNewFolderModal = () => setShowNewFolderModal(false);
