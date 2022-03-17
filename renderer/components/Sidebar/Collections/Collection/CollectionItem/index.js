@@ -93,7 +93,7 @@ const CollectionItem = ({item, collectionUid}) => {
             
             <div className="ml-1 flex items-center">
               <RequestMethod item={item}/>
-              {item.name}
+              <div>{item.name}</div>
             </div>
           </div>
           <div className="menu-icon pr-2">

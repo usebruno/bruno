@@ -20,7 +20,9 @@ const RequestMethod = ({item}) => {
 
   return (
     <StyledWrapper>
-      <span className={getClassname(item.request.method)}>{item.request.method}</span>
+      <div className={getClassname(item.request.method)}>
+        <span>{item.request.method}</span>
+      </div>
     </StyledWrapper>
   );
 };
