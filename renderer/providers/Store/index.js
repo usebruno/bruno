@@ -118,9 +118,7 @@ const initialState = {
 	activeRequestTabUid: null,
 	requestQueuedToSend: null,
 	requestTabs: [],
-	collectionsToSyncToIdb: [],
-	asideWidth: 270,
-	leftMenuBarOpen: true
+	collectionsToSyncToIdb: []
 };
 
 export const StoreProvider = props => {

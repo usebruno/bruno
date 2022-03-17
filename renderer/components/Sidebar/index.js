@@ -1,6 +1,6 @@
 import React from 'react';
-import actions from 'providers/Store/actions';
-import { useStore } from 'providers/Store';
+import { useSelector, useDispatch } from 'react-redux';
+import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app'
 import Collections from './Collections';
 import MenuBar from './MenuBar';
 import TitleBar from './TitleBar';
@@ -8,20 +8,12 @@ import { IconSearch, IconChevronsRight} from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const Sidebar = () => {
-  const [store, storeDispatch] = useStore();
-  const {
-    asideWidth,
-    leftMenuBarOpen
-  } = store;
-
-  const showMenuBar = () => {
-    storeDispatch({
-      type: actions.TOGGLE_LEFT_MENUBAR
-    })
-  };
+  const leftMenuBarOpen = useSelector((state) => state.app.leftMenuBarOpen);
+  const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const dispatch = useDispatch();
 
   return (
-    <StyledWrapper style={{width: `${asideWidth}px`, minWidth: `${asideWidth}px`}}>
+    <StyledWrapper style={{width: `${leftSidebarWidth}px`, minWidth: `${leftSidebarWidth}px`}}>
       <div className="flex flex-row h-full">
         {leftMenuBarOpen && <MenuBar />}
 
@@ -47,7 +39,7 @@ const Sidebar = () => {
             <Collections />
           </div>
           <div
-            onClick={showMenuBar}
+            onClick={() => dispatch(toggleLeftMenuBar())}
             className="flex flex-col px-1 py-2 cursor-pointer text-gray-500 hover:text-gray-700"
           >
             {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5}/>}

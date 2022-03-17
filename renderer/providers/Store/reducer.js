@@ -335,13 +335,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.TOGGLE_LEFT_MENUBAR: {
-      return produce(state, (draft) => {
-        draft.leftMenuBarOpen = !draft.leftMenuBarOpen;
-        draft.asideWidth = draft.leftMenuBarOpen ? 270 : 222;
-      });
-    }
-
     case actions.HOTKEY_SAVE: {
       return produce(state, (draft) => {
         if(!draft.activeRequestTabUid) {

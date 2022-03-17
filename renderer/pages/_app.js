@@ -1,6 +1,8 @@
 import { StoreProvider } from 'providers/Store';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { AuthProvider } from 'providers/Auth';
+import ReduxStore from 'providers/ReduxStore';
+import { Provider } from 'react-redux';
 
 import '../styles/globals.css'
 import 'tailwindcss/dist/tailwind.min.css';
@@ -22,11 +24,13 @@ function MyApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
       <AuthProvider>
-        <StoreProvider>
-          <HotkeysProvider>
-            <Component {...pageProps} />
-          </HotkeysProvider>
-        </StoreProvider>
+        <Provider store={ReduxStore}>
+          <StoreProvider>
+            <HotkeysProvider>
+              <Component {...pageProps} />
+            </HotkeysProvider>
+          </StoreProvider>
+        </Provider>
       </AuthProvider>
     </SafeHydrate>
   );
