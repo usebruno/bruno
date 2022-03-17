@@ -10,7 +10,7 @@ const initialState = {
 };
 
 export const collectionsSlice = createSlice({
-  name: 'app',
+  name: 'collections',
   initialState,
   reducers: {
     _loadCollections: (state, action) => {

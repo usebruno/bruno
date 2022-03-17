@@ -90,7 +90,7 @@ const Collection = ({collection}) => {
               return <CollectionItem
                 key={i.uid}
                 item={i}
-                collectionUid={collection.uid}
+                collection={collection}
               />
             }) : null}
           </div>

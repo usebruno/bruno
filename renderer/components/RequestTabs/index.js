@@ -3,24 +3,22 @@ import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconHome2 } from '@tabler/icons';
-import { useStore } from 'providers/Store';
-import actions from 'providers/Store/actions';
+import { useSelector, useDispatch } from 'react-redux';
+import { focusTab, closeTab } from 'providers/ReduxStore/slices/tabs';
+import { findItemInCollection } from 'utils/collections';
 import CollectionToolBar from './CollectionToolBar';
 import StyledWrapper from './StyledWrapper';
 
 const RequestTabs = () => {
-  const [store, storeDispatch] = useStore();
-
-  const {
-    collections,
-    requestTabs,
-    activeRequestTabUid
-  } = store;
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const collections = useSelector((state) => state.collections.collections);
+  const dispatch = useDispatch();
 
   const getTabClassname = (tab, index) => {
     return classnames("request-tab select-none", {
-      'active': tab.uid === activeRequestTabUid,
-      'last-tab': requestTabs && requestTabs.length && (index === requestTabs.length - 1) 
+      'active': tab.uid === activeTabUid,
+      'last-tab': tabs && tabs.length && (index === tabs.length - 1) 
     });
   };
 
@@ -41,33 +39,27 @@ const RequestTabs = () => {
   };
 
   const handleClick = (tab) => {
-    storeDispatch({
-      type: actions.REQUEST_TAB_CLICK,
-      requestTab: tab
-    });
+    dispatch(focusTab({
+      uid: tab.uid
+    }));
   };
 
   const handleCloseClick = (event, tab) => {
     event.stopPropagation();
     event.preventDefault();
-    storeDispatch({
-      type: actions.REQUEST_TAB_CLOSE,
-      requestTab: tab
-    });
+    dispatch(closeTab(tab.uid))
   };
 
   const createNewTab = () => {
-    storeDispatch({
-      type: actions.ADD_NEW_HTTP_REQUEST
-    });
+    // todo
   };
 
-  if(!activeRequestTabUid) {
+  if(!activeTabUid) {
     return null;
   }
 
-  const activeRequestTab = find(requestTabs, (t) => t.uid === activeRequestTabUid);
-  if(!activeRequestTab) {
+  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  if(!activeTab) {
     return (
       <StyledWrapper>
         Something went wrong!
@@ -75,8 +67,19 @@ const RequestTabs = () => {
     );
   }
 
-  const activeCollection = find(collections, (c) => c.uid === activeRequestTab.collectionUid);
-  const collectionRequestTabs = filter(requestTabs, (t) => t.collectionUid === activeRequestTab.collectionUid);
+  const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
+  const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
+  const item = findItemInCollection(activeCollection, activeTab.uid);
+
+  const getRequestName = (tab) =>  {
+    const item = findItemInCollection(activeCollection, tab.uid);
+    return item.name;
+  }
+
+  const getRequestMethod = (tab) =>  {
+    const item = findItemInCollection(activeCollection, tab.uid);
+    return item.request.name;
+  }
 
   return (
     <StyledWrapper>
@@ -90,15 +93,15 @@ const RequestTabs = () => {
                   <IconHome2 size={18} strokeWidth={1.5}/>
                 </div>
               </li>
-              {collectionRequestTabs && collectionRequestTabs.length ? collectionRequestTabs.map((rt, index) => {
-                return <li key={rt.uid} className={getTabClassname(rt, index)} role="tab" onClick={() => handleClick(rt)}>
+              {collectionRequestTabs && collectionRequestTabs.length ? collectionRequestTabs.map((tab, index) => {
+                return <li key={tab.uid} className={getTabClassname(tab, index)} role="tab" onClick={() => handleClick(tab)}>
                   <div className="flex items-center justify-between tab-container px-1">
                     <div className="flex items-center tab-label pl-2">
-                      <span className="tab-method" style={{color: getMethodColor(rt.method)}}>{rt.method}</span>
-                      <span className="text-gray-700 ml-1 tab-name">{rt.name}</span>
+                      <span className="tab-method" style={{color: getMethodColor(getRequestMethod(tab))}}>{getRequestMethod(tab)}</span>
+                      <span className="text-gray-700 ml-1 tab-name">{getRequestName(tab)}</span>
                     </div>
-                    <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e, rt)}>
-                      {!rt.hasChanges ? (
+                    <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e, tab)}>
+                      {!tab.hasChanges ? (
                         <svg focusable="false"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
                           <path fill="currentColor" d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"></path>
                         </svg>

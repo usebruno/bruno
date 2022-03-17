@@ -1,21 +1,20 @@
 import React, { useRef, forwardRef } from 'react';
 import range from 'lodash/range';
 import get from 'lodash/get';
-import actions from 'providers/Store/actions'
-import { useStore } from 'providers/Store';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import classnames from 'classnames';
+import { useSelector, useDispatch } from 'react-redux';
+import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs';
 import Dropdown from 'components/Dropdown';
 import RequestMethod from './RequestMethod';
 
 import StyledWrapper from './StyledWrapper';
 
-const CollectionItem = ({item, collectionUid}) => {
-  const [store, storeDispatch] = useStore();
-
-  const {
-    activeRequestTabUid
-  } = store;
+const CollectionItem = ({item, collection}) => {
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const dispatch = useDispatch();
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -31,7 +30,7 @@ const CollectionItem = ({item, collectionUid}) => {
   });
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
-    'item-focused-in-tab': item.uid == activeRequestTabUid
+    'item-focused-in-tab': item.uid == activeTabUid
   });
 
   const handleClick = (event) => {
@@ -40,19 +39,20 @@ const CollectionItem = ({item, collectionUid}) => {
       return;
     }
 
-    storeDispatch({
-      type: actions.SIDEBAR_COLLECTION_ITEM_CLICK,
-      itemUid: item.uid,
-      collectionUid: collectionUid
-    });
-  };
-
-  const addRequest = () => {
-    storeDispatch({
-      type: actions.ADD_REQUEST,
-      itemUid: item.uid,
-      collectionUid: collectionUid
-    });
+    if(isItemARequest(item)) {
+      if(itemIsOpenedInTabs(item, tabs)) {
+        dispatch(focusTab({
+          uid: item.uid
+        }));
+      } else {
+        dispatch(addTab({
+          uid: item.uid,
+          collectionUid: collection.uid
+        }));
+      }
+    } else {
+      // todo for folder: must expand folder : item.collapsed = !item.collapsed;
+    }
   };
 
   let indents = range(item.depth);
@@ -100,7 +100,6 @@ const CollectionItem = ({item, collectionUid}) => {
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
               <div className="dropdown-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
-                addRequest();
               }}>
                 New Request
               </div>
@@ -130,7 +129,7 @@ const CollectionItem = ({item, collectionUid}) => {
             return <CollectionItem
               key={i.uid}
               item={i}
-              collectionUid={collectionUid}
+              collection={collection}
             />
           }) : null}
         </div>
