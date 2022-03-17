@@ -1,12 +1,9 @@
 import React from 'react';
-import { useStore } from 'providers/Store';
+import { useSelector } from 'react-redux';
 import Collection from './Collection';
 
 const Collections = () => {
-  const [store, storeDispatch] = useStore();
-  const {
-    collections
-  } = store;
+  const collections = useSelector((state) => state.collections.collections);
 
   return (
     <div className="mt-4 flex flex-col">

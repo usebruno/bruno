@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { openDB } from 'idb';
 import { idbConnectionReady } from 'providers/ReduxStore/slices/app'
+import { loadCollectionsFromIdb } from 'providers/ReduxStore/slices/collections'
 import { useDispatch } from 'react-redux';
 
 const useIdb = () => {
@@ -22,6 +23,7 @@ const useIdb = () => {
       .then(() => {
         window.__idb = connection;
         dispatch(idbConnectionReady());
+        dispatch(loadCollectionsFromIdb());
       })
       .catch((err) => console.log(err));
   }, []);
