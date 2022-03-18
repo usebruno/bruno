@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import range from 'lodash/range';
 import get from 'lodash/get';
 import { IconChevronRight, IconDots } from '@tabler/icons';
@@ -8,6 +8,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import Dropdown from 'components/Dropdown';
 import RequestMethod from './RequestMethod';
+import DeleteCollectionItem from './DeleteCollectionItem';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -15,6 +16,8 @@ const CollectionItem = ({item, collection}) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
+
+  const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -62,6 +65,7 @@ const CollectionItem = ({item, collection}) => {
 
   return (
     <StyledWrapper className="flex flex-col">
+      {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
       <div
         className={itemRowClassName}
         onClick={handleClick}
@@ -119,8 +123,9 @@ const CollectionItem = ({item, collection}) => {
               }}>
                 Rename
               </div>
-              <div className="dropdown-item" onClick={(e) => {
+              <div className="dropdown-item delete-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
+                setDeleteItemModalOpen(true);
               }}>
                 Delete
               </div>

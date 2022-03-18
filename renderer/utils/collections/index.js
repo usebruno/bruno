@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import find from 'lodash/find';
+import filter from 'lodash/filter';
 import cloneDeep from 'lodash/cloneDeep';
 
 export const addDepth = (items = []) => {
@@ -104,4 +105,17 @@ export const transformCollectionToSaveToIdb = (collection) => {
   copyItems(collection.items, collectionToSave.items);
 
   return collectionToSave;
+};
+
+// todo: optimize this
+export const deleteItemInCollection = (itemUid, collection) => {
+  collection.items = filter(collection.items, (i) => i.uid !== itemUid);
+
+  let flattenedItems = flattenItems(collection.items);
+
+  each(flattenedItems, (i) => {
+    if(i.items && i.items.length) {
+      i.items = filter(i.items, (i) => i.uid !== itemUid);
+    }
+  });
 };

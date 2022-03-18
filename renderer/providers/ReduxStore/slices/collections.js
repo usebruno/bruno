@@ -4,7 +4,14 @@ import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
 import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest } from 'utils/network';
-import { findCollectionByUid, findItemInCollection, cloneItem, transformCollectionToSaveToIdb, addDepth } from 'utils/collections';
+import {
+  findCollectionByUid,
+  findItemInCollection,
+  cloneItem,
+  transformCollectionToSaveToIdb,
+  addDepth,
+  deleteItemInCollection
+} from 'utils/collections';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -78,6 +85,13 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
+    _deleteItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        deleteItemInCollection(action.payload.itemUid, collection);
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
@@ -110,6 +124,7 @@ export const {
   _saveRequest,
   _newFolder,
   _newRequest,
+  _deleteItem,
   collectionClicked,
   requestUrlChanged,
 } = collectionsSlice.actions;
@@ -231,6 +246,26 @@ export const newHttpRequest = (requestName, collectionUid) => (dispatch, getStat
         });
     }
   });
+};
+
+export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if(collection) {
+    const collectionCopy = cloneDeep(collection);
+    deleteItemInCollection(itemUid, collectionCopy);
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_deleteItem({
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .catch((err) => console.log(err));
+  }
 };
 
 export default collectionsSlice.reducer;

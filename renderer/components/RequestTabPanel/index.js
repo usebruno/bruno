@@ -83,6 +83,13 @@ const RequestTabPanel = () => {
   }
 
   const item = findItemInCollection(collection, activeTabUid);
+  if(!item || !item.uid) {
+    return (
+      <StyledWrapper>
+        Request not found!
+      </StyledWrapper>
+    );
+  }
 
   const onUrlChange = (value) => {
     dispatch(requestChanged({

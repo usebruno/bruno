@@ -26,7 +26,7 @@ export const tabsSlice = createSlice({
       state.activeTabUid = action.payload.uid;
     },
     closeTab: (state, action) => {
-      state.tabs = filter(state.tabs, (t) => t.uid !== action.payload);
+      state.tabs = filter(state.tabs, (t) => t.uid !== action.payload.tabUid);
 
       if(state.tabs && state.tabs.length) {
         // todo: closing tab needs to focus on the right adjacent tab

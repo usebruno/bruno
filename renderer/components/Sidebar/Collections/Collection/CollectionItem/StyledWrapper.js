@@ -47,6 +47,14 @@ const Wrapper = styled.div`
       position: relative;
       top: -0.625rem;
     }
+
+    div.dropdown-item.delete-item {
+      color: var(--color-text-danger);
+      &:hover {
+        background-color: var(--color-background-danger);
+        color: white;
+      }
+    }
   }
 `;
 

@@ -38,7 +38,7 @@ const ModalFooter = ({confirmText, cancelText, handleSubmit, handleCancel, confi
   );
 }
 
-const ConfirmModal = ({
+const Modal = ({
   size,
   title,
   confirmText,
@@ -91,4 +91,4 @@ const ConfirmModal = ({
   );
 };
 
-export default ConfirmModal;
+export default Modal;

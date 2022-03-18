@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import Modal from '../../Modal';
+import Modal from 'components/Modal';
 
 const CreateCollection = ({handleConfirm, handleCancel}) => {
   const inputRef = useRef();

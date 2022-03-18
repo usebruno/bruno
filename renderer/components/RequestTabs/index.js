@@ -47,7 +47,9 @@ const RequestTabs = () => {
   const handleCloseClick = (event, tab) => {
     event.stopPropagation();
     event.preventDefault();
-    dispatch(closeTab(tab.uid))
+    dispatch(closeTab({
+      tabUid: tab.uid
+    }))
   };
 
   const createNewTab = () => {
@@ -71,14 +73,22 @@ const RequestTabs = () => {
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
   const item = findItemInCollection(activeCollection, activeTab.uid);
 
+  if(!item || !item.uid) {
+    return (
+      <StyledWrapper>
+        Request not found!
+      </StyledWrapper>
+    );
+  }
+
   const getRequestName = (tab) =>  {
     const item = findItemInCollection(activeCollection, tab.uid);
-    return item.name;
+    return item ? item.name : '';
   }
 
   const getRequestMethod = (tab) =>  {
     const item = findItemInCollection(activeCollection, tab.uid);
-    return item.request.name;
+    return item ? item.request.method : '';
   }
 
   return (
