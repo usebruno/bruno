@@ -57,7 +57,7 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+s', 'ctrl+s']);
+      Mousetrap.unbind(['ctrl+command', 'ctrl+enter']);
     };
   }, [activeTabUid, tabs, saveRequest, requestSaved, collections]);
 
