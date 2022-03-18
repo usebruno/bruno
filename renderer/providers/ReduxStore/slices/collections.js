@@ -1,9 +1,10 @@
 import { nanoid } from 'nanoid';
+import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
 import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest } from 'utils/network';
-import { findCollectionByUid, findItemInCollection, cloneItem, transformCollectionToSaveToIdb } from 'utils/collections';
+import { findCollectionByUid, findItemInCollection, cloneItem, transformCollectionToSaveToIdb, addDepth } from 'utils/collections';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -16,7 +17,8 @@ export const collectionsSlice = createSlice({
   initialState,
   reducers: {
     _loadCollections: (state, action) => {
-      state.collections = action.payload;
+      each(action.payload.collections, (c) => addDepth(c.items));
+      state.collections = action.payload.collections;
     },
     _createCollection: (state, action) => {
       state.collections.push(action.payload);
@@ -65,6 +67,7 @@ export const collectionsSlice = createSlice({
           type: 'folder',
           items: []
         });
+        addDepth(collection.items);
       }
     },
     _newRequest: (state, action) => {
@@ -72,6 +75,7 @@ export const collectionsSlice = createSlice({
 
       if(collection) {
         collection.items.push(action.payload.item);
+        addDepth(collection.items);
       }
     },
     collectionClicked: (state, action) => {
@@ -112,7 +116,9 @@ export const {
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
   getCollectionsFromIdb(window.__idb)
-    .then((collections) => dispatch(_loadCollections(collections)))
+    .then((collections) => dispatch(_loadCollections({
+      collections: collections
+    })))
     .catch((err) => console.log(err));
 };
 

@@ -2,6 +2,20 @@ import each from 'lodash/each';
 import find from 'lodash/find';
 import cloneDeep from 'lodash/cloneDeep';
 
+export const addDepth = (items = []) => {
+  const depth = (itms, initialDepth) => {
+    each(itms, (i) => {
+      i.depth = initialDepth;
+
+      if(i.items && i.items.length) {
+        depth(i.items, initialDepth + 1);
+      }
+    })
+  }
+
+  depth(items, 1);
+};
+
 export const flattenItems = (items = []) => {
   const flattenedItems = [];
 
