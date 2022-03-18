@@ -5,7 +5,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { isItemARequest, itemIsOpenedInTabs } from 'utils/tabs';
+import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import Dropdown from 'components/Dropdown';
 import RequestMethod from './RequestMethod';
 
@@ -57,6 +57,8 @@ const CollectionItem = ({item, collection}) => {
 
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
+  const isRequest = isItemARequest(item);
+  const isFolder = isItemAFolder(item);
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -86,7 +88,7 @@ const CollectionItem = ({item, collection}) => {
             }}
           >
             <div style={{width:16}}>
-              {item.type === 'folder' ? (
+              {isFolder ? (
                 <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{color: 'rgb(160 160 160)'}}/>
               ) : null}
             </div>
@@ -98,16 +100,20 @@ const CollectionItem = ({item, collection}) => {
           </div>
           <div className="menu-icon pr-2">
             <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
-              <div className="dropdown-item" onClick={(e) => {
-                dropdownTippyRef.current.hide();
-              }}>
-                New Request
-              </div>
-              <div className="dropdown-item" onClick={(e) => {
-                dropdownTippyRef.current.hide();
-              }}>
-                New Folder
-              </div>
+              {isFolder && (
+                <>
+                  <div className="dropdown-item" onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                  }}>
+                    New Request
+                  </div>
+                  <div className="dropdown-item" onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                  }}>
+                    New Folder
+                  </div>
+                </>
+              )}
               <div className="dropdown-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
               }}>
