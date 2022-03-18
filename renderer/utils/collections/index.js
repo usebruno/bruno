@@ -53,7 +53,7 @@ export const cloneItem = (item) => {
   return cloneDeep(item);
 };
 
-export const transformCollectionToSaveToIdb = (collection) => {
+export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       const di = {
@@ -61,10 +61,10 @@ export const transformCollectionToSaveToIdb = (collection) => {
         type: si.type
       };
 
-      // if items is draft, then take data from draft to save
-      if(si.draft) {
-        di.name = si.draft.name;
+      di.name = si.name;
 
+      // if items is draft, then take data from draft to save
+      if(!options.ignoreDraft && si.draft) {
         if(si.draft.request) {
           di.request = {
             url: si.draft.request.url,
@@ -74,8 +74,6 @@ export const transformCollectionToSaveToIdb = (collection) => {
           };
         }
       } else {
-        di.name = si.name;
-
         if(si.request) {
           di.request = {
             url: si.request.url,

@@ -8,6 +8,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import Dropdown from 'components/Dropdown';
 import RequestMethod from './RequestMethod';
+import RenameCollectionItem from './RenameCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 
 import StyledWrapper from './StyledWrapper';
@@ -17,6 +18,7 @@ const CollectionItem = ({item, collection}) => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
 
+  const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
 
   const dropdownTippyRef = useRef();
@@ -65,6 +67,7 @@ const CollectionItem = ({item, collection}) => {
 
   return (
     <StyledWrapper className="flex flex-col">
+      {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
       <div
         className={itemRowClassName}
@@ -120,6 +123,7 @@ const CollectionItem = ({item, collection}) => {
               )}
               <div className="dropdown-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
+                setRenameItemModalOpen(true);
               }}>
                 Rename
               </div>

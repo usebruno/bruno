@@ -58,7 +58,6 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, action.payload.itemUid);
         
         if(item && item.draft) {
-          item.name = item.draft.name;
           item.request = item.draft.request;
           item.draft = null;
         }
@@ -90,6 +89,17 @@ export const collectionsSlice = createSlice({
 
       if(collection) {
         deleteItemInCollection(action.payload.itemUid, collection);
+      }
+    },
+    _renameItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item) {
+          item.name = action.payload.newName;
+        }
       }
     },
     collectionClicked: (state, action) => {
@@ -125,6 +135,7 @@ export const {
   _newFolder,
   _newRequest,
   _deleteItem,
+  _renameItem,
   collectionClicked,
   requestUrlChanged,
 } = collectionsSlice.actions;
@@ -260,6 +271,32 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
     saveCollectionToIdb(window.__idb, collectionToSave)
       .then(() => {
         dispatch(_deleteItem({
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .catch((err) => console.log(err));
+  }
+};
+
+export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if(collection) {
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+    if(item) {
+      item.name = newName;
+    }
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy, {
+      ignoreDraft: true
+    });
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_renameItem({
+          newName: newName,
           itemUid: itemUid,
           collectionUid: collectionUid
         }));
