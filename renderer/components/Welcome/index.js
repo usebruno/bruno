@@ -2,18 +2,12 @@ import React from 'react';
 import { IconPlus, IconUpload } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
-const Welcome = ({dispatch, actions}) => {
+const Welcome = () => {
   const newGraphqlRequest = () => {
-    dispatch({
-      type: actions.ADD_NEW_GQL_REQUEST,
-      requestType: 'graphql'
-    });
+    // todo
   };
   const newHttpRequest = () => {
-    dispatch({
-      type: actions.ADD_NEW_HTTP_REQUEST,
-      requestType: 'http'
-    });
+    // todo
   };
 
   return (

@@ -1,4 +1,3 @@
-import { StoreProvider } from 'providers/Store';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { AuthProvider } from 'providers/Auth';
 import { AppProvider } from 'providers/App';
@@ -27,11 +26,9 @@ function MyApp({ Component, pageProps }) {
       <AuthProvider>
         <Provider store={ReduxStore}>
           <AppProvider>
-            <StoreProvider>
-              <HotkeysProvider>
-                <Component {...pageProps} />
-              </HotkeysProvider>
-            </StoreProvider>
+            <HotkeysProvider>
+              <Component {...pageProps} />
+            </HotkeysProvider>
           </AppProvider>
         </Provider>
       </AuthProvider>

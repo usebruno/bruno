@@ -1,9 +1,3 @@
-import React, {useContext, useReducer, createContext } from 'react';
-import { nanoid } from 'nanoid';
-import reducer from './reducer';
-import useIdb from './useIdb';
-export const StoreContext = createContext();
-
 const collection = {
   "id": nanoid(),
 	"name": "spacex",
@@ -107,31 +101,3 @@ const collection2 = {
 		}
 	]
 };
-
-const initialState = {
-	idbConnection: null,
-  collections: [],
-	activeRequestTabUid: null,
-	requestTabs: [],
-	collectionsToSyncToIdb: []
-};
-
-export const StoreProvider = props => {
-	const [state, dispatch] = useReducer(reducer, initialState);
-
-	useIdb(dispatch);
-
-  return <StoreContext.Provider value={[state, dispatch]} {...props} />;
-};
-
-export const useStore = () => {
-  const context = useContext(StoreContext);
-
-  if (context === undefined) {
-    throw new Error(`useStore must be used within a StoreProvider`);
-  }
-
-  return context;
-};
-
-export default StoreProvider;

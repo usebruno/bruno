@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
-import { useStore } from 'providers/Store';
-import actions from 'providers/Store/actions';
 import { useSelector, useDispatch } from 'react-redux';
 import QueryUrl from 'components/QueryUrl';
 import GraphQLRequestPane from 'components/GraphQLRequestPane';
@@ -23,7 +21,6 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const dispatch = useDispatch();
-  const [store, storeDispatch] = useStore();
 
   let asideWidth = 270;
   let {
@@ -61,17 +58,12 @@ const RequestTabPanel = () => {
   }, [dragging, leftPaneWidth]);
 
   const onGraphqlQueryChange = (value) => {
-    storeDispatch({
-      type: actions.REQUEST_GQL_QUERY_CHANGED,
-      query: value,
-      requestTab: focusedTab,
-      collectionUid: collection ? collection.uid : null
-    });
+    // todo
   };
 
   if(!activeTabUid) {
     return (
-      <Welcome dispatch={storeDispatch} actions={actions}/>
+      <Welcome/>
     );
   }
 
@@ -105,11 +97,7 @@ const RequestTabPanel = () => {
   };
 
   const runQuery = async () => {
-    storeDispatch({
-      type: actions.SEND_REQUEST,
-      requestTab: focusedTab,
-      collectionUid: collection ? collection.uid : null
-    });
+    // todo
   };
 
   const sendNetworkRequest =  async () => {
