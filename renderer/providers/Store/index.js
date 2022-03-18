@@ -4,8 +4,6 @@ import reducer from './reducer';
 import useIdb from './useIdb';
 import useLoadCollectionsFromIdb from './useLoadCollectionsFromIdb';
 import useSyncCollectionsToIdb from './useSyncCollectionsToIdb';
-import { sendRequest } from '../../network';
-
 export const StoreContext = createContext();
 
 const collection = {
@@ -116,7 +114,6 @@ const initialState = {
 	idbConnection: null,
   collections: [],
 	activeRequestTabUid: null,
-	requestQueuedToSend: null,
 	requestTabs: [],
 	collectionsToSyncToIdb: []
 };
@@ -130,17 +127,6 @@ export const StoreProvider = props => {
 		collectionsToSyncToIdb
 	} = state;
 	
-	useEffect(() => {
-		if(state.requestQueuedToSend) {
-			const {
-				request,
-				collectionUid
-			} = state.requestQueuedToSend;
-	
-			sendRequest(request, collectionUid, dispatch)
-		}
-	}, [state.requestQueuedToSend]);
-
 	useIdb(dispatch);
 	useLoadCollectionsFromIdb(idbConnection, dispatch);
 	useSyncCollectionsToIdb(collectionsToSyncToIdb, collections, idbConnection, dispatch);

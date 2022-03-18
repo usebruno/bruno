@@ -2,16 +2,14 @@ import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import { useStore } from 'providers/Store';
 import actions from 'providers/Store/actions';
+import { useSelector, useDispatch } from 'react-redux';
 import QueryUrl from 'components/QueryUrl';
 import GraphQLRequestPane from 'components/GraphQLRequestPane';
 import HttpRequestPane from 'components/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
-import {
-  flattenItems,
-  findItem
-} from '../../utils';
-import { sendRequest } from '../../network';
+import { findItemInCollection } from 'utils/collections';
+import { sendRequest } from 'providers/ReduxStore/slices/collections';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -20,13 +18,11 @@ const RequestTabPanel = () => {
   if(typeof window == 'undefined') {
     return <div></div>;
   }
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const collections = useSelector((state) => state.collections.collections);
+  const dispatch = useDispatch();
   const [store, storeDispatch] = useStore();
-
-  const {
-    collections,
-    requestTabs,
-    activeRequestTabUid
-  } = store;
 
   let asideWidth = 270;
   let {
@@ -72,13 +68,13 @@ const RequestTabPanel = () => {
     });
   };
 
-  if(!activeRequestTabUid) {
+  if(!activeTabUid) {
     return (
       <Welcome dispatch={storeDispatch} actions={actions}/>
     );
   }
 
-  const focusedTab = find(requestTabs, (rt) => rt.uid === activeRequestTabUid);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
   if(!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
     return (
@@ -93,8 +89,7 @@ const RequestTabPanel = () => {
     );
   }
 
-  let flattenedItems = flattenItems(collection.items);
-  let item = findItem(flattenedItems, activeRequestTabUid);
+  const item = findItemInCollection(collection, activeTabUid);
 
   const onUrlChange = (value) => {
     storeDispatch({
@@ -114,7 +109,7 @@ const RequestTabPanel = () => {
   };
 
   const sendNetworkRequest =  async () => {
-    sendRequest(item, collection.uid, storeDispatch);
+    dispatch(sendRequest(item, collection.uid));
   };
 
   return (

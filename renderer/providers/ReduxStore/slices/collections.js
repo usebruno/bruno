@@ -1,7 +1,8 @@
 import { nanoid } from 'nanoid';
 import { createSlice } from '@reduxjs/toolkit'
 import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
-import { findCollectionByUid } from 'utils/collections';
+import { sendNetworkRequest } from 'utils/network';
+import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -19,6 +20,27 @@ export const collectionsSlice = createSlice({
     _createCollection: (state, action) => {
       state.collections.push(action.payload);
     },
+    _requestSent: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if(item) {
+          item.response = item.response || {};
+          item.response.state = 'sending';
+        }
+      }
+    },
+    _responseReceived: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if(item) {
+          item.response = action.payload.response;
+        }
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
@@ -32,6 +54,8 @@ export const collectionsSlice = createSlice({
 export const {
   _loadCollections,
   _createCollection,
+  _requestSent,
+  _responseReceived,
   collectionClicked
 } = collectionsSlice.actions;
 
@@ -52,6 +76,20 @@ export const createCollection = (collectionName) => (dispatch) => {
 
   saveCollectionToIdb(window.__idb, newCollection)
     .then(() => dispatch(_createCollection(newCollection)))
+    .catch((err) => console.log(err));
+};
+
+export const sendRequest = (item, collectionUid) => (dispatch) => {
+  dispatch(_requestSent({
+    itemUid: item.uid,
+    collectionUid: collectionUid
+  }));
+  sendNetworkRequest(item)
+    .then((response) => dispatch(_responseReceived({
+      itemUid: item.uid,
+      collectionUid: collectionUid,
+      response: response
+    })))
     .catch((err) => console.log(err));
 };
 

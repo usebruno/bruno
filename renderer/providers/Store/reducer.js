@@ -144,61 +144,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.SEND_REQUEST: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.requestTab.uid);
-          
-          if(item) {
-            item.response = item.response || {};
-            item.response.state = 'queued';
-            draft.requestQueuedToSend = {
-              collectionUid: action.collectionUid,
-              request: item
-            }
-          }
-        }
-      });
-    }
-
-    case actions.SENDING_REQUEST: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-        console.log('collection');
-        console.log(collection);
-
-        if(collection) {
-          let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.itemUid);
-          console.log('citemllection');
-          console.log(item);
-          
-          if(item) {
-            item.response = item.response || {};
-            item.response.state = 'sending';
-          }
-        }
-      });
-    }
-
-    case actions.RESPONSE_RECEIVED: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.itemUid);
-          
-          if(item) {
-            item.response = action.response;
-          }
-        }
-      });
-    }
-
     case actions.HOTKEY_SAVE: {
       return produce(state, (draft) => {
         if(!draft.activeRequestTabUid) {
