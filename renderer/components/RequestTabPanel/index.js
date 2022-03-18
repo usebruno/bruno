@@ -9,7 +9,8 @@ import HttpRequestPane from 'components/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { sendRequest } from 'providers/ReduxStore/slices/collections';
+import { sendRequest, requestUrlChanged } from 'providers/ReduxStore/slices/collections';
+import { requestChanged } from 'providers/ReduxStore/slices/tabs';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -92,12 +93,15 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
 
   const onUrlChange = (value) => {
-    storeDispatch({
-      type: actions.REQUEST_URL_CHANGED,
-      url: value,
+    dispatch(requestChanged({
       itemUid: item.uid,
-      collectionUid: collection ? collection.uid : null
-    });
+      collectionUid: collection.uid
+    }));
+    dispatch(requestUrlChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      url: value
+    }));
   };
 
   const runQuery = async () => {

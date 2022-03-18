@@ -19,24 +19,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.IDB_COLLECTIONS_SYNC_STARTED: {
-      return produce(state, (draft) => {
-        draft.collectionsToSyncToIdb = [];
-      });
-    }
-
-    case actions.IDB_COLLECTIONS_SYNC_ERROR: {
-      return produce(state, (draft) => {
-        draft.collectionsToSyncToIdb = union(draft.collectionsToSyncToIdb, action.collectionUids);
-      });
-    }
-
-    case actions.LOAD_COLLECTIONS_FROM_IDB: {
-      return produce(state, (draft) => {
-        draft.collections = action.collections;
-      });
-    }
-
     case actions.SIDEBAR_COLLECTION_NEW_REQUEST: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);
@@ -88,25 +70,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.REQUEST_URL_CHANGED: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          let flattenedItems = flattenItems(collection.items);
-          let item = findItem(flattenedItems, action.itemUid);
-          
-          if(item) {
-            if(!item.draft) {
-              item.draft = cloneItem(item);
-            }
-            item.draft.request.url = action.url;
-            updateRequestTabAsChanged(draft.requestTabs, item.uid);
-          }
-        }
-      });
-    }
-
     case actions.REQUEST_GQL_QUERY_CHANGED: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);
@@ -141,35 +104,6 @@ const reducer = (state, action) => {
           collectionUid: null
         });
         draft.activeRequestTabUid = uid;
-      });
-    }
-
-    case actions.HOTKEY_SAVE: {
-      return produce(state, (draft) => {
-        if(!draft.activeRequestTabUid) {
-          return;
-        }
-
-        // find request tab
-        const activeRequestTab = find(draft.requestTabs, (t) => t.uid === draft.activeRequestTabUid);
-
-        // resolve item, save and delete draft
-        if(activeRequestTab) {
-          const collection = findCollectionByUid(draft.collections, activeRequestTab.collectionUid);
-
-          if(collection) {
-            let flattenedItems = flattenItems(collection.items);
-            let item = findItem(flattenedItems, activeRequestTab.uid);
-            
-            if(item && item.draft) {
-              item.name = item.draft.name;
-              item.request = item.draft.request;
-              item.draft = null;
-              activeRequestTab.hasChanges = false;
-              draft.collectionsToSyncToIdb.push(collection.uid);
-            }
-          }
-        }
       });
     }
 

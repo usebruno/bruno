@@ -4,7 +4,7 @@ const sendNetworkRequest = async (item) => {
   return new Promise((resolve, reject) => {
     if(item.type === 'http-request') {
       const timeStart = Date.now();
-      sendHttpRequest(item.request)
+      sendHttpRequest(item.draft ? item.draft.request : item.request)
         .then((response) => {
           const timeEnd = Date.now();
           resolve({

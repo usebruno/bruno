@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useContext, useReducer, createContext } from 'react';
+import React, {useContext, useReducer, createContext } from 'react';
 import { nanoid } from 'nanoid';
 import reducer from './reducer';
 import useIdb from './useIdb';
-import useLoadCollectionsFromIdb from './useLoadCollectionsFromIdb';
-import useSyncCollectionsToIdb from './useSyncCollectionsToIdb';
 export const StoreContext = createContext();
 
 const collection = {
@@ -121,15 +119,7 @@ const initialState = {
 export const StoreProvider = props => {
 	const [state, dispatch] = useReducer(reducer, initialState);
 
-	const {
-		collections,
-		idbConnection,
-		collectionsToSyncToIdb
-	} = state;
-	
 	useIdb(dispatch);
-	useLoadCollectionsFromIdb(idbConnection, dispatch);
-	useSyncCollectionsToIdb(collectionsToSyncToIdb, collections, idbConnection, dispatch);
 
   return <StoreContext.Provider value={[state, dispatch]} {...props} />;
 };

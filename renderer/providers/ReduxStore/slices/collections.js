@@ -1,8 +1,9 @@
 import { nanoid } from 'nanoid';
+import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
 import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest } from 'utils/network';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { findCollectionByUid, findItemInCollection, cloneItem, transformCollectionToSaveToIdb } from 'utils/collections';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -41,11 +42,38 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    _saveRequest: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && item.draft) {
+          item.name = item.draft.name;
+          item.request = item.draft.request;
+          item.draft = null;
+        }
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
       if(collection) {
         collection.collapsed = !collection.collapsed;
+      }
+    },
+    requestUrlChanged: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.url = action.payload.url;
+        }
       }
     }
   }
@@ -56,7 +84,9 @@ export const {
   _createCollection,
   _requestSent,
   _responseReceived,
-  collectionClicked
+  _saveRequest,
+  collectionClicked,
+  requestUrlChanged,
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
@@ -91,6 +121,25 @@ export const sendRequest = (item, collectionUid) => (dispatch) => {
       response: response
     })))
     .catch((err) => console.log(err));
+};
+
+export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if(collection) {
+    const collectionCopy = cloneDeep(collection);
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_saveRequest({
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .catch((err) => console.log(err));
+  }
 };
 
 export default collectionsSlice.reducer;

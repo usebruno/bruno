@@ -1,3 +1,4 @@
+import find from 'lodash/find';
 import filter from 'lodash/filter';
 import last from 'lodash/last';
 import { createSlice } from '@reduxjs/toolkit'
@@ -6,7 +7,8 @@ import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  hasChanges: false
 };
 
 export const tabsSlice = createSlice({
@@ -32,14 +34,28 @@ export const tabsSlice = createSlice({
       } else {
         state.activeTabUid = null;
       }
-    }
+    },
+    requestChanged: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid == action.payload.itemUid);
+      if(tab) {
+        tab.hasChanges = true;
+      }
+    },
+    requestSaved: (state, action) => {
+      const tab = find(state.tabs, (t) => t.uid == action.payload.itemUid);
+      if(tab) {
+        tab.hasChanges = false;
+      }
+    },
   }
 });
 
 export const {
   addTab,
   focusTab,
-  closeTab
+  closeTab,
+  requestChanged,
+  requestSaved
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
