@@ -55,6 +55,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    _newFolder: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        collection.items.push({
+          uid: nanoid(),
+          name: action.payload.folderName,
+          type: 'folder',
+          items: []
+        });
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
@@ -85,6 +97,7 @@ export const {
   _requestSent,
   _responseReceived,
   _saveRequest,
+  _newFolder,
   collectionClicked,
   requestUrlChanged,
 } = collectionsSlice.actions;
@@ -135,6 +148,31 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       .then(() => {
         dispatch(_saveRequest({
           itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .catch((err) => console.log(err));
+  }
+};
+
+export const newFolder = (folderName, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if(collection) {
+    const collectionCopy = cloneDeep(collection);
+    collectionCopy.items.push({
+      uid: nanoid(),
+      name: folderName,
+      type: 'folder',
+      items: []
+    });
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_newFolder({
+          folderName: folderName,
           collectionUid: collectionUid
         }));
       })

@@ -52,24 +52,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.SIDEBAR_COLLECTION_NEW_FOLDER: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          collection.items.push({
-            uid: nanoid(),
-            name: action.folderName,
-            type: 'folder',
-            items: [],
-            // todo: this will be autoassigned
-            depth: 1
-          });
-          draft.collectionsToSyncToIdb.push(collection.uid);
-        }
-      });
-    }
-
     case actions.REQUEST_GQL_QUERY_CHANGED: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);

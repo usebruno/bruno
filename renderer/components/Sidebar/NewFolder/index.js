@@ -2,11 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import {useFormik} from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import actions from 'providers/Store/actions'
-import { useStore } from 'providers/Store';
+import { useDispatch } from 'react-redux';
+import { newFolder } from 'providers/ReduxStore/slices/collections';
 
 const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
-  const [store, storeDispatch] = useStore();
+  const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,
@@ -20,11 +20,7 @@ const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      storeDispatch({
-        type: actions.SIDEBAR_COLLECTION_NEW_FOLDER,
-        collectionUid: collectionUid,
-        folderName: values.folderName
-      });
+      dispatch(newFolder(values.folderName, collectionUid));
       handleClose();
     }
   });
