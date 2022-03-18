@@ -2,11 +2,12 @@ import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
-import actions from 'providers/Store/actions'
-import { useStore } from 'providers/Store';
+import { useDispatch } from 'react-redux';
+import { newHttpRequest } from 'providers/ReduxStore/slices/collections';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 
 const NewRequest = ({collectionUid, handleCancel, handleClose}) => {
-  const [store, storeDispatch] = useStore();
+  const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,
@@ -20,11 +21,13 @@ const NewRequest = ({collectionUid, handleCancel, handleClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      storeDispatch({
-        type: actions.SIDEBAR_COLLECTION_NEW_REQUEST,
-        collectionUid: collectionUid,
-        requestName: values.requestName
-      });
+      dispatch(newHttpRequest(values.requestName, collectionUid))
+        .then((action) => {
+          dispatch(addTab({
+            uid: action.payload.item.uid,
+            collectionUid: collectionUid
+          }));
+        });
       handleClose();
     }
   });

@@ -67,6 +67,13 @@ export const collectionsSlice = createSlice({
         });
       }
     },
+    _newRequest: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        collection.items.push(action.payload.item);
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
@@ -98,6 +105,7 @@ export const {
   _responseReceived,
   _saveRequest,
   _newFolder,
+  _newRequest,
   collectionClicked,
   requestUrlChanged,
 } = collectionsSlice.actions;
@@ -178,6 +186,45 @@ export const newFolder = (folderName, collectionUid) => (dispatch, getState) => 
       })
       .catch((err) => console.log(err));
   }
+};
+
+export const newHttpRequest = (requestName, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  
+    if(collection) {
+      const collectionCopy = cloneDeep(collection);
+      const uid = nanoid();
+      const item = {
+        uid: uid,
+        name: requestName,
+        type: 'http-request',
+        request: {
+          method: 'GET',
+          url: 'https://reqbin.com/echo/get/json',
+          headers: [],
+          body: null
+        }
+      };
+      collectionCopy.items.push(item);
+      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+  
+      saveCollectionToIdb(window.__idb, collectionToSave)
+        .then(() => {
+          Promise.resolve(dispatch(_newRequest({
+            item: item,
+            collectionUid: collectionUid
+          })))
+            .then((val) => resolve(val))
+            .catch((err) => reject(err));
+        })
+        .catch((err) => {
+          reject(err);
+          console.log(err)
+        });
+    }
+  });
 };
 
 export default collectionsSlice.reducer;

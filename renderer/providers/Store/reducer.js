@@ -19,39 +19,6 @@ const reducer = (state, action) => {
       });
     }
 
-    case actions.SIDEBAR_COLLECTION_NEW_REQUEST: {
-      return produce(state, (draft) => {
-        const collection = findCollectionByUid(draft.collections, action.collectionUid);
-
-        if(collection) {
-          const uid = nanoid();
-          const item = {
-            uid: uid,
-            name: action.requestName,
-            type: 'http-request',
-            request: {
-              method: 'GET',
-              url: 'https://reqbin.com/echo/get/json',
-              headers: [],
-              body: null
-            },
-            depth: 1
-          };
-          collection.items.push(item);
-
-          draft.requestTabs.push({
-            uid: item.uid,
-            name: item.name,
-            method: item.request.method,
-            collectionUid: collection.uid,
-            hasChanges: false
-          });
-          draft.activeRequestTabUid = uid;
-          draft.collectionsToSyncToIdb.push(collection.uid);
-        }
-      });
-    }
-
     case actions.REQUEST_GQL_QUERY_CHANGED: {
       return produce(state, (draft) => {
         const collection = findCollectionByUid(draft.collections, action.collectionUid);
