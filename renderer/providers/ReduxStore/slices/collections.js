@@ -1,4 +1,5 @@
 import { nanoid } from 'nanoid';
+import find from 'lodash/find';
 import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
@@ -129,6 +130,47 @@ export const collectionsSlice = createSlice({
           item.draft.request.url = action.payload.url;
         }
       }
+    },
+    addRequestHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.headers = item.draft.request.headers || [];
+          item.draft.request.headers.push({
+            uid: nanoid(),
+            name: '',
+            value: '',
+            description: '',
+            enabled: true
+          });
+        }
+      }
+    },
+    updateRequestHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          const header = find(item.draft.request.headers, (h) => h.uid === action.payload.header.uid);
+          if(header) {
+            header.name = action.payload.header.name;
+            header.value = action.payload.header.value;
+            header.description = action.payload.header.description;
+            header.enabled = action.payload.header.enabled;
+          }
+        }
+      }
     }
   }
 });
@@ -145,6 +187,8 @@ export const {
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,
+  addRequestHeader,
+  updateRequestHeader
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {

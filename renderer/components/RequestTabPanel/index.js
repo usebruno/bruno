@@ -145,6 +145,8 @@ const RequestTabPanel = () => {
 
             {item.type === 'http-request' ? (
               <HttpRequestPane
+                item={item}
+                collection={collection}
                 leftPaneWidth={leftPaneWidth}
               />
             ) : null}

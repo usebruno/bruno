@@ -1,3 +1,4 @@
+import each from 'lodash/each';
 import { rawRequest, gql } from 'graphql-request';
 
 const sendNetworkRequest = async (item) => {
@@ -26,10 +27,17 @@ const sendHttpRequest = async (request) => {
     const { ipcRenderer } = window.require("electron");
 
     console.log(request);
+    const headers = {};
+    each(request.headers, (h) => {
+      if(h.enabled) {
+        headers[h.name] = h.value;
+      }
+    });
 
     let options = {
       method: request.method,
       url: request.url,
+      headers: headers
     };
 
     ipcRenderer

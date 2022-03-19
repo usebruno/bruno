@@ -1,5 +1,6 @@
 import each from 'lodash/each';
 import find from 'lodash/find';
+import map from 'lodash/map';
 import filter from 'lodash/filter';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -54,6 +55,18 @@ export const cloneItem = (item) => {
 };
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
+  const copyHeaders = (headers) => {
+    return map(headers, (header) => {
+      return {
+        uid: header.uid,
+        name: header.name,
+        value: header.value,
+        description: header.description,
+        enabled: header.enabled
+      }
+    });
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       const di = {
@@ -69,7 +82,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
           di.request = {
             url: si.draft.request.url,
             method: si.draft.request.method,
-            headers: si.draft.request.headers,
+            headers: copyHeaders(si.draft.request.headers),
             body: si.draft.request.body
           };
         }
@@ -78,7 +91,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
           di.request = {
             url: si.request.url,
             method: si.request.method,
-            headers: si.request.headers,
+            headers: copyHeaders(si.request.headers),
             body: si.request.body
           }
         };

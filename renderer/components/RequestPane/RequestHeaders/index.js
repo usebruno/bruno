@@ -1,36 +1,55 @@
-import React, { useState } from 'react';
-import { nanoid } from 'nanoid';
+import React from 'react';
+import get from 'lodash/get';
+import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
+import { useDispatch } from 'react-redux';
+import { requestChanged } from 'providers/ReduxStore/slices/tabs';
+import { addRequestHeader, updateRequestHeader } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
-const initialState = [{
-  uid: nanoid(),
-  enabled: true
-}];
-
-const RequestHeaders = () => {
-  const [headers, setHeaders] = useState(initialState);
+const RequestHeaders = ({item, collection}) => {
+  const dispatch = useDispatch();
+  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
   const addHeader = () => {
-    let newHeader = {
-      uid: nanoid(),
-      key: '',
-      value: '',
-      description: '',
-      enabled: true
-    };
-
-    let newHeaders = [...headers, newHeader];
-    setHeaders(newHeaders);
+    dispatch(requestChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    dispatch(addRequestHeader({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+    }));
   };
 
-  const handleHeaderValueChange = (e, index, menu) => {
-    // todo: yet to implement
+  const handleHeaderValueChange = (e, _header, type) => {
+    const header = cloneDeep(_header);
+    switch(type) {
+      case 'name' : {
+        header.name = e.target.value;
+        break;
+      }
+      case 'value' : {
+        header.value = e.target.value;
+        break;
+      }
+      case 'description' : {
+        header.description = e.target.value;
+        break;
+      }
+    }
+    dispatch(requestChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    dispatch(updateRequestHeader({
+      header: header,
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+    }));
   };
   
   const handleRemoveHeader = (index) => {
-    headers.splice(index, 1);
-    setHeaders([...headers]);
   };
   
   return (
@@ -51,28 +70,28 @@ const RequestHeaders = () => {
                 <td>
                   <input
                     type="text"
-                    name="key"
                     autoComplete="off"
-                    defaultValue={headers[index].key}
-                    onChange={(e) => handleHeaderValueChange(e, index, 'key')}
+                    value={header.name}
+                    className="mousetrap"
+                    onChange={(e) => handleHeaderValueChange(e, header, 'name')}
                   />
                 </td>
                 <td>
                   <input
                     type="text"
-                    name="value"
                     autoComplete="off"
-                    defaultValue={headers[index].value}
-                    onChange={(e) => handleHeaderValueChange(e, index, 'value')}
+                    value={header.value}
+                    className="mousetrap"
+                    onChange={(e) => handleHeaderValueChange(e, header, 'value')}
                   />
                 </td>
                 <td>
                   <input
                     type="text"
-                    name="description"
                     autoComplete="off"
-                    defaultValue={headers[index].description}
-                    onChange={(e) => handleHeaderValueChange(e, index, 'description')}
+                    value={header.description}
+                    className="mousetrap"
+                    onChange={(e) => handleHeaderValueChange(e, header, 'description')}
                   />
                 </td>
                 <td>
@@ -80,9 +99,9 @@ const RequestHeaders = () => {
                     <input
                       type="checkbox"
                       className="mr-3"
-                      defaultChecked={header.enabled}
-                      name="enabled"
-                      onChange={(e) => handleHeaderValueChange(e, index, 'enabled')}
+                      checked={header.enabled}
+                      className="mousetrap"
+                      onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                     />
                     <button onClick={() => handleRemoveHeader(index)}>
                       <IconTrash strokeWidth={1.5} size={20}/>

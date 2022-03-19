@@ -4,7 +4,7 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StyledWrapper from './StyledWrapper';
 
-const HttpRequestPane = ({leftPaneWidth}) => {
+const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
   return (
     <StyledWrapper className="h-full">
       <Tabs className='react-tabs mt-1 flex flex-grow flex-col h-full' forceRenderTabPanel>
@@ -21,7 +21,7 @@ const HttpRequestPane = ({leftPaneWidth}) => {
           <div>Body</div>
         </TabPanel>
         <TabPanel>
-          <RequestHeaders />
+          <RequestHeaders item={item} collection={collection}/>
         </TabPanel>
         <TabPanel>
           <div>Auth</div>
