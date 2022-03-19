@@ -2,6 +2,7 @@ import React from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
 import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
+import RequestBody from 'components/RequestPane/RequestBody';
 import StyledWrapper from './StyledWrapper';
 
 const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
@@ -18,7 +19,7 @@ const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
           <QueryParams />
         </TabPanel>
         <TabPanel>
-          <div>Body</div>
+          <RequestBody />
         </TabPanel>
         <TabPanel>
           <RequestHeaders item={item} collection={collection}/>

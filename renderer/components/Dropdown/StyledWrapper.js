@@ -21,6 +21,12 @@ const Wrapper = styled.div`
       padding-top: 0.25rem;
       padding-bottom: 0.25rem;
 
+      .label-item {
+        display: flex;
+        align-items: center;
+        padding: .35rem .6rem;
+      }
+
       .dropdown-item {
         display: flex;
         align-items: center;
