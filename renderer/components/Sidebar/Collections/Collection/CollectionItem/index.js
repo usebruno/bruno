@@ -8,6 +8,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
+import NewFolder from 'components/Sidebar/NewFolder';
 import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
@@ -23,6 +24,7 @@ const CollectionItem = ({item, collection}) => {
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
+  const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -79,6 +81,7 @@ const CollectionItem = ({item, collection}) => {
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)}/>}
+      {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)}/>}
       <div
         className={itemRowClassName}
         onClick={handleClick}
@@ -127,6 +130,7 @@ const CollectionItem = ({item, collection}) => {
                   </div>
                   <div className="dropdown-item" onClick={(e) => {
                     dropdownTippyRef.current.hide();
+                    setNewFolderModalOpen(true);
                   }}>
                     New Folder
                   </div>

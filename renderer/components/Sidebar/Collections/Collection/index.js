@@ -43,18 +43,10 @@ const Collection = ({collection}) => {
     dispatch(collectionClicked(collection.uid));
   };
 
-  const hideNewFolderModal = () => setShowNewFolderModal(false);
-
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
-      {showNewFolderModal && (
-        <NewFolder
-          collectionUid={collection.uid}
-          handleCancel={hideNewFolderModal}
-          handleClose={hideNewFolderModal}
-        />
-      )}
+      {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)}/>}
       <div className="flex py-1 collection-name items-center" onClick={handleClick}>
         <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
         <span className="ml-1">{collection.name}</span>

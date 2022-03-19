@@ -63,20 +63,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    _newFolder: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if(collection) {
-        collection.items.push({
-          uid: nanoid(),
-          name: action.payload.folderName,
-          type: 'folder',
-          items: []
-        });
-        addDepth(collection.items);
-      }
-    },
-    _newRequest: (state, action) => {
+    _newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
@@ -152,8 +139,7 @@ export const {
   _requestSent,
   _responseReceived,
   _saveRequest,
-  _newFolder,
-  _newRequest,
+  _newItem,
   _deleteItem,
   _renameItem,
   collectionClicked,
@@ -216,24 +202,34 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   }
 };
 
-export const newFolder = (folderName, collectionUid) => (dispatch, getState) => {
+export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   if(collection) {
     const collectionCopy = cloneDeep(collection);
-    collectionCopy.items.push({
+    const item = {
       uid: nanoid(),
       name: folderName,
       type: 'folder',
       items: []
-    });
+    };
+    if(!itemUid) {
+      collectionCopy.items.push(item);
+    } else {
+      const currentItem = findItemInCollection(collectionCopy, itemUid);
+      if(currentItem && currentItem.type === 'folder') {
+        currentItem.items = currentItem.items || [];
+        currentItem.items.push(item);
+      }
+    }
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
     saveCollectionToIdb(window.__idb, collectionToSave)
       .then(() => {
-        dispatch(_newFolder({
-          folderName: folderName,
+        dispatch(_newItem({
+          item: item,
+          currentItemUid: itemUid,
           collectionUid: collectionUid
         }));
       })
@@ -273,7 +269,7 @@ export const newHttpRequest = (requestName, collectionUid, itemUid) => (dispatch
   
       saveCollectionToIdb(window.__idb, collectionToSave)
         .then(() => {
-          Promise.resolve(dispatch(_newRequest({
+          Promise.resolve(dispatch(_newItem({
             item: item,
             currentItemUid: itemUid,
             collectionUid: collectionUid

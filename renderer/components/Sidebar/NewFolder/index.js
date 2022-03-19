@@ -5,7 +5,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { newFolder } from 'providers/ReduxStore/slices/collections';
 
-const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
+const NewFolder = ({collection, item, onClose}) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
@@ -20,8 +20,8 @@ const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(newFolder(values.folderName, collectionUid));
-      handleClose();
+      dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
+      onClose();
     }
   });
 
@@ -39,7 +39,7 @@ const NewFolder = ({collectionUid, handleCancel, handleClose}) => {
       title='New Folder'
       confirmText='Create'
       handleConfirm={onSubmit}
-      handleCancel={handleCancel}
+      handleCancel={onClose}
     >
       <form className="grafnode-form" onSubmit={formik.handleSubmit}>
         <div>
