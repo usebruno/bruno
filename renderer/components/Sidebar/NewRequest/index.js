@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 
-const NewRequest = ({collectionUid, handleCancel, handleClose}) => {
+const NewRequest = ({collection, item, onClose}) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
@@ -21,14 +21,14 @@ const NewRequest = ({collectionUid, handleCancel, handleClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(newHttpRequest(values.requestName, collectionUid))
+      dispatch(newHttpRequest(values.requestName, collection.uid, item ? item.uid : null))
         .then((action) => {
           dispatch(addTab({
             uid: action.payload.item.uid,
-            collectionUid: collectionUid
+            collectionUid: collection.uid
           }));
         });
-      handleClose();
+      onClose();
     }
   });
 
@@ -46,7 +46,7 @@ const NewRequest = ({collectionUid, handleCancel, handleClose}) => {
       title='New Request'
       confirmText='Create'
       handleConfirm={onSubmit}
-      handleCancel={handleCancel}
+      handleCancel={onClose}
     >
       <form className="grafnode-form" onSubmit={formik.handleSubmit}>
         <div>

@@ -80,7 +80,16 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
-        collection.items.push(action.payload.item);
+        if(!action.payload.currentItemUid) {
+          collection.items.push(action.payload.item);
+        } else {
+          const item = findItemInCollection(collection, action.payload.currentItemUid);
+
+          if(item) {
+            item.items = item.items || [];
+            item.items.push(action.payload.item);
+          }
+        }
         addDepth(collection.items);
       }
     },
@@ -107,6 +116,17 @@ export const collectionsSlice = createSlice({
 
       if(collection) {
         collection.collapsed = !collection.collapsed;
+      }
+    },
+    collectionFolderClicked: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if(item && item.type === 'folder') {
+          item.collapsed = !item.collapsed;
+        }
       }
     },
     requestUrlChanged: (state, action) => {
@@ -137,6 +157,7 @@ export const {
   _deleteItem,
   _renameItem,
   collectionClicked,
+  collectionFolderClicked,
   requestUrlChanged,
 } = collectionsSlice.actions;
 
@@ -220,7 +241,7 @@ export const newFolder = (folderName, collectionUid) => (dispatch, getState) => 
   }
 };
 
-export const newHttpRequest = (requestName, collectionUid) => (dispatch, getState) => {
+export const newHttpRequest = (requestName, collectionUid, itemUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -239,13 +260,22 @@ export const newHttpRequest = (requestName, collectionUid) => (dispatch, getStat
           body: null
         }
       };
-      collectionCopy.items.push(item);
+      if(!itemUid) {
+        collectionCopy.items.push(item);
+      } else {
+        const currentItem = findItemInCollection(collectionCopy, itemUid);
+        if(currentItem && currentItem.type === 'folder') {
+          currentItem.items = currentItem.items || [];
+          currentItem.items.push(item);
+        }
+      }
       const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
   
       saveCollectionToIdb(window.__idb, collectionToSave)
         .then(() => {
           Promise.resolve(dispatch(_newRequest({
             item: item,
+            currentItemUid: itemUid,
             collectionUid: collectionUid
           })))
             .then((val) => resolve(val))

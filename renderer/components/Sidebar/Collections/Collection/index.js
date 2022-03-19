@@ -44,17 +44,10 @@ const Collection = ({collection}) => {
   };
 
   const hideNewFolderModal = () => setShowNewFolderModal(false);
-  const hideNewRequestModal = () => setShowNewRequestModal(false);
 
   return (
     <StyledWrapper className="flex flex-col">
-      {showNewRequestModal && (
-        <NewRequest
-          collectionUid={collection.uid}
-          handleCancel={hideNewRequestModal}
-          handleClose={hideNewRequestModal}
-        />
-      )}
+      {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
       {showNewFolderModal && (
         <NewFolder
           collectionUid={collection.uid}

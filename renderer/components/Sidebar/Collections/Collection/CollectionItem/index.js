@@ -1,15 +1,17 @@
 import React, { useState, useRef, forwardRef } from 'react';
-import range from 'lodash/range';
 import get from 'lodash/get';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import range from 'lodash/range';
 import classnames from 'classnames';
+import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
+import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
+import NewRequest from 'components/Sidebar/NewRequest';
 import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
+import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -20,6 +22,7 @@ const CollectionItem = ({item, collection}) => {
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -44,6 +47,10 @@ const CollectionItem = ({item, collection}) => {
       return;
     }
 
+    if(event && event.target && event.target.className === 'dropdown-item') {
+      return;
+    }
+
     if(isItemARequest(item)) {
       if(itemIsOpenedInTabs(item, tabs)) {
         dispatch(focusTab({
@@ -56,19 +63,22 @@ const CollectionItem = ({item, collection}) => {
         }));
       }
     } else {
-      // todo for folder: must expand folder : item.collapsed = !item.collapsed;
+      dispatch(collectionFolderClicked({
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }));
     }
   };
 
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
-  const isRequest = isItemARequest(item);
   const isFolder = isItemAFolder(item);
 
   return (
     <StyledWrapper className="flex flex-col">
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
+      {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)}/>}
       <div
         className={itemRowClassName}
         onClick={handleClick}
@@ -111,6 +121,7 @@ const CollectionItem = ({item, collection}) => {
                 <>
                   <div className="dropdown-item" onClick={(e) => {
                     dropdownTippyRef.current.hide();
+                    setNewRequestModalOpen(true);
                   }}>
                     New Request
                   </div>
