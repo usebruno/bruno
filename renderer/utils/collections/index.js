@@ -130,3 +130,11 @@ export const deleteItemInCollection = (itemUid, collection) => {
     }
   });
 };
+
+export const isItemARequest = (item) => {
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type);
+};
+
+export const isItemAFolder = (item) => {
+  return !item.hasOwnProperty('request') && item.type === 'folder';
+};

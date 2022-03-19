@@ -4,7 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { requestChanged } from 'providers/ReduxStore/slices/tabs';
-import { addRequestHeader, updateRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
 const RequestHeaders = ({item, collection}) => {
@@ -45,11 +45,20 @@ const RequestHeaders = ({item, collection}) => {
     dispatch(updateRequestHeader({
       header: header,
       itemUid: item.uid,
-      collectionUid: collection.uid,
+      collectionUid: collection.uid
     }));
   };
   
-  const handleRemoveHeader = (index) => {
+  const handleRemoveHeader = (header) => {
+    dispatch(requestChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+    dispatch(deleteRequestHeader({
+      headerUid: header.uid,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
   };
   
   return (
@@ -98,12 +107,11 @@ const RequestHeaders = ({item, collection}) => {
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      className="mr-3"
                       checked={header.enabled}
-                      className="mousetrap"
+                      className="mr-3 mousetrap"
                       onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                     />
-                    <button onClick={() => handleRemoveHeader(index)}>
+                    <button onClick={() => handleRemoveHeader(header)}>
                       <IconTrash strokeWidth={1.5} size={20}/>
                     </button>
                   </div>

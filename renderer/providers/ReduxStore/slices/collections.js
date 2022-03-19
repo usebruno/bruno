@@ -1,5 +1,6 @@
 import { nanoid } from 'nanoid';
 import find from 'lodash/find';
+import filter from 'lodash/filter';
 import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
@@ -11,7 +12,8 @@ import {
   cloneItem,
   transformCollectionToSaveToIdb,
   addDepth,
-  deleteItemInCollection
+  deleteItemInCollection,
+  isItemARequest
 } from 'utils/collections';
 
 // todo: errors should be tracked in each slice and displayed as toasts
@@ -123,7 +125,7 @@ export const collectionsSlice = createSlice({
       if(collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         
-        if(item) {
+        if(item && isItemARequest(item)) {
           if(!item.draft) {
             item.draft = cloneItem(item);
           }
@@ -137,7 +139,7 @@ export const collectionsSlice = createSlice({
       if(collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         
-        if(item) {
+        if(item && isItemARequest(item)) {
           if(!item.draft) {
             item.draft = cloneItem(item);
           }
@@ -158,7 +160,7 @@ export const collectionsSlice = createSlice({
       if(collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         
-        if(item) {
+        if(item && isItemARequest(item)) {
           if(!item.draft) {
             item.draft = cloneItem(item);
           }
@@ -169,6 +171,20 @@ export const collectionsSlice = createSlice({
             header.description = action.payload.header.description;
             header.enabled = action.payload.header.enabled;
           }
+        }
+      }
+    },
+    deleteRequestHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
         }
       }
     }
@@ -188,7 +204,8 @@ export const {
   collectionFolderClicked,
   requestUrlChanged,
   addRequestHeader,
-  updateRequestHeader
+  updateRequestHeader,
+  deleteRequestHeader
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
