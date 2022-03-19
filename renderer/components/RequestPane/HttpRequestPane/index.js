@@ -1,8 +1,8 @@
 import React from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
+import QueryParams from 'components/RequestPane/QueryParams';
+import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StyledWrapper from './StyledWrapper';
-import QueryParams from '../QueryParams';
-import RequestHeaders from '../RequestHeaders';
 
 const HttpRequestPane = ({leftPaneWidth}) => {
   return (
@@ -12,13 +12,19 @@ const HttpRequestPane = ({leftPaneWidth}) => {
           <Tab tabIndex="-1">Params</Tab>
           <Tab tabIndex="-1">Body</Tab>
           <Tab tabIndex="-1">Headers</Tab>
-          <Tab tabIndex="-1">Authorization</Tab>
+          <Tab tabIndex="-1">Auth</Tab>
         </TabList>
         <TabPanel>
           <QueryParams />
         </TabPanel>
         <TabPanel>
+          <div>Body</div>
+        </TabPanel>
+        <TabPanel>
           <RequestHeaders />
+        </TabPanel>
+        <TabPanel>
+          <div>Auth</div>
         </TabPanel>
       </Tabs>
     </StyledWrapper>

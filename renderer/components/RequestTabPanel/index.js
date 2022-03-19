@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import { useSelector, useDispatch } from 'react-redux';
-import QueryUrl from 'components/QueryUrl';
-import GraphQLRequestPane from 'components/GraphQLRequestPane';
-import HttpRequestPane from 'components/HttpRequestPane';
+import QueryUrl from 'components/RequestPane/QueryUrl';
+import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
+import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';

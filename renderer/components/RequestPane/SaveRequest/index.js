@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { faFolder } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import StyledWrapper from './StyledWrapper';
-import Modal from '../Modal';
+import Modal from 'components//Modal';
 
 const SaveRequestButton = ({folders}) => {
   const [openSaveRequestModal, setOpenSaveRequestModal] = useState(false);

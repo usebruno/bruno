@@ -1,8 +1,8 @@
 import React from 'react';
 import { Tab, TabList, TabPanel, Tabs } from 'react-tabs';
+import QueryEditor from 'components/RequestPane/QueryEditor';
+import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import StyledWrapper from './StyledWrapper';
-import QueryEditor from '../QueryEditor';
-import RequestHeaders from '../RequestHeaders';
 
 const GraphQLRequestPane = ({onRunQuery, schema, leftPaneWidth, value, onQueryChange}) => {
   return (

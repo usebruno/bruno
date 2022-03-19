@@ -37,6 +37,8 @@ const Wrapper = styled.div`
 
   input[type="checkbox"] {
     cursor: pointer;
+    position: relative;
+    top: 1px;
   }
 `;
 

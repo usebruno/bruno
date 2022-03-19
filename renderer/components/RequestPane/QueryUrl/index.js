@@ -1,9 +1,9 @@
 import React, { useRef, forwardRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconCaretDown } from '@tabler/icons';
-import Dropdown from '../Dropdown';
+import Dropdown from 'components/Dropdown';
+import SaveRequestButton from 'components/RequestPane/SaveRequest';
 import StyledWrapper from './StyledWrapper';
-import SaveRequestButton from '../SaveRequest';
 
 const QueryUrl = ({value, onChange, handleRun, collections}) => {
   const dropdownTippyRef = useRef();
