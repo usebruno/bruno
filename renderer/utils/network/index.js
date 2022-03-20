@@ -40,6 +40,10 @@ const sendHttpRequest = async (request) => {
       headers: headers
     };
 
+    if(request.body && request.body.mode === 'json' && request.body.content) {
+      options.data = request.body.content;
+    }
+
     ipcRenderer
       .invoke('send-http-request', options)
       .then(resolve)

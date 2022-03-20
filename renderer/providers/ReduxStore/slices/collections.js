@@ -187,6 +187,23 @@ export const collectionsSlice = createSlice({
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
         }
       }
+    },
+    updateRequestBody: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.body = {
+            mode: action.payload.mode,
+            content: action.payload.content
+          }
+        }
+      }
     }
   }
 });
@@ -205,7 +222,8 @@ export const {
   requestUrlChanged,
   addRequestHeader,
   updateRequestHeader,
-  deleteRequestHeader
+  deleteRequestHeader,
+  updateRequestBody
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
