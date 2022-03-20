@@ -22,7 +22,7 @@ const RequestTabPanel = () => {
   const collections = useSelector((state) => state.collections.collections);
   const dispatch = useDispatch();
 
-  let asideWidth = 270;
+  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   let {
     schema 
   } = useGraphqlSchema('https://api.spacex.land/graphql');

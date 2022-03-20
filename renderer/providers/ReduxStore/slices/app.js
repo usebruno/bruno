@@ -2,8 +2,8 @@ import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
   idbConnectionReady: false,
-  leftMenuBarOpen: true,
-  leftSidebarWidth: 270
+  leftMenuBarOpen: false,
+  leftSidebarWidth: 222
 };
 
 export const appSlice = createSlice({
