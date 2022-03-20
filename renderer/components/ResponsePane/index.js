@@ -26,7 +26,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
         return (
           <QueryResult
             width={rightPaneWidth}
-            data={response.data}
+            value={response.data ? JSON.stringify(response.data, null, 2) : ''}
           />
         );
       }
