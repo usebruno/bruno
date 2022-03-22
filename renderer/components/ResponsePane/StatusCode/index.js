@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 
 const StatusCode = ({status}) => {
   const getTabClassname = () => {
-    return classnames('mt-3', {
+    return classnames('', {
       'text-blue-700': status >= 100 && status < 200,
       'text-green-700': status >= 200 && status < 300,
       'text-purple-700': status >= 300 && status < 400,

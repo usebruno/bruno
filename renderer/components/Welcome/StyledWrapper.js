@@ -6,17 +6,16 @@ const StyledWrapper = styled.div`
     font-size: 0.75rem;
   }
 
-  .create-request-options {
-    .http, .graphql {
-      cursor: pointer;
-      padding-right: 1rem;
-      padding-top: 0.5rem;
-      padding-bottom: 0.5rem;
+  .collection-options {
+    svg {
+      position: relative;
+      top: -1px;
+    }
 
+    .label {
+      cursor: pointer;
       &:hover {
-        span.name {
-          text-decoration: underline;
-        }
+        text-decoration: underline;
       }
     }
   }

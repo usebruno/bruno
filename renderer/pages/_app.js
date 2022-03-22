@@ -20,18 +20,34 @@ function SafeHydrate({ children }) {
   )
 }
 
+function NoSsr({ children }) {
+  const SERVER_RENDERED = typeof navigator === 'undefined';
+
+  if(SERVER_RENDERED) {
+    return null;
+  }
+
+  return (
+    <>
+      {children}
+    </>
+  )
+}
+
 function MyApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
-      <AuthProvider>
-        <Provider store={ReduxStore}>
-          <AppProvider>
-            <HotkeysProvider>
-              <Component {...pageProps} />
-            </HotkeysProvider>
-          </AppProvider>
-        </Provider>
-      </AuthProvider>
+      <NoSsr>
+        <AuthProvider>
+          <Provider store={ReduxStore}>
+            <AppProvider>
+              <HotkeysProvider>
+                <Component {...pageProps} />
+              </HotkeysProvider>
+            </AppProvider>
+          </Provider>
+        </AuthProvider>
+      </NoSsr>
     </SafeHydrate>
   );
 }

@@ -8,11 +8,12 @@ const CreateCollection = ({handleConfirm, handleCancel}) => {
   const formik = useFormik({
 		enableReinitialize: true,
     initialValues: {
-      collectionName: ''
+      collectionName: '',
+      collectionLocation: ''
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
-        .min(3, 'must be atleast 3 characters')
+        .min(1, 'must be atleast 1 characters')
         .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
@@ -33,10 +34,11 @@ const CreateCollection = ({handleConfirm, handleCancel}) => {
     <Modal
       size="sm"
       title='Create Collection'
+      confirmText='Create'
       handleConfirm={onSubmit}
       handleCancel={handleCancel}
     >
-      <form className="grafnode-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">Name</label>
           <input
@@ -46,6 +48,7 @@ const CreateCollection = ({handleConfirm, handleCancel}) => {
             ref={inputRef}
             className="block textbox mt-2 w-full"
             onChange={formik.handleChange}
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
             value={formik.values.collectionName || ''}
           />
           {formik.touched.collectionName && formik.errors.collectionName ? (

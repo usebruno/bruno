@@ -4,12 +4,12 @@ const Wrapper = styled.div`
   &.modal--animate-out{
     animation: fade-out 0.5s forwards cubic-bezier(.19,1,.22,1);
 
-    .grafnode-modal-card {
+    .bruno-modal-card {
       animation: fade-and-slide-out-from-top .50s forwards cubic-bezier(.19,1,.22,1);
     }
   }
 
-  &.grafnode-modal {
+  &.bruno-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -22,7 +22,7 @@ const Wrapper = styled.div`
     z-index: 1003;
   }
 
-  .grafnode-modal-card {
+  .bruno-modal-card {
     animation-duration: .85s;
     animation-delay: .1s;
     background: var(--color-background-top);
@@ -57,7 +57,7 @@ const Wrapper = styled.div`
     animation: fade-and-slide-in-from-top .50s forwards cubic-bezier(.19,1,.22,1);
   }
 
-  .grafnode-modal-header {
+  .bruno-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -84,12 +84,12 @@ const Wrapper = styled.div`
     }
   }
 
-  .grafnode-modal-content {
+  .bruno-modal-content {
     flex-grow: 1;
     background-color: #fff;
   }
 
-  .grafnode-modal-backdrop {
+  .bruno-modal-backdrop {
     height: 100%;
     width: 100%;
     left: 0;
@@ -112,7 +112,7 @@ const Wrapper = styled.div`
     animation: fade-in .1s forwards cubic-bezier(.19,1,.22,1);
   }
 
-  .grafnode-modal-footer {
+  .bruno-modal-footer {
     background-color: white;
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;

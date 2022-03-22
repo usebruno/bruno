@@ -1,0 +1,78 @@
+import React from 'react';
+import get from 'lodash/get';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { useDispatch } from 'react-redux';
+import { findItemInCollection } from 'utils/collections';
+import StyledWrapper from './StyledWrapper';
+import { IconAlertTriangle } from '@tabler/icons';
+
+const RequestTab = ({tab, collection}) => {
+  const dispatch = useDispatch();
+
+  const handleCloseClick = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    dispatch(closeTabs({
+      tabUids: [tab.uid]
+    }))
+  };
+
+  const getMethodColor = (method = '') => {
+    let color = '';
+    method = method.toLocaleLowerCase();
+    switch(method) {
+      case 'get': {
+        color = 'rgb(5, 150, 105)';
+        break;
+      }
+      case 'post': {
+        color = '#8e44ad';
+        break;
+      }
+    }
+
+    return color;
+  };
+
+  const item = findItemInCollection(collection, tab.uid);
+
+  if(!item) {
+    return (
+      <StyledWrapper className="flex items-center justify-between tab-container px-1">
+        <div className="flex items-center tab-label pl-2">
+          <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600"/>
+          <span className="ml-1">Not Found</span>
+        </div>
+        <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
+          <svg focusable="false"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
+            <path fill="currentColor" d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"></path>
+          </svg>
+        </div>
+      </StyledWrapper>
+    );
+  }
+
+  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+
+  return (
+    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+      <div className="flex items-center tab-label pl-2">
+        <span className="tab-method uppercase" style={{color: getMethodColor(method)}}>{method}</span>
+        <span className="text-gray-700 ml-1 tab-name" title={item.name}>{item.name}</span>
+      </div>
+      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
+        {!item.draft ? (
+          <svg focusable="false"xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
+            <path fill="currentColor" d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"></path>
+          </svg>
+        ) : (
+          <svg focusable="false" xmlns="http://www.w3.org/2000/svg" width="8" height="16" fill="#cc7b1b" className="has-changes-icon" viewBox="0 0 8 8">
+            <circle cx="4" cy="4" r="3"/>
+          </svg>
+        ) }
+      </div>
+    </StyledWrapper>
+  );
+};
+
+export default RequestTab;

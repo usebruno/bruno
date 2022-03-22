@@ -1,10 +1,12 @@
-import { nanoid } from 'nanoid';
+import path from 'path';
+import { uuid } from 'utils/common';
+import trim from 'lodash/trim';
 import find from 'lodash/find';
+import concat from 'lodash/concat';
 import filter from 'lodash/filter';
-import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
-import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
+import splitOnFirst from 'split-on-first';
 import { sendNetworkRequest } from 'utils/network';
 import {
   findCollectionByUid,
@@ -13,14 +15,19 @@ import {
   transformCollectionToSaveToIdb,
   addDepth,
   deleteItemInCollection,
-  isItemARequest
+  isItemARequest,
 } from 'utils/collections';
+import { parseQueryParams, stringifyQueryParams } from 'utils/url';
+import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
+import { each } from 'lodash';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
 const initialState = {
   collections: []
 };
+
+const PATH_SEPARATOR = path.sep;
 
 export const collectionsSlice = createSlice({
   name: 'collections',
@@ -32,39 +39,6 @@ export const collectionsSlice = createSlice({
     },
     _createCollection: (state, action) => {
       state.collections.push(action.payload);
-    },
-    _requestSent: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if(collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-        if(item) {
-          item.response = item.response || {};
-          item.response.state = 'sending';
-        }
-      }
-    },
-    _responseReceived: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if(collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-        if(item) {
-          item.response = action.payload.response;
-        }
-      }
-    },
-    _saveRequest: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if(collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && item.draft) {
-          item.request = item.draft.request;
-          item.draft = null;
-        }
-      }
     },
     _newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -101,6 +75,63 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    _requestSent: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if(item) {
+          item.response = item.response || {};
+          item.response.state = 'sending';
+        }
+      }
+    },
+    _responseReceived: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if(item) {
+          item.response = action.payload.response;
+        }
+      }
+    },
+    _saveRequest: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && item.draft) {
+          item.request = item.draft.request;
+          item.draft = null;
+        }
+      }
+    },
+    newEphermalHttpRequest: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection && collection.items && collection.items.length) {
+        const item = {
+          uid: action.payload.uid,
+          name: action.payload.requestName,
+          type: action.payload.requestType,
+          request: {
+            url: action.payload.requestUrl,
+            method: action.payload.requestMethod,
+            params: [],
+            headers: [],
+            body: {
+              mode: null,
+              content: null
+            }
+          },
+          draft: null
+        };
+        item.draft = cloneItem(item);
+        collection.items.push(item);
+      }
+    },
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
@@ -130,6 +161,113 @@ export const collectionsSlice = createSlice({
             item.draft = cloneItem(item);
           }
           item.draft.request.url = action.payload.url;
+
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const urlParams = parseQueryParams(parts[1]);
+          const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
+          let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
+
+          // try and connect as much as old params uid's as possible
+          each(urlParams, (urlParam) => {
+            const existingParam = find(enabledParams, (p) => p.name === urlParam.name || p.value === urlParam.value);
+            urlParam.uid = existingParam ? existingParam.uid : uuid();
+            urlParam.enabled = true;
+
+            // once found, remove it - trying our best here to accomodate duplicate query params
+            if(existingParam) {
+              enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
+            }
+          });
+
+          // ultimately params get replaced with params in url + the disabled onces that existed prior
+          // the query params are the source of truth, the url in the queryurl input gets constructed using these params
+          // we however are also storing the full url (with params) in the url itself
+          item.draft.request.params = concat(urlParams, disabledParams);
+        }
+      }
+    },
+    addQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.params = item.draft.request.params || [];
+          item.draft.request.params.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            description: '',
+            enabled: true
+          });
+        }
+      }
+    },
+    updateQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
+          if(param) {
+            param.name = action.payload.param.name;
+            param.value = action.payload.param.value;
+            param.description = action.payload.param.description;
+            param.enabled = action.payload.param.enabled;
+
+            // update request url
+            const parts = splitOnFirst(item.draft.request.url, '?');
+            const query = stringifyQueryParams(filter(item.draft.request.params, p => p.enabled));
+
+            // if no query is found, then strip the query params in url
+            if(!query || !query.length) {
+              if(parts.length) {
+                item.draft.request.url = parts[0];
+              }
+              return;
+            }
+
+            // if no parts were found, then append the query
+            if(!parts.length) {
+              item.draft.request.url += '?' + query;
+              return;
+            }
+
+            // control reaching here means the request has parts and query is present
+            item.draft.request.url = parts[0] + '?' + query;
+          }
+        }
+      }
+    },
+    deleteQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
+
+          // update request url
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const query = stringifyQueryParams(filter(item.draft.request.params, p => p.enabled));
+          if(query && query.length) {
+            item.draft.request.url = parts[0] + '?' + query;
+          } else {
+            item.draft.request.url = parts[0];
+          }
         }
       }
     },
@@ -145,7 +283,7 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.headers = item.draft.request.headers || [];
           item.draft.request.headers.push({
-            uid: nanoid(),
+            uid: uuid(),
             name: '',
             value: '',
             description: '',
@@ -204,29 +342,49 @@ export const collectionsSlice = createSlice({
           }
         }
       }
+    },
+    updateRequestMethod: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneItem(item);
+          }
+          item.draft.request.method = action.payload.method;
+        }
+      }
     }
   }
 });
 
 export const {
-  _loadCollections,
   _createCollection,
-  _requestSent,
-  _responseReceived,
-  _saveRequest,
+  _loadCollections,
   _newItem,
   _deleteItem,
   _renameItem,
+  _requestSent,
+  _responseReceived,
+  _saveRequest,
+  newEphermalHttpRequest,
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,
+  addQueryParam,
+  updateQueryParam,
+  deleteQueryParam,
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
-  updateRequestBody
+  updateRequestBody,
+  updateRequestMethod
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
+  console.log('here');
   getCollectionsFromIdb(window.__idb)
     .then((collections) => dispatch(_loadCollections({
       collections: collections
@@ -236,11 +394,10 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
 
 export const createCollection = (collectionName) => (dispatch) => {
   const newCollection = {
-    uid: nanoid(),
+    uid: uuid(),
     name: collectionName,
     items: [],
     environments: [],
-    userId: null
   };
 
   saveCollectionToIdb(window.__idb, newCollection)
@@ -266,19 +423,23 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  if(collection) {
-    const collectionCopy = cloneDeep(collection);
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+  
+  return new Promise((resolve, reject) => {
+    if(collection) {
+      const collectionCopy = cloneDeep(collection);
+      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
-      .then(() => {
-        dispatch(_saveRequest({
-          itemUid: itemUid,
-          collectionUid: collectionUid
-        }));
-      })
-      .catch((err) => console.log(err));
-  }
+      saveCollectionToIdb(window.__idb, collectionToSave)
+        .then(() => {
+          dispatch(_saveRequest({
+            itemUid: itemUid,
+            collectionUid: collectionUid
+          }));
+        })
+        .then(() => resolve())
+        .catch((error) => reject(error));
+    }
+  });
 };
 
 export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
@@ -288,7 +449,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   if(collection) {
     const collectionCopy = cloneDeep(collection);
     const item = {
-      uid: nanoid(),
+      uid: uuid(),
       name: folderName,
       type: 'folder',
       items: []
@@ -316,23 +477,33 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   }
 };
 
-export const newHttpRequest = (requestName, collectionUid, itemUid) => (dispatch, getState) => {
+export const newHttpRequest = (params) => (dispatch, getState) => {
+  const {
+    requestName,
+    requestType,
+    requestUrl,
+    requestMethod,
+    collectionUid,
+    itemUid
+  } = params;
   return new Promise((resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  
+
     if(collection) {
       const collectionCopy = cloneDeep(collection);
-      const uid = nanoid();
       const item = {
-        uid: uid,
+        uid: uuid(),
+        type: requestType,
         name: requestName,
-        type: 'http-request',
         request: {
-          method: 'GET',
-          url: 'https://reqbin.com/echo/get/json',
+          method: requestMethod,
+          url: requestUrl,
           headers: [],
-          body: null
+          body: {
+            mode: 'none',
+            content: ''
+          }
         }
       };
       if(!itemUid) {
@@ -345,7 +516,7 @@ export const newHttpRequest = (requestName, collectionUid, itemUid) => (dispatch
         }
       }
       const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-  
+
       saveCollectionToIdb(window.__idb, collectionToSave)
         .then(() => {
           Promise.resolve(dispatch(_newItem({
@@ -368,20 +539,23 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  if(collection) {
-    const collectionCopy = cloneDeep(collection);
-    deleteItemInCollection(itemUid, collectionCopy);
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+  return new Promise((resolve, reject) => {
+    if(collection) {
+      const collectionCopy = cloneDeep(collection);
+      deleteItemInCollection(itemUid, collectionCopy);
+      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
-      .then(() => {
-        dispatch(_deleteItem({
-          itemUid: itemUid,
-          collectionUid: collectionUid
-        }));
-      })
-      .catch((err) => console.log(err));
-  }
+      saveCollectionToIdb(window.__idb, collectionToSave)
+        .then(() => {
+          dispatch(_deleteItem({
+            itemUid: itemUid,
+            collectionUid: collectionUid
+          }));
+        })
+        .then(() => resolve())
+        .catch((error) => reject(error));
+    }
+  });
 };
 
 export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
@@ -408,6 +582,10 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       })
       .catch((err) => console.log(err));
   }
+};
+
+export const removeCollection = (collectionPath) => () => {
+  console.log('removeCollection');
 };
 
 export default collectionsSlice.reducer;

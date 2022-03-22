@@ -2,18 +2,27 @@ import React from 'react';
 import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
-import { closeTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { deleteItem } from 'providers/ReduxStore/slices/collections';
+import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const DeleteCollectionItem = ({onClose, item, collection}) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
   const onConfirm = () =>{
-    dispatch(closeTab({
-      tabUid: item.uid
-    }));
-    dispatch(deleteItem(item.uid, collection.uid));
+    dispatch(deleteItem(item.uid, collection.uid))
+      .then(() => {
+        if(isFolder) {
+          dispatch(closeTabs({
+            tabUids: recursivelyGetAllItemUids(item.items)
+          }));
+        } else {
+          dispatch(closeTabs({
+            tabUids: [item.uid]
+          }));
+        }
+      });
     onClose();
   };
 

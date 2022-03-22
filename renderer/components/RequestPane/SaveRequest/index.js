@@ -4,61 +4,54 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import StyledWrapper from './StyledWrapper';
 import Modal from 'components//Modal';
 
-const SaveRequestButton = ({folders}) => {
-  const [openSaveRequestModal, setOpenSaveRequestModal] = useState(false);
+const SaveRequest = ({items, onClose}) => {
   const [showFolders, setShowFolders] = useState([]);
 
   useEffect(() => {
-    setShowFolders(folders);
-  }, [folders, openSaveRequestModal])
+    setShowFolders(items || []);
+  }, [items])
 
   const handleFolderClick = (folder) => {
     let subFolders = [];
-    for (let item of folder.items) {
-      if (item.items) {
-        subFolders.push(item)
+    if(folder.items && folder.items.length) {
+      for (let item of folder.items) {
+        if (item.items) {
+          subFolders.push(item)
+        }
+      }
+  
+      if(subFolders.length) {
+        setShowFolders(subFolders);
       }
     }
-    subFolders.length ? setShowFolders(subFolders) : setShowFolders((prev) => prev);
   }
 
   return (
-    <StyledWrapper className="flex items-center">
-      <button
-        style={{backgroundColor: 'var(--color-brand)'}}
-        className="flex items-center h-full text-white active:bg-blue-600 font-bold text-xs px-4 py-2 ml-2 uppercase rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
-        onClick={() => {
-          setOpenSaveRequestModal(true);
-        }}
+    <StyledWrapper>
+      <Modal 
+        size ="md"
+        title ="Save Request"
+        confirmText ="Save"
+        cancelText ="Cancel"
+        handleCancel = {onClose}
+        handleConfirm = {onClose}
       >
-        <span style={{marginLeft: 5}}>Save</span>
-      </button>
-      {openSaveRequestModal ? (
-        <Modal 
-          size ="md"
-          title ="save request"
-          confirmText ="Save"
-          cancelText ="Cancel"
-          handleCancel = {() => setOpenSaveRequestModal(false)}
-          handleConfirm = {() => setOpenSaveRequestModal(false)}
-        >
-          <p className="mb-2">Select a folder to save request:</p>
-          <div className="folder-list">
-            {showFolders && showFolders.length ?  showFolders.map((folder) => (
-                <div 
-                  key={folder.uid}
-                  className="folder-name"
-                  onClick={() => handleFolderClick(folder)}
-                >
-                  <FontAwesomeIcon className="mr-3 text-gray-500" icon={faFolder} style={{fontSize: 20}}/>
-                  {folder.name}
-                </div>
-            )): null}
-          </div>
-        </Modal>
-      ): null}
+        <p className="mb-2">Select a folder to save request:</p>
+        <div className="folder-list">
+          {showFolders && showFolders.length ? showFolders.map((folder) => (
+              <div 
+                key={folder.uid}
+                className="folder-name"
+                onClick={() => handleFolderClick(folder)}
+              >
+                <FontAwesomeIcon className="mr-3 text-gray-500" icon={faFolder} style={{fontSize: 20}}/>
+                {folder.name}
+              </div>
+          )): null}
+        </div>
+      </Modal>
     </StyledWrapper>
-  )
+  );
 };
 
-export default SaveRequestButton;
+export default SaveRequest;

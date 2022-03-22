@@ -1,5 +1,4 @@
 import produce from 'immer';
-import {nanoid} from 'nanoid';
 import union from 'lodash/union';
 import find from 'lodash/find';
 import actions from './actions';
@@ -36,7 +35,7 @@ const reducer = (state, action) => {
 
     case actions.ADD_NEW_GQL_REQUEST: {
       return produce(state, (draft) => {
-        const uid = nanoid();
+        const uid = uuid();
         draft.requestTabs.push({
           uid: uid,
           name: 'New Tab',

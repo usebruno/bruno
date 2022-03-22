@@ -41,25 +41,27 @@ export default class QueryEditor extends React.Component {
       readOnly: this.props.readOnly ? 'nocursor' : false,
       extraKeys: {
         'Cmd-Enter': () => {
-          if (this.props.onChange) {
-            // empty
+          if(this.props.onRun) {
+            this.props.onRun();
           }
         },
         'Ctrl-Enter': () => {
-          if (this.props.onChange) {
-            // empty
+          if(this.props.onRun) {
+            this.props.onRun();
           }
         },
         'Cmd-S': () => {
-          if (this.props.onRunQuery) {
-            // empty
+          if(this.props.onSave) {
+            this.props.onSave();
           }
         },
-
         'Ctrl-S': () => {
-          if (this.props.onRunQuery) {
-            // empty
+          if(this.props.onSave) {
+            this.props.onSave();
           }
+        },
+        'Tab': function(cm){
+          cm.replaceSelection("  " , "end");
         }
       },
     }));

@@ -85,8 +85,8 @@ const Login = () => {
             </g>
           </svg>
         </div>
-        <div className="font-semibold" style={{fontSize: '2rem'}}>grafnode</div>
-        <div className="mt-1">Opensource API Collection Collaboration</div>
+        <div className="font-semibold" style={{fontSize: '2rem'}}>bruno</div>
+        <div className="mt-1">Opensource API Collection Collaboration Platform</div>
       </div>
       <form onSubmit={formik.handleSubmit}>
         <div className="flex justify-center flex-col form-container mx-auto mt-10 p-5">

@@ -1,91 +1,42 @@
-import React, { useRef, forwardRef } from 'react';
-import PropTypes from 'prop-types';
-import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
-import SaveRequestButton from 'components/RequestPane/SaveRequest';
+import React from 'react';
+import get from 'lodash/get';
+import { useDispatch } from 'react-redux';
+import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
+import HttpMethodSelector from './HttpMethodSelector';
 import StyledWrapper from './StyledWrapper';
 
-const QueryUrl = ({value, onChange, handleRun, collections}) => {
-  const dropdownTippyRef = useRef();
-  const viewProfile = () => {};
+const QueryUrl = ({item, collection, handleRun}) => {
+  const dispatch = useDispatch();
+  const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
+  let url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
 
-  const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-center pl-3 py-2 select-none">
-        GET <IconCaretDown className="caret ml-2 mr-1" size={14} strokeWidth={2}/>
-      </div>
-    );
-  });
+  const onUrlChange = (value) => {
+    dispatch(requestUrlChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      url: value
+    }));
+  };
 
-  const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
+  const onMethodSelect = (verb) => {
+    dispatch(updateRequestMethod({
+      method: verb,
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }));
+  };
 
   return (
-    <StyledWrapper className="mt-3 flex items-center">
-      <div className="flex items-center cursor-pointer user-action-dropdown h-full method-selector pr-3">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-start'>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              GET
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              POST
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              PUT
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              DELETE
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              PATCH
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              OPTIONS
-            </div>
-          </div>
-          <div>
-            <div className="dropdown-item" onClick={() => {
-              dropdownTippyRef.current.hide();
-              viewProfile();
-            }}>
-              HEAD
-            </div>
-          </div>
-        </Dropdown>
+    <StyledWrapper className="flex items-center">
+      <div className="flex items-center h-full method-selector-container">
+        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect}/>
       </div>
       <div className="flex items-center flex-grow input-container h-full">
         <input
           className="px-3 w-full mousetrap"
-          type="text" defaultValue={value}
-          onChange={(event) => onChange(event.target.value)}
+          type="text" value={url}
+          autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+          onChange={(event) => onUrlChange(event.target.value)}
         />
       </div>
       <button
@@ -95,15 +46,8 @@ const QueryUrl = ({value, onChange, handleRun, collections}) => {
       >
         <span style={{marginLeft: 5}}>Send</span>
       </button>
-      <SaveRequestButton folders={collections}/>
     </StyledWrapper>
   )
-};
-
-QueryUrl.propTypes = {
-  value: PropTypes.string,
-  onChange: PropTypes.func.isRequired,
-  handleRun: PropTypes.func.isRequired
 };
 
 export default QueryUrl;

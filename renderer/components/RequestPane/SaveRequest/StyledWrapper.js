@@ -1,8 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  height: 2.3rem;
-    
   .folder-list {
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -11,7 +9,7 @@ const Wrapper = styled.div`
       padding-block: 8px;
       padding-inline: 12px;
       cursor: pointer;
-      &: hover {
+      &:hover {
         background-color: #e8e8e8;
       }
     }

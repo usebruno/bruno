@@ -2,8 +2,8 @@ import React, {useState, useEffect} from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ModalHeader = ({title, handleCancel}) => (
-  <div className="grafnode-modal-header">
-    {title ? <div className="grafnode-modal-heade-title">{title}</div> : null}
+  <div className="bruno-modal-header">
+    {title ? <div className="bruno-modal-heade-title">{title}</div> : null}
     {handleCancel ? (
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
         ×
@@ -13,7 +13,7 @@ const ModalHeader = ({title, handleCancel}) => (
 );
 
 const ModalContent = ({children}) => (
-  <div className="grafnode-modal-content px-4 py-6">
+  <div className="bruno-modal-content px-4 py-6">
     {children}
   </div>
 );
@@ -23,7 +23,7 @@ const ModalFooter = ({confirmText, cancelText, handleSubmit, handleCancel, confi
   cancelText = cancelText || 'Cancel';
 
   return (
-    <div className="flex justify-end p-4 grafnode-modal-footer">
+    <div className="flex justify-end p-4 bruno-modal-footer">
       <span className="mr-2">
         <button type="button" onClick={handleCancel} className="btn btn-md btn-close">
           {cancelText}
@@ -69,13 +69,13 @@ const Modal = ({
     }
   }, []);
 
-  let classes = 'grafnode-modal';
+  let classes = 'bruno-modal';
   if (isClosing) {
     classes += ' modal--animate-out';
   }
   return (
     <StyledWrapper className={classes}>
-      <div className={`grafnode-modal-card modal-${size}`}>
+      <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal()} />
         <ModalContent>{children}</ModalContent>
         <ModalFooter 
@@ -86,7 +86,7 @@ const Modal = ({
           confirmDisabled={confirmDisabled}
         />
       </div>
-      <div className="grafnode-modal-backdrop" onClick={() => closeModal()} />
+      <div className="bruno-modal-backdrop" onClick={() => closeModal()} />
     </StyledWrapper>
   );
 };

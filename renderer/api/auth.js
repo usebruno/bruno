@@ -1,5 +1,6 @@
 import { get, post, put } from './base';
 
+// not used. kept as a placeholder for reference while implementing license key stuff
 const AuthApi = {
   whoami: () => get('auth/v1/user/whoami'),
   signup: (params) => post('auth/v1/user/signup', params),
@@ -15,11 +16,7 @@ const AuthApi = {
       .then(resolve)
       .catch(reject);
     });
-  },
-  signout: () => post('auth/v1/user/logout'),
-  getProfile: () => get('auth/v1/user/profile'),
-  updateProfile: (params) => put('auth/v1/user/profile', params),
-  updateUsername: (params) => put('auth/v1/user/username', params)
+  }
 };
 
 export default AuthApi;

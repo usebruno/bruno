@@ -1,19 +1,19 @@
 import Head from 'next/head';
-import Main from 'pageComponents/Main';
+import IndexPage from 'pageComponents/Index';
 import GlobalStyle from '../globalStyles';
 
 export default function Home() {
   return (
     <div>
       <Head>
-        <title>grafnode</title>
+        <title>bruno</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <GlobalStyle />
 
       <main>
-        <Main />
+        <IndexPage />
       </main>
     </div>
   );

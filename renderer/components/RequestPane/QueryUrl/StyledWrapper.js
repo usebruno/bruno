@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   height: 2.3rem;
 
-  div.method-selector {
+  div.method-selector-container {
     border: solid 1px var(--color-layout-border);
     border-right: none;
     background-color: var(--color-sidebar-background);

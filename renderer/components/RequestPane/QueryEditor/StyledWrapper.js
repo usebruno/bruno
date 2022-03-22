@@ -4,7 +4,7 @@ const StyledWrapper = styled.div`
   div.CodeMirror {
     border: solid 1px var(--color-codemirror-border);
     /* todo: find a better way */
-    height: calc(100vh - 255px);
+    height: calc(100vh - 250px);
   }
 
   textarea.cm-editor {

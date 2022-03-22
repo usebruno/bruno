@@ -8,7 +8,7 @@ const EnvironmentSelector = () => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="current-enviroment flex items-center justify-center px-3 py-1 select-none">
+      <div ref={ref} className="current-enviroment flex items-center justify-center pl-3 pr-2 py-1 select-none">
         No Environment
         <IconCaretDown className="caret" size={14} strokeWidth={2}/>
       </div>
@@ -19,7 +19,7 @@ const EnvironmentSelector = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center cursor-pointer environment-selector pr-3">
+      <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
           <div className="dropdown-item" onClick={() => {
             dropdownTippyRef.current.hide();

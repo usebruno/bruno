@@ -43,13 +43,14 @@ const RenameCollectionItem = ({collection, item, onClose}) => {
       handleConfirm={onSubmit}
       handleCancel={onClose}
     >
-      <form className="grafnode-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="name" className="block font-semibold">{isFolder ? 'Folder' : 'Request'} Name</label>
           <input
             id="collection-item-name" type="text" name="name"
             ref={inputRef}
             className="block textbox mt-2 w-full"
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
             onChange={formik.handleChange}
             value={formik.values.name || ''}
           />

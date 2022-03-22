@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <div>
       <Head>
-        <title>grafnode</title>
+        <title>bruno</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

@@ -1,20 +1,27 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  border-bottom: 1px solid var(--color-layout-border);
+
   ul {
-    width: 100%;
     padding: 0;
-    margin: 0 0 10px;
-    padding-left: 1rem;
-    border-bottom: 1px solid var(--color-layout-border);
+    margin: 0;
+    display: flex;
+    bottom: -1px;
+    position: relative;
+    overflow: scroll;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
 
     li {
       display: inline-flex;
       width: 150px;
+      min-width: 150px;
+      max-width: 150px;
       border: 1px solid transparent;
       border-bottom: none;
-      bottom: -1px;
-      position: relative;
       list-style: none;
       padding-top: 8px;
       padding-bottom: 8px;
@@ -40,38 +47,6 @@ const Wrapper = styled.div`
         }
       }
 
-
-      .tab-label {
-        overflow: hidden;
-      }
-
-      .tab-name {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;      }
-
-      .close-icon-container {
-        min-height: 20px;
-        border-radius: 3px;
-
-        .close-icon {
-          display: none;
-          color: #9f9f9f;
-          width: 8px;
-          padding-bottom: 6px;
-          padding-top: 6px;
-        }
-
-        &:hover, &:hover .close-icon {
-          background-color: #eaeaea;
-          color: rgb(76 76 76);
-        }
-
-        .has-changes-icon  {
-          height: 24px;
-        }
-      }
-
       &.active {
         .close-icon-container .close-icon {
           display: block;
@@ -84,14 +59,17 @@ const Wrapper = styled.div`
         }
       }
 
-      &.new-tab {
+      &.short-tab {
         vertical-align: bottom;
         width: 34px;
+        min-width: 34px;
+        max-width: 34px;
         padding: 3px 0px;
         display: inline-flex;
         justify-content: center;
         color: rgb(117 117 117);
-        margin-bottom: 2px;
+        position: relative;
+        top: -1px;
 
         > div {
           padding: 3px 4px;
@@ -142,6 +120,16 @@ const Wrapper = styled.div`
     li:first-child {
       .tab-container {
         border-left: 1px solid transparent;
+      }
+    }
+  }
+
+  &.has-chevrons {
+    ul {
+      li:first-child {
+        .tab-container {
+          border-left: 1px solid #dcdcdc;
+        }
       }
     }
   }

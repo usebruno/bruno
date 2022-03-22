@@ -1,14 +1,14 @@
 const collection = {
-  "id": nanoid(),
+  "id": uuid(),
 	"name": "spacex",
 	"items": [
 		{
-      "id": nanoid(),
+      "id": uuid(),
       "name": "Launches",
       "depth": 1,
 			"items": [
 				{
-          "id": nanoid(),
+          "id": uuid(),
           "depth": 2,
 					"name": "Capsules",
 					"request": {
@@ -27,7 +27,7 @@ const collection = {
 					"response": null
 				},
 				{
-          "id": nanoid(),
+          "id": uuid(),
           "depth": 2,
 					"name": "Missions",
 					"request": {
@@ -51,16 +51,16 @@ const collection = {
 };
 
 const collection2 = {
-  "id": nanoid(),
+  "id": uuid(),
 	"name": "notebase",
 	"items": [
 		{
-      "id": nanoid(),
+      "id": uuid(),
       "name": "Notes",
       "depth": 1,
 			"items": [
 				{
-          "id": nanoid(),
+          "id": uuid(),
           "depth": 2,
 					"name": "Create",
 					"request": {
@@ -79,7 +79,7 @@ const collection2 = {
 					"response": null
 				},
 				{
-          "id": nanoid(),
+          "id": uuid(),
           "depth": 2,
 					"name": "Update",
 					"request": {

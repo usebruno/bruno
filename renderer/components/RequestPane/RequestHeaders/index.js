@@ -3,7 +3,6 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { requestChanged } from 'providers/ReduxStore/slices/tabs';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -12,10 +11,6 @@ const RequestHeaders = ({item, collection}) => {
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
   const addHeader = () => {
-    dispatch(requestChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
     dispatch(addRequestHeader({
       itemUid: item.uid,
       collectionUid: collection.uid,
@@ -37,11 +32,11 @@ const RequestHeaders = ({item, collection}) => {
         header.description = e.target.value;
         break;
       }
+      case 'enabled' : {
+        header.enabled = e.target.checked;
+        break;
+      }
     }
-    dispatch(requestChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
     dispatch(updateRequestHeader({
       header: header,
       itemUid: item.uid,
@@ -50,10 +45,6 @@ const RequestHeaders = ({item, collection}) => {
   };
   
   const handleRemoveHeader = (header) => {
-    dispatch(requestChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
     dispatch(deleteRequestHeader({
       headerUid: header.uid,
       itemUid: item.uid,
@@ -62,7 +53,7 @@ const RequestHeaders = ({item, collection}) => {
   };
   
   return (
-    <StyledWrapper className="mt-4">
+    <StyledWrapper className="w-full">
       <table>
         <thead>
           <tr>
@@ -79,7 +70,7 @@ const RequestHeaders = ({item, collection}) => {
                 <td>
                   <input
                     type="text"
-                    autoComplete="off"
+                    autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
                     value={header.name}
                     className="mousetrap"
                     onChange={(e) => handleHeaderValueChange(e, header, 'name')}
@@ -88,7 +79,7 @@ const RequestHeaders = ({item, collection}) => {
                 <td>
                   <input
                     type="text"
-                    autoComplete="off"
+                    autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
                     value={header.value}
                     className="mousetrap"
                     onChange={(e) => handleHeaderValueChange(e, header, 'value')}
@@ -97,7 +88,7 @@ const RequestHeaders = ({item, collection}) => {
                 <td>
                   <input
                     type="text"
-                    autoComplete="off"
+                    autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
                     value={header.description}
                     className="mousetrap"
                     onChange={(e) => handleHeaderValueChange(e, header, 'description')}
@@ -121,7 +112,7 @@ const RequestHeaders = ({item, collection}) => {
           }) : null}
         </tbody>
       </table>
-      <button className="btn-add-header" onClick={addHeader}>+ Add Header</button>
+      <button className="btn-add-header select-none" onClick={addHeader}>+ Add Header</button>
     </StyledWrapper>
   )
 };

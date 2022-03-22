@@ -4,9 +4,9 @@ import StyledWrapper from './StyledWrapper';
 
 const QueryResult = ({value, width}) => {
   return (
-    <StyledWrapper className="mt-4 px-3 w-full" style={{maxWidth: width}}>
+    <StyledWrapper className="px-3 w-full" style={{maxWidth: width}}>
       <div className="h-full">
-        <CodeEditor value={value || ''} />
+        <CodeEditor value={value || ''} readOnly/>
       </div>
     </StyledWrapper>
   );

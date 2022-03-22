@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  &.grafnode-toast {
+  &.bruno-toast {
     position: fixed;
     top: 0;
     left: 0;
@@ -11,7 +11,7 @@ const Wrapper = styled.div`
     justify-content: center;
   }
 
-  .grafnode-toast-card {
+  .bruno-toast-card {
     -webkit-animation-duration: .85s;
     animation-duration: .85s;
     -webkit-animation-delay: .1s;

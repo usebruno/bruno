@@ -13,6 +13,7 @@ const Wrapper = styled.div`
     thead {
       color: #616161;
       font-size: 0.8125rem;
+      user-select: none;
     }
     td {
       padding: 6px 10px;
@@ -20,8 +21,10 @@ const Wrapper = styled.div`
   }
 
   .btn-add-param {
-    margin-block: 10px;
-    padding: 5px;
+    font-size: 0.8125rem;
+    &:hover span {
+      text-decoration: underline;
+    }
   }
 
   input[type="text"] {

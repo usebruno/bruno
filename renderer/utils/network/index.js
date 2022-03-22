@@ -12,7 +12,7 @@ const sendNetworkRequest = async (item) => {
             state: 'success',
             data: response.data,
             headers: Object.entries(response.headers),
-            size: response.headers["content-length"],
+            size: response.headers["content-length"] || 0,
             status: response.status,
             duration: timeEnd - timeStart
           });
@@ -24,9 +24,8 @@ const sendNetworkRequest = async (item) => {
 
 const sendHttpRequest = async (request) => {
   return new Promise((resolve, reject) => {
-    const { ipcRenderer } = window.require("electron");
+    const { ipcRenderer } = window;
 
-    console.log(request);
     const headers = {};
     each(request.headers, (h) => {
       if(h.enabled) {
@@ -41,8 +40,9 @@ const sendHttpRequest = async (request) => {
     };
 
     if(request.body && request.body.mode === 'json' && request.body.content) {
-      options.data = request.body.content;
+      options.data = JSON.parse(request.body.content);
     }
+    console.log(request);
 
     ipcRenderer
       .invoke('send-http-request', options)

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
+import find from 'lodash/find';
 import classnames from 'classnames';
+import { useSelector, useDispatch } from 'react-redux';
+import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
@@ -9,16 +12,19 @@ import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
 import StyledWrapper from './StyledWrapper';
 
-const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
-  const [selectedTab, setSelectedTab] = useState('response');
+const ResponsePane = ({rightPaneWidth, item, isLoading}) => {
+  const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  response = response || {};
-
-  const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      'active': tabName === selectedTab
-    });
+  const selectTab = (tab) => {
+    dispatch(updateResponsePaneTab({
+      uid: item.uid,
+      responsePaneTab: tab
+    }))
   };
+
+  const response = item.response || {};
 
   const getTabPanel = (tab) => {
     switch(tab) {
@@ -40,7 +46,7 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
         return <div>404 | Not found</div>;
       }
     }
-  }
+  };
 
   if(isLoading) {
     return (
@@ -49,7 +55,6 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
       </StyledWrapper>
     );
   }
-
   if(response.state !== 'success') {
     return (
       <StyledWrapper className="flex h-full relative">
@@ -58,11 +63,30 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
     );
   }
 
+  if(!activeTabUid) {
+    return (
+      <div>Something went wrong</div>
+    );
+  }
+
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  if(!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
+    return (
+      <div className="pb-4 px-4">An error occured!</div>
+    );
+  }
+
+  const getTabClassname = (tabName) => {
+    return classnames(`tab select-none ${tabName}`, {
+      'active': tabName === focusedTab.responsePaneTab
+    });
+  };
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex items-center px-3 tabs mt-1" role="tablist">
-        <div className={getTabClassname('response')} role="tab" onClick={() => setSelectedTab('response')}>Response</div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => setSelectedTab('headers')}>Headers</div>
+      <div className="flex items-center px-3 tabs" role="tablist">
+        <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>Response</div>
+        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>Headers</div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
             <StatusCode status={response.status}/>
@@ -71,8 +95,8 @@ const ResponsePane = ({rightPaneWidth, response, isLoading}) => {
           </div>
         ) : null }
       </div>
-      <section className="flex flex-grow">
-        {getTabPanel(selectedTab)}
+      <section className="flex flex-grow mt-5">
+        {getTabPanel(focusedTab.responsePaneTab)}
       </section>
     </StyledWrapper>
   )

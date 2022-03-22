@@ -6,7 +6,6 @@ const Wrapper = styled.div`
     cursor: pointer;
     user-select: none;
     padding-left: 8px;
-    padding-right: 8px;
     font-weight: 600;
 
     .rotate-90 {
@@ -14,9 +13,15 @@ const Wrapper = styled.div`
     }
 
     .collection-actions {
-      display: none;
-      flex-grow: 1;
-      justify-content: flex-end;
+      .dropdown {
+        div[aria-expanded="true"] {
+          visibility: visible;
+        }
+        div[aria-expanded="false"] {
+          visibility: hidden;
+        }
+      }
+      
 
       svg {
         height: 22px;
@@ -26,7 +31,11 @@ const Wrapper = styled.div`
 
     &:hover {
       .collection-actions {
-        display: flex;
+        .dropdown {
+          div[aria-expanded="false"] {
+            visibility: visible;
+          }
+        }
       }
     }
 

@@ -2,9 +2,16 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .menu-icon {
-    display: none;
-    flex-grow: 1;
-    justify-content: flex-end;
+    color: rgb(110 110 110);
+
+  .dropdown {
+      div[aria-expanded="true"] {
+        visibility: visible;
+      }
+      div[aria-expanded="false"] {
+        visibility: hidden;
+      }
+    }
   }
 
   .indent-block {
@@ -20,15 +27,21 @@ const Wrapper = styled.div`
       transform: rotateZ(90deg);
     }
 
+    span.item-name {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
     &:hover {
       background: #e7e7e7;
       .menu-icon {
-        display: flex;
+        .dropdown {
+          div[aria-expanded="false"] {
+            visibility: visible;
+          }
+        }
       }
-    }
-
-    .menu-icon {
-      color: rgb(110 110 110);
     }
 
     &.item-focused-in-tab {
@@ -55,6 +68,10 @@ const Wrapper = styled.div`
         color: white;
       }
     }
+  }
+
+  &.is-dragging .collection-item-name {
+    cursor: inherit;
   }
 `;
 

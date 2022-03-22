@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import useIdb from './useIdb';
+import { useDispatch } from 'react-redux';
+import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 
 export const AppContext = React.createContext();
 
 export const AppProvider = props => {
   // boot idb
   useIdb();
+
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(refreshScreenWidth());
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      dispatch(refreshScreenWidth());
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
     <AppContext.Provider {...props} value='appProvider'>

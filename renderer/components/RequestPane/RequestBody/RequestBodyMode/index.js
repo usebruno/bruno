@@ -18,7 +18,7 @@ const RequestBodyMode = () => {
   return(
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer body-mode-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-start'>
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
           <div className="label-item font-medium">
             Form
           </div>

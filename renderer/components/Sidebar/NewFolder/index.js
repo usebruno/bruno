@@ -41,13 +41,14 @@ const NewFolder = ({collection, item, onClose}) => {
       handleConfirm={onSubmit}
       handleCancel={onClose}
     >
-      <form className="grafnode-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="folderName" className="block font-semibold">Folder Name</label>
           <input
             id="collection-name" type="text" name="folderName"
             ref={inputRef}
             className="block textbox mt-2 w-full"
+            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
             onChange={formik.handleChange}
             value={formik.values.folderName || ''}
           />

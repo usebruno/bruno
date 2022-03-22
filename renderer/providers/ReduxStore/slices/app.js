@@ -1,25 +1,42 @@
 import { createSlice } from '@reduxjs/toolkit'
 
 const initialState = {
+  isDragging: false,
   idbConnectionReady: false,
-  leftMenuBarOpen: false,
-  leftSidebarWidth: 222
+  leftSidebarWidth: 270,
+  leftMenuBarOpen: true,
+  screenWidth: 500
 };
 
 export const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
+    idbConnectionReady: (state) => {
+      state.idbConnectionReady = true;
+    },
     toggleLeftMenuBar: (state) => {
       state.leftMenuBarOpen = !state.leftMenuBarOpen;
       state.leftSidebarWidth = state.leftMenuBarOpen ? 270 : 222;
     },
-    idbConnectionReady: (state) => {
-      state.idbConnectionReady = true;
-    }
+    refreshScreenWidth: (state) => {
+      state.screenWidth = window.innerWidth;
+    },
+    updateLeftSidebarWidth: (state, action) => {
+      state.leftSidebarWidth = action.payload.leftSidebarWidth;
+    },
+    updateIsDragging: (state, action) => {
+      state.isDragging = action.payload.isDragging;
+    },
   }
 });
 
-export const { toggleLeftMenuBar, idbConnectionReady } = appSlice.actions;
+export const {
+  idbConnectionReady,
+  toggleLeftMenuBar,
+  refreshScreenWidth,
+  updateLeftSidebarWidth,
+  updateIsDragging
+} = appSlice.actions;
 
 export default appSlice.reducer;

@@ -7,8 +7,9 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { sendRequest, requestUrlChanged } from 'providers/ReduxStore/slices/collections';
-import { requestChanged } from 'providers/ReduxStore/slices/tabs';
+import { sendRequest } from 'providers/ReduxStore/slices/collections';
+import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import RequestNotFound from './RequestNotFound';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -17,35 +18,52 @@ const RequestTabPanel = () => {
   if(typeof window == 'undefined') {
     return <div></div>;
   }
+  const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
-  const dispatch = useDispatch();
+  const screenWidth = useSelector((state) => state.app.screenWidth);
 
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
-  let {
-    schema 
-  } = useGraphqlSchema('https://api.spacex.land/graphql');
-  const [leftPaneWidth, setLeftPaneWidth] = useState((window.innerWidth - asideWidth)/2 - 10); // 10 is for dragbar
-  const [rightPaneWidth, setRightPaneWidth] = useState((window.innerWidth - asideWidth)/2);
+  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const [leftPaneWidth, setLeftPaneWidth] = useState(focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : ((screenWidth - asideWidth)/2.2)); // 2.2 so that request pane is relatively smaller
+  const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - 5);
   const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    const leftPaneWidth = (screenWidth - asideWidth)/2.2;
+    setLeftPaneWidth(leftPaneWidth);
+  }, [screenWidth]);
+
+  useEffect(() => {
+    setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - 5);
+  }, [screenWidth, asideWidth, leftPaneWidth]);
+
   const handleMouseMove = (e) => {
     if(dragging) {
       e.preventDefault();
-      setLeftPaneWidth(e.clientX - asideWidth);
-      setRightPaneWidth(window.innerWidth - (e.clientX));
+      setLeftPaneWidth(e.clientX - asideWidth - 5);
+      setRightPaneWidth(screenWidth - (e.clientX) - 5);
     }
   };
   const handleMouseUp = (e) => {
     if(dragging) {
       e.preventDefault();
       setDragging(false);
+      dispatch(updateRequestPaneTabWidth({
+        uid: activeTabUid,
+        requestPaneWidth: e.clientX - asideWidth - 5
+      }));
     }
   };
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
   };
+
+  let {
+    schema 
+  } = useGraphqlSchema('https://api.spacex.land/graphql');
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
@@ -55,19 +73,14 @@ const RequestTabPanel = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging, leftPaneWidth]);
+  }, [dragging, asideWidth]);
 
-  const onGraphqlQueryChange = (value) => {
-    // todo
-  };
 
   if(!activeTabUid) {
     return (
       <Welcome/>
     );
   }
-
-  const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
 
   if(!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
     return (
@@ -85,50 +98,30 @@ const RequestTabPanel = () => {
   const item = findItemInCollection(collection, activeTabUid);
   if(!item || !item.uid) {
     return (
-      <StyledWrapper>
-        Request not found!
-      </StyledWrapper>
+      <RequestNotFound itemUid={activeTabUid}/>
     );
-  }
-
-  const onUrlChange = (value) => {
-    dispatch(requestChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
-    dispatch(requestUrlChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      url: value
-    }));
   };
 
-  const runQuery = async () => {
-    // todo
-  };
-
-  const sendNetworkRequest =  async () => {
-    dispatch(sendRequest(item, collection.uid));
-  };
+  const onGraphqlQueryChange = (value) => {};
+  const runQuery = async () => {};
+  const sendNetworkRequest =  async () => dispatch(sendRequest(item, collection.uid));
 
   return (
-    <StyledWrapper className="flex flex-col flex-grow">
+    <StyledWrapper className={`flex flex-col flex-grow ${dragging ? 'dragging' : ''}`}>
       <div
-        className="pb-4 px-4"
+        className="px-4 pt-6 pb-4"
         style={{
-          borderBottom: 'solid 1px var(--color-layout-border)'
+          borderBottom: 'solid 1px var(--color-request-dragbar-background)'
         }}
       >
-        <div className="pt-1 text-gray-600">{item.name}</div>
         <QueryUrl
-          value = {item.request.url}
-          onChange={onUrlChange}
+          item = {item}
+          collection={collection}
           handleRun={sendNetworkRequest}
-          collections={collections}
         />
       </div>
       <section className="main flex flex-grow">
-        <section className="request-pane">
+        <section className="request-pane mt-2">
           <div
             className="px-4"
             style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}
@@ -154,10 +147,12 @@ const RequestTabPanel = () => {
         </section>
 
         <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+          <div className="drag-request-border" />
         </div>
 
-        <section className="response-pane flex-grow">
+        <section className="response-pane flex-grow mt-2">
           <ResponsePane
+            item={item}
             rightPaneWidth={rightPaneWidth}
             response={item.response}
             isLoading={item.response && item.response.state === 'sending' ? true : false}

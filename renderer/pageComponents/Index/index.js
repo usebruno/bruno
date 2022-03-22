@@ -1,4 +1,5 @@
 import React from 'react';
+import classnames from 'classnames';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
@@ -28,17 +29,17 @@ if(!SERVER_RENDERED) {
   require('codemirror-graphql/mode');
 }
 
-
 export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isDragging = useSelector((state) => state.app.isDragging);
 
-  if (SERVER_RENDERED) {
-    return null;
-  }
+  const className = classnames({
+    'is-dragging': isDragging
+  });
 
   return (
     <div>
-      <StyledWrapper>
+      <StyledWrapper className={className}>
         <Sidebar />
         <section className='flex flex-grow flex-col'>
           <RequestTabs />

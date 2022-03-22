@@ -27,8 +27,8 @@ const Toast = ({
   }, [text]);
 
   return (
-    <StyledWrapper className='grafnode-toast'>
-      <div className='grafnode-toast-card'>
+    <StyledWrapper className='bruno-toast'>
+      <div className='bruno-toast-card'>
         <ToastContent type={type} text={text} handleClose={handleClose}></ToastContent>
       </div>
     </StyledWrapper>

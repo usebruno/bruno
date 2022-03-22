@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
+import SaveRequest from 'components/RequestPane/SaveRequest';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections';
-import { requestSaved } from 'providers/ReduxStore/slices/tabs';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 
 export const HotkeysContext = React.createContext();
@@ -13,18 +13,30 @@ export const HotkeysProvider = props => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
+  
+  const getCurrentCollectionItems = () => {
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if(activeTab) {
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+      return collection ? collection.items : [];
+    };
+  };
 
   // save hotkey
   useEffect(() => {
     Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
-      if(activeTabUid) {
-        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-        if(activeTab) {
-          // todo: these dispatches need to be chained and errors need to be handled
-          dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
-          dispatch(requestSaved({
-            itemUid: activeTab.uid
-          }))
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if(activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+        if(collection) {
+          const item = findItemInCollection(collection, activeTab.uid);
+          if(item && item.uid) {
+            dispatch(saveRequest(activeTab.uid, activeTab.collectionUid))
+          } else {
+            setShowSaveRequestModal(true);
+          }
         }
       }
 
@@ -34,21 +46,19 @@ export const HotkeysProvider = props => {
     return () => {
       Mousetrap.unbind(['command+s', 'ctrl+s']);
     };
-  }, [activeTabUid, tabs, saveRequest, requestSaved]);
+  }, [activeTabUid, tabs, saveRequest, collections]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
-    Mousetrap.bind(['ctrl+command', 'ctrl+enter'], (e) => {
-      if(activeTabUid) {
-        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-        if(activeTab) {
-          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+    Mousetrap.bind(['command+enter', 'ctrl+enter'], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if(activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
-          if(collection) {
-            const item = findItemInCollection(collection, activeTab.uid);
-            if(item) {
-              dispatch(sendRequest(item, collection.uid));
-            }
+        if(collection) {
+          const item = findItemInCollection(collection, activeTab.uid);
+          if(item) {
+            dispatch(sendRequest(item, collection.uid));
           }
         }
       }
@@ -57,13 +67,16 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['ctrl+command', 'ctrl+enter']);
+      Mousetrap.unbind(['command+enter', 'ctrl+enter']);
     };
-  }, [activeTabUid, tabs, saveRequest, requestSaved, collections]);
+  }, [activeTabUid, tabs, saveRequest, collections]);
 
   return (
     <HotkeysContext.Provider {...props} value='hotkey'>
-      {props.children}
+      {showSaveRequestModal && <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)}/>}
+      <div>
+        {props.children}
+      </div>
     </HotkeysContext.Provider>
   );
 };

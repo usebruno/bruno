@@ -1,5 +1,4 @@
 import React, { useState, useRef, forwardRef } from 'react';
-import get from 'lodash/get';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import { IconChevronRight, IconDots } from '@tabler/icons';
@@ -19,6 +18,7 @@ import StyledWrapper from './StyledWrapper';
 const CollectionItem = ({item, collection}) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
@@ -44,15 +44,6 @@ const CollectionItem = ({item, collection}) => {
   });
 
   const handleClick = (event) => {
-    let tippyEl = get(dropdownTippyRef, 'current.reference');
-    if(tippyEl && tippyEl.contains && tippyEl.contains(event.target)) {
-      return;
-    }
-
-    if(event && event.target && event.target.className === 'dropdown-item') {
-      return;
-    }
-
     if(isItemARequest(item)) {
       if(itemIsOpenedInTabs(item, tabs)) {
         dispatch(focusTab({
@@ -76,24 +67,27 @@ const CollectionItem = ({item, collection}) => {
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
   const isFolder = isItemAFolder(item);
 
+  const className = classnames('flex flex-col w-full', {
+    'is-dragging': isDragging
+  });
+
   return (
-    <StyledWrapper className="flex flex-col">
+    <StyledWrapper className={className}>
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)}/>}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)}/>}
-      <div
-        className={itemRowClassName}
-        onClick={handleClick}
-      >
+      <div className={itemRowClassName}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length ? indents.map((i) => {
             return (
               <div
+                onClick={handleClick}
                 className="indent-block"
                 key={i}
                 style = {{
                   width: 16,
+                  minWidth: 16,
                   height: '100%'
                 }}
               >
@@ -102,20 +96,21 @@ const CollectionItem = ({item, collection}) => {
             );
           }) : null}
           <div
-            className="flex items-center"
+            onClick={handleClick}
+            className="flex flex-grow items-center h-full overflow-hidden"
             style = {{
               paddingLeft: 8
             }}
           >
-            <div style={{width:16}}>
+            <div style={{width:16, minWidth: 16}}>
               {isFolder ? (
                 <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{color: 'rgb(160 160 160)'}}/>
               ) : null}
             </div>
             
-            <div className="ml-1 flex items-center">
+            <div className="ml-1 flex items-center overflow-hidden">
               <RequestMethod item={item}/>
-              <div>{item.name}</div>
+              <span className="item-name" title={item.name}>{item.name}</span>
             </div>
           </div>
           <div className="menu-icon pr-2">

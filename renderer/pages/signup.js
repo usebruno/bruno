@@ -7,7 +7,7 @@ export default function SignUpPage() {
   return (
     <div>
       <Head>
-        <title>grafnode</title>
+        <title>bruno</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

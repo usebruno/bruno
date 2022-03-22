@@ -13,7 +13,7 @@ const ResponseTime = ({duration}) => {
   }
 
   return (
-    <StyledWrapper className="mt-3 ml-4">
+    <StyledWrapper className="ml-4">
       {durationToDisplay}
     </StyledWrapper>
   )
