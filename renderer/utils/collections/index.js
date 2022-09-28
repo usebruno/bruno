@@ -73,14 +73,18 @@ export const findItemInCollection = (collection, itemUid) => {
   return findItem(flattenedItems, itemUid);
 }
 
+export const findParentItemInCollection = (collection, itemUid) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, i => i.uid === itemUid);
+  });
+}
+
 export const recursivelyGetAllItemUids = (items = []) => {
   let flattenedItems = flattenItems(items);
 
   return map(flattenedItems, (i) => i.uid);
-};
-
-export const cloneItem = (item) => {
-  return cloneDeep(item);
 };
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
@@ -172,7 +176,9 @@ export const deleteItemInCollection = (itemUid, collection) => {
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type);
+  return item.hasOwnProperty('request')
+            && ['http-request', 'graphql-request'].includes(item.type)
+            && !item.items;
 };
 
 export const isItemAFolder = (item) => {

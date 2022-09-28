@@ -1,9 +1,9 @@
 import path from 'path';
 import { uuid } from 'utils/common';
-import trim from 'lodash/trim';
 import find from 'lodash/find';
 import concat from 'lodash/concat';
 import filter from 'lodash/filter';
+import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
 import splitOnFirst from 'split-on-first';
@@ -11,15 +11,15 @@ import { sendNetworkRequest } from 'utils/network';
 import {
   findCollectionByUid,
   findItemInCollection,
-  cloneItem,
+  findParentItemInCollection,
   transformCollectionToSaveToIdb,
   addDepth,
   deleteItemInCollection,
   isItemARequest,
+  isItemAFolder
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
 import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
-import { each } from 'lodash';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -72,6 +72,21 @@ export const collectionsSlice = createSlice({
         
         if(item) {
           item.name = action.payload.newName;
+        }
+      }
+    },
+    _cloneItem: (state, action) => {
+      const collectionUid = action.payload.collectionUid;
+      const clonedItem = action.payload.clonedItem;
+      const parentItemUid = action.payload.parentItemUid;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        if(parentItemUid) {
+          const parentItem = findItemInCollection(collection, parentItemUid);
+          parentItem.items.push(clonedItem);
+        } else {
+          collection.items.push(clonedItem);
         }
       }
     },
@@ -128,7 +143,7 @@ export const collectionsSlice = createSlice({
           },
           draft: null
         };
-        item.draft = cloneItem(item);
+        item.draft = cloneDeep(item);
         collection.items.push(item);
       }
     },
@@ -158,7 +173,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.url = action.payload.url;
 
@@ -194,7 +209,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.params = item.draft.request.params || [];
           item.draft.request.params.push({
@@ -215,7 +230,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
           if(param) {
@@ -256,7 +271,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
 
@@ -279,7 +294,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.headers = item.draft.request.headers || [];
           item.draft.request.headers.push({
@@ -300,7 +315,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           const header = find(item.draft.request.headers, (h) => h.uid === action.payload.header.uid);
           if(header) {
@@ -320,7 +335,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
         }
@@ -334,7 +349,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.body = {
             mode: action.payload.mode,
@@ -351,7 +366,7 @@ export const collectionsSlice = createSlice({
         
         if(item && isItemARequest(item)) {
           if(!item.draft) {
-            item.draft = cloneItem(item);
+            item.draft = cloneDeep(item);
           }
           item.draft.request.method = action.payload.method;
         }
@@ -366,6 +381,7 @@ export const {
   _newItem,
   _deleteItem,
   _renameItem,
+  _cloneItem,
   _requestSent,
   _responseReceived,
   _saveRequest,
@@ -577,6 +593,49 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
         dispatch(_renameItem({
           newName: newName,
           itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .catch((err) => console.log(err));
+  }
+};
+
+export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  if(collection) {
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+    if(!item) {
+      return;
+    }
+
+    if(isItemAFolder(item)) {
+      throw new Error('Cloning folders is not supported yet');
+    }
+
+    // todo: clone query params
+    const clonedItem = cloneDeep(item);
+    clonedItem.name = newName;
+    clonedItem.uid = uuid();
+    each(clonedItem.headers, h => h.uid = uuid());
+
+    const parentItem = findParentItemInCollection(collectionCopy, itemUid);
+
+    if(!parentItem) {
+      collectionCopy.items.push(clonedItem);
+    } else {
+      parentItem.items.push(clonedItem);
+    }
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_cloneItem({
+          parentItemUid: parentItem ? parentItem.uid : null,
+          clonedItem: clonedItem,
           collectionUid: collectionUid
         }));
       })

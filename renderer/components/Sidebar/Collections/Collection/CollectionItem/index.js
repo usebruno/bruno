@@ -10,6 +10,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
+import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 
@@ -22,6 +23,7 @@ const CollectionItem = ({item, collection}) => {
   const dispatch = useDispatch();
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
+  const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
@@ -74,6 +76,7 @@ const CollectionItem = ({item, collection}) => {
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
+      {cloneItemModalOpen && <CloneCollectionItem item={item} collection={collection} onClose={() => setCloneItemModalOpen(false)}/>}
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)}/>}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)}/>}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)}/>}
@@ -137,6 +140,14 @@ const CollectionItem = ({item, collection}) => {
               }}>
                 Rename
               </div>
+              {!isFolder && (
+                <div className="dropdown-item" onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setCloneItemModalOpen(true);
+                }}>
+                  Clone
+                </div>
+              )}
               <div className="dropdown-item delete-item" onClick={(e) => {
                 dropdownTippyRef.current.hide();
                 setDeleteItemModalOpen(true);

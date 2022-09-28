@@ -6,7 +6,7 @@ const GlobalStyle = createGlobalStyle`
     border-right: solid 1px var(--color-codemirror-border);
   }
 
-  .grafnode-form {
+  .bruno-form {
     .textbox {
       line-height: 1.42857143;
       background-color: #fff;

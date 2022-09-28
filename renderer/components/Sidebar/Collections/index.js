@@ -4,6 +4,7 @@ import Collection from './Collection';
 
 const Collections = () => {
   const collections = useSelector((state) => state.collections.collections);
+  console.log(collections);
 
   return (
     <div className="mt-4 flex flex-col">
