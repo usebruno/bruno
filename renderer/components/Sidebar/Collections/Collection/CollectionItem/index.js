@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef } from 'react';
+import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import range from 'lodash/range';
 import classnames from 'classnames';
 import { IconChevronRight, IconDots } from '@tabler/icons';
@@ -13,10 +13,11 @@ import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
+import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 
 import StyledWrapper from './StyledWrapper';
 
-const CollectionItem = ({item, collection}) => {
+const CollectionItem = ({item, collection, searchText}) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
@@ -27,6 +28,15 @@ const CollectionItem = ({item, collection}) => {
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+
+  useEffect(() => {
+    if (searchText && searchText.length) {
+      setItemisCollapsed(false);
+    } else {
+      setItemisCollapsed(item.collapsed);
+    }
+  }, [searchText, item]);
 
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
@@ -38,7 +48,7 @@ const CollectionItem = ({item, collection}) => {
   });
 
   const iconClassName = classnames({
-    'rotate-90': item.collapsed
+    'rotate-90': !itemIsCollapsed
   });
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
@@ -72,6 +82,18 @@ const CollectionItem = ({item, collection}) => {
   const className = classnames('flex flex-col w-full', {
     'is-dragging': isDragging
   });
+
+  if(searchText && searchText.length) {
+    if(isItemARequest(item)) {
+      if(!doesRequestMatchSearchText(item, searchText)) {
+        return null;
+      }
+    } else {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+        return null;
+      };
+    }
+  }
 
   return (
     <StyledWrapper className={className}>
@@ -159,13 +181,14 @@ const CollectionItem = ({item, collection}) => {
         </div>
       </div>
 
-      {item.collapsed ? (
+      {!itemIsCollapsed ? (
         <div>
           {item.items && item.items.length ? item.items.map((i) => {
             return <CollectionItem
               key={i.uid}
               item={i}
               collection={collection}
+              searchText={searchText}
             />
           }) : null}
         </div>

@@ -18,6 +18,7 @@ const Sidebar = () => {
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const handleMouseMove = (e) => {
     if(dragging) {
@@ -86,10 +87,11 @@ const Sidebar = () => {
                   autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
                   className="block w-full pl-7 py-1 sm:text-sm"
                   placeholder="search"
+                  onChange={(e) => setSearchText(e.target.value.toLowerCase())}
                 />
               </div>
 
-              <Collections />
+              <Collections searchText={searchText}/>
             </div>
             <div className="flex px-1 py-2 items-center cursor-pointer text-gray-500 select-none">
               <div className="flex items-center ml-1 text-xs ">
