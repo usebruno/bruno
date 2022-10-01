@@ -1,5 +1,6 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
+import filter from 'lodash/filter';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked, removeCollection } from 'providers/ReduxStore/slices/collections';
@@ -8,6 +9,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -49,6 +51,9 @@ const Collection = ({collection, searchText}) => {
     }
   }
 
+  const requestItems = filter(collection.items, (i) => isItemARequest(i));
+  const folderItems = filter(collection.items, (i) => isItemAFolder(i));
+
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
@@ -89,7 +94,16 @@ const Collection = ({collection, searchText}) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {collection.items && collection.items.length ? collection.items.map((i) => {
+            {requestItems && requestItems.length ? requestItems.map((i) => {
+              return <CollectionItem
+                key={i.uid}
+                item={i}
+                collection={collection}
+                searchText={searchText}
+              />
+            }) : null}
+
+            {folderItems && folderItems.length ? folderItems.map((i) => {
               return <CollectionItem
                 key={i.uid}
                 item={i}

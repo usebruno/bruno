@@ -1,5 +1,6 @@
 import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import range from 'lodash/range';
+import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -95,6 +96,9 @@ const CollectionItem = ({item, collection, searchText}) => {
     }
   }
 
+  const requestItems = filter(item.items, (i) => isItemARequest(i));
+  const folderItems = filter(item.items, (i) => isItemAFolder(i));
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)}/>}
@@ -183,7 +187,15 @@ const CollectionItem = ({item, collection, searchText}) => {
 
       {!itemIsCollapsed ? (
         <div>
-          {item.items && item.items.length ? item.items.map((i) => {
+          {requestItems && requestItems.length ? requestItems.map((i) => {
+            return <CollectionItem
+              key={i.uid}
+              item={i}
+              collection={collection}
+              searchText={searchText}
+            />
+          }) : null}
+          {folderItems && folderItems.length ? folderItems.map((i) => {
             return <CollectionItem
               key={i.uid}
               item={i}
