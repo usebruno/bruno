@@ -100,6 +100,18 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
     });
   };
 
+  const copyQueryParams = (params) => {
+    return map(params, (param) => {
+      return {
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        enabled: param.enabled
+      }
+    });
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       const di = {
@@ -116,6 +128,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
             url: si.draft.request.url,
             method: si.draft.request.method,
             headers: copyHeaders(si.draft.request.headers),
+            params: copyQueryParams(si.draft.request.params),
             body: {
               mode: si.draft.request.body.mode,
               content: replaceTabsWithSpaces(si.draft.request.body.content)
@@ -128,6 +141,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
             url: si.request.url,
             method: si.request.method,
             headers: copyHeaders(si.request.headers),
+            params: copyQueryParams(si.request.params),
             body:  {
               mode: si.request.body.mode,
               content: replaceTabsWithSpaces(si.request.body.content)

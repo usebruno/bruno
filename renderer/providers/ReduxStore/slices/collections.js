@@ -170,7 +170,7 @@ export const collectionsSlice = createSlice({
 
       if(collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
+
         if(item && isItemARequest(item)) {
           if(!item.draft) {
             item.draft = cloneDeep(item);
@@ -194,7 +194,7 @@ export const collectionsSlice = createSlice({
             }
           });
 
-          // ultimately params get replaced with params in url + the disabled onces that existed prior
+          // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
           item.draft.request.params = concat(urlParams, disabledParams);
