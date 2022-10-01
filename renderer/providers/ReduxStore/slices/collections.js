@@ -14,6 +14,7 @@ import {
   findParentItemInCollection,
   transformCollectionToSaveToIdb,
   addDepth,
+  collapseCollection,
   deleteItemInCollection,
   isItemARequest,
   isItemAFolder
@@ -34,6 +35,7 @@ export const collectionsSlice = createSlice({
   initialState,
   reducers: {
     _loadCollections: (state, action) => {
+      each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
       state.collections = action.payload.collections;
     },

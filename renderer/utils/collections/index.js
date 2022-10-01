@@ -28,6 +28,22 @@ export const addDepth = (items = []) => {
   depth(items, 1);
 };
 
+export const collapseCollection = (collection) => {
+  collection.collapsed = true;
+
+  const collapseItem = (items) => {
+    each(items, (i) => {
+      i.collapsed = true;
+
+      if(i.items && i.items.length) {
+        collapseItem(i.items);
+      }
+    })
+  }
+
+  collapseItem(collection.items, 1);
+};
+
 export const sortItems = (collection) => {
   const sort = (obj) => {
     if(obj.items && obj.items.length) {
