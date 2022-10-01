@@ -343,6 +343,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestBodyMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.mode = action.payload.mode;
+        }
+      }
+    },
     updateRequestBody: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -353,9 +367,27 @@ export const collectionsSlice = createSlice({
           if(!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.body = {
-            mode: action.payload.mode,
-            content: action.payload.content
+          switch(item.draft.request.body.mode) {
+            case 'json': {
+              item.draft.request.body.json = action.payload.content;
+              break;
+            }
+            case 'text': {
+              item.draft.request.body.text = action.payload.content;
+              break;
+            }
+            case 'xml': {
+              item.draft.request.body.xml = action.payload.content;
+              break;
+            }
+            case 'formUrlEncoded': {
+              item.draft.request.body.formUrlEncoded = action.payload.content;
+              break;
+            }
+            case 'multipartForm': {
+              item.draft.request.body.multipartForm = action.payload.content;
+              break;
+            }
           }
         }
       }
@@ -397,6 +429,7 @@ export const {
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
+  updateRequestBodyMode,
   updateRequestBody,
   updateRequestMethod
 } = collectionsSlice.actions;
@@ -520,7 +553,11 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           headers: [],
           body: {
             mode: 'none',
-            content: ''
+            json: null,
+            text: null,
+            xml: null,
+            multipartForm: null,
+            formUrlEncoded: null
           }
         }
       };

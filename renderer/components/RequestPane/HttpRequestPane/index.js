@@ -67,7 +67,7 @@ const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
         {/* <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>Auth</div> */}
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
-            <RequestBodyMode />
+            <RequestBodyMode item={item} collection={collection}/>
           </div>
         ) : null }
       </div>

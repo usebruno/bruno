@@ -31,7 +31,7 @@ export default class QueryEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       tabSize: 2,
-      mode: 'application/ld+json',
+      mode: this.props.mode || 'application/ld+json',
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -89,6 +89,7 @@ export default class QueryEditor extends React.Component {
     ) {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
+      this.editor.setOption("mode", this.props.mode);
     }
     this.ignoreChangeEvent = false;
   }

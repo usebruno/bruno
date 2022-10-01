@@ -39,9 +39,26 @@ const sendHttpRequest = async (request) => {
       headers: headers
     };
 
-    if(request.body && request.body.mode === 'json' && request.body.content) {
-      options.data = JSON.parse(request.body.content);
+    if(request.body.mode === 'json') {
+      options.headers['Content-Type'] = 'application/json';
+      try {
+        options.data = JSON.parse(request.body.json);
+      } catch (ex) {
+        options.data = request.body.json;
+      }
     }
+
+    if(request.body.mode === 'text') {
+      options.headers['Content-Type'] = 'text/plain';
+      options.data = request.body.text;
+    }
+
+    if(request.body.mode === 'xml') {
+      options.headers['Content-Type'] = 'text/xml';
+      options.data = request.body.xml;
+    }
+
+    console.log('>>> Sending Request');
     console.log(request);
 
     ipcRenderer

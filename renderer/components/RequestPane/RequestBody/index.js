@@ -7,11 +7,11 @@ import StyledWrapper from './StyledWrapper';
 
 const RequestBody = ({item, collection}) => {
   const dispatch = useDispatch();
-  const bodyContent = item.draft ? get(item, 'draft.request.body.content') : get(item, 'request.body.content');
+  const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
+  const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
 
   const onEdit = (value) => {
     dispatch(updateRequestBody({
-      mode: 'json',
       content: value,
       itemUid: item.uid,
       collectionUid: collection.uid,
@@ -19,11 +19,37 @@ const RequestBody = ({item, collection}) => {
   };
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));;
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));;
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
+
+  if(['json', 'xml', 'text'].includes(bodyMode)) {
+    let codeMirrorMode = {
+      json: 'application/ld+json',
+      text: 'application/text',
+      xml: 'application/xml'
+    };
+
+    let bodyContent = {
+      json: body.json,
+      text: body.text,
+      xml: body.xml
+    };
+
+    return(
+      <StyledWrapper className="w-full">
+        <CodeEditor
+          value={bodyContent[bodyMode] || ''}
+          onEdit={onEdit}
+          onRun={onRun}
+          onSave={onSave}
+          mode={codeMirrorMode[bodyMode]}
+        />
+      </StyledWrapper>
+    );
+  }
 
   return(
     <StyledWrapper className="w-full">
-      <CodeEditor value={bodyContent || ''} onEdit={onEdit} onRun={onRun} onSave={onSave}/>
+      No Body
     </StyledWrapper>
   );
 };

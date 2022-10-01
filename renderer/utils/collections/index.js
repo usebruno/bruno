@@ -147,7 +147,11 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
             params: copyQueryParams(si.draft.request.params),
             body: {
               mode: si.draft.request.body.mode,
-              content: replaceTabsWithSpaces(si.draft.request.body.content)
+              json: si.draft.request.body.json,
+              text: si.draft.request.body.text,
+              xml: si.draft.request.body.xml,
+              multipartForm: si.draft.request.body.multipartForm,
+              xmformUrlEncodedl: si.draft.request.body.formUrlEncoded
             }
           };
         }
@@ -160,14 +164,18 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
             params: copyQueryParams(si.request.params),
             body:  {
               mode: si.request.body.mode,
-              content: replaceTabsWithSpaces(si.request.body.content)
+              json: si.request.body.json,
+              text: si.request.body.text,
+              xml: si.request.body.xml,
+              multipartForm: si.request.body.multipartForm,
+              xmformUrlEncodedl: si.request.body.formUrlEncoded
             }
           }
         };
       }
 
       if(di.request && di.request.body.mode === 'json') {
-        di.request.body.content = replaceTabsWithSpaces(di.request.body.content);
+        di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
       }
 
       destItems.push(di);
@@ -213,4 +221,32 @@ export const isItemARequest = (item) => {
 
 export const isItemAFolder = (item) => {
   return !item.hasOwnProperty('request') && item.type === 'folder';
+};
+
+export const humanizeRequestBodyMode = (mode) => {
+  let label = 'No Body';
+  switch(mode) {
+    case 'json': {
+      label = 'JSON';
+      break;
+    }
+    case 'text': {
+      label = 'TEXT';
+      break;
+    }
+    case 'xml': {
+      label = 'XML';
+      break;
+    }
+    case 'formUrlEncoded': {
+      label = 'Form Url Encoded';
+      break;
+    }
+    case 'multipartForm': {
+      label = 'Multipart Form';
+      break;
+    }
+  }
+
+  return label;
 };
