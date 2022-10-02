@@ -1,4 +1,6 @@
 import each from 'lodash/each';
+import filter from 'lodash/filter';
+import qs from 'qs';
 import { rawRequest, gql } from 'graphql-request';
 
 const sendNetworkRequest = async (item) => {
@@ -58,8 +60,16 @@ const sendHttpRequest = async (request) => {
       options.data = request.body.xml;
     }
 
+    if(request.body.mode === 'formUrlEncoded') {
+      options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      const params = {};
+      const enabledParams = filter(request.body.formUrlEncoded, p => p.enabled);
+      each(enabledParams, (p) => params[p.name] = p.value);
+      options.data = qs.stringify(params);
+    }
+
     console.log('>>> Sending Request');
-    console.log(request);
+    console.log(options);
 
     ipcRenderer
       .invoke('send-http-request', options)

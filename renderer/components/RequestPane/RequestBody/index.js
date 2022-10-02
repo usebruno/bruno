@@ -1,6 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
+import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import { useDispatch } from 'react-redux';
 import { updateRequestBody, sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
@@ -45,6 +46,10 @@ const RequestBody = ({item, collection}) => {
         />
       </StyledWrapper>
     );
+  }
+
+  if(bodyMode === 'formUrlEncoded') {
+    return <FormUrlEncodedParams item={item} collection={collection}/>;
   }
 
   return(

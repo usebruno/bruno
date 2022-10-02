@@ -343,6 +343,61 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addFormUrlEncodedParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.formUrlEncoded = item.draft.request.body.formUrlEncoded || [];
+          item.draft.request.body.formUrlEncoded.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            description: '',
+            enabled: true
+          });
+        }
+      }
+    },
+    updateFormUrlEncodedParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const param = find(item.draft.request.body.formUrlEncoded, (p) => p.uid === action.payload.param.uid);
+          if(param) {
+            param.name = action.payload.param.name;
+            param.value = action.payload.param.value;
+            param.description = action.payload.param.description;
+            param.enabled = action.payload.param.enabled;
+          }
+        }
+      }
+    },
+    deleteFormUrlEncodedParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.formUrlEncoded = filter(item.draft.request.body.formUrlEncoded, (p) => p.uid !== action.payload.paramUid);
+        }
+      }
+    },
     updateRequestBodyMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -429,6 +484,9 @@ export const {
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
+  addFormUrlEncodedParam,
+  updateFormUrlEncodedParam,
+  deleteFormUrlEncodedParam,
   updateRequestBodyMode,
   updateRequestBody,
   updateRequestMethod
