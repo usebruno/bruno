@@ -398,6 +398,61 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addMultipartFormParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
+          item.draft.request.body.multipartForm.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            description: '',
+            enabled: true
+          });
+        }
+      }
+    },
+    updateMultipartFormParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const param = find(item.draft.request.body.multipartForm, (p) => p.uid === action.payload.param.uid);
+          if(param) {
+            param.name = action.payload.param.name;
+            param.value = action.payload.param.value;
+            param.description = action.payload.param.description;
+            param.enabled = action.payload.param.enabled;
+          }
+        }
+      }
+    },
+    deleteMultipartFormParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        
+        if(item && isItemARequest(item)) {
+          if(!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.multipartForm = filter(item.draft.request.body.multipartForm, (p) => p.uid !== action.payload.paramUid);
+        }
+      }
+    },
     updateRequestBodyMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -487,6 +542,9 @@ export const {
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
+  addMultipartFormParam,
+  updateMultipartFormParam,
+  deleteMultipartFormParam,
   updateRequestBodyMode,
   updateRequestBody,
   updateRequestMethod

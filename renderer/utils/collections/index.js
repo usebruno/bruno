@@ -140,6 +140,18 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
     });
   };
 
+  const copyMultipartFormParams = (params = []) => {
+    return map(params, (param) => {
+      return {
+        uid: param.uid,
+        name: param.name,
+        value: param.value,
+        description: param.description,
+        enabled: param.enabled
+      }
+    });
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
       const di = {
@@ -163,7 +175,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
               multipartForm: si.draft.request.body.multipartForm,
-              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded)
+              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
+              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             }
           };
         }
@@ -180,7 +193,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               text: si.request.body.text,
               xml: si.request.body.xml,
               multipartForm: si.request.body.multipartForm,
-              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded)
+              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
+              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             }
           }
         };

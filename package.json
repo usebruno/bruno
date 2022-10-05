@@ -32,6 +32,7 @@
     "electron-store": "^8.0.1",
     "electron-util": "^0.17.2",
     "escape-html": "^1.0.3",
+    "form-data": "^4.0.0",
     "formik": "^2.2.9",
     "fs-extra": "^10.0.1",
     "graphiql": "^1.5.9",

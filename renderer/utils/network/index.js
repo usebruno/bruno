@@ -42,7 +42,7 @@ const sendHttpRequest = async (request) => {
     };
 
     if(request.body.mode === 'json') {
-      options.headers['Content-Type'] = 'application/json';
+      options.headers['content-type'] = 'application/json';
       try {
         options.data = JSON.parse(request.body.json);
       } catch (ex) {
@@ -51,21 +51,29 @@ const sendHttpRequest = async (request) => {
     }
 
     if(request.body.mode === 'text') {
-      options.headers['Content-Type'] = 'text/plain';
+      options.headers['content-type'] = 'text/plain';
       options.data = request.body.text;
     }
 
     if(request.body.mode === 'xml') {
-      options.headers['Content-Type'] = 'text/xml';
+      options.headers['content-type'] = 'text/xml';
       options.data = request.body.xml;
     }
 
     if(request.body.mode === 'formUrlEncoded') {
-      options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      options.headers['content-type'] = 'application/x-www-form-urlencoded';
       const params = {};
       const enabledParams = filter(request.body.formUrlEncoded, p => p.enabled);
       each(enabledParams, (p) => params[p.name] = p.value);
       options.data = qs.stringify(params);
+    }
+
+    if(request.body.mode === 'multipartForm') {
+      const params = {};
+      const enabledParams = filter(request.body.multipartForm, p => p.enabled);
+      each(enabledParams, (p) => params[p.name] = p.value);
+      options.headers['content-type'] = 'multipart/form-data';
+      options.data = params;
     }
 
     console.log('>>> Sending Request');
