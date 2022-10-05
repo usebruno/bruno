@@ -6,6 +6,7 @@ import MenuBar from './MenuBar';
 import { IconSearch, IconChevronsRight, IconSettings, IconShieldCheck, IconShieldX, IconLayoutGrid} from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import WorkspaceSelector from 'components/Workspaces/WorkspaceSelector';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -73,6 +74,7 @@ const Sidebar = () => {
           <div className="flex flex-col w-full">
             <div className="flex flex-col flex-grow">
               <TitleBar />
+              <WorkspaceSelector />
 
               <div className="mt-4 relative collection-filter px-2">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
