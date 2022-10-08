@@ -1,0 +1,31 @@
+{
+  "name": "@usebruno/bruno-electron",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "clean": "rimraf dist",
+    "start": "electron .",
+    "build": "next build renderer && next export renderer",
+    "pack-app": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "asar": true,
+    "files": [
+      "main",
+      "renderer/out"
+    ]
+  },
+  "dependencies": {
+    "axios": "^0.26.0",
+    "electron-is-dev": "^2.0.0",
+    "electron-next": "^3.1.5",
+    "electron-util": "^0.17.2",
+    "form-data": "^4.0.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "electron": "^17.1.0",
+    "electron-builder": "^22.14.13"
+  }
+}
