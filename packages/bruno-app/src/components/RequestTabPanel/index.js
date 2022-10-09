@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
 import { useSelector, useDispatch } from 'react-redux';
-import QueryUrl from 'components/RequestPane/QueryUrl';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { sendRequest } from 'providers/ReduxStore/slices/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import RequestNotFound from './RequestNotFound';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
@@ -104,22 +102,9 @@ const RequestTabPanel = () => {
 
   const onGraphqlQueryChange = (value) => {};
   const runQuery = async () => {};
-  const sendNetworkRequest =  async () => dispatch(sendRequest(item, collection.uid));
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow ${dragging ? 'dragging' : ''}`}>
-      <div
-        className="px-4 pt-6 pb-4"
-        style={{
-          borderBottom: 'solid 1px var(--color-request-dragbar-background)'
-        }}
-      >
-        <QueryUrl
-          item = {item}
-          collection={collection}
-          handleRun={sendNetworkRequest}
-        />
-      </div>
       <section className="main flex flex-grow">
         <section className="request-pane mt-2">
           <div

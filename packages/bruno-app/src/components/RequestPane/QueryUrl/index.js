@@ -38,14 +38,10 @@ const QueryUrl = ({item, collection, handleRun}) => {
           autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
           onChange={(event) => onUrlChange(event.target.value)}
         />
+        <div className="flex items-center h-full mr-2 cursor-pointer" onClick={handleRun}>
+          <img src='/send.svg' style={{width: '22px'}}/>
+        </div>
       </div>
-      <button
-        style={{backgroundColor: 'var(--color-brand)'}}
-        className="flex items-center h-full text-white active:bg-blue-600 font-bold text-xs px-4 py-2 ml-2 uppercase rounded shadow hover:shadow-md outline-none focus:outline-none ease-linear transition-all duration-150"
-        onClick={handleRun}
-      >
-        <span style={{marginLeft: 5}}>Send</span>
-      </button>
     </StyledWrapper>
   )
 };

@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import filter from 'lodash/filter';
 import qs from 'qs';
 import { rawRequest, gql } from 'graphql-request';
+import { sendHttpRequestInBrowser } from './browser';
 
 const sendNetworkRequest = async (item) => {
   return new Promise((resolve, reject) => {
@@ -79,10 +80,15 @@ const sendHttpRequest = async (request) => {
     console.log('>>> Sending Request');
     console.log(options);
 
-    ipcRenderer
-      .invoke('send-http-request', options)
+    // Todo: Choose based on platform (web/desktop)
+    sendHttpRequestInBrowser(options)
       .then(resolve)
       .catch(reject);
+
+    // ipcRenderer
+    //   .invoke('send-http-request', options)
+    //   .then(resolve)
+    //   .catch(reject);
   });
 };
 

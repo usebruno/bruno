@@ -13,6 +13,8 @@ const StyledWrapper = styled.div`
 
   .close-icon-container {
     min-height: 20px;
+    min-width: 24px;
+    margin-left: 4px;
     border-radius: 3px;
 
     .close-icon {

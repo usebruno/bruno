@@ -27,5 +27,6 @@ yarn-error.log*
 .env.production.local
 
 # next.js
+/renderer
 /renderer/.next/
 /renderer/out/

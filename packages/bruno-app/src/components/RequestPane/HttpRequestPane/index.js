@@ -7,12 +7,16 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import QueryUrl from 'components/RequestPane/QueryUrl';
+import { sendRequest } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
 const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+
+  const sendNetworkRequest =  async () => dispatch(sendRequest(item, collection.uid));
 
   const selectTab = (tab) => {
     dispatch(updateRequestPaneTab({
@@ -59,6 +63,13 @@ const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relativ">
+      <div className="pt-2 pb-3">
+        <QueryUrl
+          item = {item}
+          collection={collection}
+          handleRun={sendNetworkRequest}
+        />
+      </div>
       <div className="flex items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>Params</div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>Body</div>
