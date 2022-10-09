@@ -1,23 +1,11 @@
 {
-  "name": "grafnode",
+  "name": "bruno-workspace",
   "private": true,
-  "main": "main/index.js",
-  "scripts": {
-    "clean": "rimraf dist renderer/.next renderer/out",
-    "start": "electron .",
-    "build": "next build renderer && next export renderer",
-    "pack-app": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
-  },
-  "build": {
-    "asar": true,
-    "files": [
-      "main",
-      "renderer/out"
-    ]
-  },
   "workspaces": [
-    "packages/bruno-electron"
+    "packages/bruno-app",
+    "packages/bruno-electron",
+    "packages/bruno-tauri",
+    "packages/bruno-testbench"
   ],
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
@@ -30,29 +18,20 @@
     "classnames": "^2.3.1",
     "codemirror": "^5.65.2",
     "codemirror-graphql": "^1.2.5",
-    "electron-is-dev": "^2.0.0",
-    "electron-next": "^3.1.5",
-    "electron-store": "^8.0.1",
-    "electron-util": "^0.17.2",
     "escape-html": "^1.0.3",
-    "form-data": "^4.0.0",
     "formik": "^2.2.9",
-    "fs-extra": "^10.0.1",
     "graphiql": "^1.5.9",
     "graphql": "^16.2.0",
     "graphql-request": "^3.7.0",
     "idb": "^7.0.0",
     "immer": "^9.0.12",
-    "is-valid-path": "^0.1.1",
-    "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
-    "markdown-it": "^12.2.0",
     "mousetrap": "^1.6.5",
     "nanoid": "^3.1.30",
-    "next": "12.0.4",
+    "next": "^12.1.0",
     "qs": "^6.11.0",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "react-redux": "^7.2.6",
     "react-tabs": "^3.2.3",
     "sass": "^1.46.0",
@@ -69,15 +48,10 @@
     "@babel/runtime": "^7.16.3",
     "babel-loader": "^8.2.3",
     "css-loader": "^6.5.1",
-    "electron": "^17.1.0",
-    "electron-builder": "^22.14.13",
     "file-loader": "^6.2.0",
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.4.5",
-    "next": "^12.1.0",
-    "react": "^17.0.2",
-    "react-dom": "^17.0.2",
     "style-loader": "^3.3.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"

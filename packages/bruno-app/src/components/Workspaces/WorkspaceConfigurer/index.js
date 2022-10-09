@@ -2,7 +2,7 @@ import Modal from "components/Modal/index";
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import WorkspaceItem from "./WorkspaceItem/index";
-import AddModal from "./AddModal";
+import AddWorkspace from "./AddWorkspace";
 
 const WorkspaceConfigurer = ({onClose}) => {
   const { workspaces } = useSelector((state) => state.workspaces);
@@ -22,7 +22,7 @@ const WorkspaceConfigurer = ({onClose}) => {
           <WorkspaceItem workspace={workspace} />
         ))}
       </ul>
-      {openAddModal && <AddModal onClose={() => setOpenAddModal(false)}/>}
+      {openAddModal && <AddWorkspace onClose={() => setOpenAddModal(false)}/>}
     </Modal>
   )
 

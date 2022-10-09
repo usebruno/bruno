@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import EditModal from "../EditModal";
-import DeleteModal from "../DeleteModal";
+import EditWorkspace from "../EditWorkspace";
+import DeleteWorkspace from "../DeleteWorkspace";
 import { IconEdit, IconTrash } from "@tabler/icons";
 import StyledWrapper from "./StyledWrapper";
 
@@ -16,8 +16,8 @@ const WorkspaceItem = ({workspace}) => {
           <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} onClick={() => setOpenEditModal(true)}/>
           <IconTrash className="cursor-pointer" size={20} strokeWidth={1.5} onClick={() => setOpenDeleteModal(true)}/>
         </div>
-      {openEditModal && <EditModal onClose={() => setOpenEditModal(false)} workspace={workspace} />}
-      {openDeleteModal && <DeleteModal onClose={() => setOpenDeleteModal(false)} workspace={workspace} />}
+      {openEditModal && <EditWorkspace onClose={() => setOpenEditModal(false)} workspace={workspace} />}
+      {openDeleteModal && <DeleteWorkspace onClose={() => setOpenDeleteModal(false)} workspace={workspace} />}
       </div>
     </StyledWrapper>
   )

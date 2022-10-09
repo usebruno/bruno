@@ -24,7 +24,7 @@ let mainWindow;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  await prepareNext('../../renderer');
+  await prepareNext('../../packages/bruno-app');
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -39,7 +39,7 @@ app.on('ready', async () => {
   const url = isDev
     ? 'http://localhost:8000'
     : format({
-        pathname: path.join(__dirname, '../renderer/out/index.html'),
+        pathname: path.join(__dirname, '../packages/bruno-app/out/index.html'),
         protocol: 'file:',
         slashes: true
       });
