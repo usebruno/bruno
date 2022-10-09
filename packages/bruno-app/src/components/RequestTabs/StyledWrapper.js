@@ -62,6 +62,7 @@ const Wrapper = styled.div`
         justify-content: center;
         color: rgb(117 117 117);
         position: relative;
+        background-color: white;
         top: -1px;
 
         > div {
