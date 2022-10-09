@@ -2,7 +2,7 @@
   "name": "@usebruno/app",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "../../node_modules/.bin/next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { IconCode, IconStack, IconGitPullRequest, IconUser, IconUsers, IconSettings, IconBuilding, IconChevronsLeft} from '@tabler/icons';
+import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconBuilding, IconChevronsLeft} from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app'
 import StyledWrapper from './StyledWrapper';
@@ -18,10 +18,7 @@ const MenuBar = () => {
           </Link>
         </div>
         <div className="menu-item">
-          <IconStack size={28} strokeWidth={1.5}/>
-        </div>
-        <div className="menu-item">
-          <IconGitPullRequest size={28} strokeWidth={1.5}/>
+          <IconFiles size={28} strokeWidth={1.5}/>
         </div>
         <div className="menu-item">
           <IconUsers size={28} strokeWidth={1.5}/>

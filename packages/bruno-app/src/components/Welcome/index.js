@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IconPlus, IconUpload, IconFolders } from '@tabler/icons';
+import { IconPlus, IconUpload, IconFiles } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { createCollection } from 'providers/ReduxStore/slices/collections';
 import Bruno from 'components/Bruno';
@@ -33,10 +33,10 @@ const Welcome = () => {
       <div className="uppercase font-semibold create-request mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options">
         <div className="flex items-center">
-          <IconFolders size={18} strokeWidth={2}/><span className="label ml-2">Open Collection</span>
+          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setModalOpen(true)}>Create Collection</span>
         </div>
         <div className="flex items-center ml-6">
-          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setModalOpen(true)}>Create Collection</span>
+          <IconFiles size={18} strokeWidth={2}/><span className="label ml-2">Add Collection to Workspace</span>
         </div>
         {/* not in mvp */}
         {/* <div className="flex items-center ml-6">

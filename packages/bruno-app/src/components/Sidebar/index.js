@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Collections from './Collections';
 import TitleBar from './TitleBar';
 import MenuBar from './MenuBar';
-import { IconSearch, IconChevronsRight, IconSettings, IconShieldCheck, IconShieldX, IconLayoutGrid} from '@tabler/icons';
+import { IconSearch, IconChevronsRight } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import WorkspaceSelector from 'components/Workspaces/WorkspaceSelector';
@@ -99,7 +99,7 @@ const Sidebar = () => {
               <div className="flex items-center ml-1 text-xs ">
                 {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5}  className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())}/>}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
-                <IconSettings size={20} strokeWidth={1.5} className="mr-2  hover:text-gray-700"/>
+                {/* Need to ut github stars link here */}
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">
                 v1.25.2

@@ -70,14 +70,19 @@ const TitleBar = () => {
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
-            }}>
-              Open Collection
-            </div>
-            <div className="dropdown-item" onClick={(e) => {
-              menuDropdownTippyRef.current.hide();
               setModalOpen(true);
             }}>
               Create Collection
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+            }}>
+              Import Collection
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+            }}>
+              Add Collection to Workspace
             </div>
           </Dropdown>
         </div>
