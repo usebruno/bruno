@@ -1,4 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
+import { uuid } from 'utils/common';
 
 const initialState = {
   workspaces: [{
@@ -21,11 +22,33 @@ export const workspacesSlice = createSlice({
     selectWorkspace: (state, action) => {
       state.activeWorkspaceUid = action.payload.uid;
     },
+    renameWorkspace: (state, action) => {
+      const { name, uid } = action.payload;
+      const { workspaces } = state;
+      const workspaceIndex = workspaces.findIndex(workspace => workspace.uid == uid);
+      workspaces[workspaceIndex].name = name;
+    },
+    deleteWorkspace: (state, action) => {
+      if(state.activeWorkspaceUid === action.payload.workspaceUid) {
+        throw new Error("User cannot delete current workspace");
+      }
+      state.workspaces = state.workspaces.filter((workspace) => workspace.uid !== action.payload.workspaceUid);
+    },
+    addWorkspace: (state, action) => {
+      const newWorkspace = {
+        uid: uuid(),
+        name: action.payload.name
+      }
+      state.workspaces.push(newWorkspace);
+    }
   }
 });
 
 export const {
-    selectWorkspace
+  selectWorkspace,
+  renameWorkspace,
+  deleteWorkspace,
+  addWorkspace
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;
