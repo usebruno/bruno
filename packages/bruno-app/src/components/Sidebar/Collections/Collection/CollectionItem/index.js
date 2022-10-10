@@ -15,6 +15,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { hideHomePage } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -68,6 +69,7 @@ const CollectionItem = ({item, collection, searchText}) => {
           collectionUid: collection.uid
         }));
       }
+      dispatch(hideHomePage());
     } else {
       dispatch(collectionFolderClicked({
         itemUid: item.uid,

@@ -5,7 +5,8 @@ const initialState = {
   idbConnectionReady: false,
   leftSidebarWidth: 270,
   leftMenuBarOpen: true,
-  screenWidth: 500
+  screenWidth: 500,
+  showHomePage: false
 };
 
 export const appSlice = createSlice({
@@ -28,6 +29,12 @@ export const appSlice = createSlice({
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
     },
+    showHomePage: (state) => {
+      state.showHomePage = true;
+    },
+    hideHomePage: (state) => {
+      state.showHomePage = false;
+    }
   }
 });
 
@@ -36,7 +43,9 @@ export const {
   toggleLeftMenuBar,
   refreshScreenWidth,
   updateLeftSidebarWidth,
-  updateIsDragging
+  updateIsDragging,
+  showHomePage,
+  hideHomePage
 } = appSlice.actions;
 
 export default appSlice.reducer;
