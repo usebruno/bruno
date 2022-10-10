@@ -3,6 +3,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
+import toast from 'react-hot-toast';
 import { renameCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const RenameCollection = ({collection, onClose}) => {
@@ -21,6 +22,7 @@ const RenameCollection = ({collection, onClose}) => {
     }),
     onSubmit: (values) => {
       dispatch(renameCollection(values.name, collection.uid));
+      toast.success('Collection renamed!');
       onClose();
     }
   });

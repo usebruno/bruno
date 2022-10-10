@@ -3,6 +3,7 @@ import { AuthProvider } from 'providers/Auth';
 import { AppProvider } from 'providers/App';
 import ReduxStore from 'providers/ReduxStore';
 import { Provider } from 'react-redux';
+import { Toaster } from 'react-hot-toast';
 
 import '../styles/globals.css'
 import 'tailwindcss/dist/tailwind.min.css';
@@ -42,6 +43,7 @@ function MyApp({ Component, pageProps }) {
           <Provider store={ReduxStore}>
             <AppProvider>
               <HotkeysProvider>
+                <Toaster toastOptions={{duration: 2000}}/>
                 <Component {...pageProps} />
               </HotkeysProvider>
             </AppProvider>
