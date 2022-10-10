@@ -56,8 +56,8 @@ const RequestTab = ({tab, collection}) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
-      <div className="flex items-center tab-label pl-2">
-        <span className="tab-method uppercase" style={{color: getMethodColor(method)}}>{method}</span>
+      <div className="flex items-baseline tab-label pl-2">
+        <span className="tab-method uppercase" style={{color: getMethodColor(method), fontSize: 12}}>{method}</span>
         <span className="text-gray-700 ml-1 tab-name" title={item.name}>{item.name}</span>
       </div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
