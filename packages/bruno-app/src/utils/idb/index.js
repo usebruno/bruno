@@ -21,6 +21,20 @@ export const saveCollectionToIdb = (connection, collection) => {
   });
 };
 
+export const deleteCollectionInIdb = (connection, collectionUid) => {
+  return new Promise((resolve, reject) => {
+    connection
+      .then((db) => {
+        let tx = db.transaction(`collection`, 'readwrite');
+        tx.objectStore('collection').delete(collectionUid);
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      })
+      .catch((err) => reject(err));
+  });
+};
+
 export const getCollectionsFromIdb = (connection) => {
   return new Promise((resolve, reject) => {
     connection

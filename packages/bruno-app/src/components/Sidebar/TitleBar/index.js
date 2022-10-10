@@ -1,9 +1,9 @@
 import React, { useState, forwardRef, useRef } from 'react';
-import Toast from 'components/Toast';
+import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import Bruno from 'components/Bruno';
 import { useDispatch } from 'react-redux';
-import { createCollection } from 'providers/ReduxStore/slices/collections';
+import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
@@ -11,7 +11,6 @@ import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [showToast, setShowToast] = useState({show: false});
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -25,17 +24,19 @@ const TitleBar = () => {
   });
 
   const handleCancel = () => setModalOpen(false);
-  const handleCloseToast = () => setShowToast({show: false});
   const handleTitleClick = () => dispatch(showHomePage());
 
   const handleConfirm = (values) => {
     setModalOpen(false);
-    dispatch(createCollection(values.collectionName, values.collectionLocation));
+    dispatch(createCollection(values.collectionName))
+      .then(() => {
+        toast.success("Collection created");
+      })
+      .catch(() => toast.error("An error occured while creating the collection"));
   };
 
   return (
     <StyledWrapper className="px-2 py-2">
-      {showToast.show && <Toast text={showToast.text} type={showToast.type}  duration={showToast.duration} handleClose={handleCloseToast}/>}
       {modalOpen ? (
         <CreateCollection
           handleCancel={handleCancel}

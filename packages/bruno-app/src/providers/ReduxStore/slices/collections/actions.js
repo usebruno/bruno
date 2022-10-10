@@ -1,14 +1,35 @@
+import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
   findCollectionByUid,
-  findItemInCollection,
+  recursivelyGetAllItemUids,
   transformCollectionToSaveToIdb
 } from 'utils/collections';
-import { saveCollectionToIdb } from 'utils/idb';
+import { saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
 
 import {
-  _renameCollection
+  createCollection as _createCollection,
+  renameCollection as _renameCollection,
+  deleteCollection as _deleteCollection,
 } from './index';
+
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+
+export const createCollection = (collectionName) => (dispatch) => {
+  const newCollection = {
+    uid: uuid(),
+    name: collectionName,
+    items: [],
+    environments: [],
+  };
+
+  return new Promise((resolve, reject) => {
+    saveCollectionToIdb(window.__idb, newCollection)
+      .then(() => dispatch(_createCollection(newCollection)))
+      .then(resolve)
+      .catch(reject);
+  });
+};
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -30,4 +51,27 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
       })
       .catch((err) => console.log(err));
   }
+};
+
+export const deleteCollection = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject('collection not found');
+    }
+
+    deleteCollectionInIdb(window.__idb, collection.uid)
+      .then(() => {
+        dispatch(closeTabs({
+          tabUids: recursivelyGetAllItemUids(collection.items)
+        }));
+        dispatch(_deleteCollection({
+          collectionUid: collectionUid
+        }));
+      })
+      .then(resolve)
+      .catch(reject);
+  });
 };

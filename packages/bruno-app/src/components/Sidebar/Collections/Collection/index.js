@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import filter from 'lodash/filter';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collectionClicked, removeCollection } from 'providers/ReduxStore/slices/collections';
+import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -12,22 +12,16 @@ import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/sea
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import RenameCollection from './RenameCollection';
+import DeleteCollection from './DeleteCollection';
 import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection, searchText}) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
+  const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (searchText && searchText.length) {
-      setCollectionIsCollapsed(false);
-    } else {
-      setCollectionIsCollapsed(collection.collapsed);
-    }
-  }, [searchText, collection]);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => menuDropdownTippyRef.current = ref;
@@ -38,6 +32,14 @@ const Collection = ({collection, searchText}) => {
       </div>
     );
   });
+
+  useEffect(() => {
+    if (searchText && searchText.length) {
+      setCollectionIsCollapsed(false);
+    } else {
+      setCollectionIsCollapsed(collection.collapsed);
+    }
+  }, [searchText, collection]);
 
   const iconClassName = classnames({
     'rotate-90': !collectionIsCollapsed
@@ -61,6 +63,7 @@ const Collection = ({collection, searchText}) => {
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)}/>}
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)}/>}
+      {showDeleteCollectionModal && <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)}/>}
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
@@ -85,17 +88,16 @@ const Collection = ({collection, searchText}) => {
               New Folder
             </div>
             <div className="dropdown-item" onClick={(e) => {
-              dispatch(removeCollection(collection.uid));
               menuDropdownTippyRef.current.hide();
               setShowRenameCollectionModal(true);
             }}>
               Rename
             </div>
-            <div className="dropdown-item" onClick={(e) => {
-              dispatch(removeCollection(collection.uid));
+            <div className="dropdown-item delete-collection" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
+              setShowDeleteCollectionModal(true);
             }}>
-              Remove
+              Delete
             </div>
           </Dropdown>
         </div>

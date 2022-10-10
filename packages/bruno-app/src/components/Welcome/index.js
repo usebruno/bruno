@@ -10,7 +10,7 @@ import {
   IconDeviceDesktop
 } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { createCollection } from 'providers/ReduxStore/slices/collections';
+import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import StyledWrapper from './StyledWrapper';
@@ -22,7 +22,11 @@ const Welcome = () => {
   const handleCancel = () => setModalOpen(false);
   const handleConfirm = (values) => {
     setModalOpen(false);
-    dispatch(createCollection(values.collectionName, values.collectionLocation));
+    dispatch(createCollection(values.collectionName))
+      .then(() => {
+        toast.success("Collection created");
+      })
+      .catch(() => toast.error("An error occured while creating the collection"));
   };
 
   return (

@@ -1,4 +1,3 @@
-import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import concat from 'lodash/concat';
@@ -37,15 +36,18 @@ export const collectionsSlice = createSlice({
       each(action.payload.collections, (c) => addDepth(c.items));
       state.collections = action.payload.collections;
     },
-    _createCollection: (state, action) => {
+    createCollection: (state, action) => {
       state.collections.push(action.payload);
     },
-    _renameCollection: (state, action) => {
+    renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
         collection.name = action.payload.newName;
       }
+    },
+    deleteCollection: (state, action) => {
+      state.collections = filter(state.collections, c => c.uid !== action.payload.collectionUid);
     },
     _newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -525,8 +527,9 @@ export const collectionsSlice = createSlice({
 });
 
 export const {
-  _createCollection,
-  _renameCollection,
+  createCollection,
+  renameCollection,
+  deleteCollection,
   _loadCollections,
   _newItem,
   _deleteItem,
@@ -561,19 +564,6 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
     .then((collections) => dispatch(_loadCollections({
       collections: collections
     })))
-    .catch((err) => console.log(err));
-};
-
-export const createCollection = (collectionName) => (dispatch) => {
-  const newCollection = {
-    uid: uuid(),
-    name: collectionName,
-    items: [],
-    environments: [],
-  };
-
-  saveCollectionToIdb(window.__idb, newCollection)
-    .then(() => dispatch(_createCollection(newCollection)))
     .catch((err) => console.log(err));
 };
 
@@ -801,10 +791,6 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
       })
       .catch((err) => console.log(err));
   }
-};
-
-export const removeCollection = (collectionPath) => () => {
-  console.log('removeCollection');
 };
 
 export default collectionsSlice.reducer;

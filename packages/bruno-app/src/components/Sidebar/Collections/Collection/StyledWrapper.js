@@ -44,6 +44,14 @@ const Wrapper = styled.div`
       top: -0.625rem;
       font-weight: 400;
     }
+
+    div.dropdown-item.delete-collection {
+      color: var(--color-text-danger);
+      &:hover {
+        background-color: var(--color-background-danger);
+        color: white;
+      }
+    }
   }
 `;
 
