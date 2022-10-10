@@ -28,8 +28,6 @@ const initialState = {
   collections: []
 };
 
-const PATH_SEPARATOR = path.sep;
-
 export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
@@ -41,6 +39,13 @@ export const collectionsSlice = createSlice({
     },
     _createCollection: (state, action) => {
       state.collections.push(action.payload);
+    },
+    _renameCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if(collection) {
+        collection.name = action.payload.newName;
+      }
     },
     _newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -521,6 +526,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   _createCollection,
+  _renameCollection,
   _loadCollections,
   _newItem,
   _deleteItem,

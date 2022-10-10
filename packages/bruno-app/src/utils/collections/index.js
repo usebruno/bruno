@@ -162,7 +162,10 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
       di.name = si.name;
 
       // if items is draft, then take data from draft to save
-      if(!options.ignoreDraft && si.draft) {
+      // The condition "!options.ignoreDraft" may appear confusing
+      // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
+      // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
+      if(si.draft && !options.ignoreDraft) {
         if(si.draft.request) {
           di.request = {
             url: si.draft.request.url,

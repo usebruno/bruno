@@ -11,11 +11,13 @@ import CollectionItem from './CollectionItem';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
+import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 
 const Collection = ({collection, searchText}) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
 
@@ -58,6 +60,7 @@ const Collection = ({collection, searchText}) => {
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)}/>}
+      {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)}/>}
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
@@ -71,15 +74,22 @@ const Collection = ({collection, searchText}) => {
           >
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
-              setShowNewRequestModal(true)
+              setShowNewRequestModal(true);
             }}>
               New Request
             </div>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
-              setShowNewFolderModal(true)
+              setShowNewFolderModal(true);
             }}>
               New Folder
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              dispatch(removeCollection(collection.uid));
+              menuDropdownTippyRef.current.hide();
+              setShowRenameCollectionModal(true);
+            }}>
+              Rename
             </div>
             <div className="dropdown-item" onClick={(e) => {
               dispatch(removeCollection(collection.uid));
