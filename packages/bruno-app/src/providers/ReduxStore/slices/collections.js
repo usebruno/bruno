@@ -551,7 +551,6 @@ export const {
 } = collectionsSlice.actions;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
-  console.log('here');
   getCollectionsFromIdb(window.__idb)
     .then((collections) => dispatch(_loadCollections({
       collections: collections

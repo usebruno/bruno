@@ -59,9 +59,10 @@ const RequestTabPanel = () => {
     setDragging(true);
   };
 
-  let {
-    schema 
-  } = useGraphqlSchema('https://api.spacex.land/graphql');
+  let schema = null;
+  // let {
+  //   schema
+  // } = useGraphqlSchema('https://api.spacex.land/graphql');
 
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
