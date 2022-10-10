@@ -6,7 +6,7 @@ import {
   IconFolders,
   IconPlayerPlay,
   IconBrandChrome,
-  IconBook,
+  IconSpeakerphone,
   IconDeviceDesktop
 } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
@@ -78,8 +78,11 @@ const Welcome = () => {
           <IconDeviceDesktop size={18} strokeWidth={2}/><span className="label ml-2">Desktop App</span>
         </div>
         <div className="flex items-center mt-2">
-          <IconBook size={18} strokeWidth={2}/><span className="label ml-2">Docs</span>
+          <IconSpeakerphone size={18} strokeWidth={2}/><span className="label ml-2">Report Issues</span>
         </div>
+        {/* <div className="flex items-center mt-2">
+          <IconBook size={18} strokeWidth={2}/><span className="label ml-2">Docs</span>
+        </div> */}
         <div className="flex items-center mt-2">
           <img src='/github.svg' style={{width: '18px'}}/>
           <span className="label ml-2">Github</span>
