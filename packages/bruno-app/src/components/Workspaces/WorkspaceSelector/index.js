@@ -26,7 +26,7 @@ const WorkspaceSelector = () => {
             <IconBox size={18} strokeWidth={1.5}/>
           </span>
           <span>
-            {activeWorkspace.name}
+            {activeWorkspace ? activeWorkspace.name : ''}
           </span>
         </div>
         <IconCaretDown className="caret" size={14} strokeWidth={2}/>
@@ -45,7 +45,7 @@ const WorkspaceSelector = () => {
       <div className="items-center cursor-pointer">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
           {workspaces && workspaces.length && workspaces.map((workspace) => (
-            <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)}>
+            <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)} key={workspace.uid}>
               <span>{workspace.name}</span>
             </div>
           ))}

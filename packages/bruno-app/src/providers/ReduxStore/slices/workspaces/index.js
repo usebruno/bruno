@@ -1,24 +1,31 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { each } from 'lodash';
 import { uuid } from 'utils/common';
 
 const initialState = {
-  workspaces: [{
-    uid: 123,
-    name: 'My Workspace'
-  },{
-    uid: 234,
-    name: 'workspace B'
-  },{
-    uid: 345,
-    name: 'workspace C'
-  }],
-  activeWorkspaceUid: 123
+  workspaces: [],
+  activeWorkspaceUid: null
 };
 
 export const workspacesSlice = createSlice({
   name: 'workspaces',
   initialState,
   reducers: {
+    loadWorkspaces: (state, action) => {
+      const workspaces = action.payload.workspaces;
+
+      if(!workspaces || !workspaces.length) {
+        const uid = uuid();
+        state.workspaces.push({
+          uid: uid,
+          name: 'My workspace'
+        });
+        state.activeWorkspaceUid = uid;
+        return;
+      }
+
+      each(workspaces, w => state.workspaces.push(w));
+    },
     selectWorkspace: (state, action) => {
       state.activeWorkspaceUid = action.payload.uid;
     },
@@ -45,6 +52,7 @@ export const workspacesSlice = createSlice({
 });
 
 export const {
+  loadWorkspaces,
   selectWorkspace,
   renameWorkspace,
   deleteWorkspace,

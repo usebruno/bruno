@@ -19,7 +19,7 @@ const WorkspaceConfigurer = ({onClose}) => {
     >
       <ul className="mb-2" >
         {workspaces && workspaces.length && workspaces.map((workspace) => (
-          <WorkspaceItem workspace={workspace} />
+          <WorkspaceItem workspace={workspace} key={workspace.uid} />
         ))}
       </ul>
       {openAddModal && <AddWorkspace onClose={() => setOpenAddModal(false)}/>}
