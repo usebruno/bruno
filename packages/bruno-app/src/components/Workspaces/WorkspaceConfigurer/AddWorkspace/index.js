@@ -2,9 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
 import { useFormik } from 'formik';
-import { addWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { addWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
+import toast from 'react-hot-toast';
 
 const AddWorkspace = ({onClose}) => {
   const dispatch = useDispatch();
@@ -21,8 +22,12 @@ const AddWorkspace = ({onClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(addWorkspace({name: values.name}));
-      onClose();
+      dispatch(addWorkspace(values.name))
+        .then(() => {
+          toast.success("Workspace created!");
+          onClose();
+        })
+        .catch(() => toast.error("An error occured while creating the workspace"));
     }
   });
 

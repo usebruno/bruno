@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { each } from 'lodash';
-import { uuid } from 'utils/common';
+import each from 'lodash/each';
+import find from 'lodash/find';
 
 const initialState = {
   workspaces: [],
@@ -12,28 +12,22 @@ export const workspacesSlice = createSlice({
   initialState,
   reducers: {
     loadWorkspaces: (state, action) => {
-      const workspaces = action.payload.workspaces;
+      state.workspaces = action.payload.workspaces;
 
-      if(!workspaces || !workspaces.length) {
-        const uid = uuid();
-        state.workspaces.push({
-          uid: uid,
-          name: 'My workspace'
-        });
-        state.activeWorkspaceUid = uid;
-        return;
+      if(state.workspaces && state.workspaces.length) {
+        state.activeWorkspaceUid = state.workspaces[0].uid;
       }
-
-      each(workspaces, w => state.workspaces.push(w));
     },
     selectWorkspace: (state, action) => {
       state.activeWorkspaceUid = action.payload.uid;
     },
     renameWorkspace: (state, action) => {
       const { name, uid } = action.payload;
-      const { workspaces } = state;
-      const workspaceIndex = workspaces.findIndex(workspace => workspace.uid == uid);
-      workspaces[workspaceIndex].name = name;
+      const workspace = find(state.workspaces, (w) => w.uid === uid);
+
+      if(workspace) {
+        workspace.name = name;
+      }
     },
     deleteWorkspace: (state, action) => {
       if(state.activeWorkspaceUid === action.payload.workspaceUid) {
@@ -42,11 +36,7 @@ export const workspacesSlice = createSlice({
       state.workspaces = state.workspaces.filter((workspace) => workspace.uid !== action.payload.workspaceUid);
     },
     addWorkspace: (state, action) => {
-      const newWorkspace = {
-        uid: uuid(),
-        name: action.payload.name
-      }
-      state.workspaces.push(newWorkspace);
+      state.workspaces.push(action.payload.workspace);
     }
   }
 });

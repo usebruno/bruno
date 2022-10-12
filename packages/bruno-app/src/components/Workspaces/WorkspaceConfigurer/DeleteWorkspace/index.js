@@ -1,15 +1,20 @@
 import React from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
-import { deleteWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { deleteWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { useDispatch } from 'react-redux';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
 const DeleteWorkspace = ({onClose, workspace}) => {
   const dispatch = useDispatch();
   const onConfirm = () =>{
-    dispatch(deleteWorkspace({workspaceUid: workspace.uid}))
-    onClose();
+    dispatch(deleteWorkspace(workspace.uid))
+    .then(() => {
+      toast.success("Workspace deleted!");
+      onClose();
+    })
+    .catch(() => toast.error("An error occured while deleting the workspace"));
   };
 
   return (

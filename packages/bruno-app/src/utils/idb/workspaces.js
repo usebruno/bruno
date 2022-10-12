@@ -15,8 +15,12 @@ export const saveWorkspaceToIdb = (connection, workspace) => {
           workspaceStore.put(workspace);
         }
 
-        resolve();
+        return new Promise((res, rej) => {
+          tx.oncomplete = () => res();
+          tx.onerror = () => rej(tx.error);
+        });
       })
+      .then(resolve)
       .catch((err) => reject(err));
   });
 };
