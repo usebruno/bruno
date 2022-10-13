@@ -93,16 +93,6 @@ const Wrapper = styled.div`
       }
     }
   }
-
-  &.has-chevrons {
-    ul {
-      li:first-child {
-        .tab-container {
-          border-left: 1px solid #dcdcdc;
-        }
-      }
-    }
-  }
 `;
 
 export default Wrapper;
