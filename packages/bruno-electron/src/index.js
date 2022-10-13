@@ -1,6 +1,5 @@
 const path = require('path');
 const isDev = require('electron-is-dev');
-const prepareNext = require('electron-next');
 const { format } = require('url');
 const { BrowserWindow, app, Menu } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
@@ -24,8 +23,6 @@ let mainWindow;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  await prepareNext('../../packages/bruno-app');
-
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 768,
@@ -37,7 +34,7 @@ app.on('ready', async () => {
   });
 
   const url = isDev
-    ? 'http://localhost:8000'
+    ? 'http://localhost:3000'
     : format({
         pathname: path.join(__dirname, '../packages/bruno-app/out/index.html'),
         protocol: 'file:',
