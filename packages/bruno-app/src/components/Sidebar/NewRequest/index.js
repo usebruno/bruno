@@ -16,7 +16,7 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
 		enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: 'http-request',
+      requestType: 'http',
       requestUrl: '',
       requestMethod: 'get'
     },
@@ -84,27 +84,27 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
 
             <div className="flex items-center mt-2">
               <input
-                id="http-request"
+                id="http"
                 className="cursor-pointer"
                 type="radio" name="requestType"
                 onChange={formik.handleChange}
-                value="http-request"
-                checked={formik.values.requestType === 'http-request'}
+                value="http"
+                checked={formik.values.requestType === 'http'}
               />
-              <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">Http</label>
+              <label htmlFor="http" className="ml-1 cursor-pointer select-none">Http</label>
 
               <input
-                id="graphql-request"
+                id="graphql"
                 className="ml-4 cursor-pointer"
                 type="radio" name="requestType"
                 onChange={(event) => {
                   formik.setFieldValue('requestMethod', 'post')
                   formik.handleChange(event);
                 }}
-                value="graphql-request"
-                checked={formik.values.requestType === 'graphql-request'}
+                value="graphql"
+                checked={formik.values.requestType === 'graphql'}
               />
-              <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">Graphql</label>
+              <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">Graphql</label>
             </div>
           </div>
 

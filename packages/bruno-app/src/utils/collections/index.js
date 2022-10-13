@@ -244,7 +244,7 @@ export const deleteItemInCollection = (itemUid, collection) => {
 
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request')
-            && ['http-request', 'graphql-request'].includes(item.type)
+            && ['http', 'graphql'].includes(item.type)
             && !item.items;
 };
 

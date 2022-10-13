@@ -1,12 +1,12 @@
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import qs from 'qs';
-import { rawRequest, gql } from 'graphql-request';
+import { rawRequest, gql } from 'graphql';
 import { sendHttpRequestInBrowser } from './browser';
 
 const sendNetworkRequest = async (item) => {
   return new Promise((resolve, reject) => {
-    if(item.type === 'http-request') {
+    if(item.type === 'http') {
       const timeStart = Date.now();
       sendHttpRequest(item.draft ? item.draft.request : item.request)
         .then((response) => {
@@ -86,7 +86,7 @@ const sendHttpRequest = async (request) => {
       .catch(reject);
 
     // ipcRenderer
-    //   .invoke('send-http-request', options)
+    //   .invoke('send-http', options)
     //   .then(resolve)
     //   .catch(reject);
   });

@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
 const RequestMethod = ({item}) => {
-  if(!['http-request', 'graphql-request'].includes(item.type)) {
+  if(!['http', 'graphql'].includes(item.type)) {
     return null;
   }
 

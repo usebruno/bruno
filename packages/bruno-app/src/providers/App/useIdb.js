@@ -9,7 +9,7 @@ const useIdb = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    let dbName = `grafnode`;
+    let dbName = `bruno`;
     let connection = openDB(dbName, 2, {
       upgrade(db, oldVersion, newVersion, transaction) {
         switch(oldVersion) {

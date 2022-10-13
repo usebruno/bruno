@@ -39,7 +39,7 @@ const reducer = (state, action) => {
         draft.requestTabs.push({
           uid: uid,
           name: 'New Tab',
-          type: 'graphql-request',
+          type: 'graphql',
           request: {
             method: 'GET',
             url: 'https://api.spacex.land/graphql/',

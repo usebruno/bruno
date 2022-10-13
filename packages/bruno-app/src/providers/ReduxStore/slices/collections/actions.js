@@ -27,7 +27,7 @@ export const createCollection = (collectionName) => (dispatch, getState) => {
 
   const requestItem = {
     uid: uuid(),
-    type: 'http-request',
+    type: 'http',
     name: 'Untitled',
     request: {
       method: 'GET',
