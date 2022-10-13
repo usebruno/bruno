@@ -49,14 +49,24 @@ export const tabsSlice = createSlice({
       }
     },
     closeTabs: (state, action) => {
+      const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
       state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
-      if(state.tabs && state.tabs.length) {
-        // todo: closing tab needs to focus on the right adjacent tab
-        state.activeTabUid = last(state.tabs).uid;
-      } else {
-        state.activeTabUid = null;
+      if(activeTab && state.tabs.length) {
+        const { collectionUid } = activeTab;
+        const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
+
+        if(!activeTabStillExists) {
+          // attempt to load sibling tabs (based on collections) of the dead tab
+          const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
+
+          if(siblingTabs && siblingTabs.length) {
+            state.activeTabUid = last(siblingTabs).uid;
+          } else {
+            state.activeTabUid = last(state.tabs).uid;
+          }
+        }
       }
     },
     // todo: implement this
