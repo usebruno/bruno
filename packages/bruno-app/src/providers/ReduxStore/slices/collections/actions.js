@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
@@ -6,9 +7,14 @@ import {
   transformCollectionToSaveToIdb
 } from 'utils/collections';
 import { waitForNextTick } from 'utils/common';
+import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
 import { saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
+import { sendNetworkRequest } from 'utils/network';
 
 import {
+  requestSent,
+  requestCancelled,
+  responseReceived,
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   deleteCollection as _deleteCollection,
@@ -107,4 +113,39 @@ export const deleteCollection = (collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const sendRequest = (item, collectionUid) => (dispatch) => {
+  const axiosRequest = axios.CancelToken.source();
+  const cancelTokenUid = uuid();
+
+  saveCancelToken(cancelTokenUid, axiosRequest);
+  dispatch(requestSent({
+    itemUid: item.uid,
+    collectionUid: collectionUid,
+    cancelTokenUid: cancelTokenUid
+  }));
+
+  sendNetworkRequest(item, {cancelToken: axiosRequest.token})
+    .then((response) => {
+      if(response && response.status !== -1) {
+        return dispatch(responseReceived({
+          itemUid: item.uid,
+          collectionUid: collectionUid,
+          response: response
+        }));
+      }
+    })
+    .then(() => deleteCancelToken(cancelTokenUid))
+    .catch((err) => console.log(err));
+};
+
+export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
+  if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
+    cancelTokens[cancelTokenUid].cancel();
+    dispatch(requestCancelled({
+      itemUid: item.uid,
+      collectionUid: collection.uid
+    }))
+  }
 };

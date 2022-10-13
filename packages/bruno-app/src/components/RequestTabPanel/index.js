@@ -139,9 +139,9 @@ const RequestTabPanel = () => {
         <section className="response-pane flex-grow mt-2">
           <ResponsePane
             item={item}
+            collection={collection}
             rightPaneWidth={rightPaneWidth}
             response={item.response}
-            isLoading={item.response && item.response.state === 'sending' ? true : false}
           />
         </section>
       </section>

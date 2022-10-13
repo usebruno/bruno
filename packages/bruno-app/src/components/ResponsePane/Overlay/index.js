@@ -1,9 +1,17 @@
 import React from 'react';
 import { IconRefresh } from '@tabler/icons';
+import { useDispatch } from 'react-redux';
+import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
 
-const QueryResult = () => {
+const ResponseLoadingOverlay = ({item, collection}) => {
+  const dispatch = useDispatch();
+
+  const handleCancelRequest = () => {
+    dispatch(cancelRequest(item.cancelTokenUid, item, collection));
+  };
+
   return (
     <StyledWrapper className="mt-4 px-3 w-full">
       <div className="overlay">
@@ -14,6 +22,7 @@ const QueryResult = () => {
         </div>
         <IconRefresh size={24} className="animate-spin"/>
         <button
+          onClick={handleCancelRequest}
           className="mt-4 uppercase bg-gray-200 active:bg-blueGray-600 text-xs px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150" type="button"
         >
           Cancel Request
@@ -23,4 +32,4 @@ const QueryResult = () => {
   );
 };
 
-export default QueryResult;
+export default ResponseLoadingOverlay;

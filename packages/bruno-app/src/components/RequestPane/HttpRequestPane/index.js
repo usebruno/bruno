@@ -8,7 +8,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import QueryUrl from 'components/RequestPane/QueryUrl';
-import { sendRequest } from 'providers/ReduxStore/slices/collections';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
@@ -16,7 +16,7 @@ const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
 
-  const sendNetworkRequest =  async () => dispatch(sendRequest(item, collection.uid));
+  const handleRun =  async () => dispatch(sendRequest(item, collection.uid));
 
   const selectTab = (tab) => {
     dispatch(updateRequestPaneTab({
@@ -67,7 +67,7 @@ const HttpRequestPane = ({item, collection, leftPaneWidth}) => {
         <QueryUrl
           item = {item}
           collection={collection}
-          handleRun={sendNetworkRequest}
+          handleRun={handleRun}
         />
       </div>
       <div className="flex items-center tabs" role="tablist">

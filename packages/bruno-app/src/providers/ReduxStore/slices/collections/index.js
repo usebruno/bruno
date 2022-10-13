@@ -6,7 +6,6 @@ import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit'
 import splitOnFirst from 'split-on-first';
-import { sendNetworkRequest } from 'utils/network';
 import {
   findCollectionByUid,
   findItemInCollection,
@@ -99,24 +98,39 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    _requestSent: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+    requestSent: (state, action) => {
+      const {itemUid, collectionUid, cancelTokenUid} = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
 
       if(collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
+        const item = findItemInCollection(collection, itemUid);
         if(item) {
           item.response = item.response || {};
           item.response.state = 'sending';
+          item.cancelTokenUid = cancelTokenUid;
         }
       }
     },
-    _responseReceived: (state, action) => {
+    requestCancelled: (state, action) => {
+      const {itemUid, collectionUid} = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if(item) {
+          item.response = null;
+          item.cancelTokenUid = null;
+        }
+      }
+    },
+    responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if(item) {
           item.response = action.payload.response;
+          item.cancelTokenUid = null;
         }
       }
     },
@@ -535,8 +549,9 @@ export const {
   _deleteItem,
   _renameItem,
   _cloneItem,
-  _requestSent,
-  _responseReceived,
+  requestSent,
+  requestCancelled,
+  responseReceived,
   _saveRequest,
   newEphermalHttpRequest,
   collectionClicked,
@@ -563,20 +578,6 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
   getCollectionsFromIdb(window.__idb)
     .then((collections) => dispatch(_loadCollections({
       collections: collections
-    })))
-    .catch((err) => console.log(err));
-};
-
-export const sendRequest = (item, collectionUid) => (dispatch) => {
-  dispatch(_requestSent({
-    itemUid: item.uid,
-    collectionUid: collectionUid
-  }));
-  sendNetworkRequest(item)
-    .then((response) => dispatch(_responseReceived({
-      itemUid: item.uid,
-      collectionUid: collectionUid,
-      response: response
     })))
     .catch((err) => console.log(err));
 };

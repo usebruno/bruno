@@ -4,11 +4,11 @@ import qs from 'qs';
 import { rawRequest, gql } from 'graphql';
 import { sendHttpRequestInBrowser } from './browser';
 
-const sendNetworkRequest = async (item) => {
+const sendNetworkRequest = async (item, options) => {
   return new Promise((resolve, reject) => {
     if(item.type === 'http') {
       const timeStart = Date.now();
-      sendHttpRequest(item.draft ? item.draft.request : item.request)
+      sendHttpRequest(item.draft ? item.draft.request : item.request, options)
         .then((response) => {
           const timeEnd = Date.now();
           resolve({
@@ -25,7 +25,7 @@ const sendNetworkRequest = async (item) => {
   });
 };
 
-const sendHttpRequest = async (request) => {
+const sendHttpRequest = async (request, options) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
@@ -36,57 +36,61 @@ const sendHttpRequest = async (request) => {
       }
     });
 
-    let options = {
+    let axiosRequest = {
       method: request.method,
       url: request.url,
       headers: headers
     };
 
+    if(options && options.cancelToken) {
+      axiosRequest.cancelToken = options.cancelToken;
+    }
+
     if(request.body.mode === 'json') {
-      options.headers['content-type'] = 'application/json';
+      axiosRequest.headers['content-type'] = 'application/json';
       try {
-        options.data = JSON.parse(request.body.json);
+        axiosRequest.data = JSON.parse(request.body.json);
       } catch (ex) {
-        options.data = request.body.json;
+        axiosRequest.data = request.body.json;
       }
     }
 
     if(request.body.mode === 'text') {
-      options.headers['content-type'] = 'text/plain';
-      options.data = request.body.text;
+      axiosRequest.headers['content-type'] = 'text/plain';
+      axiosRequest.data = request.body.text;
     }
 
     if(request.body.mode === 'xml') {
-      options.headers['content-type'] = 'text/xml';
-      options.data = request.body.xml;
+      axiosRequest.headers['content-type'] = 'text/xml';
+      axiosRequest.data = request.body.xml;
     }
 
     if(request.body.mode === 'formUrlEncoded') {
-      options.headers['content-type'] = 'application/x-www-form-urlencoded';
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
       const params = {};
       const enabledParams = filter(request.body.formUrlEncoded, p => p.enabled);
       each(enabledParams, (p) => params[p.name] = p.value);
-      options.data = qs.stringify(params);
+      axiosRequest.data = qs.stringify(params);
     }
 
     if(request.body.mode === 'multipartForm') {
       const params = {};
       const enabledParams = filter(request.body.multipartForm, p => p.enabled);
       each(enabledParams, (p) => params[p.name] = p.value);
-      options.headers['content-type'] = 'multipart/form-data';
-      options.data = params;
+      axiosRequest.headers['content-type'] = 'multipart/form-data';
+      axiosRequest.data = params;
     }
 
     console.log('>>> Sending Request');
-    console.log(options);
+    console.log(axiosRequest);
 
     // Todo: Choose based on platform (web/desktop)
-    sendHttpRequestInBrowser(options)
+    sendHttpRequestInBrowser(axiosRequest)
       .then(resolve)
       .catch(reject);
 
     // ipcRenderer
-    //   .invoke('send-http', options)
+    //   .invoke('send-http', axiosRequest)
     //   .then(resolve)
     //   .catch(reject);
   });

@@ -12,10 +12,11 @@ import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
 import StyledWrapper from './StyledWrapper';
 
-const ResponsePane = ({rightPaneWidth, item, isLoading}) => {
+const ResponsePane = ({rightPaneWidth, item, collection}) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isLoading = item.response && item.response.state === 'sending';
 
   const selectTab = (tab) => {
     dispatch(updateResponsePaneTab({
@@ -51,10 +52,11 @@ const ResponsePane = ({rightPaneWidth, item, isLoading}) => {
   if(isLoading) {
     return (
       <StyledWrapper className="flex h-full relative">
-        <Overlay />
+        <Overlay item={item} collection={collection}/>
       </StyledWrapper>
     );
   }
+
   if(response.state !== 'success') {
     return (
       <StyledWrapper className="flex h-full relative">
