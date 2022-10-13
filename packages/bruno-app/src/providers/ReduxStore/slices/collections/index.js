@@ -693,10 +693,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
             .then((val) => resolve(val))
             .catch((err) => reject(err));
         })
-        .catch((err) => {
-          reject(err);
-          console.log(err)
-        });
+        .catch(reject);
     }
   });
 };

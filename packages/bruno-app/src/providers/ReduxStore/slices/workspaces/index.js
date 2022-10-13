@@ -1,9 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
-import each from 'lodash/each';
 import find from 'lodash/find';
+import filter from 'lodash/filter';
 
 const initialState = {
   workspaces: [],
+  collectionUids: [],
   activeWorkspaceUid: null
 };
 
@@ -37,6 +38,28 @@ export const workspacesSlice = createSlice({
     },
     addWorkspace: (state, action) => {
       state.workspaces.push(action.payload.workspace);
+    },
+    addCollectionToWorkspace:  (state, action) => {
+      const { workspaceUid, collectionUid } = action.payload;
+      const workspace = find(state.workspaces, (w) => w.uid === workspaceUid);
+
+      if(workspace) {
+        if(workspace.collectionUids && workspace.collectionUids.length) {
+          if(!workspace.collectionUids.includes(collectionUid)) {
+            workspace.collectionUids.push(collectionUid);
+          }
+        } else {
+          workspace.collectionUids = [collectionUid];
+        }
+      }
+    },
+    removeCollectionFromWorkspace:  (state, action) => {
+      const { workspaceUid, collectionUid } = action.payload;
+      const workspace = find(state.workspaces, (w) => w.uid === workspaceUid);
+
+      if(workspace && workspace.collectionUids && workspace.collectionUids.length) {
+        workspace.collectionUids = filter(workspace.collectionUids, (uid) => uid !== collectionUid);
+      }
     }
   }
 });
@@ -46,7 +69,9 @@ export const {
   selectWorkspace,
   renameWorkspace,
   deleteWorkspace,
-  addWorkspace
+  addWorkspace,
+  addCollectionToWorkspace,
+  removeCollectionFromWorkspace
 } = workspacesSlice.actions;
 
 export default workspacesSlice.reducer;

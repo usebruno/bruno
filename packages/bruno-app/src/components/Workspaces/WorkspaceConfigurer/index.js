@@ -24,8 +24,7 @@ const WorkspaceConfigurer = ({onClose}) => {
       </ul>
       {openAddModal && <AddWorkspace onClose={() => setOpenAddModal(false)}/>}
     </Modal>
-  )
-
+  );
 }
 
 export default WorkspaceConfigurer;

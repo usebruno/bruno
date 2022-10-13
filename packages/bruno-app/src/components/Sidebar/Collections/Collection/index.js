@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
+import RemoveCollectionFromWorkspace from './RemoveCollectionFromWorkspace';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest } from 'utils/collections';
 
@@ -19,6 +20,7 @@ const Collection = ({collection, searchText}) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
+  const [showRemoveCollectionFromWSModal, setShowRemoveCollectionFromWSModal] = useState(false);
   const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
@@ -63,6 +65,7 @@ const Collection = ({collection, searchText}) => {
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)}/>}
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)}/>}
+      {showRemoveCollectionFromWSModal && <RemoveCollectionFromWorkspace collection={collection} onClose={() => setShowRemoveCollectionFromWSModal(false)}/>}
       {showDeleteCollectionModal && <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)}/>}
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
@@ -92,6 +95,12 @@ const Collection = ({collection, searchText}) => {
               setShowRenameCollectionModal(true);
             }}>
               Rename
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+              setShowRemoveCollectionFromWSModal(true);
+            }}>
+              Remove from Workspace
             </div>
             <div className="dropdown-item delete-collection" onClick={(e) => {
               menuDropdownTippyRef.current.hide();

@@ -2,15 +2,19 @@ import React, { useState, forwardRef, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import Bruno from 'components/Bruno';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
+import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -23,11 +27,10 @@ const TitleBar = () => {
     );
   });
 
-  const handleCancel = () => setModalOpen(false);
   const handleTitleClick = () => dispatch(showHomePage());
 
-  const handleConfirm = (values) => {
-    setModalOpen(false);
+  const handleCreateCollection = (values) => {
+    setCreateCollectionModalOpen(false);
     dispatch(createCollection(values.collectionName))
       .then(() => {
         toast.success("Collection created");
@@ -35,14 +38,31 @@ const TitleBar = () => {
       .catch(() => toast.error("An error occured while creating the collection"));
   };
 
+  const handleAddCollectionToWorkspace = (collectionUid) => {
+    setAddCollectionToWSModalOpen(false);
+    dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
+      .then(() => {
+        toast.success("Collection added to workspace");
+      })
+      .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
+
   return (
     <StyledWrapper className="px-2 py-2">
-      {modalOpen ? (
+      {createCollectionModalOpen ? (
         <CreateCollection
-          handleCancel={handleCancel}
-          handleConfirm={handleConfirm}
+          handleCancel={() => setCreateCollectionModalOpen(false)}
+          handleConfirm={handleCreateCollection}
         />
       ) : null}
+      
+      {addCollectionToWSModalOpen ? (
+        <SelectCollection
+          title='Add Collection to Workspace'
+          onClose={() => setAddCollectionToWSModalOpen(false)}
+          onSelect={handleAddCollectionToWorkspace}
+        />
+      ): null}
 
       <div className="flex items-center">
         <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
@@ -59,7 +79,7 @@ const TitleBar = () => {
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement='bottom-start'>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
-              setModalOpen(true);
+              setCreateCollectionModalOpen(true);
             }}>
               Create Collection
             </div>
@@ -70,6 +90,7 @@ const TitleBar = () => {
             </div>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
+              setAddCollectionToWSModalOpen(true);
             }}>
               Add Collection to Workspace
             </div>

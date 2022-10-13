@@ -5,6 +5,7 @@ import {
   recursivelyGetAllItemUids,
   transformCollectionToSaveToIdb
 } from 'utils/collections';
+import { waitForNextTick } from 'utils/common';
 import { saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
 
 import {
@@ -13,9 +14,10 @@ import {
   deleteCollection as _deleteCollection,
 } from './index';
 
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, addTab } from 'providers/ReduxStore/slices/tabs';
+import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 
-export const createCollection = (collectionName) => (dispatch) => {
+export const createCollection = (collectionName) => (dispatch, getState) => {
   const newCollection = {
     uid: uuid(),
     name: collectionName,
@@ -23,9 +25,40 @@ export const createCollection = (collectionName) => (dispatch) => {
     environments: [],
   };
 
+  const requestItem = {
+    uid: uuid(),
+    type: 'http-request',
+    name: 'Untitled',
+    request: {
+      method: 'GET',
+      url: '',
+      headers: [],
+      body: {
+        mode: 'none',
+        json: null,
+        text: null,
+        xml: null,
+        multipartForm: null,
+        formUrlEncoded: null
+      }
+    }
+  };
+
+  newCollection.items.push(requestItem)
+
+  const state = getState();
+  const { activeWorkspaceUid } = state.workspaces;
+
   return new Promise((resolve, reject) => {
     saveCollectionToIdb(window.__idb, newCollection)
       .then(() => dispatch(_createCollection(newCollection)))
+      .then(waitForNextTick)
+      .then(() => dispatch(addCollectionToWorkspace(activeWorkspaceUid, newCollection.uid)))
+      .then(waitForNextTick)
+      .then(() => dispatch(addTab({
+        uid: requestItem.uid,
+        collectionUid: newCollection.uid
+      })))
       .then(resolve)
       .catch(reject);
   });

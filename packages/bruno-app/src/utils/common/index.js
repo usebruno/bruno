@@ -18,3 +18,9 @@ export const simpleHash = str => {
   }
   return new Uint32Array([hash])[0].toString(36);
 };
+
+export const waitForNextTick = () => {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => resolve(), 0);
+  });
+};

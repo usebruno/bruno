@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   IconPlus,
   IconUpload,
@@ -9,19 +10,22 @@ import {
   IconSpeakerphone,
   IconDeviceDesktop
 } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
+import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
-  const [modalOpen, setModalOpen] = useState(false);
   const dispatch = useDispatch();
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
-  const handleCancel = () => setModalOpen(false);
-  const handleConfirm = (values) => {
-    setModalOpen(false);
+  const handleCreateCollection = (values) => {
+    setCreateCollectionModalOpen(false);
     dispatch(createCollection(values.collectionName))
       .then(() => {
         toast.success("Collection created");
@@ -29,14 +33,32 @@ const Welcome = () => {
       .catch(() => toast.error("An error occured while creating the collection"));
   };
 
+  const handleAddCollectionToWorkspace = (collectionUid) => {
+    setAddCollectionToWSModalOpen(false);
+    dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
+      .then(() => {
+        toast.success("Collection added to workspace");
+      })
+      .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
+
   return (
     <StyledWrapper className="pb-4 px-6 mt-6">
-      {modalOpen ? (
+      {createCollectionModalOpen ? (
         <CreateCollection
-          handleCancel={handleCancel}
-          handleConfirm={handleConfirm}
+          handleCancel={() => setCreateCollectionModalOpen(false)}
+          handleConfirm={handleCreateCollection}
         />
       ) : null}
+      
+      {addCollectionToWSModalOpen ? (
+        <SelectCollection
+          title='Add Collection to Workspace'
+          onClose={() => setAddCollectionToWSModalOpen(false)}
+          onSelect={handleAddCollectionToWorkspace}
+        />
+      ): null}
+
       <div className="">
         <Bruno width={50} />
       </div>
@@ -44,12 +66,12 @@ const Welcome = () => {
       <div className="mt-4">Opensource API Client.</div>
 
       <div className="uppercase font-semibold create-request mt-10">Collections</div>
-      <div className="mt-4 flex items-center collection-options">
+      <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center">
-          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setModalOpen(true)}>Create Collection</span>
+          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>Create Collection</span>
         </div>
         <div className="flex items-center ml-6">
-          <IconFiles size={18} strokeWidth={2}/><span className="label ml-2">Add Collection to Workspace</span>
+          <IconFiles size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setAddCollectionToWSModalOpen(true)}>Add Collection to Workspace</span>
         </div>
         <div className="flex items-center ml-6">
           <IconUpload size={18} strokeWidth={2}/><span className="label ml-2">Import Collection</span>
@@ -60,9 +82,9 @@ const Welcome = () => {
       </div>
 
       <div className="uppercase font-semibold create-request mt-10 pt-6">Local Collections</div>
-      <div className="mt-4 flex items-center collection-options">
+      <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center">
-          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setModalOpen(true)}>Create Collection</span>
+          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>Create Collection</span>
         </div>
         <div className="flex items-center ml-6">
           <IconFolders size={18} strokeWidth={2}/><span className="label ml-2">Open Collection</span>
@@ -70,7 +92,7 @@ const Welcome = () => {
       </div>
 
       <div className="uppercase font-semibold create-request mt-10 pt-6">Links</div>
-      <div className="mt-4 flex flex-col collection-options">
+      <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center">
           <IconBrandChrome size={18} strokeWidth={2}/><span className="label ml-2">Chrome Extension</span>
         </div>
