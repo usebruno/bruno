@@ -1,0 +1,10 @@
+{
+  "name": "@usebruno/schema",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "peerDependencies": {
+    "yup": "^0.32.11"
+  }
+}
