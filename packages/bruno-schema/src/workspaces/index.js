@@ -8,7 +8,7 @@ const workspaceSchema = Yup.object({
     .max(50, 'name must be 50 characters or less')
     .required('name is required'),
   collectionUids: Yup.array().of(uidSchema)
-});
+}).noUnknown(true).strict();
 
 module.exports = {
   workspaceSchema

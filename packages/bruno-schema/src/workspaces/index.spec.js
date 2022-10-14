@@ -69,4 +69,18 @@ describe('Workspace Schema Validation', () => {
       )
     ]);
   });
+
+  it('workspace schema must throw error when unknown key is present', async () => {
+    const workspace = {
+      uid: uuid(),
+      name: 'My Workspace',
+      foo: 'bar'
+    };
+
+    return Promise.all([
+      expect(workspaceSchema.validate(workspace)).rejects.toEqual(
+        validationErrorWithMessages('this field has unspecified keys: foo')
+      )
+    ]);
+  });
 });
