@@ -49,7 +49,7 @@ export const loadWorkspacesFromIdb = () => (dispatch) => {
 
 export const addWorkspace = (workspaceName) => (dispatch) => {
   const newWorkspace = {
-    uid: uuid() + "junk",
+    uid: uuid(),
     name: workspaceName
   };
 
