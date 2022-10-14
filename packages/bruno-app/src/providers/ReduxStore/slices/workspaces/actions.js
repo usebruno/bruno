@@ -2,6 +2,7 @@ import find from 'lodash/find';
 import filter from 'lodash/filter';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
+import { workspaceSchema } from '@usebruno/schema';
 import { getWorkspacesFromIdb, saveWorkspaceToIdb, deleteWorkspaceInIdb } from 'utils/idb/workspaces';
 import {
   loadWorkspaces,
@@ -20,7 +21,9 @@ const seedWorkpace = () => {
   };
 
   return new Promise((resolve, reject) => {
-    saveWorkspaceToIdb(window.__idb, workspace)
+    workspaceSchema
+      .validate(workspace)
+      .then(() => saveWorkspaceToIdb(window.__idb, workspace))
       .then(() => resolve([workspace]))
       .catch(reject);
   });
@@ -46,12 +49,14 @@ export const loadWorkspacesFromIdb = () => (dispatch) => {
 
 export const addWorkspace = (workspaceName) => (dispatch) => {
   const newWorkspace = {
-    uid: uuid(),
+    uid: uuid() + "junk",
     name: workspaceName
   };
 
   return new Promise((resolve, reject) => {
-    saveWorkspaceToIdb(window.__idb, newWorkspace)
+    workspaceSchema
+      .validate(newWorkspace)
+      .then(() => saveWorkspaceToIdb(window.__idb, newWorkspace))
       .then(() => dispatch(_addWorkspace({
         workspace: newWorkspace
       })))
@@ -70,10 +75,12 @@ export const renameWorkspace = (newName, uid) => (dispatch, getState) => {
       return reject(new Error('Workspace not found'));
     }
 
-    saveWorkspaceToIdb(window.__idb, {
-      uid: workspace.uid,
-      name: newName,
-    })
+    const workspaceCopy = cloneDeep(workspace);
+    workspaceCopy.name = newName;
+
+    workspaceSchema
+      .validate(workspaceCopy)
+      .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
       .then(() => dispatch(_renameWorkspace({
         uid: uid,
         name: newName
@@ -130,7 +137,9 @@ export const addCollectionToWorkspace = (workspaceUid, collectionUid) => (dispat
       workspaceCopy.collectionUids = [collectionUid];
     }
 
-    saveWorkspaceToIdb(window.__idb, workspaceCopy)
+    workspaceSchema
+      .validate(workspaceCopy)
+      .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
       .then(() => dispatch(_addCollectionToWorkspace({
         workspaceUid: workspaceUid,
         collectionUid: collectionUid
