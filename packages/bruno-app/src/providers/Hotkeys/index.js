@@ -3,7 +3,8 @@ import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
 import SaveRequest from 'components/RequestPane/SaveRequest';
-import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 
 export const HotkeysContext = React.createContext();

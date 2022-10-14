@@ -7,7 +7,9 @@ import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
+import QueryUrl from 'components/RequestPane/QueryUrl';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -101,13 +103,21 @@ const RequestTabPanel = () => {
     );
   };
 
+  const handleRun =  async () => dispatch(sendRequest(item, collection.uid));
   const onGraphqlQueryChange = (value) => {};
   const runQuery = async () => {};
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow ${dragging ? 'dragging' : ''}`}>
-      <section className="main flex flex-grow">
-        <section className="request-pane mt-2">
+      <div className="pt-4 pb-3 px-4">
+        <QueryUrl
+          item = {item}
+          collection={collection}
+          handleRun={handleRun}
+        />
+      </div>
+      <section className="main flex flex-grow pb-4">
+        <section className="request-pane">
           <div
             className="px-4"
             style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}
@@ -136,7 +146,7 @@ const RequestTabPanel = () => {
           <div className="drag-request-border" />
         </div>
 
-        <section className="response-pane flex-grow mt-2">
+        <section className="response-pane flex-grow">
           <ResponsePane
             item={item}
             collection={collection}

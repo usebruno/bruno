@@ -195,7 +195,6 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               json: si.request.body.json,
               text: si.request.body.text,
               xml: si.request.body.xml,
-              multipartForm: si.request.body.multipartForm,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             }
