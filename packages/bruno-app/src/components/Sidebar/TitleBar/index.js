@@ -3,12 +3,14 @@ import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import Bruno from 'components/Bruno';
 import { useSelector, useDispatch } from 'react-redux';
+import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+import importCollection from 'utils/collections/import';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
@@ -45,6 +47,15 @@ const TitleBar = () => {
         toast.success("Collection added to workspace");
       })
       .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
+
+  const handleImportCollection = () => {
+    importCollection()
+      .then((collection) => {
+        dispatch(collectionImported({collection: collection}));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
+      })
+      .catch((err) => console.log(err));
   };
 
   return (
@@ -85,6 +96,7 @@ const TitleBar = () => {
             </div>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
+              handleImportCollection();
             }}>
               Import Collection
             </div>

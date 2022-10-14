@@ -11,11 +11,13 @@ import {
   IconDeviceDesktop
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
+import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+import importCollection from 'utils/collections/import';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
@@ -40,6 +42,15 @@ const Welcome = () => {
         toast.success("Collection added to workspace");
       })
       .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
+
+  const handleImportCollection = () => {
+    importCollection()
+      .then((collection) => {
+        dispatch(collectionImported({collection: collection}));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
+      })
+      .catch((err) => console.log(err));
   };
 
   return (
@@ -73,7 +84,7 @@ const Welcome = () => {
         <div className="flex items-center ml-6">
           <IconFiles size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setAddCollectionToWSModalOpen(true)}>Add Collection to Workspace</span>
         </div>
-        <div className="flex items-center ml-6">
+        <div className="flex items-center ml-6" onClick={handleImportCollection}>
           <IconUpload size={18} strokeWidth={2}/><span className="label ml-2">Import Collection</span>
         </div>
         <div className="flex items-center ml-6">

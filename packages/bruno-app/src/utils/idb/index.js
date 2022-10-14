@@ -1,5 +1,3 @@
-import isArray from 'lodash/isArray';
-
 export const saveCollectionToIdb = (connection, collection) => {
   return new Promise((resolve, reject) => {
     connection
@@ -7,15 +5,9 @@ export const saveCollectionToIdb = (connection, collection) => {
         let tx = db.transaction(`collection`, 'readwrite');
         let collectionStore = tx.objectStore('collection');
 
-        if(isArray(collection)) {
-          for(let c of collection) {
-            collectionStore.put(c);
-          }
-        } else {
-          collectionStore.put(collection);
-        }
+        collectionStore.put(collection);
 
-        resolve();
+        resolve(collection);
       })
       .catch((err) => reject(err));
   });
@@ -28,7 +20,7 @@ export const deleteCollectionInIdb = (connection, collectionUid) => {
         let tx = db.transaction(`collection`, 'readwrite');
         tx.objectStore('collection').delete(collectionUid);
 
-        tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve(collectionUid);
         tx.onerror = () => reject(tx.error);
       })
       .catch((err) => reject(err));

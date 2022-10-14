@@ -15,7 +15,6 @@ import {
   isItemARequest
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getCollectionsFromIdb } from 'utils/idb';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -31,6 +30,12 @@ export const collectionsSlice = createSlice({
       each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
       state.collections = action.payload.collections;
+    },
+    collectionImported: (state, action) => {
+      const { collection } = action.payload;
+      collapseCollection(collection);
+      addDepth(collection.items);
+      state.collections.push(collection);
     },
     createCollection: (state, action) => {
       state.collections.push(action.payload);
@@ -538,6 +543,7 @@ export const collectionsSlice = createSlice({
 });
 
 export const {
+  collectionImported,
   createCollection,
   renameCollection,
   deleteCollection,
@@ -570,13 +576,5 @@ export const {
   updateRequestBody,
   updateRequestMethod
 } = collectionsSlice.actions;
-
-export const loadCollectionsFromIdb = () => (dispatch) => {
-  getCollectionsFromIdb(window.__idb)
-    .then((collections) => dispatch(loadCollections({
-      collections: collections
-    })))
-    .catch((err) => console.log(err));
-};
 
 export default collectionsSlice.reducer;

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
@@ -13,10 +14,11 @@ import {
 import { collectionSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
 import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
-import { saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
+import { getCollectionsFromIdb, saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
 import { sendNetworkRequest } from 'utils/network';
 
 import {
+  loadCollections,
   requestSent,
   requestCancelled,
   responseReceived,
@@ -32,6 +34,14 @@ import {
 
 import { closeTabs, addTab } from 'providers/ReduxStore/slices/tabs';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+
+export const loadCollectionsFromIdb = () => (dispatch) => {
+  getCollectionsFromIdb(window.__idb)
+    .then((collections) => dispatch(loadCollections({
+      collections: collections
+    })))
+    .catch(() => toast.error("Error occured while loading collections from IndexedDB"));
+};
 
 export const createCollection = (collectionName) => (dispatch, getState) => {
   const newCollection = {

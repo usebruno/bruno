@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { openDB } from 'idb';
 import { idbConnectionReady } from 'providers/ReduxStore/slices/app'
-import { loadCollectionsFromIdb } from 'providers/ReduxStore/slices/collections'
+import { loadCollectionsFromIdb } from 'providers/ReduxStore/slices/collections/actions'
 import { loadWorkspacesFromIdb } from 'providers/ReduxStore/slices/workspaces/actions'
 import { useDispatch } from 'react-redux';
 
