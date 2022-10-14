@@ -46,9 +46,8 @@ describe('Collection Schema Validation', () => {
       items: [{
         uid: uuid(),
         name: 'Get Countries',
-        type: 'request',
+        type: 'http-request',
         request: {
-          type: 'http',
           url: 'https://restcountries.com/v2/alpha/in',
           method: 'GET',
           headers: [],
@@ -95,9 +94,8 @@ describe('Collection Schema Validation', () => {
         items: [{
           uid: uuid(),
           name: 'Get Countries',
-          type: 'request',
+          type: 'http-request',
           request: {
-            type: 'http',
             url: 'https://restcountries.com/v2/alpha/in',
             method: 'GET',
             headers: [],

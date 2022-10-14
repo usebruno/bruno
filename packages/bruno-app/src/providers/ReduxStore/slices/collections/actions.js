@@ -10,6 +10,7 @@ import {
   findParentItemInCollection,
   isItemAFolder
 } from 'utils/collections';
+import { collectionSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
 import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
 import { saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
@@ -36,18 +37,18 @@ export const createCollection = (collectionName) => (dispatch, getState) => {
   const newCollection = {
     uid: uuid(),
     name: collectionName,
-    items: [],
-    environments: [],
+    items: []
   };
 
   const requestItem = {
     uid: uuid(),
-    type: 'http',
+    type: 'http-request',
     name: 'Untitled',
     request: {
       method: 'GET',
       url: '',
       headers: [],
+      params: [],
       body: {
         mode: 'none',
         json: null,
@@ -65,7 +66,9 @@ export const createCollection = (collectionName) => (dispatch, getState) => {
   const { activeWorkspaceUid } = state.workspaces;
 
   return new Promise((resolve, reject) => {
-    saveCollectionToIdb(window.__idb, newCollection)
+    collectionSchema
+      .validate(newCollection)
+      .then(() => saveCollectionToIdb(window.__idb, newCollection))
       .then(() => dispatch(_createCollection(newCollection)))
       .then(waitForNextTick)
       .then(() => dispatch(addCollectionToWorkspace(activeWorkspaceUid, newCollection.uid)))
@@ -90,7 +93,9 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
       ignoreDraft: true
     });
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_renameCollection({
           newName: newName,
@@ -135,7 +140,9 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     const collectionCopy = cloneDeep(collection);
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_saveRequest({
           itemUid: itemUid,
@@ -208,7 +215,9 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
     }
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_newItem({
           item: item,
@@ -239,7 +248,9 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       ignoreDraft: true
     });
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_renameItem({
           newName: newName,
@@ -286,7 +297,9 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
 
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_cloneItem({
           parentItemUid: parentItem ? parentItem.uid : null,
@@ -309,7 +322,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       deleteItemInCollection(itemUid, collectionCopy);
       const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-      saveCollectionToIdb(window.__idb, collectionToSave)
+      collectionSchema
+        .validate(collectionToSave)
+        .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
         .then(() => {
           dispatch(_deleteItem({
             itemUid: itemUid,
@@ -369,12 +384,21 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     }
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
-    saveCollectionToIdb(window.__idb, collectionToSave)
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => {
         dispatch(_newItem({
           item: item,
           currentItemUid: itemUid,
           collectionUid: collectionUid
+        }));
+      })
+      .then(waitForNextTick)
+      .then(() => {
+        dispatch(addTab({
+          uid: item.uid,
+          collectionUid: collection.uid
         }));
       })
       .then(() => resolve())

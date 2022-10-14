@@ -6,7 +6,7 @@ import { sendHttpRequestInBrowser } from './browser';
 
 const sendNetworkRequest = async (item, options) => {
   return new Promise((resolve, reject) => {
-    if(item.type === 'http') {
+    if(item.type === 'http-request') {
       const timeStart = Date.now();
       sendHttpRequest(item.draft ? item.draft.request : item.request, options)
         .then((response) => {

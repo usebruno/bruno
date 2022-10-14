@@ -4,7 +4,6 @@ import filter from 'lodash/filter';
 
 const initialState = {
   workspaces: [],
-  collectionUids: [],
   activeWorkspaceUid: null
 };
 

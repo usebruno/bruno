@@ -10,13 +10,11 @@ const useIdb = () => {
 
   useEffect(() => {
     let dbName = `bruno`;
-    let connection = openDB(dbName, 2, {
+    let connection = openDB(dbName, 1, {
       upgrade(db, oldVersion, newVersion, transaction) {
         switch(oldVersion) {
           case 0:
             const collectionStore = db.createObjectStore('collection', { keyPath: 'uid' });
-            collectionStore.createIndex('transactionIdIndex', 'transaction_id');
-          case 1:
             const workspaceStore = db.createObjectStore('workspace', { keyPath: 'uid' });
         }
       }

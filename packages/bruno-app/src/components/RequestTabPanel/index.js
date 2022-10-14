@@ -122,7 +122,7 @@ const RequestTabPanel = () => {
             className="px-4"
             style={{width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)'}}
           >
-            {item.type === 'graphql' ? (
+            {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
                 onRunQuery={runQuery}
                 schema={schema}
@@ -132,7 +132,7 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-            {item.type === 'http' ? (
+            {item.type === 'http-request' ? (
               <HttpRequestPane
                 item={item}
                 collection={collection}

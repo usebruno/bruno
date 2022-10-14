@@ -17,9 +17,9 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
 		enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: 'http',
+      requestType: 'http-request',
       requestUrl: '',
-      requestMethod: 'get'
+      requestMethod: 'GET'
     },
     validationSchema: Yup.object({
       requestName: Yup.string()
@@ -44,19 +44,13 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
         }));
       } else {
         dispatch(newHttpRequest({
-            requestName: values.requestName,
-            requestType: values.requestType,
-            requestUrl: values.requestUrl,
-            requestMethod: values.requestMethod,
-            collectionUid: collection.uid,
-            itemUid: item ? item.uid : null
-          }))
-          .then((action) => {
-            dispatch(addTab({
-              uid: action.payload.item.uid,
-              collectionUid: collection.uid
-            }));
-          });
+          requestName: values.requestName,
+          requestType: values.requestType,
+          requestUrl: values.requestUrl,
+          requestMethod: values.requestMethod,
+          collectionUid: collection.uid,
+          itemUid: item ? item.uid : null
+        }));
       }
       onClose();
     }
@@ -90,7 +84,7 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
                 type="radio" name="requestType"
                 onChange={formik.handleChange}
                 value="http"
-                checked={formik.values.requestType === 'http'}
+                checked={formik.values.requestType === 'http-request'}
               />
               <label htmlFor="http" className="ml-1 cursor-pointer select-none">Http</label>
 
@@ -99,11 +93,11 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
                 className="ml-4 cursor-pointer"
                 type="radio" name="requestType"
                 onChange={(event) => {
-                  formik.setFieldValue('requestMethod', 'post')
+                  formik.setFieldValue('requestMethod', 'POST')
                   formik.handleChange(event);
                 }}
                 value="graphql"
-                checked={formik.values.requestType === 'graphql'}
+                checked={formik.values.requestType === 'graphql-request'}
               />
               <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">Graphql</label>
             </div>

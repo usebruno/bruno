@@ -5,7 +5,6 @@ const { requestSchema } = require("./index");
 describe('Request Schema Validation', () => {
   it('request schema must validate successfully - simple request', async () => {
     const request = {
-      type: 'http',
       url: 'https://restcountries.com/v2/alpha/in',
       method: 'GET',
       headers: [],
@@ -19,28 +18,8 @@ describe('Request Schema Validation', () => {
     expect(isValid).toBeTruthy();
   });
 
-  it('request schema must throw an error of type is invalid', async () => {
-    const request = {
-      type: 'http-junk',
-      url: 'https://restcountries.com/v2/alpha/in',
-      method: 'GET',
-      headers: [],
-      params: [],
-      body: {
-        mode: 'none'
-      }
-    };
-
-    return Promise.all([
-      expect(requestSchema.validate(request)).rejects.toEqual(
-        validationErrorWithMessages('type must be one of the following values: http, graphql')
-      )
-    ]);
-  });
-
   it('request schema must throw an error of method is invalid', async () => {
     const request = {
-      type: 'http',
       url: 'https://restcountries.com/v2/alpha/in',
       method: 'GET-junk',
       headers: [],
@@ -59,7 +38,6 @@ describe('Request Schema Validation', () => {
 
   it('request schema must throw an error of header name is missing', async () => {
     const request = {
-      type: 'http',
       url: 'https://restcountries.com/v2/alpha/in',
       method: 'GET',
       headers: [{
@@ -83,7 +61,6 @@ describe('Request Schema Validation', () => {
 
   it('request schema must throw an error of param value is missing', async () => {
     const request = {
-      type: 'http',
       url: 'https://restcountries.com/v2/alpha/in',
       method: 'GET',
       headers: [],

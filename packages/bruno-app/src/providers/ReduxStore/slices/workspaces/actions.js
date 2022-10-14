@@ -17,7 +17,8 @@ const seedWorkpace = () => {
   const uid = uuid();
   const workspace = {
     uid: uid,
-    name: 'My workspace'
+    name: 'My workspace',
+    collectionUids: []
   };
 
   return new Promise((resolve, reject) => {
@@ -50,7 +51,8 @@ export const loadWorkspacesFromIdb = () => (dispatch) => {
 export const addWorkspace = (workspaceName) => (dispatch) => {
   const newWorkspace = {
     uid: uuid(),
-    name: workspaceName
+    name: workspaceName,
+    collectionUids: []
   };
 
   return new Promise((resolve, reject) => {

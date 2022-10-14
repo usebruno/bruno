@@ -41,11 +41,25 @@ describe('Item Schema Validation', () => {
     ]);
   });
 
-  it('item schema must throw an error if request is not present when item-type is request', async () => {
+  it('item schema must throw an error if request is not present when item-type is http-request', async () => {
     const item = {
       uid: uuid(),
       name: 'Get Users',
-      type: 'request'
+      type: 'http-request'
+    };
+
+    return Promise.all([
+      expect(itemSchema.validate(item)).rejects.toEqual(
+        validationErrorWithMessages('request is required when item-type is request')
+      )
+    ]);
+  });
+
+  it('item schema must throw an error if request is not present when item-type is graphql-request', async () => {
+    const item = {
+      uid: uuid(),
+      name: 'Get Users',
+      type: 'graphql-request'
     };
 
     return Promise.all([

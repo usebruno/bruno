@@ -12,9 +12,9 @@ uid                      Unique id
 name                     collection name
 items                    Items (folders and requests)
   |-uid                  A unique id   
-  |-name                 Request name 
+  |-name                 Item name 
+  |-type                 Item type  (folder, http-request, graphql-request)
   |-request              Request object
-    |-type               Request type (http, graphql)
     |-url                Request url
     |-method             Request method
     |-headers            Request headers (array of key-val)

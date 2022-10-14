@@ -218,9 +218,6 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
-  collectionToSave.userId = collection.userId;
-  collectionToSave.orgId = collection.orgId;
-  collectionToSave.environments = cloneDeep(collection.environments);
   collectionToSave.items = [];
 
   copyItems(collection.items, collectionToSave.items);
@@ -243,7 +240,7 @@ export const deleteItemInCollection = (itemUid, collection) => {
 
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request')
-            && ['http', 'graphql'].includes(item.type)
+            && ['http-request', 'graphql-request'].includes(item.type)
             && !item.items;
 };
 
