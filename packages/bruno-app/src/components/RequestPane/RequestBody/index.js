@@ -4,7 +4,8 @@ import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch } from 'react-redux';
-import { updateRequestBody, sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections';
+import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const RequestBody = ({item, collection}) => {

@@ -2,9 +2,13 @@ import axios from 'axios';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
+  findItemInCollection,
   findCollectionByUid,
   recursivelyGetAllItemUids,
-  transformCollectionToSaveToIdb
+  transformCollectionToSaveToIdb,
+  deleteItemInCollection,
+  findParentItemInCollection,
+  isItemAFolder
 } from 'utils/collections';
 import { waitForNextTick } from 'utils/common';
 import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
@@ -15,6 +19,11 @@ import {
   requestSent,
   requestCancelled,
   responseReceived,
+  newItem as _newItem,
+  renameItem as _renameItem,
+  cloneItem as _cloneItem,
+  deleteItem as _deleteItem,
+  saveRequest as _saveRequest,
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   deleteCollection as _deleteCollection,
@@ -115,6 +124,29 @@ export const deleteCollection = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    const collectionCopy = cloneDeep(collection);
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_saveRequest({
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch) => {
   const axiosRequest = axios.CancelToken.source();
   const cancelTokenUid = uuid();
@@ -148,4 +180,204 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
       collectionUid: collection.uid
     }))
   }
+};
+
+export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    const collectionCopy = cloneDeep(collection);
+    const item = {
+      uid: uuid(),
+      name: folderName,
+      type: 'folder',
+      items: []
+    };
+    if(!itemUid) {
+      collectionCopy.items.push(item);
+    } else {
+      const currentItem = findItemInCollection(collectionCopy, itemUid);
+      if(currentItem && currentItem.type === 'folder') {
+        currentItem.items = currentItem.items || [];
+        currentItem.items.push(item);
+      }
+    }
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_newItem({
+          item: item,
+          currentItemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
+export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+    if(item) {
+      item.name = newName;
+    }
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy, {
+      ignoreDraft: true
+    });
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_renameItem({
+          newName: newName,
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
+export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
+    if(!item) {
+      return;
+    }
+
+    if(isItemAFolder(item)) {
+      throw new Error('Cloning folders is not supported yet');
+    }
+
+    // todo: clone query params
+    const clonedItem = cloneDeep(item);
+    clonedItem.name = newName;
+    clonedItem.uid = uuid();
+    each(clonedItem.headers, h => h.uid = uuid());
+
+    const parentItem = findParentItemInCollection(collectionCopy, itemUid);
+
+    if(!parentItem) {
+      collectionCopy.items.push(clonedItem);
+    } else {
+      parentItem.items.push(clonedItem);
+    }
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_cloneItem({
+          parentItemUid: parentItem ? parentItem.uid : null,
+          clonedItem: clonedItem,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
+export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if(collection) {
+      const collectionCopy = cloneDeep(collection);
+      deleteItemInCollection(itemUid, collectionCopy);
+      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+      saveCollectionToIdb(window.__idb, collectionToSave)
+        .then(() => {
+          dispatch(_deleteItem({
+            itemUid: itemUid,
+            collectionUid: collectionUid
+          }));
+        })
+        .then(() => resolve())
+        .catch((error) => reject(error));
+    }
+  });
+};
+
+export const newHttpRequest = (params) => (dispatch, getState) => {
+  const {
+    requestName,
+    requestType,
+    requestUrl,
+    requestMethod,
+    collectionUid,
+    itemUid
+  } = params;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const item = {
+      uid: uuid(),
+      type: requestType,
+      name: requestName,
+      request: {
+        method: requestMethod,
+        url: requestUrl,
+        headers: [],
+        body: {
+          mode: 'none',
+          json: null,
+          text: null,
+          xml: null,
+          multipartForm: null,
+          formUrlEncoded: null
+        }
+      }
+    };
+    if(!itemUid) {
+      collectionCopy.items.push(item);
+    } else {
+      const currentItem = findItemInCollection(collectionCopy, itemUid);
+      if(currentItem && currentItem.type === 'folder') {
+        currentItem.items = currentItem.items || [];
+        currentItem.items.push(item);
+      }
+    }
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    saveCollectionToIdb(window.__idb, collectionToSave)
+      .then(() => {
+        dispatch(_newItem({
+          item: item,
+          currentItemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch(reject);
+  });
 };

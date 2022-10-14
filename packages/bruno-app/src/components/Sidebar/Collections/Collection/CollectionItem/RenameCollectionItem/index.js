@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem } from 'providers/ReduxStore/slices/collections';
+import { renameItem } from 'providers/ReduxStore/slices/collections/actions';
 
 const RenameCollectionItem = ({collection, item, onClose}) => {
   const dispatch = useDispatch();

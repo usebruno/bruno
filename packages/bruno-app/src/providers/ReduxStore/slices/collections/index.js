@@ -9,16 +9,13 @@ import splitOnFirst from 'split-on-first';
 import {
   findCollectionByUid,
   findItemInCollection,
-  findParentItemInCollection,
-  transformCollectionToSaveToIdb,
   addDepth,
   collapseCollection,
   deleteItemInCollection,
-  isItemARequest,
-  isItemAFolder
+  isItemARequest
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getCollectionsFromIdb, saveCollectionToIdb } from 'utils/idb';
+import { getCollectionsFromIdb } from 'utils/idb';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -30,7 +27,7 @@ export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
   reducers: {
-    _loadCollections: (state, action) => {
+    loadCollections: (state, action) => {
       each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
       state.collections = action.payload.collections;
@@ -48,7 +45,7 @@ export const collectionsSlice = createSlice({
     deleteCollection: (state, action) => {
       state.collections = filter(state.collections, c => c.uid !== action.payload.collectionUid);
     },
-    _newItem: (state, action) => {
+    newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
@@ -65,14 +62,14 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
-    _deleteItem: (state, action) => {
+    deleteItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
         deleteItemInCollection(action.payload.itemUid, collection);
       }
     },
-    _renameItem: (state, action) => {
+    renameItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
@@ -83,7 +80,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    _cloneItem: (state, action) => {
+    cloneItem: (state, action) => {
       const collectionUid = action.payload.collectionUid;
       const clonedItem = action.payload.clonedItem;
       const parentItemUid = action.payload.parentItemUid;
@@ -134,7 +131,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    _saveRequest: (state, action) => {
+    saveRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if(collection) {
@@ -544,15 +541,15 @@ export const {
   createCollection,
   renameCollection,
   deleteCollection,
-  _loadCollections,
-  _newItem,
-  _deleteItem,
-  _renameItem,
-  _cloneItem,
+  loadCollections,
+  newItem,
+  deleteItem,
+  renameItem,
+  cloneItem,
   requestSent,
   requestCancelled,
   responseReceived,
-  _saveRequest,
+  saveRequest,
   newEphermalHttpRequest,
   collectionClicked,
   collectionFolderClicked,
@@ -576,219 +573,10 @@ export const {
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
   getCollectionsFromIdb(window.__idb)
-    .then((collections) => dispatch(_loadCollections({
+    .then((collections) => dispatch(loadCollections({
       collections: collections
     })))
     .catch((err) => console.log(err));
-};
-
-export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  
-  return new Promise((resolve, reject) => {
-    if(collection) {
-      const collectionCopy = cloneDeep(collection);
-      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-      saveCollectionToIdb(window.__idb, collectionToSave)
-        .then(() => {
-          dispatch(_saveRequest({
-            itemUid: itemUid,
-            collectionUid: collectionUid
-          }));
-        })
-        .then(() => resolve())
-        .catch((error) => reject(error));
-    }
-  });
-};
-
-export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  if(collection) {
-    const collectionCopy = cloneDeep(collection);
-    const item = {
-      uid: uuid(),
-      name: folderName,
-      type: 'folder',
-      items: []
-    };
-    if(!itemUid) {
-      collectionCopy.items.push(item);
-    } else {
-      const currentItem = findItemInCollection(collectionCopy, itemUid);
-      if(currentItem && currentItem.type === 'folder') {
-        currentItem.items = currentItem.items || [];
-        currentItem.items.push(item);
-      }
-    }
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-    saveCollectionToIdb(window.__idb, collectionToSave)
-      .then(() => {
-        dispatch(_newItem({
-          item: item,
-          currentItemUid: itemUid,
-          collectionUid: collectionUid
-        }));
-      })
-      .catch((err) => console.log(err));
-  }
-};
-
-export const newHttpRequest = (params) => (dispatch, getState) => {
-  const {
-    requestName,
-    requestType,
-    requestUrl,
-    requestMethod,
-    collectionUid,
-    itemUid
-  } = params;
-  return new Promise((resolve, reject) => {
-    const state = getState();
-    const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-    if(collection) {
-      const collectionCopy = cloneDeep(collection);
-      const item = {
-        uid: uuid(),
-        type: requestType,
-        name: requestName,
-        request: {
-          method: requestMethod,
-          url: requestUrl,
-          headers: [],
-          body: {
-            mode: 'none',
-            json: null,
-            text: null,
-            xml: null,
-            multipartForm: null,
-            formUrlEncoded: null
-          }
-        }
-      };
-      if(!itemUid) {
-        collectionCopy.items.push(item);
-      } else {
-        const currentItem = findItemInCollection(collectionCopy, itemUid);
-        if(currentItem && currentItem.type === 'folder') {
-          currentItem.items = currentItem.items || [];
-          currentItem.items.push(item);
-        }
-      }
-      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-      saveCollectionToIdb(window.__idb, collectionToSave)
-        .then(() => {
-          Promise.resolve(dispatch(_newItem({
-            item: item,
-            currentItemUid: itemUid,
-            collectionUid: collectionUid
-          })))
-            .then((val) => resolve(val))
-            .catch((err) => reject(err));
-        })
-        .catch(reject);
-    }
-  });
-};
-
-export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if(collection) {
-      const collectionCopy = cloneDeep(collection);
-      deleteItemInCollection(itemUid, collectionCopy);
-      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-      saveCollectionToIdb(window.__idb, collectionToSave)
-        .then(() => {
-          dispatch(_deleteItem({
-            itemUid: itemUid,
-            collectionUid: collectionUid
-          }));
-        })
-        .then(() => resolve())
-        .catch((error) => reject(error));
-    }
-  });
-};
-
-export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  if(collection) {
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
-    if(item) {
-      item.name = newName;
-    }
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy, {
-      ignoreDraft: true
-    });
-
-    saveCollectionToIdb(window.__idb, collectionToSave)
-      .then(() => {
-        dispatch(_renameItem({
-          newName: newName,
-          itemUid: itemUid,
-          collectionUid: collectionUid
-        }));
-      })
-      .catch((err) => console.log(err));
-  }
-};
-
-export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  if(collection) {
-    const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
-    if(!item) {
-      return;
-    }
-
-    if(isItemAFolder(item)) {
-      throw new Error('Cloning folders is not supported yet');
-    }
-
-    // todo: clone query params
-    const clonedItem = cloneDeep(item);
-    clonedItem.name = newName;
-    clonedItem.uid = uuid();
-    each(clonedItem.headers, h => h.uid = uuid());
-
-    const parentItem = findParentItemInCollection(collectionCopy, itemUid);
-
-    if(!parentItem) {
-      collectionCopy.items.push(clonedItem);
-    } else {
-      parentItem.items.push(clonedItem);
-    }
-
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-    saveCollectionToIdb(window.__idb, collectionToSave)
-      .then(() => {
-        dispatch(_cloneItem({
-          parentItemUid: parentItem ? parentItem.uid : null,
-          clonedItem: clonedItem,
-          collectionUid: collectionUid
-        }));
-      })
-      .catch((err) => console.log(err));
-  }
 };
 
 export default collectionsSlice.reducer;

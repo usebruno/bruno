@@ -3,7 +3,7 @@ import {useFormik} from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
-import { newFolder } from 'providers/ReduxStore/slices/collections';
+import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
 
 const NewFolder = ({collection, item, onClose}) => {
   const dispatch = useDispatch();

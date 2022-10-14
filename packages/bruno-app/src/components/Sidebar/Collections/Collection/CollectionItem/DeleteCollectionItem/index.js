@@ -3,7 +3,7 @@ import Modal from 'components/Modal';
 import { isItemAFolder } from 'utils/tabs';
 import { useDispatch } from 'react-redux';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { deleteItem } from 'providers/ReduxStore/slices/collections';
+import { deleteItem } from 'providers/ReduxStore/slices/collections/actions';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 

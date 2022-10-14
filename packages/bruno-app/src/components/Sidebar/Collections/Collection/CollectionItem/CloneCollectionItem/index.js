@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { cloneItem } from 'providers/ReduxStore/slices/collections';
+import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 
 const CloneCollectionItem = ({collection, item, onClose}) => {
   const dispatch = useDispatch();
