@@ -1,6 +1,7 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import filter from 'lodash/filter';
+import cloneDeep from 'lodash/cloneDeep';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
@@ -10,7 +11,8 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollectionFromWorkspace from './RemoveCollectionFromWorkspace';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
+import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
 import DeleteCollection from './DeleteCollection';
@@ -60,6 +62,11 @@ const Collection = ({collection, searchText}) => {
   const requestItems = filter(collection.items, (i) => isItemARequest(i));
   const folderItems = filter(collection.items, (i) => isItemAFolder(i));
 
+  const handleExportClick = () => {
+    const collectionCopy = cloneDeep(collection);
+    exportCollection(transformCollectionToSaveToIdb(collectionCopy));
+  };
+
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
@@ -95,6 +102,12 @@ const Collection = ({collection, searchText}) => {
               setShowRenameCollectionModal(true);
             }}>
               Rename
+            </div>
+            <div className="dropdown-item" onClick={(e) => {
+              menuDropdownTippyRef.current.hide();
+              handleExportClick(true);
+            }}>
+              Export
             </div>
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();

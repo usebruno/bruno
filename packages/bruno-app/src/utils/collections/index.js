@@ -4,7 +4,6 @@ import isString from 'lodash/isString';
 import map from 'lodash/map';
 import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
-import cloneDeep from 'lodash/cloneDeep';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if(!str || !str.length || !isString(str)) {

@@ -19,6 +19,7 @@
     "codemirror": "^5.65.2",
     "codemirror-graphql": "^1.2.5",
     "escape-html": "^1.0.3",
+    "file-saver": "^2.0.5",
     "formik": "^2.2.9",
     "graphiql": "^1.5.9",
     "graphql": "^16.2.0",
