@@ -15,6 +15,10 @@ export const tabsSlice = createSlice({
   initialState,
   reducers: {
     addTab: (state, action) => {
+      const alreadyExists = find(state.tabs, (tab) => tab.uid === action.payload.uid);
+      if(alreadyExists) {
+        return;
+      }
       state.tabs.push({
         uid: action.payload.uid,
         collectionUid: action.payload.collectionUid,
@@ -68,32 +72,9 @@ export const tabsSlice = createSlice({
           }
         }
       }
-    },
-    // todo: implement this
-    // the refreshTabs us currently not beng used
-    // the goal is to have the main page listen to unlink events and
-    // remove tabs which are no longer valid
-    refreshTabs: (state, action) => {
-      // remove all tabs that we don't have itemUids in all loaded collections
-      const allItemUids = action.payload.allItemUids || [];
-      state.tabs = filter(state.tabs, (tab) => {
-        return allItemUids.includes(tab.uid);
-      });
 
-      // adjust the activeTabUid
-      const collectionUid = action.payload.activeCollectionUid;
-      const collectionTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
-
-      if(!collectionTabs || !collectionTabs.length) {
+      if(!state.tabs || !state.tabs.length) {
         state.activeTabUid = null;
-        return;
-      }
-
-      const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
-
-      if(!activeTabStillExists) {
-        // todo: closing tab needs to focus on the right adjacent tab
-        state.activeTabUid = last(collectionTabs).uid;
       }
     }
   }
@@ -105,8 +86,7 @@ export const {
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
-  closeTabs,
-  refreshTabs
+  closeTabs
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
