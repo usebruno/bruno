@@ -20,7 +20,7 @@ export const workspacesSlice = createSlice({
       }
     },
     selectWorkspace: (state, action) => {
-      state.activeWorkspaceUid = action.payload.uid;
+      state.activeWorkspaceUid = action.payload.workspaceUid;
     },
     renameWorkspace: (state, action) => {
       const { name, uid } = action.payload;

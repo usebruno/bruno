@@ -1,7 +1,8 @@
 import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import Dropdown from 'components/Dropdown';
-import { IconCaretDown, IconBox, IconSwitch3, IconSettings, IconFolders } from '@tabler/icons';
+import { IconCaretDown, IconBox, IconSwitch3, IconSettings } from '@tabler/icons';
 import WorkspaceConfigurer from "../WorkspaceConfigurer";
+import WorkspaceSelectModal from "../WorkspaceSelectModal";
 import { useDispatch, useSelector } from 'react-redux';
 import { selectWorkspace } from 'providers/ReduxStore/slices/workspaces';
 import StyledWrapper from './StyledWrapper';
@@ -9,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 const WorkspaceSelector = () => {
   const dropdownTippyRef = useRef();
   const [openWorkspacesModal, setOpenWorkspacesModal] = useState(false);
+  const [openSwitchWorkspaceModal, setOpenSwitchWorkspaceModal] = useState(false);
   const [activeWorkspace, setActiveWorkspace] = useState({});
   const dispatch = useDispatch();
 
@@ -36,27 +38,26 @@ const WorkspaceSelector = () => {
 
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
 
-  const handleSelectWorkspace = (workspace) => {
-    dispatch(selectWorkspace(workspace));
-  }
+  const handleSelectWorkspace = (workspaceUid) => {
+    dispatch(selectWorkspace({workspaceUid: workspaceUid}));
+    setOpenSwitchWorkspaceModal(false);
+  };
 
   return (
     <StyledWrapper>
+      {openWorkspacesModal && <WorkspaceConfigurer onClose={() => setOpenWorkspacesModal(false)}/>}
+      {openSwitchWorkspaceModal && <WorkspaceSelectModal onSelect={handleSelectWorkspace} title="Switch Workspace" onClose={() => setOpenSwitchWorkspaceModal(false)}/>}
+
       <div className="items-center cursor-pointer relative">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
-          {/* {workspaces && workspaces.length && workspaces.map((workspace) => (
-            <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)} key={workspace.uid}>
-              <span>{workspace.name}</span>
-            </div>
-          ))} */}
-          <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)}>
+          <div className="dropdown-item" onClick={() => setOpenSwitchWorkspaceModal(true)}>
             <div className="pr-2 text-gray-600">
               <IconSwitch3 size={18} strokeWidth={1.5}/>
             </div>
             <span>Switch Workspace</span>
           </div>
 
-          <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)}>
+          <div className="dropdown-item" onClick={() => setOpenWorkspacesModal(true)}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5}/>
             </div>
@@ -64,7 +65,6 @@ const WorkspaceSelector = () => {
           </div>
         </Dropdown>
       </div>
-      {openWorkspacesModal && <WorkspaceConfigurer onClose={() => setOpenWorkspacesModal(false)}/>}
     </StyledWrapper>
   );
 };
