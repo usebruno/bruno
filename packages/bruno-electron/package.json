@@ -18,10 +18,15 @@
   },
   "dependencies": {
     "axios": "^0.26.0",
+    "chokidar": "^3.5.3",
     "electron-is-dev": "^2.0.0",
+    "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
     "form-data": "^4.0.0",
-    "lodash": "^4.17.21"
+    "fs-extra": "^10.1.0",
+    "is-valid-path": "^0.1.1",
+    "lodash": "^4.17.21",
+    "nanoid": "3.3.4"
   },
   "devDependencies": {
     "electron": "^17.1.0",

@@ -46,9 +46,9 @@ export const workspacesSlice = createSlice({
       if(workspace) {
         if(workspace.collections && workspace.collections.length) {
           if(!findCollectionInWorkspace(workspace, collectionUid)) {
-            workspace.collections.push([{
+            workspace.collections.push({
               uid: collectionUid
-            }]);
+            });
           }
         } else {
           workspace.collections = [{

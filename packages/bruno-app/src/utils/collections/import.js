@@ -48,10 +48,10 @@ const updateUidsInCollection = (collection) => {
     each(items, (item) => {
       item.uid = uuid();
 
-      each(get(item, 'headers'), (header) => header.uid = uuid());
-      each(get(item, 'params'), (param) => param.uid = uuid());
-      each(get(item, 'body.multipartForm'), (param) => param.uid = uuid());
-      each(get(item, 'body.formUrlEncoded'), (param) => param.uid = uuid());
+      each(get(item, 'request.headers'), (header) => header.uid = uuid());
+      each(get(item, 'request.params'), (param) => param.uid = uuid());
+      each(get(item, 'request.body.multipartForm'), (param) => param.uid = uuid());
+      each(get(item, 'request.body.formUrlEncoded'), (param) => param.uid = uuid());
 
       if(item.items && item.items.length) {
         updateItemUids(item.items);

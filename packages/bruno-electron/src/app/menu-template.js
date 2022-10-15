@@ -5,7 +5,7 @@ const template = [
     label: 'Collection',
     submenu: [
       {
-        label: 'Open Collection',
+        label: 'Open Local Collection',
         click () {
           ipcMain.emit('main:open-collection');
         }

@@ -1,7 +1,8 @@
 const { workspaceSchema } = require("./workspaces");
-const { collectionSchema } = require("./collections");
+const { collectionSchema, itemSchema } = require("./collections");
 
 module.exports = {
+  itemSchema,
   collectionSchema,
   workspaceSchema
 };

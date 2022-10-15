@@ -1,9 +1,11 @@
+import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
 import isString from 'lodash/isString';
 import map from 'lodash/map';
 import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
+import { uuid } from 'utils/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if(!str || !str.length || !isString(str)) {
@@ -77,10 +79,19 @@ export const findItem = (items = [], itemUid) => {
   return find(items, (i) => i.uid === itemUid);
 };
 
-
 export const findCollectionByUid = (collections, collectionUid) => {
   return find(collections, (c) => c.uid === collectionUid);
 };
+
+export const findItemByPathname = (items = [], pathname) => {
+  return find(items, (i) => i.pathname === pathname);
+};
+
+export const findItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return findItemByPathname(flattenedItems, pathname);
+}
 
 export const findItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
@@ -224,6 +235,48 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   return collectionToSave;
 };
 
+export const transformRequestToSaveToFilesystem = (item) => {
+  const _item = item.draft ? item.draft : item;
+  const itemToSave = {
+    uid: _item.uid,
+    type: _item.type,
+    name: _item.name,
+    request: {
+      method: _item.request.method,
+      url: _item.request.url,
+      params: [],
+      headers: [],
+      body: _item.request.body
+    }
+  };
+
+  each(_item.request.params, (param) => {
+    itemToSave.request.params.push({
+      uid: param.uid,
+      name: param.name,
+      value: param.value,
+      description: param.description,
+      enabled: param.enabled
+    });
+  });
+
+  each(_item.request.headers, (header) => {
+    itemToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled,
+    });
+  });
+
+  if(itemToSave.request.body.mode === 'json') {
+    itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
+  }
+
+  return itemToSave;
+};
+
 // todo: optimize this
 export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);
@@ -274,3 +327,14 @@ export const humanizeRequestBodyMode = (mode) => {
 
   return label;
 };
+
+export const refreshUidsInItem = (item) => {
+  item.uid = uuid();
+
+  each(get(item, 'request.headers'), (header) => header.uid = uuid());
+  each(get(item, 'request.params'), (param) => param.uid = uuid());
+  each(get(item, 'request.body.multipartForm'), (param) => param.uid = uuid());
+  each(get(item, 'request.body.formUrlEncoded'), (param) => param.uid = uuid());
+
+  return item;
+}

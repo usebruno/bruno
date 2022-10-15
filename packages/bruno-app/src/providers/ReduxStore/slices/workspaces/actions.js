@@ -134,9 +134,9 @@ export const addCollectionToWorkspace = (workspaceUid, collectionUid) => (dispat
     const workspaceCopy = cloneDeep(workspace);
     if(workspaceCopy.collections && workspace.collections.length) {
       if(!findCollectionInWorkspace(workspace, collectionUid)) {
-        workspaceCopy.collections.push([{
+        workspaceCopy.collections.push({
           uid: collectionUid
-        }]);
+        });
       }
     } else {
       workspaceCopy.collections = [{

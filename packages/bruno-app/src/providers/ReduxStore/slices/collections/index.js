@@ -1,3 +1,4 @@
+import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import concat from 'lodash/concat';
@@ -9,14 +10,16 @@ import splitOnFirst from 'split-on-first';
 import {
   findCollectionByUid,
   findItemInCollection,
+  findItemInCollectionByPathname,
   addDepth,
   collapseCollection,
   deleteItemInCollection,
   isItemARequest
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
+import { getSubdirectoriesFromRoot } from 'utils/common/platform';
 
-// todo: errors should be tracked in each slice and displayed as toasts
+const PATH_SEPARATOR = path.sep;
 
 const initialState = {
   collections: []
@@ -538,6 +541,131 @@ export const collectionsSlice = createSlice({
           item.draft.request.method = action.payload.method;
         }
       }
+    },
+    localCollectionAddFileEvent: (state, action) => {
+      const file = action.payload.file;
+      const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+      if(collection) {
+        const dirname = path.dirname(file.meta.pathname);
+        const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
+        let currentPath = collection.pathname;
+        let currentSubItems = collection.items;
+        for (const directoryName of subDirectories) {
+          let childItem = currentSubItems.find(f => f.type === 'folder' && f.name === directoryName)
+          if (!childItem) {
+            childItem = {
+              uid: uuid(),
+              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              name: directoryName,
+              collapsed: false,
+              type: 'folder',
+              items: []
+            };
+            currentSubItems.push(childItem);
+          }
+    
+          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
+          currentSubItems = childItem.items;
+        }
+
+        if (!currentSubItems.find(f => f.name === file.meta.name)) {
+          // this happens when you rename a file
+          // the add event might get triggered first, before the unlink event
+          // this results in duplicate uids causing react renderer to go mad
+          const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
+          if(currentItem) {
+            currentItem.name = file.data.name;
+            currentItem.type = file.data.type;
+            currentItem.request = file.data.request;
+            currentItem.filename = file.meta.name;
+            currentItem.pathname = file.meta.pathname;
+            currentItem.draft = null;
+          } else {
+            currentSubItems.push({
+              uid: file.data.uid,
+              name: file.data.name,
+              type: file.data.type,
+              request: file.data.request,
+              filename: file.meta.name,
+              pathname: file.meta.pathname,
+              draft: null
+            });
+          }
+        }
+        addDepth(collection.items);
+        // sortItems(collection);
+      }
+    },
+    localCollectionAddDirectoryEvent: (state, action) => {
+      const { dir } = action.payload;
+      const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
+
+      if(collection) {
+        const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
+        let currentPath = collection.pathname;
+        let currentSubItems = collection.items;
+        for (const directoryName of subDirectories) {
+          let childItem = currentSubItems.find(f => f.type === 'folder' && f.name === directoryName);
+          if (!childItem) {
+            childItem = {
+              uid: uuid(),
+              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              name: directoryName,
+              collapsed: false,
+              type: 'folder',
+              items: []
+            };
+            currentSubItems.push(childItem);
+          }
+    
+          currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
+          currentSubItems = childItem.items;
+        }
+        addDepth(collection.items);
+        // sortItems(collection);
+      }
+    },
+    localCollectionChangeFileEvent: (state, action) => {
+      const { file } = action.payload;
+      const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollection(collection, file.data.uid);
+
+        if(item) {
+          item.name = file.data.name;
+          item.type = file.data.type;
+          item.request = file.data.request;
+          item.filename = file.meta.name;
+          item.pathname = file.meta.pathname;
+          item.draft = null;
+        }
+      }
+    },
+    localCollectionUnlinkFileEvent: (state, action) => {
+      const { file } = action.payload;
+      const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollectionByPathname(collection, file.meta.pathname);
+
+        if(item) {
+          deleteItemInCollection(item.uid, collection);
+        }
+      }
+    },
+    localCollectionUnlinkDirectoryEvent: (state, action) => {
+      const { directory } = action.payload;
+      const collection = findCollectionByUid(state.collections, directory.meta.collectionUid);
+
+      if(collection) {
+        const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
+
+        if(item) {
+          deleteItemInCollection(item.uid, collection);
+        }
+      }
     }
   }
 });
@@ -574,7 +702,12 @@ export const {
   deleteMultipartFormParam,
   updateRequestBodyMode,
   updateRequestBody,
-  updateRequestMethod
+  updateRequestMethod,
+  localCollectionAddFileEvent,
+  localCollectionAddDirectoryEvent,
+  localCollectionChangeFileEvent,
+  localCollectionUnlinkFileEvent,
+  localCollectionUnlinkDirectoryEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

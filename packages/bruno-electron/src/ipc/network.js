@@ -3,8 +3,7 @@ const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { forOwn, extend } = require('lodash');
 
-
-const registerIpc = () => {
+const registerNetworkIpc = () => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, request) => {
     try {
@@ -44,4 +43,4 @@ const registerIpc = () => {
   });
 };
 
-module.exports = registerIpc;
+module.exports = registerNetworkIpc;

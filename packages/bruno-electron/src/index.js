@@ -4,8 +4,10 @@ const { format } = require('url');
 const { BrowserWindow, app, Menu } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
-const menuTemplate = require('./menu-template');
-const registerIpc = require('./ipc');
+const menuTemplate = require('./app/menu-template');
+const registerNetworkIpc = require('./ipc/network');
+const registerLocalCollectionsIpc = require('./ipc/local-collection');
+const Watcher = require('./app/watcher');
 
 setContentSecurityPolicy(`
 	default-src * 'unsafe-inline' 'unsafe-eval';
@@ -20,6 +22,7 @@ const menu = Menu.buildFromTemplate(menuTemplate);
 Menu.setApplicationMenu(menu);
 
 let mainWindow;
+let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -42,9 +45,11 @@ app.on('ready', async () => {
       });
 
   mainWindow.loadURL(url);
+  watcher = new Watcher();
 
   // register all ipc handlers
-  registerIpc(mainWindow);
+  registerNetworkIpc(mainWindow, watcher);
+  registerLocalCollectionsIpc(mainWindow, watcher);
 });
 
 // Quit the app once all windows are closed

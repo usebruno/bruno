@@ -1,5 +1,7 @@
+import path from 'path';
 import axios from 'axios';
 import each from 'lodash/each';
+import trim from 'lodash/trim';
 import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
@@ -8,11 +10,13 @@ import {
   findCollectionByUid,
   recursivelyGetAllItemUids,
   transformCollectionToSaveToIdb,
+  transformRequestToSaveToFilesystem,
   deleteItemInCollection,
   findParentItemInCollection,
-  isItemAFolder
+  isItemAFolder,
+  refreshUidsInItem
 } from 'utils/collections';
-import { collectionSchema } from '@usebruno/schema';
+import { collectionSchema, itemSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
 import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
 import { getCollectionsFromIdb, saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
@@ -35,6 +39,9 @@ import {
 
 import { closeTabs, addTab } from 'providers/ReduxStore/slices/tabs';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { isLocalCollection, resolveRequestFilename } from 'utils/common/platform';
+
+const PATH_SEPARATOR = path.sep;
 
 export const loadCollectionsFromIdb = () => (dispatch) => {
   getCollectionsFromIdb(window.__idb)
@@ -42,6 +49,28 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
       collections: collections
     })))
     .catch(() => toast.error("Error occured while loading collections from IndexedDB"));
+};
+
+export const openLocalCollectionEvent = (uid, pathname) => (dispatch, getState) => {
+  const localCollection = {
+    uid: uid,
+    name: path.basename(pathname),
+    pathname: pathname,
+    items: []
+  };
+
+  const state = getState();
+  const { activeWorkspaceUid } = state.workspaces;
+
+  return new Promise((resolve, reject) => {
+    collectionSchema
+      .validate(localCollection)
+      .then(() => dispatch(_createCollection(localCollection)))
+      .then(waitForNextTick)
+      .then(() => dispatch(addCollectionToWorkspace(activeWorkspaceUid, localCollection.uid)))
+      .then(resolve)
+      .catch(reject);
+  });
 };
 
 export const createCollection = (collectionName) => (dispatch, getState) => {
@@ -148,6 +177,24 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     if(!collection) {
       return reject(new Error('Collection not found'));
     }
+
+    if(isLocalCollection(collection)) {
+      const item = findItemInCollection(collection, itemUid);
+      if(item) {
+        const itemToSave = transformRequestToSaveToFilesystem(item);
+        const { ipcRenderer } = window;
+
+        itemSchema
+          .validate(itemToSave)
+          .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
+          .then(resolve)
+          .catch(reject);
+      } else {
+        reject(new Error("Not able to locate item"));
+      }
+      return;
+    }
+
     const collectionCopy = cloneDeep(collection);
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
@@ -208,6 +255,43 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
     if(!collection) {
       return reject(new Error('Collection not found'));
     }
+
+    if(isLocalCollection(collection)) {
+      if(!itemUid) {
+        const folderWithSameNameExists = find(collection.items, (i) => i.type === 'folder' && trim(i.name) === trim(folderName));
+        if(!folderWithSameNameExists) {
+          const fullName = `${collection.pathname}${PATH_SEPARATOR}${folderName}`;
+          const { ipcRenderer } = window;
+  
+          ipcRenderer
+            .invoke('renderer:new-folder', fullName)
+            .then(() => resolve())
+            .catch((error) => reject(error));
+        } else {
+          return reject(new Error("folder with same name already exists"));
+        }
+      } else {
+        const currentItem = findItemInCollection(collection, itemUid);
+        if(currentItem) {
+          const folderWithSameNameExists = find(currentItem.items, (i) => i.type === 'folder' && trim(i.name) === trim(folderName));
+          if(!folderWithSameNameExists) {
+            const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${folderName}`;
+            const { ipcRenderer } = window;
+  
+            ipcRenderer
+              .invoke('renderer:new-folder', fullName)
+              .then(() => resolve())
+              .catch((error) => reject(error));
+          } else {
+            return reject(new Error("folder with same name already exists"));
+          }
+        } else {
+          return reject(new Error("unable to find parent folder"));
+        }
+      }
+      return;
+    }
+
     const collectionCopy = cloneDeep(collection);
     const item = {
       uid: uuid(),
@@ -250,8 +334,32 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       return reject(new Error('Collection not found'));
     }
 
+    const item = findItemInCollection(collection, itemUid);
+    if(!item) {
+      return reject(new Error("Unable to locate item"));
+    }
+
+    if(isLocalCollection(collection)) {
+      const dirname = path.dirname(item.pathname);
+
+      let newPathname = '';
+      if(item.type === 'folder') {
+        newPathname = `${dirname}${PATH_SEPARATOR}${trim(newName)}`;
+      } else {
+        const filename = resolveRequestFilename(newName);
+        newPathname = `${dirname}${PATH_SEPARATOR}${filename}`;
+      }
+      const { ipcRenderer } = window;
+  
+      ipcRenderer
+        .invoke('renderer:rename-item', item.pathname, newPathname, newName)
+        .then(resolve)
+        .catch(reject);
+
+      return;
+    }
+
     const collectionCopy = cloneDeep(collection);
-    const item = findItemInCollection(collectionCopy, itemUid);
     if(item) {
       item.name = newName;
     }
@@ -280,17 +388,55 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
 
   return new Promise((resolve, reject) => {
     if(!collection) {
-      return reject(new Error('Collection not found'));
+      throw new Error('Collection not found');
     }
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
     if(!item) {
-      return;
+      throw new Error('Unable to locate item');
     }
 
     if(isItemAFolder(item)) {
       throw new Error('Cloning folders is not supported yet');
     }
+
+    if(isLocalCollection(collection)) {
+      const parentItem = findParentItemInCollection(collectionCopy, itemUid);
+      const filename = resolveRequestFilename(newName);
+      const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
+      itemToSave.name = trim(newName);
+      if(!parentItem) {
+        const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+        if(!reqWithSameNameExists) {
+          const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
+          const { ipcRenderer } = window;
+  
+          itemSchema
+            .validate(itemToSave)
+            .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+            .then(resolve)
+            .catch(reject);
+        } else {
+          return reject(new Error(`${requestName} already exists in collection`));
+        }
+      } else {
+        const reqWithSameNameExists = find(parentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+        if(!reqWithSameNameExists) {
+          const dirname = path.dirname(item.pathname);
+          const fullName = `${dirname}${PATH_SEPARATOR}${filename}`;
+          const { ipcRenderer } = window;
+
+          itemSchema
+            .validate(itemToSave)
+            .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+            .then(resolve)
+            .catch(reject);
+        } else {
+          return reject(new Error(`${requestName} already exists in the folder`));
+        }
+      }
+      return;
+    };
 
     // todo: clone query params
     const clonedItem = cloneDeep(item);
@@ -328,23 +474,38 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
-    if(collection) {
-      const collectionCopy = cloneDeep(collection);
-      deleteItemInCollection(itemUid, collectionCopy);
-      const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-      collectionSchema
-        .validate(collectionToSave)
-        .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
-        .then(() => {
-          dispatch(_deleteItem({
-            itemUid: itemUid,
-            collectionUid: collectionUid
-          }));
-        })
-        .then(() => resolve())
-        .catch((error) => reject(error));
+    if(!collection) {
+      return reject(new Error('Collection not found'));
     }
+
+    if(isLocalCollection(collection)) {
+      const item = findItemInCollection(collection, itemUid);
+      if(item) {
+        const { ipcRenderer } = window;
+  
+        ipcRenderer
+          .invoke('renderer:delete-item', item.pathname, item.type)
+          .then(() => resolve())
+          .catch((error) => reject(error));
+      }
+      return;
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    deleteItemInCollection(itemUid, collectionCopy);
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => {
+        dispatch(_deleteItem({
+          itemUid: itemUid,
+          collectionUid: collectionUid
+        }));
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
   });
 };
 
@@ -384,6 +545,42 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         }
       }
     };
+
+    if(isLocalCollection(collection)) {
+      const filename = resolveRequestFilename(requestName);
+      if(!itemUid) {
+        const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+        if(!reqWithSameNameExists) {
+          const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
+          const { ipcRenderer } = window;
+  
+          ipcRenderer
+            .invoke('renderer:new-request', fullName, item)
+            .then(resolve)
+            .catch(reject);
+        } else {
+          return reject(new Error(`${requestName} already exists in collection`));
+        }
+      } else {
+        const currentItem = findItemInCollection(collection, itemUid);
+        if(currentItem) {
+          const reqWithSameNameExists = find(currentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+          if(!reqWithSameNameExists) {
+            const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${filename}`;
+            const { ipcRenderer } = window;
+  
+            ipcRenderer
+              .invoke('renderer:new-request', fullName, item)
+              .then(resolve)
+              .catch(reject);
+          } else {
+            return reject(new Error(`${requestName} already exists in the folder`));
+          }
+        }
+      }
+      return;
+    };
+
     if(!itemUid) {
       collectionCopy.items.push(item);
     } else {

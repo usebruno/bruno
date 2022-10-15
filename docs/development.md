@@ -5,6 +5,9 @@ npm i
 
 # run next app
 npm run dev --workspace=packages/bruno-app
+
+# run electron app
+npm run dev --workspace=packages/bruno-electron
 ```
 
 # testing

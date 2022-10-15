@@ -43,7 +43,9 @@ const itemSchema = Yup.object({
       is: (type) => ['http-request', 'graphql-request'].includes(type),
       then: (schema) => schema.required('request is required when item-type is request')
     }),
-  items: Yup.lazy(() => Yup.array().of(itemSchema))
+  items: Yup.lazy(() => Yup.array().of(itemSchema)),
+  filename: Yup.string().max(1024, 'filename cannot be more than 1024 characters').nullable(),
+  pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
 }).noUnknown(true).strict();
 
 const collectionSchema = Yup.object({
@@ -52,7 +54,8 @@ const collectionSchema = Yup.object({
     .min(1, 'name must be atleast 1 characters')
     .max(50, 'name must be 100 characters or less')
     .required('name is required'),
-  items:  Yup.array().of(itemSchema)
+  items:  Yup.array().of(itemSchema),
+  pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
 }).noUnknown(true).strict();
 
 module.exports = {
