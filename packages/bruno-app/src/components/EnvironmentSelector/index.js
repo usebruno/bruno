@@ -1,10 +1,12 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useState } from 'react';
 import Dropdown from 'components/Dropdown';
 import { IconAdjustmentsHorizontal, IconCaretDown } from '@tabler/icons';
+import EnvironmentSettings from "./EnvironmentSettings";
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentSelector = () => {
   const dropdownTippyRef = useRef();
+  const [openSettingsModal, setOpenSettingsModal] = useState(false);
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -36,9 +38,7 @@ const EnvironmentSelector = () => {
           }}>
             <span>No Environment</span>
           </div>
-          <div className="dropdown-item" style={{borderTop: 'solid 1px #e7e7e7'}} onClick={() => {
-            dropdownTippyRef.current.hide();
-          }}>
+          <div className="dropdown-item" style={{borderTop: 'solid 1px #e7e7e7'}} onClick={() => setOpenSettingsModal(true)}>
             <div className="pr-2 text-gray-600">
               <IconAdjustmentsHorizontal size={18} strokeWidth={1.5}/>
             </div>
@@ -46,6 +46,7 @@ const EnvironmentSelector = () => {
           </div>
         </Dropdown>
       </div>
+      {openSettingsModal && <EnvironmentSettings onClose={() => setOpenSettingsModal(false)}/>}
     </StyledWrapper>
   );
 };

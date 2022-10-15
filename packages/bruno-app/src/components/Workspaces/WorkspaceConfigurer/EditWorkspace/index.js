@@ -47,7 +47,7 @@ const EditWorkspace = ({onClose, workspace}) => {
       >
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
-            <label htmlFor="name" className="block font-semibold">Workpsace Name</label>
+            <label htmlFor="name" className="block font-semibold">Workspace Name</label>
             <input
               id="workspace-name" type="text" name="name"
               ref={inputRef}

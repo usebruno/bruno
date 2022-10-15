@@ -2,17 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
 import { useFormik } from 'formik';
-import { addWorkspace } from 'providers/ReduxStore/slices/workspaces';
+// import { rename } from 'providers/ReduxStore/slices/environments';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 
-const AddWorkspace = ({onClose}) => {
-  const dispatch = useDispatch();
+const RenameEnvironment = ({onClose, environment}) => {
+  // const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,
     initialValues: {
-      name: ""
+      name: environment.name
     },
     validationSchema: Yup.object({
       name: Yup.string()
@@ -21,7 +21,7 @@ const AddWorkspace = ({onClose}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(addWorkspace({name: values.name}));
+      // dispatch(rename({name: values.name, uid: environment.uid}));
       onClose();
     }
   });
@@ -40,16 +40,16 @@ const AddWorkspace = ({onClose}) => {
     <Portal>
       <Modal
         size="sm"
-        title={"Add Workspace"}
-        confirmText='Add'
+        title={"Rename Environment"}
+        confirmText='Rename'
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
-            <label htmlFor="name" className="block font-semibold">Workspace Name</label>
+            <label htmlFor="name" className="block font-semibold">Environment Name</label>
             <input
-              id="workspace-name" type="text" name="name"
+              id="environment-name" type="text" name="name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
@@ -66,5 +66,5 @@ const AddWorkspace = ({onClose}) => {
   );
 }
 
-export default AddWorkspace;
+export default RenameEnvironment;
 
