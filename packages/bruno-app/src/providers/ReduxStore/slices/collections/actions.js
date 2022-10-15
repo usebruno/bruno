@@ -613,3 +613,18 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       .catch(reject);
   });
 };
+
+export const removeLocalCollection = (collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('renderer:remove-collection', collection.pathname)
+      .then(resolve)
+      .catch(reject);
+  });
+};

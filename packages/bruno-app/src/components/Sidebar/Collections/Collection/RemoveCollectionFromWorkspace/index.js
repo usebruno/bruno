@@ -4,6 +4,7 @@ import Modal from 'components/Modal';
 import { useSelector, useDispatch } from 'react-redux';
 import { recursivelyGetAllItemUids } from 'utils/collections';
 import { removeCollectionFromWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { removeLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const RemoveCollectionFromWorkspace = ({onClose, collection}) => {
@@ -16,8 +17,9 @@ const RemoveCollectionFromWorkspace = ({onClose, collection}) => {
         dispatch(closeTabs({
           tabUids: recursivelyGetAllItemUids(collection.items)
         }));
-        toast.success("Collection removed from workspace");
       })
+      .then(() => dispatch(removeLocalCollection(collection.uid)))
+      .then(() => toast.success("Collection removed from workspace"))
       .catch((err) => console.log(err) && toast.error("An error occured while removing the collection"));
   };
 

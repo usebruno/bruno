@@ -153,6 +153,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath) => {
     if(watcher && mainWindow) {
+      console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
     }
   });

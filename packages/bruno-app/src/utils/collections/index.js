@@ -338,3 +338,7 @@ export const refreshUidsInItem = (item) => {
 
   return item;
 }
+
+export const isLocalCollection = (collection) => {
+  return collection.pathname ? true : false;
+};

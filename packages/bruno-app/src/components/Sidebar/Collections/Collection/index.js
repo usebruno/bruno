@@ -11,7 +11,7 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollectionFromWorkspace from './RemoveCollectionFromWorkspace';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
+import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb, isLocalCollection } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
@@ -67,6 +67,8 @@ const Collection = ({collection, searchText}) => {
     exportCollection(transformCollectionToSaveToIdb(collectionCopy));
   };
 
+  const isLocal = isLocalCollection(collection);
+
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)}/>}
@@ -115,12 +117,14 @@ const Collection = ({collection, searchText}) => {
             }}>
               Remove from Workspace
             </div>
-            <div className="dropdown-item delete-collection" onClick={(e) => {
-              menuDropdownTippyRef.current.hide();
-              setShowDeleteCollectionModal(true);
-            }}>
-              Delete
-            </div>
+            {!isLocal ? (
+              <div className="dropdown-item delete-collection" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowDeleteCollectionModal(true);
+              }}>
+                Delete
+              </div>
+            ) : null}
           </Dropdown>
         </div>
       </div>
