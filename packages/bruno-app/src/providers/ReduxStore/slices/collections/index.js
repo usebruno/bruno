@@ -594,7 +594,6 @@ export const collectionsSlice = createSlice({
           }
         }
         addDepth(collection.items);
-        // sortItems(collection);
       }
     },
     localCollectionAddDirectoryEvent: (state, action) => {
@@ -623,7 +622,6 @@ export const collectionsSlice = createSlice({
           currentSubItems = childItem.items;
         }
         addDepth(collection.items);
-        // sortItems(collection);
       }
     },
     localCollectionChangeFileEvent: (state, action) => {
