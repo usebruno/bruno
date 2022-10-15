@@ -155,6 +155,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     if(watcher && mainWindow) {
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
+      lastOpenedCollections.remove(collectionPath);
     }
   });
 
