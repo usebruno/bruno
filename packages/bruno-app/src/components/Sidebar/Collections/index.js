@@ -4,6 +4,7 @@ import find from 'lodash/find';
 import filter from 'lodash/filter';
 import Collection from './Collection';
 import CreateOrAddCollection from './CreateOrAddCollection';
+import { findCollectionInWorkspace } from 'utils/workspaces';
 
 const Collections = ({searchText}) => {
   const { collections } = useSelector((state) => state.collections);
@@ -14,8 +15,7 @@ const Collections = ({searchText}) => {
     return null;
   }
 
-  const { collectionUids } = activeWorkspace;
-  const collectionToDisplay = filter(collections, (c) => collectionUids.includes(c.uid));
+  const collectionToDisplay = filter(collections, (c) => findCollectionInWorkspace(activeWorkspace, c.uid));
 
   if(!collectionToDisplay || !collectionToDisplay.length) {
     return <CreateOrAddCollection />;

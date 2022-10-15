@@ -3,6 +3,7 @@ import filter from 'lodash/filter';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import { workspaceSchema } from '@usebruno/schema';
+import { findCollectionInWorkspace } from 'utils/workspaces';
 import { getWorkspacesFromIdb, saveWorkspaceToIdb, deleteWorkspaceInIdb } from 'utils/idb/workspaces';
 import {
   loadWorkspaces,
@@ -18,7 +19,7 @@ const seedWorkpace = () => {
   const workspace = {
     uid: uid,
     name: 'My workspace',
-    collectionUids: []
+    collections: []
   };
 
   return new Promise((resolve, reject) => {
@@ -52,7 +53,7 @@ export const addWorkspace = (workspaceName) => (dispatch) => {
   const newWorkspace = {
     uid: uuid(),
     name: workspaceName,
-    collectionUids: []
+    collections: []
   };
 
   return new Promise((resolve, reject) => {
@@ -131,12 +132,16 @@ export const addCollectionToWorkspace = (workspaceUid, collectionUid) => (dispat
     }
 
     const workspaceCopy = cloneDeep(workspace);
-    if(workspaceCopy.collectionUids && workspace.collectionUids.length) {
-      if(!workspaceCopy.collectionUids.includes(collectionUid)) {
-        workspaceCopy.collectionUids.push(collectionUid);
+    if(workspaceCopy.collections && workspace.collections.length) {
+      if(!findCollectionInWorkspace(workspace, collectionUid)) {
+        workspaceCopy.collections.push([{
+          uid: collectionUid
+        }]);
       }
     } else {
-      workspaceCopy.collectionUids = [collectionUid];
+      workspaceCopy.collections = [{
+        uid: collectionUid
+      }];
     }
 
     workspaceSchema
@@ -167,8 +172,8 @@ export const removeCollectionFromWorkspace = (workspaceUid, collectionUid) => (d
     }
 
     const workspaceCopy = cloneDeep(workspace);
-    if(workspaceCopy.collectionUids && workspace.collectionUids.length) {
-      workspaceCopy.collectionUids = filter(workspaceCopy.collectionUids, (uid) => uid !== collectionUid);
+    if(workspaceCopy.collections && workspace.collections.length) {
+      workspaceCopy.collections = filter(workspaceCopy.collections, (c) => c.uid !== collectionUid);
     }
 
     saveWorkspaceToIdb(window.__idb, workspaceCopy)
@@ -184,5 +189,5 @@ export const removeCollectionFromWorkspace = (workspaceUid, collectionUid) => (d
 // TODO
 // Workspaces can have collection uids that no longer exist
 // or the user may have the collections access revoked (in teams)
-// This action will have to be called at the beginning to purge any zombi collectionUids in the workspaces
-export const removeZombieCollectionFromAllWorkspaces = (collectionUid) => (dispatch, getState) => {};
+// This action will have to be called at the beginning to purge any zombi collection references in the workspaces
+export const removeZombieCollectionFromAllWorkspaces = (workspaceUid) => (dispatch, getState) => {};

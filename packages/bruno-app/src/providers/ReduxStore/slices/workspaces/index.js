@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
+import { findCollectionInWorkspace } from 'utils/workspaces';
 
 const initialState = {
   workspaces: [],
@@ -43,12 +44,16 @@ export const workspacesSlice = createSlice({
       const workspace = find(state.workspaces, (w) => w.uid === workspaceUid);
 
       if(workspace) {
-        if(workspace.collectionUids && workspace.collectionUids.length) {
-          if(!workspace.collectionUids.includes(collectionUid)) {
-            workspace.collectionUids.push(collectionUid);
+        if(workspace.collections && workspace.collections.length) {
+          if(!findCollectionInWorkspace(workspace, collectionUid)) {
+            workspace.collections.push([{
+              uid: collectionUid
+            }]);
           }
         } else {
-          workspace.collectionUids = [collectionUid];
+          workspace.collections = [{
+            uid: collectionUid
+          }];
         }
       }
     },
@@ -56,8 +61,8 @@ export const workspacesSlice = createSlice({
       const { workspaceUid, collectionUid } = action.payload;
       const workspace = find(state.workspaces, (w) => w.uid === workspaceUid);
 
-      if(workspace && workspace.collectionUids && workspace.collectionUids.length) {
-        workspace.collectionUids = filter(workspace.collectionUids, (uid) => uid !== collectionUid);
+      if(workspace && workspace.collections && workspace.collections.length) {
+        workspace.collections = filter(workspace.collections, (c) => c.uid !== collectionUid);
       }
     }
   }

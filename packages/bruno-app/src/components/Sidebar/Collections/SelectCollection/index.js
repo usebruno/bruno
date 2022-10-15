@@ -16,11 +16,13 @@ const SelectCollection = ({onClose, onSelect, title}) => {
         handleCancel={onClose}
       >
         <ul className="mb-2" >
-          {collections && collections.length && collections.map((c) => (
+          {(collections && collections.length) ? collections.map((c) => (
             <div className="collection" key={c.uid} onClick={() => onSelect(c.uid)}>
               <IconFiles size={18} strokeWidth={1.5}/> <span className="ml-2">{c.name}</span>
             </div>
-          ))}
+          )) : (
+            <div>No collections found</div>
+          )}
         </ul>
       </Modal>
     </StyledWrapper>

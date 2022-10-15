@@ -83,4 +83,29 @@ describe('Workspace Schema Validation', () => {
       )
     ]);
   });
+
+  it('workspace schema must validate successfully with collections', async () => {
+    const workspace = {
+      uid: uuid(),
+      name: 'My workspace' ,
+      collections: [{uid: uuid()}]
+    };
+
+    const isValid = await workspaceSchema.validate(workspace);
+    expect(isValid).toBeTruthy();
+  });
+
+  it('workspace schema throw an error when collections has an unknown property', async () => {
+    const workspace = {
+      uid: uuid(),
+      name: 'My workspace' ,
+      collections: [{uid: uuid(), foo: 'bar'}]
+    };
+
+    return Promise.all([
+      expect(workspaceSchema.validate(workspace)).rejects.toEqual(
+        validationErrorWithMessages('collections[0] field has unspecified keys: foo')
+      )
+    ]);
+  });
 });
