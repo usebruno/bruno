@@ -1,6 +1,7 @@
 import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
+import map from 'lodash/map';
 import concat from 'lodash/concat';
 import filter from 'lodash/filter';
 import each from 'lodash/each';
@@ -30,21 +31,33 @@ export const collectionsSlice = createSlice({
   initialState,
   reducers: {
     loadCollections: (state, action) => {
+      const collectionUids = map(state.collections, (c) => c.uid);
       each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
-      each(action.payload.collections, (c) => state.collections.push(c));
+      each(action.payload.collections, (c) => {
+        if(!collectionUids.includes(c.uid)) {
+          state.collections.push(c);
+          collectionUids.push(c.uid);
+        }
+      });
     },
     collectionImported: (state, action) => {
+      const collectionUids = map(state.collections, (c) => c.uid);
       const { collection } = action.payload;
       collapseCollection(collection);
       addDepth(collection.items);
-      state.collections.push(collection);
+      if(!collectionUids.includes(c.uid)) {
+        state.collections.push(collection);
+      }
     },
     createCollection: (state, action) => {
+      const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
       collapseCollection(collection);
       addDepth(collection.items);
-      state.collections.push(collection);
+      if(!collectionUids.includes(c.uid)) {
+        state.collections.push(collection);
+      }
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
