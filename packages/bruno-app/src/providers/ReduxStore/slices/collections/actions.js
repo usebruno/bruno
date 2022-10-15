@@ -18,9 +18,8 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import cancelTokens, { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
 import { getCollectionsFromIdb, saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
-import { sendNetworkRequest } from 'utils/network';
+import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
   loadCollections,
@@ -208,17 +207,15 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
 };
 
 export const sendRequest = (item, collectionUid) => (dispatch) => {
-  const axiosRequest = axios.CancelToken.source();
   const cancelTokenUid = uuid();
 
-  saveCancelToken(cancelTokenUid, axiosRequest);
   dispatch(requestSent({
     itemUid: item.uid,
     collectionUid: collectionUid,
     cancelTokenUid: cancelTokenUid
   }));
 
-  sendNetworkRequest(item, {cancelToken: axiosRequest.token})
+  sendNetworkRequest(item, {cancelTokenUid: cancelTokenUid})
     .then((response) => {
       if(response && response.status !== -1) {
         return dispatch(responseReceived({
@@ -228,18 +225,18 @@ export const sendRequest = (item, collectionUid) => (dispatch) => {
         }));
       }
     })
-    .then(() => deleteCancelToken(cancelTokenUid))
     .catch((err) => console.log(err));
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {
-  if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
-    cancelTokens[cancelTokenUid].cancel();
-    dispatch(requestCancelled({
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }))
-  }
+  cancelNetworkRequest(cancelTokenUid)
+    .then(() => {
+      dispatch(requestCancelled({
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      }))
+    })
+    .catch((err) => console.log(err));
 };
 
 export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {

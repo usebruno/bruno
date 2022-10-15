@@ -3,8 +3,10 @@ import filter from 'lodash/filter';
 import qs from 'qs';
 import { rawRequest, gql } from 'graphql';
 import { sendHttpRequestInBrowser } from './browser';
+import { isElectron } from 'utils/common/platform';
+import cancelTokens, { deleteCancelToken } from 'utils/network/cancelTokens';
 
-const sendNetworkRequest = async (item, options) => {
+export const sendNetworkRequest = async (item, options) => {
   return new Promise((resolve, reject) => {
     if(item.type === 'http-request') {
       const timeStart = Date.now();
@@ -41,10 +43,6 @@ const sendHttpRequest = async (request, options) => {
       url: request.url,
       headers: headers
     };
-
-    if(options && options.cancelToken) {
-      axiosRequest.cancelToken = options.cancelToken;
-    }
 
     if(request.body.mode === 'json') {
       axiosRequest.headers['content-type'] = 'application/json';
@@ -84,15 +82,16 @@ const sendHttpRequest = async (request, options) => {
     console.log('>>> Sending Request');
     console.log(axiosRequest);
 
-    // Todo: Choose based on platform (web/desktop)
-    sendHttpRequestInBrowser(axiosRequest)
+    if(isElectron()) {
+      ipcRenderer
+      .invoke('send-http-request', axiosRequest, options)
       .then(resolve)
       .catch(reject);
-
-    // ipcRenderer
-    //   .invoke('send-http', axiosRequest)
-    //   .then(resolve)
-    //   .catch(reject);
+    } else {
+      sendHttpRequestInBrowser(axiosRequest, options)
+      .then(resolve)
+      .catch(reject);
+    }
   });
 };
 
@@ -109,6 +108,23 @@ const sendGraphqlRequest = async (request,) => {
   }
 };
 
-export {
-  sendNetworkRequest
+export const cancelNetworkRequest = async (cancelTokenUid) => {
+  if(isElectron()) {
+    return new Promise((resolve, reject) => {
+      ipcRenderer
+        .invoke('cancel-http-request', cancelTokenUid)
+        .then(resolve)
+        .catch(reject);
+    });
+  }
+
+  return new Promise((resolve, reject) => {
+    if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
+      cancelTokens[cancelTokenUid].cancel();
+      deleteCancelToken(cancelTokenUid);
+      resolve();
+    } else {
+      reject(new Error("cancel token not found"));
+    }
+  });
 };

@@ -2,10 +2,11 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { forOwn, extend } = require('lodash');
+const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../utils/cancel-token');
 
 const registerNetworkIpc = () => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, request) => {
+  ipcMain.handle('send-http-request', async (event, request, options) => {
     try {
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -18,7 +19,17 @@ const registerNetworkIpc = () => {
         request.data = form;
       }
 
+      if(options && options.cancelTokenUid) {
+        const cancelToken = axios.CancelToken.source();
+        request.cancelToken = cancelToken.token;
+        saveCancelToken(options.cancelTokenUid, cancelToken);
+      }
+
       const result = await axios(request);
+
+      if(options && options.cancelTokenUid) {
+        deleteCancelToken(options.cancelTokenUid);
+      }
 
       return {
         status: result.status,
@@ -40,6 +51,18 @@ const registerNetworkIpc = () => {
         data: null
       };
     }
+  });
+
+  ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
+    return new Promise((resolve, reject) => {
+      if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
+        cancelTokens[cancelTokenUid].cancel();
+        deleteCancelToken(cancelTokenUid);
+        resolve();
+      } else {
+        reject(new Error("cancel token not found"));
+      }
+    });
   });
 };
 

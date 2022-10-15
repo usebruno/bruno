@@ -1,21 +1,19 @@
 const axios = require('axios');
-const FormData = require('form-data');
-const { forOwn, extend } = require('lodash');
+import { saveCancelToken, deleteCancelToken } from 'utils/network/cancelTokens';
 
-export const sendHttpRequestInBrowser = async (request) => {
+export const sendHttpRequestInBrowser = async (request, options) => {
   try {
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      const form = new FormData();
-      forOwn(request.data, (value, key) => {
-        form.append(key, value);
-      });
-      extend(request.headers, form.getHeaders());
-      request.data = form;
+    if(options && options.cancelTokenUid) {
+      const cancelToken = axios.CancelToken.source();
+      request.cancelToken = cancelToken.token;
+      saveCancelToken(options.cancelTokenUid, cancelToken);
     }
 
     const result = await axios(request);
+
+    if(options && options.cancelTokenUid) {
+      deleteCancelToken(options.cancelTokenUid);
+    }
 
     return {
       status: result.status,
