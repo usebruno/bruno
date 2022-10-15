@@ -60,6 +60,8 @@ const useLocalCollectionTreeSync = () => {
       toast.success('Collection is already opened under local collections');
     };
 
+    ipcRenderer.invoke('renderer:ready');
+
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
     const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);

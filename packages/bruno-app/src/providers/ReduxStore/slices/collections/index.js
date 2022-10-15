@@ -32,7 +32,7 @@ export const collectionsSlice = createSlice({
     loadCollections: (state, action) => {
       each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
-      state.collections = action.payload.collections;
+      each(action.payload.collections, (c) => state.collections.push(c));
     },
     collectionImported: (state, action) => {
       const { collection } = action.payload;
@@ -41,7 +41,10 @@ export const collectionsSlice = createSlice({
       state.collections.push(collection);
     },
     createCollection: (state, action) => {
-      state.collections.push(action.payload);
+      const collection = action.payload;
+      collapseCollection(collection);
+      addDepth(collection.items);
+      state.collections.push(collection);
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);

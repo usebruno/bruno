@@ -13,7 +13,7 @@ const {
 const { uuid, stringifyJson, parseJson } = require('../utils/common');
 const { openCollection } = require('../app/collections');
 
-const registerRendererEventHandlers = (mainWindow, watcher) => {
+const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
@@ -47,7 +47,7 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
 
       const uid = uuid();
       mainWindow.webContents.send('main:collection-opened', dirPath, uid);
-      watcher.addWatcher(mainWindow, dirPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
 
       return;
     } catch (error) {
@@ -157,19 +157,40 @@ const registerRendererEventHandlers = (mainWindow, watcher) => {
       watcher.removeWatcher(collectionPath, mainWindow);
     }
   });
+
+  ipcMain.handle('renderer:ready', async (event) => {
+    // reload last opened collections
+    const lastOpened = lastOpenedCollections.getAll();
+
+    if(lastOpened && lastOpened.length) {
+      for(let collectionPath of lastOpened) {
+        if(isDirectory(collectionPath)) {
+          const uid = uuid();
+          mainWindow.webContents.send('main:collection-opened', collectionPath, uid);
+          ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
+        }
+      }
+    }
+  });
 };
 
-const registerMainEventHandlers = (mainWindow, watcher) => {
+const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.on('main:open-collection', () => {
     if(watcher && mainWindow) {
       openCollection(mainWindow, watcher);
     }
   });
+
+  ipcMain.on('main:collection-opened', (win, pathname, uid) => {
+    watcher.addWatcher(win, pathname, uid);
+    lastOpenedCollections.add(pathname);
+  });
+
 }
 
-const registerLocalCollectionsIpc = (mainWindow, watcher) => {
-  registerRendererEventHandlers(mainWindow, watcher);
-  registerMainEventHandlers(mainWindow, watcher);
+const registerLocalCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
+  registerRendererEventHandlers(mainWindow, watcher, lastOpenedCollections);
+  registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
 }
 
 module.exports = registerLocalCollectionsIpc;

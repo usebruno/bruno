@@ -1,5 +1,5 @@
 const { uuid } = require('../utils/common');
-const { dialog } = require('electron');
+const { dialog, ipcMain } = require('electron');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
 
 const openCollection = async (win, watcher) => {
@@ -13,7 +13,7 @@ const openCollection = async (win, watcher) => {
       if(!watcher.hasWatcher(resolvedPath)) {
         const uid = uuid();
         win.webContents.send('main:collection-opened', resolvedPath, uid);
-        watcher.addWatcher(win, resolvedPath, uid);
+        ipcMain.emit('main:collection-opened', win, resolvedPath, uid);
       } else {
         win.webContents.send('main:collection-already-opened', resolvedPath);
       }
