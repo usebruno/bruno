@@ -35,6 +35,8 @@ export default function Main() {
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
 
+  console.log(useSelector((state) => state.collections.collections));
+
   const className = classnames({
     'is-dragging': isDragging
   });

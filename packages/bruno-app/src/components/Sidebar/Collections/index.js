@@ -5,6 +5,7 @@ import filter from 'lodash/filter';
 import Collection from './Collection';
 import CreateOrAddCollection from './CreateOrAddCollection';
 import { findCollectionInWorkspace } from 'utils/workspaces';
+import { isLocalCollection } from 'utils/collections';
 
 const Collections = ({searchText}) => {
   const { collections } = useSelector((state) => state.collections);
@@ -15,7 +16,7 @@ const Collections = ({searchText}) => {
     return null;
   }
 
-  const collectionToDisplay = filter(collections, (c) => findCollectionInWorkspace(activeWorkspace, c.uid));
+  const collectionToDisplay = filter(collections, (c) => findCollectionInWorkspace(activeWorkspace, c.uid) && !isLocalCollection(c));
 
   if(!collectionToDisplay || !collectionToDisplay.length) {
     return <CreateOrAddCollection />;

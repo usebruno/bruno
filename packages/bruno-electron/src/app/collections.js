@@ -14,6 +14,8 @@ const openCollection = async (win, watcher) => {
         const uid = uuid();
         win.webContents.send('main:collection-opened', resolvedPath, uid);
         watcher.addWatcher(win, resolvedPath, uid);
+      } else {
+        win.webContents.send('main:collection-already-opened', resolvedPath);
       }
     } else {
       console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);

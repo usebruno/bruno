@@ -1,6 +1,6 @@
 import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import Dropdown from 'components/Dropdown';
-import { IconAdjustmentsHorizontal, IconCaretDown, IconBox } from '@tabler/icons';
+import { IconCaretDown, IconBox, IconSwitch3, IconSettings, IconFolders } from '@tabler/icons';
 import WorkspaceConfigurer from "../WorkspaceConfigurer";
 import { useDispatch, useSelector } from 'react-redux';
 import { selectWorkspace } from 'providers/ReduxStore/slices/workspaces';
@@ -42,21 +42,25 @@ const WorkspaceSelector = () => {
 
   return (
     <StyledWrapper>
-      <div className="items-center cursor-pointer">
+      <div className="items-center cursor-pointer relative">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
-          {workspaces && workspaces.length && workspaces.map((workspace) => (
+          {/* {workspaces && workspaces.length && workspaces.map((workspace) => (
             <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)} key={workspace.uid}>
               <span>{workspace.name}</span>
             </div>
-          ))}
-          
-          <div className="dropdown-item" style={{borderTop: 'solid 1px #e7e7e7'}} onClick={() => {
-            setOpenWorkspacesModal(true);
-          }}>
+          ))} */}
+          <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)}>
             <div className="pr-2 text-gray-600">
-              <IconAdjustmentsHorizontal size={18} strokeWidth={1.5}/>
+              <IconSwitch3 size={18} strokeWidth={1.5}/>
             </div>
-            <span>Configure</span>
+            <span>Switch Workspace</span>
+          </div>
+
+          <div className="dropdown-item" onClick={() => handleSelectWorkspace(workspace)}>
+            <div className="pr-2 text-gray-600">
+              <IconSettings size={18} strokeWidth={1.5}/>
+            </div>
+            <span>Configure Workspaces</span>
           </div>
         </Dropdown>
       </div>

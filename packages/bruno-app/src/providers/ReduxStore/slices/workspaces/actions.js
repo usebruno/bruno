@@ -176,7 +176,9 @@ export const removeCollectionFromWorkspace = (workspaceUid, collectionUid) => (d
       workspaceCopy.collections = filter(workspaceCopy.collections, (c) => c.uid !== collectionUid);
     }
 
-    saveWorkspaceToIdb(window.__idb, workspaceCopy)
+    workspaceSchema
+      .validate(workspaceCopy)
+      .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
       .then(() => dispatch(_removeCollectionFromWorkspace({
         workspaceUid: workspaceUid,
         collectionUid: collectionUid

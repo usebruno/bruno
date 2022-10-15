@@ -59,15 +59,10 @@ export const openLocalCollectionEvent = (uid, pathname) => (dispatch, getState) 
     items: []
   };
 
-  const state = getState();
-  const { activeWorkspaceUid } = state.workspaces;
-
   return new Promise((resolve, reject) => {
     collectionSchema
       .validate(localCollection)
       .then(() => dispatch(_createCollection(localCollection)))
-      .then(waitForNextTick)
-      .then(() => dispatch(addCollectionToWorkspace(activeWorkspaceUid, localCollection.uid)))
       .then(resolve)
       .catch(reject);
   });
@@ -624,6 +619,17 @@ export const removeLocalCollection = (collectionUid) => (dispatch, getState) => 
     const { ipcRenderer } = window;
     ipcRenderer
       .invoke('renderer:remove-collection', collection.pathname)
+      .then(() => {
+        dispatch(closeTabs({
+          tabUids: recursivelyGetAllItemUids(collection.items)
+        }));
+      })
+      .then(waitForNextTick)
+      .then(() => {
+        dispatch(_deleteCollection({
+          collectionUid: collectionUid
+        }));
+      })
       .then(resolve)
       .catch(reject);
   });

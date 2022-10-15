@@ -1,6 +1,7 @@
 import React, { useState, useEffect} from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Collections from './Collections';
+import LocalCollections from './LocalCollections';
 import TitleBar from './TitleBar';
 import MenuBar from './MenuBar';
 import { IconSearch, IconChevronsRight } from '@tabler/icons';
@@ -94,6 +95,7 @@ const Sidebar = () => {
               </div>
 
               <Collections searchText={searchText}/>
+              <LocalCollections  searchText={searchText}/>
             </div>
             <div className="flex px-1 py-2 items-center cursor-pointer text-gray-500 select-none">
               <div className="flex items-center ml-1 text-xs ">

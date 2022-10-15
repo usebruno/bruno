@@ -126,7 +126,6 @@ class Watcher {
     if(this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
-      win.webContents.send('main:collection-removed', watchPath);
     }
   }
 };

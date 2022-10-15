@@ -1,16 +1,14 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import {
-  removeCollectionEvent,
   localCollectionAddDirectoryEvent,
   localCollectionAddFileEvent,
   localCollectionChangeFileEvent,
   localCollectionUnlinkFileEvent,
   localCollectionUnlinkDirectoryEvent
 } from 'providers/ReduxStore/slices/collections';
-import {
-  openLocalCollectionEvent
-} from 'providers/ReduxStore/slices/collections/actions'; 
+import toast from 'react-hot-toast';
+import { openLocalCollectionEvent } from 'providers/ReduxStore/slices/collections/actions'; 
 import { isElectron } from 'utils/common/platform';
 
 const useLocalCollectionTreeSync = () => {
@@ -58,15 +56,13 @@ const useLocalCollectionTreeSync = () => {
       }
     };
 
-    const _collectionRemoved = (pathname) => {
-      // dispatch(removeCollectionEvent({
-      //   pathname
-      // }));
+    const _collectionAlreadyOpened = (pathname) => {
+      toast.success('Collection is already opened under local collections');
     };
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
-    const removeListener3 = ipcRenderer.on('main:collection-removed', _collectionRemoved);
+    const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
 
     return () => {
       removeListener1();

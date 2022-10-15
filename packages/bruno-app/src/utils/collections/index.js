@@ -83,6 +83,10 @@ export const findCollectionByUid = (collections, collectionUid) => {
   return find(collections, (c) => c.uid === collectionUid);
 };
 
+export const findCollectionByPathname = (collections, pathname) => {
+  return find(collections, (c) => c.pathname === pathname);
+};
+
 export const findItemByPathname = (items = [], pathname) => {
   return find(items, (i) => i.pathname === pathname);
 };

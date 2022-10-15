@@ -10,6 +10,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollectionFromWorkspace from './RemoveCollectionFromWorkspace';
+import RemoveLocalCollection from './RemoveLocalCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb, isLocalCollection } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
@@ -23,6 +24,7 @@ const Collection = ({collection, searchText}) => {
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showRemoveCollectionFromWSModal, setShowRemoveCollectionFromWSModal] = useState(false);
+  const [showRemoveLocalCollectionModal, setShowRemoveLocalCollectionModal] = useState(false);
   const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
@@ -76,6 +78,7 @@ const Collection = ({collection, searchText}) => {
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)}/>}
       {showRemoveCollectionFromWSModal && <RemoveCollectionFromWorkspace collection={collection} onClose={() => setShowRemoveCollectionFromWSModal(false)}/>}
       {showDeleteCollectionModal && <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)}/>}
+      {showRemoveLocalCollectionModal && <RemoveLocalCollection collection={collection} onClose={() => setShowRemoveLocalCollectionModal(false)}/>}
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{width:16, color: 'rgb(160 160 160)'}}/>
@@ -111,12 +114,21 @@ const Collection = ({collection, searchText}) => {
             }}>
               Export
             </div>
-            <div className="dropdown-item" onClick={(e) => {
-              menuDropdownTippyRef.current.hide();
-              setShowRemoveCollectionFromWSModal(true);
-            }}>
-              Remove from Workspace
-            </div>
+            {!isLocal ? (
+              <div className="dropdown-item" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRemoveCollectionFromWSModal(true);
+              }}>
+                Remove from Workspace
+              </div>
+            ) : (
+              <div className="dropdown-item" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRemoveLocalCollectionModal(true);
+              }}>
+                Remove
+              </div>
+            )}
             {!isLocal ? (
               <div className="dropdown-item delete-collection" onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
