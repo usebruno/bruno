@@ -2,18 +2,17 @@ import React, { useEffect, useRef } from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
 import { useFormik } from 'formik';
-import { renameWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+// import { rename } from 'providers/ReduxStore/slices/environments';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
-import toast from 'react-hot-toast';
 
-const EditWorkspace = ({onClose, workspace}) => {
-  const dispatch = useDispatch();
+const RenameEnvironment = ({onClose, environment}) => {
+  // const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,
     initialValues: {
-      name: workspace.name
+      name: environment.name
     },
     validationSchema: Yup.object({
       name: Yup.string()
@@ -22,12 +21,8 @@ const EditWorkspace = ({onClose, workspace}) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(renameWorkspace(values.name, workspace.uid))
-        .then(() => {
-          toast.success("Workspace renamed!");
-          onClose();
-        })
-        .catch(() => toast.error("An error occured while renaming the workspace"));
+      // dispatch(rename({name: values.name, uid: environment.uid}));
+      onClose();
     }
   });
 
@@ -45,16 +40,16 @@ const EditWorkspace = ({onClose, workspace}) => {
     <Portal>
       <Modal
         size="sm"
-        title={"Rename Workspace"}
+        title={"Rename Environment"}
         confirmText='Rename'
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
-            <label htmlFor="name" className="block font-semibold">Workspace Name</label>
+            <label htmlFor="name" className="block font-semibold">Environment Name</label>
             <input
-              id="workspace-name" type="text" name="name"
+              id="environment-name" type="text" name="name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
@@ -71,5 +66,5 @@ const EditWorkspace = ({onClose, workspace}) => {
   );
 }
 
-export default EditWorkspace;
+export default RenameEnvironment;
 

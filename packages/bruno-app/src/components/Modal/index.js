@@ -18,9 +18,13 @@ const ModalContent = ({children}) => (
   </div>
 );
 
-const ModalFooter = ({confirmText, cancelText, handleSubmit, handleCancel, confirmDisabled, hideCancel}) => {
+const ModalFooter = ({confirmText, cancelText, handleSubmit, handleCancel, confirmDisabled, hideCancel, hideFooter}) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
+
+  if (hideFooter) {
+    return null;
+  }
 
   return (
     <div className="flex justify-end p-4 bruno-modal-footer">
@@ -80,14 +84,15 @@ const Modal = ({
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal()} />
         <ModalContent>{children}</ModalContent>
-        {!hideFooter ? <ModalFooter 
+        <ModalFooter 
           confirmText={confirmText}
           cancelText={cancelText}
           handleCancel={() => closeModal()} 
           handleSubmit={handleConfirm} 
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
-        /> : null}
+          hideFooter={hideFooter}
+        />
       </div>
 
       {/* Clicking on backdrop closes the modal */}
