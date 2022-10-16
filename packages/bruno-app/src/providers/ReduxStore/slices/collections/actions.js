@@ -331,7 +331,8 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       return reject(new Error('Collection not found'));
     }
 
-    const item = findItemInCollection(collection, itemUid);
+    const collectionCopy = cloneDeep(collection);
+    const item = findItemInCollection(collectionCopy, itemUid);
     if(!item) {
       return reject(new Error("Unable to locate item"));
     }
@@ -356,10 +357,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       return;
     }
 
-    const collectionCopy = cloneDeep(collection);
-    if(item) {
-      item.name = newName;
-    }
+    item.name = newName;
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy, {
       ignoreDraft: true
     });
