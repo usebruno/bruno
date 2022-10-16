@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import find from 'lodash/find';
+import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import GraphQLRequestPane from 'components/RequestPane/GraphQLRequestPane';
 import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
@@ -10,6 +11,7 @@ import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
+import NetworkError from 'components/ResponsePane/NetworkError';
 import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
@@ -103,7 +105,12 @@ const RequestTabPanel = () => {
     );
   };
 
-  const handleRun =  async () => dispatch(sendRequest(item, collection.uid));
+  const handleRun =  async () => {
+    dispatch(sendRequest(item, collection.uid))
+      .catch((err) => toast.custom((t) => (<NetworkError onClose={() => toast.dismiss(t.id)}/>), {
+        duration: 5000
+      }));
+  };
   const onGraphqlQueryChange = (value) => {};
   const runQuery = async () => {};
 

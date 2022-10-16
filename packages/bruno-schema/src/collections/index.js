@@ -3,8 +3,8 @@ const { uidSchema } = require("../common");
 
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less').defined(),
-  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less').defined(),
+  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
+  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less'),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined()
 }).noUnknown(true).strict();
@@ -18,10 +18,10 @@ const environmentSchema = Yup.object({
 
 const keyValueSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less').defined(),
-  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less').defined(),
-  description: Yup.string().nullable().max(2048, 'description must be 2048 characters or less').defined(),
-  enabled: Yup.boolean().defined()
+  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
+  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less'),
+  description: Yup.string().nullable().max(2048, 'description must be 2048 characters or less'),
+  enabled: Yup.boolean()
 }).noUnknown(true).strict();
 
 const requestUrlSchema = Yup.string().min(0).max(2048, 'name must be 2048 characters or less').defined();

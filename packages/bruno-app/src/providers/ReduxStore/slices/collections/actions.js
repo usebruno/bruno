@@ -242,16 +242,23 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   
     sendNetworkRequest(itemCopy, {cancelTokenUid: cancelTokenUid})
       .then((response) => {
-        if(response && response.status !== -1) {
-          return dispatch(responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: response
-          }));
-        }
+        return dispatch(responseReceived({
+          itemUid: item.uid,
+          collectionUid: collectionUid,
+          response: response
+        }));
       })
       .then(resolve)
-      .catch(reject);
+      .catch((err) => {
+        dispatch(responseReceived({
+          itemUid: item.uid,
+          collectionUid: collectionUid,
+          response: null
+        }));
+        console.log('>> sending request failed');
+        console.log(err);
+        reject(err);
+      });
   });
 };
 

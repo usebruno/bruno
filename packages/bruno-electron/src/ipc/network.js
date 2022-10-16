@@ -37,19 +37,11 @@ const registerNetworkIpc = () => {
         data: result.data
       };
     } catch (error) {
-      if(error.response) {
-        return {
-          status: error.response.status,
-          headers: error.response.headers,
-          data: error.response.data
-        };
+      if(options && options.cancelTokenUid) {
+        deleteCancelToken(options.cancelTokenUid);
       }
 
-      return {
-        status: -1,
-        headers: [],
-        data: null
-      };
+      return Promise.reject(error);
     }
   });
 
