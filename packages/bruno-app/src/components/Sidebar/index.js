@@ -103,6 +103,9 @@ const Sidebar = () => {
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
                 {/* Need to ut github stars link here */}
               </div>
+              <div className='pl-1'>
+                <iframe src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub"></iframe>   
+              </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">
                 v1.25.2
               </div>
