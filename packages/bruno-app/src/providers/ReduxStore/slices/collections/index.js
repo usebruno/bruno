@@ -103,6 +103,18 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    saveEnvironment: (state, action) => {
+      const { variables, environmentUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if(environment) {
+          environment.variables = variables;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -727,6 +739,7 @@ export const {
   addEnvironment,
   renameEnvironment,
   deleteEnvironment,
+  saveEnvironment,
   newItem,
   deleteItem,
   renameItem,

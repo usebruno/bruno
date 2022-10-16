@@ -26,7 +26,7 @@
     "graphql": "^16.2.0",
     "graphql-request": "^3.7.0",
     "idb": "^7.0.0",
-    "immer": "^9.0.12",
+    "immer": "^9.0.15",
     "lodash": "^4.17.21",
     "mousetrap": "^1.6.5",
     "nanoid": "3.3.4",
