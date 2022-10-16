@@ -11,6 +11,8 @@ coverage
 # production
 build
 chrome-extension
+chrome-extension.pem
+chrome-extension.crx
 bruno.zip
 
 # misc
