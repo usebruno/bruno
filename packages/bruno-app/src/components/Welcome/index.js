@@ -18,6 +18,7 @@ import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import importCollection from 'utils/collections/import';
+import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
@@ -25,6 +26,7 @@ const Welcome = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
   const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const isPlatformElectron = isElectron();
 
   const handleCreateCollection = (values) => {
     setCreateCollectionModalOpen(false);
@@ -93,14 +95,20 @@ const Welcome = () => {
       </div>
 
       <div className="uppercase font-semibold create-request mt-10 pt-6">Local Collections</div>
-      <div className="mt-4 flex items-center collection-options select-none">
-        <div className="flex items-center">
-          <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>Create Collection</span>
+      {isPlatformElectron ? (
+        <div className="mt-4 flex items-center collection-options select-none">
+          <div className="flex items-center">
+            <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>Create Collection</span>
+          </div>
+          <div className="flex items-center ml-6">
+            <IconFolders size={18} strokeWidth={2}/><span className="label ml-2">Open Collection</span>
+          </div>
         </div>
-        <div className="flex items-center ml-6">
-          <IconFolders size={18} strokeWidth={2}/><span className="label ml-2">Open Collection</span>
+      ) : (
+        <div className="mt-4 flex items-center collection-options select-none text-gray-600 text-xs">
+          Local collections are only available on the desktop app.
         </div>
-      </div>
+      )}
 
       <div className="uppercase font-semibold create-request mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
