@@ -39,16 +39,14 @@ function MyApp({ Component, pageProps }) {
   return (
     <SafeHydrate>
       <NoSsr>
-        <AuthProvider>
-          <Provider store={ReduxStore}>
-            <AppProvider>
-              <HotkeysProvider>
-                <Toaster toastOptions={{duration: 2000}}/>
-                <Component {...pageProps} />
-              </HotkeysProvider>
-            </AppProvider>
-          </Provider>
-        </AuthProvider>
+        <Provider store={ReduxStore}>
+          <AppProvider>
+            <HotkeysProvider>
+              <Toaster toastOptions={{duration: 2000}}/>
+              <Component {...pageProps} />
+            </HotkeysProvider>
+          </AppProvider>
+        </Provider>
       </NoSsr>
     </SafeHydrate>
   );

@@ -1,8 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconChevronsLeft} from '@tabler/icons';
-import { useSelector, useDispatch } from 'react-redux';
+import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconChevronsLeft, IconLifebuoy} from '@tabler/icons';
+import { useDispatch } from 'react-redux';
 import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app'
 import StyledWrapper from './StyledWrapper';
 
@@ -32,13 +32,13 @@ const MenuBar = () => {
         </div>
       </div>
       <div className="flex flex-col flex-grow justify-end">
+        {/* <Link href="/login">
+          <div className="menu-item">
+              <IconUser size={28} strokeWidth={1.5}/>
+          </div>
+        </Link> */}
         <div className="menu-item">
-          <Link href="/login">
-            <IconUser size={28} strokeWidth={1.5}/>
-          </Link>
-        </div>
-        <div className="menu-item">
-          <IconSettings size={28} strokeWidth={1.5}/>
+          <IconLifebuoy size={28} strokeWidth={1.5}/>
         </div>
         <div className="menu-item" onClick={() => dispatch(toggleLeftMenuBar())}>
           <IconChevronsLeft size={28} strokeWidth={1.5}/>

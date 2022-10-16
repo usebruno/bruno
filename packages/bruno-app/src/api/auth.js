@@ -8,10 +8,10 @@ const AuthApi = {
     return new Promise((resolve, reject) => {
       const { ipcRenderer } = window.require("electron");
 
-      ipcRenderer.invoke('grafnode-account-request', {
+      ipcRenderer.invoke('bruno-account-request', {
         data: params,
         method: 'POST',
-        url: `${process.env.NEXT_PUBLIC_GRAFNODE_SERVER_API}/auth/v1/user/login`,
+        url: `${process.env.NEXT_PUBLIC_BRUNO_SERVER_API}/auth/v1/user/login`,
       })
       .then(resolve)
       .catch(reject);
