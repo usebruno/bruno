@@ -3,6 +3,9 @@ import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
 import SaveRequest from 'components/RequestPane/SaveRequest';
+import EnvironmentSettings from "components/Environments/EnvironmentSettings";
+import NewRequest from "components/Sidebar/NewRequest";
+import BrunoSupport from 'components/BrunoSupport';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 
@@ -14,6 +17,9 @@ export const HotkeysProvider = props => {
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
+  const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [showBrunoSupportModal, setShowBrunoSupportModal] = useState(false);
   
   const getCurrentCollectionItems = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -21,6 +27,15 @@ export const HotkeysProvider = props => {
       const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
       return collection ? collection.items : [];
+    };
+  };
+
+  const getCurrentCollection = () => {
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if(activeTab) {
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+      return collection;
     };
   };
 
@@ -71,9 +86,64 @@ export const HotkeysProvider = props => {
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
+  // edit environmentss (ctrl/cmd + e)
+  useEffect(() => {
+    Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if(activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+        if(collection) {
+          setShowEnvSettingsModal(true);
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+e', 'ctrl+e']);
+    };
+  }, [activeTabUid, tabs, collections, setShowEnvSettingsModal]);
+
+  // new request (ctrl/cmd + b)
+  useEffect(() => {
+    Mousetrap.bind(['command+b', 'ctrl+b'], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if(activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+        if(collection) {
+          setShowNewRequestModal(true);
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+b', 'ctrl+b']);
+    };
+  }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
+
+  // help (ctrl/cmd + h)
+  useEffect(() => {
+    Mousetrap.bind(['command+h', 'ctrl+h'], (e) => {
+      setShowBrunoSupportModal(true);
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+h', 'ctrl+h']);
+    };
+  }, [setShowNewRequestModal]);
+
   return (
     <HotkeysContext.Provider {...props} value='hotkey'>
+      {showBrunoSupportModal && <BrunoSupport onClose={() => setShowBrunoSupportModal(false)}/>}
       {showSaveRequestModal && <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)}/>}
+      {showEnvSettingsModal && <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)}/>}
+      {showNewRequestModal && <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)}/>}
       <div>
         {props.children}
       </div>

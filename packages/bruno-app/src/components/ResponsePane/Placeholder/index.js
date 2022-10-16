@@ -17,7 +17,7 @@ const Placeholder = () => {
         </div>
         <div className="flex flex-1 flex-col px-1">
           <div className="px-1 py-2">Cmd + Enter</div>
-          <div className="px-1 py-2">Cmd + N</div>
+          <div className="px-1 py-2">Cmd + B</div>
           <div className="px-1 py-2">Cmd + E</div>
           <div className="px-1 py-2">Cmd + H</div>
         </div>
