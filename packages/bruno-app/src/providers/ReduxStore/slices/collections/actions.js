@@ -15,7 +15,8 @@ import {
   findParentItemInCollection,
   findEnvironmentInCollection,
   isItemAFolder,
-  refreshUidsInItem
+  refreshUidsInItem,
+  interpolateEnvironmentVars
 } from 'utils/collections';
 import { collectionSchema, itemSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
@@ -213,26 +214,45 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const sendRequest = (item, collectionUid) => (dispatch) => {
+export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
   const cancelTokenUid = uuid();
 
-  dispatch(requestSent({
-    itemUid: item.uid,
-    collectionUid: collectionUid,
-    cancelTokenUid: cancelTokenUid
-  }));
+  return new Promise((resolve, reject) => {
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+  
+    dispatch(requestSent({
+      itemUid: item.uid,
+      collectionUid: collectionUid,
+      cancelTokenUid: cancelTokenUid
+    }));
+  
+    const itemCopy = cloneDeep(item);
+    const collectionCopy = cloneDeep(collection);
 
-  sendNetworkRequest(item, {cancelTokenUid: cancelTokenUid})
-    .then((response) => {
-      if(response && response.status !== -1) {
-        return dispatch(responseReceived({
-          itemUid: item.uid,
-          collectionUid: collectionUid,
-          response: response
-        }));
-      }
-    })
-    .catch((err) => console.log(err));
+    if(collection.activeEnvironmentUid) {
+      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      if(environment) {
+        interpolateEnvironmentVars(itemCopy, environment.variables)
+      }      
+    }
+  
+    sendNetworkRequest(itemCopy, {cancelTokenUid: cancelTokenUid})
+      .then((response) => {
+        if(response && response.status !== -1) {
+          return dispatch(responseReceived({
+            itemUid: item.uid,
+            collectionUid: collectionUid,
+            response: response
+          }));
+        }
+      })
+      .then(resolve)
+      .catch(reject);
+  });
 };
 
 export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) => {

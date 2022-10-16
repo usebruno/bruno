@@ -1,3 +1,4 @@
+import template from 'lodash/template';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
@@ -351,4 +352,55 @@ export const refreshUidsInItem = (item) => {
 
 export const isLocalCollection = (collection) => {
   return collection.pathname ? true : false;
+};
+
+export const interpolateEnvironmentVars = (item, variables) => {
+  const envVars = {};
+  const { request } = item;
+  each(variables, (variable) => {
+    envVars[variable.name] = variable.value;
+  });
+
+  const templateOpts = {
+    interpolate: /{{([\s\S]+?)}}/g, //interpolate content using markers `{{}}`
+    evaluate: null, // prevent any js evaluation
+    escape: null, // disable any escaping
+  };
+
+  const interpolate = (str) => template(str, templateOpts)(envVars);
+
+  request.url = interpolate(request.url);
+
+  each(request.headers, (header) => {
+    header.value = interpolate(header.value);
+  });
+  each(request.params, (param) => {
+    param.value = interpolate(param.value);
+  });
+
+  // Todo: Make interpolation work with body mode json
+  switch(request.body.mode) {
+    case 'text': {
+      request.body.text = interpolate(request.body.text);
+      break;
+    }
+    case 'xml': {
+      request.body.text = interpolate(request.body.text);
+      break;
+    }
+    case 'multipartForm': {
+      each(request.body.multipartForm, (param) => {
+        param.value = interpolate(param.value);
+      });
+      break;
+    }
+    case 'formUrlEncoded': {
+      each(request.body.formUrlEncoded, (param) => {
+        param.value = interpolate(param.value);
+      });
+      break;
+    }
+  }
+
+  return request;
 };

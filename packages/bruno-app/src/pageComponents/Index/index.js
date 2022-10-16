@@ -35,7 +35,9 @@ export default function Main() {
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
 
-  console.log(useSelector((state) => state.collections.collections));
+  // Todo: write a better logging flow that can be used to log by turning on debug flag
+  // Enable for debugging.
+  // console.log(useSelector((state) => state.collections.collections));
 
   const className = classnames({
     'is-dragging': isDragging

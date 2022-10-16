@@ -104,7 +104,7 @@ const Sidebar = () => {
                 {/* Need to ut github stars link here */}
               </div>
               <div className='pl-1'>
-                <iframe src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true" frameborder="0" scrolling="0" width="100" height="20" title="GitHub"></iframe>   
+                <iframe src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true" frameBorder="0" scrolling="0" width="100" height="20" title="GitHub"></iframe>   
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">
                 v1.25.2
