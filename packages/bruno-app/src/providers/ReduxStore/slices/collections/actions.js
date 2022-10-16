@@ -36,6 +36,7 @@ import {
   renameEnvironment as _renameEnvironment,
   deleteEnvironment as _deleteEnvironment,
   saveEnvironment as _saveEnvironment,
+  selectEnvironment as _selectEnvironment,
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   deleteCollection as _deleteCollection,
@@ -714,6 +715,34 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
       .validate(collectionToSave)
       .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
       .then(() => dispatch(_saveEnvironment({variables, environmentUid, collectionUid})))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    if(environmentUid) {
+      const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+      if(!environment) {
+        return reject(new Error('Environment not found'));
+      }
+    }
+
+    collectionCopy.activeEnvironmentUid = environmentUid;
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => dispatch(_selectEnvironment({environmentUid, collectionUid})))
       .then(resolve)
       .catch(reject);
   });

@@ -115,6 +115,22 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    selectEnvironment: (state, action) => {
+      const { environmentUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        if(environmentUid) {
+          const environment = findEnvironmentInCollection(collection, environmentUid);
+
+          if(environment) {
+            collection.activeEnvironmentUid = environmentUid;
+          }
+        } else {
+          collection.activeEnvironmentUid = null;
+        }
+      }
+    },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -740,6 +756,7 @@ export const {
   renameEnvironment,
   deleteEnvironment,
   saveEnvironment,
+  selectEnvironment,
   newItem,
   deleteItem,
   renameItem,

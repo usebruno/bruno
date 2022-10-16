@@ -237,6 +237,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
   collectionToSave.items = [];
+  collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
 
   copyItems(collection.items, collectionToSave.items);

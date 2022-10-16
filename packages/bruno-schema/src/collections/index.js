@@ -70,6 +70,10 @@ const collectionSchema = Yup.object({
     .max(50, 'name must be 100 characters or less')
     .required('name is required'),
   items:  Yup.array().of(itemSchema),
+  activeEnvironmentUid: Yup.string()
+    .length(21, 'activeEnvironmentUid must be 21 characters in length')
+    .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
+    .nullable(),
   environments: Yup.array().of(environmentSchema),
   pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
 }).noUnknown(true).strict();
