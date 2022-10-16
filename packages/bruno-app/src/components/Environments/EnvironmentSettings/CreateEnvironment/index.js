@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
+import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
-import { addWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { addEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 
-const CreateEnvironment = ({onClose}) => {
+const CreateEnvironment = ({collection, onClose}) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
@@ -17,12 +18,16 @@ const CreateEnvironment = ({onClose}) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be atleast 1 characters')
-        .max(30, 'must be 30 characters or less')
+        .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
     onSubmit: (values) => {
-      // dispatch(addWorkspace({name: values.name}));
-      // onClose();
+      dispatch(addEnvironment(values.name, collection.uid))
+        .then(() => {
+          toast.success("Environment created in collection");
+          onClose();
+        })
+        .catch(() => toast.error("An error occured while created the environment"));
     }
   });
 

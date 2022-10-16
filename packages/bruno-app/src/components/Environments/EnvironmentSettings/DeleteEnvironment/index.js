@@ -1,15 +1,20 @@
 import React from 'react';
 import Portal from "components/Portal/index";
+import toast from 'react-hot-toast';
 import Modal from "components/Modal/index";
-// import { deleteWorkspace } from 'providers/ReduxStore/slices/workspaces';
+import { deleteEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 
-const DeleteEnvironment = ({onClose, environment}) => {
+const DeleteEnvironment = ({onClose, environment, collection}) => {
   const dispatch = useDispatch();
   const onConfirm = () =>{
-    // dispatch(deleteWorkspace({workspaceUid: workspace.uid}))
-    onClose();
+    dispatch(deleteEnvironment(environment.uid, collection.uid))
+      .then(() => {
+        toast.success("Environment deleted successfully");
+        onClose();
+      })
+      .catch(() => toast.error("An error occured while deleting the environment"));
   };
 
   return (

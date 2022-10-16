@@ -1,12 +1,12 @@
 import styled from "styled-components";
 
 const StyledWrapper = styled.div`
-  margin-left: -1rem;
+  margin-inline: -1rem;
   margin-block: -1.5rem;
+
   .environments-sidebar {
-    margin-bottom: 8px;
-    background-color: #ffffff;
-    min-height: 300px;
+    background-color: #eaeaea;
+    min-height: 400px;
   }
 
   .environment-item {
@@ -15,28 +15,34 @@ const StyledWrapper = styled.div`
     position: relative;
     cursor: pointer;
     padding: 8px 10px;
-    color: rgb(35, 35, 35);
-    border-bottom: 1px solid #eaecef;
+    border-left: solid 2px transparent;
+    text-decoration: none;
     
     &:hover {
       text-decoration: none;
-      background-color: #f6f8fa;
+      background-color: #e4e4e4;
     }
   }
 
   .active {
-    background-color: #e1e4e8;
+    background-color: #dcdcdc !important;
+    border-left: solid 2px var(--color-brand);
     &:hover {
-      text-decoration: none;
-      background-color: #e1e4e8;
+      background-color: #dcdcdc !important;
     }
   }
 
-  .create-env {
+  .btn-create-environment {
     padding: 8px 10px;
     cursor: pointer;
     border-bottom: none;
     color: var(--color-text-link);
+
+    &:hover {
+      span {
+        text-decoration: underline;
+      }
+    }
   }
 `;
 

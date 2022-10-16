@@ -117,6 +117,10 @@ export const recursivelyGetAllItemUids = (items = []) => {
   return map(flattenedItems, (i) => i.uid);
 };
 
+export const findEnvironmentInCollection = (collection, envUid) => {
+  return find(collection.environments, (e) => e.uid === envUid);
+}
+
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
@@ -233,6 +237,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
   collectionToSave.items = [];
+  collectionToSave.environments = collection.environments || [];
 
   copyItems(collection.items, collectionToSave.items);
 

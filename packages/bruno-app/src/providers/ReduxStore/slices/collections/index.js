@@ -11,6 +11,7 @@ import splitOnFirst from 'split-on-first';
 import {
   findCollectionByUid,
   findItemInCollection,
+  findEnvironmentInCollection,
   findItemInCollectionByPathname,
   addDepth,
   collapseCollection,
@@ -68,6 +69,39 @@ export const collectionsSlice = createSlice({
     },
     deleteCollection: (state, action) => {
       state.collections = filter(state.collections, c => c.uid !== action.payload.collectionUid);
+    },
+    addEnvironment: (state, action) => {
+      const { environment, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        collection.environments = collection.environments || [];
+        collection.environments.push(environment);
+      }
+    },
+    renameEnvironment: (state, action) => {
+      const { newName, environmentUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if(environment) {
+          environment.name = newName;
+        }
+      }
+    },
+    deleteEnvironment: (state, action) => {
+      const { environmentUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+
+        if(environment) {
+          collection.environments = filter(collection.environments, (e) => e.uid !== environmentUid);
+        }
+      }
     },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -690,6 +724,9 @@ export const {
   renameCollection,
   deleteCollection,
   loadCollections,
+  addEnvironment,
+  renameEnvironment,
+  deleteEnvironment,
   newItem,
   deleteItem,
   renameItem,

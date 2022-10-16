@@ -1,5 +1,5 @@
 import path from 'path';
-import axios from 'axios';
+import filter from 'lodash/filter';
 import each from 'lodash/each';
 import trim from 'lodash/trim';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ import {
   transformRequestToSaveToFilesystem,
   deleteItemInCollection,
   findParentItemInCollection,
+  findEnvironmentInCollection,
   isItemAFolder,
   refreshUidsInItem
 } from 'utils/collections';
@@ -31,6 +32,9 @@ import {
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
   saveRequest as _saveRequest,
+  addEnvironment as _addEnvironment,
+  renameEnvironment as _renameEnvironment,
+  deleteEnvironment as _deleteEnvironment,
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   deleteCollection as _deleteCollection,
@@ -71,7 +75,8 @@ export const createCollection = (collectionName) => (dispatch, getState) => {
   const newCollection = {
     uid: uuid(),
     name: collectionName,
-    items: []
+    items: [],
+    environments: []
   };
 
   const requestItem = {
@@ -602,6 +607,88 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         }));
       })
       .then(() => resolve())
+      .catch(reject);
+  });
+};
+
+export const addEnvironment =  (name, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const environment = {
+      uid: uuid(),
+      name: name,
+      variables: []
+    };
+
+    const collectionCopy = cloneDeep(collection);
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+    collectionToSave.environments = collectionToSave.environments || [];
+    collectionToSave.environments.push(environment);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => dispatch(_addEnvironment({environment, collectionUid})))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const renameEnvironment =  (newName, environmentUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+    if(!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    environment.name = newName;
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => dispatch(_renameEnvironment({newName, environmentUid, collectionUid})))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const deleteEnvironment =  (environmentUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
+    if(!environment) {
+      return reject(new Error('Environment not found'));
+    }
+
+    collectionCopy.environments = filter(collectionCopy.environments, (e) => e.uid !== environmentUid);
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => dispatch(_deleteEnvironment({environmentUid, collectionUid})))
+      .then(resolve)
       .catch(reject);
   });
 };

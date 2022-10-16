@@ -1,10 +1,10 @@
 import React, { useRef, forwardRef, useState } from 'react';
 import Dropdown from 'components/Dropdown';
 import { IconAdjustmentsHorizontal, IconCaretDown } from '@tabler/icons';
-import EnvironmentSettings from "./EnvironmentSettings";
+import EnvironmentSettings from "../EnvironmentSettings";
 import StyledWrapper from './StyledWrapper';
 
-const EnvironmentSelector = () => {
+const EnvironmentSelector = ({collection}) => {
   const dropdownTippyRef = useRef();
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
 
@@ -46,7 +46,7 @@ const EnvironmentSelector = () => {
           </div>
         </Dropdown>
       </div>
-      {openSettingsModal && <EnvironmentSettings onClose={() => setOpenSettingsModal(false)}/>}
+      {openSettingsModal && <EnvironmentSettings collection={collection} onClose={() => setOpenSettingsModal(false)}/>}
     </StyledWrapper>
   );
 };

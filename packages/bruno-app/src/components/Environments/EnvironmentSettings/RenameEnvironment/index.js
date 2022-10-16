@@ -1,13 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import Portal from "components/Portal/index";
 import Modal from "components/Modal/index";
+import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
-// import { rename } from 'providers/ReduxStore/slices/environments';
+import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 
-const RenameEnvironment = ({onClose, environment}) => {
-  // const dispatch = useDispatch();
+const RenameEnvironment = ({onClose, environment, collection}) => {
+  const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
 		enableReinitialize: true,
@@ -17,12 +18,16 @@ const RenameEnvironment = ({onClose, environment}) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be atleast 1 characters')
-        .max(30, 'must be 30 characters or less')
+        .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
     onSubmit: (values) => {
-      // dispatch(rename({name: values.name, uid: environment.uid}));
-      onClose();
+      dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
+        .then(() => {
+          toast.success("Environment renamed successfully");
+          onClose();
+        })
+        .catch(() => toast.error("An error occured while renaming the environment"));
     }
   });
 

@@ -1,6 +1,21 @@
 const Yup = require('yup');
 const { uidSchema } = require("../common");
 
+const environmentVariablesSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().nullable().max(256, 'name must be 256 characters or less').defined(),
+  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less').defined(),
+  type: Yup.string().oneOf(['text']).required('type is required'),
+  enabled: Yup.boolean().defined()
+}).noUnknown(true).strict();
+
+
+const environmentSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().min(1).max(50, 'name must be 50 characters or less').required('name is required'),
+  variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
+}).noUnknown(true).strict();
+
 const keyValueSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable().max(256, 'name must be 256 characters or less').defined(),
@@ -55,6 +70,7 @@ const collectionSchema = Yup.object({
     .max(50, 'name must be 100 characters or less')
     .required('name is required'),
   items:  Yup.array().of(itemSchema),
+  environments: Yup.array().of(environmentSchema),
   pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
 }).noUnknown(true).strict();
 
