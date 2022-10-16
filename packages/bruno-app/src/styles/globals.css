@@ -1,6 +1,7 @@
 
 :root {
   --color-brand: #546de5;
+  --color-text: rgb(52 52 52);
   --color-sidebar-collection-item-active-indent-border: #d0d0d0;
   --color-sidebar-collection-item-active-background: #e1e1e1;
   --color-sidebar-background: #f3f3f3;
