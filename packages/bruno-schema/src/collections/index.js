@@ -64,6 +64,7 @@ const itemSchema = Yup.object({
 }).noUnknown(true).strict();
 
 const collectionSchema = Yup.object({
+  version: Yup.string().oneOf(['1']).required('version is required'),
   uid: uidSchema,
   name: Yup.string()
     .min(1, 'name must be atleast 1 characters')

@@ -5,6 +5,7 @@ const { collectionSchema } = require("./index");
 describe('Collection Schema Validation', () => {
   it('collection schema must validate successfully - simple collection, no items', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection'
     };
@@ -15,6 +16,7 @@ describe('Collection Schema Validation', () => {
 
   it('collection schema must validate successfully - simple collection, empty items', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection',
       items: []
@@ -26,6 +28,7 @@ describe('Collection Schema Validation', () => {
 
   it('collection schema must validate successfully - simple collection, just a folder item', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection',
       items: [{
@@ -41,6 +44,7 @@ describe('Collection Schema Validation', () => {
 
   it('collection schema must validate successfully - simple collection, just a request item', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection',
       items: [{
@@ -65,6 +69,7 @@ describe('Collection Schema Validation', () => {
 
   it('collection schema must validate successfully - simple collection, folder inside folder', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection',
       items: [{
@@ -85,6 +90,7 @@ describe('Collection Schema Validation', () => {
 
   it('collection schema must validate successfully - simple collection, [folder] [request + folder]', async () => {
     const collection = {
+      version: '1',
       uid: uuid(),
       name: 'My Collection',
       items: [{
