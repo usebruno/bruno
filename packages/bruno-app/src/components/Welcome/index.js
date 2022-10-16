@@ -112,21 +112,29 @@ const Welcome = () => {
 
       <div className="uppercase font-semibold create-request mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
-        <div className="flex items-center">
-          <IconBrandChrome size={18} strokeWidth={2}/><span className="label ml-2">Chrome Extension</span>
+        <div>
+          <a href="https://www.usebruno.com/downloads" target="_blank" className="flex items-center">
+            <IconBrandChrome size={18} strokeWidth={2}/><span className="label ml-2">Chrome Extension</span>
+          </a>
         </div>
-        <div className="flex items-center mt-2">
-          <IconDeviceDesktop size={18} strokeWidth={2}/><span className="label ml-2">Desktop App</span>
+        <div className="mt-2">
+          <a href="https://www.usebruno.com/downloads" target="_blank" className="flex items-center">
+            <IconDeviceDesktop size={18} strokeWidth={2}/><span className="label ml-2">Desktop App</span>
+          </a>
         </div>
-        <div className="flex items-center mt-2">
-          <IconSpeakerphone size={18} strokeWidth={2}/><span className="label ml-2">Report Issues</span>
+        <div className="mt-2">
+          <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="flex items-center">
+            <IconSpeakerphone size={18} strokeWidth={2}/><span className="label ml-2">Report Issues</span>
+          </a>
         </div>
         {/* <div className="flex items-center mt-2">
           <IconBook size={18} strokeWidth={2}/><span className="label ml-2">Docs</span>
         </div> */}
-        <div className="flex items-center mt-2">
-          <img src='/github.svg' style={{width: '18px'}}/>
-          <span className="label ml-2">Github</span>
+        <div className="mt-2">
+          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
+            <img src='/github.svg' style={{width: '18px'}}/>
+            <span className="label ml-2">Github</span>
+          </a>
         </div>
       </div>
 
