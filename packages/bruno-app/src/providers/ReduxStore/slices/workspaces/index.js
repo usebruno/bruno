@@ -1,7 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
 import find from 'lodash/find';
+import map from 'lodash/map';
 import filter from 'lodash/filter';
 import { findCollectionInWorkspace } from 'utils/workspaces';
+import cache from 'utils/common/cache';
 
 const initialState = {
   workspaces: [],
@@ -16,11 +18,19 @@ export const workspacesSlice = createSlice({
       state.workspaces = action.payload.workspaces;
 
       if(state.workspaces && state.workspaces.length) {
-        state.activeWorkspaceUid = state.workspaces[0].uid;
+        const workspaceUids = map(state.workspaces, (w) => w.uid);
+        const activeWorkspaceUid = cache.getActiveWorkspaceUid();
+        if(activeWorkspaceUid && workspaceUids.includes(activeWorkspaceUid)) {
+          state.activeWorkspaceUid = activeWorkspaceUid;
+        } else {
+          state.activeWorkspaceUid = state.workspaces[0].uid;
+          cache.setActiveWorkspaceUid(state.activeWorkspaceUid);
+        }
       }
     },
     selectWorkspace: (state, action) => {
       state.activeWorkspaceUid = action.payload.workspaceUid;
+      cache.setActiveWorkspaceUid(state.activeWorkspaceUid);
     },
     renameWorkspace: (state, action) => {
       const { name, uid } = action.payload;
