@@ -13,6 +13,8 @@
     "randomstring": "^1.2.2"
   },
   "scripts": {
+    "dev:web": "npm run dev --workspace=packages/bruno-app",
+    "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "build-chrome-extension": "./scripts/create-chrome-extension.sh"
   }
 }

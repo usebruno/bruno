@@ -2,9 +2,6 @@
 
 The schema definition for collections
 
-### Todo
-[]  Schema validator
-
 ### Collection schema
 ```bash
 id                       Unique id (when persisted to a db)

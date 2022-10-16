@@ -29,9 +29,9 @@ const MenuBar = () => {
             <IconFiles size={28} strokeWidth={1.5}/>
           </div>
         </Link>
-        <div className="menu-item">
+        {/* <div className="menu-item">
           <IconUsers size={28} strokeWidth={1.5}/>
-        </div>
+        </div> */}
       </div>
       <div className="flex flex-col flex-grow justify-end">
         {/* <Link href="/login">
