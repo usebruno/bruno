@@ -78,9 +78,10 @@ const RequestTabs = () => {
     });
   };
 
+  // Todo: Must support ephermal requests
   return (
     <StyledWrapper className={getRootClassname()}>
-      {newRequestModalOpen && <NewRequest isEphermal={true} collection={activeCollection} onClose={() => setNewRequestModalOpen(false)}/>}
+      {newRequestModalOpen && <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)}/>}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
           <CollectionToolBar collection={activeCollection}/>

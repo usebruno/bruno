@@ -25,6 +25,14 @@ export const sendHttpRequestInBrowser = async (request, options) => {
       deleteCancelToken(options.cancelTokenUid);
     }
 
+    if(error.response) {
+      return {
+        status: error.response.status,
+        headers: error.response.headers,
+        data: error.response.data
+      }
+    };
+
     return Promise.reject(error);
   }
 };

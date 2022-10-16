@@ -5,6 +5,7 @@ const Wrapper = styled.div`
   display: flex;
   align-self: stretch;
   align-items: center;
+  min-width: 34px;
 
   span {
     position: relative;
@@ -16,6 +17,8 @@ const Wrapper = styled.div`
   .method-put { color:  var(--color-method-put);}
   .method-delete { color:  var(--color-method-delete);}
   .method-patch { color:  var(--color-method-patch);}
+  .method-options { color:  var(--color-method-options);}
+  .method-head { color:  var(--color-method-head);}
 `;
 
 export default Wrapper;

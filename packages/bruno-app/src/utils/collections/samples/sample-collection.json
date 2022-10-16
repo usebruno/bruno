@@ -1,0 +1,129 @@
+{
+  "name": "sample-collection",
+  "uid": "c1PdISj460OeNmFLI8rCY",
+  "version": "1",
+  "items": [
+    {
+      "uid": "myeFbgzNlwIhDpYcOVBWS",
+      "type": "http-request",
+      "name": "Users",
+      "request": {
+        "url": "https://reqres.in/api/users?page=2",
+        "method": "GET",
+        "headers": [],
+        "params": [
+          {
+            "uid": "viHGWSpAQhpiwH9UQxb7W",
+            "name": "page",
+            "value": "2",
+            "enabled": true
+          }
+        ],
+        "body": {
+          "mode": "json",
+          "json": "",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    },
+    {
+      "uid": "ytzXIADbhEwLB0BqIQOKD",
+      "type": "http-request",
+      "name": "Single User",
+      "request": {
+        "url": "https://reqres.in/api/users/2",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    },
+    {
+      "uid": "DuEyHudhVuxrdplKLAMsU",
+      "type": "http-request",
+      "name": "User Not Found",
+      "request": {
+        "url": "https://reqres.in/api/users/23",
+        "method": "GET",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    },
+    {
+      "uid": "UZFjsr14q8iZ1Do90q02Q",
+      "type": "http-request",
+      "name": "Create",
+      "request": {
+        "url": "https://reqres.in/api/users",
+        "method": "POST",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n    \"name\": \"morpheus\",\n    \"job\": \"leader\"\n}",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    },
+    {
+      "uid": "lYLCTXaerD9etRDLJHbVN",
+      "type": "http-request",
+      "name": "Update",
+      "request": {
+        "url": "https://reqres.in/api/users/2",
+        "method": "PUT",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n    \"name\": \"morpheus\",\n    \"job\": \"zion resident\"\n}",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    },
+    {
+      "uid": "qVCKx5xUqxpBf8jeka8Gu",
+      "type": "http-request",
+      "name": "Remove",
+      "request": {
+        "url": "https://reqres.in/api/users/2",
+        "method": "DELETE",
+        "headers": [],
+        "params": [],
+        "body": {
+          "mode": "json",
+          "json": "{\n    \"name\": \"morpheus\",\n    \"job\": \"zion resident\"\n}",
+          "text": null,
+          "xml": null,
+          "formUrlEncoded": [],
+          "multipartForm": []
+        }
+      }
+    }
+  ],
+  "environments": []
+}

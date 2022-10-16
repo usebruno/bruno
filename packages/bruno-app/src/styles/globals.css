@@ -17,9 +17,11 @@
   --color-background-danger: #dc3545;
   --color-method-get: rgb(5, 150, 105);
   --color-method-post: #8e44ad;
-  --color-method-put: #8e44ad;
-  --color-method-delete: #8e44ad;
-  --color-method-patch: #8e44ad;
+  --color-method-put: #ca7811;
+  --color-method-delete: rgb(185, 28, 28);
+  --color-method-patch: rgb(52 52 52);
+  --color-method-options: rgb(52 52 52);
+  --color-method-head: rgb(52 52 52);
   --color-table-stripe: #f3f3f3;
 }
 

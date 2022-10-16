@@ -47,7 +47,7 @@ export const collectionsSlice = createSlice({
       const { collection } = action.payload;
       collapseCollection(collection);
       addDepth(collection.items);
-      if(!collectionUids.includes(c.uid)) {
+      if(!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
     },

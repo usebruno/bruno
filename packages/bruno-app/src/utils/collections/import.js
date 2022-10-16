@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import { collectionSchema } from '@usebruno/schema';
 import { saveCollectionToIdb } from 'utils/idb';
+import sampleCollection from './samples/sample-collection.json';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -80,6 +81,18 @@ const importCollection = () => {
         toast.error("Import collection failed");
         reject(err);
       });
+  });
+};
+
+export const importSampleCollection = () => {
+  return new Promise((resolve, reject) => {
+    validateSchema(sampleCollection)
+      .then(validateSchema)
+      .then(updateUidsInCollection)
+      .then(validateSchema)
+      .then((collection) => saveCollectionToIdb(window.__idb, collection))
+      .then(resolve)
+      .catch(reject);
   });
 };
 

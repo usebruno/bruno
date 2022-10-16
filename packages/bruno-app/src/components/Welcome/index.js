@@ -17,7 +17,7 @@ import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
-import importCollection from 'utils/collections/import';
+import importCollection, { importSampleCollection } from 'utils/collections/import';
 import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
@@ -55,6 +55,19 @@ const Welcome = () => {
       .catch((err) => console.log(err));
   };
 
+  const handleImportSampleCollection = () => {
+    importSampleCollection()
+      .then((collection) => {
+        dispatch(collectionImported({collection: collection}));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
+      })
+      .then(() => toast.success("Sample Collection loaded successfully"))
+      .catch((err) => {
+        toast.error("Load sample collection failed");
+        console.log(err);
+      });
+  };
+
   return (
     <StyledWrapper className="pb-4 px-6 mt-6">
       {createCollectionModalOpen ? (
@@ -89,7 +102,7 @@ const Welcome = () => {
         <div className="flex items-center ml-6" onClick={handleImportCollection}>
           <IconUpload size={18} strokeWidth={2}/><span className="label ml-2">Import Collection</span>
         </div>
-        <div className="flex items-center ml-6">
+        <div className="flex items-center ml-6" onClick={handleImportSampleCollection}>
           <IconPlayerPlay size={18} strokeWidth={2}/><span className="label ml-2">Load Sample Collection</span>
         </div>
       </div>

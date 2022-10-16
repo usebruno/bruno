@@ -76,6 +76,7 @@ export const openLocalCollectionEvent = (uid, pathname) => (dispatch, getState) 
 
 export const createCollection = (collectionName) => (dispatch, getState) => {
   const newCollection = {
+    version: "1",
     uid: uuid(),
     name: collectionName,
     items: [],

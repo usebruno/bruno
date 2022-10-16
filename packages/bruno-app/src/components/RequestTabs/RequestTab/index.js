@@ -22,11 +22,31 @@ const RequestTab = ({tab, collection}) => {
     method = method.toLocaleLowerCase();
     switch(method) {
       case 'get': {
-        color = 'rgb(5, 150, 105)';
+        color = 'var(--color-method-get)';
         break;
       }
       case 'post': {
-        color = '#8e44ad';
+        color = 'var(--color-method-post)';
+        break;
+      }
+      case 'put': {
+        color = 'var(--color-method-put)';
+        break;
+      }
+      case 'delete': {
+        color = 'var(--color-method-delete)';
+        break;
+      }
+      case 'patch': {
+        color = 'var(--color-method-patch)';
+        break;
+      }
+      case 'options': {
+        color = 'var(--color-method-options)';
+        break;
+      }
+      case 'head': {
+        color = 'var(--color-method-head)';
         break;
       }
     }
