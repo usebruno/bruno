@@ -10,6 +10,8 @@ coverage
 
 # production
 build
+chrome-extension
+bruno.zip
 
 # misc
 .DS_Store

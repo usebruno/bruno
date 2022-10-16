@@ -8,6 +8,9 @@ npm run dev --workspace=packages/bruno-app
 
 # run electron app
 npm run dev --workspace=packages/bruno-electron
+
+# build next app
+npm run build --workspace=packages/bruno-app
 ```
 
 # testing

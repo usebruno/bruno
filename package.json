@@ -11,5 +11,8 @@
   "devDependencies": {
     "jest": "^29.2.0",
     "randomstring": "^1.2.2"
+  },
+  "scripts": {
+    "build-chrome-extension": "./scripts/create-chrome-extension.sh"
   }
 }
