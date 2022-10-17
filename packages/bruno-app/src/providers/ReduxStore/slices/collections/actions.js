@@ -802,3 +802,36 @@ export const removeLocalCollection = (collectionUid) => (dispatch, getState) => 
       .catch(reject);
   });
 };
+
+export const browserLocalDirectory = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:browse-directory')
+      .then(resolve)
+      .catch(reject);
+  });
+}
+
+export const createLocalCollection = (collectionName, collectionLocation) => () => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:create-collection', collectionName, collectionLocation)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const openLocalCollection = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:open-collection')
+      .then(resolve)
+      .catch(reject);
+  });
+};

@@ -12,7 +12,7 @@ import {
 } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -28,15 +28,6 @@ const Welcome = () => {
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
   const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const isPlatformElectron = isElectron();
-
-  const handleCreateCollection = (values) => {
-    setCreateCollectionModalOpen(false);
-    dispatch(createCollection(values.collectionName))
-      .then(() => {
-        toast.success("Collection created");
-      })
-      .catch(() => toast.error("An error occured while creating the collection"));
-  };
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
     setAddCollectionToWSModalOpen(false);
@@ -69,12 +60,17 @@ const Welcome = () => {
       });
   };
 
+  const handleOpenLocalCollection = () => {
+    dispatch(openLocalCollection())
+      .catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"));
+  }
+
   return (
     <StyledWrapper className="pb-4 px-6 mt-6">
       {createCollectionModalOpen ? (
         <CreateCollection
-          handleCancel={() => setCreateCollectionModalOpen(false)}
-          handleConfirm={handleCreateCollection}
+          isLocal={createCollectionModalOpen === 'local' ? true : false}
+          onClose={() => setCreateCollectionModalOpen(false)}
         />
       ) : null}
       
@@ -112,10 +108,10 @@ const Welcome = () => {
       {isPlatformElectron ? (
         <div className="mt-4 flex items-center collection-options select-none">
           <div className="flex items-center">
-            <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>Create Collection</span>
+            <IconPlus size={18} strokeWidth={2}/><span className="label ml-2" onClick={() => setCreateCollectionModalOpen('local')}>Create Collection</span>
           </div>
           <div className="flex items-center ml-6">
-            <IconFolders size={18} strokeWidth={2}/><span className="label ml-2">Open Collection</span>
+            <IconFolders size={18} strokeWidth={2}/><span className="label ml-2" onClick={handleOpenLocalCollection}>Open Collection</span>
           </div>
         </div>
       ) : (

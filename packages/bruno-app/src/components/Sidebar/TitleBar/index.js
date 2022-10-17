@@ -2,21 +2,24 @@ import React, { useState, forwardRef, useRef } from 'react';
 import toast from 'react-hot-toast';
 import Dropdown from 'components/Dropdown';
 import Bruno from 'components/Bruno';
+import { IconFolders } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { IconDots } from '@tabler/icons';
 import CreateCollection from '../CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import importCollection from 'utils/collections/import';
+import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
   const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const isPlatformElectron = isElectron();
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -31,14 +34,10 @@ const TitleBar = () => {
 
   const handleTitleClick = () => dispatch(showHomePage());
 
-  const handleCreateCollection = (values) => {
-    setCreateCollectionModalOpen(false);
-    dispatch(createCollection(values.collectionName))
-      .then(() => {
-        toast.success("Collection created");
-      })
-      .catch(() => toast.error("An error occured while creating the collection"));
-  };
+  const handleOpenLocalCollection = () => {
+    dispatch(openLocalCollection())
+      .catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"));
+  }
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
     setAddCollectionToWSModalOpen(false);
@@ -62,8 +61,8 @@ const TitleBar = () => {
     <StyledWrapper className="px-2 py-2">
       {createCollectionModalOpen ? (
         <CreateCollection
-          handleCancel={() => setCreateCollectionModalOpen(false)}
-          handleConfirm={handleCreateCollection}
+          isLocal={createCollectionModalOpen === 'local' ? true : false}
+          onClose={() => setCreateCollectionModalOpen(false)}
         />
       ) : null}
       
@@ -106,6 +105,37 @@ const TitleBar = () => {
             }}>
               Add Collection to Workspace
             </div>
+            {isPlatformElectron ? (
+              <>
+                <div className="font-medium label-item font-medium local-collection-label">
+                  <div className='flex items-center'>
+                    <span className='mr-2'>
+                      <IconFolders size={18} strokeWidth={1.5}/>
+                    </span>
+                    <span>
+                      Local Collections
+                    </span>
+                  </div>
+                </div>
+                <div className="dropdown-item" onClick={(e) => {
+                  setCreateCollectionModalOpen('local');
+                  menuDropdownTippyRef.current.hide();
+                }}>
+                  Create Local Collection
+                </div>
+                <div className="dropdown-item" onClick={(e) => {
+                  handleOpenLocalCollection();
+                  menuDropdownTippyRef.current.hide();
+                }}>
+                  Open Local Collection
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center select-none text-gray-400 text-xs local-collections-unavailable">
+                Note: Local collections are only available on the desktop app.
+              </div>
+            )}
+
           </Dropdown>
         </div>
       </div>

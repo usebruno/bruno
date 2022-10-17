@@ -1,15 +1,19 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import filter from 'lodash/filter';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Dropdown from 'components/Dropdown';
+import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { IconArrowForwardUp, IconCaretDown, IconFolders, IconPlus } from '@tabler/icons';
 import Collection from '../Collections/Collection';
+import CreateCollection from '../CreateCollection';
 import { isLocalCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const LocalCollections = ({searchText}) => {
   const dropdownTippyRef = useRef();
+  const dispatch = useDispatch();
   const { collections } = useSelector((state) => state.collections);
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
   const collectionToDisplay = filter(collections, (c) => isLocalCollection(c));
 
@@ -35,17 +39,30 @@ const LocalCollections = ({searchText}) => {
 
   const onDropdownCreate = (ref) => dropdownTippyRef.current = ref;
 
+
+  const handleOpenLocalCollection = () => {
+    dispatch(openLocalCollection())
+      .catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"));
+  }
+
   return (
     <StyledWrapper>
+      {createCollectionModalOpen ? (
+        <CreateCollection
+          isLocal={true}
+          onClose={() => setCreateCollectionModalOpen(false)}
+        />
+      ) : null}
+
       <div className="items-center cursor-pointer mt-6 relative">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement='bottom-end'>
-          <div className="dropdown-item" onClick={() => {}}>
+          <div className="dropdown-item" onClick={() => setCreateCollectionModalOpen(true)}>
             <div className="pr-2 text-gray-600">
               <IconPlus size={18} strokeWidth={1.5}/>
             </div>
             <span>Create Collection</span>
           </div>
-          <div className="dropdown-item" onClick={() => {}}>
+          <div className="dropdown-item" onClick={handleOpenLocalCollection}>
             <div className="pr-2 text-gray-600">
               <IconArrowForwardUp size={18} strokeWidth={1.5}/>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useSelector } from 'react-redux';
 import find from 'lodash/find';
 import filter from 'lodash/filter';

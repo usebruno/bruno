@@ -30,22 +30,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const dirPath = path.join(collectionLocation, collectionName);
       if (fs.existsSync(dirPath)){
-        throw new Error(`collection: ${dir} already exists`);
+        throw new Error(`collection: ${dirPath} already exists`);
       }
 
       if(!isValidPathname(dirPath)) {
-        throw new Error(`collection: invaid pathname - ${dir}`);
+        throw new Error(`collection: invalid pathname - ${dir}`);
       }
 
       await createDirectory(dirPath);
 
+      const uid = uuid();
       const content = await stringifyJson({
         version: '1.0',
+        uid: uid,
+        name: collectionName,
         type: 'collection'
       });
       await writeFile(path.join(dirPath, 'bruno.json'), content);
 
-      const uid = uuid();
       mainWindow.webContents.send('main:collection-opened', dirPath, uid);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
 
