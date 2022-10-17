@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "version": "0.1.0",
   "name": "Bruno API Client",
   "short_name": "Bruno",
@@ -10,17 +10,17 @@
     "128": "assets/images/logo-128x128.png"
   },
   "background": {
-    "scripts": [
-      "js/background.js"
-    ]
+    "service_worker": "js/background.js"
   },
-  "browser_action": {
+  "action": {
     "default_icon": "assets/images/logo-128x128.png"
   },
   "permissions": [
-      "http://*/",
-      "https://*/",
       "tabs",
       "storage"
+  ],
+  "host_permissions": [
+    "http://*/",
+    "https://*/"
   ]
 }

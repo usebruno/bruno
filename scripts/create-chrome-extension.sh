@@ -17,7 +17,10 @@ cp -r packages/bruno-chrome-extension/* chrome-extension
 
 # Filenames starting with "_" are reserved for use by the system
 mv chrome-extension/_next chrome-extension/next
-sed -i 's@/_next/@/next/@g' chrome-extension/**.html
+sed -i'' -e 's@/_next/@/next/@g' chrome-extension/**.html
 
 # Remove sourcemaps
 find chrome-extension -name '*.map' -type f -delete
+
+# Compress the chrome-extension directory into a zip file
+zip -r bruno.zip chrome-extension
