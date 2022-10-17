@@ -11,7 +11,7 @@ const {
   createDirectory
 } = require('../utils/filesystem');
 const { uuid, stringifyJson, parseJson } = require('../utils/common');
-const { openCollection } = require('../app/collections');
+const { openCollectionDialog, openCollection } = require('../app/collections');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -41,14 +41,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const uid = uuid();
       const content = await stringifyJson({
-        version: '1.0',
+        version: '1',
         uid: uid,
         name: collectionName,
         type: 'collection'
       });
       await writeFile(path.join(dirPath, 'bruno.json'), content);
 
-      mainWindow.webContents.send('main:collection-opened', dirPath, uid);
+      mainWindow.webContents.send('main:collection-opened', dirPath, uid, collectionName);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
 
       return;
@@ -149,7 +149,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:open-collection', () => {
     if(watcher && mainWindow) {
-      openCollection(mainWindow, watcher);
+      openCollectionDialog(mainWindow, watcher);
     }
   });
 
@@ -168,9 +168,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     if(lastOpened && lastOpened.length) {
       for(let collectionPath of lastOpened) {
         if(isDirectory(collectionPath)) {
-          const uid = uuid();
-          mainWindow.webContents.send('main:collection-opened', collectionPath, uid);
-          ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
+          openCollection(mainWindow, watcher, collectionPath, {
+            dontSendDisplayErrors: true
+          });
         }
       }
     }
@@ -180,7 +180,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.on('main:open-collection', () => {
     if(watcher && mainWindow) {
-      openCollection(mainWindow, watcher);
+      openCollectionDialog(mainWindow, watcher);
     }
   });
 

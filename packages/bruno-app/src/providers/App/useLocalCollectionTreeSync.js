@@ -21,9 +21,9 @@ const useLocalCollectionTreeSync = () => {
 
     const { ipcRenderer } = window;
 
-    const _openCollection = (pathname, uid) => {
-      console.log(`collection uid: ${uid}, pathname: ${pathname}`);
-      dispatch(openLocalCollectionEvent(uid, pathname));
+    const _openCollection = (pathname, uid, name) => {
+      console.log(`collection uid: ${uid}, pathname: ${pathname}, name: ${name}`);
+      dispatch(openLocalCollectionEvent(uid, pathname, name));
     };
 
     const _collectionTreeUpdated = (type, val) => {
@@ -60,16 +60,22 @@ const useLocalCollectionTreeSync = () => {
       toast.success('Collection is already opened under local collections');
     };
 
+    const _displayError = (message) => {
+      toast.error(message || 'Something went wrong!');
+    };
+
     ipcRenderer.invoke('renderer:ready');
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
     const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
+    const removeListener4 = ipcRenderer.on('main:display-error', _displayError);
 
     return () => {
       removeListener1();
       removeListener2();
       removeListener3();
+      removeListener4();
     };
   }, [isElectron]);
 };

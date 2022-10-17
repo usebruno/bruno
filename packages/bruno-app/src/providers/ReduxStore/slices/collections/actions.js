@@ -57,11 +57,11 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
     .catch(() => toast.error("Error occured while loading collections from IndexedDB"));
 };
 
-export const openLocalCollectionEvent = (uid, pathname) => (dispatch, getState) => {
+export const openLocalCollectionEvent = (uid, pathname, name) => (dispatch, getState) => {
   const localCollection = {
     version: "1",
     uid: uid,
-    name: path.basename(pathname),
+    name: name,
     pathname: pathname,
     items: []
   };

@@ -22,7 +22,8 @@
     "fs-extra": "^10.1.0",
     "is-valid-path": "^0.1.1",
     "lodash": "^4.17.21",
-    "nanoid": "3.3.4"
+    "nanoid": "3.3.4",
+    "yup": "^0.32.11"
   },
   "devDependencies": {
     "electron": "^21.1.1",
