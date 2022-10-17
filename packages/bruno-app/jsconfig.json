@@ -4,6 +4,7 @@
     "allowSyntheticDefaultImports": false,
     "baseUrl": "./",
     "paths": {
+      "assets/*": ["src/assets/*"],
       "components/*": ["src/components/*"],
       "api/*": ["src/api/*"],
       "pageComponents/*": ["src/pageComponents/*"],

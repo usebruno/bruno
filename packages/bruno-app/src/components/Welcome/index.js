@@ -19,6 +19,7 @@ import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import importCollection, { importSampleCollection } from 'utils/collections/import';
 import { isElectron } from 'utils/common/platform';
+import GithubSvg from 'assets/github.svg';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
@@ -145,7 +146,7 @@ const Welcome = () => {
         </div> */}
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
-            <img src='/github.svg' style={{width: '18px'}}/>
+            <img src={GithubSvg.src} style={{width: '18px'}}/>
             <span className="label ml-2">Github</span>
           </a>
         </div>

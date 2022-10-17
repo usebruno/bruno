@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
 import HttpMethodSelector from './HttpMethodSelector';
 import StyledWrapper from './StyledWrapper';
+import SendSvg from 'assets/send.svg';
 
 const QueryUrl = ({item, collection, handleRun}) => {
   const dispatch = useDispatch();
@@ -39,7 +40,7 @@ const QueryUrl = ({item, collection, handleRun}) => {
           onChange={(event) => onUrlChange(event.target.value)}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" onClick={handleRun}>
-          <img src='/send.svg' style={{width: '22px'}}/>
+          <img src={SendSvg.src} style={{width: '22px'}}/>
         </div>
       </div>
     </StyledWrapper>
