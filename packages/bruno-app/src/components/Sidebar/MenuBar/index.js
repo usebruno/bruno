@@ -5,12 +5,14 @@ import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconChevronsLef
 import { useDispatch } from 'react-redux';
 import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
 import BrunoSupport from 'components/BrunoSupport';
+import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const MenuBar = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const [openBrunoSupport, setOpenBrunoSupport] = useState(false);
+  const isPlatformElectron = isElectron();
 
   const getClassName = (menu) => {
     return router.pathname === menu ? "active menu-item": "menu-item";
@@ -24,11 +26,13 @@ const MenuBar = () => {
             <IconCode size={28} strokeWidth={1.5}/>
           </div>
         </Link>
-        <Link href="/collections">
+        {isPlatformElectron ? (
+          <Link href="/collections">
           <div className={getClassName('/collections')}>
             <IconFiles size={28} strokeWidth={1.5}/>
           </div>
-        </Link>
+          </Link>
+        ) : null}
         {/* <div className="menu-item">
           <IconUsers size={28} strokeWidth={1.5}/>
         </div> */}

@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "name": "bruno",
   "description": "Opensource API Client",
+  "homepage": "https://www.usebruno.com",
   "private": true,
   "main": "src/index.js",
   "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
