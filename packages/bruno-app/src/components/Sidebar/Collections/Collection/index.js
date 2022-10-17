@@ -102,12 +102,14 @@ const Collection = ({collection, searchText}) => {
             }}>
               New Folder
             </div>
-            <div className="dropdown-item" onClick={(e) => {
-              menuDropdownTippyRef.current.hide();
-              setShowRenameCollectionModal(true);
-            }}>
-              Rename
-            </div>
+            {!isLocal ? (
+              <div className="dropdown-item" onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRenameCollectionModal(true);
+              }}>
+                Rename
+              </div>
+            ) : null}
             <div className="dropdown-item" onClick={(e) => {
               menuDropdownTippyRef.current.hide();
               handleExportClick(true);

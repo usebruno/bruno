@@ -165,8 +165,10 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    const collectionCopy = cloneDeep(collection);
+
     if(isLocalCollection(collection)) {
-      const item = findItemInCollection(collection, itemUid);
+      const item = findItemInCollection(collectionCopy, itemUid);
       if(item) {
         const itemToSave = transformRequestToSaveToFilesystem(item);
         const { ipcRenderer } = window;
@@ -182,7 +184,6 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       return;
     }
 
-    const collectionCopy = cloneDeep(collection);
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
 
     collectionSchema
