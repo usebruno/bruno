@@ -18,7 +18,7 @@ setContentSecurityPolicy(`
 	connect-src * 'unsafe-inline';
 	base-uri 'none';
 	form-action 'none';
-	frame-ancestors 'none';
+	frame-ancestors ghbtns.com;
 `);
 
 const menu = Menu.buildFromTemplate(menuTemplate);
@@ -42,7 +42,7 @@ app.on('ready', async () => {
   const url = isDev
     ? 'http://localhost:3000'
     : format({
-        pathname: path.join(__dirname, '../packages/bruno-app/out/index.html'),
+        pathname: path.join(__dirname, '../web/index.html'),
         protocol: 'file:',
         slashes: true
       });

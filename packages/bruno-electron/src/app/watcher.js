@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const yaml = require('js-yaml');
 const chokidar = require('chokidar');
 const { hasJsonExtension } = require('../utils/filesystem');
 

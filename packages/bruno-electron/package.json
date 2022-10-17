@@ -1,24 +1,20 @@
 {
-  "name": "@usebruno/bruno-electron",
+  "version": "0.1.0",
+  "name": "bruno",
+  "description": "Opensource API Client",
   "private": true,
   "main": "src/index.js",
+  "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "build": "next build renderer && next export renderer",
-    "pack-app": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
-  },
-  "build": {
-    "asar": true,
-    "files": [
-      "main",
-      "renderer/out"
-    ]
+    "dist": "electron-builder",
+    "pack-app": "electron-builder --dir"
   },
   "dependencies": {
     "axios": "^0.26.0",
     "chokidar": "^3.5.3",
+    "dmg-license": "^1.0.11",
     "electron-is-dev": "^2.0.0",
     "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
@@ -29,7 +25,8 @@
     "nanoid": "3.3.4"
   },
   "devDependencies": {
-    "electron": "^17.1.0",
-    "electron-builder": "^22.14.13"
+    "electron": "^21.1.1",
+    "electron-builder": "23.0.2",
+    "electron-icon-maker": "^0.0.5"
   }
 }
