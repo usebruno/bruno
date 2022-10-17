@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';;
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -38,10 +39,14 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
           requestMethod: values.requestMethod,
           collectionUid: collection.uid
         }))
-        dispatch(addTab({
-          uid: uid,
-          collectionUid: collection.uid
-        }));
+          .then(() => {
+            dispatch(addTab({
+              uid: uid,
+              collectionUid: collection.uid
+            }));
+            onClose();
+          })
+          .catch(() => toast.error("An error occured while adding the request"));
       } else {
         dispatch(newHttpRequest({
           requestName: values.requestName,
@@ -50,9 +55,10 @@ const NewRequest = ({collection, item, isEphermal, onClose}) => {
           requestMethod: values.requestMethod,
           collectionUid: collection.uid,
           itemUid: item ? item.uid : null
-        }));
+        }))
+          .then(() => onClose())
+          .catch(() => toast.error("An error occured while adding the request"));
       }
-      onClose();
     }
   });
 

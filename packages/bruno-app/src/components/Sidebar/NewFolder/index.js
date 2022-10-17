@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import {useFormik} from 'formik';
+import toast from 'react-hot-toast';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -21,7 +22,8 @@ const NewFolder = ({collection, item, onClose}) => {
     }),
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
-      onClose();
+        .then(() => onClose())
+        .catch(() => toast.error("An error occured while adding the request"));
     }
   });
 
