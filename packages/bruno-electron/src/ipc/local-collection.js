@@ -85,6 +85,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // save environment
+  ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environments) => {
+    try {
+      const envFilePath = path.join(collectionPathname, 'environments.json');
+
+      const content = await stringifyJson(environments);
+      await writeFile(envFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {

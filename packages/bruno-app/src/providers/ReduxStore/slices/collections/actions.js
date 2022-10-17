@@ -18,7 +18,7 @@ import {
   refreshUidsInItem,
   interpolateEnvironmentVars
 } from 'utils/collections';
-import { collectionSchema, itemSchema } from '@usebruno/schema';
+import { collectionSchema, itemSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
 import { getCollectionsFromIdb, saveCollectionToIdb, deleteCollectionInIdb } from 'utils/idb';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
@@ -41,6 +41,7 @@ import {
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   deleteCollection as _deleteCollection,
+  localCollectionLoadEnvironmentsEvent as _localCollectionLoadEnvironmentsEvent
 } from './index';
 
 import { closeTabs, addTab } from 'providers/ReduxStore/slices/tabs';
@@ -55,24 +56,6 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
       collections: collections
     })))
     .catch(() => toast.error("Error occured while loading collections from IndexedDB"));
-};
-
-export const openLocalCollectionEvent = (uid, pathname, name) => (dispatch, getState) => {
-  const localCollection = {
-    version: "1",
-    uid: uid,
-    name: name,
-    pathname: pathname,
-    items: []
-  };
-
-  return new Promise((resolve, reject) => {
-    collectionSchema
-      .validate(localCollection)
-      .then(() => dispatch(_createCollection(localCollection)))
-      .then(resolve)
-      .catch(reject);
-  });
 };
 
 export const createCollection = (collectionName) => (dispatch, getState) => {
@@ -659,6 +642,15 @@ export const addEnvironment =  (name, collectionUid) => (dispatch, getState) => 
     collectionToSave.environments = collectionToSave.environments || [];
     collectionToSave.environments.push(environment);
 
+    if(isLocalCollection(collection)) {
+      environmentsSchema
+        .validate(collectionToSave.environments)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, collectionToSave.environments))
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
+
     collectionSchema
       .validate(collectionToSave)
       .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
@@ -683,8 +675,17 @@ export const renameEnvironment =  (newName, environmentUid, collectionUid) => (d
     }
 
     environment.name = newName;
-
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    if(isLocalCollection(collection)) {
+      const environments = collectionToSave.environments;
+      environmentsSchema
+        .validate(environments)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environments))
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
 
     collectionSchema
       .validate(collectionToSave)
@@ -704,14 +705,24 @@ export const deleteEnvironment =  (environmentUid, collectionUid) => (dispatch, 
     }
 
     const collectionCopy = cloneDeep(collection);
+
     const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
     if(!environment) {
       return reject(new Error('Environment not found'));
     }
 
     collectionCopy.environments = filter(collectionCopy.environments, (e) => e.uid !== environmentUid);
-
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    if(isLocalCollection(collection)) {
+      const environments = collectionToSave.environments;
+      environmentsSchema
+        .validate(environments)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environments))
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
 
     collectionSchema
       .validate(collectionToSave)
@@ -739,6 +750,15 @@ export const saveEnvironment = (variables, environmentUid, collectionUid) => (di
     environment.variables = variables;
 
     const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+    if(isLocalCollection(collection)) {
+      const environments = collectionToSave.environments;
+      environmentsSchema
+        .validate(environments)
+        .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, environments))
+        .then(resolve)
+        .catch(reject);
+      return;
+    }
 
     collectionSchema
       .validate(collectionToSave)
@@ -814,6 +834,24 @@ export const browserLocalDirectory = () => (dispatch, getState) => {
   });
 }
 
+export const openLocalCollectionEvent = (uid, pathname, name) => (dispatch, getState) => {
+  const localCollection = {
+    version: "1",
+    uid: uid,
+    name: name,
+    pathname: pathname,
+    items: []
+  };
+
+  return new Promise((resolve, reject) => {
+    collectionSchema
+      .validate(localCollection)
+      .then(() => dispatch(_createCollection(localCollection)))
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const createLocalCollection = (collectionName, collectionLocation) => () => {
   const { ipcRenderer } = window;
 
@@ -831,6 +869,27 @@ export const openLocalCollection = () => () => {
 
     ipcRenderer
       .invoke('renderer:open-collection')
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const localCollectionLoadEnvironmentsEvent = (payload) => (dispatch, getState) => {
+  const { data: environments, meta } = payload;
+
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, meta.collectionUid);
+    if(!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    environmentsSchema
+      .validate(environments)
+      .then(() => dispatch(_localCollectionLoadEnvironmentsEvent({
+        environments,
+        collectionUid: meta.collectionUid
+      })))
       .then(resolve)
       .catch(reject);
   });

@@ -742,7 +742,15 @@ export const collectionsSlice = createSlice({
           deleteItemInCollection(item.uid, collection);
         }
       }
-    }
+    },
+    localCollectionLoadEnvironmentsEvent:  (state, action) => {
+      const { environments, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if(collection) {
+        collection.environments = environments;
+      }
+    },
   }
 });
 
@@ -788,7 +796,8 @@ export const {
   localCollectionAddDirectoryEvent,
   localCollectionChangeFileEvent,
   localCollectionUnlinkFileEvent,
-  localCollectionUnlinkDirectoryEvent
+  localCollectionUnlinkDirectoryEvent,
+  localCollectionLoadEnvironmentsEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

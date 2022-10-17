@@ -16,6 +16,8 @@ const environmentSchema = Yup.object({
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
 }).noUnknown(true).strict();
 
+const environmentsSchema = Yup.array().of(environmentSchema);
+
 const keyValueSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
@@ -75,12 +77,14 @@ const collectionSchema = Yup.object({
     .length(21, 'activeEnvironmentUid must be 21 characters in length')
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
     .nullable(),
-  environments: Yup.array().of(environmentSchema),
+  environments: environmentsSchema,
   pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
 }).noUnknown(true).strict();
+
 
 module.exports = {
   requestSchema,
   itemSchema,
+  environmentsSchema,
   collectionSchema
 };

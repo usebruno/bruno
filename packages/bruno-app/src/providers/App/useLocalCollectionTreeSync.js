@@ -8,7 +8,10 @@ import {
   localCollectionUnlinkDirectoryEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
-import { openLocalCollectionEvent } from 'providers/ReduxStore/slices/collections/actions'; 
+import {
+  openLocalCollectionEvent,
+  localCollectionLoadEnvironmentsEvent
+} from 'providers/ReduxStore/slices/collections/actions'; 
 import { isElectron } from 'utils/common/platform';
 
 const useLocalCollectionTreeSync = () => {
@@ -53,6 +56,12 @@ const useLocalCollectionTreeSync = () => {
         dispatch(localCollectionUnlinkDirectoryEvent({
           directory: val
         }));
+      }
+      if(type === 'addEnvironmentFile') {
+        dispatch(localCollectionLoadEnvironmentsEvent(val));
+      }
+      if(type === 'changeEnvironmentFile') {
+        dispatch(localCollectionLoadEnvironmentsEvent(val));
       }
     };
 
