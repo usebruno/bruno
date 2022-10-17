@@ -18,7 +18,7 @@ setContentSecurityPolicy(`
 	connect-src * 'unsafe-inline';
 	base-uri 'none';
 	form-action 'none';
-	frame-ancestors ghbtns.com;
+  img-src 'self' data:image/svg+xml
 `);
 
 const menu = Menu.buildFromTemplate(menuTemplate);
