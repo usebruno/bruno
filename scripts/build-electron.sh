@@ -19,4 +19,4 @@ sed -i'' -e 's@/_next/@_next/@g' packages/bruno-electron/web/**.html
 # Remove sourcemaps
 find packages/bruno-electron/web -name '*.map' -type f -delete
 
-npm run pack-app --workspace=packages/bruno-electron 
+npm run dist --workspace=packages/bruno-electron 

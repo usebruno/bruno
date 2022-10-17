@@ -59,6 +59,7 @@ export const loadCollectionsFromIdb = () => (dispatch) => {
 
 export const openLocalCollectionEvent = (uid, pathname) => (dispatch, getState) => {
   const localCollection = {
+    version: "1",
     uid: uid,
     name: path.basename(pathname),
     pathname: pathname,
