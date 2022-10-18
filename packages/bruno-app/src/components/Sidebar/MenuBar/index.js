@@ -26,7 +26,7 @@ const MenuBar = () => {
             <IconCode size={28} strokeWidth={1.5}/>
           </div>
         </Link>
-        {isPlatformElectron ? (
+        {!isPlatformElectron ? (
           <Link href="/collections">
           <div className={getClassName('/collections')}>
             <IconFiles size={28} strokeWidth={1.5}/>
