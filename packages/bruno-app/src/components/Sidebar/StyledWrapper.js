@@ -1,8 +1,12 @@
-import styled from 'styled-components';
+import styled from "styled-components"
 
 const Wrapper = styled.div`
   aside {
     background-color: var(--color-sidebar-background);
+
+    .bottom-menu-bg {
+      background-color: var(--color-sidebar-bottom-bg);
+    }
 
     .collection-title {
       line-height: 1.5;
@@ -37,12 +41,12 @@ const Wrapper = styled.div`
     width: 6px;
     right: -3px;
 
-    &:hover div.drag-request-border{
+    &:hover div.drag-request-border {
       width: 2px;
       height: 100%;
       border-left: solid 1px var(--color-request-dragbar-background-active);
     }
   }
-`;
+`
 
-export default Wrapper;
+export default Wrapper
