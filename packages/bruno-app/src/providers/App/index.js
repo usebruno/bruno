@@ -1,36 +1,35 @@
-import React, { useEffect } from 'react';
-import useIdb from './useIdb';
-import useLocalCollectionTreeSync from './useLocalCollectionTreeSync';
-import { useDispatch } from 'react-redux';
-import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import React, { useEffect } from "react"
+import useIdb from "./useIdb"
+import useLocalCollectionTreeSync from "./useLocalCollectionTreeSync"
+import { useDispatch } from "react-redux"
+import { refreshScreenWidth } from "providers/ReduxStore/slices/app"
 
-export const AppContext = React.createContext();
+export const AppContext = React.createContext()
 
-export const AppProvider = props => {
-  useIdb();
-  useLocalCollectionTreeSync();
+export const AppProvider = (props) => {
+  useIdb()
+  useLocalCollectionTreeSync()
 
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
 
   useEffect(() => {
-    dispatch(refreshScreenWidth());
-  }, []);
+    dispatch(refreshScreenWidth())
+  }, [])
 
   useEffect(() => {
     const handleResize = () => {
-      dispatch(refreshScreenWidth());
-    };
+      dispatch(refreshScreenWidth())
+    }
 
-    window.addEventListener('resize', handleResize);
-
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   return (
-    <AppContext.Provider {...props} value='appProvider'>
+    <AppContext.Provider {...props} value="appProvider">
       {props.children}
     </AppContext.Provider>
-  );
-};
+  )
+}
 
-export default AppProvider;
+export default AppProvider
