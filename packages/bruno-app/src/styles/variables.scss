@@ -1,0 +1,42 @@
+@use "themes/dark.scss";
+@use "themes/light.scss";
+
+$color-brand: #546de5;
+$color-text: rgb(52 52 52);
+$color-sidebar-collection-item-active-indent-border: #d0d0d0;
+$color-sidebar-collection-item-active-background: #e1e1e1;
+$color-sidebar-background: #f3f3f3;
+$color-request-dragbar-background: #efefef;
+$color-request-dragbar-background-active: rgb(200, 200, 200);
+$color-tab-inactive: rgb(155 155 155);
+$color-tab-active-border: #546de5;
+$color-layout-border: #dedede;
+$color-codemirror-border: #efefef;
+$color-codemirror-background: rgb(243, 243, 243);
+$color-text-link: #1663bb;
+$color-text-danger: rgb(185, 28, 28);
+$color-background-danger: #dc3545;
+$color-method-get: rgb(5, 150, 105);
+$color-method-post: #8e44ad;
+$color-method-delete: rgb(185, 28, 28);
+$color-method-patch: rgb(52 52 52);
+$color-method-options: rgb(52 52 52);
+$color-method-head: rgb(52 52 52);
+$color-table-stripe: #f3f3f3;
+
+// Themes
+$themes: (
+  "light": light.$colors,
+  "dark": dark.$colors,
+);
+
+@each $theme-name, $theme-vars in $themes {
+  $colors: $theme-vars;
+
+  .#{$theme-name} {
+    // Variables for each color
+    @each $name, $color in $colors {
+      --color-#{$name}: #{$color};
+    }
+  }
+}
