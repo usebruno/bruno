@@ -70,7 +70,7 @@ const TitleBar = () => {
         </div>
         <div
           onClick={handleTitleClick}
-          className="flex items-center font-medium select-none cursor-pointer bruno-title"
+          className="flex items-center font-medium select-none cursor-pointer primary-title"
           style={{ fontSize: 14, paddingLeft: 6, position: "relative", top: -1 }}
         >
           bruno
