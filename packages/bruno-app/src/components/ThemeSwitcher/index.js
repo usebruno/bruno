@@ -10,6 +10,10 @@ import { updateTheme } from "providers/ReduxStore/slices/app"
 const ThemeSwitcher = ({ onClose }) => {
   const dispatch = useDispatch()
   const [storedTheme, setStoredTheme] = useLocalStorage("THEME", "light")
+  const options = [
+    { title: "Light", value: "light" },
+    { title: "Dark", value: "dark" },
+  ]
 
   useEffect(() => {
     dispatch(updateTheme({ theme: storedTheme }))
@@ -30,8 +34,14 @@ const ThemeSwitcher = ({ onClose }) => {
             <div className="flex items-center">
               <IconMoon size={18} />
               <select name="theme_switcher" onChange={handleThemeChange}>
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
+                {options.map((op) => {
+                  const { value, title } = op
+                  return (
+                    <option value={value} selected={value == storedTheme}>
+                      {title}
+                    </option>
+                  )
+                })}
               </select>
             </div>
           </div>
