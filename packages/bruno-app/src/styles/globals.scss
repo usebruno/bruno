@@ -38,6 +38,10 @@ body::-webkit-scrollbar-thumb,
   color: var(--color-text-link);
 }
 
-.bruno-title {
-  color: var(--color-sidebar-text);
+.primary-title {
+  color: var(--color-primary-text);
+}
+
+.secondary-text {
+  color: var(--color-secondary-text);
 }
