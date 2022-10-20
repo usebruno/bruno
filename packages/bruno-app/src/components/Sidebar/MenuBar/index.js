@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconChevronsLeft, IconLifebuoy } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
-import BrunoSupport from 'components/BrunoSupport';
 import { isElectron } from 'utils/common/platform';
+import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
+import { IconCode, IconFiles, IconMoon, IconChevronsLeft, IconLifebuoy } from '@tabler/icons';
+
+import Link from 'next/link';
 import StyledWrapper from './StyledWrapper';
+import BrunoSupport from 'components/BrunoSupport';
+import ThemeSupport from 'components/ThemeSupport/index';
 
 const MenuBar = () => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [openTheme, setOpenTheme] = useState(false);
   const [openBrunoSupport, setOpenBrunoSupport] = useState(false);
   const isPlatformElectron = isElectron();
 
@@ -46,11 +49,15 @@ const MenuBar = () => {
         <div className="menu-item">
           <IconLifebuoy size={28} strokeWidth={1.5} onClick={() => setOpenBrunoSupport(true)} />
         </div>
+        <div className="menu-item">
+          <IconMoon size={28} strokeWidth={1.5} onClick={() => setOpenTheme(true)} />
+        </div>
         <div className="menu-item" onClick={() => dispatch(toggleLeftMenuBar())}>
           <IconChevronsLeft size={28} strokeWidth={1.5} />
         </div>
       </div>
       {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
+      {openTheme && <ThemeSupport onClose={() => setOpenTheme(false)} />}
     </StyledWrapper>
   );
 };

@@ -6,6 +6,8 @@ const Wrapper = styled.div`
   height: 100%;
   min-height: 100vh;
 
+  background-color: ${(props) => props.theme.theme['primary-theme']};
+
   &.is-dragging {
     cursor: col-resize !important;
   }
