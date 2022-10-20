@@ -6,7 +6,8 @@ const Wrapper = styled.div`
     border-collapse: collapse;
     font-weight: 600;
 
-    thead, td {
+    thead,
+    td {
       border: 1px solid #efefef;
     }
 
@@ -24,18 +25,18 @@ const Wrapper = styled.div`
     font-size: 0.8125rem;
   }
 
-  input[type="text"] {
+  input[type='text'] {
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
 
-    &:focus{
+    &:focus {
       outline: none !important;
       border: solid 1px transparent;
     }
   }
 
-  input[type="checkbox"] {
+  input[type='checkbox'] {
     cursor: pointer;
     position: relative;
     top: 1px;

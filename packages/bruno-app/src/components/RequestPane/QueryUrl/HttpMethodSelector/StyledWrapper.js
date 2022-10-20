@@ -17,7 +17,7 @@ const Wrapper = styled.div`
     }
 
     .dropdown-item {
-      padding: .25rem .6rem !important;
+      padding: 0.25rem 0.6rem !important;
     }
   }
 

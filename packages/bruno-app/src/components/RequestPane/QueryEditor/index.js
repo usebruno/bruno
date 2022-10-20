@@ -44,44 +44,37 @@ export default class QueryEditor extends React.Component {
       showCursorWhenSelecting: true,
       readOnly: this.props.readOnly ? 'nocursor' : false,
       foldGutter: {
-        minFoldSize: 4,
+        minFoldSize: 4
       },
       lint: {
         schema: this.props.schema,
         validationRules: this.props.validationRules ?? null,
         // linting accepts string or FragmentDefinitionNode[]
-        externalFragments: this.props?.externalFragments,
+        externalFragments: this.props?.externalFragments
       },
       hintOptions: {
         schema: this.props.schema,
         closeOnUnfocus: false,
         completeSingle: false,
         container: this._node,
-        externalFragments: this.props?.externalFragments,
+        externalFragments: this.props?.externalFragments
       },
       info: {
         schema: this.props.schema,
         renderDescription: (text) => md.render(text),
-        onClick: (reference) =>
-          this.props.onClickReference && this.props.onClickReference(reference),
+        onClick: (reference) => this.props.onClickReference && this.props.onClickReference(reference)
       },
       jump: {
         schema: this.props.schema,
-        onClick: (reference) =>
-          this.props.onClickReference && this.props.onClickReference(reference)
+        onClick: (reference) => this.props.onClickReference && this.props.onClickReference(reference)
       },
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       extraKeys: {
-        'Cmd-Space': () =>
-          editor.showHint({ completeSingle: true, container: this._node }),
-        'Ctrl-Space': () =>
-          editor.showHint({ completeSingle: true, container: this._node }),
-        'Alt-Space': () =>
-          editor.showHint({ completeSingle: true, container: this._node }),
-        'Shift-Space': () =>
-          editor.showHint({ completeSingle: true, container: this._node }),
-        'Shift-Alt-Space': () =>
-          editor.showHint({ completeSingle: true, container: this._node }),
+        'Cmd-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        'Ctrl-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
 
         'Cmd-Enter': () => {
           if (this.props.onRunQuery) {
@@ -129,8 +122,8 @@ export default class QueryEditor extends React.Component {
           if (this.props.onRunQuery) {
             // empty
           }
-        },
-      },
+        }
+      }
     }));
     if (editor) {
       editor.on('change', this._onEdit);
@@ -152,11 +145,7 @@ export default class QueryEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (
-      this.props.value !== prevProps.value &&
-      this.props.value !== this.cachedValue &&
-      this.editor
-    ) {
+    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
     }
@@ -177,7 +166,7 @@ export default class QueryEditor extends React.Component {
       <StyledWrapper
         className="h-full"
         aria-label="Query Editor"
-        ref={node => {
+        ref={(node) => {
           this._node = node;
         }}
       />

@@ -4,11 +4,11 @@ const Wrapper = styled.div`
   .menu-icon {
     color: rgb(110 110 110);
 
-  .dropdown {
-      div[aria-expanded="true"] {
+    .dropdown {
+      div[aria-expanded='true'] {
         visibility: visible;
       }
-      div[aria-expanded="false"] {
+      div[aria-expanded='false'] {
         visibility: hidden;
       }
     }
@@ -37,7 +37,7 @@ const Wrapper = styled.div`
       background: #e7e7e7;
       .menu-icon {
         .dropdown {
-          div[aria-expanded="false"] {
+          div[aria-expanded='false'] {
             visibility: visible;
           }
         }

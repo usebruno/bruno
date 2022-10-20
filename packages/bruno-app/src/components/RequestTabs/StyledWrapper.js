@@ -46,7 +46,7 @@ const Wrapper = styled.div`
         }
       }
 
-      &:hover{
+      &:hover {
         .close-icon-container .close-icon {
           display: block;
         }

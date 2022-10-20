@@ -16,43 +16,42 @@ const CreateOrAddCollection = () => {
     setCreateCollectionModalOpen(false);
     dispatch(createCollection(values.collectionName))
       .then(() => {
-        toast.success("Collection created");
+        toast.success('Collection created');
       })
-      .catch(() => toast.error("An error occured while creating the collection"));
+      .catch(() => toast.error('An error occured while creating the collection'));
   };
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
     setAddCollectionToWSModalOpen(false);
     dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
       .then(() => {
-        toast.success("Collection added to workspace");
+        toast.success('Collection added to workspace');
       })
-      .catch(() => toast.error("An error occured while adding collection to workspace"));
+      .catch(() => toast.error('An error occured while adding collection to workspace'));
   };
 
-  const CreateLink = () => <span className='underline text-link cursor-pointer' onClick={() => setCreateCollectionModalOpen(true)}>Create</span>;
-  const AddLink = () => <span className='underline text-link cursor-pointer' onClick={() => setAddCollectionToWSModalOpen(true)}>Add</span>;
+  const CreateLink = () => (
+    <span className="underline text-link cursor-pointer" onClick={() => setCreateCollectionModalOpen(true)}>
+      Create
+    </span>
+  );
+  const AddLink = () => (
+    <span className="underline text-link cursor-pointer" onClick={() => setAddCollectionToWSModalOpen(true)}>
+      Add
+    </span>
+  );
 
   return (
-    <div className='px-2 mt-4 text-gray-600'>
-      {createCollectionModalOpen ? (
-        <CreateCollection
-          handleCancel={() => setCreateCollectionModalOpen(false)}
-          handleConfirm={handleCreateCollection}
-        />
-      ) : null}
-      
-      {addCollectionToWSModalOpen ? (
-        <SelectCollection
-          title='Add Collection to Workspace'
-          onClose={() => setAddCollectionToWSModalOpen(false)}
-          onSelect={handleAddCollectionToWorkspace}
-        />
-      ): null}
+    <div className="px-2 mt-4 text-gray-600">
+      {createCollectionModalOpen ? <CreateCollection handleCancel={() => setCreateCollectionModalOpen(false)} handleConfirm={handleCreateCollection} /> : null}
 
-      <div className='text-xs text-center'>
+      {addCollectionToWSModalOpen ? (
+        <SelectCollection title="Add Collection to Workspace" onClose={() => setAddCollectionToWSModalOpen(false)} onSelect={handleAddCollectionToWorkspace} />
+      ) : null}
+
+      <div className="text-xs text-center">
         <div>No collections found.</div>
-        <div className='mt-2'>
+        <div className="mt-2">
           <CreateLink /> or <AddLink /> Collection to Workspace.
         </div>
       </div>

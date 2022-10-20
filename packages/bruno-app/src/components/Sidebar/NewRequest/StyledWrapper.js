@@ -13,7 +13,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  div.method-selector-container, div.input-container {
+  div.method-selector-container,
+  div.input-container {
     height: 2.3rem;
   }
 

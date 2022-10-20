@@ -13,6 +13,6 @@ class Cache {
   setActiveWorkspaceUid(workspaceUid) {
     this.set('bruno.activeWorkspaceUid', workspaceUid);
   }
-};
+}
 
-module.exports = new Cache();;
+module.exports = new Cache();

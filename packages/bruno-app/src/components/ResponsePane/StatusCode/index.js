@@ -3,7 +3,7 @@ import classnames from 'classnames';
 import statusCodePhraseMap from './get-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
-const StatusCode = ({status}) => {
+const StatusCode = ({ status }) => {
   const getTabClassname = () => {
     return classnames('', {
       'text-blue-700': status >= 100 && status < 200,
@@ -18,6 +18,6 @@ const StatusCode = ({status}) => {
     <StyledWrapper className={getTabClassname()}>
       {status} {statusCodePhraseMap[status]}
     </StyledWrapper>
-  )
+  );
 };
 export default StatusCode;

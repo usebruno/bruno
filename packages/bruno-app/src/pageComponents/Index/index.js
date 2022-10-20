@@ -8,7 +8,7 @@ import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
-if(!SERVER_RENDERED) {
+if (!SERVER_RENDERED) {
   require('codemirror/mode/javascript/javascript');
   require('codemirror/mode/xml/xml');
   require('codemirror/addon/edit/matchbrackets');
@@ -47,18 +47,17 @@ export default function Main() {
     <div>
       <StyledWrapper className={className}>
         <Sidebar />
-        <section className='flex flex-grow flex-col'>
+        <section className="flex flex-grow flex-col">
           {showHomePage ? (
             <Welcome />
-          ): (
+          ) : (
             <>
               <RequestTabs />
-              <RequestTabPanel key={activeTabUid}/>
+              <RequestTabPanel key={activeTabUid} />
             </>
           )}
         </section>
       </StyledWrapper>
     </div>
   );
-};
-
+}

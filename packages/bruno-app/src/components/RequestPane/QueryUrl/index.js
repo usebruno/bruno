@@ -6,45 +6,53 @@ import HttpMethodSelector from './HttpMethodSelector';
 import StyledWrapper from './StyledWrapper';
 import SendSvg from 'assets/send.svg';
 
-const QueryUrl = ({item, collection, handleRun}) => {
+const QueryUrl = ({ item, collection, handleRun }) => {
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   let url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
 
   const onUrlChange = (value) => {
-    dispatch(requestUrlChanged({
-      itemUid: item.uid,
-      collectionUid: collection.uid,
-      url: value
-    }));
+    dispatch(
+      requestUrlChanged({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        url: value
+      })
+    );
   };
 
   const onMethodSelect = (verb) => {
-    dispatch(updateRequestMethod({
-      method: verb,
-      itemUid: item.uid,
-      collectionUid: collection.uid
-    }));
+    dispatch(
+      updateRequestMethod({
+        method: verb,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
   };
 
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
-        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect}/>
+        <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div className="flex items-center flex-grow input-container h-full">
         <input
           className="px-3 w-full mousetrap"
-          type="text" value={url}
-          autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+          type="text"
+          value={url}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
           onChange={(event) => onUrlChange(event.target.value)}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" onClick={handleRun}>
-          <img src={SendSvg.src} style={{width: '22px'}}/>
+          <img src={SendSvg.src} style={{ width: '22px' }} />
         </div>
       </div>
     </StyledWrapper>
-  )
+  );
 };
 
 export default QueryUrl;

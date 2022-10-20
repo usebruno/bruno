@@ -8,17 +8,14 @@ import {
   localCollectionUnlinkDirectoryEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
-import {
-  openLocalCollectionEvent,
-  localCollectionLoadEnvironmentsEvent
-} from 'providers/ReduxStore/slices/collections/actions'; 
+import { openLocalCollectionEvent, localCollectionLoadEnvironmentsEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
 
 const useLocalCollectionTreeSync = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if(!isElectron()) {
+    if (!isElectron()) {
       return () => {};
     }
 
@@ -30,37 +27,47 @@ const useLocalCollectionTreeSync = () => {
     };
 
     const _collectionTreeUpdated = (type, val) => {
-      if(type === 'addDir') {
-        dispatch(localCollectionAddDirectoryEvent({
-          dir: val
-        }));
+      if (type === 'addDir') {
+        dispatch(
+          localCollectionAddDirectoryEvent({
+            dir: val
+          })
+        );
       }
-      if(type === 'addFile') {
-        dispatch(localCollectionAddFileEvent({
-          file: val
-        }));
-      }
-      if(type === 'change') {
-        dispatch(localCollectionChangeFileEvent({
-          file: val
-        }));
-      }
-      if(type === 'unlink') {
-        setTimeout(() => {
-          dispatch(localCollectionUnlinkFileEvent({
+      if (type === 'addFile') {
+        dispatch(
+          localCollectionAddFileEvent({
             file: val
-          }));
+          })
+        );
+      }
+      if (type === 'change') {
+        dispatch(
+          localCollectionChangeFileEvent({
+            file: val
+          })
+        );
+      }
+      if (type === 'unlink') {
+        setTimeout(() => {
+          dispatch(
+            localCollectionUnlinkFileEvent({
+              file: val
+            })
+          );
         }, 100);
       }
-      if(type === 'unlinkDir') {
-        dispatch(localCollectionUnlinkDirectoryEvent({
-          directory: val
-        }));
+      if (type === 'unlinkDir') {
+        dispatch(
+          localCollectionUnlinkDirectoryEvent({
+            directory: val
+          })
+        );
       }
-      if(type === 'addEnvironmentFile') {
+      if (type === 'addEnvironmentFile') {
         dispatch(localCollectionLoadEnvironmentsEvent(val));
       }
-      if(type === 'changeEnvironmentFile') {
+      if (type === 'changeEnvironmentFile') {
         dispatch(localCollectionLoadEnvironmentsEvent(val));
       }
     };

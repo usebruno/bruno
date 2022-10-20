@@ -15,16 +15,12 @@ const StopWatch = () => {
     };
   });
 
-  if(milliseconds < 1000) {
+  if (milliseconds < 1000) {
     return 'Loading...';
   }
 
-  let seconds = milliseconds/1000;
-  return (
-    <span>
-      {seconds.toFixed(1)}s
-    </span>
-  )
+  let seconds = milliseconds / 1000;
+  return <span>{seconds.toFixed(1)}s</span>;
 };
 
 export default StopWatch;

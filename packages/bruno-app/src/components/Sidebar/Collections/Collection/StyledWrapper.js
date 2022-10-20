@@ -14,14 +14,13 @@ const Wrapper = styled.div`
 
     .collection-actions {
       .dropdown {
-        div[aria-expanded="true"] {
+        div[aria-expanded='true'] {
           visibility: visible;
         }
-        div[aria-expanded="false"] {
+        div[aria-expanded='false'] {
           visibility: hidden;
         }
       }
-      
 
       svg {
         height: 22px;
@@ -32,7 +31,7 @@ const Wrapper = styled.div`
     &:hover {
       .collection-actions {
         .dropdown {
-          div[aria-expanded="false"] {
+          div[aria-expanded='false'] {
             visibility: visible;
           }
         }

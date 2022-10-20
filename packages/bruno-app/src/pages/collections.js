@@ -23,4 +23,4 @@ export default function CollectionsPage() {
       </main>
     </div>
   );
-};
+}

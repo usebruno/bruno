@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Collections from './Collections';
 import LocalCollections from './LocalCollections';
@@ -23,33 +23,39 @@ const Sidebar = () => {
   const [searchText, setSearchText] = useState('');
 
   const handleMouseMove = (e) => {
-    if(dragging) {
+    if (dragging) {
       e.preventDefault();
       let width = e.clientX + 2;
-      if(width < MIN_LEFT_SIDEBAR_WIDTH || width > MAX_LEFT_SIDEBAR_WIDTH) {
+      if (width < MIN_LEFT_SIDEBAR_WIDTH || width > MAX_LEFT_SIDEBAR_WIDTH) {
         return;
       }
       setAsideWidth(width);
     }
   };
   const handleMouseUp = (e) => {
-    if(dragging) {
+    if (dragging) {
       e.preventDefault();
       setDragging(false);
-      dispatch(updateLeftSidebarWidth({
-        leftSidebarWidth: asideWidth
-      }));
-      dispatch(updateIsDragging({
-        isDragging: false
-      }));
+      dispatch(
+        updateLeftSidebarWidth({
+          leftSidebarWidth: asideWidth
+        })
+      );
+      dispatch(
+        updateIsDragging({
+          isDragging: false
+        })
+      );
     }
   };
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
-    dispatch(updateIsDragging({
-      isDragging: true
-    }));
+    dispatch(
+      updateIsDragging({
+        isDragging: true
+      })
+    );
   };
 
   useEffect(() => {
@@ -68,7 +74,7 @@ const Sidebar = () => {
 
   return (
     <StyledWrapper className="flex relative">
-      <aside style={{width: `${asideWidth}px`, minWidth: `${asideWidth}px`}}>
+      <aside style={{ width: `${asideWidth}px`, minWidth: `${asideWidth}px` }}>
         <div className="flex flex-row h-full w-full">
           {leftMenuBarOpen && <MenuBar />}
 
@@ -80,35 +86,43 @@ const Sidebar = () => {
               <div className="mt-4 relative collection-filter px-2">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <span className="text-gray-500 sm:text-sm">
-                    <IconSearch size={16} strokeWidth={1.5}/>
+                    <IconSearch size={16} strokeWidth={1.5} />
                   </span>
                 </div>
                 <input
                   type="text"
                   name="search"
                   id="search"
-                  autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                   className="block w-full pl-7 py-1 sm:text-sm"
                   placeholder="search"
                   onChange={(e) => setSearchText(e.target.value.toLowerCase())}
                 />
               </div>
 
-              <Collections searchText={searchText}/>
-              <LocalCollections  searchText={searchText}/>
+              <Collections searchText={searchText} />
+              <LocalCollections searchText={searchText} />
             </div>
             <div className="flex px-1 py-2 items-center cursor-pointer text-gray-500 select-none">
               <div className="flex items-center ml-1 text-xs ">
-                {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5}  className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())}/>}
+                {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
                 {/* Need to ut github stars link here */}
               </div>
-              <div className='pl-1'>
-                <iframe src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true" frameBorder="0" scrolling="0" width="100" height="20" title="GitHub"></iframe>   
+              <div className="pl-1">
+                <iframe
+                  src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true"
+                  frameBorder="0"
+                  scrolling="0"
+                  width="100"
+                  height="20"
+                  title="GitHub"
+                ></iframe>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">
-                v1.25.2
-              </div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.25.2</div>
             </div>
           </div>
         </div>

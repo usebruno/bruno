@@ -24,13 +24,13 @@ const Wrapper = styled.div`
       .label-item {
         display: flex;
         align-items: center;
-        padding: .35rem .6rem;
+        padding: 0.35rem 0.6rem;
       }
 
       .dropdown-item {
         display: flex;
         align-items: center;
-        padding: .35rem .6rem;
+        padding: 0.35rem 0.6rem;
         cursor: pointer;
 
         &:hover {

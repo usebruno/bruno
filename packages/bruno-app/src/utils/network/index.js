@@ -8,7 +8,7 @@ import cancelTokens, { deleteCancelToken } from 'utils/network/cancelTokens';
 
 export const sendNetworkRequest = async (item, options) => {
   return new Promise((resolve, reject) => {
-    if(item.type === 'http-request') {
+    if (item.type === 'http-request') {
       const timeStart = Date.now();
       sendHttpRequest(item.draft ? item.draft.request : item.request, options)
         .then((response) => {
@@ -17,7 +17,7 @@ export const sendNetworkRequest = async (item, options) => {
             state: 'success',
             data: response.data,
             headers: Object.entries(response.headers),
-            size: response.headers["content-length"] || 0,
+            size: response.headers['content-length'] || 0,
             status: response.status,
             duration: timeEnd - timeStart
           });
@@ -33,7 +33,7 @@ const sendHttpRequest = async (request, options) => {
 
     const headers = {};
     each(request.headers, (h) => {
-      if(h.enabled) {
+      if (h.enabled) {
         headers[h.name] = h.value;
       }
     });
@@ -44,7 +44,7 @@ const sendHttpRequest = async (request, options) => {
       headers: headers
     };
 
-    if(request.body.mode === 'json') {
+    if (request.body.mode === 'json') {
       axiosRequest.headers['content-type'] = 'application/json';
       try {
         axiosRequest.data = JSON.parse(request.body.json);
@@ -53,28 +53,28 @@ const sendHttpRequest = async (request, options) => {
       }
     }
 
-    if(request.body.mode === 'text') {
+    if (request.body.mode === 'text') {
       axiosRequest.headers['content-type'] = 'text/plain';
       axiosRequest.data = request.body.text;
     }
 
-    if(request.body.mode === 'xml') {
+    if (request.body.mode === 'xml') {
       axiosRequest.headers['content-type'] = 'text/xml';
       axiosRequest.data = request.body.xml;
     }
 
-    if(request.body.mode === 'formUrlEncoded') {
+    if (request.body.mode === 'formUrlEncoded') {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
       const params = {};
-      const enabledParams = filter(request.body.formUrlEncoded, p => p.enabled);
-      each(enabledParams, (p) => params[p.name] = p.value);
+      const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
+      each(enabledParams, (p) => (params[p.name] = p.value));
       axiosRequest.data = qs.stringify(params);
     }
 
-    if(request.body.mode === 'multipartForm') {
+    if (request.body.mode === 'multipartForm') {
       const params = {};
-      const enabledParams = filter(request.body.multipartForm, p => p.enabled);
-      each(enabledParams, (p) => params[p.name] = p.value);
+      const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
+      each(enabledParams, (p) => (params[p.name] = p.value));
       axiosRequest.headers['content-type'] = 'multipart/form-data';
       axiosRequest.data = params;
     }
@@ -82,21 +82,18 @@ const sendHttpRequest = async (request, options) => {
     console.log('>>> Sending Request');
     console.log(axiosRequest);
 
-    if(isElectron()) {
-      ipcRenderer
-      .invoke('send-http-request', axiosRequest, options)
-      .then(resolve)
-      .catch(reject);
+    if (isElectron()) {
+      ipcRenderer.invoke('send-http-request', axiosRequest, options).then(resolve).catch(reject);
     } else {
-      sendHttpRequestInBrowser(axiosRequest, options)
-      .then(resolve)
-      .catch(reject);
+      sendHttpRequestInBrowser(axiosRequest, options).then(resolve).catch(reject);
     }
   });
 };
 
-const sendGraphqlRequest = async (request,) => {
-  const query = gql`${request.request.body.graphql.query}`;
+const sendGraphqlRequest = async (request) => {
+  const query = gql`
+    ${request.request.body.graphql.query}
+  `;
 
   const { data, errors, extensions, headers, status } = await rawRequest(request.request.url, query);
 
@@ -105,26 +102,23 @@ const sendGraphqlRequest = async (request,) => {
     headers,
     data,
     errors
-  }
+  };
 };
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {
-  if(isElectron()) {
+  if (isElectron()) {
     return new Promise((resolve, reject) => {
-      ipcRenderer
-        .invoke('cancel-http-request', cancelTokenUid)
-        .then(resolve)
-        .catch(reject);
+      ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
     });
   }
 
   return new Promise((resolve, reject) => {
-    if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
+    if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
       cancelTokens[cancelTokenUid].cancel();
       deleteCancelToken(cancelTokenUid);
       resolve();
     } else {
-      reject(new Error("cancel token not found"));
+      reject(new Error('cancel token not found'));
     }
   });
 };

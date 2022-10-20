@@ -2,7 +2,7 @@ import trim from 'lodash/trim';
 import path from 'path';
 
 export const isElectron = () => {
-  if(!window) {
+  if (!window) {
     return false;
   }
 
@@ -24,4 +24,3 @@ export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
 };
-

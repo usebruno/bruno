@@ -35,15 +35,19 @@ export const loadWorkspacesFromIdb = () => (dispatch) => {
   return new Promise((resolve, reject) => {
     getWorkspacesFromIdb(window.__idb)
       .then((workspaces) => {
-        if(!workspaces || !workspaces.length) {
+        if (!workspaces || !workspaces.length) {
           return seedWorkpace();
         }
 
         return workspaces;
       })
-      .then((workspaces) => dispatch(loadWorkspaces({
-        workspaces: workspaces
-      })))
+      .then((workspaces) =>
+        dispatch(
+          loadWorkspaces({
+            workspaces: workspaces
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -60,9 +64,13 @@ export const addWorkspace = (workspaceName) => (dispatch) => {
     workspaceSchema
       .validate(newWorkspace)
       .then(() => saveWorkspaceToIdb(window.__idb, newWorkspace))
-      .then(() => dispatch(_addWorkspace({
-        workspace: newWorkspace
-      })))
+      .then(() =>
+        dispatch(
+          _addWorkspace({
+            workspace: newWorkspace
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -74,7 +82,7 @@ export const renameWorkspace = (newName, uid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const workspace = find(state.workspaces.workspaces, (w) => w.uid === uid);
 
-    if(!workspace) {
+    if (!workspace) {
       return reject(new Error('Workspace not found'));
     }
 
@@ -84,10 +92,14 @@ export const renameWorkspace = (newName, uid) => (dispatch, getState) => {
     workspaceSchema
       .validate(workspaceCopy)
       .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
-      .then(() => dispatch(_renameWorkspace({
-        uid: uid,
-        name: newName
-      })))
+      .then(() =>
+        dispatch(
+          _renameWorkspace({
+            uid: uid,
+            name: newName
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -97,20 +109,24 @@ export const deleteWorkspace = (workspaceUid) => (dispatch, getState) => {
   const state = getState();
 
   return new Promise((resolve, reject) => {
-    if(state.workspaces.activeWorkspaceUid === workspaceUid) {
-      throw new Error("User cannot delete current workspace");
+    if (state.workspaces.activeWorkspaceUid === workspaceUid) {
+      throw new Error('User cannot delete current workspace');
     }
 
     const workspace = find(state.workspaces.workspaces, (w) => w.uid === workspaceUid);
 
-    if(!workspace) {
+    if (!workspace) {
       return reject(new Error('Workspace not found'));
     }
 
     deleteWorkspaceInIdb(window.__idb, workspaceUid)
-      .then(() => dispatch(_deleteWorkspace({
-        workspaceUid: workspaceUid
-      })))
+      .then(() =>
+        dispatch(
+          _deleteWorkspace({
+            workspaceUid: workspaceUid
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -123,34 +139,40 @@ export const addCollectionToWorkspace = (workspaceUid, collectionUid) => (dispat
     const workspace = find(state.workspaces.workspaces, (w) => w.uid === workspaceUid);
     const collection = find(state.collections.collections, (c) => c.uid === collectionUid);
 
-    if(!workspace) {
+    if (!workspace) {
       return reject(new Error('Workspace not found'));
     }
 
-    if(!collection) {
+    if (!collection) {
       return reject(new Error('Collection not found'));
     }
 
     const workspaceCopy = cloneDeep(workspace);
-    if(workspaceCopy.collections && workspace.collections.length) {
-      if(!findCollectionInWorkspace(workspace, collectionUid)) {
+    if (workspaceCopy.collections && workspace.collections.length) {
+      if (!findCollectionInWorkspace(workspace, collectionUid)) {
         workspaceCopy.collections.push({
           uid: collectionUid
         });
       }
     } else {
-      workspaceCopy.collections = [{
-        uid: collectionUid
-      }];
+      workspaceCopy.collections = [
+        {
+          uid: collectionUid
+        }
+      ];
     }
 
     workspaceSchema
       .validate(workspaceCopy)
       .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
-      .then(() => dispatch(_addCollectionToWorkspace({
-        workspaceUid: workspaceUid,
-        collectionUid: collectionUid
-      })))
+      .then(() =>
+        dispatch(
+          _addCollectionToWorkspace({
+            workspaceUid: workspaceUid,
+            collectionUid: collectionUid
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -163,26 +185,30 @@ export const removeCollectionFromWorkspace = (workspaceUid, collectionUid) => (d
     const workspace = find(state.workspaces.workspaces, (w) => w.uid === workspaceUid);
     const collection = find(state.collections.collections, (c) => c.uid === collectionUid);
 
-    if(!workspace) {
+    if (!workspace) {
       return reject(new Error('Workspace not found'));
     }
 
-    if(!collection) {
+    if (!collection) {
       return reject(new Error('Collection not found'));
     }
 
     const workspaceCopy = cloneDeep(workspace);
-    if(workspaceCopy.collections && workspace.collections.length) {
+    if (workspaceCopy.collections && workspace.collections.length) {
       workspaceCopy.collections = filter(workspaceCopy.collections, (c) => c.uid !== collectionUid);
     }
 
     workspaceSchema
       .validate(workspaceCopy)
       .then(() => saveWorkspaceToIdb(window.__idb, workspaceCopy))
-      .then(() => dispatch(_removeCollectionFromWorkspace({
-        workspaceUid: workspaceUid,
-        collectionUid: collectionUid
-      })))
+      .then(() =>
+        dispatch(
+          _removeCollectionFromWorkspace({
+            workspaceUid: workspaceUid,
+            collectionUid: collectionUid
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });

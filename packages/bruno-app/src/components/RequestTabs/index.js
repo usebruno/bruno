@@ -21,38 +21,36 @@ const RequestTabs = () => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
 
   const getTabClassname = (tab, index) => {
-    return classnames("request-tab select-none", {
-      'active': tab.uid === activeTabUid,
-      'last-tab': tabs && tabs.length && (index === tabs.length - 1) 
+    return classnames('request-tab select-none', {
+      active: tab.uid === activeTabUid,
+      'last-tab': tabs && tabs.length && index === tabs.length - 1
     });
   };
 
   const handleClick = (tab) => {
-    dispatch(focusTab({
-      uid: tab.uid
-    }));
+    dispatch(
+      focusTab({
+        uid: tab.uid
+      })
+    );
   };
 
   const createNewTab = () => setNewRequestModalOpen(true);
 
-  if(!activeTabUid) {
+  if (!activeTabUid) {
     return null;
   }
 
   const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-  if(!activeTab) {
-    return (
-      <StyledWrapper>
-        Something went wrong!
-      </StyledWrapper>
-    );
+  if (!activeTab) {
+    return <StyledWrapper>Something went wrong!</StyledWrapper>;
   }
 
   const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
   const collectionRequestTabs = filter(tabs, (t) => t.collectionUid === activeTab.collectionUid);
 
   const maxTablistWidth = screenWidth - leftSidebarWidth - 150;
-  const tabsWidth = (collectionRequestTabs.length * 150) + 34; // 34: (+)icon
+  const tabsWidth = collectionRequestTabs.length * 150 + 34; // 34: (+)icon
   const showChevrons = maxTablistWidth < tabsWidth;
 
   const leftSlide = () => {
@@ -81,16 +79,16 @@ const RequestTabs = () => {
   // Todo: Must support ephermal requests
   return (
     <StyledWrapper className={getRootClassname()}>
-      {newRequestModalOpen && <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)}/>}
+      {newRequestModalOpen && <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection}/>
+          <CollectionToolBar collection={activeCollection} />
           <div className="flex items-center pl-4">
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>
                   <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5}/>
+                    <IconChevronLeft size={18} strokeWidth={1.5} />
                   </div>
                 </li>
               ) : null}
@@ -101,28 +99,30 @@ const RequestTabs = () => {
                 </div>
               </li> */}
             </ul>
-            <ul role="tablist" style={{maxWidth: maxTablistWidth}} ref={tabsRef}>
-              {collectionRequestTabs && collectionRequestTabs.length ? collectionRequestTabs.map((tab, index) => {
-                return (
-                  <li key={tab.uid} className={getTabClassname(tab, index)} role="tab" onClick={() => handleClick(tab)}>
-                    <RequestTab key={tab.uid} tab={tab} collection={activeCollection} activeTab={activeTab}/>
-                  </li>
-                )
-              }) : null}
+            <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
+              {collectionRequestTabs && collectionRequestTabs.length
+                ? collectionRequestTabs.map((tab, index) => {
+                    return (
+                      <li key={tab.uid} className={getTabClassname(tab, index)} role="tab" onClick={() => handleClick(tab)}>
+                        <RequestTab key={tab.uid} tab={tab} collection={activeCollection} activeTab={activeTab} />
+                      </li>
+                    );
+                  })
+                : null}
             </ul>
-            
+
             <ul role="tablist">
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={rightSlide}>
                   <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5}/>
+                    <IconChevronRight size={18} strokeWidth={1.5} />
                   </div>
                 </li>
               ) : null}
               <li className="select-none short-tab" onClick={createNewTab}>
                 <div className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor"  viewBox="0 0 16 16">
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
                   </svg>
                 </div>
               </li>

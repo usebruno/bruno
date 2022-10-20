@@ -11,18 +11,17 @@ const initialState = {
   currentUser: null
 };
 
-export const AuthProvider = props => {
+export const AuthProvider = (props) => {
   const router = useRouter();
   const [state, dispatch] = useReducer(reducer, initialState);
-  
+
   useEffect(() => {
-    AuthApi
-      .whoami()
+    AuthApi.whoami()
       .then((response) => {
         let data = response.data;
         dispatch({
           type: 'WHOAMI_SUCCESS',
-          user : {
+          user: {
             id: data.id,
             name: data.name,
             username: data.username
@@ -38,10 +37,10 @@ export const AuthProvider = props => {
   }, []);
 
   useEffect(() => {
-    if(state.lastStateTransition === 'LOGIN_SUCCESS') {
+    if (state.lastStateTransition === 'LOGIN_SUCCESS') {
       router.push('/');
     }
-    if(state.lastStateTransition === 'WHOAMI_ERROR') {
+    if (state.lastStateTransition === 'WHOAMI_ERROR') {
       // Todo: decide action
       // router.push('/login');
     }

@@ -9,9 +9,8 @@ const StyledWrapper = styled.div`
     border: 0.25em solid currentColor;
     border-right-color: transparent;
     border-radius: 50%;
-    animation: spinner-border .75s linear infinite;
+    animation: spinner-border 0.75s linear infinite;
   }
 `;
 
 export default StyledWrapper;
-

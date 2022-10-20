@@ -5,7 +5,7 @@ import ReduxStore from 'providers/ReduxStore';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
 
-import '../styles/globals.css'
+import '../styles/globals.css';
 import 'tailwindcss/dist/tailwind.min.css';
 import 'react-tabs/style/react-tabs.css';
 import 'codemirror/lib/codemirror.css';
@@ -14,25 +14,17 @@ import 'graphiql/graphiql.min.css';
 import '../styles/app.scss';
 
 function SafeHydrate({ children }) {
-  return (
-    <div suppressHydrationWarning>
-      {typeof window === 'undefined' ? null : children}
-    </div>
-  )
+  return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
 }
 
 function NoSsr({ children }) {
   const SERVER_RENDERED = typeof navigator === 'undefined';
 
-  if(SERVER_RENDERED) {
+  if (SERVER_RENDERED) {
     return null;
   }
 
-  return (
-    <>
-      {children}
-    </>
-  )
+  return <>{children}</>;
 }
 
 function MyApp({ Component, pageProps }) {
@@ -42,7 +34,7 @@ function MyApp({ Component, pageProps }) {
         <Provider store={ReduxStore}>
           <AppProvider>
             <HotkeysProvider>
-              <Toaster toastOptions={{duration: 2000}}/>
+              <Toaster toastOptions={{ duration: 2000 }} />
               <Component {...pageProps} />
             </HotkeysProvider>
           </AppProvider>
@@ -52,4 +44,4 @@ function MyApp({ Component, pageProps }) {
   );
 }
 
-export default MyApp
+export default MyApp;

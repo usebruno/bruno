@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   isDragging: false,
@@ -38,14 +38,6 @@ export const appSlice = createSlice({
   }
 });
 
-export const {
-  idbConnectionReady,
-  toggleLeftMenuBar,
-  refreshScreenWidth,
-  updateLeftSidebarWidth,
-  updateIsDragging,
-  showHomePage,
-  hideHomePage
-} = appSlice.actions;
+export const { idbConnectionReady, toggleLeftMenuBar, refreshScreenWidth, updateLeftSidebarWidth, updateIsDragging, showHomePage, hideHomePage } = appSlice.actions;
 
 export default appSlice.reducer;

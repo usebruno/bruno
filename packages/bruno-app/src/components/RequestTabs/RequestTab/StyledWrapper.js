@@ -8,7 +8,7 @@ const StyledWrapper = styled.div`
   .tab-name {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;      
+    white-space: nowrap;
   }
 
   .close-icon-container {
@@ -25,16 +25,16 @@ const StyledWrapper = styled.div`
       padding-top: 6px;
     }
 
-    &:hover, &:hover .close-icon {
+    &:hover,
+    &:hover .close-icon {
       background-color: #eaeaea;
       color: rgb(76 76 76);
     }
 
-    .has-changes-icon  {
+    .has-changes-icon {
       height: 24px;
     }
   }
 `;
 
 export default StyledWrapper;
-

@@ -36,7 +36,7 @@ export const getCollectionsFromIdb = (connection) => {
         return collectionStore.getAll();
       })
       .then((collections) => {
-        if(!Array.isArray(collections)) {
+        if (!Array.isArray(collections)) {
           return new Error('IDB Corrupted');
         }
 

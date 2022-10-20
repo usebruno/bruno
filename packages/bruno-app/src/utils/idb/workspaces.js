@@ -7,8 +7,8 @@ export const saveWorkspaceToIdb = (connection, workspace) => {
         let tx = db.transaction(`workspace`, 'readwrite');
         let workspaceStore = tx.objectStore('workspace');
 
-        if(isArray(workspace)) {
-          for(let c of workspace) {
+        if (isArray(workspace)) {
+          for (let c of workspace) {
             workspaceStore.put(c);
           }
         } else {
@@ -48,7 +48,7 @@ export const getWorkspacesFromIdb = (connection) => {
         return workspaceStore.getAll();
       })
       .then((workspaces) => {
-        if(!Array.isArray(workspaces)) {
+        if (!Array.isArray(workspaces)) {
           return new Error('IDB Corrupted');
         }
 

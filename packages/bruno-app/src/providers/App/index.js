@@ -6,7 +6,7 @@ import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 
 export const AppContext = React.createContext();
 
-export const AppProvider = props => {
+export const AppProvider = (props) => {
   useIdb();
   useLocalCollectionTreeSync();
 
@@ -27,7 +27,7 @@ export const AppProvider = props => {
   }, []);
 
   return (
-    <AppContext.Provider {...props} value='appProvider'>
+    <AppContext.Provider {...props} value="appProvider">
       {props.children}
     </AppContext.Provider>
   );

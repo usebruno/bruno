@@ -37,33 +37,33 @@ export default class QueryEditor extends React.Component {
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       readOnly: this.props.readOnly ? 'nocursor' : false,
       extraKeys: {
         'Cmd-Enter': () => {
-          if(this.props.onRun) {
+          if (this.props.onRun) {
             this.props.onRun();
           }
         },
         'Ctrl-Enter': () => {
-          if(this.props.onRun) {
+          if (this.props.onRun) {
             this.props.onRun();
           }
         },
         'Cmd-S': () => {
-          if(this.props.onSave) {
+          if (this.props.onSave) {
             this.props.onSave();
           }
         },
         'Ctrl-S': () => {
-          if(this.props.onSave) {
+          if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Tab': function(cm){
-          cm.replaceSelection("  " , "end");
+        Tab: function (cm) {
+          cm.replaceSelection('  ', 'end');
         }
-      },
+      }
     }));
     if (editor) {
       editor.on('change', this._onEdit);
@@ -82,14 +82,10 @@ export default class QueryEditor extends React.Component {
       this.editor.options.jump.schema = this.props.schema;
       CodeMirror.signal(this.editor, 'change', this.editor);
     }
-    if (
-      this.props.value !== prevProps.value &&
-      this.props.value !== this.cachedValue &&
-      this.editor
-    ) {
+    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
-      this.editor.setOption("mode", this.props.mode);
+      this.editor.setOption('mode', this.props.mode);
     }
     this.ignoreChangeEvent = false;
   }
@@ -106,7 +102,7 @@ export default class QueryEditor extends React.Component {
       <StyledWrapper
         className="h-full"
         aria-label="Code Editor"
-        ref={node => {
+        ref={(node) => {
           this._node = node;
         }}
       />

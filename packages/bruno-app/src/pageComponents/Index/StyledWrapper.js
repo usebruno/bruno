@@ -13,7 +13,8 @@ const Wrapper = styled.div`
   section.main {
     display: flex;
 
-    section.request-pane, section.response-pane {
+    section.request-pane,
+    section.response-pane {
     }
   }
 

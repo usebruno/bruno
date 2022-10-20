@@ -22,7 +22,7 @@ const Wrapper = styled.div`
       background: #e2e6ea;
       border: solid 1px #dae0e5;
     }
-    
+
     .field-error {
       font-size: 0.875rem;
     }

@@ -37,7 +37,7 @@ const Wrapper = styled.div`
     width: 6px;
     right: -3px;
 
-    &:hover div.drag-request-border{
+    &:hover div.drag-request-border {
       width: 2px;
       height: 100%;
       border-left: solid 1px var(--color-request-dragbar-background-active);

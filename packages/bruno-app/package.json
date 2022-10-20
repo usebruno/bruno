@@ -5,16 +5,17 @@
     "dev": "next dev",
     "build": "next build && next export",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
-    "@usebruno/schema": "0.1.0",
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
+    "@usebruno/schema": "0.1.0",
     "axios": "^0.26.0",
     "classnames": "^2.3.1",
     "codemirror": "^5.65.2",
@@ -57,6 +58,7 @@
     "html-loader": "^3.0.1",
     "html-webpack-plugin": "^5.5.0",
     "mini-css-extract-plugin": "^2.4.5",
+    "prettier": "^2.7.1",
     "style-loader": "^3.3.1",
     "webpack": "^5.64.4",
     "webpack-cli": "^4.9.1"

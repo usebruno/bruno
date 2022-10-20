@@ -1,21 +1,18 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const ResponseSize = ({size}) => {
-  let sizeToDisplay = ''
+const ResponseSize = ({ size }) => {
+  let sizeToDisplay = '';
 
-  if(size > 1024 ) { // size is greater than 1kb
-    let kb =  Math.floor(size / 1024);
-    let decimal =  ((size % 1024) / 1024).toFixed(2) * 100;
-    sizeToDisplay = kb + '.' +  decimal + 'KB';
+  if (size > 1024) {
+    // size is greater than 1kb
+    let kb = Math.floor(size / 1024);
+    let decimal = ((size % 1024) / 1024).toFixed(2) * 100;
+    sizeToDisplay = kb + '.' + decimal + 'KB';
   } else {
-    sizeToDisplay = size + 'B'
+    sizeToDisplay = size + 'B';
   }
 
-  return (
-    <StyledWrapper className="ml-4">
-      {sizeToDisplay}
-    </StyledWrapper>
-  )
+  return <StyledWrapper className="ml-4">{sizeToDisplay}</StyledWrapper>;
 };
 export default ResponseSize;

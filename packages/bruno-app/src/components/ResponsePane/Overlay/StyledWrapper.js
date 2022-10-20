@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  div.overlay{
+  div.overlay {
     position: absolute;
     top: 0;
     right: 0;
@@ -18,4 +18,3 @@ const StyledWrapper = styled.div`
 `;
 
 export default StyledWrapper;
-

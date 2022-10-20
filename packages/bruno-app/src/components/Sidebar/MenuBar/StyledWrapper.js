@@ -9,7 +9,8 @@ const Wrapper = styled.div`
     padding: 0.6rem;
     cursor: pointer;
 
-    &:hover, &.active {
+    &:hover,
+    &.active {
       color: rgba(255, 255, 255);
     }
   }

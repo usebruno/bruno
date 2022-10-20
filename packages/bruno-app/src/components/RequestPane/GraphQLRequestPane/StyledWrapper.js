@@ -18,7 +18,11 @@ const StyledWrapper = styled.div`
       color: rgb(125 125 125);
       outline: none !important;
 
-      &:focus, &:active, &:focus-within, &:focus-visible, &:target {
+      &:focus,
+      &:active,
+      &:focus-within,
+      &:focus-visible,
+      &:target {
         outline: none !important;
         box-shadow: none !important;
       }
@@ -38,7 +42,11 @@ const StyledWrapper = styled.div`
     outline: none !important;
     box-shadow: none !important;
 
-    &:focus, &:active, &:focus-within, &:focus-visible, &:target {
+    &:focus,
+    &:active,
+    &:focus-within,
+    &:focus-visible,
+    &:target {
       border: none;
       outline: none !important;
       box-shadow: none !important;
@@ -49,7 +57,6 @@ const StyledWrapper = styled.div`
       box-shadow: none !important;
     }
   }
-
 `;
 
 export default StyledWrapper;

@@ -20,7 +20,7 @@ const reducer = (state, action) => {
 
     case 'UPDATE_VAR': {
       return produce(state, (draft) => {
-        const variable = find(draft.variables,  (v) => v.uid === action.variable.uid);
+        const variable = find(draft.variables, (v) => v.uid === action.variable.uid);
         variable.name = action.variable.name;
         variable.value = action.variable.value;
         variable.enabled = action.variable.enabled;

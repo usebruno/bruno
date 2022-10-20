@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-workspace {
-    margin-inline: .5rem;
+    margin-inline: 0.5rem;
     background: #e1e1e1;
     border-radius: 5px;
 

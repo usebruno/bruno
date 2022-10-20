@@ -9,7 +9,7 @@ import sortBy from 'lodash/sortBy';
 import { uuid } from 'utils/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
-  if(!str || !str.length || !isString(str)) {
+  if (!str || !str.length || !isString(str)) {
     return '';
   }
 
@@ -21,11 +21,11 @@ export const addDepth = (items = []) => {
     each(itms, (i) => {
       i.depth = initialDepth;
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         depth(i.items, initialDepth + 1);
       }
-    })
-  }
+    });
+  };
 
   depth(items, 1);
 };
@@ -37,23 +37,23 @@ export const collapseCollection = (collection) => {
     each(items, (i) => {
       i.collapsed = true;
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         collapseItem(i.items);
       }
-    })
-  }
+    });
+  };
 
   collapseItem(collection.items, 1);
 };
 
 export const sortItems = (collection) => {
   const sort = (obj) => {
-    if(obj.items && obj.items.length) {
+    if (obj.items && obj.items.length) {
       obj.items = sortBy(obj.items, 'type');
     }
 
     each(obj.items, (i) => sort(i));
-  }
+  };
 
   sort(collection);
 };
@@ -65,11 +65,11 @@ export const flattenItems = (items = []) => {
     each(itms, (i) => {
       flattened.push(i);
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         flatten(i.items, flattened);
       }
-    })
-  }
+    });
+  };
 
   flatten(items, flattenedItems);
 
@@ -96,21 +96,21 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
-}
+};
 
 export const findItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
-}
+};
 
 export const findParentItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
-    return item.items && find(item.items, i => i.uid === itemUid);
+    return item.items && find(item.items, (i) => i.uid === itemUid);
   });
-}
+};
 
 export const recursivelyGetAllItemUids = (items = []) => {
   let flattenedItems = flattenItems(items);
@@ -120,7 +120,7 @@ export const recursivelyGetAllItemUids = (items = []) => {
 
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
-}
+};
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -131,7 +131,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         value: header.value,
         description: header.description,
         enabled: header.enabled
-      }
+      };
     });
   };
 
@@ -143,7 +143,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         value: param.value,
         description: param.description,
         enabled: param.enabled
-      }
+      };
     });
   };
 
@@ -155,7 +155,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         value: param.value,
         description: param.description,
         enabled: param.enabled
-      }
+      };
     });
   };
 
@@ -167,7 +167,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         value: param.value,
         description: param.description,
         enabled: param.enabled
-      }
+      };
     });
   };
 
@@ -184,8 +184,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
       // The condition "!options.ignoreDraft" may appear confusing
       // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
       // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if(si.draft && !options.ignoreDraft) {
-        if(si.draft.request) {
+      if (si.draft && !options.ignoreDraft) {
+        if (si.draft.request) {
           di.request = {
             url: si.draft.request.url,
             method: si.draft.request.method,
@@ -203,13 +203,13 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
           };
         }
       } else {
-        if(si.request) {
+        if (si.request) {
           di.request = {
             url: si.request.url,
             method: si.request.method,
             headers: copyHeaders(si.request.headers),
             params: copyQueryParams(si.request.params),
-            body:  {
+            body: {
               mode: si.request.body.mode,
               json: si.request.body.json,
               text: si.request.body.text,
@@ -217,27 +217,27 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             }
-          }
-        };
+          };
+        }
       }
 
-      if(di.request && di.request.body.mode === 'json') {
+      if (di.request && di.request.body.mode === 'json') {
         di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
       }
 
       destItems.push(di);
 
-      if(si.items && si.items.length) {
+      if (si.items && si.items.length) {
         di.items = [];
         copyItems(si.items, di.items);
       }
     });
-  }
+  };
 
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
-  
+
   // todo: move this to the place where collection gets created
   collectionToSave.version = '1';
   collectionToSave.items = [];
@@ -280,11 +280,11 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: header.name,
       value: header.value,
       description: header.description,
-      enabled: header.enabled,
+      enabled: header.enabled
     });
   });
 
-  if(itemToSave.request.body.mode === 'json') {
+  if (itemToSave.request.body.mode === 'json') {
     itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
   }
 
@@ -298,16 +298,14 @@ export const deleteItemInCollection = (itemUid, collection) => {
   let flattenedItems = flattenItems(collection.items);
 
   each(flattenedItems, (i) => {
-    if(i.items && i.items.length) {
+    if (i.items && i.items.length) {
       i.items = filter(i.items, (i) => i.uid !== itemUid);
     }
   });
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request')
-            && ['http-request', 'graphql-request'].includes(item.type)
-            && !item.items;
+  return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
@@ -316,7 +314,7 @@ export const isItemAFolder = (item) => {
 
 export const humanizeRequestBodyMode = (mode) => {
   let label = 'No Body';
-  switch(mode) {
+  switch (mode) {
     case 'json': {
       label = 'JSON';
       break;
@@ -345,13 +343,13 @@ export const humanizeRequestBodyMode = (mode) => {
 export const refreshUidsInItem = (item) => {
   item.uid = uuid();
 
-  each(get(item, 'request.headers'), (header) => header.uid = uuid());
-  each(get(item, 'request.params'), (param) => param.uid = uuid());
-  each(get(item, 'request.body.multipartForm'), (param) => param.uid = uuid());
-  each(get(item, 'request.body.formUrlEncoded'), (param) => param.uid = uuid());
+  each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
+  each(get(item, 'request.params'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
 
   return item;
-}
+};
 
 export const isLocalCollection = (collection) => {
   return collection.pathname ? true : false;
@@ -367,7 +365,7 @@ export const interpolateEnvironmentVars = (item, variables) => {
   const templateOpts = {
     interpolate: /{{([\s\S]+?)}}/g, //interpolate content using markers `{{}}`
     evaluate: null, // prevent any js evaluation
-    escape: null, // disable any escaping
+    escape: null // disable any escaping
   };
 
   const interpolate = (str) => template(str, templateOpts)(envVars);
@@ -382,7 +380,7 @@ export const interpolateEnvironmentVars = (item, variables) => {
   });
 
   // Todo: Make interpolation work with body mode json
-  switch(request.body.mode) {
+  switch (request.body.mode) {
     case 'text': {
       request.body.text = interpolate(request.body.text);
       break;

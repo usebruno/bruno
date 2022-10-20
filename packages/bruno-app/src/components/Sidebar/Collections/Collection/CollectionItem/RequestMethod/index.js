@@ -2,14 +2,14 @@ import React from 'react';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 
-const RequestMethod = ({item}) => {
-  if(!['http-request', 'graphql-request'].includes(item.type)) {
+const RequestMethod = ({ item }) => {
+  if (!['http-request', 'graphql-request'].includes(item.type)) {
     return null;
   }
 
   const getClassname = (method = '') => {
     method = method.toLocaleLowerCase();
-    return classnames("mr-1", {
+    return classnames('mr-1', {
       'method-get': method === 'get',
       'method-post': method === 'post',
       'method-put': method === 'put',

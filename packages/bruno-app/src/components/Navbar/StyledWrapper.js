@@ -14,7 +14,6 @@ const StyledWrapper = styled.div`
       user-select: none;
     }
   }
-  
 `;
 
 export default StyledWrapper;

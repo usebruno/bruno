@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   margin-inline: -1rem;
@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     padding: 8px 10px;
     border-left: solid 2px transparent;
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: none;
       background-color: #e4e4e4;
