@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const StyledWrapper = styled.div`
   .collection-dropdown {
@@ -14,7 +14,6 @@ const StyledWrapper = styled.div`
       user-select: none;
     }
   }
-  
 `;
 
 export default StyledWrapper;

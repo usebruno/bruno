@@ -1,121 +1,134 @@
-const { expect } = require('@jest/globals');
+const { expect } = require("@jest/globals");
 const { uuid } = require("../utils/testUtils");
 const { collectionSchema } = require("./index");
 
-describe('Collection Schema Validation', () => {
-  it('collection schema must validate successfully - simple collection, no items', async () => {
+describe("Collection Schema Validation", () => {
+  it("collection schema must validate successfully - simple collection, no items", async () => {
     const collection = {
-      version: '1',
+      version: "1",
       uid: uuid(),
-      name: 'My Collection'
+      name: "My Collection",
     };
 
     const isValid = await collectionSchema.validate(collection);
     expect(isValid).toBeTruthy();
   });
 
-  it('collection schema must validate successfully - simple collection, empty items', async () => {
+  it("collection schema must validate successfully - simple collection, empty items", async () => {
     const collection = {
-      version: '1',
+      version: "1",
       uid: uuid(),
-      name: 'My Collection',
-      items: []
+      name: "My Collection",
+      items: [],
     };
 
     const isValid = await collectionSchema.validate(collection);
     expect(isValid).toBeTruthy();
   });
 
-  it('collection schema must validate successfully - simple collection, just a folder item', async () => {
+  it("collection schema must validate successfully - simple collection, just a folder item", async () => {
     const collection = {
-      version: '1',
+      version: "1",
       uid: uuid(),
-      name: 'My Collection',
-      items: [{
-        uid: uuid(),
-        name: 'A Folder',
-        type: 'folder'
-      }]
-    };
-
-    const isValid = await collectionSchema.validate(collection);
-    expect(isValid).toBeTruthy();
-  });
-
-  it('collection schema must validate successfully - simple collection, just a request item', async () => {
-    const collection = {
-      version: '1',
-      uid: uuid(),
-      name: 'My Collection',
-      items: [{
-        uid: uuid(),
-        name: 'Get Countries',
-        type: 'http-request',
-        request: {
-          url: 'https://restcountries.com/v2/alpha/in',
-          method: 'GET',
-          headers: [],
-          params: [],
-          body: {
-            mode: 'none'
-          }
-        }
-      }]
-    };
-
-    const isValid = await collectionSchema.validate(collection);
-    expect(isValid).toBeTruthy();
-  });
-
-  it('collection schema must validate successfully - simple collection, folder inside folder', async () => {
-    const collection = {
-      version: '1',
-      uid: uuid(),
-      name: 'My Collection',
-      items: [{
-        uid: uuid(),
-        name: 'First Level Folder',
-        type: 'folder',
-        items: [{
+      name: "My Collection",
+      items: [
+        {
           uid: uuid(),
-          name: 'Second Level Folder',
-          type: 'folder'
-        }]
-      }]
+          name: "A Folder",
+          type: "folder",
+        },
+      ],
     };
 
     const isValid = await collectionSchema.validate(collection);
     expect(isValid).toBeTruthy();
   });
 
-  it('collection schema must validate successfully - simple collection, [folder] [request + folder]', async () => {
+  it("collection schema must validate successfully - simple collection, just a request item", async () => {
     const collection = {
-      version: '1',
+      version: "1",
       uid: uuid(),
-      name: 'My Collection',
-      items: [{
-        uid: uuid(),
-        name: 'First Level Folder',
-        type: 'folder',
-        items: [{
+      name: "My Collection",
+      items: [
+        {
           uid: uuid(),
-          name: 'Get Countries',
-          type: 'http-request',
+          name: "Get Countries",
+          type: "http-request",
           request: {
-            url: 'https://restcountries.com/v2/alpha/in',
-            method: 'GET',
+            url: "https://restcountries.com/v2/alpha/in",
+            method: "GET",
             headers: [],
             params: [],
             body: {
-              mode: 'none'
-            }
-          }
-        }, {
+              mode: "none",
+            },
+          },
+        },
+      ],
+    };
+
+    const isValid = await collectionSchema.validate(collection);
+    expect(isValid).toBeTruthy();
+  });
+
+  it("collection schema must validate successfully - simple collection, folder inside folder", async () => {
+    const collection = {
+      version: "1",
+      uid: uuid(),
+      name: "My Collection",
+      items: [
+        {
           uid: uuid(),
-          name: 'Second Level Folder',
-          type: 'folder'
-        }]
-      }]
+          name: "First Level Folder",
+          type: "folder",
+          items: [
+            {
+              uid: uuid(),
+              name: "Second Level Folder",
+              type: "folder",
+            },
+          ],
+        },
+      ],
+    };
+
+    const isValid = await collectionSchema.validate(collection);
+    expect(isValid).toBeTruthy();
+  });
+
+  it("collection schema must validate successfully - simple collection, [folder] [request + folder]", async () => {
+    const collection = {
+      version: "1",
+      uid: uuid(),
+      name: "My Collection",
+      items: [
+        {
+          uid: uuid(),
+          name: "First Level Folder",
+          type: "folder",
+          items: [
+            {
+              uid: uuid(),
+              name: "Get Countries",
+              type: "http-request",
+              request: {
+                url: "https://restcountries.com/v2/alpha/in",
+                method: "GET",
+                headers: [],
+                params: [],
+                body: {
+                  mode: "none",
+                },
+              },
+            },
+            {
+              uid: uuid(),
+              name: "Second Level Folder",
+              type: "folder",
+            },
+          ],
+        },
+      ],
     };
 
     const isValid = await collectionSchema.validate(collection);

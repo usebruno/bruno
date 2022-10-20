@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   display: flex;
@@ -13,7 +13,8 @@ const Wrapper = styled.div`
   section.main {
     display: flex;
 
-    section.request-pane, section.response-pane {
+    section.request-pane,
+    section.response-pane {
     }
   }
 

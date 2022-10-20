@@ -1,10 +1,10 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   .menu-icon {
     color: rgb(110 110 110);
 
-  .dropdown {
+    .dropdown {
       div[aria-expanded="true"] {
         visibility: visible;
       }

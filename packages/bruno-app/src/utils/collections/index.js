@@ -1,19 +1,19 @@
-import template from 'lodash/template';
-import get from 'lodash/get';
-import each from 'lodash/each';
-import find from 'lodash/find';
-import isString from 'lodash/isString';
-import map from 'lodash/map';
-import filter from 'lodash/filter';
-import sortBy from 'lodash/sortBy';
-import { uuid } from 'utils/common';
+import template from "lodash/template";
+import get from "lodash/get";
+import each from "lodash/each";
+import find from "lodash/find";
+import isString from "lodash/isString";
+import map from "lodash/map";
+import filter from "lodash/filter";
+import sortBy from "lodash/sortBy";
+import { uuid } from "utils/common";
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
-  if(!str || !str.length || !isString(str)) {
-    return '';
+  if (!str || !str.length || !isString(str)) {
+    return "";
   }
 
-  return str.replaceAll('\t', ' '.repeat(numSpaces));
+  return str.replaceAll("\t", " ".repeat(numSpaces));
 };
 
 export const addDepth = (items = []) => {
@@ -21,11 +21,11 @@ export const addDepth = (items = []) => {
     each(itms, (i) => {
       i.depth = initialDepth;
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         depth(i.items, initialDepth + 1);
       }
-    })
-  }
+    });
+  };
 
   depth(items, 1);
 };
@@ -37,23 +37,23 @@ export const collapseCollection = (collection) => {
     each(items, (i) => {
       i.collapsed = true;
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         collapseItem(i.items);
       }
-    })
-  }
+    });
+  };
 
   collapseItem(collection.items, 1);
 };
 
 export const sortItems = (collection) => {
   const sort = (obj) => {
-    if(obj.items && obj.items.length) {
-      obj.items = sortBy(obj.items, 'type');
+    if (obj.items && obj.items.length) {
+      obj.items = sortBy(obj.items, "type");
     }
 
     each(obj.items, (i) => sort(i));
-  }
+  };
 
   sort(collection);
 };
@@ -65,11 +65,11 @@ export const flattenItems = (items = []) => {
     each(itms, (i) => {
       flattened.push(i);
 
-      if(i.items && i.items.length) {
+      if (i.items && i.items.length) {
         flatten(i.items, flattened);
       }
-    })
-  }
+    });
+  };
 
   flatten(items, flattenedItems);
 
@@ -96,21 +96,21 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
-}
+};
 
 export const findItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItem(flattenedItems, itemUid);
-}
+};
 
 export const findParentItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
 
   return find(flattenedItems, (item) => {
-    return item.items && find(item.items, i => i.uid === itemUid);
+    return item.items && find(item.items, (i) => i.uid === itemUid);
   });
-}
+};
 
 export const recursivelyGetAllItemUids = (items = []) => {
   let flattenedItems = flattenItems(items);
@@ -120,7 +120,7 @@ export const recursivelyGetAllItemUids = (items = []) => {
 
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
-}
+};
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const copyHeaders = (headers) => {
@@ -130,8 +130,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         name: header.name,
         value: header.value,
         description: header.description,
-        enabled: header.enabled
-      }
+        enabled: header.enabled,
+      };
     });
   };
 
@@ -142,8 +142,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         name: param.name,
         value: param.value,
         description: param.description,
-        enabled: param.enabled
-      }
+        enabled: param.enabled,
+      };
     });
   };
 
@@ -154,8 +154,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         name: param.name,
         value: param.value,
         description: param.description,
-        enabled: param.enabled
-      }
+        enabled: param.enabled,
+      };
     });
   };
 
@@ -166,8 +166,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
         name: param.name,
         value: param.value,
         description: param.description,
-        enabled: param.enabled
-      }
+        enabled: param.enabled,
+      };
     });
   };
 
@@ -175,7 +175,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
     each(sourceItems, (si) => {
       const di = {
         uid: si.uid,
-        type: si.type
+        type: si.type,
       };
 
       di.name = si.name;
@@ -184,8 +184,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
       // The condition "!options.ignoreDraft" may appear confusing
       // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
       // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if(si.draft && !options.ignoreDraft) {
-        if(si.draft.request) {
+      if (si.draft && !options.ignoreDraft) {
+        if (si.draft.request) {
           di.request = {
             url: si.draft.request.url,
             method: si.draft.request.method,
@@ -198,48 +198,48 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               xml: si.draft.request.body.xml,
               multipartForm: si.draft.request.body.multipartForm,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            }
+              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm),
+            },
           };
         }
       } else {
-        if(si.request) {
+        if (si.request) {
           di.request = {
             url: si.request.url,
             method: si.request.method,
             headers: copyHeaders(si.request.headers),
             params: copyQueryParams(si.request.params),
-            body:  {
+            body: {
               mode: si.request.body.mode,
               json: si.request.body.json,
               text: si.request.body.text,
               xml: si.request.body.xml,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            }
-          }
-        };
+              multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
+            },
+          };
+        }
       }
 
-      if(di.request && di.request.body.mode === 'json') {
+      if (di.request && di.request.body.mode === "json") {
         di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
       }
 
       destItems.push(di);
 
-      if(si.items && si.items.length) {
+      if (si.items && si.items.length) {
         di.items = [];
         copyItems(si.items, di.items);
       }
     });
-  }
+  };
 
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
-  
+
   // todo: move this to the place where collection gets created
-  collectionToSave.version = '1';
+  collectionToSave.version = "1";
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
@@ -260,8 +260,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       url: _item.request.url,
       params: [],
       headers: [],
-      body: _item.request.body
-    }
+      body: _item.request.body,
+    },
   };
 
   each(_item.request.params, (param) => {
@@ -270,7 +270,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: param.name,
       value: param.value,
       description: param.description,
-      enabled: param.enabled
+      enabled: param.enabled,
     });
   });
 
@@ -284,7 +284,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     });
   });
 
-  if(itemToSave.request.body.mode === 'json') {
+  if (itemToSave.request.body.mode === "json") {
     itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
   }
 
@@ -298,43 +298,41 @@ export const deleteItemInCollection = (itemUid, collection) => {
   let flattenedItems = flattenItems(collection.items);
 
   each(flattenedItems, (i) => {
-    if(i.items && i.items.length) {
+    if (i.items && i.items.length) {
       i.items = filter(i.items, (i) => i.uid !== itemUid);
     }
   });
 };
 
 export const isItemARequest = (item) => {
-  return item.hasOwnProperty('request')
-            && ['http-request', 'graphql-request'].includes(item.type)
-            && !item.items;
+  return item.hasOwnProperty("request") && ["http-request", "graphql-request"].includes(item.type) && !item.items;
 };
 
 export const isItemAFolder = (item) => {
-  return !item.hasOwnProperty('request') && item.type === 'folder';
+  return !item.hasOwnProperty("request") && item.type === "folder";
 };
 
 export const humanizeRequestBodyMode = (mode) => {
-  let label = 'No Body';
-  switch(mode) {
-    case 'json': {
-      label = 'JSON';
+  let label = "No Body";
+  switch (mode) {
+    case "json": {
+      label = "JSON";
       break;
     }
-    case 'text': {
-      label = 'TEXT';
+    case "text": {
+      label = "TEXT";
       break;
     }
-    case 'xml': {
-      label = 'XML';
+    case "xml": {
+      label = "XML";
       break;
     }
-    case 'formUrlEncoded': {
-      label = 'Form Url Encoded';
+    case "formUrlEncoded": {
+      label = "Form Url Encoded";
       break;
     }
-    case 'multipartForm': {
-      label = 'Multipart Form';
+    case "multipartForm": {
+      label = "Multipart Form";
       break;
     }
   }
@@ -345,13 +343,13 @@ export const humanizeRequestBodyMode = (mode) => {
 export const refreshUidsInItem = (item) => {
   item.uid = uuid();
 
-  each(get(item, 'request.headers'), (header) => header.uid = uuid());
-  each(get(item, 'request.params'), (param) => param.uid = uuid());
-  each(get(item, 'request.body.multipartForm'), (param) => param.uid = uuid());
-  each(get(item, 'request.body.formUrlEncoded'), (param) => param.uid = uuid());
+  each(get(item, "request.headers"), (header) => (header.uid = uuid()));
+  each(get(item, "request.params"), (param) => (param.uid = uuid()));
+  each(get(item, "request.body.multipartForm"), (param) => (param.uid = uuid()));
+  each(get(item, "request.body.formUrlEncoded"), (param) => (param.uid = uuid()));
 
   return item;
-}
+};
 
 export const isLocalCollection = (collection) => {
   return collection.pathname ? true : false;
@@ -382,22 +380,22 @@ export const interpolateEnvironmentVars = (item, variables) => {
   });
 
   // Todo: Make interpolation work with body mode json
-  switch(request.body.mode) {
-    case 'text': {
+  switch (request.body.mode) {
+    case "text": {
       request.body.text = interpolate(request.body.text);
       break;
     }
-    case 'xml': {
+    case "xml": {
       request.body.text = interpolate(request.body.text);
       break;
     }
-    case 'multipartForm': {
+    case "multipartForm": {
       each(request.body.multipartForm, (param) => {
         param.value = interpolate(param.value);
       });
       break;
     }
-    case 'formUrlEncoded': {
+    case "formUrlEncoded": {
       each(request.body.formUrlEncoded, (param) => {
         param.value = interpolate(param.value);
       });

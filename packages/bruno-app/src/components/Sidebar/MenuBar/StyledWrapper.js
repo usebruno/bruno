@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   background-color: rgb(44, 44, 44);
@@ -9,7 +9,8 @@ const Wrapper = styled.div`
     padding: 0.6rem;
     cursor: pointer;
 
-    &:hover, &.active {
+    &:hover,
+    &.active {
       color: rgba(255, 255, 255);
     }
   }

@@ -1,42 +1,44 @@
-const fs = require('fs');
-const path = require('path');
-const { dialog, ipcMain } = require('electron');
-const Yup = require('yup');
-const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
+const fs = require("fs");
+const path = require("path");
+const { dialog, ipcMain } = require("electron");
+const Yup = require("yup");
+const { isDirectory, normalizeAndResolvePath } = require("../utils/filesystem");
 
 const uidSchema = Yup.string()
-  .length(21, 'uid must be 21 characters in length')
-  .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
-  .required('uid is required')
+  .length(21, "uid must be 21 characters in length")
+  .matches(/^[a-zA-Z0-9]*$/, "uid must be alphanumeric")
+  .required("uid is required")
   .strict();
 
 const configSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
-  type: Yup.string().oneOf(['collection']).required('type is required'),
-  version: Yup.string().oneOf(['1']).required('type is required')
-}).noUnknown(true).strict();
+  name: Yup.string().nullable().max(256, "name must be 256 characters or less"),
+  type: Yup.string().oneOf(["collection"]).required("type is required"),
+  version: Yup.string().oneOf(["1"]).required("type is required"),
+})
+  .noUnknown(true)
+  .strict();
 
 const readConfigFile = async (pathname) => {
   try {
-    const jsonData = fs.readFileSync(pathname, 'utf8');
+    const jsonData = fs.readFileSync(pathname, "utf8");
     return JSON.parse(jsonData);
-  } catch(err) {
+  } catch (err) {
     return Promise.reject(new Error("Unable to parse json in bruno.json"));
   }
-}
+};
 
 const validateSchema = async (config) => {
   try {
     await configSchema.validate(config);
-  } catch(err) {
+  } catch (err) {
     return Promise.reject(new Error("bruno.json format is invalid"));
   }
 };
 
 const getCollectionConfigFile = async (pathname) => {
-  const configFilePath = path.join(pathname, 'bruno.json');
-  if (!fs.existsSync(configFilePath)){
+  const configFilePath = path.join(pathname, "bruno.json");
+  if (!fs.existsSync(configFilePath)) {
     throw new Error(`The collection is not valid (bruno.json not found)`);
   }
 
@@ -44,11 +46,11 @@ const getCollectionConfigFile = async (pathname) => {
   await validateSchema(config);
 
   return config;
-}
+};
 
 const openCollectionDialog = async (win, watcher) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openDirectory', 'createDirectory']
+    properties: ["openDirectory", "createDirectory"],
   });
 
   if (filePaths && filePaths[0]) {
@@ -59,32 +61,29 @@ const openCollectionDialog = async (win, watcher) => {
       console.error(`[ERROR] Cannot open unknown folder: "${resolvedPath}"`);
     }
   }
-}
+};
 
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
-  if(!watcher.hasWatcher(collectionPath)) {
+  if (!watcher.hasWatcher(collectionPath)) {
     try {
-      const {
-        uid,
-        name
-      } = await getCollectionConfigFile(collectionPath);
+      const { uid, name } = await getCollectionConfigFile(collectionPath);
 
       console.log(uid);
       console.log(name);
 
-      win.webContents.send('main:collection-opened', collectionPath, uid, name);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid);
-    } catch(err) {
-      if(!options.dontSendDisplayErrors) {
-        win.webContents.send('main:display-error', err.message || 'An error occured while opening the local collection');
+      win.webContents.send("main:collection-opened", collectionPath, uid, name);
+      ipcMain.emit("main:collection-opened", win, collectionPath, uid);
+    } catch (err) {
+      if (!options.dontSendDisplayErrors) {
+        win.webContents.send("main:display-error", err.message || "An error occured while opening the local collection");
       }
     }
   } else {
-    win.webContents.send('main:collection-already-opened', collectionPath);
+    win.webContents.send("main:collection-already-opened", collectionPath);
   }
 };
 
 module.exports = {
   openCollection,
-  openCollectionDialog
+  openCollectionDialog,
 };

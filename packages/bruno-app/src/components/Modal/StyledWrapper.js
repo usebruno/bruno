@@ -1,11 +1,11 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
-  &.modal--animate-out{
-    animation: fade-out 0.5s forwards cubic-bezier(.19,1,.22,1);
+  &.modal--animate-out {
+    animation: fade-out 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
 
     .bruno-modal-card {
-      animation: fade-and-slide-out-from-top .50s forwards cubic-bezier(.19,1,.22,1);
+      animation: fade-and-slide-out-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
     }
   }
 
@@ -23,8 +23,8 @@ const Wrapper = styled.div`
   }
 
   .bruno-modal-card {
-    animation-duration: .85s;
-    animation-delay: .1s;
+    animation-duration: 0.85s;
+    animation-delay: 0.1s;
     background: var(--color-background-top);
     border-radius: var(--border-radius);
     position: relative;
@@ -33,7 +33,7 @@ const Wrapper = styled.div`
     box-shadow: var(--box-shadow-base);
     display: flex;
     flex-direction: column;
-    will-change: opacity,transform;
+    will-change: opacity, transform;
     flex-grow: 0;
     margin: 3vh 10vw;
     margin-top: 50px;
@@ -58,7 +58,7 @@ const Wrapper = styled.div`
       max-width: calc(100% - 30px);
     }
 
-    animation: fade-and-slide-in-from-top .50s forwards cubic-bezier(.19,1,.22,1);
+    animation: fade-and-slide-in-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
   .bruno-modal-header {
@@ -102,18 +102,18 @@ const Wrapper = styled.div`
     will-change: opacity;
     background: transparent;
 
-    &:before{
+    &:before {
       content: "";
       height: 100%;
       width: 100%;
       left: 0;
-      opacity: .4;
+      opacity: 0.4;
       top: 0;
       background: black;
       position: fixed;
     }
 
-    animation: fade-in .1s forwards cubic-bezier(.19,1,.22,1);
+    animation: fade-in 0.1s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
   .bruno-modal-footer {

@@ -1,76 +1,76 @@
-import React, { useState, useEffect } from "react"
-import { useSelector, useDispatch } from "react-redux"
-import Collections from "./Collections"
-import LocalCollections from "./LocalCollections"
-import TitleBar from "./TitleBar"
-import MenuBar from "./MenuBar"
-import { IconSearch, IconChevronsRight } from "@tabler/icons"
-import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from "providers/ReduxStore/slices/app"
-import StyledWrapper from "./StyledWrapper"
-import WorkspaceSelector from "components/Workspaces/WorkspaceSelector"
+import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import Collections from "./Collections";
+import LocalCollections from "./LocalCollections";
+import TitleBar from "./TitleBar";
+import MenuBar from "./MenuBar";
+import { IconSearch, IconChevronsRight } from "@tabler/icons";
+import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from "providers/ReduxStore/slices/app";
+import StyledWrapper from "./StyledWrapper";
+import WorkspaceSelector from "components/Workspaces/WorkspaceSelector";
 
-const MIN_LEFT_SIDEBAR_WIDTH = 222
-const MAX_LEFT_SIDEBAR_WIDTH = 600
+const MIN_LEFT_SIDEBAR_WIDTH = 222;
+const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
-  const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth)
-  const leftMenuBarOpen = useSelector((state) => state.app.leftMenuBarOpen)
+  const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
+  const leftMenuBarOpen = useSelector((state) => state.app.leftMenuBarOpen);
 
-  const [asideWidth, setAsideWidth] = useState(leftSidebarWidth)
+  const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
-  const dispatch = useDispatch()
-  const [dragging, setDragging] = useState(false)
-  const [searchText, setSearchText] = useState("")
+  const dispatch = useDispatch();
+  const [dragging, setDragging] = useState(false);
+  const [searchText, setSearchText] = useState("");
 
   const handleMouseMove = (e) => {
     if (dragging) {
-      e.preventDefault()
-      let width = e.clientX + 2
+      e.preventDefault();
+      let width = e.clientX + 2;
       if (width < MIN_LEFT_SIDEBAR_WIDTH || width > MAX_LEFT_SIDEBAR_WIDTH) {
-        return
+        return;
       }
-      setAsideWidth(width)
+      setAsideWidth(width);
     }
-  }
+  };
   const handleMouseUp = (e) => {
     if (dragging) {
-      e.preventDefault()
-      setDragging(false)
+      e.preventDefault();
+      setDragging(false);
       dispatch(
         updateLeftSidebarWidth({
           leftSidebarWidth: asideWidth,
         })
-      )
+      );
       dispatch(
         updateIsDragging({
           isDragging: false,
         })
-      )
+      );
     }
-  }
+  };
   const handleDragbarMouseDown = (e) => {
-    e.preventDefault()
-    setDragging(true)
+    e.preventDefault();
+    setDragging(true);
     dispatch(
       updateIsDragging({
         isDragging: true,
       })
-    )
-  }
+    );
+  };
 
   useEffect(() => {
-    document.addEventListener("mouseup", handleMouseUp)
-    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp);
+    document.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      document.removeEventListener("mouseup", handleMouseUp)
-      document.removeEventListener("mousemove", handleMouseMove)
-    }
-  }, [dragging, asideWidth])
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+    };
+  }, [dragging, asideWidth]);
 
   useEffect(() => {
-    setAsideWidth(leftSidebarWidth)
-  }, [leftSidebarWidth])
+    setAsideWidth(leftSidebarWidth);
+  }, [leftSidebarWidth]);
 
   return (
     <StyledWrapper className="flex relative">
@@ -131,7 +131,7 @@ const Sidebar = () => {
         <div className="drag-request-border" />
       </div>
     </StyledWrapper>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;

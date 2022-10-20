@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const StyledWrapper = styled.div`
   div.tabs {
@@ -10,7 +10,11 @@ const StyledWrapper = styled.div`
       color: var(--color-tab-inactive);
       cursor: pointer;
 
-      &:focus, &:active, &:focus-within, &:focus-visible, &:target {
+      &:focus,
+      &:active,
+      &:focus-within,
+      &:focus-visible,
+      &:target {
         outline: none !important;
         box-shadow: none !important;
       }

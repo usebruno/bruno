@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const StyledWrapper = styled.div`
   padding-top: 20%;
@@ -6,4 +6,3 @@ const StyledWrapper = styled.div`
 `;
 
 export default StyledWrapper;
-

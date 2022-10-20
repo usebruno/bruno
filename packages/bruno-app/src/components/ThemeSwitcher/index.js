@@ -1,30 +1,30 @@
-import { useEffect } from "react"
-import Modal from "components/Modal/index"
-import StyledWrapper from "./StyledWrapper"
-import useLocalStorage from "src/hooks/useLocalStorage"
+import { useEffect } from "react";
+import Modal from "components/Modal/index";
+import StyledWrapper from "./StyledWrapper";
+import useLocalStorage from "src/hooks/useLocalStorage";
 
-import { IconMoon } from "@tabler/icons"
-import { useDispatch, useSelector } from "react-redux"
-import { updateTheme } from "providers/ReduxStore/slices/app"
+import { IconMoon } from "@tabler/icons";
+import { useDispatch, useSelector } from "react-redux";
+import { updateTheme } from "providers/ReduxStore/slices/app";
 
 const ThemeSwitcher = ({ onClose }) => {
-  const dispatch = useDispatch()
-  const [storedTheme, setStoredTheme] = useLocalStorage("THEME", "light")
+  const dispatch = useDispatch();
+  const [storedTheme, setStoredTheme] = useLocalStorage("THEME", "light");
   const options = [
     { title: "Light", value: "light" },
     { title: "Dark", value: "dark" },
-  ]
+  ];
 
   useEffect(() => {
-    dispatch(updateTheme({ theme: storedTheme }))
-  }, [storedTheme])
+    dispatch(updateTheme({ theme: storedTheme }));
+  }, [storedTheme]);
 
   const handleThemeChange = (e) => {
-    const { value } = e.target
+    const { value } = e.target;
 
-    setStoredTheme(value)
-    dispatch(updateTheme({ theme: value }))
-  }
+    setStoredTheme(value);
+    dispatch(updateTheme({ theme: value }));
+  };
 
   return (
     <StyledWrapper>
@@ -35,12 +35,12 @@ const ThemeSwitcher = ({ onClose }) => {
               <IconMoon size={18} />
               <select name="theme_switcher" onChange={handleThemeChange}>
                 {options.map((op) => {
-                  const { value, title } = op
+                  const { value, title } = op;
                   return (
                     <option value={value} selected={value == storedTheme}>
                       {title}
                     </option>
-                  )
+                  );
                 })}
               </select>
             </div>
@@ -48,7 +48,7 @@ const ThemeSwitcher = ({ onClose }) => {
         </div>
       </Modal>
     </StyledWrapper>
-  )
-}
+  );
+};
 
-export default ThemeSwitcher
+export default ThemeSwitcher;

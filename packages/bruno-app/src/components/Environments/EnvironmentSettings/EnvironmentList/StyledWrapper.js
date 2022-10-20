@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
     padding: 8px 10px;
     border-left: solid 2px transparent;
     text-decoration: none;
-    
+
     &:hover {
       text-decoration: none;
       background-color: #e4e4e4;

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   table {
@@ -6,7 +6,8 @@ const Wrapper = styled.div`
     border-collapse: collapse;
     font-weight: 600;
 
-    thead, td {
+    thead,
+    td {
       border: 1px solid #efefef;
     }
 
@@ -31,7 +32,7 @@ const Wrapper = styled.div`
     border: solid 1px transparent;
     outline: none !important;
 
-    &:focus{
+    &:focus {
       outline: none !important;
       border: solid 1px transparent;
     }

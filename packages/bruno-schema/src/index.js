@@ -5,5 +5,5 @@ module.exports = {
   itemSchema,
   environmentsSchema,
   collectionSchema,
-  workspaceSchema
+  workspaceSchema,
 };

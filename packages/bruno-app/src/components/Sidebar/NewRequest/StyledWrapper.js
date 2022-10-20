@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const StyledWrapper = styled.div`
   div.method-selector-container {
@@ -13,7 +13,8 @@ const StyledWrapper = styled.div`
     }
   }
 
-  div.method-selector-container, div.input-container {
+  div.method-selector-container,
+  div.input-container {
     height: 2.3rem;
   }
 

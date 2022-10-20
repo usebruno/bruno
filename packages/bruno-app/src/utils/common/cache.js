@@ -7,12 +7,12 @@ class Cache {
   }
 
   getActiveWorkspaceUid() {
-    return this.get('bruno.activeWorkspaceUid');
+    return this.get("bruno.activeWorkspaceUid");
   }
 
   setActiveWorkspaceUid(workspaceUid) {
-    this.set('bruno.activeWorkspaceUid', workspaceUid);
+    this.set("bruno.activeWorkspaceUid", workspaceUid);
   }
-};
+}
 
-module.exports = new Cache();;
+module.exports = new Cache();

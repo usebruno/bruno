@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   .collection-name {
@@ -21,7 +21,6 @@ const Wrapper = styled.div`
           visibility: hidden;
         }
       }
-      
 
       svg {
         height: 22px;

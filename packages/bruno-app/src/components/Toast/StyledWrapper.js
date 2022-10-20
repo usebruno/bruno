@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   &.bruno-toast {
@@ -12,16 +12,16 @@ const Wrapper = styled.div`
   }
 
   .bruno-toast-card {
-    -webkit-animation-duration: .85s;
-    animation-duration: .85s;
-    -webkit-animation-delay: .1s;
-    animation-delay: .1s;
+    -webkit-animation-duration: 0.85s;
+    animation-duration: 0.85s;
+    -webkit-animation-delay: 0.1s;
+    animation-delay: 0.1s;
     border-radius: var(--border-radius);
     position: relative;
     max-width: calc(100% - var(--spacing-base-unit));
     margin: 3vh 10vw;
 
-    animation: fade-and-slide-in-from-top .50s forwards cubic-bezier(.19,1,.22,1);
+    animation: fade-and-slide-in-from-top 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
   }
 
   .notification-toast-content {
@@ -34,9 +34,9 @@ const Wrapper = styled.div`
 
   .alert {
     position: relative;
-    padding: .25rem .75rem;
+    padding: 0.25rem 0.75rem;
     border: 1px solid transparent;
-    border-radius: .25rem;
+    border-radius: 0.25rem;
     display: flex;
     justify-content: space-between;
   }

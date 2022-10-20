@@ -1,12 +1,12 @@
-const path = require('path');
-const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
-const { setContentSecurityPolicy } = require('electron-util');
+const path = require("path");
+const { format } = require("url");
+const { BrowserWindow, app, Menu } = require("electron");
+const { setContentSecurityPolicy } = require("electron-util");
 
-const menuTemplate = require('./app/menu-template');
-const registerIpc = require('./ipc');
-const isDev = require('electron-is-dev');
-const prepareNext = require('electron-next');
+const menuTemplate = require("./app/menu-template");
+const registerIpc = require("./ipc");
+const isDev = require("electron-is-dev");
+const prepareNext = require("electron-next");
 
 setContentSecurityPolicy(`
 	default-src * 'unsafe-inline' 'unsafe-eval';
@@ -23,8 +23,8 @@ Menu.setApplicationMenu(menu);
 let mainWindow;
 
 // Prepare the renderer once the app is ready
-app.on('ready', async () => {
-  await prepareNext('./renderer');
+app.on("ready", async () => {
+  await prepareNext("./renderer");
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -32,16 +32,16 @@ app.on('ready', async () => {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
   const url = isDev
-    ? 'http://localhost:8000'
+    ? "http://localhost:8000"
     : format({
-        pathname: path.join(__dirname, '../renderer/out/index.html'),
-        protocol: 'file:',
-        slashes: true
+        pathname: path.join(__dirname, "../renderer/out/index.html"),
+        protocol: "file:",
+        slashes: true,
       });
 
   mainWindow.loadURL(url);
@@ -51,4 +51,4 @@ app.on('ready', async () => {
 });
 
 // Quit the app once all windows are closed
-app.on('window-all-closed', app.quit);
+app.on("window-all-closed", app.quit);

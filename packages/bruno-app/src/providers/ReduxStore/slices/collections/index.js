@@ -1,13 +1,13 @@
-import path from 'path';
-import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import { createSlice } from '@reduxjs/toolkit'
-import splitOnFirst from 'split-on-first';
+import path from "path";
+import { uuid } from "utils/common";
+import find from "lodash/find";
+import map from "lodash/map";
+import concat from "lodash/concat";
+import filter from "lodash/filter";
+import each from "lodash/each";
+import cloneDeep from "lodash/cloneDeep";
+import { createSlice } from "@reduxjs/toolkit";
+import splitOnFirst from "split-on-first";
 import {
   findCollectionByUid,
   findItemInCollection,
@@ -16,19 +16,19 @@ import {
   addDepth,
   collapseCollection,
   deleteItemInCollection,
-  isItemARequest
-} from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot } from 'utils/common/platform';
+  isItemARequest,
+} from "utils/collections";
+import { parseQueryParams, stringifyQueryParams } from "utils/url";
+import { getSubdirectoriesFromRoot } from "utils/common/platform";
 
 const PATH_SEPARATOR = path.sep;
 
 const initialState = {
-  collections: []
+  collections: [],
 };
 
 export const collectionsSlice = createSlice({
-  name: 'collections',
+  name: "collections",
   initialState,
   reducers: {
     loadCollections: (state, action) => {
@@ -36,7 +36,7 @@ export const collectionsSlice = createSlice({
       each(action.payload.collections, (c) => collapseCollection(c));
       each(action.payload.collections, (c) => addDepth(c.items));
       each(action.payload.collections, (c) => {
-        if(!collectionUids.includes(c.uid)) {
+        if (!collectionUids.includes(c.uid)) {
           state.collections.push(c);
           collectionUids.push(c.uid);
         }
@@ -47,7 +47,7 @@ export const collectionsSlice = createSlice({
       const { collection } = action.payload;
       collapseCollection(collection);
       addDepth(collection.items);
-      if(!collectionUids.includes(collection.uid)) {
+      if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
     },
@@ -56,25 +56,25 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
       collapseCollection(collection);
       addDepth(collection.items);
-      if(!collectionUids.includes(collection.uid)) {
+      if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
     },
     renameCollection: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         collection.name = action.payload.newName;
       }
     },
     deleteCollection: (state, action) => {
-      state.collections = filter(state.collections, c => c.uid !== action.payload.collectionUid);
+      state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
     addEnvironment: (state, action) => {
       const { environment, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         collection.environments = collection.environments || [];
         collection.environments.push(environment);
       }
@@ -83,10 +83,10 @@ export const collectionsSlice = createSlice({
       const { newName, environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         const environment = findEnvironmentInCollection(collection, environmentUid);
 
-        if(environment) {
+        if (environment) {
           environment.name = newName;
         }
       }
@@ -95,10 +95,10 @@ export const collectionsSlice = createSlice({
       const { environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         const environment = findEnvironmentInCollection(collection, environmentUid);
 
-        if(environment) {
+        if (environment) {
           collection.environments = filter(collection.environments, (e) => e.uid !== environmentUid);
         }
       }
@@ -107,10 +107,10 @@ export const collectionsSlice = createSlice({
       const { variables, environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         const environment = findEnvironmentInCollection(collection, environmentUid);
 
-        if(environment) {
+        if (environment) {
           environment.variables = variables;
         }
       }
@@ -119,11 +119,11 @@ export const collectionsSlice = createSlice({
       const { environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
-        if(environmentUid) {
+      if (collection) {
+        if (environmentUid) {
           const environment = findEnvironmentInCollection(collection, environmentUid);
 
-          if(environment) {
+          if (environment) {
             collection.activeEnvironmentUid = environmentUid;
           }
         } else {
@@ -134,13 +134,13 @@ export const collectionsSlice = createSlice({
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
-        if(!action.payload.currentItemUid) {
+      if (collection) {
+        if (!action.payload.currentItemUid) {
           collection.items.push(action.payload.item);
         } else {
           const item = findItemInCollection(collection, action.payload.currentItemUid);
 
-          if(item) {
+          if (item) {
             item.items = item.items || [];
             item.items.push(action.payload.item);
           }
@@ -151,17 +151,17 @@ export const collectionsSlice = createSlice({
     deleteItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         deleteItemInCollection(action.payload.itemUid, collection);
       }
     },
     renameItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item) {
+
+        if (item) {
           item.name = action.payload.newName;
         }
       }
@@ -172,8 +172,8 @@ export const collectionsSlice = createSlice({
       const parentItemUid = action.payload.parentItemUid;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
-        if(parentItemUid) {
+      if (collection) {
+        if (parentItemUid) {
           const parentItem = findItemInCollection(collection, parentItemUid);
           parentItem.items.push(clonedItem);
         } else {
@@ -182,25 +182,25 @@ export const collectionsSlice = createSlice({
       }
     },
     requestSent: (state, action) => {
-      const {itemUid, collectionUid, cancelTokenUid} = action.payload;
+      const { itemUid, collectionUid, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, itemUid);
-        if(item) {
+        if (item) {
           item.response = item.response || {};
-          item.response.state = 'sending';
+          item.response.state = "sending";
           item.cancelTokenUid = cancelTokenUid;
         }
       }
     },
     requestCancelled: (state, action) => {
-      const {itemUid, collectionUid} = action.payload;
+      const { itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, itemUid);
-        if(item) {
+        if (item) {
           item.response = null;
           item.cancelTokenUid = null;
         }
@@ -209,9 +209,9 @@ export const collectionsSlice = createSlice({
     responseReceived: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        if(item) {
+        if (item) {
           item.response = action.payload.response;
           item.cancelTokenUid = null;
         }
@@ -220,10 +220,10 @@ export const collectionsSlice = createSlice({
     saveRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && item.draft) {
+
+        if (item && item.draft) {
           item.request = item.draft.request;
           item.draft = null;
         }
@@ -232,7 +232,7 @@ export const collectionsSlice = createSlice({
     newEphermalHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection && collection.items && collection.items.length) {
+      if (collection && collection.items && collection.items.length) {
         const item = {
           uid: action.payload.uid,
           name: action.payload.requestName,
@@ -244,10 +244,10 @@ export const collectionsSlice = createSlice({
             headers: [],
             body: {
               mode: null,
-              content: null
-            }
+              content: null,
+            },
           },
-          draft: null
+          draft: null,
         };
         item.draft = cloneDeep(item);
         collection.items.push(item);
@@ -256,17 +256,17 @@ export const collectionsSlice = createSlice({
     collectionClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload);
 
-      if(collection) {
+      if (collection) {
         collection.collapsed = !collection.collapsed;
       }
     },
     collectionFolderClicked: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
-        if(item && item.type === 'folder') {
+        if (item && item.type === "folder") {
           item.collapsed = !item.collapsed;
         }
       }
@@ -274,16 +274,16 @@ export const collectionsSlice = createSlice({
     requestUrlChanged: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
 
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.url = action.payload.url;
 
-          const parts = splitOnFirst(item.draft.request.url, '?');
+          const parts = splitOnFirst(item.draft.request.url, "?");
           const urlParams = parseQueryParams(parts[1]);
           const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
           let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
@@ -295,7 +295,7 @@ export const collectionsSlice = createSlice({
             urlParam.enabled = true;
 
             // once found, remove it - trying our best here to accomodate duplicate query params
-            if(existingParam) {
+            if (existingParam) {
               enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
             }
           });
@@ -310,20 +310,20 @@ export const collectionsSlice = createSlice({
     addQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.params = item.draft.request.params || [];
           item.draft.request.params.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            description: '',
-            enabled: true
+            name: "",
+            value: "",
+            description: "",
+            enabled: true,
           });
         }
       }
@@ -331,40 +331,40 @@ export const collectionsSlice = createSlice({
     updateQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
-          if(param) {
+          if (param) {
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
             param.enabled = action.payload.param.enabled;
 
             // update request url
-            const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(filter(item.draft.request.params, p => p.enabled));
+            const parts = splitOnFirst(item.draft.request.url, "?");
+            const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
 
             // if no query is found, then strip the query params in url
-            if(!query || !query.length) {
-              if(parts.length) {
+            if (!query || !query.length) {
+              if (parts.length) {
                 item.draft.request.url = parts[0];
               }
               return;
             }
 
             // if no parts were found, then append the query
-            if(!parts.length) {
-              item.draft.request.url += '?' + query;
+            if (!parts.length) {
+              item.draft.request.url += "?" + query;
               return;
             }
 
             // control reaching here means the request has parts and query is present
-            item.draft.request.url = parts[0] + '?' + query;
+            item.draft.request.url = parts[0] + "?" + query;
           }
         }
       }
@@ -372,20 +372,20 @@ export const collectionsSlice = createSlice({
     deleteQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
 
           // update request url
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, p => p.enabled));
-          if(query && query.length) {
-            item.draft.request.url = parts[0] + '?' + query;
+          const parts = splitOnFirst(item.draft.request.url, "?");
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+          if (query && query.length) {
+            item.draft.request.url = parts[0] + "?" + query;
           } else {
             item.draft.request.url = parts[0];
           }
@@ -395,20 +395,20 @@ export const collectionsSlice = createSlice({
     addRequestHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.headers = item.draft.request.headers || [];
           item.draft.request.headers.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            description: '',
-            enabled: true
+            name: "",
+            value: "",
+            description: "",
+            enabled: true,
           });
         }
       }
@@ -416,15 +416,15 @@ export const collectionsSlice = createSlice({
     updateRequestHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           const header = find(item.draft.request.headers, (h) => h.uid === action.payload.header.uid);
-          if(header) {
+          if (header) {
             header.name = action.payload.header.name;
             header.value = action.payload.header.value;
             header.description = action.payload.header.description;
@@ -436,11 +436,11 @@ export const collectionsSlice = createSlice({
     deleteRequestHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
@@ -450,20 +450,20 @@ export const collectionsSlice = createSlice({
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.formUrlEncoded = item.draft.request.body.formUrlEncoded || [];
           item.draft.request.body.formUrlEncoded.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            description: '',
-            enabled: true
+            name: "",
+            value: "",
+            description: "",
+            enabled: true,
           });
         }
       }
@@ -471,15 +471,15 @@ export const collectionsSlice = createSlice({
     updateFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           const param = find(item.draft.request.body.formUrlEncoded, (p) => p.uid === action.payload.param.uid);
-          if(param) {
+          if (param) {
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
@@ -491,11 +491,11 @@ export const collectionsSlice = createSlice({
     deleteFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.formUrlEncoded = filter(item.draft.request.body.formUrlEncoded, (p) => p.uid !== action.payload.paramUid);
@@ -505,20 +505,20 @@ export const collectionsSlice = createSlice({
     addMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
           item.draft.request.body.multipartForm.push({
             uid: uuid(),
-            name: '',
-            value: '',
-            description: '',
-            enabled: true
+            name: "",
+            value: "",
+            description: "",
+            enabled: true,
           });
         }
       }
@@ -526,15 +526,15 @@ export const collectionsSlice = createSlice({
     updateMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           const param = find(item.draft.request.body.multipartForm, (p) => p.uid === action.payload.param.uid);
-          if(param) {
+          if (param) {
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
@@ -546,11 +546,11 @@ export const collectionsSlice = createSlice({
     deleteMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.multipartForm = filter(item.draft.request.body.multipartForm, (p) => p.uid !== action.payload.paramUid);
@@ -560,11 +560,11 @@ export const collectionsSlice = createSlice({
     updateRequestBodyMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.body.mode = action.payload.mode;
@@ -574,31 +574,31 @@ export const collectionsSlice = createSlice({
     updateRequestBody: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          switch(item.draft.request.body.mode) {
-            case 'json': {
+          switch (item.draft.request.body.mode) {
+            case "json": {
               item.draft.request.body.json = action.payload.content;
               break;
             }
-            case 'text': {
+            case "text": {
               item.draft.request.body.text = action.payload.content;
               break;
             }
-            case 'xml': {
+            case "xml": {
               item.draft.request.body.xml = action.payload.content;
               break;
             }
-            case 'formUrlEncoded': {
+            case "formUrlEncoded": {
               item.draft.request.body.formUrlEncoded = action.payload.content;
               break;
             }
-            case 'multipartForm': {
+            case "multipartForm": {
               item.draft.request.body.multipartForm = action.payload.content;
               break;
             }
@@ -609,11 +609,11 @@ export const collectionsSlice = createSlice({
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
-        
-        if(item && isItemARequest(item)) {
-          if(!item.draft) {
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
             item.draft = cloneDeep(item);
           }
           item.draft.request.method = action.payload.method;
@@ -624,35 +624,35 @@ export const collectionsSlice = createSlice({
       const file = action.payload.file;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const dirname = path.dirname(file.meta.pathname);
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find(f => f.type === 'folder' && f.name === directoryName)
+          let childItem = currentSubItems.find((f) => f.type === "folder" && f.name === directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
               name: directoryName,
               collapsed: false,
-              type: 'folder',
-              items: []
+              type: "folder",
+              items: [],
             };
             currentSubItems.push(childItem);
           }
-    
+
           currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
 
-        if (!currentSubItems.find(f => f.name === file.meta.name)) {
+        if (!currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
           // the add event might get triggered first, before the unlink event
           // this results in duplicate uids causing react renderer to go mad
           const currentItem = find(currentSubItems, (i) => i.uid === file.data.uid);
-          if(currentItem) {
+          if (currentItem) {
             currentItem.name = file.data.name;
             currentItem.type = file.data.type;
             currentItem.request = file.data.request;
@@ -667,7 +667,7 @@ export const collectionsSlice = createSlice({
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
-              draft: null
+              draft: null,
             });
           }
         }
@@ -678,24 +678,24 @@ export const collectionsSlice = createSlice({
       const { dir } = action.payload;
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dir.meta.pathname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find(f => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === "folder" && f.name === directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
               name: directoryName,
               collapsed: false,
-              type: 'folder',
-              items: []
+              type: "folder",
+              items: [],
             };
             currentSubItems.push(childItem);
           }
-    
+
           currentPath = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
           currentSubItems = childItem.items;
         }
@@ -706,10 +706,10 @@ export const collectionsSlice = createSlice({
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollection(collection, file.data.uid);
 
-        if(item) {
+        if (item) {
           item.name = file.data.name;
           item.type = file.data.type;
           item.request = file.data.request;
@@ -723,10 +723,10 @@ export const collectionsSlice = createSlice({
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollectionByPathname(collection, file.meta.pathname);
 
-        if(item) {
+        if (item) {
           deleteItemInCollection(item.uid, collection);
         }
       }
@@ -735,23 +735,23 @@ export const collectionsSlice = createSlice({
       const { directory } = action.payload;
       const collection = findCollectionByUid(state.collections, directory.meta.collectionUid);
 
-      if(collection) {
+      if (collection) {
         const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
 
-        if(item) {
+        if (item) {
           deleteItemInCollection(item.uid, collection);
         }
       }
     },
-    localCollectionLoadEnvironmentsEvent:  (state, action) => {
+    localCollectionLoadEnvironmentsEvent: (state, action) => {
       const { environments, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      if(collection) {
+      if (collection) {
         collection.environments = environments;
       }
     },
-  }
+  },
 });
 
 export const {
@@ -797,7 +797,7 @@ export const {
   localCollectionChangeFileEvent,
   localCollectionUnlinkFileEvent,
   localCollectionUnlinkDirectoryEvent,
-  localCollectionLoadEnvironmentsEvent
+  localCollectionLoadEnvironmentsEvent,
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

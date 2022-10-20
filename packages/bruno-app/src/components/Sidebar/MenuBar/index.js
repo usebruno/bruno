@@ -1,25 +1,25 @@
-import React, { useState } from "react"
-import { useRouter } from "next/router"
-import { IconCode, IconFiles, IconMoon, IconChevronsLeft, IconLifebuoy } from "@tabler/icons"
-import { useDispatch } from "react-redux"
-import { toggleLeftMenuBar } from "providers/ReduxStore/slices/app"
-import { isElectron } from "utils/common/platform"
+import React, { useState } from "react";
+import { useRouter } from "next/router";
+import { IconCode, IconFiles, IconMoon, IconChevronsLeft, IconLifebuoy } from "@tabler/icons";
+import { useDispatch } from "react-redux";
+import { toggleLeftMenuBar } from "providers/ReduxStore/slices/app";
+import { isElectron } from "utils/common/platform";
 
-import Link from "next/link"
-import StyledWrapper from "./StyledWrapper"
-import BrunoSupport from "components/BrunoSupport"
-import ThemeSwitcher from "components/ThemeSwitcher/index"
+import Link from "next/link";
+import StyledWrapper from "./StyledWrapper";
+import BrunoSupport from "components/BrunoSupport";
+import ThemeSwitcher from "components/ThemeSwitcher/index";
 
 const MenuBar = () => {
-  const router = useRouter()
-  const dispatch = useDispatch()
-  const [openBrunoSupport, setOpenBrunoSupport] = useState(false)
-  const [openThemeSwitcher, setOpenThemeSwitcher] = useState(false)
-  const isPlatformElectron = isElectron()
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const [openBrunoSupport, setOpenBrunoSupport] = useState(false);
+  const [openThemeSwitcher, setOpenThemeSwitcher] = useState(false);
+  const isPlatformElectron = isElectron();
 
   const getClassName = (menu) => {
-    return router.pathname === menu ? "active menu-item" : "menu-item"
-  }
+    return router.pathname === menu ? "active menu-item" : "menu-item";
+  };
 
   return (
     <StyledWrapper className="h-full flex flex-col">
@@ -61,7 +61,7 @@ const MenuBar = () => {
       {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
       {openThemeSwitcher && <ThemeSwitcher onClose={() => setOpenThemeSwitcher(false)} />}
     </StyledWrapper>
-  )
-}
+  );
+};
 
-export default MenuBar
+export default MenuBar;

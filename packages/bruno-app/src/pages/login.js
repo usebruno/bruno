@@ -1,7 +1,7 @@
-import Head from 'next/head';
-import Login from 'pageComponents/Login';
-import MenuBar from 'components/Sidebar/MenuBar';
-import GlobalStyle from '../globalStyles';
+import Head from "next/head";
+import Login from "pageComponents/Login";
+import MenuBar from "components/Sidebar/MenuBar";
+import GlobalStyle from "../globalStyles";
 
 export default function LoginPage() {
   return (
@@ -23,4 +23,4 @@ export default function LoginPage() {
       </main>
     </div>
   );
-};
+}

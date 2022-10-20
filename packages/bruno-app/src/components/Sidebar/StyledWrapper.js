@@ -1,4 +1,4 @@
-import styled from "styled-components"
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   aside {
@@ -47,6 +47,6 @@ const Wrapper = styled.div`
       border-left: solid 1px var(--color-request-dragbar-background-active);
     }
   }
-`
+`;
 
-export default Wrapper
+export default Wrapper;

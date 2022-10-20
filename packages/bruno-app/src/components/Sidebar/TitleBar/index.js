@@ -1,60 +1,60 @@
-import React, { useState, forwardRef, useRef } from "react"
-import toast from "react-hot-toast"
-import Dropdown from "components/Dropdown"
-import Bruno from "components/Bruno"
-import { IconFolders } from "@tabler/icons"
-import { useSelector, useDispatch } from "react-redux"
-import { collectionImported } from "providers/ReduxStore/slices/collections"
-import { openLocalCollection } from "providers/ReduxStore/slices/collections/actions"
-import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions"
-import { showHomePage } from "providers/ReduxStore/slices/app"
-import { IconDots } from "@tabler/icons"
-import CreateCollection from "../CreateCollection"
-import SelectCollection from "components/Sidebar/Collections/SelectCollection"
-import importCollection from "utils/collections/import"
-import { isElectron } from "utils/common/platform"
-import StyledWrapper from "./StyledWrapper"
+import React, { useState, forwardRef, useRef } from "react";
+import toast from "react-hot-toast";
+import Dropdown from "components/Dropdown";
+import Bruno from "components/Bruno";
+import { IconFolders } from "@tabler/icons";
+import { useSelector, useDispatch } from "react-redux";
+import { collectionImported } from "providers/ReduxStore/slices/collections";
+import { openLocalCollection } from "providers/ReduxStore/slices/collections/actions";
+import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions";
+import { showHomePage } from "providers/ReduxStore/slices/app";
+import { IconDots } from "@tabler/icons";
+import CreateCollection from "../CreateCollection";
+import SelectCollection from "components/Sidebar/Collections/SelectCollection";
+import importCollection from "utils/collections/import";
+import { isElectron } from "utils/common/platform";
+import StyledWrapper from "./StyledWrapper";
 
 const TitleBar = () => {
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false)
-  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false)
-  const { activeWorkspaceUid } = useSelector((state) => state.workspaces)
-  const isPlatformElectron = isElectron()
-  const dispatch = useDispatch()
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const isPlatformElectron = isElectron();
+  const dispatch = useDispatch();
 
-  const menuDropdownTippyRef = useRef()
-  const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref)
+  const menuDropdownTippyRef = useRef();
+  const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="dropdown-icon cursor-pointer">
         <IconDots size={22} />
       </div>
-    )
-  })
+    );
+  });
 
-  const handleTitleClick = () => dispatch(showHomePage())
+  const handleTitleClick = () => dispatch(showHomePage());
 
   const handleOpenLocalCollection = () => {
-    dispatch(openLocalCollection()).catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"))
-  }
+    dispatch(openLocalCollection()).catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"));
+  };
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
-    setAddCollectionToWSModalOpen(false)
+    setAddCollectionToWSModalOpen(false);
     dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
       .then(() => {
-        toast.success("Collection added to workspace")
+        toast.success("Collection added to workspace");
       })
-      .catch(() => toast.error("An error occured while adding collection to workspace"))
-  }
+      .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
 
   const handleImportCollection = () => {
     importCollection()
       .then((collection) => {
-        dispatch(collectionImported({ collection: collection }))
-        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid))
+        dispatch(collectionImported({ collection: collection }));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
       })
-      .catch((err) => console.log(err))
-  }
+      .catch((err) => console.log(err));
+  };
 
   return (
     <StyledWrapper className="px-2 py-2">
@@ -80,8 +80,8 @@ const TitleBar = () => {
             <div
               className="dropdown-item"
               onClick={(e) => {
-                menuDropdownTippyRef.current.hide()
-                setCreateCollectionModalOpen(true)
+                menuDropdownTippyRef.current.hide();
+                setCreateCollectionModalOpen(true);
               }}
             >
               Create Collection
@@ -89,8 +89,8 @@ const TitleBar = () => {
             <div
               className="dropdown-item"
               onClick={(e) => {
-                menuDropdownTippyRef.current.hide()
-                handleImportCollection()
+                menuDropdownTippyRef.current.hide();
+                handleImportCollection();
               }}
             >
               Import Collection
@@ -98,8 +98,8 @@ const TitleBar = () => {
             <div
               className="dropdown-item"
               onClick={(e) => {
-                menuDropdownTippyRef.current.hide()
-                setAddCollectionToWSModalOpen(true)
+                menuDropdownTippyRef.current.hide();
+                setAddCollectionToWSModalOpen(true);
               }}
             >
               Add Collection to Workspace
@@ -117,8 +117,8 @@ const TitleBar = () => {
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
-                    setCreateCollectionModalOpen("local")
-                    menuDropdownTippyRef.current.hide()
+                    setCreateCollectionModalOpen("local");
+                    menuDropdownTippyRef.current.hide();
                   }}
                 >
                   Create Local Collection
@@ -126,8 +126,8 @@ const TitleBar = () => {
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
-                    handleOpenLocalCollection()
-                    menuDropdownTippyRef.current.hide()
+                    handleOpenLocalCollection();
+                    menuDropdownTippyRef.current.hide();
                   }}
                 >
                   Open Local Collection
@@ -142,7 +142,7 @@ const TitleBar = () => {
         </div>
       </div>
     </StyledWrapper>
-  )
-}
+  );
+};
 
-export default TitleBar
+export default TitleBar;

@@ -1,4 +1,4 @@
-import { createGlobalStyle } from "styled-components"
+import { createGlobalStyle } from "styled-components";
 
 const GlobalStyle = createGlobalStyle`
   .CodeMirror-gutters {
@@ -74,6 +74,6 @@ const GlobalStyle = createGlobalStyle`
               transform: translateY(-30px);
     }
   }
-`
+`;
 
-export default GlobalStyle
+export default GlobalStyle;

@@ -4,7 +4,7 @@ let currentTab = {
 };
 
 const getExtensionId = () => {
-  const matches = chrome.runtime.getURL('x').match(/.*\/\/(.*)\/x$/);
+  const matches = chrome.runtime.getURL("x").match(/.*\/\/(.*)\/x$/);
   if (matches) {
     return matches[1];
   }
@@ -14,18 +14,18 @@ const getExtensionId = () => {
 
 // Create a new tab for the extension
 function createNewTab() {
-  chrome.tabs.create({ url: 'index.html' }, function (tab) {
+  chrome.tabs.create({ url: "index.html" }, function (tab) {
     currentTab = {
       id: tab.id,
-      url: tab.url
+      url: tab.url,
     };
   });
 }
 
 // Focus on the open extension tab
 function focusTab(tabId) {
-  var updateProperties = { "active": true };
-  chrome.tabs.update(tabId, updateProperties, function (tab) { });
+  var updateProperties = { active: true };
+  chrome.tabs.update(tabId, updateProperties, function (tab) {});
 }
 
 // Open the extension tab when the extension icon is clicked

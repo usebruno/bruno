@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
 const StopWatch = () => {
   const [milliseconds, setMilliseconds] = useState(0);
@@ -15,16 +15,12 @@ const StopWatch = () => {
     };
   });
 
-  if(milliseconds < 1000) {
-    return 'Loading...';
+  if (milliseconds < 1000) {
+    return "Loading...";
   }
 
-  let seconds = milliseconds/1000;
-  return (
-    <span>
-      {seconds.toFixed(1)}s
-    </span>
-  )
+  let seconds = milliseconds / 1000;
+  return <span>{seconds.toFixed(1)}s</span>;
 };
 
 export default StopWatch;

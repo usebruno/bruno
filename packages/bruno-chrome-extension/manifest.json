@@ -15,12 +15,6 @@
   "action": {
     "default_icon": "assets/images/logo-128x128.png"
   },
-  "permissions": [
-      "tabs",
-      "storage"
-  ],
-  "host_permissions": [
-    "http://*/",
-    "https://*/"
-  ]
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["http://*/", "https://*/"]
 }

@@ -1,7 +1,7 @@
-import Head from 'next/head';
-import SignUp from 'pageComponents/SignUp';
-import MenuBar from 'components/Sidebar/MenuBar';
-import GlobalStyle from '../globalStyles';
+import Head from "next/head";
+import SignUp from "pageComponents/SignUp";
+import MenuBar from "components/Sidebar/MenuBar";
+import GlobalStyle from "../globalStyles";
 
 export default function SignUpPage() {
   return (
@@ -23,4 +23,4 @@ export default function SignUpPage() {
       </main>
     </div>
   );
-};
+}

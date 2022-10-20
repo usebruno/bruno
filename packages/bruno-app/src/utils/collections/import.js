@@ -1,11 +1,11 @@
-import each from 'lodash/each';
-import get from 'lodash/get';
-import fileDialog from 'file-dialog';
-import toast from 'react-hot-toast';
-import { uuid } from 'utils/common';
-import { collectionSchema } from '@usebruno/schema';
-import { saveCollectionToIdb } from 'utils/idb';
-import sampleCollection from './samples/sample-collection.json';
+import each from "lodash/each";
+import get from "lodash/get";
+import fileDialog from "file-dialog";
+import toast from "react-hot-toast";
+import { uuid } from "utils/common";
+import { collectionSchema } from "@usebruno/schema";
+import { saveCollectionToIdb } from "utils/idb";
+import sampleCollection from "./samples/sample-collection.json";
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -41,7 +41,6 @@ const validateSchema = (collection = {}) => {
   });
 };
 
-
 const updateUidsInCollection = (collection) => {
   collection.uid = uuid();
 
@@ -49,16 +48,16 @@ const updateUidsInCollection = (collection) => {
     each(items, (item) => {
       item.uid = uuid();
 
-      each(get(item, 'request.headers'), (header) => header.uid = uuid());
-      each(get(item, 'request.params'), (param) => param.uid = uuid());
-      each(get(item, 'request.body.multipartForm'), (param) => param.uid = uuid());
-      each(get(item, 'request.body.formUrlEncoded'), (param) => param.uid = uuid());
+      each(get(item, "request.headers"), (header) => (header.uid = uuid()));
+      each(get(item, "request.params"), (param) => (param.uid = uuid()));
+      each(get(item, "request.body.multipartForm"), (param) => (param.uid = uuid()));
+      each(get(item, "request.body.formUrlEncoded"), (param) => (param.uid = uuid()));
 
-      if(item.items && item.items.length) {
+      if (item.items && item.items.length) {
         updateItemUids(item.items);
       }
-    })
-  }
+    });
+  };
   updateItemUids(collection.items);
 
   return collection;
@@ -66,7 +65,7 @@ const updateUidsInCollection = (collection) => {
 
 const importCollection = () => {
   return new Promise((resolve, reject) => {
-    fileDialog({accept: 'application/json'})
+    fileDialog({ accept: "application/json" })
       .then(readFile)
       .then(parseJsonCollection)
       .then(validateSchema)

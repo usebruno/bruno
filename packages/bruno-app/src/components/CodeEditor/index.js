@@ -5,14 +5,14 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
-import StyledWrapper from './StyledWrapper';
+import React from "react";
+import StyledWrapper from "./StyledWrapper";
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof navigator === "undefined" || global["PREVENT_CODEMIRROR_RENDER"] === true;
 
 if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
+  CodeMirror = require("codemirror");
 }
 
 export default class QueryEditor extends React.Component {
@@ -22,51 +22,51 @@ export default class QueryEditor extends React.Component {
     // Keep a cached version of the value, this cache will be updated when the
     // editor is updated, which can later be used to protect the editor from
     // unnecessary updates during the update lifecycle.
-    this.cachedValue = props.value || '';
+    this.cachedValue = props.value || "";
   }
 
   componentDidMount() {
     const editor = (this.editor = CodeMirror(this._node, {
-      value: this.props.value || '',
+      value: this.props.value || "",
       lineNumbers: true,
       lineWrapping: true,
       tabSize: 2,
-      mode: this.props.mode || 'application/ld+json',
-      keyMap: 'sublime',
+      mode: this.props.mode || "application/ld+json",
+      keyMap: "sublime",
       autoCloseBrackets: true,
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      readOnly: this.props.readOnly ? "nocursor" : false,
       extraKeys: {
-        'Cmd-Enter': () => {
-          if(this.props.onRun) {
+        "Cmd-Enter": () => {
+          if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if(this.props.onRun) {
+        "Ctrl-Enter": () => {
+          if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
-          if(this.props.onSave) {
+        "Cmd-S": () => {
+          if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Ctrl-S': () => {
-          if(this.props.onSave) {
+        "Ctrl-S": () => {
+          if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Tab': function(cm){
-          cm.replaceSelection("  " , "end");
-        }
+        Tab: function (cm) {
+          cm.replaceSelection("  ", "end");
+        },
       },
     }));
     if (editor) {
-      editor.on('change', this._onEdit);
+      editor.on("change", this._onEdit);
     }
   }
 
@@ -80,13 +80,9 @@ export default class QueryEditor extends React.Component {
       this.editor.options.hintOptions.schema = this.props.schema;
       this.editor.options.info.schema = this.props.schema;
       this.editor.options.jump.schema = this.props.schema;
-      CodeMirror.signal(this.editor, 'change', this.editor);
+      CodeMirror.signal(this.editor, "change", this.editor);
     }
-    if (
-      this.props.value !== prevProps.value &&
-      this.props.value !== this.cachedValue &&
-      this.editor
-    ) {
+    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
       this.editor.setOption("mode", this.props.mode);
@@ -96,7 +92,7 @@ export default class QueryEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
-      this.editor.off('change', this._onEdit);
+      this.editor.off("change", this._onEdit);
       this.editor = null;
     }
   }
@@ -106,7 +102,7 @@ export default class QueryEditor extends React.Component {
       <StyledWrapper
         className="h-full"
         aria-label="Code Editor"
-        ref={node => {
+        ref={(node) => {
           this._node = node;
         }}
       />

@@ -1,36 +1,36 @@
-import produce from 'immer';
+import produce from "immer";
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'WHOAMI_SUCCESS': {
+    case "WHOAMI_SUCCESS": {
       return produce(state, (draft) => {
         draft.isLoading = false;
         draft.currentUser = action.user;
-        draft.lastStateTransition = 'WHOAMI_SUCCESS';
+        draft.lastStateTransition = "WHOAMI_SUCCESS";
       });
     }
 
-    case 'WHOAMI_ERROR': {
+    case "WHOAMI_ERROR": {
       return produce(state, (draft) => {
         draft.isLoading = false;
         draft.currentUser = null;
-        draft.lastStateTransition = 'WHOAMI_ERROR';
+        draft.lastStateTransition = "WHOAMI_ERROR";
       });
     }
 
-    case 'LOGIN_SUCCESS': {
+    case "LOGIN_SUCCESS": {
       return produce(state, (draft) => {
         draft.isLoading = false;
         draft.currentUser = action.user;
-        draft.lastStateTransition = 'LOGIN_SUCCESS';
+        draft.lastStateTransition = "LOGIN_SUCCESS";
       });
     }
 
-    case 'LOGOUT_SUCCESS': {
+    case "LOGOUT_SUCCESS": {
       return produce(state, (draft) => {
         draft.isLoading = false;
         draft.currentUser = null;
-        draft.lastStateTransition = 'LOGOUT_SUCCESS';
+        draft.lastStateTransition = "LOGOUT_SUCCESS";
       });
     }
 

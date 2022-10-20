@@ -1,8 +1,8 @@
-import trim from 'lodash/trim';
-import path from 'path';
+import trim from "lodash/trim";
+import path from "path";
 
 export const isElectron = () => {
-  if(!window) {
+  if (!window) {
     return false;
   }
 
@@ -19,9 +19,8 @@ export const resolveRequestFilename = (name) => {
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   if (!path.isAbsolute(pathname)) {
-    throw new Error('Invalid path!');
+    throw new Error("Invalid path!");
   }
   const relativePath = path.relative(rootPath, pathname);
   return relativePath ? relativePath.split(path.sep) : [];
 };
-

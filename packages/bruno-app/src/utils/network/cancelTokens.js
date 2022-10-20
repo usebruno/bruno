@@ -7,8 +7,8 @@ export default cancelTokens;
 
 export const saveCancelToken = (uid, axiosRequest) => {
   cancelTokens[uid] = axiosRequest;
-}
+};
 
 export const deleteCancelToken = (uid) => {
   delete cancelTokens[uid];
-}
+};

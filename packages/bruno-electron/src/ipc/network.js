@@ -1,16 +1,16 @@
-const axios = require('axios');
-const FormData = require('form-data');
-const { ipcMain } = require('electron');
-const { forOwn, extend } = require('lodash');
-const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../utils/cancel-token');
+const axios = require("axios");
+const FormData = require("form-data");
+const { ipcMain } = require("electron");
+const { forOwn, extend } = require("lodash");
+const { cancelTokens, saveCancelToken, deleteCancelToken } = require("../utils/cancel-token");
 
 const registerNetworkIpc = () => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, request, options) => {
+  ipcMain.handle("send-http-request", async (event, request, options) => {
     try {
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-      if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
+      if (request.headers && request.headers["content-type"] === "multipart/form-data") {
         const form = new FormData();
         forOwn(request.data, (value, key) => {
           form.append(key, value);
@@ -19,7 +19,7 @@ const registerNetworkIpc = () => {
         request.data = form;
       }
 
-      if(options && options.cancelTokenUid) {
+      if (options && options.cancelTokenUid) {
         const cancelToken = axios.CancelToken.source();
         request.cancelToken = cancelToken.token;
         saveCancelToken(options.cancelTokenUid, cancelToken);
@@ -27,35 +27,35 @@ const registerNetworkIpc = () => {
 
       const result = await axios(request);
 
-      if(options && options.cancelTokenUid) {
+      if (options && options.cancelTokenUid) {
         deleteCancelToken(options.cancelTokenUid);
       }
 
       return {
         status: result.status,
         headers: result.headers,
-        data: result.data
+        data: result.data,
       };
     } catch (error) {
-      if(options && options.cancelTokenUid) {
+      if (options && options.cancelTokenUid) {
         deleteCancelToken(options.cancelTokenUid);
       }
 
-      if(error.response) {
+      if (error.response) {
         return {
           status: error.response.status,
           headers: error.response.headers,
-          data: error.response.data
-        }
-      };
+          data: error.response.data,
+        };
+      }
 
       return Promise.reject(error);
     }
   });
 
-  ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
+  ipcMain.handle("cancel-http-request", async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
-      if(cancelTokenUid && cancelTokens[cancelTokenUid]) {
+      if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
         cancelTokens[cancelTokenUid].cancel();
         deleteCancelToken(cancelTokenUid);
         resolve();

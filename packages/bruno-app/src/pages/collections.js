@@ -1,7 +1,7 @@
-import Head from 'next/head';
-import Collections from 'pageComponents/Collections';
-import MenuBar from 'components/Sidebar/MenuBar';
-import GlobalStyle from '../globalStyles';
+import Head from "next/head";
+import Collections from "pageComponents/Collections";
+import MenuBar from "components/Sidebar/MenuBar";
+import GlobalStyle from "../globalStyles";
 
 export default function CollectionsPage() {
   return (
@@ -23,4 +23,4 @@ export default function CollectionsPage() {
       </main>
     </div>
   );
-};
+}

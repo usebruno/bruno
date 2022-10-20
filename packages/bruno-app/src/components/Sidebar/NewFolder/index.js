@@ -1,34 +1,31 @@
-import React, { useRef, useEffect } from 'react';
-import {useFormik} from 'formik';
-import toast from 'react-hot-toast';
-import * as Yup from 'yup';
-import Modal from 'components/Modal';
-import { useDispatch } from 'react-redux';
-import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useRef, useEffect } from "react";
+import { useFormik } from "formik";
+import toast from "react-hot-toast";
+import * as Yup from "yup";
+import Modal from "components/Modal";
+import { useDispatch } from "react-redux";
+import { newFolder } from "providers/ReduxStore/slices/collections/actions";
 
-const NewFolder = ({collection, item, onClose}) => {
+const NewFolder = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
-		enableReinitialize: true,
+    enableReinitialize: true,
     initialValues: {
-      folderName: ''
+      folderName: "",
     },
     validationSchema: Yup.object({
-      folderName: Yup.string()
-        .min(1, 'must be atleast 1 characters')
-        .max(50, 'must be 50 characters or less')
-        .required('name is required')
+      folderName: Yup.string().min(1, "must be atleast 1 characters").max(50, "must be 50 characters or less").required("name is required"),
     }),
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
         .then(() => onClose())
         .catch(() => toast.error("An error occured while adding the request"));
-    }
+    },
   });
 
   useEffect(() => {
-    if(inputRef && inputRef.current) {
+    if (inputRef && inputRef.current) {
       inputRef.current.focus();
     }
   }, [inputRef]);
@@ -36,27 +33,26 @@ const NewFolder = ({collection, item, onClose}) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal
-      size="sm"
-      title='New Folder'
-      confirmText='Create'
-      handleConfirm={onSubmit}
-      handleCancel={onClose}
-    >
+    <Modal size="sm" title="New Folder" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
-          <label htmlFor="folderName" className="block font-semibold">Folder Name</label>
+          <label htmlFor="folderName" className="block font-semibold">
+            Folder Name
+          </label>
           <input
-            id="collection-name" type="text" name="folderName"
+            id="collection-name"
+            type="text"
+            name="folderName"
             ref={inputRef}
             className="block textbox mt-2 w-full"
-            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
             onChange={formik.handleChange}
-            value={formik.values.folderName || ''}
+            value={formik.values.folderName || ""}
           />
-          {formik.touched.folderName && formik.errors.folderName ? (
-            <div className="text-red-500">{formik.errors.folderName}</div>
-          ) : null}
+          {formik.touched.folderName && formik.errors.folderName ? <div className="text-red-500">{formik.errors.folderName}</div> : null}
         </div>
       </form>
     </Modal>

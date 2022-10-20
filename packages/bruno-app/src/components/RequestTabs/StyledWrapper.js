@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   border-bottom: 1px solid var(--color-request-dragbar-background);
@@ -46,7 +46,7 @@ const Wrapper = styled.div`
         }
       }
 
-      &:hover{
+      &:hover {
         .close-icon-container .close-icon {
           display: block;
         }

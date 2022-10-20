@@ -1,4 +1,4 @@
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
 // levels: 'warning, error'
 export class BrunoError extends Error {
@@ -10,25 +10,25 @@ export class BrunoError extends Error {
 }
 
 export const parseError = (error) => {
-  if(error instanceof BrunoError) {
+  if (error instanceof BrunoError) {
     return error.message;
   }
 
-  return error.message ? error.message : 'An error occured';
+  return error.message ? error.message : "An error occured";
 };
 
 export const toastError = (error) => {
-  if(error instanceof BrunoError) {
-    if(error.level === 'warning') {
+  if (error instanceof BrunoError) {
+    if (error.level === "warning") {
       return toast(error.message, {
-        icon: '⚠️',
-        duration: 3000
+        icon: "⚠️",
+        duration: 3000,
       });
     }
     return toast.error(error.message, {
-      duration: 3000
+      duration: 3000,
     });
   }
 
-  return toast.error(error.message || 'An error occured');
+  return toast.error(error.message || "An error occured");
 };

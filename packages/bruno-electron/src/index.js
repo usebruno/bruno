@@ -1,14 +1,14 @@
-const path = require('path');
-const isDev = require('electron-is-dev');
-const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
-const { setContentSecurityPolicy } = require('electron-util');
+const path = require("path");
+const isDev = require("electron-is-dev");
+const { format } = require("url");
+const { BrowserWindow, app, Menu } = require("electron");
+const { setContentSecurityPolicy } = require("electron-util");
 
-const menuTemplate = require('./app/menu-template');
-const LastOpenedCollections = require('./app/last-opened-collections');
-const registerNetworkIpc = require('./ipc/network');
-const registerLocalCollectionsIpc = require('./ipc/local-collection');
-const Watcher = require('./app/watcher');
+const menuTemplate = require("./app/menu-template");
+const LastOpenedCollections = require("./app/last-opened-collections");
+const registerNetworkIpc = require("./ipc/network");
+const registerLocalCollectionsIpc = require("./ipc/local-collection");
+const Watcher = require("./app/watcher");
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -28,23 +28,23 @@ let mainWindow;
 let watcher;
 
 // Prepare the renderer once the app is ready
-app.on('ready', async () => {
+app.on("ready", async () => {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 768,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
   const url = isDev
-    ? 'http://localhost:3000'
+    ? "http://localhost:3000"
     : format({
-        pathname: path.join(__dirname, '../web/index.html'),
-        protocol: 'file:',
-        slashes: true
+        pathname: path.join(__dirname, "../web/index.html"),
+        protocol: "file:",
+        slashes: true,
       });
 
   mainWindow.loadURL(url);
@@ -56,4 +56,4 @@ app.on('ready', async () => {
 });
 
 // Quit the app once all windows are closed
-app.on('window-all-closed', app.quit);
+app.on("window-all-closed", app.quit);

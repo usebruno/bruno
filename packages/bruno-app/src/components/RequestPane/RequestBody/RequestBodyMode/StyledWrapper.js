@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled from "styled-components";
 
 const Wrapper = styled.div`
   font-size: 0.8125rem;
@@ -8,12 +8,12 @@ const Wrapper = styled.div`
     border-radius: 3px;
 
     .dropdown-item {
-      padding: .2rem .6rem !important;
+      padding: 0.2rem 0.6rem !important;
       padding-left: 1.5rem !important;
     }
 
-    .label-item  {
-      padding: .2rem .6rem !important;
+    .label-item {
+      padding: 0.2rem 0.6rem !important;
     }
   }
 

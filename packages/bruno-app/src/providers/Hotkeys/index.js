@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import find from 'lodash/find';
-import Mousetrap from 'mousetrap';
-import { useSelector, useDispatch } from 'react-redux';
-import SaveRequest from 'components/RequestPane/SaveRequest';
+import React, { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import find from "lodash/find";
+import Mousetrap from "mousetrap";
+import { useSelector, useDispatch } from "react-redux";
+import SaveRequest from "components/RequestPane/SaveRequest";
 import EnvironmentSettings from "components/Environments/EnvironmentSettings";
 import NetworkError from "components/ResponsePane/NetworkError";
 import NewRequest from "components/Sidebar/NewRequest";
-import BrunoSupport from 'components/BrunoSupport';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import BrunoSupport from "components/BrunoSupport";
+import { sendRequest, saveRequest } from "providers/ReduxStore/slices/collections/actions";
+import { findCollectionByUid, findItemInCollection } from "utils/collections";
 
 export const HotkeysContext = React.createContext();
 
-export const HotkeysProvider = props => {
+export const HotkeysProvider = (props) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
@@ -22,35 +22,35 @@ export const HotkeysProvider = props => {
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showBrunoSupportModal, setShowBrunoSupportModal] = useState(false);
-  
+
   const getCurrentCollectionItems = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if(activeTab) {
+    if (activeTab) {
       const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
       return collection ? collection.items : [];
-    };
+    }
   };
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if(activeTab) {
+    if (activeTab) {
       const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
       return collection;
-    };
+    }
   };
 
   // save hotkey
   useEffect(() => {
-    Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
+    Mousetrap.bind(["command+s", "ctrl+s"], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if(activeTab) {
+      if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        if(collection) {
+        if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
-          if(item && item.uid) {
-            dispatch(saveRequest(activeTab.uid, activeTab.collectionUid))
+          if (item && item.uid) {
+            dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
           } else {
             setShowSaveRequestModal(true);
           }
@@ -61,24 +61,25 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+s', 'ctrl+s']);
+      Mousetrap.unbind(["command+s", "ctrl+s"]);
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
-    Mousetrap.bind(['command+enter', 'ctrl+enter'], (e) => {
+    Mousetrap.bind(["command+enter", "ctrl+enter"], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if(activeTab) {
+      if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
-        if(collection) {
+        if (collection) {
           const item = findItemInCollection(collection, activeTab.uid);
-          if(item) {
-            dispatch(sendRequest(item, collection.uid))
-              .catch((err) => toast.custom((t) => (<NetworkError onClose={() => toast.dismiss(t.id)}/>), {
-                duration: 5000
-              }));
+          if (item) {
+            dispatch(sendRequest(item, collection.uid)).catch((err) =>
+              toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+                duration: 5000,
+              })
+            );
           }
         }
       }
@@ -87,18 +88,18 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+enter', 'ctrl+enter']);
+      Mousetrap.unbind(["command+enter", "ctrl+enter"]);
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
   // edit environmentss (ctrl/cmd + e)
   useEffect(() => {
-    Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
+    Mousetrap.bind(["command+e", "ctrl+e"], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if(activeTab) {
+      if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
-        if(collection) {
+        if (collection) {
           setShowEnvSettingsModal(true);
         }
       }
@@ -107,18 +108,18 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+e', 'ctrl+e']);
+      Mousetrap.unbind(["command+e", "ctrl+e"]);
     };
   }, [activeTabUid, tabs, collections, setShowEnvSettingsModal]);
 
   // new request (ctrl/cmd + b)
   useEffect(() => {
-    Mousetrap.bind(['command+b', 'ctrl+b'], (e) => {
+    Mousetrap.bind(["command+b", "ctrl+b"], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if(activeTab) {
+      if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
 
-        if(collection) {
+        if (collection) {
           setShowNewRequestModal(true);
         }
       }
@@ -127,36 +128,34 @@ export const HotkeysProvider = props => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+b', 'ctrl+b']);
+      Mousetrap.unbind(["command+b", "ctrl+b"]);
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
   // help (ctrl/cmd + h)
   useEffect(() => {
-    Mousetrap.bind(['command+h', 'ctrl+h'], (e) => {
+    Mousetrap.bind(["command+h", "ctrl+h"], (e) => {
       setShowBrunoSupportModal(true);
       return false; // this stops the event bubbling
     });
 
     return () => {
-      Mousetrap.unbind(['command+h', 'ctrl+h']);
+      Mousetrap.unbind(["command+h", "ctrl+h"]);
     };
   }, [setShowNewRequestModal]);
 
   return (
-    <HotkeysContext.Provider {...props} value='hotkey'>
-      {showBrunoSupportModal && <BrunoSupport onClose={() => setShowBrunoSupportModal(false)}/>}
-      {showSaveRequestModal && <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)}/>}
-      {showEnvSettingsModal && <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)}/>}
-      {showNewRequestModal && <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)}/>}
-      <div>
-        {props.children}
-      </div>
+    <HotkeysContext.Provider {...props} value="hotkey">
+      {showBrunoSupportModal && <BrunoSupport onClose={() => setShowBrunoSupportModal(false)} />}
+      {showSaveRequestModal && <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />}
+      {showEnvSettingsModal && <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />}
+      {showNewRequestModal && <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)} />}
+      <div>{props.children}</div>
     </HotkeysContext.Provider>
   );
 };
 
-export const useHotkeys = () =>  {
+export const useHotkeys = () => {
   const context = React.useContext(HotkeysContext);
 
   if (!context) {
@@ -164,6 +163,6 @@ export const useHotkeys = () =>  {
   }
 
   return context;
-}
+};
 
 export default HotkeysProvider;

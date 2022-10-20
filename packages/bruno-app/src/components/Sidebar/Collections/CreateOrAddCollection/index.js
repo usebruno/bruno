@@ -1,45 +1,45 @@
-import React, { useState } from "react"
-import toast from "react-hot-toast"
-import { useSelector, useDispatch } from "react-redux"
-import CreateCollection from "components/Sidebar/CreateCollection"
-import SelectCollection from "components/Sidebar/Collections/SelectCollection"
-import { createCollection } from "providers/ReduxStore/slices/collections/actions"
-import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions"
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { useSelector, useDispatch } from "react-redux";
+import CreateCollection from "components/Sidebar/CreateCollection";
+import SelectCollection from "components/Sidebar/Collections/SelectCollection";
+import { createCollection } from "providers/ReduxStore/slices/collections/actions";
+import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions";
 
 const CreateOrAddCollection = () => {
-  const dispatch = useDispatch()
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false)
-  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false)
-  const { activeWorkspaceUid } = useSelector((state) => state.workspaces)
+  const dispatch = useDispatch();
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
 
   const handleCreateCollection = (values) => {
-    setCreateCollectionModalOpen(false)
+    setCreateCollectionModalOpen(false);
     dispatch(createCollection(values.collectionName))
       .then(() => {
-        toast.success("Collection created")
+        toast.success("Collection created");
       })
-      .catch(() => toast.error("An error occured while creating the collection"))
-  }
+      .catch(() => toast.error("An error occured while creating the collection"));
+  };
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
-    setAddCollectionToWSModalOpen(false)
+    setAddCollectionToWSModalOpen(false);
     dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
       .then(() => {
-        toast.success("Collection added to workspace")
+        toast.success("Collection added to workspace");
       })
-      .catch(() => toast.error("An error occured while adding collection to workspace"))
-  }
+      .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
 
   const CreateLink = () => (
     <span className="underline text-link cursor-pointer" onClick={() => setCreateCollectionModalOpen(true)}>
       Create
     </span>
-  )
+  );
   const AddLink = () => (
     <span className="underline text-link cursor-pointer" onClick={() => setAddCollectionToWSModalOpen(true)}>
       Add
     </span>
-  )
+  );
 
   return (
     <div className="px-2 mt-4 text-gray-600">
@@ -56,7 +56,7 @@ const CreateOrAddCollection = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CreateOrAddCollection
+export default CreateOrAddCollection;

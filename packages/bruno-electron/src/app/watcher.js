@@ -1,14 +1,14 @@
-const fs = require('fs');
-const path = require('path');
-const chokidar = require('chokidar');
-const { hasJsonExtension } = require('../utils/filesystem');
+const fs = require("fs");
+const path = require("path");
+const chokidar = require("chokidar");
+const { hasJsonExtension } = require("../utils/filesystem");
 
 const isEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === 'environments.json';
-}
+  return dirname === collectionPath && basename === "environments.json";
+};
 
 const addEnvironmentFile = async (win, pathname, collectionUid) => {
   try {
@@ -17,14 +17,14 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-      }
+      },
     };
 
-    const jsonData = fs.readFileSync(pathname, 'utf8');
+    const jsonData = fs.readFileSync(pathname, "utf8");
     file.data = JSON.parse(jsonData);
-    win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
+    win.webContents.send("main:collection-tree-updated", "addEnvironmentFile", file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
@@ -35,14 +35,14 @@ const changeEnvironmentFile = async (win, pathname, collectionUid) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-      }
+      },
     };
 
-    const jsonData = fs.readFileSync(pathname, 'utf8');
+    const jsonData = fs.readFileSync(pathname, "utf8");
     file.data = JSON.parse(jsonData);
-    win.webContents.send('main:collection-tree-updated', 'changeEnvironmentFile', file);
+    win.webContents.send("main:collection-tree-updated", "changeEnvironmentFile", file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
@@ -54,12 +54,12 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
         pathname,
         name: path.basename(pathname),
       },
-      data: []
+      data: [],
     };
 
-    win.webContents.send('main:collection-tree-updated', 'changeEnvironmentFile', file);
+    win.webContents.send("main:collection-tree-updated", "changeEnvironmentFile", file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
@@ -67,8 +67,8 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   const isJson = hasJsonExtension(pathname);
   console.log(`watcher add: ${pathname}`);
 
-  if(isJson) {
-    if(isEnvironmentConfig(pathname, collectionPath)) {
+  if (isJson) {
+    if (isEnvironmentConfig(pathname, collectionPath)) {
       return addEnvironmentFile(win, pathname, collectionUid);
     }
 
@@ -77,15 +77,15 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-      }
-    }
+      },
+    };
 
     try {
-      const jsonData = fs.readFileSync(pathname, 'utf8');
+      const jsonData = fs.readFileSync(pathname, "utf8");
       file.data = JSON.parse(jsonData);
-      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      win.webContents.send("main:collection-tree-updated", "addFile", file);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
   }
 };
@@ -97,15 +97,15 @@ const addDirectory = (win, pathname, collectionUid) => {
       collectionUid,
       pathname,
       name: path.basename(pathname),
-    }
+    },
   };
-  win.webContents.send('main:collection-tree-updated', 'addDir', directory);
+  win.webContents.send("main:collection-tree-updated", "addDir", directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher change: ${pathname}`);
   try {
-    if(isEnvironmentConfig(pathname, collectionPath)) {
+    if (isEnvironmentConfig(pathname, collectionPath)) {
       return changeEnvironmentFile(win, pathname, collectionUid);
     }
 
@@ -114,19 +114,19 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         collectionUid,
         pathname,
         name: path.basename(pathname),
-      }
+      },
     };
-  
-    const jsonData = fs.readFileSync(pathname, 'utf8');
+
+    const jsonData = fs.readFileSync(pathname, "utf8");
     file.data = await JSON.parse(jsonData);
-    win.webContents.send('main:collection-tree-updated', 'change', file);
+    win.webContents.send("main:collection-tree-updated", "change", file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  if(isEnvironmentConfig(pathname, collectionPath)) {
+  if (isEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
 
@@ -135,11 +135,11 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
-    }
+      name: path.basename(pathname),
+    },
   };
-  win.webContents.send('main:collection-tree-updated', 'unlink', file);
-}
+  win.webContents.send("main:collection-tree-updated", "unlink", file);
+};
 
 const unlinkDir = (win, pathname, collectionUid) => {
   console.log(`watcher unlinkDir: ${pathname}`);
@@ -147,19 +147,19 @@ const unlinkDir = (win, pathname, collectionUid) => {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
-    }
+      name: path.basename(pathname),
+    },
   };
-  win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
-}
+  win.webContents.send("main:collection-tree-updated", "unlinkDir", directory);
+};
 
 class Watcher {
-  constructor () {
+  constructor() {
     this.watchers = {};
   }
 
-  addWatcher (win, watchPath, collectionUid) {
-    if(this.watchers[watchPath]) {
+  addWatcher(win, watchPath, collectionUid) {
+    if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
 
@@ -168,37 +168,37 @@ class Watcher {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
         usePolling: false,
-        ignored: path => ["node_modules", ".git", "bruno.json"].some(s => path.includes(s)),
+        ignored: (path) => ["node_modules", ".git", "bruno.json"].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {
           stabilityThreshold: 80,
-          pollInterval: 10
+          pollInterval: 10,
         },
-        depth: 20
+        depth: 20,
       });
-  
+
       watcher
-        .on('add', pathname => add(win, pathname, collectionUid, watchPath))
-        .on('addDir', pathname => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', pathname => change(win, pathname, collectionUid, watchPath))
-        .on('unlink', pathname => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', pathname => unlinkDir(win, pathname, collectionUid, watchPath))
-  
-        self.watchers[watchPath] = watcher;
+        .on("add", (pathname) => add(win, pathname, collectionUid, watchPath))
+        .on("addDir", (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+        .on("change", (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on("unlink", (pathname) => unlink(win, pathname, collectionUid, watchPath))
+        .on("unlinkDir", (pathname) => unlinkDir(win, pathname, collectionUid, watchPath));
+
+      self.watchers[watchPath] = watcher;
     }, 100);
   }
 
-  hasWatcher (watchPath) {
+  hasWatcher(watchPath) {
     return this.watchers[watchPath];
   }
 
-  removeWatcher (watchPath, win) {
-    if(this.watchers[watchPath]) {
+  removeWatcher(watchPath, win) {
+    if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
   }
-};
+}
 
-module.exports =  Watcher;
+module.exports = Watcher;

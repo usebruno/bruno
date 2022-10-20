@@ -1,59 +1,59 @@
-import React, { useState } from "react"
-import toast from "react-hot-toast"
-import { IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from "@tabler/icons"
-import { useSelector, useDispatch } from "react-redux"
-import { collectionImported } from "providers/ReduxStore/slices/collections"
-import { openLocalCollection } from "providers/ReduxStore/slices/collections/actions"
-import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions"
-import Bruno from "components/Bruno"
-import CreateCollection from "components/Sidebar/CreateCollection"
-import SelectCollection from "components/Sidebar/Collections/SelectCollection"
-import importCollection, { importSampleCollection } from "utils/collections/import"
-import { isElectron } from "utils/common/platform"
-import GithubSvg from "assets/github.svg"
-import StyledWrapper from "./StyledWrapper"
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from "@tabler/icons";
+import { useSelector, useDispatch } from "react-redux";
+import { collectionImported } from "providers/ReduxStore/slices/collections";
+import { openLocalCollection } from "providers/ReduxStore/slices/collections/actions";
+import { addCollectionToWorkspace } from "providers/ReduxStore/slices/workspaces/actions";
+import Bruno from "components/Bruno";
+import CreateCollection from "components/Sidebar/CreateCollection";
+import SelectCollection from "components/Sidebar/Collections/SelectCollection";
+import importCollection, { importSampleCollection } from "utils/collections/import";
+import { isElectron } from "utils/common/platform";
+import GithubSvg from "assets/github.svg";
+import StyledWrapper from "./StyledWrapper";
 
 const Welcome = () => {
-  const dispatch = useDispatch()
-  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false)
-  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false)
-  const { activeWorkspaceUid } = useSelector((state) => state.workspaces)
-  const isPlatformElectron = isElectron()
+  const dispatch = useDispatch();
+  const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
+  const isPlatformElectron = isElectron();
 
   const handleAddCollectionToWorkspace = (collectionUid) => {
-    setAddCollectionToWSModalOpen(false)
+    setAddCollectionToWSModalOpen(false);
     dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
       .then(() => {
-        toast.success("Collection added to workspace")
+        toast.success("Collection added to workspace");
       })
-      .catch(() => toast.error("An error occured while adding collection to workspace"))
-  }
+      .catch(() => toast.error("An error occured while adding collection to workspace"));
+  };
 
   const handleImportCollection = () => {
     importCollection()
       .then((collection) => {
-        dispatch(collectionImported({ collection: collection }))
-        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid))
+        dispatch(collectionImported({ collection: collection }));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
       })
-      .catch((err) => console.log(err))
-  }
+      .catch((err) => console.log(err));
+  };
 
   const handleImportSampleCollection = () => {
     importSampleCollection()
       .then((collection) => {
-        dispatch(collectionImported({ collection: collection }))
-        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid))
+        dispatch(collectionImported({ collection: collection }));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
       })
       .then(() => toast.success("Sample Collection loaded successfully"))
       .catch((err) => {
-        toast.error("Load sample collection failed")
-        console.log(err)
-      })
-  }
+        toast.error("Load sample collection failed");
+        console.log(err);
+      });
+  };
 
   const handleOpenLocalCollection = () => {
-    dispatch(openLocalCollection()).catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"))
-  }
+    dispatch(openLocalCollection()).catch((err) => console.log(err) && toast.error("An error occured while opening the local collection"));
+  };
 
   return (
     <StyledWrapper className="pb-4 px-6 mt-6 primary-title">
@@ -144,7 +144,7 @@ const Welcome = () => {
         </div>
       </div>
     </StyledWrapper>
-  )
-}
+  );
+};
 
-export default Welcome
+export default Welcome;

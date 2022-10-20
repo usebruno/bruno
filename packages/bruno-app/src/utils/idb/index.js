@@ -2,8 +2,8 @@ export const saveCollectionToIdb = (connection, collection) => {
   return new Promise((resolve, reject) => {
     connection
       .then((db) => {
-        let tx = db.transaction(`collection`, 'readwrite');
-        let collectionStore = tx.objectStore('collection');
+        let tx = db.transaction(`collection`, "readwrite");
+        let collectionStore = tx.objectStore("collection");
 
         collectionStore.put(collection);
 
@@ -17,8 +17,8 @@ export const deleteCollectionInIdb = (connection, collectionUid) => {
   return new Promise((resolve, reject) => {
     connection
       .then((db) => {
-        let tx = db.transaction(`collection`, 'readwrite');
-        tx.objectStore('collection').delete(collectionUid);
+        let tx = db.transaction(`collection`, "readwrite");
+        tx.objectStore("collection").delete(collectionUid);
 
         tx.oncomplete = () => resolve(collectionUid);
         tx.onerror = () => reject(tx.error);
@@ -31,13 +31,13 @@ export const getCollectionsFromIdb = (connection) => {
   return new Promise((resolve, reject) => {
     connection
       .then((db) => {
-        let tx = db.transaction('collection');
-        let collectionStore = tx.objectStore('collection');
+        let tx = db.transaction("collection");
+        let collectionStore = tx.objectStore("collection");
         return collectionStore.getAll();
       })
       .then((collections) => {
-        if(!Array.isArray(collections)) {
-          return new Error('IDB Corrupted');
+        if (!Array.isArray(collections)) {
+          return new Error("IDB Corrupted");
         }
 
         return resolve(collections);
