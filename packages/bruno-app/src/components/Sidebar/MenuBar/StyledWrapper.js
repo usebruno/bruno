@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  background-color: rgb(44, 44, 44);
-  color: rgba(255, 255, 255, 0.5);
+  background-color:  ${(props) => props.theme.menubar.bg};
+  color: rgba(255, 255, 255, 0.4);
   min-height: 100vh;
 
   .menu-item {

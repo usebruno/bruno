@@ -6,8 +6,6 @@ const Wrapper = styled.div`
   height: 100%;
   min-height: 100vh;
 
-  background-color: ${(props) => props.theme.theme['primary-theme']};
-
   &.is-dragging {
     cursor: col-resize !important;
   }
@@ -31,17 +29,6 @@ const Wrapper = styled.div`
 
       .react-tabs__tab--selected {
         border-color: #cfcfcf;
-      }
-    }
-  }
-
-  .collection-filter {
-    input {
-      border: 1px solid rgb(211 211 211);
-      border-radius: 2px;
-
-      &:focus {
-        outline: none;
       }
     }
   }

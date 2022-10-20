@@ -5,14 +5,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
-import { IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from '@tabler/icons';
+import { IconBrandGithub, IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
-import GithubSvg from 'assets/github.svg';
-import StyledWrapper, { SiteTitle } from './StyledWrapper';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import importCollection, { importSampleCollection } from 'utils/collections/import';
+import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
   const dispatch = useDispatch();
@@ -67,10 +66,10 @@ const Welcome = () => {
       <div className="">
         <Bruno width={50} />
       </div>
-      <SiteTitle className="text-xl font-semibold select-none">bruno</SiteTitle>
+      <div className="text-xl font-semibold select-none">bruno</div>
       <div className="mt-4">Opensource API Client.</div>
 
-      <div className="uppercase font-semibold create-request mt-10">Collections</div>
+      <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center">
           <IconPlus size={18} strokeWidth={2} />
@@ -94,7 +93,7 @@ const Welcome = () => {
         </div>
       </div>
 
-      <div className="uppercase font-semibold create-request mt-10 pt-6">Local Collections</div>
+      <div className="uppercase font-semibold heading mt-10 pt-6">Local Collections</div>
       {isPlatformElectron ? (
         <div className="mt-4 flex items-center collection-options select-none">
           <div className="flex items-center">
@@ -111,10 +110,10 @@ const Welcome = () => {
           </div>
         </div>
       ) : (
-        <div className="mt-4 flex items-center collection-options select-none text-gray-600 text-xs">Local collections are only available on the desktop app.</div>
+        <div className="muted mt-4 flex items-center collection-options select-none text-gray-600 text-xs">Local collections are only available on the desktop app.</div>
       )}
 
-      <div className="uppercase font-semibold create-request mt-10 pt-6">Links</div>
+      <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div>
           <a href="https://www.usebruno.com/downloads" target="_blank" className="flex items-center">
@@ -139,7 +138,7 @@ const Welcome = () => {
         </div> */}
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
-            <img src={GithubSvg.src} style={{ width: '18px' }} />
+            <IconBrandGithub size={18} strokeWidth={2} />
             <span className="label ml-2">Github</span>
           </a>
         </div>

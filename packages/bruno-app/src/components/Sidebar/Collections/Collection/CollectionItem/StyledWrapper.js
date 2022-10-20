@@ -15,7 +15,7 @@ const Wrapper = styled.div`
   }
 
   .indent-block {
-    border-right: solid 1px #e1e1e1;
+    border-right: ${(props) => props.theme.sidebar.collection.item.indentBorder};
   }
 
   .collection-item-name {
@@ -34,7 +34,7 @@ const Wrapper = styled.div`
     }
 
     &:hover {
-      background: #e7e7e7;
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
         .dropdown {
           div[aria-expanded='false'] {
@@ -45,14 +45,14 @@ const Wrapper = styled.div`
     }
 
     &.item-focused-in-tab {
-      background: var(--color-sidebar-collection-item-active-background);
+      background: ${(props) => props.theme.sidebar.collection.item.bg};
 
       &:hover {
-        background: var(--color-sidebar-collection-item-active-background) !important;
+        background: ${(props) => props.theme.sidebar.collection.item.bg} !important;
       }
 
       .indent-block {
-        border-right: solid 1px var(--color-sidebar-collection-item-active-indent-border);
+        border-right: ${(props) => props.theme.sidebar.collection.item.active.indentBorder} !important;
       }
     }
 

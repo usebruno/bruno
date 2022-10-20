@@ -1,8 +1,10 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  color: ${(props) => props.theme.sidebar.color};
+
   aside {
-    background-color: ${(props) => props.theme.theme['sidebar-background']};
+    background-color: ${(props) => props.theme['sidebar-background']};
 
     .collection-title {
       line-height: 1.5;
@@ -25,6 +27,18 @@ const Wrapper = styled.div`
         top: -0.625rem;
       }
     }
+
+    .collection-filter {
+      input {
+        border: ${(props) => props.theme.sidebar.search.border};
+        border-radius: 2px;
+        background-color:  ${(props) => props.theme.sidebar.search.bg};
+
+        &:focus {
+          outline: none;
+        }
+      }
+    }
   }
 
   div.drag-sidebar {
@@ -43,14 +57,6 @@ const Wrapper = styled.div`
       border-left: solid 1px var(--color-request-dragbar-background-active);
     }
   }
-`;
-
-export const BottomWrapper = styled.div`
-  background-color: ${(props) => props.theme.theme['sidebar-bottom-bg']};
-`;
-
-export const VersionNumber = styled.div`
-  color: ${(props) => props.theme.theme['primary-text']};
 `;
 
 export default Wrapper;

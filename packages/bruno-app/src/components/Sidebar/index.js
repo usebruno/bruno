@@ -108,7 +108,7 @@ const Sidebar = () => {
               <LocalCollections searchText={searchText} />
             </div>
 
-            <BottomWrapper className="flex px-1 py-2 items-center cursor-pointer text-gray-500 select-none">
+            <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
               <div className="flex items-center ml-1 text-xs ">
                 {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
@@ -124,8 +124,8 @@ const Sidebar = () => {
                   title="GitHub"
                 ></iframe>
               </div>
-              <VersionNumber className="flex flex-grow items-center justify-end text-xs mr-2">v1.25.2</VersionNumber>
-            </BottomWrapper>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.2.0</div>
+            </div>
           </div>
         </div>
       </aside>

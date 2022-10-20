@@ -1,4 +1,4 @@
-import ThemeManager from '../../../public/theme/index';
+import themes from 'themes/index';
 import useLocalStorage from 'src/hooks/useLocalStorage/index';
 
 import { createContext, useContext } from 'react';
@@ -6,20 +6,20 @@ import { ThemeProvider as SCThemeProvider } from 'styled-components';
 
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
-  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'Light');
+  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'light');
 
-  const theme = ThemeManager[storedTheme];
-  const themeKeys = Object.keys(ThemeManager);
+  const theme = themes[storedTheme];
+  const themeOptions = Object.keys(themes);
   const value = {
     theme,
-    themeKeys,
+    themeOptions,
     storedTheme,
     setStoredTheme
   };
 
   return (
     <ThemeContext.Provider value={value}>
-      <SCThemeProvider theme={value} {...props} />
+      <SCThemeProvider theme={theme} {...props} />
     </ThemeContext.Provider>
   );
 };

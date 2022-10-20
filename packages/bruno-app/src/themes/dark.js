@@ -1,0 +1,79 @@
+const darkTheme = {
+  brand: '#546de5',
+  text: '#d4d4d4',
+  bg: '#1e1e1e',
+
+  menubar: {
+    bg: '#333333',
+  },
+
+  sidebar: {
+    color: '#ccc',
+
+    workspace: {
+      bg: '#3D3D3D'
+    },
+
+    search: {
+      border: '1px solid transparent',
+      bg: '#3D3D3D'
+    },
+
+    collection: {
+      item: {
+        bg: '#37373D',
+        hoverBg: '#2A2D2F',
+        indentBorder: 'solid 1px #585858',
+        active: {
+          indentBorder: 'solid 1px #4c4c4c'
+        }
+      }
+    }
+  },
+
+  welcome: {
+    heading: '#569cd6',
+    muted: '#9d9d9d'
+  },
+
+  dropdown: {
+    color: "rgb(204, 204, 204)",
+    bg: 'rgb(48, 48, 49)',
+    hoverBg: '#0F395E',
+    shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+  },
+
+  request: {
+    methods: {
+      get: '#8cd656',
+      post: '#cd56d6',
+      put: '#d69956',
+      delete: '#f06f57'
+    }
+  },
+
+  'primary-text': '#ffffff',
+  'secondary-text': '#929292',
+  'sidebar-collection-item-active-background': '#e1e1e1',
+  'sidebar-background': '#252526',
+  'sidebar-bottom-bg': '#68217a',
+  'request-dragbar-background': '#efefef',
+  'request-dragbar-background-active': 'rgb(200, 200, 200)',
+  'tab-inactive': 'rgb(155 155 155)',
+  'tab-active-border': '#546de5',
+  'layout-border': '#dedede',
+  'codemirror-border': '#efefef',
+  'codemirror-background': 'rgb(243, 243, 243)',
+  'text-link': '#1663bb',
+  'text-danger': 'rgb(185, 28, 28)',
+  'background-danger': '#dc3545',
+  'method-get': 'rgb(5, 150, 105)',
+  'method-post': '#8e44ad',
+  'method-delete': 'rgb(185, 28, 28)',
+  'method-patch': 'rgb(52 52 52)',
+  'method-options': 'rgb(52 52 52)',
+  'method-head': 'rgb(52 52 52)',
+  'table-stripe': '#f3f3f3'
+};
+
+export default darkTheme;

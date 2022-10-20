@@ -1,11 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  color: ${(props) => props.theme.theme['primary-text']};
-
-  .create-request {
-    color: #737373;
+  .heading {
+    color:  ${(props) => props.theme.welcome.heading};
     font-size: 0.75rem;
+  }
+
+  .muted {
+    color:  ${(props) => props.theme.welcome.muted};
   }
 
   .collection-options {
@@ -21,10 +23,6 @@ const StyledWrapper = styled.div`
       }
     }
   }
-`;
-
-export const SiteTitle = styled.div`
-  color: ${(props) => props.theme.theme['primary-text']};
 `;
 
 export default StyledWrapper;

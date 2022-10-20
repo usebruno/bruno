@@ -10,11 +10,11 @@ import { IconFolders } from '@tabler/icons';
 import { isElectron } from 'utils/common/platform';
 import { useState, forwardRef, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import StyledWrapper, { SiteTitle } from './StyledWrapper';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
@@ -69,13 +69,13 @@ const TitleBar = () => {
         <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
           <Bruno width={30} />
         </div>
-        <SiteTitle
+        <div
           onClick={handleTitleClick}
-          className=" flex items-center font-medium select-none cursor-pointer"
+          className="flex items-center font-medium select-none cursor-pointer"
           style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
         >
           bruno
-        </SiteTitle>
+        </div>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
