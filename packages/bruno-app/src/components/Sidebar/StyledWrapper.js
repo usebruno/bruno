@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   aside {
-    background-color: var(--color-sidebar-background);
+    background-color: ${(props) => props.theme.theme['sidebar-background']};
 
     .collection-title {
       line-height: 1.5;
@@ -43,6 +43,14 @@ const Wrapper = styled.div`
       border-left: solid 1px var(--color-request-dragbar-background-active);
     }
   }
+`;
+
+export const BottomWrapper = styled.div`
+  background-color: ${(props) => props.theme.theme['sidebar-bottom-bg']};
+`;
+
+export const VersionNumber = styled.div`
+  color: ${(props) => props.theme.theme['primary-text']};
 `;
 
 export default Wrapper;

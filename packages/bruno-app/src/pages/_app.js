@@ -33,14 +33,14 @@ function MyApp({ Component, pageProps }) {
     <SafeHydrate>
       <NoSsr>
         <Provider store={ReduxStore}>
-          <ThemeProvider>
-            <AppProvider>
+          <AppProvider>
+            <ThemeProvider>
               <HotkeysProvider>
                 <Toaster toastOptions={{ duration: 2000 }} />
                 <Component {...pageProps} />
               </HotkeysProvider>
-            </AppProvider>
-          </ThemeProvider>
+            </ThemeProvider>
+          </AppProvider>
         </Provider>
       </NoSsr>
     </SafeHydrate>

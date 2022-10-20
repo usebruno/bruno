@@ -21,4 +21,8 @@ const StyledWrapper = styled.div`
   }
 `;
 
+export const SiteTitle = styled.div`
+  color: ${(props) => props.theme.theme['primary-text']};
+`;
+
 export default StyledWrapper;

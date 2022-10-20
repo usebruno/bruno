@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from '@tabler/icons';
+import { isElectron } from 'utils/common/platform';
 import { useSelector, useDispatch } from 'react-redux';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { IconPlus, IconUpload, IconFiles, IconFolders, IconPlayerPlay, IconBrandChrome, IconSpeakerphone, IconDeviceDesktop } from '@tabler/icons';
+
 import Bruno from 'components/Bruno';
+import GithubSvg from 'assets/github.svg';
+import StyledWrapper, { SiteTitle } from './StyledWrapper';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import importCollection, { importSampleCollection } from 'utils/collections/import';
-import { isElectron } from 'utils/common/platform';
-import GithubSvg from 'assets/github.svg';
-import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
   const dispatch = useDispatch();
