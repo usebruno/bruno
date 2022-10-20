@@ -1,17 +1,18 @@
-import { HotkeysProvider } from 'providers/Hotkeys';
-import { AuthProvider } from 'providers/Auth';
-import { AppProvider } from 'providers/App';
-import ReduxStore from 'providers/ReduxStore';
 import { Provider } from 'react-redux';
 import { Toaster } from 'react-hot-toast';
+import { AppProvider } from 'providers/App';
+import { AuthProvider } from 'providers/Auth';
+import { HotkeysProvider } from 'providers/Hotkeys';
 
+import ReduxStore from 'providers/ReduxStore';
+import ThemeProvider from 'providers/Theme/index';
+
+import '../styles/app.scss';
 import '../styles/globals.css';
 import 'tailwindcss/dist/tailwind.min.css';
 import 'react-tabs/style/react-tabs.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
-
-import '../styles/app.scss';
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -32,12 +33,14 @@ function MyApp({ Component, pageProps }) {
     <SafeHydrate>
       <NoSsr>
         <Provider store={ReduxStore}>
-          <AppProvider>
-            <HotkeysProvider>
-              <Toaster toastOptions={{ duration: 2000 }} />
-              <Component {...pageProps} />
-            </HotkeysProvider>
-          </AppProvider>
+          <ThemeProvider>
+            <AppProvider>
+              <HotkeysProvider>
+                <Toaster toastOptions={{ duration: 2000 }} />
+                <Component {...pageProps} />
+              </HotkeysProvider>
+            </AppProvider>
+          </ThemeProvider>
         </Provider>
       </NoSsr>
     </SafeHydrate>
