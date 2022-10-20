@@ -3,3 +3,7 @@
 /target/
 
 node_modules
+jspm_packages/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
