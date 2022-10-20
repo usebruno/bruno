@@ -9,7 +9,7 @@ import { updateTheme } from "providers/ReduxStore/slices/app"
 
 export default function Home() {
   const dispatch = useDispatch()
-  const [storedTheme, _] = useLocalStorage("THEME", "light")
+  const [storedTheme, _] = useLocalStorage("bruno.theme", "light")
   const { theme } = useSelector((state) => state.app)
 
   useEffect(() => {
