@@ -5,6 +5,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { workspaceSchema } from '@usebruno/schema';
 import { findCollectionInWorkspace } from 'utils/workspaces';
 import { getWorkspacesFromIdb, saveWorkspaceToIdb, deleteWorkspaceInIdb } from 'utils/idb/workspaces';
+import { BrunoError } from 'utils/common/error';
 import {
   loadWorkspaces,
   addWorkspace as _addWorkspace,
@@ -110,7 +111,7 @@ export const deleteWorkspace = (workspaceUid) => (dispatch, getState) => {
 
   return new Promise((resolve, reject) => {
     if (state.workspaces.activeWorkspaceUid === workspaceUid) {
-      throw new Error('User cannot delete current workspace');
+      throw new BrunoError('Cannot delete current workspace');
     }
 
     const workspace = find(state.workspaces.workspaces, (w) => w.uid === workspaceUid);
