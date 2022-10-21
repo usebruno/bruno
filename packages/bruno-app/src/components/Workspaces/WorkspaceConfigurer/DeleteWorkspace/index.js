@@ -4,6 +4,7 @@ import Modal from 'components/Modal/index';
 import { deleteWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
+import { toastError } from 'utils/common/error';
 import StyledWrapper from './StyledWrapper';
 
 const DeleteWorkspace = ({ onClose, workspace }) => {
@@ -14,7 +15,7 @@ const DeleteWorkspace = ({ onClose, workspace }) => {
         toast.success('Workspace deleted!');
         onClose();
       })
-      .catch(() => toast.error('An error occured while deleting the workspace'));
+      .catch(toastError);
   };
 
   return (
