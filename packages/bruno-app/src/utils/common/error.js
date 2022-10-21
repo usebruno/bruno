@@ -9,26 +9,28 @@ export class BrunoError extends Error {
   }
 }
 
-export const parseError = (error) => {
+export const parseError = (error, defaultErrorMsg = 'An error occurred') => {
   if (error instanceof BrunoError) {
     return error.message;
   }
 
-  return error.message ? error.message : 'An error occured';
+  return error.message ? error.message : defaultErrorMsg;
 };
 
 export const toastError = (error, defaultErrorMsg = 'An error occurred') => {
+  let errorMsg = parseError(error, defaultErrorMsg);
+
   if (error instanceof BrunoError) {
     if (error.level === 'warning') {
-      return toast(error.message, {
+      return toast(errorMsg, {
         icon: '⚠️',
         duration: 3000
       });
     }
-    return toast.error(error.message, {
+    return toast.error(errorMsg, {
       duration: 3000
     });
   }
 
-  return toast.error(error.message || defaultError);
+  return toast.error(errorMsg);
 };
