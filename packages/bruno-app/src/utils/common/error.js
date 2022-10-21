@@ -17,7 +17,7 @@ export const parseError = (error) => {
   return error.message ? error.message : 'An error occured';
 };
 
-export const toastError = (error) => {
+export const toastError = (error, defaultErrorMsg = 'An error occurred') => {
   if (error instanceof BrunoError) {
     if (error.level === 'warning') {
       return toast(error.message, {
@@ -30,5 +30,5 @@ export const toastError = (error) => {
     });
   }
 
-  return toast.error(error.message || 'An error occured');
+  return toast.error(error.message || defaultError);
 };
