@@ -8,9 +8,6 @@
     "packages/bruno-schema",
     "packages/bruno-testbench"
   ],
-  "dependencies": {
-    "next": "12.3.1"
-  },
   "devDependencies": {
     "jest": "^29.2.0",
     "randomstring": "^1.2.2"
