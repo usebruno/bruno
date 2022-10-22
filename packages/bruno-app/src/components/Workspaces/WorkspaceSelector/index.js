@@ -18,7 +18,7 @@ const WorkspaceSelector = () => {
 
   useEffect(() => {
     setActiveWorkspace(workspaces.find((workspace) => workspace.uid === activeWorkspaceUid));
-  }, [activeWorkspaceUid]);
+  }, [activeWorkspaceUid, workspaces]);
 
   const Icon = forwardRef((props, ref) => {
     return (

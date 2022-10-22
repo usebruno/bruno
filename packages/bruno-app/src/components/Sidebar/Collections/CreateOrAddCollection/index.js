@@ -43,7 +43,7 @@ const CreateOrAddCollection = () => {
 
   return (
     <div className="px-2 mt-4 text-gray-600">
-      {createCollectionModalOpen ? <CreateCollection handleCancel={() => setCreateCollectionModalOpen(false)} handleConfirm={handleCreateCollection} /> : null}
+      {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} handleConfirm={handleCreateCollection} /> : null}
 
       {addCollectionToWSModalOpen ? (
         <SelectCollection title="Add Collection to Workspace" onClose={() => setAddCollectionToWSModalOpen(false)} onSelect={handleAddCollectionToWorkspace} />
