@@ -57,6 +57,10 @@ const lightTheme = {
     url: {
       bg: '#f3f3f3',
       icon: '#515151'
+    },
+    dragbar: {
+      border: '#efefef',
+      activeBorder: 'rgb(200, 200, 200)'
     }
   },
 
@@ -99,24 +103,29 @@ const lightTheme = {
   },
 
   tabs: {
-    color: '',
-    bg: '',
-    borromBorder: '',
     active: {
-      color: '',
-      bg: '',
-      borromBorder: ''
+      color: '${(props) => props.theme.tabs.active.color}',
+      border: '#546de5'
     }
   },
 
   requestTabs: {
-    color: '',
-    bg: '',
-    borromBorder: '',
+    color: 'rgb(52, 52, 52)',
+    bg: '#f7f7f7',
+    borromBorder: '#efefef',
+    icon: {
+      color: '#9f9f9f',
+      hoverColor: 'rgb(76 76 76)',
+      hoverBg: 'rgb(234, 234, 234)'
+    },
     active: {
-      color: '',
-      bg: '',
-      borromBorder: ''
+      bg: '#e7e7e7'
+    },
+    shortTab: {
+      color: 'rgb(117 117 117)',
+      bg: 'white',
+      hoverColor: 'rgb(76 76 76)',
+      hoverBg: '#eaeaea'
     }
   },
 
@@ -125,7 +134,10 @@ const lightTheme = {
   },
 
   table: {
-    border: '',
+    border: '#efefef',
+    thead : {
+      color: '#616161'
+    }
   },
   
   'primary-text': 'rgb(52 52 52)',

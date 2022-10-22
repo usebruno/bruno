@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-workspace {
     margin-inline: 0.5rem;
-    background-color:  ${(props) => props.theme.sidebar.workspace.bg};
+    background-color: ${(props) => props.theme.sidebar.workspace.bg};
     border-radius: 5px;
 
     .caret {

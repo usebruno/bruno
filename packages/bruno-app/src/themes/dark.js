@@ -57,6 +57,10 @@ const darkTheme = {
     url: {
       bg: '#3D3D3D',
       icon: 'rgb(204, 204, 204)'
+    },
+    dragbar: {
+      border: '#444',
+      activeBorder: '#8a8a8a'
     }
   },
 
@@ -99,25 +103,29 @@ const darkTheme = {
   },
 
   tabs: {
-    color: '',
-    bg: '',
-    borromBorder: '',
     active: {
-      color: '',
-      bg: '',
-      borromBorder: ''
+      color: '#ccc',
+      border: '#569cd6'
     }
   },
 
-
   requestTabs: {
-    color: '',
-    bg: '',
-    borromBorder: '',
+    color: '#ccc',
+    bg: '#2A2D2F',
+    borromBorder: '#444',
+    icon: {
+      color: '#9f9f9f',
+      hoverColor: 'rgb(204, 204, 204)',
+      hoverBg: '#1e1e1e'
+    },
     active: {
-      color: '',
-      bg: '',
-      borromBorder: ''
+      bg: '#3D3D3D'
+    },
+    shortTab: {
+      color: '#ccc',
+      bg: 'transparent',
+      hoverColor: '#ccc',
+      hoverBg: '#3D3D3D'
     }
   },
 
@@ -126,7 +134,10 @@ const darkTheme = {
   },
 
   table: {
-    border: '',
+    border: '#333',
+    thead : {
+      color: 'rgb(204, 204, 204)'
+    }
   },
 
   'primary-text': '#ffffff',

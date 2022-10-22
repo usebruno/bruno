@@ -35,8 +35,8 @@ const StyledWrapper = styled.div`
 
   .react-tabs__tab--selected {
     border: none;
-    color: #322e2c !important;
-    border-bottom: solid 2px var(--color-tab-active-border) !important;
+    color: ${(props) => props.theme.tabs.active.color} !important;
+    border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
     border-color: var(--color-tab-active-border) !important;
     background: inherit;
     outline: none !important;
@@ -50,7 +50,7 @@ const StyledWrapper = styled.div`
       border: none;
       outline: none !important;
       box-shadow: none !important;
-      border-bottom: solid 2px var(--color-tab-active-border) !important;
+      border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       border-color: var(--color-tab-active-border) !important;
       background: inherit;
       outline: none !important;

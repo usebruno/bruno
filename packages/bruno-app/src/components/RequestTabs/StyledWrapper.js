@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  border-bottom: 1px solid var(--color-request-dragbar-background);
+  border-bottom: 1px solid ${(props) => props.theme.requestTabs.borromBorder};
 
   ul {
     padding: 0;
@@ -28,7 +28,8 @@ const Wrapper = styled.div`
       height: 38px;
 
       margin-right: 6px;
-      background: #f7f7f7;
+      color: ${(props) => props.theme.requestTabs.color};
+      background: ${(props) => props.theme.requestTabs.bg};
       border-radius: 0;
 
       .tab-container {
@@ -36,7 +37,7 @@ const Wrapper = styled.div`
       }
 
       &.active {
-        background: #e7e7e7;
+        background: ${(props) => props.theme.requestTabs.active.bg};
         font-weight: 500;
       }
 
@@ -60,9 +61,9 @@ const Wrapper = styled.div`
         padding: 3px 0px;
         display: inline-flex;
         justify-content: center;
-        color: rgb(117 117 117);
+        color: ${(props) => props.theme.requestTabs.shortTab.color};
+        background-color: ${(props) => props.theme.requestTabs.shortTab.bg};
         position: relative;
-        background-color: white;
         top: -1px;
 
         > div {
@@ -85,8 +86,8 @@ const Wrapper = styled.div`
 
         &:hover {
           > div {
-            background-color: #eaeaea;
-            color: rgb(76 76 76);
+            background-color: ${(props) => props.theme.requestTabs.shortTab.hoverBg};
+            color: ${(props) => props.theme.requestTabs.shortTab.hoverColor};
             border-radius: 3px;
           }
         }
