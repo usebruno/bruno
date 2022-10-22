@@ -124,7 +124,7 @@ const RequestHeaders = ({ item, collection }) => {
             : null}
         </tbody>
       </table>
-      <button className="btn-add-header select-none" onClick={addHeader}>
+      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
         + Add Header
       </button>
     </StyledWrapper>

@@ -1,6 +1,7 @@
 const lightTheme = {
   brand: '#546de5',
   text: 'rgb(52, 52, 52)',
+  textLink: '#1663bb',
   bg: '#fff',
 
   menubar: {
@@ -61,6 +62,9 @@ const lightTheme = {
     dragbar: {
       border: '#efefef',
       activeBorder: 'rgb(200, 200, 200)'
+    },
+    bodyModeSelect: {
+      color: '#efefef'
     }
   },
 
@@ -104,7 +108,7 @@ const lightTheme = {
 
   tabs: {
     active: {
-      color: '${(props) => props.theme.tabs.active.color}',
+      color: 'rgb(50, 46, 44)',
       border: '#546de5'
     }
   },
@@ -130,14 +134,19 @@ const lightTheme = {
   },
 
   codemirror: {
-
+    bg: 'white',
+    border: '#efefef',
+    gutter: {
+      bg: '#f3f3f3'
+    }
   },
 
   table: {
     border: '#efefef',
     thead : {
       color: '#616161'
-    }
+    },
+    striped: '#f3f3f3'
   },
   
   'primary-text': 'rgb(52 52 52)',

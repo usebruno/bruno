@@ -1,6 +1,7 @@
 const darkTheme = {
   brand: '#546de5',
   text: '#d4d4d4',
+  textLink: '#569cd6',
   bg: '#1e1e1e',
 
   menubar: {
@@ -61,6 +62,9 @@ const darkTheme = {
     dragbar: {
       border: '#444',
       activeBorder: '#8a8a8a'
+    },
+    bodyModeSelect: {
+      color: 'transparent'
     }
   },
 
@@ -130,14 +134,19 @@ const darkTheme = {
   },
 
   codemirror: {
-
+    bg: '#1e1e1e',
+    border: 'transparent',
+    gutter: {
+      bg: '#1e1e1e'
+    }
   },
 
   table: {
     border: '#333',
     thead : {
       color: 'rgb(204, 204, 204)'
-    }
+    },
+    striped: '#2A2D2F'
   },
 
   'primary-text': '#ffffff',

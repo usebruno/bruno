@@ -12,7 +12,7 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.table.thead.color};;
+      color: ${(props) => props.theme.table.thead.color};
       font-size: 0.8125rem;
       user-select: none;
     }
@@ -23,8 +23,6 @@ const Wrapper = styled.div`
 
   .btn-add-header {
     font-size: 0.8125rem;
-    margin-block: 10px;
-    padding: 5px;
   }
 
   input[type='text'] {
