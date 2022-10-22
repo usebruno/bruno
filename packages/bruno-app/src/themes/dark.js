@@ -66,6 +66,69 @@ const darkTheme = {
     }
   },
 
+  modal: {
+    title: {
+      color: '#ccc',
+      bg: 'rgb(48, 48, 49)',
+      iconColor: '#ccc'
+    },
+    body: {
+      color: '#ccc',
+      bg: 'rgb(48, 48, 49)',
+    },
+    input : {
+      bg: 'rgb(65, 65, 65)',
+      border: 'rgb(65, 65, 65)',
+      focusBorder: 'rgb(65, 65, 65)'
+    }
+  },
+
+  button: {
+    secondary: {
+      color: 'rgb(204, 204, 204)',
+      bg: '#0F395E',
+      border: '#0F395E',
+      hoverBorder: '#696969'
+    },
+    close: {
+      color: '#ccc',
+      bg: 'transparent',
+      border: 'transparent',
+      hoverBorder: ''
+    }
+  },
+
+  tabs: {
+    color: '',
+    bg: '',
+    borromBorder: '',
+    active: {
+      color: '',
+      bg: '',
+      borromBorder: ''
+    }
+  },
+
+
+  requestTabs: {
+    color: '',
+    bg: '',
+    borromBorder: '',
+    active: {
+      color: '',
+      bg: '',
+      borromBorder: ''
+    }
+  },
+
+  codemirror: {
+
+  },
+
+  table: {
+    border: '',
+  },
+
   'primary-text': '#ffffff',
   'secondary-text': '#929292',
   'sidebar-collection-item-active-background': '#e1e1e1',

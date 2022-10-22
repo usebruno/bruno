@@ -66,8 +66,8 @@ const Wrapper = styled.div`
     justify-content: space-between;
     align-items: center;
     text-transform: uppercase;
-    color: rgb(86 86 86);
-    background-color: #f1f1f1;
+    color: ${(props) => props.theme.modal.title.color};
+    background-color: ${(props) => props.theme.modal.title.bg};
     font-size: 0.75rem;
     padding: 12px;
     font-weight: 600;
@@ -77,7 +77,7 @@ const Wrapper = styled.div`
     .close {
       font-size: 1.3rem;
       line-height: 1;
-      color: #000;
+      color: ${(props) => props.theme.modal.iconColor};
       text-shadow: 0 1px 0 #fff;
       opacity: 0.5;
       margin-top: -2px;
@@ -90,7 +90,26 @@ const Wrapper = styled.div`
 
   .bruno-modal-content {
     flex-grow: 1;
-    background-color: #fff;
+    background-color: ${(props) => props.theme.modal.body.bg};
+
+    .textbox {
+      line-height: 1.42857143;
+      border: 1px solid #ccc;
+      padding: 0.45rem;
+      box-shadow: none;
+      border-radius: 0px;
+      outline: none;
+      box-shadow: none;
+      transition: border-color ease-in-out .1s;
+      border-radius: 3px;
+      background-color: ${(props) => props.theme.modal.input.bg};
+      border: 1px solid ${(props) => props.theme.modal.input.border};
+
+      &:focus {
+        border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
+        outline: none !important;
+      }
+    }
   }
 
   .bruno-modal-backdrop {
@@ -117,7 +136,7 @@ const Wrapper = styled.div`
   }
 
   .bruno-modal-footer {
-    background-color: white;
+    background-color: ${(props) => props.theme.modal.body.bg};
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
   }

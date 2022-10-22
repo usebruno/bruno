@@ -39,7 +39,7 @@ const lightTheme = {
   dropdown: {
     color: "rgb(48 48 48)",
     iconColor: "rgb(75, 85, 99)",
-    bg: 'rgb(48, 48, 49)',
+    bg: '#fff',
     hoverBg: '#e9e9e9',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
   },
@@ -64,6 +64,68 @@ const lightTheme = {
     environment: {
       bg: '#efefef'
     }
+  },
+
+  modal: {
+    title: {
+      color: 'rgb(86 86 86)',
+      bg: '#f1f1f1',
+      iconColor: 'black'
+    },
+    body: {
+      color: '#ccc',
+      bg: 'white',
+    },
+    input : {
+      bg: 'white',
+      border: '#ccc',
+      focusBorder: '#8b8b8b'
+    }
+  },
+
+  button: {
+    secondary: {
+      color: '#212529',
+      bg: '#e2e6ea',
+      border: '#dae0e5',
+      hoverBorder: '#696969'
+    },
+    close: {
+      color: '212529',
+      bg: 'white',
+      border: 'white',
+      hoverBorder: ''
+    }
+  },
+
+  tabs: {
+    color: '',
+    bg: '',
+    borromBorder: '',
+    active: {
+      color: '',
+      bg: '',
+      borromBorder: ''
+    }
+  },
+
+  requestTabs: {
+    color: '',
+    bg: '',
+    borromBorder: '',
+    active: {
+      color: '',
+      bg: '',
+      borromBorder: ''
+    }
+  },
+
+  codemirror: {
+
+  },
+
+  table: {
+    border: '',
   },
   
   'primary-text': 'rgb(52 52 52)',
