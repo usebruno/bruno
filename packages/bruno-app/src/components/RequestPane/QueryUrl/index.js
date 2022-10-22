@@ -3,10 +3,12 @@ import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
 import HttpMethodSelector from './HttpMethodSelector';
+import { useTheme } from 'providers/Theme';
+import SendIcon from 'components/Icons/Send';
 import StyledWrapper from './StyledWrapper';
-import SendSvg from 'assets/send.svg';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
+  const { theme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   let url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
@@ -48,7 +50,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           onChange={(event) => onUrlChange(event.target.value)}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" onClick={handleRun}>
-          <img src={SendSvg.src} style={{ width: '22px' }} />
+          <SendIcon color={theme.requestTabPanel.url.icon} width={22}/>
         </div>
       </div>
     </StyledWrapper>

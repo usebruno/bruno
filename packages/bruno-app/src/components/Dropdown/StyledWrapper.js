@@ -33,6 +33,10 @@ const Wrapper = styled.div`
         padding: 0.35rem 0.6rem;
         cursor: pointer;
 
+        .icon {
+          color: ${(props) => props.theme.dropdown.iconColor};
+        }
+
         &:hover {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }

@@ -31,6 +31,7 @@ const Wrapper = styled.div`
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
+    background-color: inherit;
 
     &:focus {
       outline: none !important;

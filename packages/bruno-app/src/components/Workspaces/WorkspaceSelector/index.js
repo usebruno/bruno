@@ -49,14 +49,14 @@ const WorkspaceSelector = () => {
       <div className="items-center cursor-pointer relative">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="dropdown-item" onClick={() => setOpenSwitchWorkspaceModal(true)}>
-            <div className="pr-2 text-gray-600">
+            <div className="pr-2 icon">
               <IconSwitch3 size={18} strokeWidth={1.5} />
             </div>
             <span>Switch Workspace</span>
           </div>
 
           <div className="dropdown-item" onClick={() => setOpenWorkspacesModal(true)}>
-            <div className="pr-2 text-gray-600">
+            <div className="pr-2 icon">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>
             <span>Configure Workspaces</span>

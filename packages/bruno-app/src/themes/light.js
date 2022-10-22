@@ -38,6 +38,7 @@ const lightTheme = {
 
   dropdown: {
     color: "rgb(48 48 48)",
+    iconColor: "rgb(75, 85, 99)",
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#e9e9e9',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
@@ -52,6 +53,18 @@ const lightTheme = {
     }
   },
 
+  requestTabPanel: {
+    url: {
+      bg: '#f3f3f3',
+      icon: '#515151'
+    }
+  },
+
+  collection: {
+    environment: {
+      bg: '#efefef'
+    }
+  },
   
   'primary-text': 'rgb(52 52 52)',
   'secondary-text': '#929292',

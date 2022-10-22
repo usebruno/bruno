@@ -38,6 +38,7 @@ const darkTheme = {
 
   dropdown: {
     color: "rgb(204, 204, 204)",
+    iconColor: "rgb(204, 204, 204)",
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#0F395E',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
@@ -49,6 +50,19 @@ const darkTheme = {
       post: '#cd56d6',
       put: '#d69956',
       delete: '#f06f57'
+    }
+  },
+
+  requestTabPanel: {
+    url: {
+      bg: '#3D3D3D',
+      icon: 'rgb(204, 204, 204)'
+    }
+  },
+
+  collection: {
+    environment: {
+      bg: '#3D3D3D'
     }
   },
 

@@ -4,18 +4,18 @@ const Wrapper = styled.div`
   height: 2.3rem;
 
   div.method-selector-container {
-    background-color: var(--color-sidebar-background);
+    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     border-top-left-radius: 3px;
     border-bottom-left-radius: 3px;
   }
 
   div.input-container {
-    background-color: var(--color-sidebar-background);
+    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
     border-top-right-radius: 3px;
     border-bottom-right-radius: 3px;
 
     input {
-      background-color: var(--color-sidebar-background);
+      background-color: ${(props) => props.theme.requestTabPanel.url.bg};
       outline: none;
       box-shadow: none;
 
