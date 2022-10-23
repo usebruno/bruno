@@ -29,6 +29,14 @@ I am happy that you are looking to improve bruno. Please checkout the [contribut
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
 
+### Contributors
+
+<div align="center">
+    <a href="https://github.com/usebruno/bruno/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+    </a>
+</div>
+
 
 ### Support ❤️ 
 Woof! If you like project, hit that ⭐ button !!
@@ -36,6 +44,7 @@ Woof! If you like project, hit that ⭐ button !!
 ### Stay in touch 🌐
 [Twitter](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com)
+
 
 ### License 📄
 [MIT](license.md)
