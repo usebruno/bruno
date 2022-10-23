@@ -9,6 +9,11 @@ You can visit the [Website](https://www.usebruno.com) or watch a [4 min demo](ht
 
 ![bruno](assets/images/landing.png)
 
+
+### Bring Your Own Version Control ✨
+Bruno is built from the ground up with the Local-first paradigm in mind. This allows developers to directly store there collections on top of their local filesystem. The collections are mirrored as folders and files on the filesystem.
+![bruno](assets/images/local-collections.png)
+
 ### Comparision with Similar tools ⚖️
 Bruno is at early stages of development, and does not yet have all the bells and whistles.
 Here is a rundown of key areas where bruno is different from  similar tools out there.
@@ -24,22 +29,22 @@ Here is a rundown of key areas where bruno is different from  similar tools out 
 | Run in Browser                 | ✔️ | ✔️ | ✖️ | ✔️ |
 | Multi Tab Requests             | ✔️ | ✔️ | ✖️ | ✖️ |
 
+
 ### Contribute 👩‍💻🧑‍💻
 I am happy that you are looking to improve bruno. Please checkout the [contributing guide](contributing.md)
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
 
-### Contributors
+### Support ❤️ 
+Woof! If you like project, hit that ⭐ button !!
+
+### Authors
 
 <div align="center">
     <a href="https://github.com/usebruno/bruno/graphs/contributors">
         <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
     </a>
 </div>
-
-
-### Support ❤️ 
-Woof! If you like project, hit that ⭐ button !!
 
 ### Stay in touch 🌐
 [Twitter](https://twitter.com/use_bruno) <br />
