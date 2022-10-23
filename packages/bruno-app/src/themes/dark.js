@@ -56,7 +56,7 @@ const darkTheme = {
     color: "rgb(204, 204, 204)",
     iconColor: "rgb(204, 204, 204)",
     bg: 'rgb(48, 48, 49)',
-    hoverBg: '#0F395E',
+    hoverBg: '#185387',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
     seperator: '#444',
     labelBg: '#4a4949'
@@ -135,8 +135,8 @@ const darkTheme = {
   button: {
     secondary: {
       color: 'rgb(204, 204, 204)',
-      bg: '#0F395E',
-      border: '#0F395E',
+      bg: '#185387',
+      border: '#185387',
       hoverBorder: '#696969'
     },
     close: {
