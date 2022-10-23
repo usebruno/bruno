@@ -1,4 +1,4 @@
-import template from 'lodash/template';
+import reckon from 'reckonjs';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
@@ -356,21 +356,26 @@ export const isLocalCollection = (collection) => {
 };
 
 export const interpolateEnvironmentVars = (item, variables) => {
-  const envVars = {};
-  const { request } = item;
+  const envVars = {
+    interpolation: { escapeValue: true }
+  };
+  const _item = item.draft ? item.draft : item;
+  const { request } = _item;
   each(variables, (variable) => {
     envVars[variable.name] = variable.value;
   });
 
-  const templateOpts = {
-    interpolate: /{{([\s\S]+?)}}/g, //interpolate content using markers `{{}}`
-    evaluate: null, // prevent any js evaluation
-    escape: null // disable any escaping
+  // TODO: Find a better interpolation library
+  const interpolate = (str) => {
+    if(!str || !str.length || typeof str !== "string") {
+      return str;
+    }
+
+    return str.reckon(envVars);
   };
 
-  const interpolate = (str) => template(str, templateOpts)(envVars);
-
   request.url = interpolate(request.url);
+  console.log(request.url);
 
   each(request.headers, (header) => {
     header.value = interpolate(header.value);

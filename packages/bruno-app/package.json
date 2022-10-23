@@ -40,6 +40,7 @@
     "react-hot-toast": "^2.4.0",
     "react-redux": "^7.2.6",
     "react-tabs": "^3.2.3",
+    "reckonjs": "^0.1.2",
     "sass": "^1.46.0",
     "split-on-first": "^3.0.0",
     "styled-components": "^5.3.3",
