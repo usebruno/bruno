@@ -7,7 +7,7 @@ Your api must allow CORS for it to work in the browser, else checkout the chrome
 
 You can visit the [Website](https://www.usebruno.com) or watch a [4 min demo](https://www.youtube.com/watch?v=wwXJW7_qyLA)
 
-![bruno](packages/bruno-app/public/images/landing.png)
+![bruno](assets/images/landing.png)
 
 ### Comparision with Similar tools ⚖️
 Bruno is at early stages of development, and does not yet have all the bells and whistles.
