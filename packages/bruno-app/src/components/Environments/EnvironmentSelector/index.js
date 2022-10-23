@@ -65,7 +65,7 @@ const EnvironmentSelector = ({ collection }) => {
           >
             <span>No Environment</span>
           </div>
-          <div className="dropdown-item" style={{ borderTop: 'solid 1px #e7e7e7' }} onClick={() => setOpenSettingsModal(true)}>
+          <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>

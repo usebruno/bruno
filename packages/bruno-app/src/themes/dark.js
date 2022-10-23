@@ -43,6 +43,7 @@ const darkTheme = {
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#0F395E',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
+    seperator: '#444'
   },
 
   request: {
@@ -65,7 +66,11 @@ const darkTheme = {
     },
     bodyModeSelect: {
       color: 'transparent'
-    }
+    },
+    responseSendIcon: '#555',
+    responseStatus: '#ccc',
+    responseOk: '#8cd656',
+    responseError: '#f06f57'
   },
 
   collection: {

@@ -40,6 +40,10 @@ const Wrapper = styled.div`
         &:hover {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
         }
+
+        &.border-top {
+          border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
+        }
       }
     }
   }

@@ -43,6 +43,7 @@ const lightTheme = {
     bg: '#fff',
     hoverBg: '#e9e9e9',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
+    seperator: '#e7e7e7'
   },
 
   request: {
@@ -65,7 +66,11 @@ const lightTheme = {
     },
     bodyModeSelect: {
       color: '#efefef'
-    }
+    },
+    responseSendIcon: 'rgb(209, 213, 219)',
+    responseStatus: 'rgb(117 117 117)',
+    responseOk: '#047857',
+    responseError: 'rgb(185, 28, 28)'
   },
 
   collection: {

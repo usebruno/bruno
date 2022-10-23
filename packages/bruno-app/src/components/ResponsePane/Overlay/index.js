@@ -23,7 +23,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
         <IconRefresh size={24} className="animate-spin" />
         <button
           onClick={handleCancelRequest}
-          className="mt-4 uppercase bg-gray-200 active:bg-blueGray-600 text-xs px-4 py-2 rounded shadow hover:shadow-md outline-none focus:outline-none mr-1 mb-1 ease-linear transition-all duration-150"
+          className="mt-4 uppercase btn-md rounded btn-secondary ease-linear transition-all duration-150"
           type="button"
         >
           Cancel Request

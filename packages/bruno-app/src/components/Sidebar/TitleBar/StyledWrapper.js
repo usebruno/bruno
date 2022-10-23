@@ -7,7 +7,7 @@ const StyledWrapper = styled.div`
 
   .local-collections-unavailable {
     padding: 0.35rem 0.6rem;
-    border-top: solid 1px #ddd;
+    border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
     font-size: 11px;
   }
   .collection-dropdown {
