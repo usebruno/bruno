@@ -1,5 +1,5 @@
 # bruno
-Opensource API Client.
+Local-first, Opensource API Client.
 
 ### Live Demo 🏂 
 Woof! Lets play with some api's [here](https://play.usebruno.com).
