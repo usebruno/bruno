@@ -67,7 +67,7 @@ const Welcome = () => {
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
-      <div className="mt-4">Opensource API Client.</div>
+      <div className="mt-4">Local-first, Opensource API Client.</div>
 
       <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">
