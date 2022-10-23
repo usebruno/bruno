@@ -9,8 +9,8 @@ const EnvironmentList = ({ collection }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
 
   useEffect(() => {
-    setSelectedEnvironment(environments[0]);
-  }, []);
+    setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+  }, [environments]);
 
   if (!selectedEnvironment) {
     return null;

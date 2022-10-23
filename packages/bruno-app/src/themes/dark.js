@@ -6,7 +6,8 @@ const darkTheme = {
 
   colors: {
     text: {
-      danger: '#f06f57'
+      danger: '#f06f57',
+      muted: '#9d9d9d'
     },
     bg: {
       danger: '#d03544'

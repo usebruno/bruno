@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import styled from 'styled-components';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+import StyledWrapper from './StyledWrapper';
 
 const LinkStyle = styled.span`
   color: ${(props) => props.theme['text-link']};
@@ -50,7 +51,7 @@ const CreateOrAddCollection = () => {
   );
 
   return (
-    <div className="px-2 mt-4 text-gray-600">
+    <StyledWrapper className="px-2 mt-4">
       {createCollectionModalOpen ? <CreateCollection handleCancel={() => setCreateCollectionModalOpen(false)} handleConfirm={handleCreateCollection} /> : null}
 
       {addCollectionToWSModalOpen ? (
@@ -63,7 +64,7 @@ const CreateOrAddCollection = () => {
           <CreateLink /> or <AddLink /> Collection to Workspace.
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

@@ -20,7 +20,6 @@ const RemoveCollectionFromWorkspace = ({ onClose, collection }) => {
           })
         );
       })
-      .then(() => dispatch(removeLocalCollection(collection.uid)))
       .then(() => toast.success('Collection removed from workspace'))
       .catch((err) => console.log(err) && toast.error('An error occured while removing the collection'));
   };

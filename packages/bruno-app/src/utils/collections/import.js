@@ -2,6 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import toast from 'react-hot-toast';
+import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import { collectionSchema } from '@usebruno/schema';
 import { saveCollectionToIdb } from 'utils/idb';
@@ -29,7 +30,6 @@ const parseJsonCollection = (str) => {
 };
 
 const validateSchema = (collection = {}) => {
-  collection.uid = uuid();
   return new Promise((resolve, reject) => {
     collectionSchema
       .validate(collection)
@@ -41,7 +41,9 @@ const validateSchema = (collection = {}) => {
   });
 };
 
-const updateUidsInCollection = (collection) => {
+const updateUidsInCollection = (_collection) => {
+  const collection = cloneDeep(_collection);
+
   collection.uid = uuid();
 
   const updateItemUids = (items = []) => {
@@ -86,7 +88,6 @@ const importCollection = () => {
 export const importSampleCollection = () => {
   return new Promise((resolve, reject) => {
     validateSchema(sampleCollection)
-      .then(validateSchema)
       .then(updateUidsInCollection)
       .then(validateSchema)
       .then((collection) => saveCollectionToIdb(window.__idb, collection))
