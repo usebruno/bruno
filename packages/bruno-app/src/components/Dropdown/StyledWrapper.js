@@ -25,6 +25,7 @@ const Wrapper = styled.div`
         display: flex;
         align-items: center;
         padding: 0.35rem 0.6rem;
+        background-color: ${(props) => props.theme.dropdown.labelBg};
       }
 
       .dropdown-item {

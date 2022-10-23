@@ -66,9 +66,9 @@ const GlobalStyle = createGlobalStyle`
     }
 
     &:disabled {
-      color: #545454;
-      background: #efefef;
-      border: solid 1px rgb(234, 234, 234);
+      color: ${(props) => props.theme.button.disabled.color};
+      background: ${(props) => props.theme.button.disabled.bg};
+      border: solid 1px ${(props) => props.theme.button.disabled.border};
       cursor: not-allowed;
     }
 

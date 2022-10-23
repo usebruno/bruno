@@ -4,12 +4,22 @@ const darkTheme = {
   textLink: '#569cd6',
   bg: '#1e1e1e',
 
+  colors: {
+    text: {
+      danger: '#f06f57'
+    },
+    bg: {
+      danger: '#d03544'
+    }
+  },
+
   menubar: {
     bg: '#333333',
   },
 
   sidebar: {
     color: '#ccc',
+    muted: '#9d9d9d',
 
     workspace: {
       bg: '#3D3D3D'
@@ -29,6 +39,10 @@ const darkTheme = {
           indentBorder: 'solid 1px #4c4c4c'
         }
       }
+    },
+
+    dropdownIcon: {
+      color: '#ccc'
     }
   },
 
@@ -43,7 +57,8 @@ const darkTheme = {
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#0F395E',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-    seperator: '#444'
+    seperator: '#444',
+    labelBg: '#4a4949'
   },
 
   request: {
@@ -75,7 +90,24 @@ const darkTheme = {
 
   collection: {
     environment: {
-      bg: '#3D3D3D'
+      bg: '#3D3D3D',
+
+      settings: {
+        bg: '#3D3D3D',
+        sidebar: {
+          bg: '#3D3D3D',
+          borderRight: '#4f4f4f'
+        },
+        item: {
+          border: '#569cd6',
+          hoverBg: 'transparent',
+          active: {
+            bg: 'transparent',
+            hoverBg: 'transparent'
+          },
+        },
+        gridBorder: '#4f4f4f'
+      }
     }
   },
 
@@ -93,6 +125,9 @@ const darkTheme = {
       bg: 'rgb(65, 65, 65)',
       border: 'rgb(65, 65, 65)',
       focusBorder: 'rgb(65, 65, 65)'
+    },
+    backdrop: {
+      opacity: 0.2
     }
   },
 
@@ -108,6 +143,11 @@ const darkTheme = {
       bg: 'transparent',
       border: 'transparent',
       hoverBorder: ''
+    },
+    disabled: {
+      color: '#a5a5a5',
+      bg: '#626262',
+      border: '#626262'
     }
   },
 
@@ -152,6 +192,10 @@ const darkTheme = {
       color: 'rgb(204, 204, 204)'
     },
     striped: '#2A2D2F'
+  },
+
+  plainGrid: {
+    hoverBg: '#3D3D3D'
   },
 
   'primary-text': '#ffffff',

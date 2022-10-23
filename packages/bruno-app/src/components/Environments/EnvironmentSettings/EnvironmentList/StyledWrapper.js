@@ -4,8 +4,11 @@ const StyledWrapper = styled.div`
   margin-inline: -1rem;
   margin-block: -1.5rem;
 
+  background-color: ${(props) => props.theme.collection.environment.settings.bg};
+
   .environments-sidebar {
-    background-color: #eaeaea;
+    background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
+    border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
     min-height: 400px;
   }
 
@@ -20,15 +23,15 @@ const StyledWrapper = styled.div`
 
     &:hover {
       text-decoration: none;
-      background-color: #e4e4e4;
+      background-color: ${(props) => props.theme.collection.environment.settings.item.hoverBg};
     }
   }
 
   .active {
-    background-color: #dcdcdc !important;
-    border-left: solid 2px var(--color-brand);
+    background-color: ${(props) => props.theme.collection.environment.settings.item.active.bg} !important;
+    border-left: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
     &:hover {
-      background-color: #dcdcdc !important;
+      background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
     }
   }
 
@@ -36,7 +39,7 @@ const StyledWrapper = styled.div`
     padding: 8px 10px;
     cursor: pointer;
     border-bottom: none;
-    color: var(--color-text-link);
+    color: ${(props) => props.theme.textLink};
 
     &:hover {
       span {

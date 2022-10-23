@@ -24,7 +24,7 @@ const Wrapper = styled.div`
 
       svg {
         height: 22px;
-        color: rgb(110 110 110);
+        color: ${(props) => props.theme.sidebar.dropdownIcon.color};
       }
     }
 
@@ -45,9 +45,9 @@ const Wrapper = styled.div`
     }
 
     div.dropdown-item.delete-collection {
-      color: var(--color-text-danger);
+      color: ${(props) => props.theme.colors.text.danger};
       &:hover {
-        background-color: var(--color-background-danger);
+        background-color: ${(props) => props.theme.colors.bg.danger};
         color: white;
       }
     }

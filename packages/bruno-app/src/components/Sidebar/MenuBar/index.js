@@ -8,7 +8,7 @@ import { IconCode, IconFiles, IconMoon, IconChevronsLeft, IconLifebuoy } from '@
 import Link from 'next/link';
 import StyledWrapper from './StyledWrapper';
 import BrunoSupport from 'components/BrunoSupport';
-import ThemeSupport from 'components/ThemeSupport/index';
+import SwitchTheme from 'components/SwitchTheme';
 
 const MenuBar = () => {
   const router = useRouter();
@@ -23,6 +23,9 @@ const MenuBar = () => {
 
   return (
     <StyledWrapper className="h-full flex flex-col">
+      {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
+      {openTheme && <SwitchTheme onClose={() => setOpenTheme(false)} />}
+
       <div className="flex flex-col">
         <Link href="/">
           <div className={getClassName('/')}>
@@ -46,18 +49,16 @@ const MenuBar = () => {
               <IconUser size={28} strokeWidth={1.5}/>
           </div>
         </Link> */}
-        <div className="menu-item">
-          <IconLifebuoy size={28} strokeWidth={1.5} onClick={() => setOpenBrunoSupport(true)} />
+        <div className="menu-item" onClick={() => setOpenBrunoSupport(true)}>
+          <IconLifebuoy size={28} strokeWidth={1.5}/>
         </div>
-        <div className="menu-item">
-          <IconMoon size={28} strokeWidth={1.5} onClick={() => setOpenTheme(true)} />
+        <div className="menu-item" onClick={() => setOpenTheme(true)}>
+          <IconMoon size={28} strokeWidth={1.5}/>
         </div>
         <div className="menu-item" onClick={() => dispatch(toggleLeftMenuBar())}>
           <IconChevronsLeft size={28} strokeWidth={1.5} />
         </div>
       </div>
-      {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
-      {openTheme && <ThemeSupport onClose={() => setOpenTheme(false)} />}
     </StyledWrapper>
   );
 };

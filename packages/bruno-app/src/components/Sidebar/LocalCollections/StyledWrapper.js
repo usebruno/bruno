@@ -13,6 +13,11 @@ const Wrapper = styled.div`
     }
   }
 
+  .muted-message {
+    color: ${(props) => props.theme.sidebar.muted};
+    border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
+  }
+
   div[data-tippy-root] {
     width: calc(100% - 1rem);
   }

@@ -8,7 +8,7 @@ const Wrapper = styled.div`
 
     thead,
     td {
-      border: 1px solid ${(props) => props.theme.table.border};
+      border: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder};
     }
 
     thead {
@@ -29,6 +29,7 @@ const Wrapper = styled.div`
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
+    background-color: transparent;
 
     &:focus {
       outline: none !important;

@@ -60,7 +60,7 @@ const LocalCollections = ({ searchText }) => {
             <span>Open Collection</span>
           </div>
 
-          <div className="px-2 pt-2 text-gray-600" style={{ fontSize: 10, borderTop: 'solid 1px #e7e7e7' }}>
+          <div className="px-2 pt-2 muted-message" style={{ fontSize: 10 }}>
             Note: Local collections are not tied to a workspace
           </div>
         </Dropdown>

@@ -135,7 +135,7 @@ const TitleBar = () => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center select-none text-gray-400 text-xs local-collections-unavailable">
+              <div className="flex items-center select-none text-xs local-collections-unavailable">
                 Note: Local collections are only available on the desktop app.
               </div>
             )}

@@ -110,6 +110,10 @@ const Wrapper = styled.div`
         outline: none !important;
       }
     }
+
+    .bruno-form {
+      color: ${(props) => props.theme.modal.body.color};
+    }
   }
 
   .bruno-modal-backdrop {
@@ -126,7 +130,7 @@ const Wrapper = styled.div`
       height: 100%;
       width: 100%;
       left: 0;
-      opacity: 0.4;
+      opacity: ${(props) => props.theme.modal.backdrop.opacity};
       top: 0;
       background: black;
       position: fixed;

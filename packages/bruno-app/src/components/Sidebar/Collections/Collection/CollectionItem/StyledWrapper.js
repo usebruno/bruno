@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .menu-icon {
-    color: rgb(110 110 110);
+    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
 
     .dropdown {
       div[aria-expanded='true'] {
@@ -62,9 +62,9 @@ const Wrapper = styled.div`
     }
 
     div.dropdown-item.delete-item {
-      color: var(--color-text-danger);
+      color: ${(props) => props.theme.colors.danger};
       &:hover {
-        background-color: var(--color-background-danger);
+        background-color: ${(props) => props.theme.colors.bg.danger};
         color: white;
       }
     }

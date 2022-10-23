@@ -1,7 +1,6 @@
 import { Provider } from 'react-redux';
-import { Toaster } from 'react-hot-toast';
 import { AppProvider } from 'providers/App';
-import { AuthProvider } from 'providers/Auth';
+import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 
 import ReduxStore from 'providers/ReduxStore';
@@ -34,12 +33,13 @@ function MyApp({ Component, pageProps }) {
       <NoSsr>
         <Provider store={ReduxStore}>
           <ThemeProvider>
-            <AppProvider>
-              <HotkeysProvider>
-                <Toaster toastOptions={{ duration: 2000 }} />
-                <Component {...pageProps} />
-              </HotkeysProvider>
-            </AppProvider>
+            <ToastProvider>
+              <AppProvider>
+                <HotkeysProvider>
+                  <Component {...pageProps} />
+                </HotkeysProvider>
+              </AppProvider>
+            </ToastProvider>
           </ThemeProvider>
         </Provider>
       </NoSsr>

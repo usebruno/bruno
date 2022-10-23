@@ -2,12 +2,12 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .heading {
-    color:  ${(props) => props.theme.welcome.heading};
+    color: ${(props) => props.theme.welcome.heading};
     font-size: 0.75rem;
   }
 
   .muted {
-    color:  ${(props) => props.theme.welcome.muted};
+    color: ${(props) => props.theme.welcome.muted};
   }
 
   .collection-options {
