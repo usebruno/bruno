@@ -32,17 +32,6 @@ const Wrapper = styled.div`
       }
     }
   }
-
-  .collection-filter {
-    input {
-      border: 1px solid rgb(211 211 211);
-      border-radius: 2px;
-
-      &:focus {
-        outline: none;
-      }
-    }
-  }
 `;
 
 export default Wrapper;

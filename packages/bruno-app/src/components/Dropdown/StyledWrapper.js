@@ -9,11 +9,11 @@ const Wrapper = styled.div`
 
   .tippy-box {
     min-width: 135px;
-    background-color: white;
     font-size: 0.8125rem;
-    color: rgb(48 48 48);
-    background: #fff;
-    box-shadow: rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px;
+    color: ${(props) => props.theme.dropdown.color};
+    background-color: ${(props) => props.theme.dropdown.bg};
+    box-shadow: ${(props) => props.theme.dropdown.shadow};
+    border-radius: 3px;
 
     .tippy-content {
       padding-left: 0;
@@ -25,6 +25,7 @@ const Wrapper = styled.div`
         display: flex;
         align-items: center;
         padding: 0.35rem 0.6rem;
+        background-color: ${(props) => props.theme.dropdown.labelBg};
       }
 
       .dropdown-item {
@@ -33,8 +34,16 @@ const Wrapper = styled.div`
         padding: 0.35rem 0.6rem;
         cursor: pointer;
 
+        .icon {
+          color: ${(props) => props.theme.dropdown.iconColor};
+        }
+
         &:hover {
-          background-color: #e9e9e9;
+          background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &.border-top {
+          border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
         }
       }
     }

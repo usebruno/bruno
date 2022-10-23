@@ -1,9 +1,13 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .create-request {
-    color: #737373;
+  .heading {
+    color: ${(props) => props.theme.welcome.heading};
     font-size: 0.75rem;
+  }
+
+  .muted {
+    color: ${(props) => props.theme.welcome.muted};
   }
 
   .collection-options {

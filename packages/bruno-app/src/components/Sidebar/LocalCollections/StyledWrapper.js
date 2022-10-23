@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-workspace {
     margin-inline: 0.5rem;
-    background: #e1e1e1;
+    background-color: ${(props) => props.theme.sidebar.workspace.bg};
     border-radius: 5px;
 
     .caret {
@@ -11,6 +11,11 @@ const Wrapper = styled.div`
       color: rgb(140, 140, 140);
       fill: rgb(140, 140, 140);
     }
+  }
+
+  .muted-message {
+    color: ${(props) => props.theme.sidebar.muted};
+    border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
   }
 
   div[data-tippy-root] {

@@ -8,11 +8,11 @@ const Wrapper = styled.div`
 
     thead,
     td {
-      border: 1px solid #efefef;
+      border: 1px solid ${(props) => props.theme.table.border};
     }
 
     thead {
-      color: #616161;
+      color: ${(props) => props.theme.table.thead.color};;
       font-size: 0.8125rem;
       user-select: none;
     }
@@ -32,6 +32,7 @@ const Wrapper = styled.div`
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
+    background-color: inherit;
 
     &:focus {
       outline: none !important;

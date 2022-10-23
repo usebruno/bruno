@@ -17,7 +17,7 @@ const Wrapper = styled.div`
       border-radius: 3px;
 
       &:hover {
-        background-color: #f4f4f4;
+        background-color: ${(props) => props.theme.plainGrid.hoverBg};
         margin-left: -8px;
         margin-right: -8px;
         padding-left: 8px;

@@ -1,17 +1,14 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .local-collection-label {
-    background-color: var(--color-sidebar-background);
-  }
-
   .local-collections-unavailable {
     padding: 0.35rem 0.6rem;
-    border-top: solid 1px #ddd;
+    color: ${(props) => props.theme.sidebar.muted};
+    border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
     font-size: 11px;
   }
   .collection-dropdown {
-    color: rgb(110 110 110);
+    color: ${(props) => props.theme.sidebar.dropdownIcon.color};
 
     &:hover {
       color: inherit;

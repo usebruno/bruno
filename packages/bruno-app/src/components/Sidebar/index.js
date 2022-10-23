@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import MenuBar from './MenuBar';
+import TitleBar from './TitleBar';
 import Collections from './Collections';
 import LocalCollections from './LocalCollections';
-import TitleBar from './TitleBar';
-import MenuBar from './MenuBar';
+import StyledWrapper, { BottomWrapper, VersionNumber } from './StyledWrapper';
+import WorkspaceSelector from 'components/Workspaces/WorkspaceSelector';
+
+import { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { IconSearch, IconChevronsRight } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
-import StyledWrapper from './StyledWrapper';
-import WorkspaceSelector from 'components/Workspaces/WorkspaceSelector';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -106,7 +107,8 @@ const Sidebar = () => {
               <Collections searchText={searchText} />
               <LocalCollections searchText={searchText} />
             </div>
-            <div className="flex px-1 py-2 items-center cursor-pointer text-gray-500 select-none">
+
+            <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
               <div className="flex items-center ml-1 text-xs ">
                 {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
@@ -122,7 +124,7 @@ const Sidebar = () => {
                   title="GitHub"
                 ></iframe>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.25.2</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.2.0</div>
             </div>
           </div>
         </div>

@@ -13,25 +13,25 @@ const Wrapper = styled.div`
   }
 
   .method-get {
-    color: var(--color-method-get);
+    color: ${(props) => props.theme.request.methods.get};
   }
   .method-post {
-    color: var(--color-method-post);
+    color: ${(props) => props.theme.request.methods.post};
   }
   .method-put {
-    color: var(--color-method-put);
+    color: ${(props) => props.theme.request.methods.put};
   }
   .method-delete {
-    color: var(--color-method-delete);
+    color: ${(props) => props.theme.request.methods.delete};
   }
   .method-patch {
-    color: var(--color-method-patch);
+    color: ${(props) => props.theme.request.methods.put};
   }
   .method-options {
-    color: var(--color-method-options);
+    color: ${(props) => props.theme.request.methods.put};
   }
   .method-head {
-    color: var(--color-method-head);
+    color: ${(props) => props.theme.request.methods.put};
   }
 `;
 

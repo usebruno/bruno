@@ -1,18 +1,19 @@
-import React, { useState, forwardRef, useRef } from 'react';
 import toast from 'react-hot-toast';
-import Dropdown from 'components/Dropdown';
 import Bruno from 'components/Bruno';
+import Dropdown from 'components/Dropdown';
+import CreateCollection from '../CreateCollection';
+import importCollection from 'utils/collections/import';
+import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+
+import { IconDots } from '@tabler/icons';
 import { IconFolders } from '@tabler/icons';
+import { isElectron } from 'utils/common/platform';
+import { useState, forwardRef, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
-import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { IconDots } from '@tabler/icons';
-import CreateCollection from '../CreateCollection';
-import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
-import importCollection from 'utils/collections/import';
-import { isElectron } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
@@ -70,7 +71,7 @@ const TitleBar = () => {
         </div>
         <div
           onClick={handleTitleClick}
-          className=" flex items-center font-medium select-none cursor-pointer"
+          className="flex items-center font-medium select-none cursor-pointer"
           style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
         >
           bruno
@@ -134,7 +135,7 @@ const TitleBar = () => {
                 </div>
               </>
             ) : (
-              <div className="flex items-center select-none text-gray-400 text-xs local-collections-unavailable">
+              <div className="flex items-center select-none text-xs local-collections-unavailable">
                 Note: Local collections are only available on the desktop app.
               </div>
             )}

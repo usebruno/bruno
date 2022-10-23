@@ -18,11 +18,11 @@ const StyledWrapper = styled.div`
       display: flex;
       height: 100%;
       width: 1px;
-      border-left: solid 1px var(--color-request-dragbar-background);
+      border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
     }
 
     &:hover div.drag-request-border {
-      border-left: solid 1px var(--color-request-dragbar-background-active);
+      border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
     }
   }
 `;

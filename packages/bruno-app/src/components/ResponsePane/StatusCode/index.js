@@ -3,19 +3,20 @@ import classnames from 'classnames';
 import statusCodePhraseMap from './get-status-code-phrase';
 import StyledWrapper from './StyledWrapper';
 
+// Todo: text-error class is not getting pulled in for 500 errors
 const StatusCode = ({ status }) => {
-  const getTabClassname = () => {
+  const getTabClassname = (status) => {
     return classnames('', {
-      'text-blue-700': status >= 100 && status < 200,
-      'text-green-700': status >= 200 && status < 300,
-      'text-purple-700': status >= 300 && status < 400,
-      'text-yellow-700': status >= 400 && status < 500,
-      'text-red-700': status >= 500 && status < 600
+      'text-ok': status >= 100 && status < 200,
+      'text-ok': status >= 200 && status < 300,
+      'text-error': status >= 300 && status < 400,
+      'text-error': status >= 400 && status < 500,
+      'text-error': status >= 500 && status < 600
     });
   };
 
   return (
-    <StyledWrapper className={getTabClassname()}>
+    <StyledWrapper className={getTabClassname(status)}>
       {status} {statusCodePhraseMap[status]}
     </StyledWrapper>
   );

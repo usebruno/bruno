@@ -20,8 +20,8 @@ const StyledWrapper = styled.div`
       }
 
       &.active {
-        color: #322e2c !important;
-        border-bottom: solid 2px var(--color-tab-active-border) !important;
+        color: ${(props) => props.theme.tabs.active.color} !important;
+        border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
     }
   }

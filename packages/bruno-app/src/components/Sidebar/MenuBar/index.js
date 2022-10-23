@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
-import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { IconCode, IconFiles, IconUser, IconUsers, IconSettings, IconChevronsLeft, IconLifebuoy } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
-import BrunoSupport from 'components/BrunoSupport';
 import { isElectron } from 'utils/common/platform';
+import { toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
+import { IconCode, IconFiles, IconMoon, IconChevronsLeft, IconLifebuoy } from '@tabler/icons';
+
+import Link from 'next/link';
 import StyledWrapper from './StyledWrapper';
+import BrunoSupport from 'components/BrunoSupport';
+import SwitchTheme from 'components/SwitchTheme';
 
 const MenuBar = () => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [openTheme, setOpenTheme] = useState(false);
   const [openBrunoSupport, setOpenBrunoSupport] = useState(false);
   const isPlatformElectron = isElectron();
 
@@ -20,6 +23,9 @@ const MenuBar = () => {
 
   return (
     <StyledWrapper className="h-full flex flex-col">
+      {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
+      {openTheme && <SwitchTheme onClose={() => setOpenTheme(false)} />}
+
       <div className="flex flex-col">
         <Link href="/">
           <div className={getClassName('/')}>
@@ -43,14 +49,16 @@ const MenuBar = () => {
               <IconUser size={28} strokeWidth={1.5}/>
           </div>
         </Link> */}
-        <div className="menu-item">
-          <IconLifebuoy size={28} strokeWidth={1.5} onClick={() => setOpenBrunoSupport(true)} />
+        <div className="menu-item" onClick={() => setOpenBrunoSupport(true)}>
+          <IconLifebuoy size={28} strokeWidth={1.5}/>
+        </div>
+        <div className="menu-item" onClick={() => setOpenTheme(true)}>
+          <IconMoon size={28} strokeWidth={1.5}/>
         </div>
         <div className="menu-item" onClick={() => dispatch(toggleLeftMenuBar())}>
           <IconChevronsLeft size={28} strokeWidth={1.5} />
         </div>
       </div>
-      {openBrunoSupport && <BrunoSupport onClose={() => setOpenBrunoSupport(false)} />}
     </StyledWrapper>
   );
 };

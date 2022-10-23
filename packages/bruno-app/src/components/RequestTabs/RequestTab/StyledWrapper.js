@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
 
     .close-icon {
       display: none;
-      color: #9f9f9f;
+      color: ${(props) => props.theme.requestTabs.icon.color};
       width: 8px;
       padding-bottom: 6px;
       padding-top: 6px;
@@ -27,8 +27,8 @@ const StyledWrapper = styled.div`
 
     &:hover,
     &:hover .close-icon {
-      background-color: #eaeaea;
-      color: rgb(76 76 76);
+      color: ${(props) => props.theme.requestTabs.icon.hoverColor};
+      background-color: ${(props) => props.theme.requestTabs.icon.hoverBg};
     }
 
     .has-changes-icon {

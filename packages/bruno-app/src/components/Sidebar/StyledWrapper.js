@@ -1,8 +1,10 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  color: ${(props) => props.theme.sidebar.color};
+
   aside {
-    background-color: var(--color-sidebar-background);
+    background-color: ${(props) => props.theme['sidebar-background']};
 
     .collection-title {
       line-height: 1.5;
@@ -23,6 +25,18 @@ const Wrapper = styled.div`
       div.tippy-box {
         position: relative;
         top: -0.625rem;
+      }
+    }
+
+    .collection-filter {
+      input {
+        border: ${(props) => props.theme.sidebar.search.border};
+        border-radius: 2px;
+        background-color:  ${(props) => props.theme.sidebar.search.bg};
+
+        &:focus {
+          outline: none;
+        }
       }
     }
   }

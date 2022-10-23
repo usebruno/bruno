@@ -22,7 +22,7 @@ const Wrapper = styled.div`
 
     tbody {
       tr:nth-child(odd) {
-        background-color: var(--color-table-stripe);
+        background-color: ${(props) => props.theme.table.striped};
       }
     }
   }

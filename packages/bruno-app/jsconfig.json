@@ -6,6 +6,8 @@
     "paths": {
       "assets/*": ["src/assets/*"],
       "components/*": ["src/components/*"],
+      "hooks/*": ["src/hooks/*"],
+      "themes/*": ["src/themes/*"],
       "api/*": ["src/api/*"],
       "pageComponents/*": ["src/pageComponents/*"],
       "providers/*": ["src/providers/*"],

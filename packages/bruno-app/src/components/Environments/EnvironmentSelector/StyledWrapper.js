@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-enviroment {
-    background: #efefef;
+    background-color:  ${(props) => props.theme.sidebar.workspace.bg};
     border-radius: 15px;
 
     .caret {

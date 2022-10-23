@@ -3,6 +3,7 @@ import useIdb from './useIdb';
 import useLocalCollectionTreeSync from './useLocalCollectionTreeSync';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import StyledWrapper from './StyledWrapper';
 
 export const AppContext = React.createContext();
 
@@ -28,7 +29,9 @@ export const AppProvider = (props) => {
 
   return (
     <AppContext.Provider {...props} value="appProvider">
-      {props.children}
+      <StyledWrapper>
+        {props.children}
+      </StyledWrapper>
     </AppContext.Provider>
   );
 };

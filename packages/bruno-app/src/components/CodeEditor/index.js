@@ -39,6 +39,7 @@ export default class QueryEditor extends React.Component {
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       readOnly: this.props.readOnly ? 'nocursor' : false,
+      theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-Enter': () => {
           if (this.props.onRun) {
@@ -86,6 +87,12 @@ export default class QueryEditor extends React.Component {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
       this.editor.setOption('mode', this.props.mode);
+    }
+
+    if (this.props.theme !== prevProps.theme && this.editor) {
+      this.cachedValue = this.props.value;
+      this.editor.setValue(this.props.value);
+      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     this.ignoreChangeEvent = false;
   }

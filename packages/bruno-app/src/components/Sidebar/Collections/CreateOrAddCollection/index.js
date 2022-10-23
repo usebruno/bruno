@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import toast from 'react-hot-toast';
+import { useState } from 'react';
+import { useTheme } from '../../../../providers/Theme';
 import { useSelector, useDispatch } from 'react-redux';
-import CreateCollection from 'components/Sidebar/CreateCollection';
-import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 
+import toast from 'react-hot-toast';
+import styled from 'styled-components';
+import CreateCollection from 'components/Sidebar/CreateCollection';
+import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+import StyledWrapper from './StyledWrapper';
+
+const LinkStyle = styled.span`
+  color: ${(props) => props.theme['text-link']};
+`;
+
 const CreateOrAddCollection = () => {
+  const { theme } = useTheme();
   const dispatch = useDispatch();
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
@@ -31,18 +40,18 @@ const CreateOrAddCollection = () => {
   };
 
   const CreateLink = () => (
-    <span className="underline text-link cursor-pointer" onClick={() => setCreateCollectionModalOpen(true)}>
+    <LinkStyle className="underline text-link cursor-pointer" theme={theme} onClick={() => setCreateCollectionModalOpen(true)}>
       Create
-    </span>
+    </LinkStyle>
   );
   const AddLink = () => (
-    <span className="underline text-link cursor-pointer" onClick={() => setAddCollectionToWSModalOpen(true)}>
+    <LinkStyle className="underline text-link cursor-pointer" theme={theme} onClick={() => setAddCollectionToWSModalOpen(true)}>
       Add
-    </span>
+    </LinkStyle>
   );
 
   return (
-    <div className="px-2 mt-4 text-gray-600">
+    <StyledWrapper className="px-2 mt-4">
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} handleConfirm={handleCreateCollection} /> : null}
 
       {addCollectionToWSModalOpen ? (
@@ -55,7 +64,7 @@ const CreateOrAddCollection = () => {
           <CreateLink /> or <AddLink /> Collection to Workspace.
         </div>
       </div>
-    </div>
+    </StyledWrapper>
   );
 };
 

@@ -10,7 +10,7 @@ const Wrapper = styled.div`
   }
 
   div:hover {
-    background-color: #f4f4f4;
+    background-color: ${(props) => props.theme.plainGrid.hoverBg};
   }
 `;
 

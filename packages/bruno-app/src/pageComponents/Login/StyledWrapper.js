@@ -28,7 +28,7 @@ const Wrapper = styled.div`
     }
 
     a {
-      color: var(--color-text-link);
+      color: ${(props) => props.theme.textLink};
     }
 
     .error-msg {

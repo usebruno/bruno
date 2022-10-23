@@ -85,7 +85,7 @@ const RequestTab = ({ tab, collection }) => {
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
         </span>
-        <span className="text-gray-700 ml-1 tab-name" title={item.name}>
+        <span className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
       </div>

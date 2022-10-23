@@ -6,6 +6,8 @@ import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import 'codemirror/theme/material.css';
+import 'codemirror/theme/monokai.css';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
