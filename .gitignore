@@ -37,3 +37,6 @@ yarn-error.log*
 /renderer
 /renderer/.next/
 /renderer/out/
+/test-results/
+/playwright-report/
+/playwright/.cache/
