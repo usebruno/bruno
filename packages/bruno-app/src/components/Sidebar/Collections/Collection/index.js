@@ -82,7 +82,7 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, color: 'rgb(160 160 160)' }} />
-          <div className="ml-1">{collection.name}</div>
+          <div className="ml-1" id="sidebar-collection-name">{collection.name}</div>
         </div>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
