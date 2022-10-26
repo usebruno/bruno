@@ -1,17 +1,32 @@
 exports.HomePage = class HomePage {
   constructor(page) {
     this.page = page;
-    this.loadSampleCollectionSelector = page.getByText('Load Sample Collection');
-    this.sampeCollectionSelector = page.getByText('sample-collection');
+    
+    // welcome
+    this.createCollectionSelector = page.locator('#create-collection');
+    this.addCollectionSelector = page.locator('#add-collection');
+    this.importCollectionSelector = page.locator('#import-collection');
+    this.loadSampleCollectionSelector = page.locator('#load-sample-collection');
+
+    // sample collection
+    this.loadSampleCollectionToastSuccess = page.getByText('Sample Collection loaded successfully');
+    this.sampeCollectionSelector = page.locator('#sidebar-collection-name');
     this.getUsersSelector = page.getByText('Users');
     this.getSingleUserSelector = page.getByText('Single User');
     this.getUserNotFoundSelector = page.getByText('User Not Found');
     this.postCreateSelector = page.getByText('Create');
     this.putUpdateSelector = page.getByText('Update');
-    this.sendRequestButton = page.locator('div:nth-child(2) > .flex > svg');
+
+    // request panel
+    this.sendRequestButton = page.locator('#send-request');
     this.statusRequestSuccess = page.getByText('200 OK');
     this.statusRequestNotFound = page.getByText('404 Not Found');
     this.statusRequestCreated = page.getByText('201 Created');
+    
+    // create collection
+    this.collectionNameField = page.locator('#collection-name');
+    this.submitButton = page.locator(`button[type='submit']`);
+    this.createCollectionToastSuccess = page.getByText('Collection created');
   }
 
   async open() {
@@ -46,5 +61,11 @@ exports.HomePage = class HomePage {
   async updateUser() {
     await this.putUpdateSelector.click();
     await this.sendRequestButton.click();
+  }
+
+  async createCollection(collectionName) {
+    await this.createCollectionSelector.click();
+    await this.collectionNameField.fill(collectionName);
+    await this.submitButton.click();
   }
 }
