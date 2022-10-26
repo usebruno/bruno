@@ -49,7 +49,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           spellCheck="false"
           onChange={(event) => onUrlChange(event.target.value)}
         />
-        <div className="flex items-center h-full mr-2 cursor-pointer" onClick={handleRun}>
+        <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <SendIcon color={theme.requestTabPanel.url.icon} width={22}/>
         </div>
       </div>

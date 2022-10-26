@@ -73,23 +73,23 @@ const Welcome = () => {
       <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center">
           <IconPlus size={18} strokeWidth={2} />
-          <span className="label ml-2" onClick={() => setCreateCollectionModalOpen(true)}>
+          <span className="label ml-2" id="create-collection" onClick={() => setCreateCollectionModalOpen(true)}>
             Create Collection
           </span>
         </div>
         <div className="flex items-center ml-6">
           <IconFiles size={18} strokeWidth={2} />
-          <span className="label ml-2" onClick={() => setAddCollectionToWSModalOpen(true)}>
+          <span className="label ml-2" id="add-collection" onClick={() => setAddCollectionToWSModalOpen(true)}>
             Add Collection to Workspace
           </span>
         </div>
         <div className="flex items-center ml-6" onClick={handleImportCollection}>
           <IconUpload size={18} strokeWidth={2} />
-          <span className="label ml-2">Import Collection</span>
+          <span className="label ml-2" id="import-collection">Import Collection</span>
         </div>
         <div className="flex items-center ml-6" onClick={handleImportSampleCollection}>
           <IconPlayerPlay size={18} strokeWidth={2} />
-          <span className="label ml-2">Load Sample Collection</span>
+          <span className="label ml-2" id="load-sample-collection">Load Sample Collection</span>
         </div>
       </div>
 
