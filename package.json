@@ -9,6 +9,7 @@
     "packages/bruno-testbench"
   ],
   "devDependencies": {
+    "@faker-js/faker": "^7.6.0",
     "@playwright/test": "^1.27.1",
     "jest": "^29.2.0",
     "randomstring": "^1.2.2"
