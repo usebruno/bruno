@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { faker } = require('@faker-js/faker');
 const { HomePage } = require('../tests/pages/home.page');
 
 test.describe('bruno e2e test', () => {
@@ -33,7 +34,7 @@ test.describe('bruno e2e test', () => {
   });
 
   test('user should be able to create new collection', async () => {
-    await homePage.createCollection('test');
+    await homePage.createCollection(faker.random.words());
     await expect(homePage.createCollectionToastSuccess).toBeVisible();
   })
 
