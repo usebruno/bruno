@@ -9,7 +9,7 @@ exports.HomePage = class HomePage {
     this.loadSampleCollectionSelector = page.locator('#load-sample-collection');
 
     // sample collection
-    this.loadSampleCollectionToastSuccess = page.getByText('Sample Collection loaded successfully');
+    this.loadSampleCollectionSuccessToast = page.getByText('Sample Collection loaded successfully');
     this.sampeCollectionSelector = page.locator('#sidebar-collection-name');
     this.getUsersSelector = page.getByText('Users');
     this.getSingleUserSelector = page.getByText('Single User');
@@ -26,7 +26,12 @@ exports.HomePage = class HomePage {
     // create collection
     this.collectionNameField = page.locator('#collection-name');
     this.submitButton = page.locator(`button[type='submit']`);
-    this.createCollectionToastSuccess = page.getByText('Collection created');
+    this.createNewCollectionSuccessToast = page.getByText('Collection created');
+    this.createNewTab = page.locator('#create-new-tab');
+    this.requestNameField = page.locator('input[name="requestName"]');
+    this.methodName = page.locator('.flex > .StyledWrapper__Wrapper-sc-1tpbhjh-0 > .flex').first();
+    this.requestUrlField = page.locator('#request-url');
+    this.networkErrorToast = page.getByText('Network Error');
   }
 
   async open() {
@@ -63,9 +68,19 @@ exports.HomePage = class HomePage {
     await this.sendRequestButton.click();
   }
 
-  async createCollection(collectionName) {
+  async createNewCollection(collectionName) {
     await this.createCollectionSelector.click();
     await this.collectionNameField.fill(collectionName);
     await this.submitButton.click();
+  }
+
+  async createNewRequest(name, method, endpoint) {
+    await this.createNewTab.click();
+    await this.requestNameField.fill(name);
+    await this.methodName.click();
+    await this.page.click(`text=${method}`);
+    await this.requestUrlField.fill(endpoint);
+    await this.submitButton.click();
+    await this.sendRequestButton.click();
   }
 }
