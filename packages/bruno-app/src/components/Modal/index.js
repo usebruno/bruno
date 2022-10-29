@@ -64,6 +64,9 @@ const Modal = ({ size, title, confirmText, cancelText, handleCancel, handleConfi
   if (isClosing) {
     classes += ' modal--animate-out';
   }
+  if(hideFooter) {
+    classes += ' modal-footer-none';
+  }
   return (
     <StyledWrapper className={classes}>
       <div className={`bruno-modal-card modal-${size}`}>

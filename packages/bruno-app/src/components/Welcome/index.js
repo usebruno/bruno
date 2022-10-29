@@ -10,13 +10,15 @@ import { IconBrandGithub, IconPlus, IconUpload, IconFiles, IconFolders, IconPlay
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
-import importCollection, { importSampleCollection } from 'utils/collections/import';
+import { importSampleCollection } from 'utils/importers/bruno-collection';
+import ImportCollection from 'components/Sidebar/ImportCollection';
 import StyledWrapper from './StyledWrapper';
 
 const Welcome = () => {
   const dispatch = useDispatch();
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
+  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const isPlatformElectron = isElectron();
 
@@ -27,15 +29,6 @@ const Welcome = () => {
         toast.success('Collection added to workspace');
       })
       .catch(() => toast.error('An error occured while adding collection to workspace'));
-  };
-
-  const handleImportCollection = () => {
-    importCollection()
-      .then((collection) => {
-        dispatch(collectionImported({ collection: collection }));
-        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
-      })
-      .catch((err) => console.log(err));
   };
 
   const handleImportSampleCollection = () => {
@@ -58,6 +51,7 @@ const Welcome = () => {
   return (
     <StyledWrapper className="pb-4 px-6 mt-6">
       {createCollectionModalOpen ? <CreateCollection isLocal={createCollectionModalOpen === 'local' ? true : false} onClose={() => setCreateCollectionModalOpen(false)} /> : null}
+      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} /> : null}
 
       {addCollectionToWSModalOpen ? (
         <SelectCollection title="Add Collection to Workspace" onClose={() => setAddCollectionToWSModalOpen(false)} onSelect={handleAddCollectionToWorkspace} />
@@ -83,7 +77,7 @@ const Welcome = () => {
             Add Collection to Workspace
           </span>
         </div>
-        <div className="flex items-center ml-6" onClick={handleImportCollection}>
+        <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
           <IconUpload size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">Import Collection</span>
         </div>

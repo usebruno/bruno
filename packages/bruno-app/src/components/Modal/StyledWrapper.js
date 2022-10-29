@@ -144,6 +144,13 @@ const Wrapper = styled.div`
     border-bottom-left-radius: 3px;
     border-bottom-right-radius: 3px;
   }
+
+  &.modal-footer-none {
+    .bruno-modal-content {
+      border-bottom-left-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+  }
 `;
 
 export default Wrapper;

@@ -17,6 +17,7 @@ chrome-extension
 chrome-extension.pem
 chrome-extension.crx
 bruno.zip
+*.zip
 
 # misc
 .DS_Store
