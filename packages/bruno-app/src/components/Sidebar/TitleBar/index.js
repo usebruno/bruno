@@ -2,8 +2,8 @@ import toast from 'react-hot-toast';
 import Bruno from 'components/Bruno';
 import Dropdown from 'components/Dropdown';
 import CreateCollection from '../CreateCollection';
-import importCollection from 'utils/collections/import';
 import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
+import ImportCollection from 'components/Sidebar/ImportCollection';
 
 import { IconDots } from '@tabler/icons';
 import { IconFolders } from '@tabler/icons';
@@ -11,13 +11,13 @@ import { isElectron } from 'utils/common/platform';
 import { useState, forwardRef, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
+  const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
   const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
   const isPlatformElectron = isElectron();
@@ -48,18 +48,10 @@ const TitleBar = () => {
       .catch(() => toast.error('An error occured while adding collection to workspace'));
   };
 
-  const handleImportCollection = () => {
-    importCollection()
-      .then((collection) => {
-        dispatch(collectionImported({ collection: collection }));
-        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
-      })
-      .catch((err) => console.log(err));
-  };
-
   return (
     <StyledWrapper className="px-2 py-2">
       {createCollectionModalOpen ? <CreateCollection isLocal={createCollectionModalOpen === 'local' ? true : false} onClose={() => setCreateCollectionModalOpen(false)} /> : null}
+      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} /> : null}
 
       {addCollectionToWSModalOpen ? (
         <SelectCollection title="Add Collection to Workspace" onClose={() => setAddCollectionToWSModalOpen(false)} onSelect={handleAddCollectionToWorkspace} />
@@ -91,7 +83,7 @@ const TitleBar = () => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                handleImportCollection();
+                setImportCollectionModalOpen(true);
               }}
             >
               Import Collection

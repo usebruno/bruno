@@ -1,11 +1,11 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
-import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import { collectionSchema } from '@usebruno/schema';
 import { saveCollectionToIdb } from 'utils/idb';
+import { BrunoError } from 'utils/common/error';
 import sampleCollection from './samples/sample-collection.json';
 
 const readFile = (files) => {
@@ -23,8 +23,8 @@ const parseJsonCollection = (str) => {
       let parsed = JSON.parse(str);
       return resolve(parsed);
     } catch (err) {
-      toast.error('Unable to parse the collection json file');
-      reject(err);
+      console.log(err);
+      reject(new BrunoError('Unable to parse the collection json file'));
     }
   });
 };
@@ -35,8 +35,8 @@ const validateSchema = (collection = {}) => {
       .validate(collection)
       .then(() => resolve(collection))
       .catch((err) => {
-        toast.error('The Collection file is corrupted');
-        reject(err);
+        console.log(err);
+        reject(new BrunoError('The Collection file is corrupted'));
       });
   });
 };
@@ -74,13 +74,10 @@ const importCollection = () => {
       .then(updateUidsInCollection)
       .then(validateSchema)
       .then((collection) => saveCollectionToIdb(window.__idb, collection))
-      .then((collection) => {
-        toast.success('Collection imported successfully');
-        resolve(collection);
-      })
+      .then((collection) => resolve(collection))
       .catch((err) => {
-        toast.error('Import collection failed');
-        reject(err);
+        console.log(err);
+        reject(new BrunoError('Import collection failed'));
       });
   });
 };
