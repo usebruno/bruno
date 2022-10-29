@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { collectionImported } from 'providers/ReduxStore/slices/collections';
 import importBrunoCollection from 'utils/importers/bruno-collection';
+import importPostmanCollection from 'utils/importers/postman-collection';
 import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
 import { toastError } from 'utils/common/error';
 import toast from 'react-hot-toast';
@@ -22,6 +23,17 @@ const ImportCollection = ({ onClose }) => {
       .catch((err) => toastError(err, 'Import collection failed'));
   };
 
+  const handleImportPostmanCollection = () => {
+    importPostmanCollection()
+      .then((collection) => {
+        dispatch(collectionImported({ collection: collection }));
+        dispatch(addCollectionToWorkspace(activeWorkspaceUid, collection.uid));
+        toast.success('Postman Collection imported successfully');
+        onClose();
+      })
+      .catch((err) => toastError(err, 'Postman Import collection failed'));
+  };
+
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
       <div>
@@ -31,7 +43,12 @@ const ImportCollection = ({ onClose }) => {
         >
           Bruno Collection
         </div>
-        <div className='text-link hover:underline cursor-pointer mt-2'>Postman Collection</div>
+        <div
+          className='text-link hover:underline cursor-pointer mt-2'
+          onClick={handleImportPostmanCollection}
+        >
+          Postman Collection
+        </div>
       </div>
     </Modal>
   );
