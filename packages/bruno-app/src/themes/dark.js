@@ -21,6 +21,7 @@ const darkTheme = {
   sidebar: {
     color: '#ccc',
     muted: '#9d9d9d',
+    bg: '#252526',
 
     workspace: {
       bg: '#3D3D3D'
