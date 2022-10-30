@@ -9,8 +9,8 @@ const { publicRuntimeConfig } = getConfig();
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
 let posthogClient = null;
 
-const isCI = () => {
-  return publicRuntimeConfig.CI ? true : false;
+const isPlaywrightTestRunning = () => {
+  return publicRuntimeConfig.PLAYWRIGHT ? true : false;
 };
 
 // Todo support chrome and firefox extension
@@ -39,7 +39,7 @@ const getAnonymousTrackingId = () => {
 };
 
 const trackStart = () => {
-  if(isCI()) {
+  if(isPlaywrightTestRunning()) {
     return;
   }
 
