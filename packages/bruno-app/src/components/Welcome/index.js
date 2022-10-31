@@ -65,15 +65,15 @@ const Welcome = () => {
 
       <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">
-        <div className="flex items-center">
+        <div className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
           <IconPlus size={18} strokeWidth={2} />
-          <span className="label ml-2" id="create-collection" onClick={() => setCreateCollectionModalOpen(true)}>
+          <span className="label ml-2" id="create-collection">
             Create Collection
           </span>
         </div>
-        <div className="flex items-center ml-6">
+        <div className="flex items-center ml-6" onClick={() => setAddCollectionToWSModalOpen(true)}>
           <IconFiles size={18} strokeWidth={2} />
-          <span className="label ml-2" id="add-collection" onClick={() => setAddCollectionToWSModalOpen(true)}>
+          <span className="label ml-2" id="add-collection">
             Add Collection to Workspace
           </span>
         </div>

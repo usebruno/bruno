@@ -11,13 +11,14 @@ const StyledWrapper = styled.div`
   }
 
   .collection-options {
+    cursor: pointer;
+
     svg {
       position: relative;
       top: -1px;
     }
 
     .label {
-      cursor: pointer;
       &:hover {
         text-decoration: underline;
       }
