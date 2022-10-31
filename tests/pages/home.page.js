@@ -29,7 +29,7 @@ exports.HomePage = class HomePage {
     this.createNewCollectionSuccessToast = page.getByText('Collection created');
     this.createNewTab = page.locator('#create-new-tab');
     this.requestNameField = page.locator('input[name="requestName"]');
-    this.methodName = page.locator('.flex > .StyledWrapper__Wrapper-sc-1tpbhjh-0 > .flex').first();
+    this.methodName = page.locator('#create-new-request-method').first();
     this.requestUrlField = page.locator('#request-url');
     this.networkErrorToast = page.getByText('Network Error');
   }
