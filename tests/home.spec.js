@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const { faker } = require('@faker-js/faker');
 const { HomePage } = require('../tests/pages/home.page');
+import * as faker from './utils/data-faker';
 
 test.describe('bruno e2e test', () => {
   let homePage;
@@ -13,9 +13,22 @@ test.describe('bruno e2e test', () => {
     await expect(page).toHaveTitle(/bruno/);
   });
 
+  test('user should be able to create new collection & new request', async () => {
+    await homePage.createNewCollection(faker.randomWords);
+    await expect(homePage.createNewCollectionSuccessToast).toBeVisible();
+
+    // using fake data to simulate negative case
+    await homePage.createNewRequest(faker.randomVerb, faker.randomHttpMethod, faker.randomUrl);
+    await expect(homePage.networkErrorToast).toBeVisible();
+
+    // using real data to simulate positive case
+    await homePage.createNewRequest('Single User', 'GET', 'https://reqres.in/api/users/2');
+    await expect(homePage.statusRequestSuccess).toBeVisible();
+  });
+
   test('user should be able to load & use sample collection', async () => {
     await homePage.loadSampleCollection();
-    await expect(homePage.loadSampleCollectionToastSuccess).toBeVisible();
+    await expect(homePage.loadSampleCollectionSuccessToast).toBeVisible();
 
     await homePage.getUsers();
     await expect(homePage.statusRequestSuccess).toBeVisible();
@@ -32,10 +45,5 @@ test.describe('bruno e2e test', () => {
     await homePage.updateUser();
     await expect(homePage.statusRequestSuccess).toBeVisible();
   });
-
-  test('user should be able to create new collection', async () => {
-    await homePage.createCollection(faker.random.words());
-    await expect(homePage.createCollectionToastSuccess).toBeVisible();
-  })
 
 });
