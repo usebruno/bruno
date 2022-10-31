@@ -48,7 +48,7 @@ Woof! If you like project, hit that ⭐ button !!
 
 ### Stay in touch 🌐
 [Twitter](https://twitter.com/use_bruno) <br />
-[Website](https://www.usebruno.com)
+[Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq)
 
 ### License 📄
