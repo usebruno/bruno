@@ -7,6 +7,7 @@ const { devices } = require('@playwright/test');
  */
 // require('dotenv').config();
 
+process.env.PLAYWRIGHT = "1";
 
 /**
  * @see https://playwright.dev/docs/test-configuration

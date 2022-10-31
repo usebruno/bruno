@@ -4,7 +4,7 @@ const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
 
   aside {
-    background-color: ${(props) => props.theme['sidebar-background']};
+    background-color: ${(props) => props.theme.sidebar.bg};
 
     .collection-title {
       line-height: 1.5;

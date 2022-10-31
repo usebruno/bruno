@@ -38,7 +38,7 @@ export default class QueryEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
-      readOnly: this.props.readOnly ? 'nocursor' : false,
+      readOnly: this.props.readOnly,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-Enter': () => {
@@ -61,6 +61,8 @@ export default class QueryEditor extends React.Component {
             this.props.onSave();
           }
         },
+        'Cmd-F': 'findPersistent',
+        'Ctrl-F': 'findPersistent',
         Tab: function (cm) {
           cm.replaceSelection('  ', 'end');
         }
