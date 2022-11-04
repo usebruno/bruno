@@ -6,7 +6,8 @@
     "packages/bruno-electron",
     "packages/bruno-tauri",
     "packages/bruno-schema",
-    "packages/bruno-testbench"
+    "packages/bruno-testbench",
+    "packages/bruno-graphql-docs"
   ],
   "devDependencies": {
     "@faker-js/faker": "^7.6.0",
