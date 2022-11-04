@@ -36,12 +36,19 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
       }
     } else {
       if(i.request) {
+        let url = '';
+        if(typeof i.request.url === 'string') {
+          url = i.request.url;
+        } else {
+          url = get(i, 'request.url.raw') || '';
+        }
+
         const brunoRequestItem = {
           uid: uuid(),
           name: i.name,
           type: 'http-request',
           request: {
-            url: get(i, 'request.url.raw'),
+            url: url,
             method: i.request.method,
             headers: [],
             params: [],
