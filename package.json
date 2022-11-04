@@ -18,6 +18,7 @@
   "scripts": {
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
+    "prettier:web":"npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "build:chrome-extension": "./scripts/build-chrome-extension.sh",
     "build:electron": "./scripts/build-electron.sh",
