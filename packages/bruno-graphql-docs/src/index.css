@@ -1,0 +1,298 @@
+.graphql-docs-container .doc-explorer {
+  background: white;
+}
+
+.graphql-docs-container .doc-explorer-title-bar,
+.graphql-docs-container .history-title-bar {
+  cursor: default;
+  display: flex;
+  height: 34px;
+  line-height: 14px;
+  padding: 8px 8px 5px;
+  position: relative;
+  user-select: none;
+}
+
+.graphql-docs-container .doc-explorer-title,
+.graphql-docs-container .history-title {
+  flex: 1;
+  font-weight: bold;
+  overflow-x: hidden;
+  padding: 10px 0 10px 10px;
+  text-align: center;
+  text-overflow: ellipsis;
+  user-select: text;
+  white-space: nowrap;
+}
+
+.graphql-docs-container .doc-explorer-back {
+  color: #3B5998;
+  cursor: pointer;
+  margin: -7px 0 -6px -8px;
+  overflow-x: hidden;
+  padding: 17px 12px 16px 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: 0;
+  border: 0;
+  line-height: 14px;
+}
+
+.doc-explorer-narrow .doc-explorer-back {
+  width: 0;
+}
+
+.graphql-docs-container .doc-explorer-back:before {
+  border-left: 2px solid #3B5998;
+  border-top: 2px solid #3B5998;
+  content: '';
+  display: inline-block;
+  height: 9px;
+  margin: 0 3px -1px 0;
+  position: relative;
+  transform: rotate(-45deg);
+  width: 9px;
+}
+
+.graphql-docs-container .doc-explorer-rhs {
+  position: relative;
+}
+
+.graphql-docs-container .doc-explorer-contents,
+.graphql-docs-container .history-contents {
+  background-color: #ffffff;
+  border-top: 1px solid #d6d6d6;
+  bottom: 0;
+  left: 0;
+  overflow-y: auto;
+  padding: 20px 15px;
+  position: absolute;
+  right: 0;
+  top: 47px;
+}
+
+.graphql-docs-container .doc-explorer-contents {
+  min-width: 300px;
+}
+
+.graphql-docs-container .doc-type-description p:first-child ,
+.graphql-docs-container .doc-type-description blockquote:first-child {
+  margin-top: 0;
+}
+
+.graphql-docs-container .doc-explorer-contents a {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.graphql-docs-container .doc-explorer-contents a:hover {
+  text-decoration: underline;
+}
+
+.graphql-docs-container .doc-value-description > :first-child {
+  margin-top: 4px;
+}
+
+.graphql-docs-container .doc-value-description > :last-child {
+  margin-bottom: 4px;
+}
+
+.graphql-docs-container .doc-type-description code,
+.graphql-docs-container .doc-type-description pre,
+.graphql-docs-container .doc-category code,
+.graphql-docs-container .doc-category pre {
+  --saf-0: rgba(var(--sk_foreground_low,29,28,29),0.13);
+  font-size: 12px;
+  line-height: 1.50001;
+  font-variant-ligatures: none;
+  white-space: pre;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  word-break: normal;
+  -webkit-tab-size: 4;
+  -moz-tab-size: 4;
+  tab-size: 4;
+}
+
+.graphql-docs-container .doc-type-description code,
+.graphql-docs-container .doc-category code {
+  padding: 2px 3px 1px;
+  border: 1px solid var(--saf-0);
+  border-radius: 3px;
+  background-color: rgba(var(--sk_foreground_min,29,28,29),.04);
+  color: #e01e5a;
+  background-color: white;
+}
+
+.graphql-docs-container .doc-category {
+  margin: 20px 0;
+}
+
+.graphql-docs-container .doc-category-title {
+  border-bottom: 1px solid #e0e0e0;
+  color: #777;
+  cursor: default;
+  font-size: 14px;
+  font-variant: small-caps;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin: 0 -15px 10px 0;
+  padding: 10px 0;
+  user-select: none;
+}
+
+.graphql-docs-container .doc-category-item {
+  margin: 12px 0;
+  color: #555;
+}
+
+.graphql-docs-container .keyword {
+  color: #B11A04;
+}
+
+.graphql-docs-container .type-name {
+  color: #CA9800;
+}
+
+.graphql-docs-container .field-name {
+  color: #1F61A0;
+}
+
+.graphql-docs-container .field-short-description {
+  color: #666;
+  margin-left: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphql-docs-container .enum-value {
+  color: #0B7FC7;
+}
+
+.graphql-docs-container .arg-name {
+  color: #8B2BB9;
+}
+
+.graphql-docs-container .arg {
+  display: block;
+  margin-left: 1em;
+}
+
+.graphql-docs-container .arg:first-child:last-child,
+.graphql-docs-container .arg:first-child:nth-last-child(2),
+.graphql-docs-container .arg:first-child:nth-last-child(2) ~ .arg {
+  display: inherit;
+  margin: inherit;
+}
+
+.graphql-docs-container .arg:first-child:nth-last-child(2):after {
+  content: ', ';
+}
+
+.graphql-docs-container .arg-default-value {
+  color: #43A047;
+}
+
+.graphql-docs-container .doc-deprecation {
+  background: #fffae8;
+  box-shadow: inset 0 0 1px #bfb063;
+  color: #867F70;
+  line-height: 16px;
+  margin: 8px -8px;
+  max-height: 80px;
+  overflow: hidden;
+  padding: 8px;
+  border-radius: 3px;
+}
+
+.graphql-docs-container .doc-deprecation:before {
+  content: 'Deprecated:';
+  color: #c79b2e;
+  cursor: default;
+  display: block;
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  line-height: 1;
+  padding-bottom: 5px;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.graphql-docs-container .doc-deprecation > :first-child {
+  margin-top: 0;
+}
+
+.graphql-docs-container .doc-deprecation > :last-child {
+  margin-bottom: 0;
+}
+
+.graphql-docs-container .show-btn {
+  -webkit-appearance: initial;
+  display: block;
+  border-radius: 3px;
+  border: solid 1px #ccc;
+  text-align: center;
+  padding: 8px 12px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fbfcfc;
+  color: #555;
+  cursor: pointer;
+}
+
+.graphql-docs-container .search-box {
+  border-bottom: 1px solid #d3d6db;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  margin: -15px -15px 12px 0;
+  position: relative;
+}
+
+.graphql-docs-container .search-box-icon {
+  cursor: pointer;
+  display: block;
+  font-size: 24px;
+  transform: rotate(-45deg);
+  user-select: none;
+}
+
+.graphql-docs-container .search-box .search-box-clear {
+  background-color: #d0d0d0;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 5px 2px;
+  position: absolute;
+  right: 3px;
+  user-select: none;
+  border: 0;
+}
+
+.graphql-docs-container .search-box .search-box-clear:hover {
+  background-color: #b9b9b9;
+}
+
+.graphql-docs-container .search-box > input {
+  border: none;
+  box-sizing: border-box;
+  font-size: 14px;
+  outline: none;
+  padding: 6px 24px 8px 20px;
+  width: 100%;
+}
+
+.graphql-docs-container .error-container {
+  font-weight: bold;
+  left: 0;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  position: absolute;
+  right: 0;
+  text-align: center;
+  text-transform: uppercase;
+  top: 50%;
+  transform: translate(0, -50%);
+}

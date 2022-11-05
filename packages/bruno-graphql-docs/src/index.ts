@@ -1,5 +1,8 @@
-import GraphDocs from "./GraphDocs";
+import { DocExplorer } from "./components/DocExplorer";
+
+// Todo: Rollup throws error
+import './index.css';
 
 export {
-  GraphDocs
+  DocExplorer
 }
