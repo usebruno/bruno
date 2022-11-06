@@ -16,6 +16,9 @@ import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
 
+const MIN_LEFT_PANE_WIDTH = 300;
+const DEFAULT_PADDING = 5;
+
 const RequestTabPanel = () => {
   if (typeof window == 'undefined') {
     return <div></div>;
@@ -29,7 +32,7 @@ const RequestTabPanel = () => {
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const [leftPaneWidth, setLeftPaneWidth] = useState(focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2); // 2.2 so that request pane is relatively smaller
-  const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - 5);
+  const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
@@ -38,14 +41,14 @@ const RequestTabPanel = () => {
   }, [screenWidth]);
 
   useEffect(() => {
-    setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - 5);
+    setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   }, [screenWidth, asideWidth, leftPaneWidth]);
 
   const handleMouseMove = (e) => {
     if (dragging) {
       e.preventDefault();
-      setLeftPaneWidth(e.clientX - asideWidth - 5);
-      setRightPaneWidth(screenWidth - e.clientX - 5);
+      setLeftPaneWidth(Math.max((e.clientX - asideWidth - DEFAULT_PADDING), MIN_LEFT_PANE_WIDTH));
+      setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
     }
   };
   const handleMouseUp = (e) => {
@@ -55,7 +58,7 @@ const RequestTabPanel = () => {
       dispatch(
         updateRequestPaneTabWidth({
           uid: activeTabUid,
-          requestPaneWidth: e.clientX - asideWidth - 5
+          requestPaneWidth: e.clientX - asideWidth - DEFAULT_PADDING
         })
       );
     }
@@ -115,7 +118,7 @@ const RequestTabPanel = () => {
       </div>
       <section className="main flex flex-grow pb-4">
         <section className="request-pane">
-          <div className="px-4" style={{ width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)' }}>
+          <div className="px-4" style={{ width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`, height: `calc(100% - ${DEFAULT_PADDING}px)` }}>
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
                 onRunQuery={runQuery}
