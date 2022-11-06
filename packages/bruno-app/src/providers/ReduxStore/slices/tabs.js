@@ -23,7 +23,7 @@ export const tabsSlice = createSlice({
         uid: action.payload.uid,
         collectionUid: action.payload.collectionUid,
         requestPaneWidth: null,
-        requestPaneTab: 'params',
+        requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response'
       });
       state.activeTabUid = action.payload.uid;

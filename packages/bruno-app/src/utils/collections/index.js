@@ -196,7 +196,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               json: si.draft.request.body.json,
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
-              multipartForm: si.draft.request.body.multipartForm,
+              graphql: si.draft.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             }
@@ -214,6 +214,7 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               json: si.request.body.json,
               text: si.request.body.text,
               xml: si.request.body.xml,
+              graphql: si.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             }
@@ -409,4 +410,14 @@ export const interpolateEnvironmentVars = (item, variables) => {
   }
 
   return request;
+};
+
+export const getDefaultRequestPaneTab = (item) => {
+  if(item.type === 'http-request') {
+    return 'params';
+  }
+
+  if(item.type === 'graphql-request') {
+    return 'query';
+  }
 };

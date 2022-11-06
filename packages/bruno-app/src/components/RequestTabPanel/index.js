@@ -12,7 +12,6 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
-import useGraphqlSchema from '../../hooks/useGraphqlSchema';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -65,11 +64,6 @@ const RequestTabPanel = () => {
     setDragging(true);
   };
 
-  let schema = null;
-  // let {
-  //   schema
-  // } = useGraphqlSchema('https://api.spacex.land/graphql');
-
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('mousemove', handleMouseMove);
@@ -105,8 +99,6 @@ const RequestTabPanel = () => {
       })
     );
   };
-  const onGraphqlQueryChange = (value) => {};
-  const runQuery = async () => {};
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow ${dragging ? 'dragging' : ''}`}>
@@ -118,11 +110,9 @@ const RequestTabPanel = () => {
           <div className="px-4" style={{ width: `${leftPaneWidth}px`, height: 'calc(100% - 5px)' }}>
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
-                onRunQuery={runQuery}
-                schema={schema}
+                item={item}
+                collection={collection}
                 leftPaneWidth={leftPaneWidth}
-                value={item.request.body.graphql.query}
-                onQueryChange={onGraphqlQueryChange}
               />
             ) : null}
 

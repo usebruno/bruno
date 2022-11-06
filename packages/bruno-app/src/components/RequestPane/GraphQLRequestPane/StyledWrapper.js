@@ -1,22 +1,14 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  .react-tabs__tab-list {
-    border-bottom: none !important;
-    padding-top: 0;
-    padding-left: 0 !important;
-    display: flex;
-    align-items: center;
-    margin: 0;
-
-    .react-tabs__tab {
+  div.tabs {
+    div.tab {
       padding: 6px 0px;
       border: none;
-      user-select: none;
       border-bottom: solid 2px transparent;
-      margin-right: 20px;
-      color: rgb(125 125 125);
-      outline: none !important;
+      margin-right: 1.25rem;
+      color: var(--color-tab-inactive);
+      cursor: pointer;
 
       &:focus,
       &:active,
@@ -27,34 +19,10 @@ const StyledWrapper = styled.div`
         box-shadow: none !important;
       }
 
-      &:after {
-        display: none !important;
+      &.active {
+        color: ${(props) => props.theme.tabs.active.color} !important;
+        border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
-    }
-  }
-
-  .react-tabs__tab--selected {
-    border: none;
-    color: ${(props) => props.theme.tabs.active.color} !important;
-    border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
-    border-color: var(--color-tab-active-border) !important;
-    background: inherit;
-    outline: none !important;
-    box-shadow: none !important;
-
-    &:focus,
-    &:active,
-    &:focus-within,
-    &:focus-visible,
-    &:target {
-      border: none;
-      outline: none !important;
-      box-shadow: none !important;
-      border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
-      border-color: var(--color-tab-active-border) !important;
-      background: inherit;
-      outline: none !important;
-      box-shadow: none !important;
     }
   }
 `;

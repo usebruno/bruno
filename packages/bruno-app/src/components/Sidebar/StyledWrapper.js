@@ -54,7 +54,7 @@ const Wrapper = styled.div`
     &:hover div.drag-request-border {
       width: 2px;
       height: 100%;
-      border-left: solid 1px var(--color-request-dragbar-background-active);
+      border-left: solid 1px ${(props) => props.theme.sidebar.dragbar};
     }
   }
 `;

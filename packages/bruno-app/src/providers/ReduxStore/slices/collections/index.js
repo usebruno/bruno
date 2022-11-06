@@ -606,6 +606,22 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestGraphqlQuery: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.mode = 'graphql';
+          item.draft.request.body.graphql = item.draft.request.body.graphql || {};
+          item.draft.request.body.graphql.query = action.payload.query;
+        }
+      }
+    },
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -791,6 +807,7 @@ export const {
   deleteMultipartFormParam,
   updateRequestBodyMode,
   updateRequestBody,
+  updateRequestGraphqlQuery,
   updateRequestMethod,
   localCollectionAddFileEvent,
   localCollectionAddDirectoryEvent,

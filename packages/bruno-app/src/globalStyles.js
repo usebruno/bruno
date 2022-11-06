@@ -22,6 +22,10 @@ const GlobalStyle = createGlobalStyle`
     padding: .215rem .6rem .215rem .6rem;
   }
 
+  .btn-xs {
+    padding: .2rem .4rem .2rem .4rem;
+  }
+
   .btn-md {
     padding: .4rem 1.1rem;
     line-height: 1.47;

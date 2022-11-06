@@ -3,8 +3,8 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 270,
-  leftMenuBarOpen: true,
+  leftSidebarWidth: 222,
+  leftMenuBarOpen: false,
   screenWidth: 500,
   showHomePage: false
 };

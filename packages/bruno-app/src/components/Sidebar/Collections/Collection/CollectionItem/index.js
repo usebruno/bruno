@@ -15,6 +15,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
@@ -69,7 +70,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
         dispatch(
           addTab({
             uid: item.uid,
-            collectionUid: collection.uid
+            collectionUid: collection.uid,
+            requestPaneTab: getDefaultRequestPaneTab(item)
           })
         );
       }

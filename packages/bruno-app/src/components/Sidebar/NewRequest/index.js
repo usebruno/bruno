@@ -9,6 +9,7 @@ import { newEphermalHttpRequest } from 'providers/ReduxStore/slices/collections'
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
+import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const NewRequest = ({ collection, item, isEphermal, onClose }) => {
@@ -42,7 +43,8 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
             dispatch(
               addTab({
                 uid: uid,
-                collectionUid: collection.uid
+                collectionUid: collection.uid,
+                requestPaneTab: getDefaultRequestPaneTab({type: values.requestType})
               })
             );
             onClose();
@@ -77,27 +79,27 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
-          <div className="hidden">
+          <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
             </label>
 
             <div className="flex items-center mt-2">
               <input
-                id="http"
+                id="http-request"
                 className="cursor-pointer"
                 type="radio"
                 name="requestType"
                 onChange={formik.handleChange}
-                value="http"
+                value="http-request"
                 checked={formik.values.requestType === 'http-request'}
               />
-              <label htmlFor="http" className="ml-1 cursor-pointer select-none">
+              <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
                 Http
               </label>
 
               <input
-                id="graphql"
+                id="graphql-request"
                 className="ml-4 cursor-pointer"
                 type="radio"
                 name="requestType"
@@ -105,16 +107,16 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
                   formik.setFieldValue('requestMethod', 'POST');
                   formik.handleChange(event);
                 }}
-                value="graphql"
+                value="graphql-request"
                 checked={formik.values.requestType === 'graphql-request'}
               />
-              <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
+              <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
                 Graphql
               </label>
             </div>
           </div>
 
-          <div>
+          <div className="mt-4">
             <label htmlFor="requestName" className="block font-semibold">
               Name
             </label>

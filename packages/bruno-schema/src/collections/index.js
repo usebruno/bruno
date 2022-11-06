@@ -29,13 +29,19 @@ const keyValueSchema = Yup.object({
 const requestUrlSchema = Yup.string().min(0).max(2048, 'name must be 2048 characters or less').defined();
 const requestMethodSchema = Yup.string().oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD']).required('method is required');
 
+const graphqlBodySchema = Yup.object({
+  query:  Yup.string().max(10240, 'json must be 10240 characters or less').nullable(),
+  variables:  Yup.string().max(10240, 'text must be 10240 characters or less').nullable(),
+}).noUnknown(true).strict();
+
 const requestBodySchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm']).required('mode is required'),
+  mode: Yup.string().oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql']).required('mode is required'),
   json:  Yup.string().max(10240, 'json must be 10240 characters or less').nullable(),
   text:  Yup.string().max(10240, 'text must be 10240 characters or less').nullable(),
   xml:  Yup.string().max(10240, 'xml must be 10240 characters or less').nullable(),
   formUrlEncoded:  Yup.array().of(keyValueSchema).nullable(),
   multipartForm:  Yup.array().of(keyValueSchema).nullable(),
+  graphql: graphqlBodySchema.nullable(),
 }).noUnknown(true).strict();
 
 // Right now, the request schema is very tightly coupled with http request
