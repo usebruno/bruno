@@ -16,6 +16,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
+const MIN_RIGHT_PANE_WIDTH = 350;
 const DEFAULT_PADDING = 5;
 
 const RequestTabPanel = () => {
@@ -46,7 +47,11 @@ const RequestTabPanel = () => {
   const handleMouseMove = (e) => {
     if (dragging) {
       e.preventDefault();
-      setLeftPaneWidth(Math.max((e.clientX - asideWidth - DEFAULT_PADDING), MIN_LEFT_PANE_WIDTH));
+      let leftPaneXPosition = e.clientX + 2;
+      if (leftPaneXPosition < (asideWidth+ DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH) || leftPaneXPosition > (screenWidth - MIN_RIGHT_PANE_WIDTH )) {
+        return;
+      }
+      setLeftPaneWidth(leftPaneXPosition- asideWidth);
       setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
     }
   };
