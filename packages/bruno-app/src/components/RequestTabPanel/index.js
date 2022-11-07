@@ -53,7 +53,6 @@ const RequestTabPanel = () => {
       }
       setLeftPaneWidth(leftPaneXPosition- asideWidth);
       setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
-      console.log('left pane width', leftPaneWidth, 'asideWidth', asideWidth);
     }
   };
   const handleMouseUp = (e) => {
