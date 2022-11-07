@@ -22,6 +22,7 @@ const lightTheme = {
     color: 'rgb(52, 52, 52)',
     muted: '#4b5563',
     bg: '#F3F3F3',
+    dragbar: 'rgb(200, 200, 200)',
 
     workspace: {
       bg: '#e1e1e1'

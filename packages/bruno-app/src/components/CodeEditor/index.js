@@ -92,8 +92,6 @@ export default class QueryEditor extends React.Component {
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     this.ignoreChangeEvent = false;

@@ -1,14 +1,14 @@
+import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import qs from 'qs';
-import { rawRequest, gql } from 'graphql';
 import { sendHttpRequestInBrowser } from './browser';
 import { isElectron } from 'utils/common/platform';
 import cancelTokens, { deleteCancelToken } from 'utils/network/cancelTokens';
 
 export const sendNetworkRequest = async (item, options) => {
   return new Promise((resolve, reject) => {
-    if (item.type === 'http-request') {
+    if (['http-request', 'graphql-request'].includes(item.type)) {
       const timeStart = Date.now();
       sendHttpRequest(item.draft ? item.draft.request : item.request, options)
         .then((response) => {
@@ -79,6 +79,15 @@ const sendHttpRequest = async (request, options) => {
       axiosRequest.data = params;
     }
 
+    if (request.body.mode === 'graphql') {
+      const graphqlQuery = {
+        query: get(request, 'body.graphql.query'),
+        variables: JSON.parse(get(request, 'body.graphql.variables') || '{}')
+      };
+      axiosRequest.headers['content-type'] = 'application/json';
+      axiosRequest.data = graphqlQuery;
+    }
+
     console.log('>>> Sending Request');
     console.log(axiosRequest);
 
@@ -88,21 +97,6 @@ const sendHttpRequest = async (request, options) => {
       sendHttpRequestInBrowser(axiosRequest, options).then(resolve).catch(reject);
     }
   });
-};
-
-const sendGraphqlRequest = async (request) => {
-  const query = gql`
-    ${request.request.body.graphql.query}
-  `;
-
-  const { data, errors, extensions, headers, status } = await rawRequest(request.request.url, query);
-
-  return {
-    data,
-    headers,
-    data,
-    errors
-  };
 };
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {

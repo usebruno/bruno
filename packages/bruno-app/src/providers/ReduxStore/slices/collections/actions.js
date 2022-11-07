@@ -16,7 +16,8 @@ import {
   findEnvironmentInCollection,
   isItemAFolder,
   refreshUidsInItem,
-  interpolateEnvironmentVars
+  interpolateEnvironmentVars,
+  getDefaultRequestPaneTab
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
@@ -108,7 +109,8 @@ export const createCollection = (collectionName) => (dispatch, getState) => {
         dispatch(
           addTab({
             uid: requestItem.uid,
-            collectionUid: newCollection.uid
+            collectionUid: newCollection.uid,
+            requestPaneTab: getDefaultRequestPaneTab(requestItem)
           })
         )
       )
@@ -635,7 +637,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         dispatch(
           addTab({
             uid: item.uid,
-            collectionUid: collection.uid
+            collectionUid: collection.uid,
+            requestPaneTab: getDefaultRequestPaneTab(item)
           })
         );
       })

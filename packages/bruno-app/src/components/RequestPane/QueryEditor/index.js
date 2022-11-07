@@ -38,6 +38,7 @@ export default class QueryEditor extends React.Component {
       tabSize: 2,
       mode: 'graphql',
       theme: this.props.editorTheme || 'graphiql',
+      theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -75,54 +76,51 @@ export default class QueryEditor extends React.Component {
         'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-
         'Cmd-Enter': () => {
-          if (this.props.onRunQuery) {
-            this.props.onRunQuery();
+          if (this.props.onRun) {
+            this.props.onRun();
           }
         },
         'Ctrl-Enter': () => {
-          if (this.props.onRunQuery) {
-            this.props.onRunQuery();
+          if (this.props.onRun) {
+            this.props.onRun();
           }
         },
-
         'Shift-Ctrl-C': () => {
           if (this.props.onCopyQuery) {
             this.props.onCopyQuery();
           }
         },
-
         'Shift-Ctrl-P': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
-
         /* Shift-Ctrl-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
-
         'Shift-Ctrl-F': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
-
         'Shift-Ctrl-M': () => {
           if (this.props.onMergeQuery) {
             this.props.onMergeQuery();
           }
         },
         'Cmd-S': () => {
-          if (this.props.onRunQuery) {
-            // empty
+          if (this.props.onSave) {
+            this.props.onSave();
+            return false;
           }
         },
-
         'Ctrl-S': () => {
-          if (this.props.onRunQuery) {
-            // empty
+          if (this.props.onSave) {
+            this.props.onSave();
+            return false;
           }
-        }
+        },
+        'Cmd-F': 'findPersistent',
+        'Ctrl-F': 'findPersistent'
       }
     }));
     if (editor) {
@@ -149,6 +147,10 @@ export default class QueryEditor extends React.Component {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
     }
+
+    if (this.props.theme !== prevProps.theme && this.editor) {
+      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
+    }
     this.ignoreChangeEvent = false;
   }
 
@@ -164,7 +166,7 @@ export default class QueryEditor extends React.Component {
   render() {
     return (
       <StyledWrapper
-        className="h-full"
+        className="h-full w-full"
         aria-label="Query Editor"
         ref={(node) => {
           this._node = node;
@@ -173,8 +175,11 @@ export default class QueryEditor extends React.Component {
     );
   }
 
-  _onKeyUp = (_cm, event) => {
-    if (AUTO_COMPLETE_AFTER_KEY.test(event.key) && this.editor) {
+  _onKeyUp = (_cm, e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) {
+      return;
+    }
+    if (AUTO_COMPLETE_AFTER_KEY.test(e.key) && this.editor) {
       this.editor.execCommand('autocomplete');
     }
   };
