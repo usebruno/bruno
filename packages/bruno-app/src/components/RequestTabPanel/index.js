@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -12,6 +12,7 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
+import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -34,6 +35,22 @@ const RequestTabPanel = () => {
   const [leftPaneWidth, setLeftPaneWidth] = useState(focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2); // 2.2 so that request pane is relatively smaller
   const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   const [dragging, setDragging] = useState(false);
+
+  // Not a recommended pattern here to have the child component
+  // make a callback to set state, but treating this as an exception
+  const docExplorerRef = useRef(null);
+  const [schema, setSchema] = useState(null);
+  const [showGqlDocs, setShowGqlDocs] = useState(false);
+  const onSchemaLoad = (schema) => setSchema(schema);
+  const toggleDocs = () => setShowGqlDocs((showGqlDocs) => !showGqlDocs);
+  const handleGqlClickReference = (reference) => {
+    if(docExplorerRef.current) {
+      docExplorerRef.current.showDocForReference(reference);
+    }
+    if(!showGqlDocs) {
+      setShowGqlDocs(true);
+    }
+  };
 
   useEffect(() => {
     const leftPaneWidth = (screenWidth - asideWidth) / 2.2;
@@ -113,7 +130,7 @@ const RequestTabPanel = () => {
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4">
+      <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
           <div className="px-4" style={{ width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`, height: `calc(100% - ${DEFAULT_PADDING}px)` }}>
             {item.type === 'graphql-request' ? (
@@ -121,6 +138,9 @@ const RequestTabPanel = () => {
                 item={item}
                 collection={collection}
                 leftPaneWidth={leftPaneWidth}
+                onSchemaLoad={onSchemaLoad}
+                toggleDocs={toggleDocs}
+                handleGqlClickReference={handleGqlClickReference}
               />
             ) : null}
 
@@ -136,6 +156,20 @@ const RequestTabPanel = () => {
           <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
         </section>
       </section>
+
+      {item.type === 'graphql-request' ? (
+        <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
+          <DocExplorer schema={schema} ref={(r) => docExplorerRef.current = r}>
+            <button
+              className='mr-2'
+              onClick={toggleDocs}
+              aria-label="Close Documentation Explorer"
+            >
+              {'\u2715'}
+            </button>
+          </DocExplorer>
+        </div>
+      ): null}
     </StyledWrapper>
   );
 };

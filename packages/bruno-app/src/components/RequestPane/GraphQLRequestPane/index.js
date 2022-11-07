@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
@@ -13,7 +13,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import useGraphqlSchema from './useGraphqlSchema';
 import StyledWrapper from './StyledWrapper';
 
-const GraphQLRequestPane = ({ item, collection, leftPaneWidth }) => {
+const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -35,6 +35,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth }) => {
       loadSchema();
     }
   };
+
+  useEffect(() => {
+    if(onSchemaLoad) {
+      onSchemaLoad(schema);
+    }
+  }, [schema]);
 
   const onQueryChange = (value) => {
     dispatch(
@@ -60,7 +66,16 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'query': {
-        return <QueryEditor theme={storedTheme} schema={schema} width={leftPaneWidth}  onSave={onSave} value={query} onRun={onRun} onEdit={onQueryChange} />;
+        return <QueryEditor
+          theme={storedTheme}
+          schema={schema}
+          width={leftPaneWidth}
+          onSave={onSave}
+          value={query}
+          onRun={onRun}
+          onEdit={onQueryChange}
+          onClickReference={handleGqlClickReference}
+        />;
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
@@ -104,9 +119,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth }) => {
             {!isSchemaLoading && schema ? <IconRefresh size={18} strokeWidth={1.5}/> : null }
             <span className='ml-1'>{schema ? 'Schema' : 'Load Schema'}</span>
           </div>
-          {/* <div className='flex items-center cursor-pointer hover:underline ml-2'>
+          <div
+            className='flex items-center cursor-pointer hover:underline ml-2'
+            onClick={toggleDocs}
+          >
             <IconBook size={18} strokeWidth={1.5} /><span className='ml-1'>Docs</span>
-          </div> */}
+          </div>
         </div>
       </div>
       <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>

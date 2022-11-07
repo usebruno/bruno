@@ -25,6 +25,25 @@ const StyledWrapper = styled.div`
       border-left: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
     }
   }
+
+  div.graphql-docs-explorer-container {
+    background: white;
+    outline: none;
+    box-shadow: rgb(0 0 0 / 15%) 0px 0px 8px;
+    position: absolute;
+    right: 0px;
+    z-index: 2000;
+    width: 350px;
+    height: 100%;
+
+    div.doc-explorer-title {
+      text-align: left;
+    }
+
+    div.doc-explorer-rhs {
+      display: flex;
+    }
+  }
 `;
 
 export default StyledWrapper;
