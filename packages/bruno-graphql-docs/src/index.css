@@ -6,7 +6,6 @@
 .graphql-docs-container .history-title-bar {
   cursor: default;
   display: flex;
-  height: 34px;
   line-height: 14px;
   padding: 8px 8px 5px;
   position: relative;
