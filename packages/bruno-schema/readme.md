@@ -2,6 +2,11 @@
 
 The schema definition for collections
 
+### Publish to Npm Registry
+```bash
+npm publish --access=public
+```
+
 ### Collection schema
 ```bash
 id                       Unique id (when persisted to a db)
