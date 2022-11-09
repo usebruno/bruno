@@ -6,7 +6,8 @@ import { ThemeProvider as SCThemeProvider } from 'styled-components';
 
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
-  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'light');
+  const isBrowserThemeLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', isBrowserThemeLight ? 'light' : 'dark');
 
   const theme = themes[storedTheme];
   const themeOptions = Object.keys(themes);
