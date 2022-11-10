@@ -2,6 +2,8 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import filter from 'lodash/filter';
 import cloneDeep from 'lodash/cloneDeep';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
@@ -162,19 +164,21 @@ const Collection = ({ collection, searchText }) => {
 
       <div>
         {!collectionIsCollapsed ? (
-          <div>
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
+          <DndProvider backend={HTML5Backend}>
+            <div>
+              {requestItems && requestItems.length
+                ? requestItems.map((i) => {
+                    return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                  })
+                : null}
 
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
-          </div>
+              {folderItems && folderItems.length
+                ? folderItems.map((i) => {
+                    return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                  })
+                : null}
+            </div>
+          </DndProvider>
         ) : null}
       </div>
     </StyledWrapper>

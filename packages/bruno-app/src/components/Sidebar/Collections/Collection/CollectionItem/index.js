@@ -2,6 +2,7 @@ import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
+import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
@@ -23,8 +24,25 @@ import StyledWrapper from './StyledWrapper';
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const isDragging = useSelector((state) => state.app.isDragging);
+  const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
+  const ref = useRef(null)
+
+  const [{isDragging}, drag] = useDrag(() => ({
+    type: 'collection-item',
+    collect: monitor => ({
+      isDragging: !!monitor.isDragging(),
+    })
+  }));
+  const [{ isOver, canDrop }, drop] = useDrop({
+    accept: 'collection-item',
+    drop: () => console.log('dropped'),
+    canDrop: () => true,
+    collect: monitor => ({
+      isOver: !!monitor.isOver(),
+      canDrop: !!monitor.canDrop()
+    }),
+  });
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
@@ -91,7 +109,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const isFolder = isItemAFolder(item);
 
   const className = classnames('flex flex-col w-full', {
-    'is-dragging': isDragging
+    'is-sidebar-dragging': isSidebarDragging
   });
 
   if (searchText && searchText.length) {
@@ -109,6 +127,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const requestItems = filter(item.items, (i) => isItemARequest(i));
   const folderItems = filter(item.items, (i) => isItemAFolder(i));
 
+  drag(drop(ref))
+
   return (
     <StyledWrapper className={className}>
       {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />}
@@ -116,7 +136,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
-      <div className={itemRowClassName}>
+      <div className={itemRowClassName} ref={ref}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
@@ -9,7 +10,6 @@ import ThemeProvider from 'providers/Theme/index';
 import '../styles/app.scss';
 import '../styles/globals.css';
 import 'tailwindcss/dist/tailwind.min.css';
-import 'react-tabs/style/react-tabs.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 
@@ -28,6 +28,16 @@ function NoSsr({ children }) {
 }
 
 function MyApp({ Component, pageProps }) {
+  const [domLoaded, setDomLoaded] = useState(false);
+
+  useEffect(() => {
+    setDomLoaded(true);
+  }, []);
+
+  if(!domLoaded) {
+    return null;
+  }
+
   return (
     <SafeHydrate>
       <NoSsr>
