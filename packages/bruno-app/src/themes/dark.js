@@ -15,7 +15,7 @@ const darkTheme = {
   },
 
   menubar: {
-    bg: '#333333',
+    bg: '#333333'
   },
 
   sidebar: {
@@ -55,8 +55,8 @@ const darkTheme = {
   },
 
   dropdown: {
-    color: "rgb(204, 204, 204)",
-    iconColor: "rgb(204, 204, 204)",
+    color: 'rgb(204, 204, 204)',
+    iconColor: 'rgb(204, 204, 204)',
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#185387',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
@@ -107,7 +107,7 @@ const darkTheme = {
           active: {
             bg: 'transparent',
             hoverBg: 'transparent'
-          },
+          }
         },
         gridBorder: '#4f4f4f'
       }
@@ -122,9 +122,9 @@ const darkTheme = {
     },
     body: {
       color: '#ccc',
-      bg: 'rgb(48, 48, 49)',
+      bg: 'rgb(48, 48, 49)'
     },
-    input : {
+    input: {
       bg: 'rgb(65, 65, 65)',
       border: 'rgb(65, 65, 65)',
       focusBorder: 'rgb(65, 65, 65)'
@@ -191,10 +191,13 @@ const darkTheme = {
 
   table: {
     border: '#333',
-    thead : {
+    thead: {
       color: 'rgb(204, 204, 204)'
     },
-    striped: '#2A2D2F'
+    striped: '#2A2D2F',
+    input: {
+      color: '#555555'
+    }
   },
 
   plainGrid: {

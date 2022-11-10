@@ -12,7 +12,7 @@ const Wrapper = styled.div`
     }
 
     thead {
-      color: ${(props) => props.theme.table.thead.color};;
+      color: ${(props) => props.theme.table.thead.color};
       font-size: 0.8125rem;
       user-select: none;
     }
@@ -29,6 +29,7 @@ const Wrapper = styled.div`
     width: 100%;
     border: solid 1px transparent;
     outline: none !important;
+    color: ${(props) => props.theme.table.input.color};
 
     &:focus {
       outline: none !important;
