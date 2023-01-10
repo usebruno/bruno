@@ -1,7 +1,7 @@
-import reckon from 'reckonjs';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
+import findIndex from 'lodash/findIndex';
 import isString from 'lodash/isString';
 import map from 'lodash/map';
 import filter from 'lodash/filter';
@@ -120,6 +120,43 @@ export const recursivelyGetAllItemUids = (items = []) => {
 
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
+};
+
+export const moveCollectionItem = (collection, draggedItem, targetItem) => {
+  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
+
+  if (draggedItemParent) {
+    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+  } else {
+    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+  }
+
+  if (targetItem.type === 'folder') {
+    targetItem.items = targetItem.items || [];
+    targetItem.items.push(draggedItem);
+  } else {
+    let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
+
+    if (targetItemParent) {
+      let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
+      targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
+    } else {
+      let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
+      collection.items.splice(targetItemIndex + 1, 0, draggedItem);
+    }
+  }
+};
+
+export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
+  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
+
+  if (draggedItemParent) {
+    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+  } else {
+    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+  }
+
+  collection.items.push(draggedItem);
 };
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {

@@ -7,6 +7,8 @@ import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
   findItemInCollection,
+  moveCollectionItem,
+  moveCollectionItemToRootOfCollection,
   findCollectionByUid,
   recursivelyGetAllItemUids,
   transformCollectionToSaveToIdb,
@@ -33,6 +35,8 @@ import {
   renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
+  moveItem as _moveItem,
+  moveItemToRootOfCollection as _moveItemToRootOfCollection,
   saveRequest as _saveRequest,
   addEnvironment as _addEnvironment,
   renameEnvironment as _renameEnvironment,
@@ -542,6 +546,121 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
           _deleteItem({
             itemUid: itemUid,
             collectionUid: collectionUid
+          })
+        );
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
+export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    if (isLocalCollection(collection)) {
+      const draggedItem = findItemInCollection(collection, draggedItemUid);
+      const targetItem = findItemInCollection(collection, targetItemUid);
+
+      if (!draggedItem) {
+        return reject(new Error('Dragged item not found'));
+      }
+
+      if (!targetItem) {
+        return reject(new Error('Target item not found'));
+      }
+
+      const { ipcRenderer } = window;
+
+      ipcRenderer
+        .invoke('renderer:move-item', draggedItem.pathname, targetItem.pathname)
+        .then(() => resolve())
+        .catch((error) => reject(error));
+      return;
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
+    const targetItem = findItemInCollection(collectionCopy, targetItemUid);
+
+    if (!draggedItem) {
+      return reject(new Error('Dragged item not found'));
+    }
+
+    if (!targetItem) {
+      return reject(new Error('Target item not found'));
+    }
+
+    moveCollectionItem(collectionCopy, draggedItem, targetItem);
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => {
+        dispatch(
+          _moveItem({
+            collectionUid: collectionUid,
+            draggedItemUid: draggedItemUid,
+            targetItemUid: targetItemUid
+          })
+        );
+      })
+      .then(() => resolve())
+      .catch((error) => reject(error));
+  });
+};
+
+export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    if (isLocalCollection(collection)) {
+      const draggedItem = findItemInCollection(collection, draggedItemUid);
+
+      if (!draggedItem) {
+        return reject(new Error('Dragged item not found'));
+      }
+
+      const { ipcRenderer } = window;
+
+      ipcRenderer
+        .invoke('renderer:move-item-to-root-of-collection', draggedItem.pathname)
+        .then(() => resolve())
+        .catch((error) => reject(error));
+      return;
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
+
+    if (!draggedItem) {
+      return reject(new Error('Dragged item not found'));
+    }
+
+    moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
+
+    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+
+    collectionSchema
+      .validate(collectionToSave)
+      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
+      .then(() => {
+        dispatch(
+          _moveItemToRootOfCollection({
+            collectionUid: collectionUid,
+            draggedItemUid: draggedItemUid
           })
         );
       })

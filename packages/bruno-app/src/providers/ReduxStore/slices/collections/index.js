@@ -14,6 +14,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   addDepth,
+  moveCollectionItem,
   collapseCollection,
   deleteItemInCollection,
   isItemARequest
@@ -179,6 +180,38 @@ export const collectionsSlice = createSlice({
         } else {
           collection.items.push(clonedItem);
         }
+      }
+    },
+    moveItem: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const draggedItemUid = action.payload.draggedItemUid;
+      const targetItemUid = action.payload.targetItemUid;
+
+      if (collection) {
+        const draggedItem = findItemInCollection(collection, draggedItemUid);
+        const targetItem = findItemInCollection(collection, targetItemUid);
+
+        if (!draggedItem || !targetItem) {
+          return;
+        }
+
+        moveCollectionItem(collection, draggedItem, targetItem);
+        addDepth(collection.items);
+      }
+    },
+    moveItemToRootOfCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const draggedItemUid = action.payload.draggedItemUid;
+
+      if (collection) {
+        const draggedItem = findItemInCollection(collection, draggedItemUid);
+
+        if (!draggedItem) {
+          return;
+        }
+
+        moveCollectionItemToRootOfCollection(collection, draggedItem);
+        addDepth(collection.items);
       }
     },
     requestSent: (state, action) => {
@@ -785,6 +818,8 @@ export const {
   deleteItem,
   renameItem,
   cloneItem,
+  moveItem,
+  moveItemToRootOfCollection,
   requestSent,
   requestCancelled,
   responseReceived,

@@ -1,5 +1,7 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import Collection from './Collection';
@@ -26,7 +28,11 @@ const Collections = ({ searchText }) => {
     <div className="mt-4 flex flex-col">
       {collectionToDisplay && collectionToDisplay.length
         ? collectionToDisplay.map((c) => {
-            return <Collection searchText={searchText} collection={c} key={c.uid} />;
+            return (
+              <DndProvider backend={HTML5Backend} key={c.uid}>
+                <Collection searchText={searchText} collection={c} />;
+              </DndProvider>
+            );
           })
         : null}
     </div>

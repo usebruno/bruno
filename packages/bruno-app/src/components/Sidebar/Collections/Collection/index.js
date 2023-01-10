@@ -2,9 +2,11 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import filter from 'lodash/filter';
 import cloneDeep from 'lodash/cloneDeep';
+import { useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
+import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -71,6 +73,21 @@ const Collection = ({ collection, searchText }) => {
 
   const isLocal = isLocalCollection(collection);
 
+  const [{ isOver }, drop] = useDrop({
+    accept: 'COLLECTION_ITEM',
+    drop: (draggedItem) => {
+      console.log('drop', draggedItem);
+      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+    },
+    canDrop: (draggedItem) => {
+      // todo need to make sure that draggedItem belongs to the collection
+      return true;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
+
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}
@@ -79,7 +96,7 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionFromWSModal && <RemoveCollectionFromWorkspace collection={collection} onClose={() => setShowRemoveCollectionFromWSModal(false)} />}
       {showDeleteCollectionModal && <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)} />}
       {showRemoveLocalCollectionModal && <RemoveLocalCollection collection={collection} onClose={() => setShowRemoveLocalCollectionModal(false)} />}
-      <div className="flex py-1 collection-name items-center">
+      <div className="flex py-1 collection-name items-center" ref={(node) => drop(node)}>
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, color: 'rgb(160 160 160)' }} />
           <div className="ml-1" id="sidebar-collection-name">{collection.name}</div>

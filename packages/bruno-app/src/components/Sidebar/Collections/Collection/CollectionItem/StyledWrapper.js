@@ -70,7 +70,7 @@ const Wrapper = styled.div`
     }
   }
 
-  &.is-dragging .collection-item-name {
+  &.is-sidebar-dragging .collection-item-name {
     cursor: inherit;
   }
 `;

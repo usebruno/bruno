@@ -2,10 +2,12 @@ import React, { useState, useRef, forwardRef, useEffect } from 'react';
 import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
+import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
+import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -23,7 +25,7 @@ import StyledWrapper from './StyledWrapper';
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const isDragging = useSelector((state) => state.app.isDragging);
+  const isSidebarDragging = useSelector((state) => state.app.isDragging);
   const dispatch = useDispatch();
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
@@ -32,6 +34,29 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+
+  const [{ isDragging }, drag] = useDrag({
+    type: 'COLLECTION_ITEM',
+    item: item,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
+
+  const [{ isOver }, drop] = useDrop({
+    accept: 'COLLECTION_ITEM',
+    drop: (draggedItem) => {
+      if (draggedItem.uid !== item.uid) {
+        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+      }
+    },
+    canDrop: (draggedItem) => {
+      return draggedItem.uid !== item.uid;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
 
   useEffect(() => {
     if (searchText && searchText.length) {
@@ -91,7 +116,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const isFolder = isItemAFolder(item);
 
   const className = classnames('flex flex-col w-full', {
-    'is-dragging': isDragging
+    'is-sidebar-dragging': isSidebarDragging
   });
 
   if (searchText && searchText.length) {
@@ -116,7 +141,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
-      <div className={itemRowClassName}>
+      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
