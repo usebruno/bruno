@@ -51,7 +51,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       }
     },
     canDrop: (draggedItem) => {
-      return draggedItem.id !== item.uid;
+      return draggedItem.uid !== item.uid;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver()

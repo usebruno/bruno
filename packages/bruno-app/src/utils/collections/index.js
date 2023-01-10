@@ -147,6 +147,18 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   }
 };
 
+export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
+  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
+
+  if (draggedItemParent) {
+    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+  } else {
+    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+  }
+
+  collection.items.push(draggedItem);
+};
+
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {

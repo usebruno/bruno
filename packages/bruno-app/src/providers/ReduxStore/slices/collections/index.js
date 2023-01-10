@@ -199,6 +199,21 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
+    moveItemToRootOfCollection: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const draggedItemUid = action.payload.draggedItemUid;
+
+      if (collection) {
+        const draggedItem = findItemInCollection(collection, draggedItemUid);
+
+        if (!draggedItem) {
+          return;
+        }
+
+        moveCollectionItemToRootOfCollection(collection, draggedItem);
+        addDepth(collection.items);
+      }
+    },
     requestSent: (state, action) => {
       const { itemUid, collectionUid, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -804,6 +819,7 @@ export const {
   renameItem,
   cloneItem,
   moveItem,
+  moveItemToRootOfCollection,
   requestSent,
   requestCancelled,
   responseReceived,
