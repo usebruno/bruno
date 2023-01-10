@@ -7,13 +7,16 @@
 		},
 		{
 			"include": "#strings"
+		},
+		{
+			"include": "#script-block"
 		}
 	],
 	"repository": {
 		"keywords": {
 			"patterns": [{
 				"name": "keyword.control.bruno",
-				"match": "\\b(if|while|for|return)\\b"
+				"match": "\\b(ver|type|name|method|url|params|body-mode|body|script|assert|vars|response-example|readme)\\b"
 			}]
 		},
 		"strings": {
@@ -24,6 +27,16 @@
 				{
 					"name": "constant.character.escape.bruno",
 					"match": "\\\\."
+				}
+			]
+		},
+		"script-block": {
+			"name": "meta.script-block.bruno",
+			"begin": "script",
+			"end": "/script",
+			"patterns": [
+				{
+					"include": "source.js"
 				}
 			]
 		}
