@@ -1,0 +1,39 @@
+{
+  "type": "http-request",
+  "name": "Send Bulk SMS",
+  "request": {
+    "method": "GET",
+    "url": "https://api.textlocal.in/bulk_json?apiKey=secret=&numbers=998877665&message=hello&sender=600010",
+    "params": [
+      {
+        "name": "apiKey",
+        "value": "secret",
+        "enabled": true
+      },
+      {
+        "name": "numbers",
+        "value": "998877665",
+        "enabled": true
+      },
+      {
+        "name": "message",
+        "value": "hello",
+        "enabled": true
+      },
+      {
+        "name": "sender",
+        "value": "600010",
+        "enabled": true
+      }
+    ],
+    "headers": [],
+    "body": {
+      "mode": "json",
+      "json": "{\n  apikey: \"secret\",\n  numbers: \"+919988776655\",\n  data: {\n    sender: \"TXTLCL\",\n    messages: [{\n      numbers: \"+919988776655\",\n      message: \"Hello World\"\n    }]\n  }\n}",
+      "text": null,
+      "xml": null,
+      "multipartForm": null,
+      "formUrlEncoded": null
+    }
+  }
+}
