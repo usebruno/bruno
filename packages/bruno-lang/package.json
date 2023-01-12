@@ -1,0 +1,12 @@
+{
+  "name": "@usebruno/bruno-lang",
+  "version": "0.1.0",
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "jest"
+  }
+}
