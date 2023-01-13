@@ -10,11 +10,11 @@ params
 1 message hello
 /params
 
-headers(description=true)
-1 content-type    "Content Type"       application/json
-1 accept-language ""                   en-US,en;q=0.9,hi;q=0.8
-0 transaction-id  "The transaction ID" {{transactionId}}
-/params
+headers
+1 content-type    application/json
+1 accept-language en-US,en;q=0.9,hi;q=0.8
+0 transaction-id  {{transactionId}}
+/headers
 
 body-mode json
 
@@ -70,9 +70,9 @@ response-example
 name   Created
 status 201
 headers
-1 content-type    "Content Type"       application/json
-1 accept-language ""                   en-US,en;q=0.9,hi;q=0.8
-0 transaction-id  "The transaction ID" {{transactionId}}
+1 content-type    application/json
+1 accept-language en-US,en;q=0.9,hi;q=0.8
+0 transaction-id  {{transactionId}}
 /headers
 
 body
