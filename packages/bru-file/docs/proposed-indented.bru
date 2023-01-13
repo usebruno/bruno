@@ -5,15 +5,15 @@ method GET
 url    https://api.textlocal.in/bulk_json?apiKey=secret=&numbers=919988776655&message=hello&sender=600010
 
 params
-1 apiKey  secret
-1 numbers 998877665
-1 message hello
+  1 apiKey  secret
+  1 numbers 998877665
+  1 message hello
 /params
 
 headers
-1 content-type    application/json
-1 accept-language en-US,en;q=0.9,hi;q=0.8
-0 transaction-id  {{transactionId}}
+  1 content-type    application/json
+  1 accept-language en-US,en;q=0.9,hi;q=0.8
+  0 transaction-id  {{transactionId}}
 /headers
 
 body-mode json
@@ -44,59 +44,59 @@ body(type=graphql)
 /body
 
 script
-let user = 'John Doe';
+  let user = 'John Doe';
 
-function onRequest(request) {
-  request.body.user = user;
-}
+  function onRequest(request) {
+    request.body.user = user;
+  }
 
-function onResponse(request, response) {
-  expect(response.status).to.equal(200);
-}
+  function onResponse(request, response) {
+    expect(response.status).to.equal(200);
+  }
 /script
 
 assert
-{
-  "$res.data.order.items.length": 1,
-  "$res.data.orderNumber.isDefined": true
-}
+  {
+    "$res.data.order.items.length": 1,
+    "$res.data.orderNumber.isDefined": true
+  }
 /assert
 
 vars
-1 petId $res.data.id
+  1 petId $res.data.id
 /vars
 
-response-example
-name   Created
-status 201
-headers
-1 content-type    application/json
-1 accept-language en-US,en;q=0.9,hi;q=0.8
-0 transaction-id  {{transactionId}}
-/headers
-
-body
-{
-  "data": {
-    "launchesPast": [
-      {
-        "launch_site": {
-          "site_name": "CCAFS SLC 40"
-        },
-        "launch_success": true
-      },
-      {
-        "launch_site": {
-          "site_name": "VAFB SLC 4E"
-        },
-        "launch_success": true
-      }
-    ]
-  }
-}
-/body
-/response-example
-
 readme
-Documentation about the request
+  Documentation about the request
 /readme
+
+response-example
+  name   Created
+  status 201
+  headers
+    1 content-type    application/json
+    1 accept-language en-US,en;q=0.9,hi;q=0.8
+    0 transaction-id  {{transactionId}}
+  /headers
+
+  body
+    {
+      "data": {
+        "launchesPast": [
+          {
+            "launch_site": {
+              "site_name": "CCAFS SLC 40"
+            },
+            "launch_success": true
+          },
+          {
+            "launch_site": {
+              "site_name": "VAFB SLC 4E"
+            },
+            "launch_success": true
+          }
+        ]
+      }
+    }
+  /body
+/response-example
