@@ -1,4 +1,4 @@
-const inlineTag = require('./inline-tag');
+const inlineTag = require('../src/inline-tag');
 const {
   sepBy,
   char,
