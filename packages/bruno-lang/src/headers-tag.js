@@ -15,25 +15,18 @@ const {
 const newline = regex(/^\r?\n/);
 const newLineOrEndOfInput = choice([newline, endOfInput]);
 
-const begin = sequenceOf([
-  regex(/^headers[^\S\r\n]*/),
-  newline
-]);
 
-const end = sequenceOf([
-  regex(/^\/headers[^\S\r\n]*/),
-  newLineOrEndOfInput
-]);
-const key = everyCharUntil(whitespace);
-const value = everyCharUntil(whitespace);
+const begin = regex(/^headers\s*\r?\n/);
+const end = regex(/^[\r?\n]*\/headers\s*[\r?\n]*/);
+const word = regex(/^[^\s\t\n]+/g);
 
 const line = sequenceOf([
   optionalWhitespace,
   digit,
   whitespace,
-  key,
+  word,
   whitespace,
-  value,
+  word,
   newLineOrEndOfInput
 ]).map(([_, enabled, __, key, ___, value]) => {
   return {
