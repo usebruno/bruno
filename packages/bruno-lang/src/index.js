@@ -11,7 +11,8 @@ const headersTag = require('./headers-tag');
 const {
   bodyJsonTag,
   bodyGraphqlTag,
-  bodyTextTag
+  bodyTextTag,
+  bodyXmlTag
 } = require('./body-tag');
 
 const bruToJson = (fileContents) => {
@@ -22,6 +23,7 @@ const bruToJson = (fileContents) => {
     bodyJsonTag,
     bodyGraphqlTag,
     bodyTextTag,
+    bodyXmlTag,
     anyChar
   ]));
 

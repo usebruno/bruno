@@ -61,17 +61,11 @@ assert
   }
 /assert
 
-vars
-  1 petId $res.data.id
-/vars
-
-readme
+docs
   Documentation about the request
-/readme
+/docs
 
-response-example
-  name Created
-  status 201
+response-example(name="Created", status=201)
   headers
     1 content-type  application/json
     1 accept-language en-US,en;q=0.9,hi;q=0.8

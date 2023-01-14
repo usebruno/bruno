@@ -53,9 +53,10 @@ describe('bruToJson', () => {
       "body": {
         "json": '{"apikey":"secret","numbers":"+91998877665"}',
         "graphql": {
-          "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }\n"
+          "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }"
         },
-        "text": "  Hello, there. You must be from the past\n"
+        "text": "  Hello, there. You must be from the past",
+        "xml": "  <body>back to the ice age</body>"
       }
     });
   });
