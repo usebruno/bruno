@@ -3,12 +3,14 @@ const {
   choice,
   anyChar
 } = require("arcsecond");
+const _ = require('lodash');
 
 const inlineTag  = require('./inline-tag');
 const paramsTag  = require('./params-tag');
 const headersTag = require('./headers-tag');
 const {
-  bodyJsonTag
+  bodyJsonTag,
+  bodyGraphqlTag
 } = require('./body-tag');
 
 const bruToJson = (fileContents) => {
@@ -17,18 +19,14 @@ const bruToJson = (fileContents) => {
     paramsTag,
     headersTag,
     bodyJsonTag,
+    bodyGraphqlTag,
     anyChar
   ]));
 
   const parsed = parser
     .run(fileContents)
     .result
-    .reduce((acc, item) => {
-      return {
-        ...acc,
-        ...item
-      };
-    }, {});
+    .reduce((acc, item) => _.merge(acc, item), {});
 
   return {
     ver: parsed.ver,
@@ -38,7 +36,7 @@ const bruToJson = (fileContents) => {
     url: parsed.url,
     params: parsed.params,
     headers: parsed.headers,
-    bodyJson: parsed.bodyJson
+    body: parsed.body
   }
 };
 

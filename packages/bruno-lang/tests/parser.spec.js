@@ -50,7 +50,12 @@ describe('bruToJson', () => {
           "value": "{{transactionId}}"
         }
       ],
-      "bodyJson": '{"apikey":"secret","numbers":"+91998877665"}'
+      "body": {
+        "json": '{"apikey":"secret","numbers":"+91998877665"}',
+        "graphql": {
+          "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }\n"
+        }
+      }
     });
   });
 });

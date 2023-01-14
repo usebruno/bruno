@@ -1,37 +1,18 @@
 const {
-  str,
-  sequenceOf,
-  optionalWhitespace,
-  choice,
-  endOfInput,
   between,
   regex,
-  everyCharUntil
+  everyCharUntil,
 } = require("arcsecond");
 const { safeParseJson } = require('./utils');
 
-const newline = regex(/^\r?\n/);
-const newLineOrEndOfInput = choice([newline, endOfInput]);
 
 // body(type=json)
-const bodyJsonBegin = sequenceOf([
-  str('body'),
-  optionalWhitespace,
-  str('('),
-  optionalWhitespace,
-  str('type'),
-  optionalWhitespace,
-  str('='),
-  optionalWhitespace,
-  str('json'),
-  optionalWhitespace,
-  regex(/^\)\s*\r?\n/),
-]);
+const bodyJsonBegin = regex(/^body\s*\(\s*type\s*=\s*json\s*\)\s*\r?\n/);
 
-const bodyEnd = sequenceOf([
-  regex(/^\/body\s*/),
-  newLineOrEndOfInput
-]);
+// body(type=graphql)
+const bodyGraphqlBegin = regex(/^body\s*\(\s*type\s*=\s*graphql\s*\)\s*\r?\n/);
+
+const bodyEnd = regex(/^\/body\s*[\r?\n]*/);
 
 const bodyJsonTag = between(bodyJsonBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyJson) => {
   if(bodyJson && bodyJson.length) {
@@ -40,20 +21,37 @@ const bodyJsonTag = between(bodyJsonBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map
 
     if(!safelyParsed) {
       return {
-        bodyJson
+        body: {
+          json: bodyJson
+        }
       }
     }
 
     return {
-      bodyJson: JSON.stringify(safelyParsed)
+      body: {
+        json: JSON.stringify(safelyParsed)
+      }
     };
   }
 
   return {
-    bodyJson
+    body: {
+      json: bodyJson
+    }
   };
 });
 
+const bodyGraphqlTag = between(bodyGraphqlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyGraphql) => {
+  return {
+    body: {
+      graphql: {
+        query: bodyGraphql
+      }
+    }
+  }
+});
+
 module.exports = {
-  bodyJsonTag
+  bodyJsonTag,
+  bodyGraphqlTag
 };
