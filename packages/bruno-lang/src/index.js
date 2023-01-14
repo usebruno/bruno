@@ -1,6 +1,4 @@
 const {
-  sepBy,
-  regex,
   many,
   choice,
   anyChar
@@ -8,21 +6,13 @@ const {
 
 const inlineTag  = require('./inline-tag');
 const paramsTag  = require('./params-tag');
+const headersTag = require('./headers-tag');
 
 const bruToJson = (fileContents) => {
-  const newline = regex(/^\r?\n/);
-  const line = inlineTag;
-  const lines = many(line);
-  // const parser = sepBy(newline)(lines);
-
-  let parser = choice([
-    sepBy(newline)(lines),
-    paramsTag
-  ]);
-
-  parser = many(choice([
+  const parser = many(choice([
     inlineTag,
     paramsTag,
+    headersTag,
     anyChar
   ]));
 
@@ -42,7 +32,8 @@ const bruToJson = (fileContents) => {
     name: parsed.name,
     method: parsed.method,
     url: parsed.url,
-    params: parsed.params
+    params: parsed.params,
+    headers: parsed.headers
   }
 };
 

@@ -32,6 +32,23 @@ describe('bruToJson', () => {
           "key": "message",
           "value": "hello"
         }
+      ],
+      "headers": [
+        {
+          "enabled": "1",
+          "key": "content-type",
+          "value": "application/json"
+        },
+        {
+          "enabled": "1",
+          "key": "accept-language",
+          "value": "en-US,en;q=0.9,hi;q=0.8"
+        },
+        {
+          "enabled": "0",
+          "key": "transaction-id",
+          "value": "{{transactionId}}"
+        }
       ]
     });
   });
