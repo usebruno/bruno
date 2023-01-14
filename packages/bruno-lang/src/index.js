@@ -7,12 +7,16 @@ const {
 const inlineTag  = require('./inline-tag');
 const paramsTag  = require('./params-tag');
 const headersTag = require('./headers-tag');
+const {
+  bodyJsonTag
+} = require('./body-tag');
 
 const bruToJson = (fileContents) => {
   const parser = many(choice([
     inlineTag,
     paramsTag,
     headersTag,
+    bodyJsonTag,
     anyChar
   ]));
 
@@ -33,7 +37,8 @@ const bruToJson = (fileContents) => {
     method: parsed.method,
     url: parsed.url,
     params: parsed.params,
-    headers: parsed.headers
+    headers: parsed.headers,
+    bodyJson: parsed.bodyJson
   }
 };
 

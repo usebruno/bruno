@@ -49,7 +49,8 @@ describe('bruToJson', () => {
           "key": "transaction-id",
           "value": "{{transactionId}}"
         }
-      ]
+      ],
+      "bodyJson": '{"apikey":"secret","numbers":"+91998877665"}'
     });
   });
 });
