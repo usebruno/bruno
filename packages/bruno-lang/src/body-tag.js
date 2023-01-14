@@ -12,6 +12,9 @@ const bodyJsonBegin = regex(/^body\s*\(\s*type\s*=\s*json\s*\)\s*\r?\n/);
 // body(type=graphql)
 const bodyGraphqlBegin = regex(/^body\s*\(\s*type\s*=\s*graphql\s*\)\s*\r?\n/);
 
+// body(type=text)
+const bodyTextBegin = regex(/^body\s*\(\s*type\s*=\s*text\s*\)\s*\r?\n/);
+
 const bodyEnd = regex(/^\/body\s*[\r?\n]*/);
 
 const bodyJsonTag = between(bodyJsonBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyJson) => {
@@ -51,7 +54,16 @@ const bodyGraphqlTag = between(bodyGraphqlBegin)(bodyEnd)(everyCharUntil(bodyEnd
   }
 });
 
+const bodyTextTag = between(bodyTextBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyText) => {
+  return {
+    body: {
+      text: bodyText
+    }
+  }
+});
+
 module.exports = {
   bodyJsonTag,
-  bodyGraphqlTag
+  bodyGraphqlTag,
+  bodyTextTag
 };
