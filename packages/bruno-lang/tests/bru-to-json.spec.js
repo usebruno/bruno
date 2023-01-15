@@ -2,15 +2,12 @@ const fs = require('fs');
 const path = require('path');
 
 const {
-  bruToJson
+  jsonToBru
 } = require('../src');
 
 describe('bruToJson', () => {
-  it('should parse .bru file contents', () => {
-    const requestFile = fs.readFileSync(path.join(__dirname, 'fixtures', 'request.bru'), 'utf8');
-    const result = bruToJson(requestFile);
-
-    expect(result).toEqual({
+  it('should convert json file into .bru file', () => {
+    const request = {
       "ver": "1.0",
       "type": "http-request",
       "name": "Send Bulk SMS",
@@ -51,12 +48,13 @@ describe('bruToJson', () => {
         }
       ],
       "body": {
+        "mode": "json",
         "json": '{"apikey":"secret","numbers":"+91998877665"}',
         "graphql": {
-          "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }"
+          "query": "{\n  launchesPast {\n    launch_success\n  }\n}"
         },
-        "text": "  Hello, there. You must be from the past",
-        "xml": "  <body>back to the ice age</body>",
+        "text": "Hello, there. You must be from the past",
+        "xml": "<body>back to the ice age</body>",
         "formUrlEncoded": [
           {
             "enabled": "1",
@@ -82,7 +80,12 @@ describe('bruToJson', () => {
           }
         ]
       }
-    });
+    };
+
+    const expectedBruFile = fs.readFileSync(path.join(__dirname, 'fixtures', 'request.bru'), 'utf8');
+    const actualBruFile = jsonToBru(request);
+
+    expect(expectedBruFile).toEqual(actualBruFile);
   });
 });
 

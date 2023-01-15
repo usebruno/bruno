@@ -24,8 +24,13 @@ const inlineTag = sequenceOf([
   everyCharUntil(newLineOrEndOfInput)
 ]).map(([key, _, val]) => {
   if(key === 'body-mode') {
-    key = 'bodyMode';
+    return {
+      body: {
+        mode: val
+      }
+    };
   }
+
   return { [key]: val };
 });
 

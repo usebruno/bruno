@@ -76,7 +76,7 @@ body-mode json
       [{ name: 'Send Bulk SMS' }],
       [{ method: 'GET' }],
       [{ url: 'https://api.textlocal.in/bulk_json?apiKey=secret=&numbers=919988776655&message=hello&sender=600010' }],
-      [{ bodyMode: 'json' }],
+      [{ body: { mode: 'json' } }],
       []
     ]);
   })
