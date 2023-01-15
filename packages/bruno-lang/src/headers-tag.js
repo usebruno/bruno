@@ -15,7 +15,6 @@ const {
 const newline = regex(/^\r?\n/);
 const newLineOrEndOfInput = choice([newline, endOfInput]);
 
-
 const begin = regex(/^headers\s*\r?\n/);
 const end = regex(/^[\r?\n]*\/headers\s*[\r?\n]*/);
 const word = regex(/^[^\s\t\n]+/g);

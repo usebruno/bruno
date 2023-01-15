@@ -56,7 +56,19 @@ describe('bruToJson', () => {
           "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }"
         },
         "text": "  Hello, there. You must be from the past",
-        "xml": "  <body>back to the ice age</body>"
+        "xml": "  <body>back to the ice age</body>",
+        "formUrlEncoded": [
+          {
+            "enabled": "1",
+            "key": "username",
+            "value": "john"
+          },
+          {
+            "enabled": "0",
+            "key": "password",
+            "value": "{{password}}"
+          }
+        ]
       }
     });
   });

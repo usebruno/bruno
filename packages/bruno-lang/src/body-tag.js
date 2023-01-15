@@ -2,6 +2,14 @@ const {
   between,
   regex,
   everyCharUntil,
+  digit,
+  whitespace,
+  optionalWhitespace,
+  endOfInput,
+  choice,
+  many,
+  sepBy,
+  sequenceOf
 } = require("arcsecond");
 const { safeParseJson } = require('./utils');
 
@@ -17,6 +25,9 @@ const bodyTextBegin = regex(/^body\s*\(\s*type\s*=\s*text\s*\)\s*\r?\n/);
 
 // body(type=xml)
 const bodyXmlBegin = regex(/^body\s*\(\s*type\s*=\s*xml\s*\)\s*\r?\n/);
+
+// body(type=form-url-encoded)
+const bodyFormUrlEncoded = regex(/^body\s*\(\s*type\s*=\s*form-url-encoded\s*\)\s*\r?\n/);
 
 const bodyEnd = regex(/^[\r?\n]+\/body\s*[\r?\n]*/);
 
@@ -73,9 +84,47 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
   }
 });
 
+// generic key value parser
+const newline = regex(/^\r?\n/);
+const newLineOrEndOfInput = choice([newline, endOfInput]);
+const word = regex(/^[^\s\t\n]+/g);
+
+const line = sequenceOf([
+  optionalWhitespace,
+  digit,
+  whitespace,
+  word,
+  whitespace,
+  word,
+  newLineOrEndOfInput
+]).map(([_, enabled, __, key, ___, value]) => {
+  return {
+    "enabled": enabled,
+    "key": key,
+    "value": value
+  };
+});
+
+const lines = many(line);
+const keyvalLines = sepBy(newline)(lines);
+
+// this regex allows the body end tag to start without a newline
+// currently the line parser consumes the last newline
+// todo: fix this
+const bodyEndRelaxed = regex(/^[\r?\n]*\/body\s*[\r?\n]*/);
+
+const bodyFormUrlEncodedTag = between(bodyFormUrlEncoded)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
+  return {
+    body: {
+      formUrlEncoded: result
+    }
+  }
+});
+
 module.exports = {
   bodyJsonTag,
   bodyGraphqlTag,
   bodyTextTag,
-  bodyXmlTag
+  bodyXmlTag,
+  bodyFormUrlEncodedTag
 };
