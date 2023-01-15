@@ -13,7 +13,8 @@ const {
   bodyGraphqlTag,
   bodyTextTag,
   bodyXmlTag,
-  bodyFormUrlEncodedTag
+  bodyFormUrlEncodedTag,
+  bodyMultipartFormTag
 } = require('./body-tag');
 
 const bruToJson = (fileContents) => {
@@ -26,6 +27,7 @@ const bruToJson = (fileContents) => {
     bodyTextTag,
     bodyXmlTag,
     bodyFormUrlEncodedTag,
+    bodyMultipartFormTag,
     anyChar
   ]));
 

@@ -68,6 +68,18 @@ describe('bruToJson', () => {
             "key": "password",
             "value": "{{password}}"
           }
+        ],
+        "multipartForm": [
+          {
+            "enabled": "1",
+            "key": "username",
+            "value": "nash"
+          },
+          {
+            "enabled": "0",
+            "key": "password",
+            "value": "governingdynamics"
+          }
         ]
       }
     });
