@@ -3,7 +3,7 @@ Local-first, Opensource API Client.
 
 ### Live Demo 🏂 
 Woof! Lets play with some api's [here](https://play.usebruno.com).
-Your api must allow CORS for it to work in the browser, else checkout the chrome extension ot the desktop app
+Your api must allow CORS for it to work in the browser, else checkout the chrome extension or the desktop app
 
 You can visit the [Website](https://www.usebruno.com) or watch a [4 min demo](https://www.youtube.com/watch?v=wwXJW7_qyLA)
 
