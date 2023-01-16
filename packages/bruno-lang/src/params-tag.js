@@ -29,8 +29,8 @@ const line = sequenceOf([
   newLineOrEndOfInput
 ]).map(([_, enabled, __, key, ___, value]) => {
   return {
-    "enabled": enabled,
-    "key": key,
+    "enabled": Number(enabled) ? true : false,
+    "name": key,
     "value": value
   };
 });

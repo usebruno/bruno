@@ -2,31 +2,8 @@ const inlineTag = require('../src/inline-tag');
 const {
   sepBy,
   char,
-  many,
-  choice
+  many
 } = require('arcsecond');
-
-describe('version', () => {
-  it('should parse version number', () => {
-    const input = 'ver 1.0';
-    const result = inlineTag.run(input);
-    expect(result.isError).toBe(false);
-    expect(result.result).toEqual({ ver: '1.0' });
-  });
-
-  it('should allow whitespaces while parsing version number', () => {
-    const input = 'ver     1.0';
-    const result = inlineTag.run(input);
-    expect(result.isError).toBe(false);
-    expect(result.result).toEqual({ ver: '1.0' });
-  });
-
-  it('should fail to parse when version number is missing', () => {
-    const input = 'ver';
-    const result = inlineTag.run(input);
-    expect(result.isError).toBe(true);
-  });
-});
 
 describe('type', () => {
   it('should parse the type', () => {
@@ -53,7 +30,6 @@ describe('type', () => {
 describe('multiple inline tags', () => {
   it('should parse the multiple inline tags', () => {
     const input = `
-ver 1.0
 type http-request
 name Send Bulk SMS
 method GET
@@ -71,7 +47,6 @@ body-mode json
     expect(result.isError).toBe(false);
     expect(result.result).toEqual([
       [],
-      [{ ver: '1.0' }],
       [{ type: 'http-request' }],
       [{ name: 'Send Bulk SMS' }],
       [{ method: 'GET' }],

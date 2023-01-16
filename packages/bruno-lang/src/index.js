@@ -41,41 +41,42 @@ const bruToJson = (fileContents) => {
     .reduce((acc, item) => _.merge(acc, item), {});
 
   return {
-    ver: parsed.ver,
     type: parsed.type || '',
     name: parsed.name || '',
-    method: parsed.method || '',
-    url: parsed.url || '',
-    params: parsed.params || [],
-    headers: parsed.headers || [],
-    body: parsed.body || {mode: 'none'}
+    request: {
+      method: parsed.method || '',
+      url: parsed.url || '',
+      params: parsed.params || [],
+      headers: parsed.headers || [],
+      body: parsed.body || {mode: 'none'}
+    }
   }
 };
 
 const jsonToBru = (json) => {
   const {
-    ver,
     type,
     name,
-    method,
-    url,
-    params,
-    headers,
-    body
+    request: {
+      method,
+      url,
+      params,
+      headers,
+      body
+    }
   } = json;
 
-  let bru = `ver ${ver}
-type ${type}
-name ${name}
+  let bru = `name ${name}
 method ${method}
 url ${url}
-body-mode ${body.mode}
+type ${type}
+body-mode ${body ? body.mode : 'none'}
 `;
 
   if(params && params.length) {
     bru += `
 params
-${params.map(param => `  ${param.enabled} ${param.key} ${param.value}`).join('\n')}
+${params.map(param => `  ${param.enabled ? 1 : 0} ${param.name} ${param.value}`).join('\n')}
 /params
 `;
   }
@@ -83,12 +84,12 @@ ${params.map(param => `  ${param.enabled} ${param.key} ${param.value}`).join('\n
   if(headers && headers.length) {
     bru += `
 headers
-${headers.map(header => `  ${header.enabled} ${header.key} ${header.value}`).join('\n')}
+${headers.map(header => `  ${header.enabled ? 1 : 0} ${header.name} ${header.value}`).join('\n')}
 /headers
 `;
   }
 
-  if(body.json && body.json.length) {
+  if(body && body.json && body.json.length) {
     let jsonText = '';
     let bodyJson = body.json;
     if(bodyJson && bodyJson.length) {
@@ -108,7 +109,7 @@ ${indentString(jsonText)}
 `;
   }
 
-  if(body.graphql && body.graphql.query) {
+  if(body && body.graphql && body.graphql.query) {
     bru += `
 body(type=graphql)
 ${indentString(body.graphql.query)}
@@ -116,7 +117,7 @@ ${indentString(body.graphql.query)}
 `;
   }
 
-  if(body.text && body.text.length) {
+  if(body && body.text && body.text.length) {
     bru += `
 body(type=text)
 ${indentString(body.text)}
@@ -124,7 +125,7 @@ ${indentString(body.text)}
 `;
   }
 
-  if(body.xml && body.xml.length) {
+  if(body && body.xml && body.xml.length) {
     bru += `
 body(type=xml)
 ${indentString(body.xml)}
@@ -132,18 +133,18 @@ ${indentString(body.xml)}
 `;
   }
 
-  if(body.formUrlEncoded && body.formUrlEncoded.length) {
+  if(body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `
 body(type=form-url-encoded)
-${body.formUrlEncoded.map(item => `  ${item.enabled} ${item.key} ${item.value}`).join('\n')}
+${body.formUrlEncoded.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.value}`).join('\n')}
 /body
 `;
   }
 
-  if(body.multipartForm && body.multipartForm.length) {
+  if(body && body.multipartForm && body.multipartForm.length) {
     bru += `
 body(type=multipart-form)
-${body.multipartForm.map(item => `  ${item.enabled} ${item.key} ${item.value}`).join('\n')}
+${body.multipartForm.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.value}`).join('\n')}
 /body
 `;
   }

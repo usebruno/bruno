@@ -13,7 +13,6 @@ const newLineOrEndOfInput = choice([endOfInput, newline]);
 
 const inlineTag = sequenceOf([
   choice([
-    str('ver'),
     str('type'),
     str('name'),
     str('method'),
