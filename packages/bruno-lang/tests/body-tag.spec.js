@@ -5,7 +5,7 @@ describe('bodyJsonTag', () => {
   const testbodyJson = (input, expected) => {
     const result = bodyJsonTag.run(input);
     expect(result.isError).toBe(false);
-    expect(result.result.body.json).toEqual('{"foo":"bar"}');
+    expect(result.result.body.json).toEqual('{ "foo": "bar" }');
   };
 
   // simple case

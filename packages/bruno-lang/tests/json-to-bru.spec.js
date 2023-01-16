@@ -49,7 +49,7 @@ describe('bruToJson', () => {
         ],
         "body": {
           "mode": "json",
-          "json": '{"apikey":"secret","numbers":"+91998877665"}',
+          "json": '{\n  "apikey": "secret",\n  "numbers": "+91998877665"\n}',
           "graphql": {
             "query": "{\n  launchesPast {\n    launch_success\n  }\n}"
           },

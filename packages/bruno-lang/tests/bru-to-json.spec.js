@@ -52,12 +52,12 @@ describe('bruToJson', () => {
         ],
         "body": {
           "mode": "json",
-          "json": '{"apikey":"secret","numbers":"+91998877665"}',
+          "json": '{\n  "apikey": "secret",\n  "numbers": "+91998877665"\n}',
           "graphql": {
-            "query": "  {\n    launchesPast {\n      launch_success\n    }\n  }"
+            "query": "{\n  launchesPast {\n    launch_success\n  }\n}"
           },
-          "text": "  Hello, there. You must be from the past",
-          "xml": "  <body>back to the ice age</body>",
+          "text": "Hello, there. You must be from the past",
+          "xml": "<body>back to the ice age</body>",
           "formUrlEncoded": [
             {
               "enabled": true,

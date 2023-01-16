@@ -11,8 +11,6 @@ const {
   sepBy,
   sequenceOf
 } = require("arcsecond");
-const { safeParseJson } = require('./utils');
-
 
 // body(type=json)
 const bodyJsonBegin = regex(/^body\s*\(\s*type\s*=\s*json\s*\)\s*\r?\n/);
@@ -29,25 +27,6 @@ const bodyXmlBegin = regex(/^body\s*\(\s*type\s*=\s*xml\s*\)\s*\r?\n/);
 const bodyEnd = regex(/^[\r?\n]+\/body\s*[\r?\n]*/);
 
 const bodyJsonTag = between(bodyJsonBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyJson) => {
-  if(bodyJson && bodyJson.length) {
-    bodyJson = bodyJson.trim();
-    const safelyParsed = safeParseJson(bodyJson);
-
-    if(!safelyParsed) {
-      return {
-        body: {
-          json: bodyJson
-        }
-      }
-    }
-
-    return {
-      body: {
-        json: JSON.stringify(safelyParsed)
-      }
-    };
-  }
-
   return {
     body: {
       json: bodyJson

@@ -5,8 +5,9 @@ const {
 } = require("arcsecond");
 const _ = require('lodash');
 const {
-  safeParseJson,
-  indentString
+  indentString,
+  outdentString,
+  get
 } = require('./utils');
 
 const inlineTag  = require('./inline-tag');
@@ -40,7 +41,7 @@ const bruToJson = (fileContents) => {
     .result
     .reduce((acc, item) => _.merge(acc, item), {});
 
-  return {
+  const json = {
     type: parsed.type || '',
     name: parsed.name || '',
     request: {
@@ -51,6 +52,26 @@ const bruToJson = (fileContents) => {
       body: parsed.body || {mode: 'none'}
     }
   }
+
+  const body = get(json, 'request.body');
+
+  if(body && body.text) {
+    body.text = outdentString(body.text);
+  }
+
+  if(body && body.json) {
+    body.json = outdentString(body.json);
+  }
+
+  if(body && body.xml) {
+    body.xml = outdentString(body.xml);
+  }
+
+  if(body && body.graphql && body.graphql.query) {
+    body.graphql.query = outdentString(body.graphql.query);
+  }
+
+  return json;
 };
 
 const jsonToBru = (json) => {
@@ -90,21 +111,9 @@ ${headers.map(header => `  ${header.enabled ? 1 : 0} ${header.name} ${header.val
   }
 
   if(body && body.json && body.json.length) {
-    let jsonText = '';
-    let bodyJson = body.json;
-    if(bodyJson && bodyJson.length) {
-      bodyJson = bodyJson.trim();
-      const safelyParsed = safeParseJson(bodyJson);
-
-      if(safelyParsed) {
-        jsonText = JSON.stringify(safelyParsed, null, 2);
-      } else {
-        jsonText = bodyJson;
-      }
-    }
     bru += `
 body(type=json)
-${indentString(jsonText)}
+${indentString(body.json)}
 /body
 `;
   }
