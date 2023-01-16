@@ -3,14 +3,18 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const {
+  jsonToBru,
+  bruToJson,
+} = require('@usebruno/bruno-lang');
+const {
   isValidPathname,
   writeFile,
-  hasJsonExtension,
+  hasBruExtension,
   isDirectory,
   browseDirectory,
   createDirectory
 } = require('../utils/filesystem');
-const { uuid, stringifyJson, parseJson } = require('../utils/common');
+const { uuid, stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
@@ -64,7 +68,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} already exists`);
       }
 
-      const content = await stringifyJson(request);
+      const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -78,7 +82,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = await stringifyJson(request);
+      const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -112,18 +116,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         return fs.renameSync(oldPath, newPath);
       }
 
-      const isJson = hasJsonExtension(oldPath);
-      if(!isJson) {
-        throw new Error(`path: ${oldPath} is not a json file`);
+      const isBru = hasBruExtension(oldPath);
+      if(!isBru) {
+        throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
       // update name in file and save new copy, then delete old copy
       const data = fs.readFileSync(oldPath, 'utf8');
-      const jsonData = await parseJson(data);
+      const jsonData = bruToJson(data);
 
       jsonData.name = newName;
 
-      const content = await stringifyJson(jsonData);
+      const content = jsonToBru(jsonData);
       await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
     } catch (error) {

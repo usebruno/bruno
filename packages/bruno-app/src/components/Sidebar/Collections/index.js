@@ -30,7 +30,7 @@ const Collections = ({ searchText }) => {
         ? collectionToDisplay.map((c) => {
             return (
               <DndProvider backend={HTML5Backend} key={c.uid}>
-                <Collection searchText={searchText} collection={c} />;
+                <Collection searchText={searchText} collection={c} />
               </DndProvider>
             );
           })

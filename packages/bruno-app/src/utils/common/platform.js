@@ -14,7 +14,7 @@ export const isLocalCollection = (collection) => {
 };
 
 export const resolveRequestFilename = (name) => {
-  return `${trim(name)}.json`;
+  return `${trim(name)}.bru`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {

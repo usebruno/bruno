@@ -1,5 +1,5 @@
 module.exports = {
-  reactStrictMode: true,
+  reactStrictMode: false,
   publicRuntimeConfig: {
     CI: process.env.CI,
     PLAYWRIGHT: process.env.PLAYWRIGHT

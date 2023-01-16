@@ -1,3 +1,4 @@
+import reckon from 'reckonjs';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
@@ -413,7 +414,6 @@ export const interpolateEnvironmentVars = (item, variables) => {
   };
 
   request.url = interpolate(request.url);
-  console.log(request.url);
 
   each(request.headers, (header) => {
     header.value = interpolate(header.value);

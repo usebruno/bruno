@@ -65,6 +65,11 @@ const hasJsonExtension = filename => {
   return ['json'].some(ext => filename.toLowerCase().endsWith(`.${ext}`))
 }
 
+const hasBruExtension = filename => {
+  if (!filename || typeof filename !== 'string') return false
+  return ['bru'].some(ext => filename.toLowerCase().endsWith(`.${ext}`))
+}
+
 const createDirectory = async (dir) => {
   if(!dir) {
     throw new Error(`directory: path is null`);
@@ -99,6 +104,7 @@ module.exports = {
   normalizeAndResolvePath,
   writeFile,
   hasJsonExtension,
+  hasBruExtension,
   createDirectory,
   browseDirectory
 };
