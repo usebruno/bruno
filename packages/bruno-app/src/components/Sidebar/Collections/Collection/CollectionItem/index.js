@@ -35,28 +35,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
-  const [{ isDragging }, drag] = useDrag({
-    type: 'COLLECTION_ITEM',
-    item: item,
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging()
-    })
-  });
+  // const [{ isDragging }, drag] = useDrag({
+  //   type: 'COLLECTION_ITEM',
+  //   item: item,
+  //   collect: (monitor) => ({
+  //     isDragging: monitor.isDragging()
+  //   })
+  // });
 
-  const [{ isOver }, drop] = useDrop({
-    accept: 'COLLECTION_ITEM',
-    drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-      }
-    },
-    canDrop: (draggedItem) => {
-      return draggedItem.uid !== item.uid;
-    },
-    collect: (monitor) => ({
-      isOver: monitor.isOver()
-    })
-  });
+  // const [{ isOver }, drop] = useDrop({
+  //   accept: 'COLLECTION_ITEM',
+  //   drop: (draggedItem) => {
+  //     if (draggedItem.uid !== item.uid) {
+  //       dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+  //     }
+  //   },
+  //   canDrop: (draggedItem) => {
+  //     return draggedItem.uid !== item.uid;
+  //   },
+  //   collect: (monitor) => ({
+  //     isOver: monitor.isOver()
+  //   })
+  // });
 
   useEffect(() => {
     if (searchText && searchText.length) {
@@ -141,7 +141,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
-      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
+      <div className={itemRowClassName}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
