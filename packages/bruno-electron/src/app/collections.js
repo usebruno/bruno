@@ -3,6 +3,7 @@ const path = require('path');
 const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
+const { generateUidBasedOnHash } = require('../utils/common');
 
 const uidSchema = Yup.string()
   .length(21, 'uid must be 21 characters in length')
@@ -11,7 +12,6 @@ const uidSchema = Yup.string()
   .strict();
 
 const configSchema = Yup.object({
-  uid: uidSchema,
   name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   version: Yup.string().oneOf(['1']).required('type is required')
@@ -65,12 +65,9 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
   if(!watcher.hasWatcher(collectionPath)) {
     try {
       const {
-        uid,
         name
       } = await getCollectionConfigFile(collectionPath);
-
-      console.log(uid);
-      console.log(name);
+      const uid  = generateUidBasedOnHash(collectionPath);
 
       win.webContents.send('main:collection-opened', collectionPath, uid, name);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid);
