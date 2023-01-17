@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import useIdb from './useIdb';
 import useTelemetry from './useTelemetry';
-import useLocalCollectionTreeSync from './useLocalCollectionTreeSync';
+import useCollectionTreeSync from './useCollectionTreeSync';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
@@ -9,9 +8,8 @@ import StyledWrapper from './StyledWrapper';
 export const AppContext = React.createContext();
 
 export const AppProvider = (props) => {
-  useIdb();
   useTelemetry();
-  useLocalCollectionTreeSync();
+  useCollectionTreeSync();
 
   const dispatch = useDispatch();
 

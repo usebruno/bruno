@@ -32,26 +32,6 @@ export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
   reducers: {
-    loadCollections: (state, action) => {
-      const collectionUids = map(state.collections, (c) => c.uid);
-      each(action.payload.collections, (c) => collapseCollection(c));
-      each(action.payload.collections, (c) => addDepth(c.items));
-      each(action.payload.collections, (c) => {
-        if (!collectionUids.includes(c.uid)) {
-          state.collections.push(c);
-          collectionUids.push(c.uid);
-        }
-      });
-    },
-    collectionImported: (state, action) => {
-      const collectionUids = map(state.collections, (c) => c.uid);
-      const { collection } = action.payload;
-      collapseCollection(collection);
-      addDepth(collection.items);
-      if (!collectionUids.includes(collection.uid)) {
-        state.collections.push(collection);
-      }
-    },
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
@@ -68,7 +48,7 @@ export const collectionsSlice = createSlice({
         collection.name = action.payload.newName;
       }
     },
-    deleteCollection: (state, action) => {
+    removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
     addEnvironment: (state, action) => {
@@ -80,28 +60,12 @@ export const collectionsSlice = createSlice({
         collection.environments.push(environment);
       }
     },
-    renameEnvironment: (state, action) => {
-      const { newName, environmentUid, collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
+    collectionUnlinkEnvFileEvent: (state, action) => {
+      const { data: environment, meta } = action.payload;
+      const collection = findCollectionByUid(state.collections, meta.collectionUid);
 
       if (collection) {
-        const environment = findEnvironmentInCollection(collection, environmentUid);
-
-        if (environment) {
-          environment.name = newName;
-        }
-      }
-    },
-    deleteEnvironment: (state, action) => {
-      const { environmentUid, collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        const environment = findEnvironmentInCollection(collection, environmentUid);
-
-        if (environment) {
-          collection.environments = filter(collection.environments, (e) => e.uid !== environmentUid);
-        }
+        collection.environments = filter(collection.environments, (e) => e.uid !== environment.uid);
       }
     },
     saveEnvironment: (state, action) => {
@@ -669,7 +633,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    localCollectionAddFileEvent: (state, action) => {
+    collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
@@ -723,7 +687,7 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
-    localCollectionAddDirectoryEvent: (state, action) => {
+    collectionAddDirectoryEvent: (state, action) => {
       const { dir } = action.payload;
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
@@ -751,7 +715,7 @@ export const collectionsSlice = createSlice({
         addDepth(collection.items);
       }
     },
-    localCollectionChangeFileEvent: (state, action) => {
+    collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
@@ -768,7 +732,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    localCollectionUnlinkFileEvent: (state, action) => {
+    collectionUnlinkFileEvent: (state, action) => {
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
@@ -780,7 +744,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    localCollectionUnlinkDirectoryEvent: (state, action) => {
+    collectionUnlinkDirectoryEvent: (state, action) => {
       const { directory } = action.payload;
       const collection = findCollectionByUid(state.collections, directory.meta.collectionUid);
 
@@ -792,26 +756,31 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    localCollectionLoadEnvironmentsEvent: (state, action) => {
-      const { environments, collectionUid } = action.payload;
+    collectionAddEnvFileEvent: (state, action) => {
+      const { environment, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        collection.environments = environments;
+        collection.environments = collection.environments || [];
+
+        const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
+        
+        if (existingEnv) {
+          existingEnv.variables = environment.variables;
+        } else {
+          collection.environments.push(environment);
+        }
       }
     }
   }
 });
 
 export const {
-  collectionImported,
   createCollection,
   renameCollection,
-  deleteCollection,
-  loadCollections,
+  removeCollection,
   addEnvironment,
-  renameEnvironment,
-  deleteEnvironment,
+  collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
   newItem,
@@ -844,12 +813,12 @@ export const {
   updateRequestBody,
   updateRequestGraphqlQuery,
   updateRequestMethod,
-  localCollectionAddFileEvent,
-  localCollectionAddDirectoryEvent,
-  localCollectionChangeFileEvent,
-  localCollectionUnlinkFileEvent,
-  localCollectionUnlinkDirectoryEvent,
-  localCollectionLoadEnvironmentsEvent
+  collectionAddFileEvent,
+  collectionAddDirectoryEvent,
+  collectionChangeFileEvent,
+  collectionUnlinkFileEvent,
+  collectionUnlinkDirectoryEvent,
+  collectionAddEnvFileEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

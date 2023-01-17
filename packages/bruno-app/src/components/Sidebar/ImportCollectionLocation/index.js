@@ -3,30 +3,23 @@ import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
-import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 
-const CreateCollection = ({ onClose }) => {
+const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      collectionName: '',
       collectionLocation: ''
     },
     validationSchema: Yup.object({
-      collectionName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      collectionLocation: Yup.string().min(1, 'must be atleast 1 characters').max(500, 'must be 500 characters or less').required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionLocation))
-        .then(() => {
-          toast.success('Collection created');
-          onClose();
-        })
-        .catch(() => toast.error('An error occured while creating the collection'));
+      console.log('here');
+      handleSubmit(values.collectionLocation);
     }
   });
 
@@ -50,26 +43,13 @@ const CreateCollection = ({ onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title="Create Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">
             Name
           </label>
-          <input
-            id="collection-name"
-            type="text"
-            name="collectionName"
-            ref={inputRef}
-            className="block textbox mt-2 w-full"
-            onChange={formik.handleChange}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="off"
-            spellCheck="false"
-            value={formik.values.collectionName || ''}
-          />
-          {formik.touched.collectionName && formik.errors.collectionName ? <div className="text-red-500">{formik.errors.collectionName}</div> : null}
+          <div className='mt-2'>{collectionName}</div>
 
           <>
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">
@@ -104,4 +84,4 @@ const CreateCollection = ({ onClose }) => {
   );
 };
 
-export default CreateCollection;
+export default ImportCollectionLocation;

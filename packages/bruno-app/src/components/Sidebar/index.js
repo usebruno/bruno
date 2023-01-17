@@ -1,13 +1,11 @@
 import MenuBar from './MenuBar';
 import TitleBar from './TitleBar';
 import Collections from './Collections';
-import LocalCollections from './LocalCollections';
 import StyledWrapper, { BottomWrapper, VersionNumber } from './StyledWrapper';
-import WorkspaceSelector from 'components/Workspaces/WorkspaceSelector';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSearch, IconChevronsRight } from '@tabler/icons';
+import { IconChevronsRight } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
@@ -21,7 +19,6 @@ const Sidebar = () => {
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
-  const [searchText, setSearchText] = useState('');
 
   const handleMouseMove = (e) => {
     if (dragging) {
@@ -82,30 +79,7 @@ const Sidebar = () => {
           <div className="flex flex-col w-full">
             <div className="flex flex-col flex-grow">
               <TitleBar />
-              <WorkspaceSelector />
-
-              <div className="mt-4 relative collection-filter px-2">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">
-                    <IconSearch size={16} strokeWidth={1.5} />
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  name="search"
-                  id="search"
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                  className="block w-full pl-7 py-1 sm:text-sm"
-                  placeholder="search"
-                  onChange={(e) => setSearchText(e.target.value.toLowerCase())}
-                />
-              </div>
-
-              <Collections searchText={searchText} />
-              <LocalCollections searchText={searchText} />
+              <Collections />
             </div>
 
             <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
@@ -124,7 +98,7 @@ const Sidebar = () => {
                   title="GitHub"
                 ></iframe>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.3.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.6.0</div>
             </div>
           </div>
         </div>

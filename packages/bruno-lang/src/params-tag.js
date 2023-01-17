@@ -17,15 +17,16 @@ const newLineOrEndOfInput = choice([newline, endOfInput]);
 
 const begin = regex(/^params\s*\r?\n/);
 const end = regex(/^[\r?\n]*\/params\s*[\r?\n]*/);
-const word = regex(/^[^\s\t\n]+/g);
+const wordWithoutWhitespace = regex(/^[^\s\t\n]+/g);
+const wordWithWhitespace = regex(/^[^\n]+/g);
 
 const line = sequenceOf([
   optionalWhitespace,
   digit,
   whitespace,
-  word,
+  wordWithoutWhitespace,
   whitespace,
-  word,
+  wordWithWhitespace,
   newLineOrEndOfInput
 ]).map(([_, enabled, __, key, ___, value]) => {
   return {

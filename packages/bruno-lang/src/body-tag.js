@@ -63,15 +63,16 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
 // generic key value parser
 const newline = regex(/^\r?\n/);
 const newLineOrEndOfInput = choice([newline, endOfInput]);
-const word = regex(/^[^\s\t\n]+/g);
+const wordWithoutWhitespace = regex(/^[^\s\t\n]+/g);
+const wordWithWhitespace = regex(/^[^\n]+/g);
 
 const line = sequenceOf([
   optionalWhitespace,
   digit,
   whitespace,
-  word,
+  wordWithoutWhitespace,
   whitespace,
-  word,
+  wordWithWhitespace,
   newLineOrEndOfInput
 ]).map(([_, enabled, __, key, ___, value]) => {
   return {

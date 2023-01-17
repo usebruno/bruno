@@ -24,7 +24,7 @@ const darkTheme = {
     bg: '#252526',
     dragbar: '#8a8a8a',
 
-    workspace: {
+    badge: {
       bg: '#3D3D3D'
     },
 

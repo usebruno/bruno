@@ -1,9 +1,9 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .current-workspace {
+  .collections-badge {
     margin-inline: 0.5rem;
-    background-color: ${(props) => props.theme.sidebar.workspace.bg};
+    background-color: ${(props) => props.theme.sidebar.badge.bg};
     border-radius: 5px;
 
     .caret {
@@ -11,10 +11,6 @@ const Wrapper = styled.div`
       color: rgb(140, 140, 140);
       fill: rgb(140, 140, 140);
     }
-  }
-
-  div[data-tippy-root] {
-    width: calc(100% - 1rem);
   }
 `;
 

@@ -24,7 +24,7 @@ const lightTheme = {
     bg: '#F3F3F3',
     dragbar: 'rgb(200, 200, 200)',
 
-    workspace: {
+    badge: {
       bg: '#e1e1e1'
     },
 

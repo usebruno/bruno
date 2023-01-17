@@ -12,7 +12,7 @@ const environmentVariablesSchema = Yup.object({
 
 const environmentSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().min(1).max(50, 'name must be 50 characters or less').required('name is required'),
+  name: Yup.string().min(1).max(50, 'name must be 100 characters or less').required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
 }).noUnknown(true).strict();
 
@@ -91,6 +91,7 @@ const collectionSchema = Yup.object({
 module.exports = {
   requestSchema,
   itemSchema,
+  environmentSchema,
   environmentsSchema,
   collectionSchema
 };

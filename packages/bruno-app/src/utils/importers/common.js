@@ -40,5 +40,14 @@ export const updateUidsInCollection = (_collection) => {
   };
   updateItemUids(collection.items);
 
+  const updateEnvUids = (envs = []) => {
+    each(envs, (env) => {
+      env.uid = uuid();
+      each(env.variables, (variable) => (variable.uid = uuid()));
+    });
+  };
+  updateEnvUids(collection.environments);
+  updateEnvUids(collection.environments);
+
   return collection;
 };

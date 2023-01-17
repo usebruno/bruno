@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import {
-  localCollectionAddDirectoryEvent,
-  localCollectionAddFileEvent,
-  localCollectionChangeFileEvent,
-  localCollectionUnlinkFileEvent,
-  localCollectionUnlinkDirectoryEvent
+  collectionAddDirectoryEvent,
+  collectionAddFileEvent,
+  collectionChangeFileEvent,
+  collectionUnlinkFileEvent,
+  collectionUnlinkDirectoryEvent,
+  collectionUnlinkEnvFileEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
-import { openLocalCollectionEvent, localCollectionLoadEnvironmentsEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
 
-const useLocalCollectionTreeSync = () => {
+const useCollectionTreeSync = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -23,27 +24,27 @@ const useLocalCollectionTreeSync = () => {
 
     const _openCollection = (pathname, uid, name) => {
       console.log(`collection uid: ${uid}, pathname: ${pathname}, name: ${name}`);
-      dispatch(openLocalCollectionEvent(uid, pathname, name));
+      dispatch(openCollectionEvent(uid, pathname, name));
     };
 
     const _collectionTreeUpdated = (type, val) => {
       if (type === 'addDir') {
         dispatch(
-          localCollectionAddDirectoryEvent({
+          collectionAddDirectoryEvent({
             dir: val
           })
         );
       }
       if (type === 'addFile') {
         dispatch(
-          localCollectionAddFileEvent({
+          collectionAddFileEvent({
             file: val
           })
         );
       }
       if (type === 'change') {
         dispatch(
-          localCollectionChangeFileEvent({
+          collectionChangeFileEvent({
             file: val
           })
         );
@@ -51,7 +52,7 @@ const useLocalCollectionTreeSync = () => {
       if (type === 'unlink') {
         setTimeout(() => {
           dispatch(
-            localCollectionUnlinkFileEvent({
+            collectionUnlinkFileEvent({
               file: val
             })
           );
@@ -59,21 +60,21 @@ const useLocalCollectionTreeSync = () => {
       }
       if (type === 'unlinkDir') {
         dispatch(
-          localCollectionUnlinkDirectoryEvent({
+          collectionUnlinkDirectoryEvent({
             directory: val
           })
         );
       }
       if (type === 'addEnvironmentFile') {
-        dispatch(localCollectionLoadEnvironmentsEvent(val));
+        dispatch(collectionAddEnvFileEvent(val));
       }
-      if (type === 'changeEnvironmentFile') {
-        dispatch(localCollectionLoadEnvironmentsEvent(val));
+      if (type === 'unlinkEnvironmentFile') {
+        dispatch(collectionUnlinkEnvFileEvent(val));
       }
     };
 
     const _collectionAlreadyOpened = (pathname) => {
-      toast.success('Collection is already opened under local collections');
+      toast.success('Collection is already opened');
     };
 
     const _displayError = (message) => {
@@ -96,4 +97,4 @@ const useLocalCollectionTreeSync = () => {
   }, [isElectron]);
 };
 
-export default useLocalCollectionTreeSync;
+export default useCollectionTreeSync;

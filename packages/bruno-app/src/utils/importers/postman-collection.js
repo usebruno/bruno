@@ -2,7 +2,6 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
-import { saveCollectionToIdb } from 'utils/idb';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, updateUidsInCollection } from './common';
 
@@ -180,9 +179,6 @@ const importCollection = () => {
       .then(readFile)
       .then(parsePostmanCollection)
       .then(validateSchema)
-      .then(updateUidsInCollection)
-      .then(validateSchema)
-      .then((collection) => saveCollectionToIdb(window.__idb, collection))
       .then((collection) => resolve(collection))
       .catch((err) => {
         console.log(err);

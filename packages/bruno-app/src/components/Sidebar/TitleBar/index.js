@@ -2,26 +2,35 @@ import toast from 'react-hot-toast';
 import Bruno from 'components/Bruno';
 import Dropdown from 'components/Dropdown';
 import CreateCollection from '../CreateCollection';
-import SelectCollection from 'components/Sidebar/Collections/SelectCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
+import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
 import { IconDots } from '@tabler/icons';
-import { IconFolders } from '@tabler/icons';
-import { isElectron } from 'utils/common/platform';
 import { useState, forwardRef, useRef } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { openLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { addCollectionToWorkspace } from 'providers/ReduxStore/slices/workspaces/actions';
+import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
+  const [importedCollection, setImportedCollection] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
-  const [addCollectionToWSModalOpen, setAddCollectionToWSModalOpen] = useState(false);
-  const { activeWorkspaceUid } = useSelector((state) => state.workspaces);
-  const isPlatformElectron = isElectron();
+  const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
+
+  const handleImportCollection = (collection) => {
+    setImportedCollection(collection);
+    setImportCollectionModalOpen(false);
+    setImportCollectionLocationModalOpen(true);
+  };
+
+  const handleImportCollectionLocation = (collectionLocation) => {
+    dispatch(importCollection(importedCollection, collectionLocation));
+    setImportCollectionLocationModalOpen(false);
+    setImportedCollection(null);
+    toast.success('Collection imported successfully');
+  };
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -35,27 +44,21 @@ const TitleBar = () => {
 
   const handleTitleClick = () => dispatch(showHomePage());
 
-  const handleOpenLocalCollection = () => {
-    dispatch(openLocalCollection()).catch((err) => console.log(err) && toast.error('An error occured while opening the local collection'));
-  };
-
-  const handleAddCollectionToWorkspace = (collectionUid) => {
-    setAddCollectionToWSModalOpen(false);
-    dispatch(addCollectionToWorkspace(activeWorkspaceUid, collectionUid))
-      .then(() => {
-        toast.success('Collection added to workspace');
-      })
-      .catch(() => toast.error('An error occured while adding collection to workspace'));
+  const handleOpenCollection = () => {
+    dispatch(openCollection()).catch((err) => console.log(err) && toast.error('An error occured while opening the collection'));
   };
 
   return (
     <StyledWrapper className="px-2 py-2">
-      {createCollectionModalOpen ? <CreateCollection isLocal={createCollectionModalOpen === 'local' ? true : false} onClose={() => setCreateCollectionModalOpen(false)} /> : null}
-      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} /> : null}
-
-      {addCollectionToWSModalOpen ? (
-        <SelectCollection title="Add Collection to Workspace" onClose={() => setAddCollectionToWSModalOpen(false)} onSelect={handleAddCollectionToWorkspace} />
-      ) : null}
+      {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
+      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} /> : null}
+      {importCollectionLocationModalOpen ? (
+        <ImportCollectionLocation
+          collectionName={importedCollection.name}
+          onClose={() => setImportCollectionLocationModalOpen(false)}
+          handleSubmit={handleImportCollectionLocation}
+        />
+      ): null}
 
       <div className="flex items-center">
         <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
@@ -73,11 +76,20 @@ const TitleBar = () => {
             <div
               className="dropdown-item"
               onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
                 setCreateCollectionModalOpen(true);
+                menuDropdownTippyRef.current.hide();
               }}
             >
               Create Collection
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                handleOpenCollection();
+                menuDropdownTippyRef.current.hide();
+              }}
+            >
+              Open Collection
             </div>
             <div
               className="dropdown-item"
@@ -88,49 +100,6 @@ const TitleBar = () => {
             >
               Import Collection
             </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setAddCollectionToWSModalOpen(true);
-              }}
-            >
-              Add Collection to Workspace
-            </div>
-            {isPlatformElectron ? (
-              <>
-                <div className="font-medium label-item font-medium local-collection-label">
-                  <div className="flex items-center">
-                    <span className="mr-2">
-                      <IconFolders size={18} strokeWidth={1.5} />
-                    </span>
-                    <span>Local Collections</span>
-                  </div>
-                </div>
-                <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    setCreateCollectionModalOpen('local');
-                    menuDropdownTippyRef.current.hide();
-                  }}
-                >
-                  Create Local Collection
-                </div>
-                <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    handleOpenLocalCollection();
-                    menuDropdownTippyRef.current.hide();
-                  }}
-                >
-                  Open Local Collection
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center select-none text-xs local-collections-unavailable">
-                Note: Local collections are only available on the desktop app.
-              </div>
-            )}
           </Dropdown>
         </div>
       </div>

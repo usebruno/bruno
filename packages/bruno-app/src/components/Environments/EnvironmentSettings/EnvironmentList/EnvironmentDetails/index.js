@@ -7,7 +7,6 @@ import DeleteEnvironment from '../../DeleteEnvironment';
 const EnvironmentDetails = ({ environment, collection }) => {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
-  console.log(environment);
 
   return (
     <div className="px-6 flex-grow flex flex-col pt-6" style={{ maxWidth: '700px' }}>

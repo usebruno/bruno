@@ -14,8 +14,8 @@ const {
 const newline = regex(/^\r?\n/);
 const newLineOrEndOfInput = choice([newline, endOfInput]);
 
-const begin = regex(/^headers\s*\r?\n/);
-const end = regex(/^[\r?\n]*\/headers\s*[\r?\n]*/);
+const begin = regex(/^vars\s*\r?\n/);
+const end = regex(/^[\r?\n]*\/vars\s*[\r?\n]*/);
 const wordWithoutWhitespace = regex(/^[^\s\t\n]+/g);
 const wordWithWhitespace = regex(/^[^\n]+/g);
 
@@ -31,16 +31,17 @@ const line = sequenceOf([
   return {
     "enabled": Number(enabled) ? true : false,
     "name": key,
-    "value": value
+    "value": value,
+    "type": "text"
   };
 });
 
 const lines = many(line);
-const headersLines = sepBy(newline)(lines);
-const headersTag = between(begin)(end)(headersLines).map(([headers]) => {
+const envVarsLines = sepBy(newline)(lines);
+const envVarsTag = between(begin)(end)(envVarsLines).map(([variables]) => {
   return {
-    headers
+    variables
   };
 });
 
-module.exports = headersTag;
+module.exports = envVarsTag;

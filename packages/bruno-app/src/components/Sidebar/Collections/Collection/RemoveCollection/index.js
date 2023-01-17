@@ -2,13 +2,13 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
-import { removeLocalCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 
-const RemoveLocalCollection = ({ onClose, collection }) => {
+const RemoveCollection = ({ onClose, collection }) => {
   const dispatch = useDispatch();
 
   const onConfirm = () => {
-    dispatch(removeLocalCollection(collection.uid))
+    dispatch(removeCollection(collection.uid))
       .then(() => {
         toast.success('Collection removed');
         onClose();
@@ -23,4 +23,4 @@ const RemoveLocalCollection = ({ onClose, collection }) => {
   );
 };
 
-export default RemoveLocalCollection;
+export default RemoveCollection;

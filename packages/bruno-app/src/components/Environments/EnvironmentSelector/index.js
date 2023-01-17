@@ -69,7 +69,7 @@ const EnvironmentSelector = ({ collection }) => {
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>
-            <span>Settings</span>
+            <span>Configure</span>
           </div>
         </Dropdown>
       </div>

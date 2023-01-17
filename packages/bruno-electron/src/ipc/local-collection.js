@@ -5,6 +5,7 @@ const { ipcMain } = require('electron');
 const {
   jsonToBru,
   bruToJson,
+  envJsonToBru,
 } = require('@usebruno/bruno-lang');
 const {
   isValidPathname,
@@ -16,6 +17,7 @@ const {
 } = require('../utils/filesystem');
 const { uuid, stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
+const { generateUidBasedOnHash } = require('../utils/common');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -43,10 +45,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       await createDirectory(dirPath);
 
-      const uid = uuid();
+      const uid = generateUidBasedOnHash(dirPath);
       const content = await stringifyJson({
         version: '1',
-        uid: uid,
         name: collectionName,
         type: 'collection'
       });
@@ -89,13 +90,78 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  // save environment
-  ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environments) => {
+  // create environment
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
     try {
-      const envFilePath = path.join(collectionPathname, 'environments.json');
+      const envDirPath = path.join(collectionPathname, 'environments');
+      if (!fs.existsSync(envDirPath)){
+        await createDirectory(envDirPath);
+      }
 
-      const content = await stringifyJson(environments);
+      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      if (fs.existsSync(envFilePath)){
+        throw new Error(`environment: ${envFilePath} already exists`);
+      }
+
+      const content = envJsonToBru({
+        variables: []
+      });
       await writeFile(envFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // save environment
+  ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
+    try {
+      const envDirPath = path.join(collectionPathname, 'environments');
+      if (!fs.existsSync(envDirPath)){
+        await createDirectory(envDirPath);
+      }
+
+      const envFilePath = path.join(envDirPath, `${environment.name}.bru`);
+      if (!fs.existsSync(envFilePath)){
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      const content = envJsonToBru(environment);
+      await writeFile(envFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // rename environment
+  ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
+    try {
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      if (!fs.existsSync(envFilePath)){
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
+      if (fs.existsSync(newEnvFilePath)){
+        throw new Error(`environment: ${newEnvFilePath} already exists`);
+      }
+
+      fs.renameSync(envFilePath, newEnvFilePath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // delete environment
+  ipcMain.handle('renderer:delete-environment', async (event, collectionPathname, environmentName) => {
+    try {
+      const envDirPath = path.join(collectionPathname, 'environments');
+      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      if (!fs.existsSync(envFilePath)){
+        throw new Error(`environment: ${envFilePath} does not exist`);
+      }
+
+      fs.unlinkSync(envFilePath);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -174,6 +240,71 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
       lastOpenedCollections.remove(collectionPath);
+    }
+  });
+
+  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
+    try {
+      let collectionName = collection.name;
+      let collectionPath = path.join(collectionLocation, collectionName);
+
+      if (fs.existsSync(collectionPath)){
+        throw new Error(`collection: ${collectionPath} already exists`);
+      }
+
+      // Recursive function to parse the collection items and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach(item => {
+          if (item.type === 'http-request') {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if(item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
+
+      const parseEnvironments = (environments = [], collectionPath) => {
+        const envDirPath = path.join(collectionPath, 'environments');
+        if(!fs.existsSync(envDirPath)){
+          fs.mkdirSync(envDirPath);
+        }
+
+        environments.forEach(env => {
+          const content = envJsonToBru(env);
+          const filePath = path.join(envDirPath, `${env.name}.bru`);
+          fs.writeFileSync(filePath, content);
+        });
+      };
+
+      await createDirectory(collectionPath);
+
+      const uid = generateUidBasedOnHash(collectionPath);
+      const content = await stringifyJson({
+        version: '1',
+        name: collection.name,
+        type: 'collection'
+      });
+      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+
+      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, collectionName);
+      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
+
+      lastOpenedCollections.add(collectionPath);
+
+      // create folder and files based on collection
+      await parseCollectionItems(collection.items, collectionPath);
+      await parseEnvironments(collection.environments, collectionPath);
+
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 

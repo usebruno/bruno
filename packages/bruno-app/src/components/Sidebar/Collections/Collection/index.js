@@ -11,23 +11,19 @@ import { useDispatch } from 'react-redux';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
-import RemoveCollectionFromWorkspace from './RemoveCollectionFromWorkspace';
-import RemoveLocalCollection from './RemoveLocalCollection';
+import RemoveCollection from './RemoveCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb, isLocalCollection } from 'utils/collections';
+import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
-import DeleteCollection from './DeleteCollection';
 import StyledWrapper from './StyledWrapper';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
-  const [showRemoveCollectionFromWSModal, setShowRemoveCollectionFromWSModal] = useState(false);
-  const [showRemoveLocalCollectionModal, setShowRemoveLocalCollectionModal] = useState(false);
-  const [showDeleteCollectionModal, setShowDeleteCollectionModal] = useState(false);
+  const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
 
@@ -71,8 +67,6 @@ const Collection = ({ collection, searchText }) => {
     exportCollection(transformCollectionToSaveToIdb(collectionCopy));
   };
 
-  const isLocal = isLocalCollection(collection);
-
   // const [{ isOver }, drop] = useDrop({
   //   accept: 'COLLECTION_ITEM',
   //   drop: (draggedItem) => {
@@ -93,9 +87,7 @@ const Collection = ({ collection, searchText }) => {
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />}
-      {showRemoveCollectionFromWSModal && <RemoveCollectionFromWorkspace collection={collection} onClose={() => setShowRemoveCollectionFromWSModal(false)} />}
-      {showDeleteCollectionModal && <DeleteCollection collection={collection} onClose={() => setShowDeleteCollectionModal(false)} />}
-      {showRemoveLocalCollectionModal && <RemoveLocalCollection collection={collection} onClose={() => setShowRemoveLocalCollectionModal(false)} />}
+      {showRemoveCollectionModal && <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />}
       <div className="flex py-1 collection-name items-center">
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, color: 'rgb(160 160 160)' }} />
@@ -121,17 +113,16 @@ const Collection = ({ collection, searchText }) => {
             >
               New Folder
             </div>
-            {!isLocal ? (
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  menuDropdownTippyRef.current.hide();
-                  setShowRenameCollectionModal(true);
-                }}
-              >
-                Rename
-              </div>
-            ) : null}
+            {/* Todo: implement rename collection */}
+            {/* <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRenameCollectionModal(true);
+              }}
+            >
+              Rename
+            </div> */}
             <div
               className="dropdown-item"
               onClick={(e) => {
@@ -141,38 +132,15 @@ const Collection = ({ collection, searchText }) => {
             >
               Export
             </div>
-            {!isLocal ? (
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  menuDropdownTippyRef.current.hide();
-                  setShowRemoveCollectionFromWSModal(true);
-                }}
-              >
-                Remove from Workspace
-              </div>
-            ) : (
-              <div
-                className="dropdown-item"
-                onClick={(e) => {
-                  menuDropdownTippyRef.current.hide();
-                  setShowRemoveLocalCollectionModal(true);
-                }}
-              >
-                Remove
-              </div>
-            )}
-            {!isLocal ? (
-              <div
-                className="dropdown-item delete-collection"
-                onClick={(e) => {
-                  menuDropdownTippyRef.current.hide();
-                  setShowDeleteCollectionModal(true);
-                }}
-              >
-                Delete
-              </div>
-            ) : null}
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRemoveCollectionModal(true);
+              }}
+            >
+              Remove
+            </div>
           </Dropdown>
         </div>
       </div>

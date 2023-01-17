@@ -51,7 +51,7 @@ const bruToJson = (fileContents) => {
       headers: parsed.headers || [],
       body: parsed.body || {mode: 'none'}
     }
-  }
+  };
 
   const body = get(json, 'request.body');
 
@@ -161,7 +161,47 @@ ${body.multipartForm.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.
   return bru;
 };
 
+// env
+const envVarsTag = require('./env-vars-tag');
+
+const bruToEnvJson = (fileContents) => {
+  const parser = many(choice([
+    envVarsTag,
+    anyChar
+  ]));
+
+  const parsed = parser
+    .run(fileContents)
+    .result
+    .reduce((acc, item) => _.merge(acc, item), {});
+
+  const json = {
+    variables: parsed.variables || []
+  };
+
+  return json;
+};
+
+const envJsonToBru = (json) => {
+  const {
+    variables
+  } = json;
+
+  let bru = '';
+
+  if(variables && variables.length) {
+    bru += `vars
+${variables.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.value}`).join('\n')}
+/vars
+`;
+  }
+
+  return bru;
+};
+
 module.exports = {
   bruToJson,
-  jsonToBru
+  jsonToBru,
+  bruToEnvJson,
+  envJsonToBru
 };

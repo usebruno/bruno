@@ -5,13 +5,14 @@ const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 
+// uid inside collections is deprecated, but we still need to validate it
+// for backward compatibility
 const uidSchema = Yup.string()
   .length(21, 'uid must be 21 characters in length')
-  .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
-  .required('uid is required')
-  .strict();
+  .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric');
 
 const configSchema = Yup.object({
+  uid: uidSchema,
   name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   version: Yup.string().oneOf(['1']).required('type is required')

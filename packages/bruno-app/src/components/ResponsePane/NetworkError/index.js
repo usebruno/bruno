@@ -7,9 +7,6 @@ const NetworkError = ({ onClose }) => {
         <div className="flex items-start">
           <div className="ml-3 flex-1">
             <p className="text-sm font-medium text-red-800">Network Error</p>
-            <p className="mt-2 text-xs text-gray-500">
-              Please note that if you are using Bruno on the web, then the api you are connecting to must allow CORS. If not, please use the chrome extension or the desktop app
-            </p>
           </div>
         </div>
       </div>

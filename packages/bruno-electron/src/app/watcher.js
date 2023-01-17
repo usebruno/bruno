@@ -5,17 +5,27 @@ const chokidar = require('chokidar');
 const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/filesystem');
 const {
   bruToJson,
-  jsonToBru
+  jsonToBru,
+  bruToEnvJson,
+  envJsonToBru,
 } = require('@usebruno/bruno-lang');
 const { itemSchema } = require('@usebruno/schema');
 const { generateUidBasedOnHash, uuid } = require('../utils/common');
 
-const isEnvironmentConfig = (pathname, collectionPath) => {
+const isJsonEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
   return dirname === collectionPath && basename === 'environments.json';
-}
+};
+
+const isBruEnvironmentConfig = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+  const basename = path.basename(pathname);
+
+  return dirname === envDirectory && hasBruExtension(basename);
+};
 
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = generateUidBasedOnHash(pathname);
@@ -35,16 +45,21 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
 const addEnvironmentFile = async (win, pathname, collectionUid) => {
   try {
+    const basename = path.basename(pathname);
     const file = {
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname),
-      }
+        name: basename
+      },
     };
 
-    const jsonData = fs.readFileSync(pathname, 'utf8');
-    file.data = JSON.parse(jsonData);
+    const bruContent = fs.readFileSync(pathname, 'utf8');
+    file.data = bruToEnvJson(bruContent);
+    file.data.name = basename.substring(0, basename.length - 4);
+    file.data.uid = generateUidBasedOnHash(pathname);
+
+    _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err)
@@ -53,17 +68,25 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
 
 const changeEnvironmentFile = async (win, pathname, collectionUid) => {
   try {
+    const basename = path.basename(pathname);
     const file = {
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname),
+        name: basename
       }
     };
 
-    const jsonData = fs.readFileSync(pathname, 'utf8');
-    file.data = JSON.parse(jsonData);
-    win.webContents.send('main:collection-tree-updated', 'changeEnvironmentFile', file);
+    const bruContent = fs.readFileSync(pathname, 'utf8');
+    file.data = bruToEnvJson(bruContent);
+    file.data.name = basename.substring(0, basename.length - 4);
+    file.data.uid = generateUidBasedOnHash(pathname);
+    _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
+
+    // we are reusing the addEnvironmentFile event itself
+    // this is because the uid of the pathname remains the same
+    // and the collection tree will be able to update the existing environment
+    win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err)
   }
@@ -77,23 +100,49 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
         pathname,
         name: path.basename(pathname),
       },
-      data: []
+      data: {
+        uid: generateUidBasedOnHash(pathname),
+        name: path.basename(pathname).substring(0, path.basename(pathname).length - 4),
+      }
     };
 
-    win.webContents.send('main:collection-tree-updated', 'changeEnvironmentFile', file);
+    win.webContents.send('main:collection-tree-updated', 'unlinkEnvironmentFile', file);
   } catch (err) {
     console.error(err)
   }
 };
 
 const add = async (win, pathname, collectionUid, collectionPath) => {
-  const isJson = hasJsonExtension(pathname);
   console.log(`watcher add: ${pathname}`);
 
-  if(isJson) {
-    if(isEnvironmentConfig(pathname, collectionPath)) {
-      return addEnvironmentFile(win, pathname, collectionUid);
+  if(isJsonEnvironmentConfig(pathname, collectionPath)) {
+    // migrate old env json to bru file
+    try {
+      const dirname = path.dirname(pathname);
+      const jsonStr = fs.readFileSync(pathname, 'utf8');
+      const jsonData = JSON.parse(jsonStr);
+
+      const envDirectory = path.join(dirname, 'environments');
+      if (!fs.existsSync(envDirectory)) {
+        fs.mkdirSync(envDirectory);
+      }
+
+      for(const env of jsonData) {
+        const bruEnvFilename = path.join(envDirectory, `${env.name}.bru`);
+        const bruContent = envJsonToBru(env);
+        await writeFile(bruEnvFilename, bruContent);
+      }
+
+      await fs.unlinkSync(pathname);
+    } catch (err) {
+      // do nothing
     }
+
+    return;
+  }
+
+  if(isBruEnvironmentConfig(pathname, collectionPath)) {
+    return addEnvironmentFile(win, pathname, collectionUid);
   }
 
   // migrate old json files to bru
@@ -137,8 +186,14 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   }
 };
 
-const addDirectory = (win, pathname, collectionUid) => {
-  console.log(`watcher addDirectory: ${pathname}`);
+const addDirectory = (win, pathname, collectionUid, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+
+  if(dirname === envDirectory) {
+    return;
+  }
+
   const directory = {
     meta: {
       collectionUid,
@@ -150,9 +205,7 @@ const addDirectory = (win, pathname, collectionUid) => {
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
-  console.log(`watcher change: ${pathname}`);
-
-  if(isEnvironmentConfig(pathname, collectionPath)) {
+  if(isBruEnvironmentConfig(pathname, collectionPath)) {
     return changeEnvironmentFile(win, pathname, collectionUid);
   }
 
@@ -178,7 +231,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  if(isEnvironmentConfig(pathname, collectionPath)) {
+  if(isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
 
@@ -195,6 +248,13 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 }
 
 const unlinkDir = (win, pathname, collectionUid) => {
+  const dirname = path.dirname(pathname);
+  const envDirectory = path.join(collectionPath, 'environments');
+
+  if(dirname === envDirectory) {
+    return;
+  }
+
   const directory = {
     meta: {
       collectionUid,
