@@ -171,7 +171,7 @@ const SignUp = () => {
         <div className="font-semibold" style={{ fontSize: '2rem' }}>
           bruno
         </div>
-        <div className="mt-1">Opensource API Collection Collaboration Platform</div>
+        <div className="mt-1">Opensource IDE for exploring and testing api's.</div>
       </div>
 
       <form onSubmit={formik.handleSubmit}>
