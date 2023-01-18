@@ -33,6 +33,7 @@ const registerNetworkIpc = () => {
 
       return {
         status: result.status,
+        statusText: result.statusText,
         headers: result.headers,
         data: result.data
       };
@@ -44,6 +45,7 @@ const registerNetworkIpc = () => {
       if(error.response) {
         return {
           status: error.response.status,
+          statusText: error.response.statusText,
           headers: error.response.headers,
           data: error.response.data
         }

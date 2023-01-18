@@ -2,15 +2,12 @@ import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import qs from 'qs';
-import { sendHttpRequestInBrowser } from './browser';
-import { isElectron } from 'utils/common/platform';
-import cancelTokens, { deleteCancelToken } from 'utils/network/cancelTokens';
 
-export const sendNetworkRequest = async (item, options) => {
+export const sendNetworkRequest = async (item, options, onRequestSent) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
       const timeStart = Date.now();
-      sendHttpRequest(item.draft ? item.draft.request : item.request, options)
+      sendHttpRequest(item.draft ? item.draft.request : item.request, options, onRequestSent)
         .then((response) => {
           const timeEnd = Date.now();
           resolve({
@@ -19,6 +16,7 @@ export const sendNetworkRequest = async (item, options) => {
             headers: Object.entries(response.headers),
             size: response.headers['content-length'] || 0,
             status: response.status,
+            statusText: response.statusText,
             duration: timeEnd - timeStart
           });
         })
@@ -27,7 +25,7 @@ export const sendNetworkRequest = async (item, options) => {
   });
 };
 
-const sendHttpRequest = async (request, options) => {
+const sendHttpRequest = async (request, options, onRequestSent) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
@@ -91,28 +89,20 @@ const sendHttpRequest = async (request, options) => {
     console.log('>>> Sending Request');
     console.log(axiosRequest);
 
-    if (isElectron()) {
-      ipcRenderer.invoke('send-http-request', axiosRequest, options).then(resolve).catch(reject);
-    } else {
-      sendHttpRequestInBrowser(axiosRequest, options).then(resolve).catch(reject);
-    }
+    onRequestSent(axiosRequest);
+
+    ipcRenderer
+      .invoke('send-http-request', axiosRequest, options)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {
-  if (isElectron()) {
-    return new Promise((resolve, reject) => {
-      ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
-    });
-  }
-
   return new Promise((resolve, reject) => {
-    if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
-      cancelTokens[cancelTokenUid].cancel();
-      deleteCancelToken(cancelTokenUid);
-      resolve();
-    } else {
-      reject(new Error('cancel token not found'));
-    }
+    ipcRenderer
+      .invoke('cancel-http-request', cancelTokenUid)
+      .then(resolve)
+      .catch(reject);
   });
 };

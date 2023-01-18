@@ -179,12 +179,13 @@ export const collectionsSlice = createSlice({
       }
     },
     requestSent: (state, action) => {
-      const { itemUid, collectionUid, cancelTokenUid } = action.payload;
+      const { itemUid, collectionUid, cancelTokenUid, requestSent } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
+          item.requestSent = requestSent
           item.response = item.response || {};
           item.response.state = 'sending';
           item.cancelTokenUid = cancelTokenUid;

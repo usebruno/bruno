@@ -10,6 +10,7 @@ import ResponseHeaders from './ResponseHeaders';
 import StatusCode from './StatusCode';
 import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
+import Timeline from './Timeline';
 import StyledWrapper from './StyledWrapper';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
@@ -36,6 +37,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
+      }
+      case 'timeline': {
+        return <Timeline item={item} />;
       }
 
       default: {
@@ -83,6 +87,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+        </div>
+        <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
+          Timeline
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">

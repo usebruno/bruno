@@ -107,13 +107,16 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    dispatch(
-      requestSent({
-        itemUid: item.uid,
-        collectionUid: collectionUid,
-        cancelTokenUid: cancelTokenUid
-      })
-    );
+    const onRequestSent = (req) => {
+      dispatch(
+        requestSent({
+          requestSent: req,
+          itemUid: item.uid,
+          collectionUid: collectionUid,
+          cancelTokenUid: cancelTokenUid
+        })
+      );
+    };
 
     const itemCopy = cloneDeep(item);
     const collectionCopy = cloneDeep(collection);
@@ -125,7 +128,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
     }
 
-    sendNetworkRequest(itemCopy, { cancelTokenUid: cancelTokenUid })
+    sendNetworkRequest(itemCopy, { cancelTokenUid: cancelTokenUid }, onRequestSent)
       .then((response) => {
         return dispatch(
           responseReceived({
