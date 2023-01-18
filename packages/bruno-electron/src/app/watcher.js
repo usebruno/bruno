@@ -187,10 +187,9 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const addDirectory = (win, pathname, collectionUid, collectionPath) => {
-  const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if(dirname === envDirectory) {
+  if(pathname === envDirectory) {
     return;
   }
 
@@ -248,10 +247,9 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
 }
 
 const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
-  const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if(dirname === envDirectory) {
+  if(pathname === envDirectory) {
     return;
   }
 
