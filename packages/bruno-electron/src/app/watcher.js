@@ -247,7 +247,7 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
   }
 }
 
-const unlinkDir = (win, pathname, collectionUid) => {
+const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
 
