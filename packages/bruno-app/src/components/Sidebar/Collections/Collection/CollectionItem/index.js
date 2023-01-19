@@ -35,28 +35,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
-  // const [{ isDragging }, drag] = useDrag({
-  //   type: 'COLLECTION_ITEM',
-  //   item: item,
-  //   collect: (monitor) => ({
-  //     isDragging: monitor.isDragging()
-  //   })
-  // });
+  const [{ isDragging }, drag] = useDrag({
+    type: 'COLLECTION_ITEM',
+    item: item,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    })
+  });
 
-  // const [{ isOver }, drop] = useDrop({
-  //   accept: 'COLLECTION_ITEM',
-  //   drop: (draggedItem) => {
-  //     if (draggedItem.uid !== item.uid) {
-  //       dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-  //     }
-  //   },
-  //   canDrop: (draggedItem) => {
-  //     return draggedItem.uid !== item.uid;
-  //   },
-  //   collect: (monitor) => ({
-  //     isOver: monitor.isOver()
-  //   })
-  // });
+  const [{ isOver }, drop] = useDrop({
+    accept: 'COLLECTION_ITEM',
+    drop: (draggedItem) => {
+      if (draggedItem.uid !== item.uid) {
+        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+      }
+    },
+    canDrop: (draggedItem) => {
+      return draggedItem.uid !== item.uid;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
 
   useEffect(() => {
     if (searchText && searchText.length) {
@@ -131,8 +131,18 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   }
 
-  const requestItems = filter(item.items, (i) => isItemARequest(i));
-  const folderItems = filter(item.items, (i) => isItemAFolder(i));
+  // we need to sort request items by seq property
+  const sortRequestItems = (items = []) => {
+    return items.sort((a, b) => a.seq - b.seq);
+  };
+
+  // we need to sort folder items by name alphabetically
+  const sortFolderItems = (items = []) => {
+    return items.sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
+  const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className={className}>
@@ -141,7 +151,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
-      <div className={itemRowClassName}>
+      <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
             ? indents.map((i) => {
@@ -239,13 +249,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
       {!itemIsCollapsed ? (
         <div>
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
+          {folderItems && folderItems.length
+            ? folderItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
               })
             : null}
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
+          {requestItems && requestItems.length
+            ? requestItems.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
               })
             : null}

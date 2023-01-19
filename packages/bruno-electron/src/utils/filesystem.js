@@ -95,6 +95,25 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const searchForFiles = (dir, extension) => {
+  let results = [];
+  const files = fs.readdirSync(dir);
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const stat = fs.statSync(filePath);
+    if (stat.isDirectory()) {
+      results = results.concat(searchForFiles(filePath, extension));
+    } else if (path.extname(file) === extension) {
+      results.push(filePath);
+    }
+  }
+  return results;
+}
+
+const searchForBruFiles = (dir) => {
+  return searchForFiles(dir, '.bru');
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -106,5 +125,7 @@ module.exports = {
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
-  browseDirectory
+  browseDirectory,
+  searchForFiles,
+  searchForBruFiles
 };

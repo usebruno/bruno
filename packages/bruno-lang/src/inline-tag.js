@@ -17,6 +17,7 @@ const inlineTag = sequenceOf([
     str('name'),
     str('method'),
     str('url'),
+    str('seq'),
     str('body-mode')
   ]),
   whitespace,

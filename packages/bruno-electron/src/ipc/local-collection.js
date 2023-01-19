@@ -13,11 +13,13 @@ const {
   hasBruExtension,
   isDirectory,
   browseDirectory,
-  createDirectory
+  createDirectory,
+  searchForBruFiles
 } = require('../utils/filesystem');
-const { uuid, stringifyJson } = require('../utils/common');
+const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -179,6 +181,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // if its directory, rename and return
       if(isDirectory(oldPath)) {
+        const bruFilesAtSource = await searchForBruFiles(oldPath);
+
+        for(let bruFile of bruFilesAtSource) {
+          const newBruFilePath = bruFile.replace(oldPath, newPath);
+          moveRequestUid(bruFile, newBruFilePath);
+        }
         return fs.renameSync(oldPath, newPath);
       }
 
@@ -192,6 +200,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
+
+      moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
       await writeFile(newPath, content);
@@ -218,9 +228,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
       if(type === 'folder') {
-        await fs.rmSync(pathname, { recursive: true, force: true});
+        if(!fs.existsSync(pathname)) {
+          return Promise.reject(new Error('The directory does not exist'));
+        }
+
+        // delete the request uid mappings
+        const bruFilesAtSource = await searchForBruFiles(pathname);
+        for(let bruFile of bruFilesAtSource) {
+          deleteRequestUid(bruFile);
+        }
+
+        fs.rmSync(pathname, { recursive: true, force: true});
       } else if (['http-request', 'graphql-request'].includes(type)) {
-        await fs.unlinkSync(pathname);
+        if(!fs.existsSync(pathname)) {
+          return Promise.reject(new Error('The file does not exist'));
+        }
+
+        deleteRequestUid(pathname);
+
+        fs.unlinkSync(pathname);
       } else {
         return Promise.reject(error);
       }
@@ -303,6 +329,63 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
 
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
+    try {
+      for(let item of itemsToResequence) {
+        const bru = fs.readFileSync(item.pathname, 'utf8');
+        const jsonData = bruToJson(bru);
+
+        if(jsonData.seq !== item.seq) {
+          jsonData.seq = item.seq;
+          const content = jsonToBru(jsonData);
+          await writeFile(item.pathname, content);
+        }
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-file-item', async (event, itemPath, destinationPath) => {
+    try {
+      const itemContent = fs.readFileSync(itemPath, 'utf8');
+      const newItemPath = path.join(destinationPath, path.basename(itemPath));
+
+      moveRequestUid(itemPath, newItemPath);
+
+      fs.unlinkSync(itemPath);
+      fs.writeFileSync(newItemPath, itemContent);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:move-folder-item', async (event, folderPath, destinationPath) => {
+    try {
+      const folderName = path.basename(folderPath);
+      const newFolderPath = path.join(destinationPath, folderName);
+
+      if(!fs.existsSync(folderPath)) {
+        throw new Error(`folder: ${folderPath} does not exist`);
+      }
+
+      if(fs.existsSync(newFolderPath)) {
+        throw new Error(`folder: ${newFolderPath} already exists`);
+      }
+
+      const bruFilesAtSource = await searchForBruFiles(folderPath);
+
+      for(let bruFile of bruFilesAtSource) {
+        const newBruFilePath = bruFile.replace(folderPath, newFolderPath);
+        moveRequestUid(bruFile, newBruFilePath);
+      }
+
+      fs.renameSync(folderPath, newFolderPath);
     } catch (error) {
       return Promise.reject(error);
     }

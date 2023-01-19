@@ -58,6 +58,7 @@ const requestSchema = Yup.object({
 const itemSchema = Yup.object({
   uid: uidSchema,
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder']).required('type is required'),
+  seq: Yup.number().min(1),
   name: Yup.string()
     .min(1, 'name must be atleast 1 characters')
     .max(50, 'name must be 100 characters or less')
@@ -69,7 +70,7 @@ const itemSchema = Yup.object({
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
   filename: Yup.string().max(1024, 'filename cannot be more than 1024 characters').nullable(),
   pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
-}).noUnknown(true).strict();
+}).noUnknown(true);
 
 const collectionSchema = Yup.object({
   version: Yup.string().oneOf(['1']).required('version is required'),

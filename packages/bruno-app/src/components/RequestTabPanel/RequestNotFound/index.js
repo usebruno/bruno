@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 
 const RequestNotFound = ({ itemUid }) => {
   const dispatch = useDispatch();
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
 
   const closeTab = () => {
     dispatch(
@@ -12,6 +13,20 @@ const RequestNotFound = ({ itemUid }) => {
       })
     );
   };
+
+  useEffect(() => {
+    setTimeout(() => {
+      setShowErrorMessage(true);
+    }, 300);
+  }, []);
+
+  // add a delay component in react that shows a loading spinner
+  // and then shows the error message after a delay
+  // this will prevent the error message from flashing on the screen
+
+  if(!showErrorMessage) {
+    return null;
+  }
 
   return (
     <div className="mt-6 px-6">

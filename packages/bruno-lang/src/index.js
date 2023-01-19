@@ -44,6 +44,7 @@ const bruToJson = (fileContents) => {
   const json = {
     type: parsed.type || '',
     name: parsed.name || '',
+    seq: parsed.seq || 1,
     request: {
       method: parsed.method || '',
       url: parsed.url || '',
@@ -78,6 +79,7 @@ const jsonToBru = (json) => {
   const {
     type,
     name,
+    seq,
     request: {
       method,
       url,
@@ -92,6 +94,7 @@ method ${method}
 url ${url}
 type ${type}
 body-mode ${body ? body.mode : 'none'}
+seq ${seq ? seq : 1}
 `;
 
   if(params && params.length) {

@@ -14,10 +14,11 @@ import {
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
   addDepth,
-  moveCollectionItem,
   collapseCollection,
   deleteItemInCollection,
-  isItemARequest
+  deleteItemInCollectionByPathname,
+  isItemARequest,
+  areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
 import { getSubdirectoriesFromRoot } from 'utils/common/platform';
@@ -144,38 +145,6 @@ export const collectionsSlice = createSlice({
         } else {
           collection.items.push(clonedItem);
         }
-      }
-    },
-    moveItem: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-      const draggedItemUid = action.payload.draggedItemUid;
-      const targetItemUid = action.payload.targetItemUid;
-
-      if (collection) {
-        const draggedItem = findItemInCollection(collection, draggedItemUid);
-        const targetItem = findItemInCollection(collection, targetItemUid);
-
-        if (!draggedItem || !targetItem) {
-          return;
-        }
-
-        moveCollectionItem(collection, draggedItem, targetItem);
-        addDepth(collection.items);
-      }
-    },
-    moveItemToRootOfCollection: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-      const draggedItemUid = action.payload.draggedItemUid;
-
-      if (collection) {
-        const draggedItem = findItemInCollection(collection, draggedItemUid);
-
-        if (!draggedItem) {
-          return;
-        }
-
-        moveCollectionItemToRootOfCollection(collection, draggedItem);
-        addDepth(collection.items);
       }
     },
     requestSent: (state, action) => {
@@ -650,7 +619,7 @@ export const collectionsSlice = createSlice({
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
               name: directoryName,
-              collapsed: false,
+              collapsed: true,
               type: 'folder',
               items: []
             };
@@ -669,6 +638,7 @@ export const collectionsSlice = createSlice({
           if (currentItem) {
             currentItem.name = file.data.name;
             currentItem.type = file.data.type;
+            currentItem.seq = file.data.seq;
             currentItem.request = file.data.request;
             currentItem.filename = file.meta.name;
             currentItem.pathname = file.meta.pathname;
@@ -678,6 +648,7 @@ export const collectionsSlice = createSlice({
               uid: file.data.uid,
               name: file.data.name,
               type: file.data.type,
+              seq: file.data.seq,
               request: file.data.request,
               filename: file.meta.name,
               pathname: file.meta.pathname,
@@ -703,7 +674,7 @@ export const collectionsSlice = createSlice({
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
               name: directoryName,
-              collapsed: false,
+              collapsed: true,
               type: 'folder',
               items: []
             };
@@ -724,12 +695,20 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollection(collection, file.data.uid);
 
         if (item) {
-          item.name = file.data.name;
-          item.type = file.data.type;
-          item.request = file.data.request;
-          item.filename = file.meta.name;
-          item.pathname = file.meta.pathname;
-          item.draft = null;
+          // whenever a user attempts to sort a req within the same folder
+          // the seq is updated, but everything else remains the same
+          // we don't want to lose the draft in this case
+          if(areItemsTheSameExceptSeqUpdate(item, file.data)) {
+            item.seq = file.data.seq;
+          } else {
+            item.name = file.data.name;
+            item.type = file.data.type;
+            item.seq = file.data.seq;
+            item.request = file.data.request;
+            item.filename = file.meta.name;
+            item.pathname = file.meta.pathname;
+            item.draft = null;
+          }
         }
       }
     },
@@ -741,7 +720,7 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollectionByPathname(collection, file.meta.pathname);
 
         if (item) {
-          deleteItemInCollection(item.uid, collection);
+          deleteItemInCollectionByPathname(file.meta.pathname, collection);
         }
       }
     },
@@ -753,7 +732,7 @@ export const collectionsSlice = createSlice({
         const item = findItemInCollectionByPathname(collection, directory.meta.pathname);
 
         if (item) {
-          deleteItemInCollection(item.uid, collection);
+          deleteItemInCollectionByPathname(directory.meta.pathname, collection);
         }
       }
     },
@@ -788,8 +767,6 @@ export const {
   deleteItem,
   renameItem,
   cloneItem,
-  moveItem,
-  moveItemToRootOfCollection,
   requestSent,
   requestCancelled,
   responseReceived,

@@ -59,28 +59,37 @@ const Collection = ({ collection, searchText }) => {
     }
   }
 
-  const requestItems = filter(collection.items, (i) => isItemARequest(i));
-  const folderItems = filter(collection.items, (i) => isItemAFolder(i));
-
   const handleExportClick = () => {
     const collectionCopy = cloneDeep(collection);
     exportCollection(transformCollectionToSaveToIdb(collectionCopy));
   };
 
-  // const [{ isOver }, drop] = useDrop({
-  //   accept: 'COLLECTION_ITEM',
-  //   drop: (draggedItem) => {
-  //     console.log('drop', draggedItem);
-  //     dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
-  //   },
-  //   canDrop: (draggedItem) => {
-  //     // todo need to make sure that draggedItem belongs to the collection
-  //     return true;
-  //   },
-  //   collect: (monitor) => ({
-  //     isOver: monitor.isOver()
-  //   })
-  // });
+  const [{ isOver }, drop] = useDrop({
+    accept: 'COLLECTION_ITEM',
+    drop: (draggedItem) => {
+      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+    },
+    canDrop: (draggedItem) => {
+      // todo need to make sure that draggedItem belongs to the collection
+      return true;
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver()
+    })
+  });
+
+  // we need to sort request items by seq property
+  const sortRequestItems = (items = []) => {
+    return items.sort((a, b) => a.seq - b.seq);
+  };
+
+  // we need to sort folder items by name alphabetically
+  const sortFolderItems = (items = []) => {
+    return items.sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
+  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -88,7 +97,7 @@ const Collection = ({ collection, searchText }) => {
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />}
       {showRemoveCollectionModal && <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />}
-      <div className="flex py-1 collection-name items-center">
+      <div className="flex py-1 collection-name items-center" ref={drop}>
         <div className="flex flex-grow items-center" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, color: 'rgb(160 160 160)' }} />
           <div className="ml-1" id="sidebar-collection-name">{collection.name}</div>
@@ -148,14 +157,13 @@ const Collection = ({ collection, searchText }) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
+            {folderItems && folderItems.length
+              ? folderItems.map((i) => {
                   return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
                 })
               : null}
-
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
+            {requestItems && requestItems.length
+              ? requestItems.map((i) => {
                   return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
                 })
               : null}

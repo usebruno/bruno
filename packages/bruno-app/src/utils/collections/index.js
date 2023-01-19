@@ -1,4 +1,3 @@
-import reckon from 'reckonjs';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import find from 'lodash/find';
@@ -7,7 +6,14 @@ import isString from 'lodash/isString';
 import map from 'lodash/map';
 import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
+import isEqual from 'lodash/isEqual';
+import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
+import path from 'path';
+
+// although we are not using rekonjs directly
+// its populating the global string prototype with .reckon method
+import reckon from 'reckonjs';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -128,6 +134,7 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
 
   if (draggedItemParent) {
     draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+    draggedItem.pathname = path.join(draggedItemParent.pathname, draggedItem.filename);
   } else {
     collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
   }
@@ -135,15 +142,18 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   if (targetItem.type === 'folder') {
     targetItem.items = targetItem.items || [];
     targetItem.items.push(draggedItem);
+    draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
   } else {
     let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
 
     if (targetItemParent) {
       let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
       targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
+      draggedItem.pathname = path.join(targetItemParent.pathname, draggedItem.filename);
     } else {
       let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
       collection.items.splice(targetItemIndex + 1, 0, draggedItem);
+      draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
     }
   }
 };
@@ -151,13 +161,46 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
 export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
-  if (draggedItemParent) {
-    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-  } else {
-    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+  // If the dragged item is already at the root of the collection, do nothing
+  if(!draggedItemParent) {
+    return;
   }
 
+  draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
   collection.items.push(draggedItem);
+  draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
+};
+
+export const getItemsToResequence = (parent, collection) => {
+  let itemsToResequence = [];
+
+  if(!parent) {
+    let index = 1;
+    each(collection.items, (item) => {
+      if(isItemARequest(item)) {
+        itemsToResequence.push({
+          pathname: item.pathname,
+          seq: index++
+        });
+      }
+    });
+    return itemsToResequence;
+  }
+
+  if (parent.items && parent.items.length) {
+    let index = 1;
+    each(parent.items, (item) => {
+      if(isItemARequest(item)) {
+        itemsToResequence.push({
+          pathname: item.pathname,
+          seq: index++
+        });
+      }
+    });
+    return itemsToResequence;
+  }
+
+  return itemsToResequence;
 };
 
 export const transformCollectionToSaveToIdb = (collection, options = {}) => {
@@ -335,10 +378,20 @@ export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);
 
   let flattenedItems = flattenItems(collection.items);
-
   each(flattenedItems, (i) => {
     if (i.items && i.items.length) {
       i.items = filter(i.items, (i) => i.uid !== itemUid);
+    }
+  });
+};
+
+export const deleteItemInCollectionByPathname = (pathname, collection) => {
+  collection.items = filter(collection.items, (i) => i.pathname !== pathname);
+
+  let flattenedItems = flattenItems(collection.items);
+  each(flattenedItems, (i) => {
+    if (i.items && i.items.length) {
+      i.items = filter(i.items, (i) => i.pathname !== pathname);
     }
   });
 };
@@ -447,6 +500,44 @@ export const interpolateEnvironmentVars = (item, variables) => {
   }
 
   return request;
+};
+
+export const deleteUidsInItem = (item) => {
+  delete item.uid;
+  const params = get(item, 'request.params', []);
+  const headers = get(item, 'request.headers', []);
+  const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
+  const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
+
+  params.forEach((param) => delete param.uid);
+  headers.forEach((header) => delete header.uid);
+  bodyFormUrlEncoded.forEach((param) => delete param.uid);
+  bodyMultipartForm.forEach((param) => delete param.uid);
+
+  return item;
+};
+
+export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
+  let item1 = cloneDeep(_item1);
+  let item2 = cloneDeep(_item2);
+
+  // remove seq from both items
+  delete item1.seq;
+  delete item2.seq;
+
+  // remove draft from both items
+  delete item1.draft;
+  delete item2.draft;
+
+  // get projection of both items
+  item1 = transformRequestToSaveToFilesystem(item1);
+  item2 = transformRequestToSaveToFilesystem(item2);
+
+  // delete uids from both items
+  deleteUidsInItem(item1);
+  deleteUidsInItem(item2);
+
+  return isEqual(item1, item2);
 };
 
 export const getDefaultRequestPaneTab = (item) => {

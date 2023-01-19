@@ -6,6 +6,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import {
   findItemInCollection,
   moveCollectionItem,
+  getItemsToResequence,
   moveCollectionItemToRootOfCollection,
   findCollectionByUid,
   recursivelyGetAllItemUids,
@@ -13,6 +14,7 @@ import {
   transformRequestToSaveToFilesystem,
   findParentItemInCollection,
   findEnvironmentInCollection,
+  isItemARequest,
   isItemAFolder,
   refreshUidsInItem,
   interpolateEnvironmentVars
@@ -30,8 +32,6 @@ import {
   renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
-  moveItem as _moveItem,
-  moveItemToRootOfCollection as _moveItemToRootOfCollection,
   saveRequest as _saveRequest,
   selectEnvironment as _selectEnvironment,
   createCollection as _createCollection,
@@ -330,27 +330,6 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
       return reject(new Error('Collection not found'));
     }
 
-    if (isLocalCollection(collection)) {
-      const draggedItem = findItemInCollection(collection, draggedItemUid);
-      const targetItem = findItemInCollection(collection, targetItemUid);
-
-      if (!draggedItem) {
-        return reject(new Error('Dragged item not found'));
-      }
-
-      if (!targetItem) {
-        return reject(new Error('Target item not found'));
-      }
-
-      const { ipcRenderer } = window;
-
-      ipcRenderer
-        .invoke('renderer:move-item', draggedItem.pathname, targetItem.pathname)
-        .then(() => resolve())
-        .catch((error) => reject(error));
-      return;
-    }
-
     const collectionCopy = cloneDeep(collection);
     const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
     const targetItem = findItemInCollection(collectionCopy, targetItemUid);
@@ -363,24 +342,112 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
       return reject(new Error('Target item not found'));
     }
 
-    moveCollectionItem(collectionCopy, draggedItem, targetItem);
+    const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
+    const targetItemParent = findParentItemInCollection(collectionCopy, targetItemUid);
+    const sameParent = draggedItemParent === targetItemParent;
 
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
+    // file item dragged onto another file item and both are in the same folder
+    // this is also true when both items are at the root level
+    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && sameParent) {
+      moveCollectionItem(collectionCopy, draggedItem, targetItem);
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
 
-    collectionSchema
-      .validate(collectionToSave)
-      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
-      .then(() => {
-        dispatch(
-          _moveItem({
-            collectionUid: collectionUid,
-            draggedItemUid: draggedItemUid,
-            targetItemUid: targetItemUid
-          })
-        );
-      })
-      .then(() => resolve())
-      .catch((error) => reject(error));
+      return ipcRenderer
+        .invoke('renderer:resequence-items', itemsToResequence)
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
+
+    // file item dragged onto another file item which is at the root level
+    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && !targetItemParent) {
+      const draggedItemPathname = draggedItem.pathname;
+      moveCollectionItem(collectionCopy, draggedItem, targetItem);
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+      const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);
+
+      return ipcRenderer
+        .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
+
+    // file item dragged onto another file item and both are in different folders
+    if (isItemARequest(draggedItem) && isItemARequest(targetItem) && !sameParent) {
+      const draggedItemPathname = draggedItem.pathname;
+      moveCollectionItem(collectionCopy, draggedItem, targetItem);
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+      const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);
+      console.log('itemsToResequence', itemsToResequence);
+      console.log('itemsToResequence2', itemsToResequence2);
+
+      return ipcRenderer
+        .invoke('renderer:move-file-item', draggedItemPathname, targetItemParent.pathname)
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
+
+    // file item dragged into its own folder
+    if (isItemARequest(draggedItem) && isItemAFolder(targetItem) && draggedItemParent === targetItem) {
+      return resolve();
+    }
+
+    // file item dragged into another folder
+    if (isItemARequest(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
+      const draggedItemPathname = draggedItem.pathname;
+      moveCollectionItem(collectionCopy, draggedItem, targetItem);
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+      const itemsToResequence2 = getItemsToResequence(targetItem, collectionCopy);
+
+      return ipcRenderer
+        .invoke('renderer:move-file-item', draggedItemPathname, targetItem.pathname)
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
+
+    // end of the file drags, now let's handle folder drags
+    // folder drags are simpler since we don't allow ordering of folders
+
+    // folder dragged into its own folder
+    if (isItemAFolder(draggedItem) && isItemAFolder(targetItem) && draggedItemParent === targetItem) {
+      return resolve();
+    }
+
+    // folder dragged into a file which is at the same level
+    // this is also true when both items are at the root level
+    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && sameParent) {
+      return resolve();
+    }
+
+    // folder dragged into a file which is a child of the folder
+    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && draggedItem === targetItemParent) {
+      return resolve();
+    }
+
+    // folder dragged into a file which is at the root level
+    if (isItemAFolder(draggedItem) && isItemARequest(targetItem) && !targetItemParent) {
+      const draggedItemPathname = draggedItem.pathname;
+
+      return ipcRenderer
+        .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
+
+    // folder dragged into another folder
+    if (isItemAFolder(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
+      const draggedItemPathname = draggedItem.pathname;
+
+      return ipcRenderer
+        .invoke('renderer:move-folder-item', draggedItemPathname, targetItem.pathname)
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
   });
 };
 
@@ -393,45 +460,28 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
       return reject(new Error('Collection not found'));
     }
 
-    if (isLocalCollection(collection)) {
-      const draggedItem = findItemInCollection(collection, draggedItemUid);
-
-      if (!draggedItem) {
-        return reject(new Error('Dragged item not found'));
-      }
-
-      const { ipcRenderer } = window;
-
-      ipcRenderer
-        .invoke('renderer:move-item-to-root-of-collection', draggedItem.pathname)
-        .then(() => resolve())
-        .catch((error) => reject(error));
-      return;
-    }
-
     const collectionCopy = cloneDeep(collection);
     const draggedItem = findItemInCollection(collectionCopy, draggedItemUid);
-
     if (!draggedItem) {
       return reject(new Error('Dragged item not found'));
     }
 
+    const draggedItemParent = findParentItemInCollection(collectionCopy, draggedItemUid);
+    // file item is already at the root level
+    if (!draggedItemParent) {
+      return resolve();
+    }
+
+    const draggedItemPathname = draggedItem.pathname;
     moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
+    const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+    const itemsToResequence2 = getItemsToResequence(collectionCopy, collectionCopy);
 
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy);
-
-    collectionSchema
-      .validate(collectionToSave)
-      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
-      .then(() => {
-        dispatch(
-          _moveItemToRootOfCollection({
-            collectionUid: collectionUid,
-            draggedItemUid: draggedItemUid
-          })
-        );
-      })
-      .then(() => resolve())
+    return ipcRenderer
+      .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
+      .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+      .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+      .then(resolve)
       .catch((error) => reject(error));
   });
 };

@@ -10,7 +10,8 @@ const {
   envJsonToBru,
 } = require('@usebruno/bruno-lang');
 const { itemSchema } = require('@usebruno/schema');
-const { generateUidBasedOnHash, uuid } = require('../utils/common');
+const { uuid } = require('../utils/common');
+const { getRequestUid } = require('../cache/requestUids');
 
 const isJsonEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -28,7 +29,7 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
 };
 
 const hydrateRequestWithUuid = (request, pathname) => {
-  request.uid = generateUidBasedOnHash(pathname);
+  request.uid = getRequestUid(pathname);
 
   const params = _.get(request, 'request.params', []);
   const headers = _.get(request, 'request.headers', []);
@@ -57,7 +58,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
     const bruContent = fs.readFileSync(pathname, 'utf8');
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = generateUidBasedOnHash(pathname);
+    file.data.uid = getRequestUid(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
@@ -80,7 +81,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid) => {
     const bruContent = fs.readFileSync(pathname, 'utf8');
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = generateUidBasedOnHash(pathname);
+    file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
 
     // we are reusing the addEnvironmentFile event itself
@@ -101,7 +102,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
         name: path.basename(pathname),
       },
       data: {
-        uid: generateUidBasedOnHash(pathname),
+        uid: getRequestUid(pathname),
         name: path.basename(pathname).substring(0, path.basename(pathname).length - 4),
       }
     };

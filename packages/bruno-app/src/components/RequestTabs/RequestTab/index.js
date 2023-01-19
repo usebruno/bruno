@@ -4,7 +4,7 @@ import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import { findItemInCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { IconAlertTriangle } from '@tabler/icons';
+import RequestTabNotFound from './RequestTabNotFound';
 
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
@@ -61,18 +61,7 @@ const RequestTab = ({ tab, collection }) => {
   if (!item) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <div className="flex items-center tab-label pl-2">
-          <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600" />
-          <span className="ml-1">Not Found</span>
-        </div>
-        <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-          <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
-            <path
-              fill="currentColor"
-              d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"
-            ></path>
-          </svg>
-        </div>
+        <RequestTabNotFound handleCloseClick={handleCloseClick} />
       </StyledWrapper>
     );
   }
