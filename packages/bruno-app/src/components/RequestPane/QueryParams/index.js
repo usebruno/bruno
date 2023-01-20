@@ -4,6 +4,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
+import SingleLineEditor from 'components/SingleLineEditor';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -20,6 +22,7 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleParamChange = (e, _param, type) => {
     const param = cloneDeep(_param);
 
@@ -85,15 +88,15 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.value}
-                        className="mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'value')}
+                      <SingleLineEditor 
+                        value={param.value} 
+                        onChange={(newValue) => handleParamChange({
+                          target: {
+                            value: newValue
+                          }
+                        }, param, 'value')}
+                        onRun={handleRun}
+                        collection={collection}
                       />
                     </td>
                     <td>
