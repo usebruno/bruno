@@ -6,6 +6,7 @@ import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 
@@ -16,13 +17,17 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/edit/matchbrackets');
   require('codemirror/addon/fold/brace-fold');
   require('codemirror/addon/fold/foldgutter');
+  require('codemirror/addon/mode/overlay');
   require('codemirror/addon/hint/show-hint');
+  require('codemirror/addon/scroll/annotatescrollbar');
   require('codemirror/keymap/sublime');
   require('codemirror/addon/comment/comment');
   require('codemirror/addon/edit/closebrackets');
   require('codemirror/addon/search/search');
   require('codemirror/addon/search/searchcursor');
   require('codemirror/addon/search/jump-to-line');
+  require('codemirror/addon/search/matchesonscrollbar');
+  require('codemirror/addon/search/match-highlighter');
   require('codemirror/addon/dialog/dialog');
 
   require('codemirror-graphql/hint');

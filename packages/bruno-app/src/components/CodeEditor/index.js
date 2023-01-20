@@ -31,6 +31,7 @@ export default class QueryEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       tabSize: 2,
+      highlightSelectionMatches: { showToken: /\w/, annotateScrollbar: true },
       mode: this.props.mode || 'application/ld+json',
       keyMap: 'sublime',
       autoCloseBrackets: true,
@@ -70,6 +71,7 @@ export default class QueryEditor extends React.Component {
     }));
     if (editor) {
       editor.on('change', this._onEdit);
+      this.addOverlay();
     }
   }
 
@@ -88,7 +90,10 @@ export default class QueryEditor extends React.Component {
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = this.props.value;
       this.editor.setValue(this.props.value);
-      this.editor.setOption('mode', this.props.mode);
+    }
+
+    if(this.editor) {
+      this.addOverlay();
     }
 
     if (this.props.theme !== prevProps.theme && this.editor) {
@@ -114,6 +119,41 @@ export default class QueryEditor extends React.Component {
         }}
       />
     );
+  }
+
+  addOverlay = () => {
+    var variables = {
+      "host": "",
+      "token": ""
+    };
+    const mode = this.props.mode || 'application/ld+json';
+    
+    CodeMirror.defineMode("brunovariables", function(config, parserConfig) {
+      let variablesOverlay = {
+        token: function(stream, state) {
+          if (stream.match("{{", true)) {
+            let ch;
+            let word = "";
+            while ((ch = stream.next()) != null) {
+              if (ch == "}" && stream.next() == "}") {
+                stream.eat("}");
+                if (word in variables) {
+                  return "variable-valid";
+                } else {
+                  return "variable-invalid";
+                }
+              }
+              word += ch;
+            }
+          }
+          while (stream.next() != null && !stream.match("{{", false)) {}
+          return null;
+        }
+      };
+      return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    });
+
+    this.editor.setOption('mode', 'brunovariables');
   }
 
   _onEdit = () => {
