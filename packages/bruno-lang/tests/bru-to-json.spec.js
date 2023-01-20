@@ -13,6 +13,7 @@ describe('bruToJson', () => {
     expect(result).toEqual({
       "type": "http-request",
       "name": "Send Bulk SMS",
+      "seq": 1,
       "request": {
         "method": "GET",
         "url": "https://api.textlocal.in/bulk_json?apiKey=secret=&numbers=919988776655&message=hello&sender=600010",
