@@ -5,6 +5,7 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import SendIcon from 'components/Icons/Send';
+import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
@@ -39,15 +40,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <HttpMethodSelector method={method} onMethodSelect={onMethodSelect} />
       </div>
       <div className="flex items-center flex-grow input-container h-full">
-        <input
-          className="px-3 w-full mousetrap"
-          type="text"
-          value={url}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          onChange={(event) => onUrlChange(event.target.value)}
+        <SingleLineEditor 
+          value={url} 
+          onChange={(newValue) => onUrlChange(newValue)}
+          collection={collection}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <SendIcon color={theme.requestTabPanel.url.icon} width={22}/>

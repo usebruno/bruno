@@ -6,7 +6,6 @@ import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 
