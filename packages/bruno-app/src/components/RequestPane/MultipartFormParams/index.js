@@ -30,10 +30,6 @@ const MultipartFormParams = ({ item, collection }) => {
         param.value = e.target.value;
         break;
       }
-      case 'description': {
-        param.description = e.target.value;
-        break;
-      }
       case 'enabled': {
         param.enabled = e.target.checked;
         break;
@@ -65,7 +61,6 @@ const MultipartFormParams = ({ item, collection }) => {
           <tr>
             <td>Key</td>
             <td>Value</td>
-            <td>Description</td>
             <td></td>
           </tr>
         </thead>
@@ -96,18 +91,6 @@ const MultipartFormParams = ({ item, collection }) => {
                         value={param.value}
                         className="mousetrap"
                         onChange={(e) => handleParamChange(e, param, 'value')}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.description}
-                        className="mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'description')}
                       />
                     </td>
                     <td>

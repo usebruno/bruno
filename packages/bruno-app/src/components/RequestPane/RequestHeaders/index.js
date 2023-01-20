@@ -30,10 +30,6 @@ const RequestHeaders = ({ item, collection }) => {
         header.value = e.target.value;
         break;
       }
-      case 'description': {
-        header.description = e.target.value;
-        break;
-      }
       case 'enabled': {
         header.enabled = e.target.checked;
         break;
@@ -65,7 +61,6 @@ const RequestHeaders = ({ item, collection }) => {
           <tr>
             <td>Key</td>
             <td>Value</td>
-            <td>Description</td>
             <td></td>
           </tr>
         </thead>
@@ -96,18 +91,6 @@ const RequestHeaders = ({ item, collection }) => {
                         value={header.value}
                         className="mousetrap"
                         onChange={(e) => handleHeaderValueChange(e, header, 'value')}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={header.description}
-                        className="mousetrap"
-                        onChange={(e) => handleHeaderValueChange(e, header, 'description')}
                       />
                     </td>
                     <td>
