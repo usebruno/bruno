@@ -33,7 +33,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        return <QueryResult width={rightPaneWidth} value={response.data ? JSON.stringify(response.data, null, 2) : ''} />;
+        return <QueryResult
+          item={item}
+          collection={collection}
+          width={rightPaneWidth}
+          value={response.data ? JSON.stringify(response.data, null, 2) : ''
+        } />;
       }
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
