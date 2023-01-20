@@ -29,6 +29,9 @@ const StyledWrapper = styled.div`
   .cm-s-monokai span.cm-atom{
     color: #569cd6 !important;
   }
+
+  .cm-variable-valid{color: green}
+  .cm-variable-invalid{color: red}
 `;
 
 export default StyledWrapper;

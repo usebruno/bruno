@@ -45,7 +45,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <CodeEditor theme={storedTheme} value={bodyContent[bodyMode] || ''} onEdit={onEdit} onRun={onRun} onSave={onSave} mode={codeMirrorMode[bodyMode]} />
+        <CodeEditor collection={collection} theme={storedTheme} value={bodyContent[bodyMode] || ''} onEdit={onEdit} onRun={onRun} onSave={onSave} mode={codeMirrorMode[bodyMode]} />
       </StyledWrapper>
     );
   }

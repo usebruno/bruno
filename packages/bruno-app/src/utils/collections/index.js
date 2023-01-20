@@ -549,3 +549,19 @@ export const getDefaultRequestPaneTab = (item) => {
     return 'query';
   }
 };
+
+export const getEnvironmentVariables = (collection) => {
+  let variables = {};
+  if (collection) {
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if (environment) {
+      each(environment.variables, (variable) => {
+        if(variable.name && variable.value && variable.enabled) {
+          variables[variable.name] = variable.value;
+        }
+      });
+    }
+  }
+
+  return variables;
+}

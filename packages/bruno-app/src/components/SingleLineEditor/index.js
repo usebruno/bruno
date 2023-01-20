@@ -1,9 +1,15 @@
 import React, { Component } from 'react';
-import CodeMirror from 'codemirror';
-import each from 'lodash/each';
 import isEqual from 'lodash/isEqual';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { getEnvironmentVariables } from 'utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+
+let CodeMirror;
+const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+
+if (!SERVER_RENDERED) {
+  CodeMirror = require('codemirror');
+}
 
 class SingleLineEditor extends Component {
   constructor(props) {
@@ -35,7 +41,7 @@ class SingleLineEditor extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    let variables = this.getEnvironmentVariables();
+    let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.addOverlay();
     }
@@ -45,52 +51,11 @@ class SingleLineEditor extends Component {
     this.editor.getWrapperElement().remove();
   }
 
-  getEnvironmentVariables = () => {
-    let variables = {};
-    const collection = this.props.collection;
-    if (collection) {
-      const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-      if (environment) {
-        each(environment.variables, (variable) => {
-          if(variable.name && variable.value && variable.enabled) {
-            variables[variable.name] = variable.value;
-          }
-        });
-      }
-    }
-
-    return variables;
-  }
-
   addOverlay = () => {
-    let variables = this.getEnvironmentVariables();
+    let variables = getEnvironmentVariables(this.props.collection);
     this.variables = variables;
-    
-    CodeMirror.defineMode("brunovariables", function(config, parserConfig) {
-      let variablesOverlay = {
-        token: function(stream, state) {
-          if (stream.match("{{", true)) {
-            let ch;
-            let word = "";
-            while ((ch = stream.next()) != null) {
-              if (ch == "}" && stream.next() == "}") {
-                stream.eat("}");
-                if (word in variables) {
-                  return "variable-valid";
-                } else {
-                  return "variable-invalid";
-                }
-              }
-              word += ch;
-            }
-          }
-          while (stream.next() != null && !stream.match("{{", false)) {}
-          return null;
-        }
-      };
-      return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || "text/plain"), variablesOverlay);
-    });
 
+    defineCodeMirrorBrunoVariablesMode(variables, "text/plain");
     this.editor.setOption('mode', 'brunovariables');
   }
 

@@ -6,7 +6,10 @@
  */
 
 import React from 'react';
+import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
+import { getEnvironmentVariables } from 'utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
@@ -29,6 +32,7 @@ export default class QueryEditor extends React.Component {
     // editor is updated, which can later be used to protect the editor from
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
+    this.variables = {};
   }
 
   componentDidMount() {
@@ -129,6 +133,7 @@ export default class QueryEditor extends React.Component {
       editor.on('hasCompletion', this._onHasCompletion);
       editor.on('beforeChange', this._onBeforeChange);
     }
+    this.addOverlay();
   }
 
   componentDidUpdate(prevProps) {
@@ -152,6 +157,10 @@ export default class QueryEditor extends React.Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     this.ignoreChangeEvent = false;
+    let variables = getEnvironmentVariables(this.props.collection);
+    if (!isEqual(variables, this.variables)) {
+      this.addOverlay();
+    }
   }
 
   componentWillUnmount() {
@@ -161,6 +170,15 @@ export default class QueryEditor extends React.Component {
       this.editor.off('hasCompletion', this._onHasCompletion);
       this.editor = null;
     }
+  }
+
+  addOverlay = () => {
+    let variables = getEnvironmentVariables(this.props.collection);
+    this.variables = variables;
+    console.log(variables);
+
+    defineCodeMirrorBrunoVariablesMode(variables, "text/plain");
+    this.editor.setOption('mode', 'brunovariables');
   }
 
   render() {

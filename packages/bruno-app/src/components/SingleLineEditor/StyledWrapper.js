@@ -27,7 +27,6 @@ const StyledWrapper = styled.div`
 
   .cm-variable-valid{color: green}
   .cm-variable-invalid{color: red}
-  .cm-matchhighlight {background-color: yellow}
 `;
 
 export default StyledWrapper;

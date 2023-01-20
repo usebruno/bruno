@@ -67,6 +67,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     switch (tab) {
       case 'query': {
         return <QueryEditor
+          collection={collection}
           theme={storedTheme}
           schema={schema}
           width={leftPaneWidth}
