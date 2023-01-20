@@ -43,6 +43,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <SingleLineEditor 
           value={url} 
           onChange={(newValue) => onUrlChange(newValue)}
+          onRun={handleRun}
           collection={collection}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>

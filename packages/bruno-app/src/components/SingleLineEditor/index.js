@@ -25,11 +25,44 @@ class SingleLineEditor extends Component {
       autofocus: true,
       mode: "brunovariables",
       extraKeys: {
-        "Enter": () => {},
-        "Ctrl-Enter": () => {},
-        "Cmd-Enter": () => {},
-        "Alt-Enter": () => {},
-        "Shift-Enter": () => {}
+        "Enter": () => {
+          if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
+        "Ctrl-Enter": () => {
+          if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
+        "Cmd-Enter": () => {
+          if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
+        "Alt-Enter": () => {
+          if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
+        "Shift-Enter": () => {
+          if (this.props.onRun) {
+            this.props.onRun();
+          }
+        },
+        'Cmd-S': () => {
+          if (this.props.onSave) {
+            this.props.onSave();
+          }
+        },
+        'Ctrl-S': () => {
+          if (this.props.onSave) {
+            this.props.onSave();
+          }
+        },
+        'Cmd-F': () => {},
+        'Ctrl-F': () => {},
+        'Tab': () => {}
       },
     });
     this.editor.setValue(this.props.value)
