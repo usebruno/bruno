@@ -5,6 +5,7 @@ const StyledWrapper = styled.div`
     white-space: pre-line;
     word-wrap: break-word;
     word-break: break-all;
+    font-family: Inter, sans-serif !important;
 
     .arrow {
       opacity: 0.5;

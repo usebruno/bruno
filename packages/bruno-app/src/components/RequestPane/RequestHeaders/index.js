@@ -4,6 +4,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 
 const RequestHeaders = ({ item, collection }) => {
@@ -19,6 +21,7 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
+  const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {
@@ -82,15 +85,15 @@ const RequestHeaders = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={header.value}
-                        className="mousetrap"
-                        onChange={(e) => handleHeaderValueChange(e, header, 'value')}
+                      <SingleLineEditor 
+                        value={header.value} 
+                        onChange={(newValue) => handleHeaderValueChange({
+                          target: {
+                            value: newValue
+                          }
+                        }, header, 'value')}
+                        onRun={handleRun}
+                        collection={collection}
                       />
                     </td>
                     <td>
