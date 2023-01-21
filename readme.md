@@ -5,23 +5,7 @@ Opensource IDE for exploring and testing api's.
 
 ### Bring Your Own Version Control ✨
 Bruno is built from the ground up with the Local-first paradigm in mind. This allows developers to directly store there collections on top of their local filesystem. The collections are mirrored as folders and files on the filesystem.
-![bruno](assets/images/local-collections.png)
-
-### Comparision with Similar tools ⚖️
-Bruno is at early stages of development, and does not yet have all the bells and whistles.
-Here is a rundown of key areas where bruno is different from  similar tools out there.
-
-| Feature  | Bruno | Postman | Insomnia | Hoppscotch |
-| ---------| ------| --------| ---------| ---------- |
-| Open source Client             | ✔️ | ✖️ | ✔️ | ✔️ |
-| Open source Sync Server        | ✔️ | ✖️ | ✖️ | ✖️ |
-| Local (Filesystem) Collections | ✔️ | ✖️ | ✖️ | ✖️ |
-| Chrome Extension               | ✔️ | ✖️ | ✖️ | ✖️ |
-| Run using Docker               | ✔️ | ✖️ | ✖️ | ✔️ |
-| Desktop App                    | ✔️ | ✔️ | ✔️ | ✖️ |
-| Run in Browser                 | ✔️ | ✔️ | ✖️ | ✔️ |
-| Multi Tab Requests             | ✔️ | ✔️ | ✖️ | ✖️ |
-
+<!-- ![bruno](assets/images/local-collections.png) -->
 
 ### Contribute 👩‍💻🧑‍💻
 I am happy that you are looking to improve bruno. Please checkout the [contributing guide](contributing.md)
