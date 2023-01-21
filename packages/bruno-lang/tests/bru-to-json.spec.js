@@ -89,4 +89,29 @@ describe('bruToJson', () => {
   });
 });
 
+describe('jsonToBru - should parse bru file having empty url', () => {
+  const requestFile = `name Send Bulk SMS
+method GET
+url 
+type http-request
+body-mode none
+seq 1
+`;
 
+  it('should parse .bru file having empty url', () => {
+    const result = bruToJson(requestFile);
+
+    expect(result).toEqual({
+      type: 'http-request',
+      name: 'Send Bulk SMS',
+      seq: 1,
+      request: {
+        method: 'GET',
+        url: '',
+        params: [],
+        headers: [],
+        body: { mode: 'none' }
+      }
+    });
+  });
+});

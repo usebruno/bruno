@@ -1,14 +1,14 @@
 const {
   sequenceOf,
-  whitespace,
   str,
-  lookAhead,
+  regex,
   choice,
   endOfInput,
   everyCharUntil
 } = require("arcsecond");
 
-const newline = lookAhead(str("\n"));
+const whitespace = regex(/^[ \t]*/)
+const newline = regex(/^\r?\n/);
 const newLineOrEndOfInput = choice([endOfInput, newline]);
 
 const inlineTag = sequenceOf([
@@ -21,8 +21,15 @@ const inlineTag = sequenceOf([
     str('body-mode')
   ]),
   whitespace,
-  everyCharUntil(newLineOrEndOfInput)
+  choice([
+    newline,
+    everyCharUntil(newLineOrEndOfInput)
+  ])
 ]).map(([key, _, val]) => {
+  if(val === '\n' || val === '\r\n') {
+    val = '';
+  }
+
   if(key === 'body-mode') {
     return {
       body: {
