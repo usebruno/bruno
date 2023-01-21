@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
+import Tooltip from 'components/Tooltip';
 import Modal from 'components/Modal';
 
 const CreateCollection = ({ onClose }) => {
@@ -15,13 +16,16 @@ const CreateCollection = ({ onClose }) => {
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
+      collectionFolderName: '',
       collectionLocation: ''
     },
     validationSchema: Yup.object({
-      collectionName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      collectionName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('collection name is required'),
+      collectionFolderName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('folder name is required'),
+      collectionLocation: Yup.string().required('location is required')
     }),
     onSubmit: (values) => {
-      dispatch(createCollection(values.collectionName, values.collectionLocation))
+      dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
         .then(() => {
           toast.success('Collection created');
           onClose();
@@ -53,8 +57,9 @@ const CreateCollection = ({ onClose }) => {
     <Modal size="sm" title="Create Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
-          <label htmlFor="collectionName" className="block font-semibold">
-            Name
+          <label htmlFor="collectionName" className="flex items-center">
+            <span className='font-semibold'>Name</span>
+            <Tooltip text="Name of the collection" tooltipId="collection-name"/>
           </label>
           <input
             id="collection-name"
@@ -70,6 +75,25 @@ const CreateCollection = ({ onClose }) => {
             value={formik.values.collectionName || ''}
           />
           {formik.touched.collectionName && formik.errors.collectionName ? <div className="text-red-500">{formik.errors.collectionName}</div> : null}
+
+          <label htmlFor="collectionFolderName" className="flex items-center mt-3">
+            <span className='font-semibold'>Folder Name</span>
+            <Tooltip text="Name of the folder where your collection is stored" tooltipId="collection-folder-name"/>
+          </label>
+          <input
+            id="collection-folder-name"
+            type="text"
+            name="collectionFolderName"
+            ref={inputRef}
+            className="block textbox mt-2 w-full"
+            onChange={formik.handleChange}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={formik.values.collectionFolderName || ''}
+          />
+          {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? <div className="text-red-500">{formik.errors.collectionFolderName}</div> : null}
 
           <>
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">

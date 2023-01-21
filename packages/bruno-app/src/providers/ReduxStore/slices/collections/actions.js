@@ -713,11 +713,14 @@ export const openCollectionEvent = (uid, pathname, name) => (dispatch, getState)
   });
 };
 
-export const createCollection = (collectionName, collectionLocation) => () => {
+export const createCollection = (collectionName, collectionFolderName, collectionLocation) => () => {
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
-    ipcRenderer.invoke('renderer:create-collection', collectionName, collectionLocation).then(resolve).catch(reject);
+    ipcRenderer
+      .invoke('renderer:create-collection', collectionName, collectionFolderName, collectionLocation)
+      .then(resolve)
+      .catch(reject);
   });
 };
 

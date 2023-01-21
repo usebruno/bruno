@@ -34,9 +34,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create collection
-  ipcMain.handle('renderer:create-collection', async (event, collectionName, collectionLocation) => {
+  ipcMain.handle('renderer:create-collection', async (event, collectionName, collectionFolderName, collectionLocation) => {
     try {
-      const dirPath = path.join(collectionLocation, collectionName);
+      const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)){
         throw new Error(`collection: ${dirPath} already exists`);
       }
