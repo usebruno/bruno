@@ -44,7 +44,7 @@ const bruToJson = (fileContents) => {
   const json = {
     type: parsed.type || '',
     name: parsed.name || '',
-    seq: parsed.seq || 1,
+    seq: parsed.seq ? Number(parsed.seq) : 1,
     request: {
       method: parsed.method || '',
       url: parsed.url || '',
