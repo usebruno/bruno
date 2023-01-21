@@ -18,28 +18,19 @@ const StyledWrapper = styled.div`
     .CodeMirror-cursor {
       height: 20px !important;
       margin-top: 5px !important;
+      border-left: 1px solid ${(props) => props.theme.text} !important;
     }
 
     pre {
       font-family: Inter, sans-serif !important;
       font-weight: 400;
-      }
-  }
+    }
 
-  .tooltip {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    padding: 5px;
-    font-size: 12px;
-    z-index: 100;
+    .CodeMirror-line {
+      color: ${(props) => props.theme.text};
+    }
   }
-
-  .cm-variable-valid{color: green}
-  .cm-variable-invalid{color: red}
+  
 `;
 
 export default StyledWrapper;

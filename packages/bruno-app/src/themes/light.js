@@ -192,6 +192,15 @@ const lightTheme = {
     border: '#efefef',
     gutter: {
       bg: '#f3f3f3'
+    },
+    variable: {
+      valid: '#047857',
+      invalid: 'rgb(185, 28, 28)',
+      info: {
+        color: 'rgb(52, 52, 52)',
+        bg: 'white',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.45)'
+      }
     }
   },
 

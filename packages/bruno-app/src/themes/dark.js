@@ -188,6 +188,15 @@ const darkTheme = {
     border: 'transparent',
     gutter: {
       bg: '#1e1e1e'
+    },
+    variable: {
+      valid: 'rgb(11 178 126)',
+      invalid: '#f06f57',
+      info: {
+        color: '#ce9178',
+        bg: 'rgb(48,48,49)',
+        boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
+      }
     }
   },
 
