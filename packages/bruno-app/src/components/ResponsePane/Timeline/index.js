@@ -1,5 +1,6 @@
 import React from 'react';
 import forOwn from 'lodash/forOwn';
+import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const Timeline = ({ item }) => {
@@ -15,6 +16,8 @@ const Timeline = ({ item }) => {
     });
   });
 
+  let requestData = safeStringifyJSON(request.data);
+
   return (
     <StyledWrapper className="px-3 pb-4 w-full">
       <div>
@@ -29,9 +32,11 @@ const Timeline = ({ item }) => {
           );
         })}
 
-        <pre className='line request'>
-          <span className="arrow">{'>'}</span> data {request.data ? request.data : 'null'}
-        </pre>
+        {requestData ? (
+          <pre className='line request'>
+            <span className="arrow">{'>'}</span> data {requestData}
+          </pre>
+        ) : null}
       </div>
 
       <div className='mt-4'>

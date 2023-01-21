@@ -163,7 +163,6 @@ export default class QueryEditor extends React.Component {
     let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
-      console.log(variables);
       this.addOverlay();
     }
   }
@@ -180,7 +179,6 @@ export default class QueryEditor extends React.Component {
   addOverlay = () => {
     let variables = getEnvironmentVariables(this.props.collection);
     this.variables = variables;
-    console.log(variables);
 
     defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
     this.editor.setOption('mode', 'brunovariables');

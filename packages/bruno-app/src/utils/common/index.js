@@ -24,3 +24,25 @@ export const waitForNextTick = () => {
     setTimeout(() => resolve(), 0);
   });
 };
+
+export const safeParseJSON = (str) => {
+  if(!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    return str;
+  }
+};
+
+export const safeStringifyJSON = (obj) => {
+  if(!obj) {
+    return obj;
+  }
+  try {
+    return JSON.stringify(obj);
+  } catch (e) {
+    return obj;
+  }
+}
