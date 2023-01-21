@@ -16,8 +16,8 @@ const newLineOrEndOfInput = choice([newline, endOfInput]);
 
 const begin = regex(/^vars\s*\r?\n/);
 const end = regex(/^[\r?\n]*\/vars\s*[\r?\n]*/);
-const wordWithoutWhitespace = regex(/^[^\s\t\n]+/g);
-const wordWithWhitespace = regex(/^[^\n]+/g);
+const wordWithoutWhitespace = regex(/^[^\s\r?\t\n]+/g);
+const wordWithWhitespace = regex(/^[^\r?\n]+/g);
 
 const line = sequenceOf([
   optionalWhitespace,
