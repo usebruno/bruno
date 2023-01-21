@@ -14,12 +14,13 @@ if (!SERVER_RENDERED) {
 
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
-
+    if(!str || !str.length || typeof str !== 'string') {
+      return;
+    }
     // str is of format {{variableName}}, extract variableName
-    const variableName = str.substring(2, str.length - 2);
-
-    // get the value of the variable
-    const variableValue = options.variables[variableName] || '';
+    // we are seeing that from the gql query editor, the token string is of format variableName
+    const variableName = str.replace('{{', '').replace('}}', '').trim();
+    const variableValue = options.variables[variableName];
 
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');

@@ -40,7 +40,10 @@ export default class QueryEditor extends React.Component {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
-      mode: 'graphql',
+      mode: 'brunovariables',
+      brunoVarInfo: {
+        variables: getEnvironmentVariables(this.props.collection),
+      },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       keyMap: 'sublime',
@@ -159,6 +162,8 @@ export default class QueryEditor extends React.Component {
     this.ignoreChangeEvent = false;
     let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
+      this.editor.options.brunoVarInfo.variables = variables;
+      console.log(variables);
       this.addOverlay();
     }
   }
@@ -177,7 +182,7 @@ export default class QueryEditor extends React.Component {
     this.variables = variables;
     console.log(variables);
 
-    defineCodeMirrorBrunoVariablesMode(variables, "text/plain");
+    defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
     this.editor.setOption('mode', 'brunovariables');
   }
 
