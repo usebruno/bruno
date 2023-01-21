@@ -256,10 +256,10 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
     each(sourceItems, (si) => {
       const di = {
         uid: si.uid,
-        type: si.type
+        type: si.type,
+        name: si.name,
+        seq: si.seq
       };
-
-      di.name = si.name;
 
       // if items is draft, then take data from draft to save
       // The condition "!options.ignoreDraft" may appear confusing
@@ -337,6 +337,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
+    seq: _item.seq,
     request: {
       method: _item.request.method,
       url: _item.request.url,

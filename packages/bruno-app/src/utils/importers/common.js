@@ -4,6 +4,7 @@ import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
+import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
 
@@ -51,3 +52,21 @@ export const updateUidsInCollection = (_collection) => {
 
   return collection;
 };
+
+export const hydrateSeqInCollection = (collection) => {
+  const hydrateSeq = (items = []) => {
+    let index = 1;
+    each(items, (item) => {
+      if(isItemARequest(item) && !item.seq) {
+        item.seq = index;
+        index++;
+      }
+      if (item.items && item.items.length) {
+        hydrateSeq(item.items);
+      }
+    });
+  };
+  hydrateSeq(collection.items);
+
+  return collection;
+}

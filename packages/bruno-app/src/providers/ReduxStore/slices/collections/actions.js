@@ -516,9 +516,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       }
     };
 
+    // itemUid is null when we are creating a new request at the root level
     const filename = resolveRequestFilename(requestName);
     if (!itemUid) {
       const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+      item.seq = collectionCopy.items ? collectionCopy.items.length : 1;
+      item.seq = item.seq + 1;
+
       if (!reqWithSameNameExists) {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
@@ -531,6 +535,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       const currentItem = findItemInCollection(collection, itemUid);
       if (currentItem) {
         const reqWithSameNameExists = find(currentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+        item.seq = currentItem.items ? currentItem.items.length : 1;
+        item.seq = item.seq + 1;
         if (!reqWithSameNameExists) {
           const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${filename}`;
           const { ipcRenderer } = window;

@@ -70,7 +70,7 @@ const itemSchema = Yup.object({
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
   filename: Yup.string().max(1024, 'filename cannot be more than 1024 characters').nullable(),
   pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
-}).noUnknown(true);
+}).noUnknown(true).strict();
 
 const collectionSchema = Yup.object({
   version: Yup.string().oneOf(['1']).required('version is required'),
