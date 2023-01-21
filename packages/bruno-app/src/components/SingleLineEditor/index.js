@@ -22,7 +22,6 @@ class SingleLineEditor extends Component {
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
-      autofocus: true,
       mode: "brunovariables",
       brunoVarInfo: {
         variables: getEnvironmentVariables(this.props.collection),
@@ -54,7 +53,9 @@ class SingleLineEditor extends Component {
           }
         },
         'Cmd-S': () => {
+          console.log('cmd-s');
           if (this.props.onSave) {
+            console.log('cmd-s +');
             this.props.onSave();
           }
         },

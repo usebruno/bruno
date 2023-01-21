@@ -2,6 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import SendIcon from 'components/Icons/Send';
@@ -14,6 +15,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
 
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const onUrlChange = (value) => {
     dispatch(
       requestUrlChanged({
@@ -42,6 +44,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       <div className="flex items-center flex-grow input-container h-full">
         <SingleLineEditor 
           value={url} 
+          onSave={onSave}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}

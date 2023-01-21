@@ -5,7 +5,7 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addMultipartFormParam, updateMultipartFormParam, deleteMultipartFormParam } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const MultipartFormParams = ({ item, collection }) => {
@@ -21,6 +21,7 @@ const MultipartFormParams = ({ item, collection }) => {
     );
   };
 
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleParamChange = (e, _param, type) => {
     const param = cloneDeep(_param);
@@ -86,6 +87,7 @@ const MultipartFormParams = ({ item, collection }) => {
                     </td>
                     <td>
                       <SingleLineEditor 
+                        onSave={onSave}
                         value={param.value} 
                         onChange={(newValue) => handleParamChange({
                           target: {

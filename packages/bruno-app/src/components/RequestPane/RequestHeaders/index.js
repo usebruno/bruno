@@ -4,7 +4,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 
@@ -21,6 +21,7 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
@@ -85,8 +86,9 @@ const RequestHeaders = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor 
-                        value={header.value} 
+                      <SingleLineEditor
+                        value={header.value}
+                        onSave={onSave}
                         onChange={(newValue) => handleHeaderValueChange({
                           target: {
                             value: newValue

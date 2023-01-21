@@ -5,7 +5,7 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { addFormUrlEncodedParam, updateFormUrlEncodedParam, deleteFormUrlEncodedParam } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
@@ -21,6 +21,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
     );
   };
 
+  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleParamChange = (e, _param, type) => {
     const param = cloneDeep(_param);
@@ -86,7 +87,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                     </td>
                     <td>
                       <SingleLineEditor 
-                        value={param.value} 
+                        value={param.value}
+                        onSave={onSave}
                         onChange={(newValue) => handleParamChange({
                           target: {
                             value: newValue
