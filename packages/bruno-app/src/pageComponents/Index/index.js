@@ -31,6 +31,8 @@ if (!SERVER_RENDERED) {
   require('codemirror-graphql/info');
   require('codemirror-graphql/jump');
   require('codemirror-graphql/mode');
+
+  require('utils/codemirror/brunoVarInfo');
 }
 
 export default function Main() {

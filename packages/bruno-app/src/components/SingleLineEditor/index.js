@@ -24,6 +24,9 @@ class SingleLineEditor extends Component {
       lineNumbers: false,
       autofocus: true,
       mode: "brunovariables",
+      brunoVarInfo: {
+        variables: getEnvironmentVariables(this.props.collection),
+      },
       extraKeys: {
         "Enter": () => {
           if (this.props.onRun) {
@@ -65,8 +68,7 @@ class SingleLineEditor extends Component {
         'Tab': () => {}
       },
     });
-    this.editor.setValue(this.props.value)
-
+    this.editor.setValue(this.props.value);
     this.editor.on('change', (cm) => {
       this.props.onChange(cm.getValue());
     });
@@ -76,6 +78,7 @@ class SingleLineEditor extends Component {
   componentDidUpdate(prevProps) {
     let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
+      this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
     }
   }
