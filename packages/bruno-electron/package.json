@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "name": "bruno",
   "description": "Opensource API Client",
   "homepage": "https://www.usebruno.com",
@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder",
+    "dist": "electron-builder --mac --win --linux",
     "pack-app": "electron-builder --dir"
   },
   "dependencies": {

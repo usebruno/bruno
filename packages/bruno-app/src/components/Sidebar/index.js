@@ -98,7 +98,7 @@ const Sidebar = () => {
                   title="GitHub"
                 ></iframe>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.6.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.6.1</div>
             </div>
           </div>
         </div>
