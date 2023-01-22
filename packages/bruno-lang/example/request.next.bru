@@ -55,10 +55,8 @@ script
 /script
 
 assert
-  {
-    "$res.data.order.items.length": 1,
-    "$res.data.orderNumber.isDefined": true
-  }
+  1 $res.data.order.items.length 1
+  1 $res.data.orderNumber.isDefined true
 /assert
 
 docs

@@ -18,6 +18,7 @@ const {
   bodyGraphqlTag,
   bodyTextTag,
   bodyXmlTag,
+  bodyFormUrlEncodedTagDeprecated,
   bodyFormUrlEncodedTag,
   bodyMultipartFormTag
 } = require('./body-tag');
@@ -33,6 +34,7 @@ const bruToJson = (fileContents) => {
     bodyGraphqlTag,
     bodyTextTag,
     bodyXmlTag,
+    bodyFormUrlEncodedTagDeprecated,
     bodyFormUrlEncodedTag,
     bodyMultipartFormTag,
     scriptTag,
@@ -155,7 +157,7 @@ ${indentString(body.xml)}
 
   if(body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `
-body(type=form-url-encoded)
+body(type=form-urlencoded)
 ${body.formUrlEncoded.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.value}`).join('\n')}
 /body
 `;

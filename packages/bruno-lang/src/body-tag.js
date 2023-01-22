@@ -85,8 +85,22 @@ const line = sequenceOf([
 const lines = many(line);
 const keyvalLines = sepBy(newline)(lines);
 
+
+/**
+ * We have deprecated form-url-encoded type in body tag, it was a misspelling on my part
+ * The new type is form-urlencoded
+ * 
+ * Very few peope would have used this. I launched this to the public on 22 Jan 2023
+ * And I am making the change on 23 Jan 2023
+ * 
+ * This deprecated tag can be removed on 1 April 2023
+ */
+
 // body(type=form-url-encoded)
-const bodyFormUrlEncoded = regex(/^body\s*\(\s*type\s*=\s*form-url-encoded\s*\)\s*\r?\n/);
+const bodyFormUrlEncodedDeprecated = regex(/^body\s*\(\s*type\s*=\s*form-url-encoded\s*\)\s*\r?\n/);
+
+// body(type=form-urlencoded)
+const bodyFormUrlEncoded = regex(/^body\s*\(\s*type\s*=\s*form-urlencoded\s*\)\s*\r?\n/);
 
 // body(type=multipart-form)
 const bodyMultipartForm = regex(/^body\s*\(\s*type\s*=\s*multipart-form\s*\)\s*\r?\n/);
@@ -95,6 +109,14 @@ const bodyMultipartForm = regex(/^body\s*\(\s*type\s*=\s*multipart-form\s*\)\s*\
 // currently the line parser consumes the last newline
 // todo: fix this
 const bodyEndRelaxed = regex(/^[\r?\n]*\/body\s*[\r?\n]*/);
+
+const bodyFormUrlEncodedTagDeprecated = between(bodyFormUrlEncodedDeprecated)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
+  return {
+    body: {
+      formUrlEncoded: result
+    }
+  }
+});
 
 const bodyFormUrlEncodedTag = between(bodyFormUrlEncoded)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
   return {
@@ -117,6 +139,7 @@ module.exports = {
   bodyGraphqlTag,
   bodyTextTag,
   bodyXmlTag,
+  bodyFormUrlEncodedTagDeprecated,
   bodyFormUrlEncodedTag,
   bodyMultipartFormTag
 };
