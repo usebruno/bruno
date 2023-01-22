@@ -21,6 +21,8 @@ const {
   bodyFormUrlEncodedTag,
   bodyMultipartFormTag
 } = require('./body-tag');
+const scriptTag  = require('./script-tag');
+const testsTag   = require('./tests-tag');
 
 const bruToJson = (fileContents) => {
   const parser = many(choice([
@@ -33,6 +35,8 @@ const bruToJson = (fileContents) => {
     bodyXmlTag,
     bodyFormUrlEncodedTag,
     bodyMultipartFormTag,
+    scriptTag,
+    testsTag,
     anyChar
   ]));
 
@@ -50,7 +54,9 @@ const bruToJson = (fileContents) => {
       url: parsed.url || '',
       params: parsed.params || [],
       headers: parsed.headers || [],
-      body: parsed.body || {mode: 'none'}
+      body: parsed.body || {mode: 'none'},
+      script: parsed.script ? outdentString(parsed.script) : '',
+      tests: parsed.tests ? outdentString(parsed.tests) : ''
     }
   };
 
@@ -85,7 +91,9 @@ const jsonToBru = (json) => {
       url,
       params,
       headers,
-      body
+      body,
+      script,
+      tests
     }
   } = json;
 
@@ -158,6 +166,22 @@ ${body.formUrlEncoded.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item
 body(type=multipart-form)
 ${body.multipartForm.map(item => `  ${item.enabled ? 1 : 0} ${item.name} ${item.value}`).join('\n')}
 /body
+`;
+  }
+
+  if(script && script.length) {
+    bru += `
+script
+${indentString(script)}
+/script
+`;
+  }
+
+  if(tests && tests.length) {
+    bru += `
+tests
+${indentString(tests)}
+/tests
 `;
   }
 

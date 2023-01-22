@@ -589,6 +589,34 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = action.payload.script;
+        }
+      }
+    },
+    updateRequestTests: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.tests = action.payload.tests;
+        }
+      }
+    },
     updateRequestMethod: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -790,6 +818,8 @@ export const {
   updateRequestBodyMode,
   updateRequestBody,
   updateRequestGraphqlQuery,
+  updateRequestScript,
+  updateRequestTests,
   updateRequestMethod,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,

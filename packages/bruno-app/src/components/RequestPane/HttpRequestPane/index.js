@@ -7,6 +7,8 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import Script from 'components/RequestPane/Script';
+import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
@@ -33,6 +35,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
+      }
+      case 'script': {
+        return <Script item={item} collection={collection} />;
+      }
+      case 'tests': {
+        return <Tests item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -66,6 +74,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+        </div>
+        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
+          Script
+        </div>
+        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
+          Tests
         </div>
         {/* Moved to post mvp */}
         {/* <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>Auth</div> */}

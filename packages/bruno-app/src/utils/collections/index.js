@@ -280,7 +280,9 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               graphql: si.draft.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            }
+            },
+            script: si.draft.request.script,
+            tests: si.draft.request.tests
           };
         }
       } else {
@@ -298,7 +300,9 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               graphql: si.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            }
+            },
+            script: si.request.script,
+            tests: si.request.tests
           };
         }
       }
@@ -343,7 +347,9 @@ export const transformRequestToSaveToFilesystem = (item) => {
       url: _item.request.url,
       params: [],
       headers: [],
-      body: _item.request.body
+      body: _item.request.body,
+      script: _item.request.script,
+      tests: _item.request.tests
     }
   };
 

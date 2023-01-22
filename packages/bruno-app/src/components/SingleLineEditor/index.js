@@ -53,9 +53,7 @@ class SingleLineEditor extends Component {
           }
         },
         'Cmd-S': () => {
-          console.log('cmd-s');
           if (this.props.onSave) {
-            console.log('cmd-s +');
             this.props.onSave();
           }
         },

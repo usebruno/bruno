@@ -80,7 +80,9 @@ describe('bruToJson', () => {
               "value": "governingdynamics"
             }
           ]
-        }
+        },
+        "script": "const foo='bar';",
+        "tests": "bruno.test('200 ok', () => {});"
       }
     };
 

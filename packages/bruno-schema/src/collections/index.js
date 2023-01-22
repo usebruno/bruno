@@ -41,7 +41,7 @@ const requestBodySchema = Yup.object({
   xml:  Yup.string().max(10240, 'xml must be 10240 characters or less').nullable(),
   formUrlEncoded:  Yup.array().of(keyValueSchema).nullable(),
   multipartForm:  Yup.array().of(keyValueSchema).nullable(),
-  graphql: graphqlBodySchema.nullable(),
+  graphql: graphqlBodySchema.nullable()
 }).noUnknown(true).strict();
 
 // Right now, the request schema is very tightly coupled with http request
@@ -52,7 +52,9 @@ const requestSchema = Yup.object({
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(keyValueSchema).required('params are required'),
-  body: requestBodySchema
+  body: requestBodySchema,
+  script: Yup.string().nullable(),
+  tests: Yup.string().nullable()
 }).noUnknown(true).strict();
 
 const itemSchema = Yup.object({
