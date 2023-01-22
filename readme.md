@@ -1,11 +1,10 @@
 # bruno
-Opensource IDE for exploring and testing api's.
+## Opensource IDE for exploring and testing api's. <br />
 
-![bruno](assets/images/landing.png)
 
-### Bring Your Own Version Control ✨
-Bruno is built from the ground up with the Local-first paradigm in mind. This allows developers to directly store there collections on top of their local filesystem. The collections are mirrored as folders and files on the filesystem.
-<!-- ![bruno](assets/images/local-collections.png) -->
+![bruno](assets/images/landing-2.png)
+[Download App](https://www.usebruno.com) <br />
+
 
 ### Contribute 👩‍💻🧑‍💻
 I am happy that you are looking to improve bruno. Please checkout the [contributing guide](contributing.md)
