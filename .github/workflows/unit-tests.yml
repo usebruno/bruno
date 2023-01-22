@@ -17,3 +17,5 @@ jobs:
       run: npm i --legacy-peer-deps
     - name: Test Package bruno-lang
       run: npm run test --workspace=packages/bruno-lang
+    - name: Test Package bruno-schema
+      run: npm run test --workspace=packages/bruno-schema
