@@ -1,6 +1,5 @@
 # bruno
-## Opensource IDE for exploring and testing api's. <br />
-
+### Opensource IDE for exploring and testing api's. <br />
 
 ![bruno](assets/images/landing-2.png)
 [Download App](https://www.usebruno.com) <br />
