@@ -6,7 +6,7 @@ const {
   jsonToBru,
   bruToJson,
   envJsonToBru,
-} = require('@usebruno/bruno-lang');
+} = require('@usebruno/lang');
 const {
   isValidPathname,
   writeFile,

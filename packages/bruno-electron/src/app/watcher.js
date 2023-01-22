@@ -8,7 +8,7 @@ const {
   jsonToBru,
   bruToEnvJson,
   envJsonToBru,
-} = require('@usebruno/bruno-lang');
+} = require('@usebruno/lang');
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');

@@ -13,7 +13,7 @@
     "pack-app": "electron-builder --dir"
   },
   "dependencies": {
-    "@usebruno/bruno-lang": "0.1.0",
+    "@usebruno/lang": "0.1.0",
     "@usebruno/schema": "0.1.0",
     "axios": "^0.26.0",
     "chokidar": "^3.5.3",
