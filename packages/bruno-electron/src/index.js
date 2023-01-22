@@ -7,7 +7,7 @@ const { setContentSecurityPolicy } = require('electron-util');
 const menuTemplate = require('./app/menu-template');
 const LastOpenedCollections = require('./app/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
-const registerLocalCollectionsIpc = require('./ipc/local-collection');
+const registerCollectionsIpc = require('./ipc/collection');
 const Watcher = require('./app/watcher');
 
 const lastOpenedCollections = new LastOpenedCollections();
@@ -52,7 +52,7 @@ app.on('ready', async () => {
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
-  registerLocalCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
+  registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
 });
 
 // Quit the app once all windows are closed

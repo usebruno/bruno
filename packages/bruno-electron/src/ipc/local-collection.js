@@ -421,9 +421,9 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
 
 }
 
-const registerLocalCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
+const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
   registerRendererEventHandlers(mainWindow, watcher, lastOpenedCollections);
   registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
 }
 
-module.exports = registerLocalCollectionsIpc;
+module.exports = registerCollectionsIpc;
