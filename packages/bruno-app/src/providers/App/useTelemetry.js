@@ -13,6 +13,10 @@ const isPlaywrightTestRunning = () => {
   return publicRuntimeConfig.PLAYWRIGHT ? true : false;
 };
 
+const isDevEnv = () => {
+  return publicRuntimeConfig.ENV === 'dev';
+};
+
 // Todo support chrome and firefox extension
 const getPlatform = () => {
   return isElectron() ? 'electron' : 'web';
@@ -40,6 +44,10 @@ const getAnonymousTrackingId = () => {
 
 const trackStart = () => {
   if(isPlaywrightTestRunning()) {
+    return;
+  }
+
+  if(isDevEnv()) {
     return;
   }
 

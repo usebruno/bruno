@@ -23,7 +23,6 @@ const useCollectionTreeSync = () => {
     const { ipcRenderer } = window;
 
     const _openCollection = (pathname, uid, name) => {
-      console.log(`collection uid: ${uid}, pathname: ${pathname}, name: ${name}`);
       dispatch(openCollectionEvent(uid, pathname, name));
     };
 
