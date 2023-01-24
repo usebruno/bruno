@@ -2,6 +2,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { forOwn, extend } = require('lodash');
+const { ScriptRuntime } = require('@usebruno/js');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../utils/cancel-token');
 
 const registerNetworkIpc = () => {
@@ -23,6 +24,12 @@ const registerNetworkIpc = () => {
         const cancelToken = axios.CancelToken.source();
         request.cancelToken = cancelToken.token;
         saveCancelToken(options.cancelTokenUid, cancelToken);
+      }
+
+      if(request.script && request.script.length) {
+        request.script = request.script += '\n onRequest(brunoRequest);';
+        const scriptRuntime = new ScriptRuntime();
+        scriptRuntime.run(request.script, request);
       }
 
       const result = await axios(request);

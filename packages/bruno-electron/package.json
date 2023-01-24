@@ -13,6 +13,7 @@
     "pack-app": "electron-builder --dir"
   },
   "dependencies": {
+    "@usebruno/js": "0.1.0",
     "@usebruno/lang": "0.1.0",
     "@usebruno/schema": "0.1.0",
     "axios": "^0.26.0",
@@ -25,6 +26,7 @@
     "is-valid-path": "^0.1.1",
     "lodash": "^4.17.21",
     "nanoid": "3.3.4",
+    "vm2": "^3.9.13",
     "yup": "^0.32.11"
   },
   "optionalDependencies": {

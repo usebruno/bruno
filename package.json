@@ -6,6 +6,7 @@
     "packages/bruno-electron",
     "packages/bruno-tauri",
     "packages/bruno-schema",
+    "packages/bruno-js",
     "packages/bruno-lang",
     "packages/bruno-testbench",
     "packages/bruno-graphql-docs"

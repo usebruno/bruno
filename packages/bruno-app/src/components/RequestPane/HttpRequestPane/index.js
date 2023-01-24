@@ -75,12 +75,12 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
         </div>
-        {/* <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
+        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-        </div> */}
+        </div>
         {/* Moved to post mvp */}
         {/* <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>Auth</div> */}
         {focusedTab.requestPaneTab === 'body' ? (

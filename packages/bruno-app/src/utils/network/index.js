@@ -86,7 +86,9 @@ const sendHttpRequest = async (request, options, onRequestSent) => {
       axiosRequest.data = graphqlQuery;
     }
 
-    console.log('>>> Sending Request');
+    if (request.script && request.script.length) {
+      axiosRequest.script = request.script;
+    }
     console.log(axiosRequest);
 
     onRequestSent(axiosRequest);
