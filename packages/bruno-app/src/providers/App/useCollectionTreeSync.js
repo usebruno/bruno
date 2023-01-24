@@ -6,7 +6,8 @@ import {
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
-  collectionUnlinkEnvFileEvent
+  collectionUnlinkEnvFileEvent,
+  requestSentEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
@@ -80,18 +81,24 @@ const useCollectionTreeSync = () => {
       toast.error(message || 'Something went wrong!');
     };
 
+    const _httpRequestSent = (val) => {
+      dispatch(requestSentEvent(val));
+    };
+
     ipcRenderer.invoke('renderer:ready');
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
     const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
     const removeListener4 = ipcRenderer.on('main:display-error', _displayError);
+    const removeListener5 = ipcRenderer.on('main:http-request-sent', _httpRequestSent);
 
     return () => {
       removeListener1();
       removeListener2();
       removeListener3();
       removeListener4();
+      removeListener5();
     };
   }, [isElectron]);
 };

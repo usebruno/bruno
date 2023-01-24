@@ -25,7 +25,6 @@ import { saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
-  requestSent,
   requestCancelled,
   responseReceived,
   newItem as _newItem,
@@ -100,23 +99,11 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  const cancelTokenUid = uuid();
 
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
-    const onRequestSent = (req) => {
-      dispatch(
-        requestSent({
-          requestSent: req,
-          itemUid: item.uid,
-          collectionUid: collectionUid,
-          cancelTokenUid: cancelTokenUid
-        })
-      );
-    };
 
     const itemCopy = cloneDeep(item);
     const collectionCopy = cloneDeep(collection);
@@ -128,7 +115,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       }
     }
 
-    sendNetworkRequest(itemCopy, { cancelTokenUid: cancelTokenUid }, onRequestSent)
+    sendNetworkRequest(itemCopy, collectionUid)
       .then((response) => {
         return dispatch(
           responseReceived({

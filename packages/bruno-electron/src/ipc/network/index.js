@@ -3,12 +3,19 @@ const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { forOwn, extend } = require('lodash');
 const { ScriptRuntime } = require('@usebruno/js');
-const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../utils/cancel-token');
+const prepareRequest = require('./prepare-request');
+const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
+const { uuid } = require('../../utils/common');
 
-const registerNetworkIpc = () => {
+const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, request, options) => {
+  ipcMain.handle('send-http-request', async (event, item, collectionUid) => {
+    const cancelTokenUid = uuid();
+
     try {
+      const _request = item.draft ? item.draft.request : item.request;
+      const request = prepareRequest(_request);
+
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
       if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
@@ -20,11 +27,9 @@ const registerNetworkIpc = () => {
         request.data = form;
       }
 
-      if(options && options.cancelTokenUid) {
-        const cancelToken = axios.CancelToken.source();
-        request.cancelToken = cancelToken.token;
-        saveCancelToken(options.cancelTokenUid, cancelToken);
-      }
+      const cancelToken = axios.CancelToken.source();
+      request.cancelToken = cancelToken.token;
+      saveCancelToken(cancelTokenUid, cancelToken);
 
       if(request.script && request.script.length) {
         request.script = request.script += '\n onRequest(brunoRequest);';
@@ -32,11 +37,21 @@ const registerNetworkIpc = () => {
         scriptRuntime.run(request.script, request);
       }
 
+      mainWindow.webContents.send('main:http-request-sent', {
+        requestSent: {
+          url: request.url,
+          method: request.method,
+          headers: request.headers,
+          data: request.data
+        },
+        collectionUid,
+        itemUid: item.uid,
+        cancelTokenUid
+      });
+
       const result = await axios(request);
 
-      if(options && options.cancelTokenUid) {
-        deleteCancelToken(options.cancelTokenUid);
-      }
+      deleteCancelToken(cancelTokenUid);
 
       return {
         status: result.status,
@@ -45,9 +60,7 @@ const registerNetworkIpc = () => {
         data: result.data
       };
     } catch (error) {
-      if(options && options.cancelTokenUid) {
-        deleteCancelToken(options.cancelTokenUid);
-      }
+      deleteCancelToken(cancelTokenUid);
 
       if(error.response) {
         return {

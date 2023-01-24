@@ -147,7 +147,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    requestSent: (state, action) => {
+    requestSentEvent: (state, action) => {
       const { itemUid, collectionUid, cancelTokenUid, requestSent } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
@@ -795,7 +795,7 @@ export const {
   deleteItem,
   renameItem,
   cloneItem,
-  requestSent,
+  requestSentEvent,
   requestCancelled,
   responseReceived,
   saveRequest,
