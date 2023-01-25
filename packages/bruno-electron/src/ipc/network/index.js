@@ -9,12 +9,12 @@ const { uuid } = require('../../utils/common');
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collectionUid) => {
+  ipcMain.handle('send-http-request', async (event, item, collectionUid, environment) => {
     const cancelTokenUid = uuid();
 
     try {
       const _request = item.draft ? item.draft.request : item.request;
-      const request = prepareRequest(_request);
+      const request = prepareRequest(_request, environment);
 
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427

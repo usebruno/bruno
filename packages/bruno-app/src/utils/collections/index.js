@@ -454,61 +454,6 @@ export const isLocalCollection = (collection) => {
   return collection.pathname ? true : false;
 };
 
-export const interpolateEnvironmentVars = (item, variables) => {
-  const envVars = {
-    interpolation: { escapeValue: true }
-  };
-  const _item = item.draft ? item.draft : item;
-  const { request } = _item;
-  each(variables, (variable) => {
-    envVars[variable.name] = variable.value;
-  });
-
-  // TODO: Find a better interpolation library
-  const interpolate = (str) => {
-    if(!str || !str.length || typeof str !== "string") {
-      return str;
-    }
-
-    return str.reckon(envVars);
-  };
-
-  request.url = interpolate(request.url);
-
-  each(request.headers, (header) => {
-    header.value = interpolate(header.value);
-  });
-  each(request.params, (param) => {
-    param.value = interpolate(param.value);
-  });
-
-  // Todo: Make interpolation work with body mode json
-  switch (request.body.mode) {
-    case 'text': {
-      request.body.text = interpolate(request.body.text);
-      break;
-    }
-    case 'xml': {
-      request.body.text = interpolate(request.body.text);
-      break;
-    }
-    case 'multipartForm': {
-      each(request.body.multipartForm, (param) => {
-        param.value = interpolate(param.value);
-      });
-      break;
-    }
-    case 'formUrlEncoded': {
-      each(request.body.formUrlEncoded, (param) => {
-        param.value = interpolate(param.value);
-      });
-      break;
-    }
-  }
-
-  return request;
-};
-
 export const deleteUidsInItem = (item) => {
   delete item.uid;
   const params = get(item, 'request.params', []);

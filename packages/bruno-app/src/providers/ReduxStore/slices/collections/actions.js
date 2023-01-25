@@ -108,14 +108,9 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const itemCopy = cloneDeep(item);
     const collectionCopy = cloneDeep(collection);
 
-    if (collection.activeEnvironmentUid) {
-      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
-      if (environment) {
-        interpolateEnvironmentVars(itemCopy, environment.variables);
-      }
-    }
+    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    sendNetworkRequest(itemCopy, collectionUid)
+    sendNetworkRequest(itemCopy, collectionUid, environment)
       .then((response) => {
         return dispatch(
           responseReceived({

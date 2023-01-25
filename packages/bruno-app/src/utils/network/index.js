@@ -1,8 +1,8 @@
-export const sendNetworkRequest = async (item, collectionUid) => {
+export const sendNetworkRequest = async (item, collectionUid, environment) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
       const timeStart = Date.now();
-      sendHttpRequest(item, collectionUid)
+      sendHttpRequest(item, collectionUid, environment)
         .then((response) => {
           const timeEnd = Date.now();
           resolve({
@@ -20,12 +20,12 @@ export const sendNetworkRequest = async (item, collectionUid) => {
   });
 };
 
-const sendHttpRequest = async (item, collectionUid) => {
+const sendHttpRequest = async (item, collectionUid, environment) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('send-http-request', item, collectionUid)
+      .invoke('send-http-request', item, collectionUid, environment)
       .then(resolve)
       .catch(reject);
   });
