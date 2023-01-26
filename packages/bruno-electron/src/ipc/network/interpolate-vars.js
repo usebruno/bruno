@@ -1,5 +1,5 @@
 const Mustache = require('mustache');
-const { each } = require('lodash');
+const { each, get } = require('lodash');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -39,7 +39,8 @@ const interpolateVars = (request, environment) => {
   });
 
   // Todo: Make interpolation work with body mode json
-  switch (request.body.mode) {
+  const mode = get(request, 'body.mode');
+  switch (mode) {
     case 'text': {
       request.body.text = interpolate(request.body.text);
       break;

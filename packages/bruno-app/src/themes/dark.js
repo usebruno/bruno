@@ -16,6 +16,14 @@ const darkTheme = {
     }
   },
 
+  variables: {
+    bg: 'rgb(48, 48, 49)',
+
+    name: {
+      color: '#569cd6',
+    }
+  },
+
   menubar: {
     bg: '#333333'
   },

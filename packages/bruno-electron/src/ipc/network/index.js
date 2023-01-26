@@ -6,6 +6,7 @@ const { ScriptRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
+const interpolateVars = require('./interpolate-vars');
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
@@ -34,7 +35,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(request.script && request.script.length) {
         request.script = request.script += '\n onRequest(brunoRequest);';
         const scriptRuntime = new ScriptRuntime();
-        scriptRuntime.run(request.script, request);
+        scriptRuntime.run(request.script, request, environment);
       }
 
       mainWindow.webContents.send('main:http-request-sent', {
@@ -48,6 +49,8 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         itemUid: item.uid,
         cancelTokenUid
       });
+
+      interpolateVars(request, environment);
 
       const result = await axios(request);
 

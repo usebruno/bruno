@@ -20,6 +20,14 @@ const lightTheme = {
     bg: 'rgb(44, 44, 44)'
   },
 
+  variables: {
+    bg: '#fff',
+
+    name: {
+      color: '#546de5',
+    }
+  },
+
   sidebar: {
     color: 'rgb(52, 52, 52)',
     muted: '#4b5563',

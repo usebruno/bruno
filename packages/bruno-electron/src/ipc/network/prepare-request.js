@@ -1,9 +1,7 @@
 const { get, each, filter } = require('lodash');
 const qs = require('qs');
-const interpolateVars = require('./interpolate-vars');
 
 const prepareRequest = (request, environment) => {
-  interpolateVars(request, environment);
   const headers = {};
   each(request.headers, (h) => {
     if (h.enabled) {

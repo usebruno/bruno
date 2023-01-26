@@ -1,6 +1,7 @@
 import React from 'react';
 import { IconFiles } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
+import VariablesView from 'components/VariablesView';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionToolBar = ({ collection }) => {
@@ -12,6 +13,7 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
+          <VariablesView collection={collection}/>
           <EnvironmentSelector collection={collection} />
         </div>
       </div>
