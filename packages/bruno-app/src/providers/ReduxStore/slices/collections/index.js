@@ -2,6 +2,7 @@ import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import map from 'lodash/map';
+import forOwn from 'lodash/forOwn';
 import concat from 'lodash/concat';
 import filter from 'lodash/filter';
 import each from 'lodash/each';
@@ -158,6 +159,25 @@ export const collectionsSlice = createSlice({
           item.response = item.response || {};
           item.response.state = 'sending';
           item.cancelTokenUid = cancelTokenUid;
+        }
+      }
+    },
+    scriptEnvironmentUpdateEvent: (state, action) => {
+      const { collectionUid, environment } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const activeEnvironmentUid = collection.activeEnvironmentUid;
+        const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
+
+        if (activeEnvironment) {
+          forOwn(environment, (value, key) => {
+            const variable = find(activeEnvironment.variables, (v) => v.name === key);
+
+            if (variable) {
+              variable.value = value;
+            }
+          });
         }
       }
     },
@@ -796,6 +816,7 @@ export const {
   renameItem,
   cloneItem,
   requestSentEvent,
+  scriptEnvironmentUpdateEvent,
   requestCancelled,
   responseReceived,
   saveRequest,

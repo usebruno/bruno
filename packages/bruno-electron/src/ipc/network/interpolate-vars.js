@@ -6,21 +6,7 @@ Mustache.escape = function (value) {
   return value;
 };
 
-const interpolateVars = (request, environment) => {
-  if(!environment) {
-    return request;
-  }
-
-  const variables = environment.variables;
-  if(!variables || !variables.length) {
-    return request;
-  }
-  
-  const envVars = {};
-  each(variables, (variable) => {
-    envVars[variable.name] = Mustache.escape(variable.value);
-  });
-
+const interpolateVars = (request, envVars = {}) => {
   const interpolate = (str) => {
     if(!str || !str.length || typeof str !== "string") {
       return str;

@@ -1,12 +1,13 @@
 const { NodeVM } = require('vm2');
 const Bru = require('./bru');
 const BrunoRequest = require('./bruno-request');
+const BrunoResponse = require('./bruno-response');
 
 class ScriptRuntime {
   constructor() {
   }
 
-  run(script, request, environment) {
+  runRequestScript(script, request, environment) {
     const bru = new Bru(environment);
     const brunoRequest = new BrunoRequest(request);
 
@@ -20,7 +21,30 @@ class ScriptRuntime {
 
     vm.run(script);
 
-    return request;
+    return {
+      request,
+      environment
+    };
+  }
+
+  runResponseScript(script, response, environment) {
+    const bru = new Bru(environment);
+    const brunoResponse = new BrunoResponse(response);
+
+    const context = {
+      bru,
+      brunoResponse
+    };
+    const vm = new NodeVM({
+      sandbox: context
+    });
+
+    vm.run(script);
+
+    return {
+      response,
+      environment
+    };
   }
 }
 

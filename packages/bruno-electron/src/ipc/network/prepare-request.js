@@ -1,7 +1,7 @@
 const { get, each, filter } = require('lodash');
 const qs = require('qs');
 
-const prepareRequest = (request, environment) => {
+const prepareRequest = (request) => {
   const headers = {};
   each(request.headers, (h) => {
     if (h.enabled) {

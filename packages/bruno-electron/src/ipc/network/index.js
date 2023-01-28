@@ -1,12 +1,34 @@
 const axios = require('axios');
+const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { forOwn, extend } = require('lodash');
+const { forOwn, extend, each } = require('lodash');
 const { ScriptRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
+
+// override the default escape function to prevent escaping
+Mustache.escape = function (value) {
+  return value;
+};
+
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {};
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if(variable.enabled) {
+      envVars[variable.name] = Mustache.escape(variable.value);
+    }
+  });
+
+  return envVars;
+};
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
@@ -15,7 +37,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
     try {
       const _request = item.draft ? item.draft.request : item.request;
-      const request = prepareRequest(_request, environment);
+      const request = prepareRequest(_request);
 
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -32,10 +54,17 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       request.cancelToken = cancelToken.token;
       saveCancelToken(cancelTokenUid, cancelToken);
 
+      const envVars = getEnvVars(environment);
+
       if(request.script && request.script.length) {
-        request.script = request.script += '\n onRequest(brunoRequest);';
+        let script = request.script + '\n if (typeof onRequest === "function") {onRequest(brunoRequest);}';
         const scriptRuntime = new ScriptRuntime();
-        scriptRuntime.run(request.script, request, environment);
+        const res = scriptRuntime.runRequestScript(script, request, envVars);
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          environment: res.environment,
+          collectionUid
+        });
       }
 
       mainWindow.webContents.send('main:http-request-sent', {
@@ -50,9 +79,20 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         cancelTokenUid
       });
 
-      interpolateVars(request, environment);
+      interpolateVars(request, envVars);
 
       const result = await axios(request);
+
+      if(request.script && request.script.length) {
+        let script = request.script + '\n if (typeof onResponse === "function") {onResponse(brunoResponse);}';
+        const scriptRuntime = new ScriptRuntime();
+        const res = scriptRuntime.runResponseScript(script, result, envVars);
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          environment: res.environment,
+          collectionUid
+        });
+      }
 
       deleteCancelToken(cancelTokenUid);
 
