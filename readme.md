@@ -8,7 +8,7 @@
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![Twitter](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=twitter)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
-[![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/download)
+[![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
  
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
