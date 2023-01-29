@@ -4,11 +4,16 @@ import { useDispatch } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
   const script = item.draft ? get(item, 'draft.request.script') : get(item, 'request.script');
+
+  const {
+    storedTheme
+  } = useTheme();
 
   const onEdit = (value) => {
     dispatch(
@@ -27,6 +32,7 @@ const Script = ({ item, collection }) => {
     <StyledWrapper className="w-full">
       <CodeEditor
         collection={collection} value={script || ''}
+        theme={storedTheme}
         onEdit={onEdit}
         mode='javascript'
         onRun={onRun}

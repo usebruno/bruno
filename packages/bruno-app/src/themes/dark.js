@@ -215,7 +215,7 @@ const darkTheme = {
     },
     striped: '#2A2D2F',
     input: {
-      color: '#555555'
+      color: '#ccc'
     }
   },
 
