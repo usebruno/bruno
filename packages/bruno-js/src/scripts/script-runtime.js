@@ -1,4 +1,5 @@
 const { NodeVM } = require('vm2');
+const path = require('path');
 const Bru = require('./bru');
 const BrunoRequest = require('./bruno-request');
 const BrunoResponse = require('./bruno-response');
@@ -7,7 +8,7 @@ class ScriptRuntime {
   constructor() {
   }
 
-  runRequestScript(script, request, environment) {
+  runRequestScript(script, request, environment, collectionPath) {
     const bru = new Bru(environment);
     const brunoRequest = new BrunoRequest(request);
 
@@ -16,10 +17,15 @@ class ScriptRuntime {
       brunoRequest
     };
     const vm = new NodeVM({
-      sandbox: context
+      sandbox: context,
+      require: {
+        context: 'sandbox',
+        external: true,
+        root: [collectionPath]
+      }
     });
 
-    vm.run(script);
+    vm.run(script, path.join(collectionPath, 'vm.js'));
 
     return {
       request,
@@ -27,7 +33,7 @@ class ScriptRuntime {
     };
   }
 
-  runResponseScript(script, response, environment) {
+  runResponseScript(script, response, environment, collectionPath) {
     const bru = new Bru(environment);
     const brunoResponse = new BrunoResponse(response);
 
@@ -36,10 +42,15 @@ class ScriptRuntime {
       brunoResponse
     };
     const vm = new NodeVM({
-      sandbox: context
+      sandbox: context,
+      require: {
+        context: 'sandbox',
+        external: true,
+        root: [collectionPath]
+      }
     });
 
-    vm.run(script);
+    vm.run(script, path.join(collectionPath, 'vm.js'));
 
     return {
       response,

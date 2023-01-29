@@ -32,7 +32,7 @@ const getEnvVars = (environment = {}) => {
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collectionUid, environment) => {
+  ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment) => {
     const cancelTokenUid = uuid();
 
     try {
@@ -59,7 +59,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(request.script && request.script.length) {
         let script = request.script + '\n if (typeof onRequest === "function") {onRequest(brunoRequest);}';
         const scriptRuntime = new ScriptRuntime();
-        const res = scriptRuntime.runRequestScript(script, request, envVars);
+        const res = scriptRuntime.runRequestScript(script, request, envVars, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: res.environment,
@@ -67,6 +67,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         });
       }
 
+      interpolateVars(request, envVars);
       mainWindow.webContents.send('main:http-request-sent', {
         requestSent: {
           url: request.url,
@@ -79,14 +80,12 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         cancelTokenUid
       });
 
-      interpolateVars(request, envVars);
-
       const result = await axios(request);
 
       if(request.script && request.script.length) {
         let script = request.script + '\n if (typeof onResponse === "function") {onResponse(brunoResponse);}';
         const scriptRuntime = new ScriptRuntime();
-        const res = scriptRuntime.runResponseScript(script, result, envVars);
+        const res = scriptRuntime.runResponseScript(script, result, envVars, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: res.environment,

@@ -110,7 +110,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    sendNetworkRequest(itemCopy, collectionUid, environment)
+    sendNetworkRequest(itemCopy, collection, environment)
       .then((response) => {
         return dispatch(
           responseReceived({
