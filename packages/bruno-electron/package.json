@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0",
+  "version": "0.7.1",
   "name": "bruno",
   "description": "Opensource API Client",
   "homepage": "https://www.usebruno.com",
@@ -33,6 +33,7 @@
     "moment": "^2.29.4",
     "mustache": "^4.2.0",
     "nanoid": "3.3.4",
+    "qs": "^6.11.0",
     "uuid": "^9.0.0",
     "vm2": "^3.9.13",
     "yup": "^0.32.11"
