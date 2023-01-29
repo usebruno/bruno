@@ -19,8 +19,8 @@ const TestResults = ({ results }) => {
         Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
       </div>
       <ul className="">
-        {results.map((result, index) => (
-          <li key={index} className="py-1">
+        {results.map((result) => (
+          <li key={result.uid} className="py-1">
             {result.status === 'pass' ? (
               <span className="test-success">
                 &#x2714;&nbsp; {result.description}

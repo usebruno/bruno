@@ -11,10 +11,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
 
-// although we are not using rekonjs directly
-// its populating the global string prototype with .reckon method
-import reckon from 'reckonjs';
-
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
     return '';

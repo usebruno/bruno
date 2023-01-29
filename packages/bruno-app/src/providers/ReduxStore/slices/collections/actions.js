@@ -1,5 +1,5 @@
 import path from 'path';
-import filter from 'lodash/filter';
+import toast from 'react-hot-toast';
 import trim from 'lodash/trim';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
@@ -17,7 +17,6 @@ import {
   isItemARequest,
   isItemAFolder,
   refreshUidsInItem,
-  interpolateEnvironmentVars
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
@@ -131,7 +130,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         );
         console.log('>> sending request failed');
         console.log(err);
-        reject(err);
+        toast.error(err ? err.message : 'Something went wrong!');
       });
   });
 };
