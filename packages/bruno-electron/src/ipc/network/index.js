@@ -14,6 +14,22 @@ Mustache.escape = function (value) {
   return value;
 };
 
+const safeStringifyJSON = (data) => {
+  try {
+    return JSON.stringify(data);
+  } catch (e) {
+    return data;
+  }
+};
+
+const safeParseJSON = (data) => {
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    return data;
+  }
+};
+
 const getEnvVars = (environment = {}) => {
   const variables = environment.variables;
   if (!variables || !variables.length) {
@@ -68,12 +84,16 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       }
 
       interpolateVars(request, envVars);
+
+      // todo:
+      // i have no clue why electron can't send the request object 
+      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:http-request-sent', {
         requestSent: {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: request.data
+          data: safeParseJSON(safeStringifyJSON(request.data))
         },
         collectionUid,
         itemUid: item.uid,
