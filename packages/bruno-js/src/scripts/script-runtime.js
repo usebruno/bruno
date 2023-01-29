@@ -10,11 +10,11 @@ class ScriptRuntime {
 
   runRequestScript(script, request, environment, collectionPath) {
     const bru = new Bru(environment);
-    const brunoRequest = new BrunoRequest(request);
+    const __brunoRequest = new BrunoRequest(request);
 
     const context = {
       bru,
-      brunoRequest
+      __brunoRequest
     };
     const vm = new NodeVM({
       sandbox: context,
@@ -35,11 +35,11 @@ class ScriptRuntime {
 
   runResponseScript(script, response, environment, collectionPath) {
     const bru = new Bru(environment);
-    const brunoResponse = new BrunoResponse(response);
+    const __brunoResponse = new BrunoResponse(response);
 
     const context = {
       bru,
-      brunoResponse
+      __brunoResponse
     };
     const vm = new NodeVM({
       sandbox: context,

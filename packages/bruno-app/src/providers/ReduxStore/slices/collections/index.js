@@ -812,6 +812,18 @@ export const collectionsSlice = createSlice({
           collection.environments.push(environment);
         }
       }
+    },
+    testResultsEvent: (state, action) => {
+      const { itemUid, collectionUid, results } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item) {
+          item.testResults = results;
+        }
+      }
     }
   }
 });
@@ -861,7 +873,8 @@ export const {
   collectionChangeFileEvent,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
-  collectionAddEnvFileEvent
+  collectionAddEnvFileEvent,
+  testResultsEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

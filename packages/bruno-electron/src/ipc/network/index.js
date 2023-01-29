@@ -2,8 +2,8 @@ const axios = require('axios');
 const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each } = require('lodash');
-const { ScriptRuntime } = require('@usebruno/js');
+const { forOwn, extend, each, get } = require('lodash');
+const { ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
@@ -79,12 +79,12 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const envVars = getEnvVars(environment);
 
       if(request.script && request.script.length) {
-        let script = request.script + '\n if (typeof onRequest === "function") {onRequest(brunoRequest);}';
+        let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
         const scriptRuntime = new ScriptRuntime();
-        const res = scriptRuntime.runRequestScript(script, request, envVars, collectionPath);
+        const result = scriptRuntime.runRequestScript(script, request, envVars, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
-          environment: res.environment,
+          environment: result.environment,
           collectionUid
         });
       }
@@ -106,15 +106,27 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         cancelTokenUid
       });
 
-      const result = await axios(request);
+      const response = await axios(request);
 
       if(request.script && request.script.length) {
-        let script = request.script + '\n if (typeof onResponse === "function") {onResponse(brunoResponse);}';
+        let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
         const scriptRuntime = new ScriptRuntime();
-        const res = scriptRuntime.runResponseScript(script, result, envVars, collectionPath);
+        const result = scriptRuntime.runResponseScript(script, response, envVars, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
-          environment: res.environment,
+          environment: result.environment,
+          collectionUid
+        });
+      }
+
+      const testFile = get(item, 'request.tests');
+      if(testFile && testFile.length) {
+        const testRuntime = new TestRuntime();
+        const result = testRuntime.runTests(testFile, request, response, envVars, collectionPath);
+
+        mainWindow.webContents.send('main:test-results', {
+          results: result.results,
+          itemUid: item.uid,
           collectionUid
         });
       }
@@ -122,10 +134,10 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       deleteCancelToken(cancelTokenUid);
 
       return {
-        status: result.status,
-        statusText: result.statusText,
-        headers: result.headers,
-        data: result.data
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
       };
     } catch (error) {
       // todo: better error handling

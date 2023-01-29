@@ -9,6 +9,7 @@ import {
   collectionUnlinkEnvFileEvent,
   requestSentEvent,
   requestQueuedEvent,
+  testResultsEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
@@ -95,6 +96,10 @@ const useCollectionTreeSync = () => {
       dispatch(requestQueuedEvent(val));
     };
 
+    const _testResults = (val) => {
+      dispatch(testResultsEvent(val));
+    };
+
     ipcRenderer.invoke('renderer:ready');
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
@@ -104,6 +109,7 @@ const useCollectionTreeSync = () => {
     const removeListener5 = ipcRenderer.on('main:http-request-sent', _httpRequestSent);
     const removeListener6 = ipcRenderer.on('main:script-environment-update', _scriptEnvironmentUpdate);
     const removeListener7 = ipcRenderer.on('main:http-request-queued', _httpRequestQueued);
+    const removeListener8 = ipcRenderer.on('main:test-results', _testResults);
 
     return () => {
       removeListener1();
@@ -113,6 +119,7 @@ const useCollectionTreeSync = () => {
       removeListener5();
       removeListener6();
       removeListener7();
+      removeListener8();
     };
   }, [isElectron]);
 };

@@ -20,6 +20,7 @@
     "atob": "^2.1.2",
     "axios": "^0.26.0",
     "btoa": "^1.2.1",
+    "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "crypto-js": "^4.1.1",
     "electron-is-dev": "^2.0.0",

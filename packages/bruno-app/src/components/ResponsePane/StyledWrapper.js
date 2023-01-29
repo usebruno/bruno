@@ -25,6 +25,14 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
+  .some-tests-failed {
+    color: ${(props) => props.theme.colors.text.danger} !important;
+  }
+
+  .all-tests-passed {
+    color: ${(props) => props.theme.colors.text.green} !important;
+  }
 `;
 
 export default StyledWrapper;

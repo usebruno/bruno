@@ -11,7 +11,32 @@ import StatusCode from './StatusCode';
 import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
 import Timeline from './Timeline';
+import TestResults from './TestResults';
 import StyledWrapper from './StyledWrapper';
+
+const TestResultsLabel = ({ results }) => {
+  if(!results || !results.length) {
+    return 'Tests';
+  }
+
+  const numberOfTests = results.length;
+  const numberOfFailedTests = results.filter(result => result.status === 'fail').length;
+
+  return (
+    <div className='flex items-center'>
+      <div>Tests</div>
+      {numberOfFailedTests ? (
+        <sup className='sups some-tests-failed ml-1 font-medium'>
+          {numberOfFailedTests}
+        </sup>
+      ) : (
+        <sup className='sups all-tests-passed ml-1 font-medium'>
+          {numberOfTests}
+        </sup>
+      )}
+      </div>
+  );
+};
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -45,6 +70,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
       case 'timeline': {
         return <Timeline item={item} />;
+      }
+      case 'tests': {
+        return <TestResults results={item.testResults} />;
       }
 
       default: {
@@ -95,6 +123,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
           Timeline
+        </div>
+        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
+          <TestResultsLabel results={item.testResults} />
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
