@@ -27,18 +27,12 @@ const MenuBar = () => {
       {openTheme && <SwitchTheme onClose={() => setOpenTheme(false)} />}
 
       <div className="flex flex-col">
-        <Link href="/">
+        {/* Todo: Fix this: Clicking on this crashes the app */}
+        {/* <Link href="/">
           <div className={getClassName('/')}>
             <IconCode size={28} strokeWidth={1.5} />
           </div>
-        </Link>
-        {!isPlatformElectron ? (
-          <Link href="/collections">
-            <div className={getClassName('/collections')}>
-              <IconFiles size={28} strokeWidth={1.5} />
-            </div>
-          </Link>
-        ) : null}
+        </Link> */}
         {/* <div className="menu-item">
           <IconUsers size={28} strokeWidth={1.5}/>
         </div> */}
