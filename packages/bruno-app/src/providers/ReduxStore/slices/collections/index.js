@@ -157,7 +157,19 @@ export const collectionsSlice = createSlice({
         if (item) {
           item.requestSent = requestSent
           item.response = item.response || {};
-          item.response.state = 'sending';
+          item.requestState = 'sending';
+          item.cancelTokenUid = cancelTokenUid;
+        }
+      }
+    },
+    requestQueuedEvent: (state, action) => {
+      const { itemUid, collectionUid, cancelTokenUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (item) {
+          item.requestState = 'queued';
           item.cancelTokenUid = cancelTokenUid;
         }
       }
@@ -199,6 +211,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, action.payload.itemUid);
         if (item) {
+          item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
         }
@@ -816,6 +829,7 @@ export const {
   renameItem,
   cloneItem,
   requestSentEvent,
+  requestQueuedEvent,
   scriptEnvironmentUpdateEvent,
   requestCancelled,
   responseReceived,

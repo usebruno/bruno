@@ -52,6 +52,12 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     const cancelTokenUid = uuid();
 
     try {
+      mainWindow.webContents.send('main:http-request-queued', {
+        collectionUid,
+        itemUid: item.uid,
+        cancelTokenUid
+      });
+
       const _request = item.draft ? item.draft.request : item.request;
       const request = prepareRequest(_request);
 

@@ -17,7 +17,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const isLoading = item.response && item.response.state === 'sending';
+  const isLoading = ['queued', 'sending'].includes(item.requestState);
 
   const selectTab = (tab) => {
     dispatch(
