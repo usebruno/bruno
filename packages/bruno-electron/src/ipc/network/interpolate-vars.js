@@ -1,5 +1,5 @@
 const Mustache = require('mustache');
-const { each, get } = require('lodash');
+const { each, get, forOwn } = require('lodash');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -17,9 +17,10 @@ const interpolateVars = (request, envVars = {}) => {
 
   request.url = interpolate(request.url);
 
-  each(request.headers, (header) => {
-    header.value = interpolate(header.value);
+  forOwn(request.headers, (value, key) => {
+    request.headers[key] = interpolate(value);
   });
+
   each(request.params, (param) => {
     param.value = interpolate(param.value);
   });

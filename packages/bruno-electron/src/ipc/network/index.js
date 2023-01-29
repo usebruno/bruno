@@ -128,6 +128,9 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         data: result.data
       };
     } catch (error) {
+      // todo: better error handling
+      // need to convey the error to the UI
+      // and need not be always a network error
       deleteCancelToken(cancelTokenUid);
 
       if(error.response) {
