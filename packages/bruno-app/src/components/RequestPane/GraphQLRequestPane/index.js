@@ -10,6 +10,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { findEnvironmentInCollection } from 'utils/collections';
 import useGraphqlSchema from './useGraphqlSchema';
 import StyledWrapper from './StyledWrapper';
 
@@ -22,13 +23,15 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const {
     storedTheme
   } = useTheme();
+
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   
   let {
     schema,
     loadSchema,
     isLoading: isSchemaLoading,
     error: schemaError
-  } = useGraphqlSchema(url);
+  } = useGraphqlSchema(url, environment);
 
   const loadGqlSchema = () => {
     if(!isSchemaLoading) {

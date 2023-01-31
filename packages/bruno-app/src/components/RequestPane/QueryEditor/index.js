@@ -40,7 +40,8 @@ export default class QueryEditor extends React.Component {
       value: this.props.value || '',
       lineNumbers: true,
       tabSize: 2,
-      mode: 'brunovariables',
+      mode: 'graphql',
+      // mode: 'brunovariables',
       brunoVarInfo: {
         variables: getEnvironmentVariables(this.props.collection),
       },
@@ -176,12 +177,14 @@ export default class QueryEditor extends React.Component {
     }
   }
 
+  // Todo: Overlay is messing up with schema hint
+  // Fix this  
   addOverlay = () => {
-    let variables = getEnvironmentVariables(this.props.collection);
-    this.variables = variables;
+    // let variables = getEnvironmentVariables(this.props.collection);
+    // this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
-    this.editor.setOption('mode', 'brunovariables');
+    // defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
+    // this.editor.setOption('mode', 'brunovariables');
   }
 
   render() {

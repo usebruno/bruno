@@ -27,7 +27,7 @@
     "file-saver": "^2.0.5",
     "formik": "^2.2.9",
     "graphiql": "^1.5.9",
-    "graphql": "^16.2.0",
+    "graphql": "^16.6.0",
     "graphql-request": "^3.7.0",
     "idb": "^7.0.0",
     "immer": "^9.0.15",

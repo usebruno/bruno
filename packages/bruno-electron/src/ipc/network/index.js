@@ -5,6 +5,7 @@ const { ipcMain } = require('electron');
 const { forOwn, extend, each, get } = require('lodash');
 const { ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
+const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
@@ -168,6 +169,33 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         reject(new Error("cancel token not found"));
       }
     });
+  });
+
+  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment) => {
+    try {
+      const envVars = getEnvVars(environment);
+      const request = prepareGqlIntrospectionRequest(endpoint, envVars);
+
+      const response = await axios(request);
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      };
+    } catch (error) {
+      if(error.response) {
+        return {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          headers: error.response.headers,
+          data: error.response.data
+        }
+      };
+
+      return Promise.reject(error);
+    }
   });
 };
 

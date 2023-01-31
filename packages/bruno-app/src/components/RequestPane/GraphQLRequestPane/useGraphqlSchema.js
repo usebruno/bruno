@@ -1,27 +1,12 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { getIntrospectionQuery, buildClientSchema } from 'graphql';
+import { buildClientSchema } from 'graphql';
+import { fetchGqlSchema } from 'utils/network';
 import { simpleHash } from 'utils/common';
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
-const fetchSchema = (endpoint) => {
-  const introspectionQuery = getIntrospectionQuery();
-  const queryParams = {
-    query: introspectionQuery
-  };
-
-  return fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(queryParams)
-  });
-}
-
-const useGraphqlSchema = (endpoint) => {
+const useGraphqlSchema = (endpoint, environment) => {
   const localStorageKey = `${schemaHashPrefix}.${simpleHash(endpoint)}`;
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,8 +25,8 @@ const useGraphqlSchema = (endpoint) => {
 
   const loadSchema = () => {
     setIsLoading(true);
-    fetchSchema(endpoint)
-      .then((res) => res.json())
+    fetchGqlSchema(endpoint, environment)
+      .then((res) => res.data)
       .then((s) => {
         if (s && s.data) {
           setSchema(buildClientSchema(s.data));
