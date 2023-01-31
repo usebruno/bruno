@@ -5,6 +5,7 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     font-weight: 600;
+    table-layout: fixed;
 
     thead,
     td {
@@ -18,6 +19,14 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
+
+      &:nth-child(1) {
+        width: 30%;
+      }
+
+      &:nth-child(3) {
+        width: 70px;
+      }
     }
   }
 

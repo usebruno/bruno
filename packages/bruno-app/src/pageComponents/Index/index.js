@@ -52,7 +52,7 @@ export default function Main() {
     <div>
       <StyledWrapper className={className}>
         <Sidebar />
-        <section className="flex flex-grow flex-col">
+        <section className="flex flex-grow flex-col overflow-auto">
           {showHomePage ? (
             <Welcome />
           ) : (
