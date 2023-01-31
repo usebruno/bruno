@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
+import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -10,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
   const addHeader = () => {
@@ -88,6 +90,7 @@ const RequestHeaders = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor
                         value={header.value}
+                        theme={storedTheme}
                         onSave={onSave}
                         onChange={(newValue) => handleHeaderValueChange({
                           target: {

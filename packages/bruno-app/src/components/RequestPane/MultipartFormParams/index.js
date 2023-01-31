@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
+import { useTheme } from 'providers/Theme';
 import { addMultipartFormParam, updateMultipartFormParam, deleteMultipartFormParam } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -10,6 +11,7 @@ import StyledWrapper from './StyledWrapper';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.multipartForm') : get(item, 'request.body.multipartForm');
 
   const addParam = () => {
@@ -88,6 +90,7 @@ const MultipartFormParams = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor 
                         onSave={onSave}
+                        theme={storedTheme}
                         value={param.value} 
                         onChange={(newValue) => handleParamChange({
                           target: {

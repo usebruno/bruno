@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
+import { useTheme } from 'providers/Theme';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -11,6 +12,7 @@ import StyledWrapper from './StyledWrapper';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
 
   const handleAddParam = () => {
@@ -91,6 +93,7 @@ const QueryParams = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor 
                         value={param.value}
+                        theme={storedTheme}
                         onSave={onSave}
                         onChange={(newValue) => handleParamChange({
                           target: {

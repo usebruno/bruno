@@ -10,7 +10,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
-  const { theme } = useTheme();
+  const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
@@ -45,6 +45,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         <SingleLineEditor 
           value={url} 
           onSave={onSave}
+          theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}

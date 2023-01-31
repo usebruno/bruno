@@ -22,6 +22,7 @@ class SingleLineEditor extends Component {
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
+      theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: "brunovariables",
       brunoVarInfo: {
         variables: getEnvironmentVariables(this.props.collection),
@@ -79,6 +80,9 @@ class SingleLineEditor extends Component {
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
+    }
+    if (this.props.theme !== prevProps.theme && this.editor) {
+      this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
   }
 
