@@ -70,13 +70,16 @@ const Sidebar = () => {
     setAsideWidth(leftSidebarWidth);
   }, [leftSidebarWidth]);
 
+  const leftMenuBarWidth = leftMenuBarOpen ? 48 : 0;
+  const collectionsWidth = asideWidth - leftMenuBarWidth;
+
   return (
     <StyledWrapper className="flex relative">
-      <aside style={{ width: `${asideWidth}px`, minWidth: `${asideWidth}px` }}>
+      <aside>
         <div className="flex flex-row h-full w-full">
           {leftMenuBarOpen && <MenuBar />}
 
-          <div className="flex flex-col w-full">
+          <div className="flex flex-col w-full" style={{width: collectionsWidth}}>
             <div className="flex flex-col flex-grow">
               <TitleBar />
               <Collections />

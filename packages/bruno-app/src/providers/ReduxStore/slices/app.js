@@ -18,7 +18,11 @@ export const appSlice = createSlice({
     },
     toggleLeftMenuBar: (state) => {
       state.leftMenuBarOpen = !state.leftMenuBarOpen;
-      state.leftSidebarWidth = state.leftMenuBarOpen ? 270 : 222;
+      if(state.leftMenuBarOpen) {
+        state.leftSidebarWidth += 48;
+      } else {
+        state.leftSidebarWidth -= 48;
+      }
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
