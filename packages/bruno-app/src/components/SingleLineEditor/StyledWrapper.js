@@ -10,6 +10,11 @@ const StyledWrapper = styled.div`
     height: 30px;
     font-size: 14px;
     line-height: 30px;
+    overflow: hidden;
+
+    .CodeMirror-vscrollbar {
+      display: none !important;
+    }
 
     .CodeMirror-lines {
       padding: 0;

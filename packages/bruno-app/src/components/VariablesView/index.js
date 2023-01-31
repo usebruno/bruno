@@ -4,7 +4,7 @@ import filter from 'lodash/filter';
 import { findEnvironmentInCollection } from 'utils/collections';
 import VariablesTable from './VariablesTable';
 import StyledWrapper from './StyledWrapper';
-import PopOver from './PopOver';
+import PopOver from './Popover';
 import { IconEye } from '@tabler/icons';
 
 const VariablesView = ({collection}) => {
