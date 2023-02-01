@@ -6,6 +6,7 @@ import { IconRefresh, IconLoader2, IconBook, IconDownload } from '@tabler/icons'
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
+import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
@@ -19,6 +20,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const query = item.draft ? get(item, 'draft.request.body.graphql.query') : get(item, 'request.body.graphql.query');
+  const variables = item.draft ? get(item, 'draft.request.body.graphql.variables') : get(item, 'request.body.graphql.variables');
   const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
   const {
     storedTheme
@@ -81,6 +83,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
           onClickReference={handleGqlClickReference}
         />;
       }
+      case 'variables': {
+        return <GraphQLVariables item={item} variables={variables} collection={collection} />;
+      }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
       }
@@ -110,6 +115,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       <div className="flex items-center tabs" role="tablist">
         <div className={getTabClassname('query')} role="tab" onClick={() => selectTab('query')}>
           Query
+        </div>
+        <div className={getTabClassname('variables')} role="tab" onClick={() => selectTab('variables')}>
+          Variables
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers

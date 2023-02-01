@@ -16,6 +16,7 @@ const headersTag = require('./headers-tag');
 const {
   bodyJsonTag,
   bodyGraphqlTag,
+  bodyGraphqlVarsTag,
   bodyTextTag,
   bodyXmlTag,
   bodyFormUrlEncodedTagDeprecated,
@@ -32,6 +33,7 @@ const bruToJson = (fileContents) => {
     headersTag,
     bodyJsonTag,
     bodyGraphqlTag,
+    bodyGraphqlVarsTag,
     bodyTextTag,
     bodyXmlTag,
     bodyFormUrlEncodedTagDeprecated,
@@ -78,6 +80,10 @@ const bruToJson = (fileContents) => {
 
   if(body && body.graphql && body.graphql.query) {
     body.graphql.query = outdentString(body.graphql.query);
+  }
+
+  if(body && body.graphql && body.graphql.variables) {
+    body.graphql.variables = outdentString(body.graphql.variables);
   }
 
   return json;
@@ -135,6 +141,14 @@ ${indentString(body.json)}
     bru += `
 body(type=graphql)
 ${indentString(body.graphql.query)}
+/body
+`;
+  }
+
+  if(body && body.graphql && body.graphql.variables) {
+    bru += `
+body(type=graphql-vars)
+${indentString(body.graphql.variables)}
 /body
 `;
   }

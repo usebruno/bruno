@@ -11,6 +11,9 @@ const bodyJsonBegin = regex(/^body\s*\(\s*type\s*=\s*json\s*\)\s*\r?\n/);
 // body(type=graphql)
 const bodyGraphqlBegin = regex(/^body\s*\(\s*type\s*=\s*graphql\s*\)\s*\r?\n/);
 
+// body(type=graphql-vars)
+const bodyGraphqlVarsBegin = regex(/^body\s*\(\s*type\s*=\s*graphql-vars\s*\)\s*\r?\n/);
+
 // body(type=text)
 const bodyTextBegin = regex(/^body\s*\(\s*type\s*=\s*text\s*\)\s*\r?\n/);
 
@@ -32,6 +35,16 @@ const bodyGraphqlTag = between(bodyGraphqlBegin)(bodyEnd)(everyCharUntil(bodyEnd
     body: {
       graphql: {
         query: bodyGraphql
+      }
+    }
+  }
+});
+
+const bodyGraphqlVarsTag = between(bodyGraphqlVarsBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((varsGraphql) => {
+  return {
+    body: {
+      graphql: {
+        variables: varsGraphql
       }
     }
   }
@@ -104,6 +117,7 @@ const bodyMultipartFormTag = between(bodyMultipartForm)(bodyEndRelaxed)(keyvalLi
 module.exports = {
   bodyJsonTag,
   bodyGraphqlTag,
+  bodyGraphqlVarsTag,
   bodyTextTag,
   bodyXmlTag,
   bodyFormUrlEncodedTagDeprecated,

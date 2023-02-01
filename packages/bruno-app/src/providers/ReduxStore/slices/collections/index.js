@@ -622,6 +622,22 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateRequestGraphqlVariables: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.mode = 'graphql';
+          item.draft.request.body.graphql = item.draft.request.body.graphql || {};
+          item.draft.request.body.graphql.variables = action.payload.variables;
+        }
+      }
+    },
     updateRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -865,6 +881,7 @@ export const {
   updateRequestBodyMode,
   updateRequestBody,
   updateRequestGraphqlQuery,
+  updateRequestGraphqlVariables,
   updateRequestScript,
   updateRequestTests,
   updateRequestMethod,
