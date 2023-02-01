@@ -36,7 +36,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
   const [{ isDragging }, drag] = useDrag({
-    type: 'COLLECTION_ITEM',
+    type: `COLLECTION_ITEM_${collection.uid}`,
     item: item,
     collect: (monitor) => ({
       isDragging: monitor.isDragging()
@@ -44,7 +44,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const [{ isOver }, drop] = useDrop({
-    accept: 'COLLECTION_ITEM',
+    accept: `COLLECTION_ITEM_${collection.uid}`,
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
         dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));

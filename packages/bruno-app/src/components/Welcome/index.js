@@ -60,9 +60,9 @@ const Welcome = () => {
             Create Collection
           </span>
         </div>
-        <div className="flex items-center ml-6">
+        <div className="flex items-center ml-6" onClick={handleOpenCollection}>
             <IconFolders size={18} strokeWidth={2} />
-            <span className="label ml-2" onClick={handleOpenCollection}>
+            <span className="label ml-2">
               Open Collection
             </span>
           </div>
