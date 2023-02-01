@@ -12,6 +12,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
+import RunCollectionItem from './CollectionItem/RunCollectionItem';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
@@ -24,6 +25,7 @@ const Collection = ({ collection, searchText }) => {
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
+  const [showRunCollectionModal, setShowRunCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
 
@@ -97,6 +99,7 @@ const Collection = ({ collection, searchText }) => {
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)} />}
       {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />}
       {showRemoveCollectionModal && <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />}
+      {showRunCollectionModal && <RunCollectionItem collection={collection} onClose={() => setShowRunCollectionModal(false)} />}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div className="flex flex-grow items-center overflow-hidden" onClick={handleClick}>
           <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, minWidth:16, color: 'rgb(160 160 160)' }} />
@@ -121,6 +124,15 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               New Folder
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setShowRunCollectionModal(true);
+              }}
+            >
+              Run
             </div>
             <div
               className="dropdown-item"

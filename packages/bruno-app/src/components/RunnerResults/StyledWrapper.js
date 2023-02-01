@@ -7,6 +7,10 @@ const Wrapper = styled.div`
     }
   }
 
+  .test-summary {
+    color: ${(props) => props.theme.tabs.active.border};
+  }
+
   /* test results */
   .test-success {
     color: ${(props) => props.theme.colors.text.green};

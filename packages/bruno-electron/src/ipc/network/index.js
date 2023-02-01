@@ -221,7 +221,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.handle('renderer:run-collection-folder', async (event, folder, collection, environment, recursive) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
-    const folderUid = folder.uid;
+    const folderUid = folder ? folder.uid : null;
+
+    if(!folder) {
+      folder = collection;
+    }
 
     try {
       const envVars = getEnvVars(environment);
@@ -230,10 +234,6 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(recursive) {
         let sortedFolder = sortFolder(folder);
         folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
-        console.log('-----sortedFolder------');
-        console.log(sortedFolder);
-        console.log('-----folderRequests------');
-        console.log(folderRequests);
       } else {
         each(folder.items, (item) => {
           if(item.request) {
@@ -331,7 +331,6 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             }
           });
         } catch (error) {
-          console.log(error);
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'error',
             error,
@@ -342,13 +341,8 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     } catch (error) {
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'error',
-        data: {
-          error : {
-            message: error.message
-          },
-          collectionUid,
-          folderUid
-        }
+        error,
+        ...eventData
       });
     }
   });

@@ -151,7 +151,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
     const collectionCopy = cloneDeep(collection);
     const folder = findItemInCollection(collectionCopy, folderUid);
 
-    if (!folder) {
+    if (folderUid && !folder) {
       return reject(new Error('Folder not found'));
     }
 
@@ -164,7 +164,10 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
     ipcRenderer
       .invoke('renderer:run-collection-folder', folder, collectionCopy, environment, recursive)
       .then(resolve)
-      .catch(reject);
+      .catch((err) => {
+        toast.error(get(err, 'error.message') || 'Something went wrong!');
+        reject(err);
+      });
   });
 };
 

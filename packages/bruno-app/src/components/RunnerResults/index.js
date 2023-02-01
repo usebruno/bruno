@@ -41,11 +41,17 @@ export default function RunnerResults({collection}) {
     }
   });
 
+  const passedRequests = items.filter((item) => item.testStatus === 'pass');
+  const failedRequests = items.filter((item) => item.testStatus === 'fail');
+
   return (
     <StyledWrapper className='px-4'>
       <div className='font-medium mt-6 mb-4 title flex items-center'>
         Runner
         <IconRun size={20} strokeWidth={1.5} className='ml-2'/>
+      </div>
+      <div className="py-2 font-medium test-summary">
+        Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
       </div>
       <div className='flex'>
         <div className='flex flex-col flex-1'>

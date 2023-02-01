@@ -860,6 +860,22 @@ export const collectionsSlice = createSlice({
       collection.showRunner = !collection.showRunner;
       }
     },
+    showRunnerView: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.showRunner = true;
+      }
+    },
+    hideRunnerView: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.showRunner = false;
+      }
+    },
     resetRunResults: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -956,6 +972,8 @@ export const {
   testResultsEvent,
   collectionRenamedEvent,
   toggleRunnerView,
+  showRunnerView,
+  hideRunnerView,
   resetRunResults,
   runFolderEvent
 } = collectionsSlice.actions;

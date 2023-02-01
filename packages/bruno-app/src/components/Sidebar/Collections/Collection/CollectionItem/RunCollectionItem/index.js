@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { showRunnerView } from 'providers/ReduxStore/slices/collections';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -10,12 +11,15 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
 
   const onSubmit = (recursive) => {
-    dispatch(runCollectionFolder(collection.uid, item.uid, recursive));
+    dispatch(showRunnerView({
+      collectionUid: collection.uid,
+    }));
+    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));
     onClose();
   };
 
-  const runLength = get(item, 'items.length', 0);
-  const items = flattenItems(item.items);
+  const runLength = item ? get(item, 'items.length', 0) : get(collection, 'items.length', 0);
+  const items = flattenItems(item ? item.items : collection.items);
   const requestItems = items.filter((item) => item.type !== 'folder');
   const recursiveRunLength = requestItems.length;
 
@@ -24,7 +28,7 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
       <Modal size="md" title='Collection Runner' hideFooter={true} handleCancel={onClose}>
         <div className='mb-1'>
           <span className='font-medium'>Run</span>
-          <span className='ml-1 text-xs'>({runLength.length} requests)</span>
+          <span className='ml-1 text-xs'>({runLength} requests)</span>
         </div>
         <div className='mb-8'>
           This will only run the requests in this folder. 
@@ -32,7 +36,7 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
 
         <div className='mb-1'>
           <span className='font-medium'>Recursive Run</span>
-          <span className='ml-1 text-xs'>({recursiveRunLength.length} requests)</span>
+          <span className='ml-1 text-xs'>({recursiveRunLength} requests)</span>
         </div>
         <div className='mb-8'>
           This will run all the requests in this folder and all its subfolders. 
