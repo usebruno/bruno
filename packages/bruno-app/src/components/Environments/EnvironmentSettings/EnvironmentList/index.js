@@ -1,4 +1,5 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
+import { findEnvironmentInCollection } from 'utils/collections';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment/index';
 import StyledWrapper from './StyledWrapper';
@@ -9,8 +10,13 @@ const EnvironmentList = ({ collection }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
 
   useEffect(() => {
-    setSelectedEnvironment(environments && environments.length ? environments[0] : null);
-  }, [environments]);
+    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    if(environment) {
+      setSelectedEnvironment(environment);
+    } else {
+      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+    }
+  }, [collection, environments]);
 
   if (!selectedEnvironment) {
     return null;

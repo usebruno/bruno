@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { IconSettings, IconCaretDown, IconDatabase } from '@tabler/icons';
+import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
@@ -63,7 +63,8 @@ const EnvironmentSelector = ({ collection }) => {
               onSelect(null);
             }}
           >
-            <span>No Environment</span>
+            <IconDatabaseOff size={18} strokeWidth={1.5} />
+            <span className='ml-2'>No Environment</span>
           </div>
           <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
             <div className="pr-2 text-gray-600">
