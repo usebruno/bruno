@@ -12,6 +12,7 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
+import RunnerResults from 'components/RunnerResults';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
@@ -110,6 +111,11 @@ const RequestTabPanel = () => {
   let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
+  }
+
+  const showRunner = collection.showRunner;
+  if(showRunner) {
+    return <RunnerResults collection={collection}/>;
   }
 
   const item = findItemInCollection(collection, activeTabUid);

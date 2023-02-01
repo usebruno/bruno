@@ -24,6 +24,7 @@ import { saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
+  resetRunResults,
   requestCancelled,
   responseReceived,
   newItem as _newItem,
@@ -136,6 +137,35 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
       );
     })
     .catch((err) => console.log(err));
+};
+
+export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+    const folder = findItemInCollection(collectionCopy, folderUid);
+
+    if (!folder) {
+      return reject(new Error('Folder not found'));
+    }
+
+    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+    dispatch(resetRunResults({
+      collectionUid: collection.uid
+    }));
+
+    ipcRenderer
+      .invoke('renderer:run-collection-folder', folder, collectionCopy, environment, recursive)
+      .then(resolve)
+      .catch(reject);
+  });
 };
 
 export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
@@ -682,7 +712,8 @@ export const openCollectionEvent = (uid, pathname, name) => (dispatch, getState)
     uid: uid,
     name: name,
     pathname: pathname,
-    items: []
+    items: [],
+    showRunner: false
   };
 
   return new Promise((resolve, reject) => {

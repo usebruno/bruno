@@ -849,6 +849,59 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.name = newName;
       }
+    },
+    toggleRunnerView: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      console.log('here');
+      if (collection) {
+      console.log('here2');
+      collection.showRunner = !collection.showRunner;
+      }
+    },
+    resetRunResults: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.runnerResult = null;
+      }
+    },
+    runFolderEvent: (state, action) => {
+      const { collectionUid, folderUid, itemUid, type } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const folder = findItemInCollection(collection, folderUid);
+        const request = findItemInCollection(collection, itemUid);
+
+        collection.runnerResult = collection.runnerResult || {items: []};
+
+        if(type === 'request-queued') {
+          collection.runnerResult.items.push({
+            uid: request.uid,
+            status: 'queued'
+          });
+        }
+
+        if(type === 'request-sent') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.status = 'running';
+          item.requestSent = action.payload.requestSent;
+        }
+
+        if(type === 'response-received') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.status = 'completed';
+          item.responseReceived = action.payload.responseReceived;
+        }
+
+        if(type === 'test-results') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.testResults = action.payload.testResults;
+        }
+      }
     }
   }
 });
@@ -901,7 +954,10 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   testResultsEvent,
-  collectionRenamedEvent
+  collectionRenamedEvent,
+  toggleRunnerView,
+  resetRunResults,
+  runFolderEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

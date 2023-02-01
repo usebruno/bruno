@@ -3,11 +3,12 @@ import forOwn from 'lodash/forOwn';
 import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
-const Timeline = ({ item }) => {
-  const request = item.requestSent || {};
-  const response = item.response || {};
+const Timeline = ({ request, response}) => {
   const requestHeaders = [];
   const responseHeaders = response.headers || [];
+
+  request = request || {};
+  response = response || {};
 
   forOwn(request.headers, (value, key) => {
     requestHeaders.push({

@@ -6,13 +6,18 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
 
-const QueryResult = ({ item, collection, value, width }) => {
+const QueryResult = ({ item, collection, value, width, disableRunEventListener }) => {
   const {
     storedTheme
   } = useTheme();
   const dispatch = useDispatch();
 
-  const onRun = () => dispatch(sendRequest(item, collection.uid));
+  const onRun = () => {
+    if(disableRunEventListener) {
+      return;
+    }
+    dispatch(sendRequest(item, collection.uid));
+  };
 
   return (
     <StyledWrapper className="px-3 w-full" style={{ maxWidth: width }}>

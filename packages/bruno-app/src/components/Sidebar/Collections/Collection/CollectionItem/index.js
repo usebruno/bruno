@@ -15,6 +15,7 @@ import RequestMethod from './RequestMethod';
 import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
+import RunCollectionItem from './RunCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -33,6 +34,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
+  const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
   const [{ isDragging }, drag] = useDrag({
@@ -151,6 +153,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
       {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
       {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
+      {runCollectionModalOpen && <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -210,6 +213,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                     }}
                   >
                     New Folder
+                  </div>
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      setRunCollectionModalOpen(true);
+                    }}
+                  >
+                    Run
                   </div>
                 </>
               )}

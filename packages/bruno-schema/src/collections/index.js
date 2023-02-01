@@ -85,7 +85,11 @@ const collectionSchema = Yup.object({
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
     .nullable(),
   environments: environmentsSchema,
-  pathname: Yup.string().nullable()
+  pathname: Yup.string().nullable(),
+  showRunner: Yup.boolean(),
+  runnerResult: Yup.object({
+    items: Yup.array()
+  })
 }).noUnknown(true).strict();
 
 

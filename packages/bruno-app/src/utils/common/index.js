@@ -36,11 +36,14 @@ export const safeParseJSON = (str) => {
   }
 };
 
-export const safeStringifyJSON = (obj) => {
+export const safeStringifyJSON = (obj, indent=false) => {
   if(!obj) {
     return obj;
   }
   try {
+    if(indent) {
+      return JSON.stringify(obj, null, 2);
+    }
     return JSON.stringify(obj);
   } catch (e) {
     return obj;

@@ -1,6 +1,7 @@
 import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
+import { safeStringifyJSON } from 'utils/common';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
@@ -12,31 +13,8 @@ import ResponseTime from './ResponseTime';
 import ResponseSize from './ResponseSize';
 import Timeline from './Timeline';
 import TestResults from './TestResults';
+import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
-
-const TestResultsLabel = ({ results }) => {
-  if(!results || !results.length) {
-    return 'Tests';
-  }
-
-  const numberOfTests = results.length;
-  const numberOfFailedTests = results.filter(result => result.status === 'fail').length;
-
-  return (
-    <div className='flex items-center'>
-      <div>Tests</div>
-      {numberOfFailedTests ? (
-        <sup className='sups some-tests-failed ml-1 font-medium'>
-          {numberOfFailedTests}
-        </sup>
-      ) : (
-        <sup className='sups all-tests-passed ml-1 font-medium'>
-          {numberOfTests}
-        </sup>
-      )}
-      </div>
-  );
-};
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -62,14 +40,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           item={item}
           collection={collection}
           width={rightPaneWidth}
-          value={response.data ? JSON.stringify(response.data, null, 2) : ''
-        } />;
+          value={response.data ? safeStringifyJSON(response.data, true) : ''}
+        />;
       }
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline item={item} />;
+        return <Timeline request={item.requestSent} response={item.response}/>;
       }
       case 'tests': {
         return <TestResults results={item.testResults} />;

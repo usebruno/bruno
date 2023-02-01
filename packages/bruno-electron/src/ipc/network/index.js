@@ -9,6 +9,10 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
+const {
+  sortFolder,
+  getAllRequestsInFolderRecursively
+} = require('./helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -45,6 +49,22 @@ const getEnvVars = (environment = {}) => {
   });
 
   return envVars;
+};
+
+const getSize = (data) => {
+  if(!data) {
+    return 0;
+  }
+
+  if(typeof data === 'string') {
+    return Buffer.byteLength(data, 'utf8');
+  }
+
+  if(typeof data === 'object') {
+    return Buffer.byteLength(JSON.stringify(data), 'utf8');
+  }
+
+  return 0;
 };
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
@@ -195,6 +215,141 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       };
 
       return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:run-collection-folder', async (event, folder, collection, environment, recursive) => {
+    const collectionUid = collection.uid;
+    const collectionPath = collection.pathname;
+    const folderUid = folder.uid;
+
+    try {
+      const envVars = getEnvVars(environment);
+      let folderRequests = [];
+
+      if(recursive) {
+        let sortedFolder = sortFolder(folder);
+        folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
+        console.log('-----sortedFolder------');
+        console.log(sortedFolder);
+        console.log('-----folderRequests------');
+        console.log(folderRequests);
+      } else {
+        each(folder.items, (item) => {
+          if(item.request) {
+            folderRequests.push(item);
+          }
+        });
+
+        // sort requests by seq property
+        folderRequests.sort((a, b) => {
+          return a.seq - b.seq;
+        });
+      }
+
+      for(let item of folderRequests) {
+        const itemUid = item.uid;
+        const eventData = {
+          collectionUid,
+          folderUid,
+          itemUid
+        };
+
+        try {
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'request-queued',
+            ...eventData
+          });
+
+          const _request = item.draft ? item.draft.request : item.request;
+          const request = prepareRequest(_request);
+
+          // make axios work in node using form data
+          // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+          if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
+            const form = new FormData();
+            forOwn(request.data, (value, key) => {
+              form.append(key, value);
+            });
+            extend(request.headers, form.getHeaders());
+            request.data = form;
+          }
+
+          interpolateVars(request, envVars);
+
+          // todo:
+          // i have no clue why electron can't send the request object 
+          // without safeParseJSON(safeStringifyJSON(request.data))
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'request-sent',
+            requestSent: {
+              url: request.url,
+              method: request.method,
+              headers: request.headers,
+              data: safeParseJSON(safeStringifyJSON(request.data))
+            },
+            ...eventData
+          });
+
+          const timeStart = Date.now();
+          const response = await axios(request);
+          const timeEnd = Date.now();
+
+          if(request.script && request.script.length) {
+            let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
+            const scriptRuntime = new ScriptRuntime();
+            const result = scriptRuntime.runResponseScript(script, response, envVars, collectionPath);
+
+            mainWindow.webContents.send('main:script-environment-update', {
+              environment: result.environment,
+              collectionUid
+            });
+          }
+
+          const testFile = get(item, 'request.tests');
+          if(testFile && testFile.length) {
+            const testRuntime = new TestRuntime();
+            const result = testRuntime.runTests(testFile, request, response, envVars, collectionPath);
+
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'test-results',
+              testResults: result.results,
+              ...eventData
+            });
+          }
+
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'response-received',
+            ...eventData,
+            responseReceived: {
+              status: response.status,
+              statusText: response.statusText,
+              headers: Object.entries(response.headers),
+              duration: timeEnd - timeStart,
+              size: response.headers['content-length'] || getSize(response.data),
+              data: response.data,
+            }
+          });
+        } catch (error) {
+          console.log(error);
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'error',
+            error,
+            ...eventData
+          });
+        }
+      }
+    } catch (error) {
+      mainWindow.webContents.send('main:run-folder-event', {
+        type: 'error',
+        data: {
+          error : {
+            message: error.message
+          },
+          collectionUid,
+          folderUid
+        }
+      });
     }
   });
 };
