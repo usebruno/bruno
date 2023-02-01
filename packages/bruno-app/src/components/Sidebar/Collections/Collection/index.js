@@ -99,7 +99,7 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div className="flex flex-grow items-center overflow-hidden" onClick={handleClick}>
-          <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, color: 'rgb(160 160 160)' }} />
+          <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, minWidth:16, color: 'rgb(160 160 160)' }} />
           <div className="ml-1" id="sidebar-collection-name">{collection.name}</div>
         </div>
         <div className="collection-actions">
