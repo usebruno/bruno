@@ -96,7 +96,7 @@ const Sidebar = () => {
                 {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
               </div>
-              <div className="pl-1">
+              <div className="pl-1" style={{position: 'relative', top: '3px'}}>
                 {storedTheme === 'dark' ? (
                   <GitHubButton
                     href="https://github.com/usebruno/bruno"
