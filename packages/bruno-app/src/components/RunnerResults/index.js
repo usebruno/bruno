@@ -50,11 +50,11 @@ export default function RunnerResults({collection}) {
         Runner
         <IconRun size={20} strokeWidth={1.5} className='ml-2'/>
       </div>
-      <div className="py-2 font-medium test-summary">
-        Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
-      </div>
       <div className='flex'>
         <div className='flex flex-col flex-1'>
+          <div className="py-2 font-medium test-summary">
+            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
+          </div>
           {items.map((item) => {
             return (
               <div key={item.uid}>
