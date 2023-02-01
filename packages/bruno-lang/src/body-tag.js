@@ -1,16 +1,9 @@
 const {
   between,
   regex,
-  everyCharUntil,
-  digit,
-  whitespace,
-  optionalWhitespace,
-  endOfInput,
-  choice,
-  many,
-  sepBy,
-  sequenceOf
+  everyCharUntil
 } = require("arcsecond");
+const keyvalLines = require('./key-val-lines');
 
 // body(type=json)
 const bodyJsonBegin = regex(/^body\s*\(\s*type\s*=\s*json\s*\)\s*\r?\n/);
@@ -59,32 +52,6 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
     }
   }
 });
-
-// generic key value parser
-const newline = regex(/^\r?\n/);
-const newLineOrEndOfInput = choice([newline, endOfInput]);
-const wordWithoutWhitespace = regex(/^[^\s\t\r?\n]+/g);
-const wordWithWhitespace = regex(/^[^\r?\n]+/g);
-
-const line = sequenceOf([
-  optionalWhitespace,
-  digit,
-  whitespace,
-  wordWithoutWhitespace,
-  whitespace,
-  wordWithWhitespace,
-  newLineOrEndOfInput
-]).map(([_, enabled, __, key, ___, value]) => {
-  return {
-    "enabled": Number(enabled) ? true : false,
-    "name": key,
-    "value": value
-  };
-});
-
-const lines = many(line);
-const keyvalLines = sepBy(newline)(lines);
-
 
 /**
  * We have deprecated form-url-encoded type in body tag, it was a misspelling on my part
