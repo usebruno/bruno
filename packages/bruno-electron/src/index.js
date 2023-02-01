@@ -50,6 +50,11 @@ app.on('ready', async () => {
   mainWindow.loadURL(url);
   watcher = new Watcher();
 
+  mainWindow.webContents.on('new-window', function(e, url) {
+    e.preventDefault();
+    require('electron').shell.openExternal(url);
+  });
+
   // register all ipc handlers
   registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);

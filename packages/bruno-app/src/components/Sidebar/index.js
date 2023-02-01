@@ -2,11 +2,13 @@ import MenuBar from './MenuBar';
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper, { BottomWrapper, VersionNumber } from './StyledWrapper';
+import GitHubButton from 'react-github-btn'
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconChevronsRight } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
+import { useTheme } from 'providers/Theme';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -16,6 +18,10 @@ const Sidebar = () => {
   const leftMenuBarOpen = useSelector((state) => state.app.leftMenuBarOpen);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
+
+  const {
+    storedTheme
+  } = useTheme();
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -89,17 +95,27 @@ const Sidebar = () => {
               <div className="flex items-center ml-1 text-xs ">
                 {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
                 {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
-                {/* Need to ut github stars link here */}
               </div>
               <div className="pl-1">
-                <iframe
-                  src="https://ghbtns.com/github-btn.html?user=usebruno&repo=bruno&type=star&count=true"
-                  frameBorder="0"
-                  scrolling="0"
-                  width="100"
-                  height="20"
-                  title="GitHub"
-                ></iframe>
+                {storedTheme === 'dark' ? (
+                  <GitHubButton
+                    href="https://github.com/usebruno/bruno"
+                    data-color-scheme="no-preference: dark; light: dark; dark: light;"
+                    data-show-count="true"
+                    aria-label="Star usebruno/bruno on GitHub"
+                  >
+                    Star
+                  </GitHubButton>
+                ) : (
+                  <GitHubButton
+                    href="https://github.com/usebruno/bruno"
+                    data-color-scheme="no-preference: light; light: light; dark: light;"
+                    data-show-count="true"
+                    aria-label="Star usebruno/bruno on GitHub"
+                  >
+                    Star
+                  </GitHubButton>
+                )}
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.8.0</div>
             </div>

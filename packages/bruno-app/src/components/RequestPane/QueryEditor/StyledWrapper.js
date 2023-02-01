@@ -14,6 +14,16 @@ const StyledWrapper = styled.div`
 
   // Todo: dark mode temporary fix
   // Clean this
+  .CodeMirror.cm-s-monokai {
+    .CodeMirror-overlayscroll-horizontal div, .CodeMirror-overlayscroll-vertical div {
+      background: #444444;
+    }
+  }
+
+  .cm-s-monokai span.cm-property, .cm-s-monokai span.cm-attribute {
+    color: #9cdcfe !important;
+  }
+
   .cm-s-monokai span.cm-property, .cm-s-monokai span.cm-attribute {
     color: #9cdcfe !important;
   }

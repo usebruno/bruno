@@ -32,7 +32,7 @@ const darkTheme = {
     color: '#ccc',
     muted: '#9d9d9d',
     bg: '#252526',
-    dragbar: '#8a8a8a',
+    dragbar: '#666666',
 
     badge: {
       bg: '#3D3D3D'

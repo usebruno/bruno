@@ -45,6 +45,7 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "18.2.0",
+    "react-github-btn": "^1.4.0",
     "react-hot-toast": "^2.4.0",
     "react-redux": "^7.2.6",
     "react-tooltip": "^5.5.2",

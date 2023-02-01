@@ -51,6 +51,7 @@ export default class QueryEditor extends React.Component {
       autoCloseBrackets: true,
       matchBrackets: true,
       showCursorWhenSelecting: true,
+      scrollbarStyle: "overlay",
       readOnly: this.props.readOnly ? 'nocursor' : false,
       foldGutter: {
         minFoldSize: 4
