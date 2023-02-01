@@ -1,25 +1,29 @@
 import isEmpty from 'lodash/isEmpty';
 import trim from 'lodash/trim';
 import each from 'lodash/each';
-import splitOnFirst from 'split-on-first';
+import filter from 'lodash/filter';
+
+const hasLength = (str) => {
+  if(!str || !str.length) {
+    return false;
+  }
+
+  str = str.trim();
+
+  return str.length > 0;
+};
 
 export const parseQueryParams = (query) => {
   if (!query || !query.length) {
     return [];
   }
 
-  let params = query.split('&');
-  let result = [];
+  let params =  query.split('&').map(param => {
+    let [name, value = ''] = param.split('=');
+    return { name, value };
+  });
 
-  for (let i = 0; i < params.length; i++) {
-    let pair = splitOnFirst(params[i], '=');
-    result.push({
-      name: pair[0],
-      value: pair[1]
-    });
-  }
-
-  return result;
+  return filter(params, (p) => hasLength(p.name));
 };
 
 export const stringifyQueryParams = (params) => {

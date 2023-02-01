@@ -14,6 +14,10 @@ if (!SERVER_RENDERED) {
 class SingleLineEditor extends Component {
   constructor(props) {
     super(props);
+    // Keep a cached version of the value, this cache will be updated when the
+    // editor is updated, which can later be used to protect the editor from
+    // unnecessary updates during the update lifecycle.
+    this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
   }
@@ -68,14 +72,26 @@ class SingleLineEditor extends Component {
         'Tab': () => {}
       },
     });
-    this.editor.setValue(this.props.value);
-    this.editor.on('change', (cm) => {
-      this.props.onChange(cm.getValue());
-    });
+    this.editor.setValue(this.props.value || '');
+    this.editor.on('change', this._onEdit);
     this.addOverlay();
   }
 
+  _onEdit = () => {
+    if (!this.ignoreChangeEvent && this.editor) {
+      this.cachedValue = this.editor.getValue();
+      if (this.props.onChange) {
+        this.props.onChange(this.cachedValue);
+      }
+    }
+  };
+
   componentDidUpdate(prevProps) {
+    // Ensure the changes caused by this update are not interpretted as
+    // user-input changes which could otherwise result in an infinite
+    // event loop.
+    this.ignoreChangeEvent = true;
+
     let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
@@ -84,6 +100,11 @@ class SingleLineEditor extends Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
+    if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
+      this.cachedValue = this.props.value;
+      this.editor.setValue(this.props.value);
+    }
+    this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {

@@ -1,19 +1,24 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  width: 100%;
   height: 30px;
   overflow-y: hidden;
   overflow-x: hidden;
 
   .CodeMirror {
     background: transparent;
-    height: 30px;
+    height: 34px;
     font-size: 14px;
     line-height: 30px;
     overflow: hidden;
 
     .CodeMirror-vscrollbar {
       display: none !important;
+    }
+
+    .CodeMirror-scroll {
+      overflow: hidden !important;
     }
 
     .CodeMirror-hscrollbar {

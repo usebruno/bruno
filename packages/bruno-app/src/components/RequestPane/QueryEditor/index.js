@@ -160,12 +160,12 @@ export default class QueryEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    this.ignoreChangeEvent = false;
     let variables = getEnvironmentVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
     }
+    this.ignoreChangeEvent = false;
   }
 
   componentWillUnmount() {
