@@ -1,4 +1,3 @@
-const { workspaceSchema } = require("./workspaces");
 const { collectionSchema, itemSchema, environmentSchema, environmentsSchema } = require("./collections");
 
 module.exports = {
@@ -6,5 +5,4 @@ module.exports = {
   environmentSchema,
   environmentsSchema,
   collectionSchema,
-  workspaceSchema
 };
