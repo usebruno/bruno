@@ -20,7 +20,6 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import { saveCollectionToIdb } from 'utils/idb';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -100,7 +99,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    sendNetworkRequest(itemCopy, collection, environment)
+    sendNetworkRequest(itemCopy, collection, environment, collectionCopy.collectionVariables)
       .then((response) => {
         return dispatch(
           responseReceived({
@@ -716,7 +715,8 @@ export const openCollectionEvent = (uid, pathname, name) => (dispatch, getState)
     name: name,
     pathname: pathname,
     items: [],
-    showRunner: false
+    showRunner: false,
+    collectionVariables: {}
   };
 
   return new Promise((resolve, reject) => {

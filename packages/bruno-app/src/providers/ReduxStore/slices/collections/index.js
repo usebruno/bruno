@@ -176,7 +176,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, environment } = action.payload;
+      const { collectionUid, environment, collectionVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -192,6 +192,9 @@ export const collectionsSlice = createSlice({
             }
           });
         }
+
+        collection.collectionVariables = collectionVariables;
+
       }
     },
     requestCancelled: (state, action) => {

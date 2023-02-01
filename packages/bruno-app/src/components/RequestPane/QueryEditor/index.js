@@ -8,7 +8,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
-import { getEnvironmentVariables } from 'utils/collections';
+import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
@@ -43,7 +43,7 @@ export default class QueryEditor extends React.Component {
       mode: 'graphql',
       // mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getEnvironmentVariables(this.props.collection),
+        variables: getAllVariables(this.props.collection),
       },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -160,7 +160,7 @@ export default class QueryEditor extends React.Component {
     if (this.props.theme !== prevProps.theme && this.editor) {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
@@ -180,7 +180,7 @@ export default class QueryEditor extends React.Component {
   // Todo: Overlay is messing up with schema hint
   // Fix this  
   addOverlay = () => {
-    // let variables = getEnvironmentVariables(this.props.collection);
+    // let variables = getAllVariables(this.props.collection);
     // this.variables = variables;
 
     // defineCodeMirrorBrunoVariablesMode(variables, 'graphql');

@@ -9,8 +9,9 @@ const nanoid = require('nanoid');
 const CryptoJS = require('crypto-js');
 
 class Bru {
-  constructor(environment) {
+  constructor(environment, collectionVariables) {
     this._environment = environment;
+    this._collectionVariables = collectionVariables;
   }
 
   require(module) {
@@ -49,6 +50,18 @@ class Bru {
     }
 
     this._environment[key] = value;
+  }
+
+  setVar(key, value) {
+    if(!key) {
+      throw new Error('Key is required');
+    }
+
+    this._collectionVariables[key] = value;
+  }
+
+  getVar(key) {
+    return this._collectionVariables[key];
   }
 }
 

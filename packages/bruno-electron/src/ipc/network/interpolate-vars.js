@@ -6,13 +6,19 @@ Mustache.escape = function (value) {
   return value;
 };
 
-const interpolateVars = (request, envVars = {}) => {
+const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
   const interpolate = (str) => {
     if(!str || !str.length || typeof str !== "string") {
       return str;
     }
 
-    return Mustache.render(str, envVars);
+    // collectionVariables take precedence over envVars
+    const combinedVars = {
+      ...envVars,
+      ...collectionVariables
+    };
+
+    return Mustache.render(str, combinedVars);
   };
 
   request.url = interpolate(request.url);

@@ -89,7 +89,8 @@ const collectionSchema = Yup.object({
   showRunner: Yup.boolean(),
   runnerResult: Yup.object({
     items: Yup.array()
-  })
+  }),
+  collectionVariables: Yup.object()
 }).noUnknown(true).strict();
 
 

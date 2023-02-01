@@ -69,7 +69,7 @@ const getSize = (data) => {
 
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment) => {
+  ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
     const cancelTokenUid = uuid();
 
     try {
@@ -102,15 +102,16 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(request.script && request.script.length) {
         let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runRequestScript(script, request, envVars, collectionPath);
+        const result = scriptRuntime.runRequestScript(script, request, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: result.environment,
+          collectionVariables: result.collectionVariables,
           collectionUid
         });
       }
 
-      interpolateVars(request, envVars);
+      interpolateVars(request, envVars, collectionVariables);
 
       // todo:
       // i have no clue why electron can't send the request object 
@@ -132,10 +133,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(request.script && request.script.length) {
         let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runResponseScript(script, response, envVars, collectionPath);
+        const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: result.environment,
+          collectionVariables: result.collectionVariables,
           collectionUid
         });
       }
@@ -143,7 +145,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const testFile = get(item, 'request.tests');
       if(testFile && testFile.length) {
         const testRuntime = new TestRuntime();
-        const result = testRuntime.runTests(testFile, request, response, envVars, collectionPath);
+        const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:test-results', {
           results: result.results,
@@ -275,7 +277,19 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             request.data = form;
           }
 
-          interpolateVars(request, envVars);
+          if(request.script && request.script.length) {
+            let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
+            const scriptRuntime = new ScriptRuntime();
+            const result = scriptRuntime.runRequestScript(script, request, envVars, collectionVariables, collectionPath);
+    
+            mainWindow.webContents.send('main:script-environment-update', {
+              environment: result.environment,
+              collectionVariables: result.collectionVariables,
+              collectionUid
+            });
+          }
+
+          interpolateVars(request, envVars, collectionVariables);
 
           // todo:
           // i have no clue why electron can't send the request object 
@@ -298,10 +312,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           if(request.script && request.script.length) {
             let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runResponseScript(script, response, envVars, collectionPath);
+            const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:script-environment-update', {
               environment: result.environment,
+              collectionVariables: result.collectionVariables,
               collectionUid
             });
           }
@@ -309,7 +324,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const testFile = get(item, 'request.tests');
           if(testFile && testFile.length) {
             const testRuntime = new TestRuntime();
-            const result = testRuntime.runTests(testFile, request, response, envVars, collectionPath);
+            const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'test-results',

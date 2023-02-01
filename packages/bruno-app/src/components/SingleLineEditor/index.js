@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
-import { getEnvironmentVariables } from 'utils/collections';
+import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
@@ -29,7 +29,7 @@ class SingleLineEditor extends Component {
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: "brunovariables",
       brunoVarInfo: {
-        variables: getEnvironmentVariables(this.props.collection),
+        variables: getAllVariables(this.props.collection),
       },
       extraKeys: {
         "Enter": () => {
@@ -92,7 +92,7 @@ class SingleLineEditor extends Component {
     // event loop.
     this.ignoreChangeEvent = true;
 
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection);
     if (!isEqual(variables, this.variables)) {
       this.editor.options.brunoVarInfo.variables = variables;
       this.addOverlay();
@@ -112,7 +112,7 @@ class SingleLineEditor extends Component {
   }
 
   addOverlay = () => {
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection);
     this.variables = variables;
 
     defineCodeMirrorBrunoVariablesMode(variables, "text/plain");

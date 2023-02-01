@@ -517,3 +517,12 @@ export const getEnvironmentVariables = (collection) => {
 
   return variables;
 }
+
+export const getAllVariables = (collection) => {
+  const environmentVariables = getEnvironmentVariables(collection);
+
+  return {
+    ...environmentVariables,
+    ...collection.collectionVariables
+  };
+}

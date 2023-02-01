@@ -8,8 +8,8 @@ class ScriptRuntime {
   constructor() {
   }
 
-  runRequestScript(script, request, environment, collectionPath) {
-    const bru = new Bru(environment);
+  runRequestScript(script, request, environment, collectionVariables, collectionPath) {
+    const bru = new Bru(environment, collectionVariables);
     const __brunoRequest = new BrunoRequest(request);
 
     const context = {
@@ -29,12 +29,13 @@ class ScriptRuntime {
 
     return {
       request,
-      environment
+      environment,
+      collectionVariables
     };
   }
 
-  runResponseScript(script, response, environment, collectionPath) {
-    const bru = new Bru(environment);
+  runResponseScript(script, response, environment, collectionVariables, collectionPath) {
+    const bru = new Bru(environment, collectionVariables);
     const __brunoResponse = new BrunoResponse(response);
 
     const context = {
@@ -54,7 +55,8 @@ class ScriptRuntime {
 
     return {
       response,
-      environment
+      environment,
+      collectionVariables
     };
   }
 }

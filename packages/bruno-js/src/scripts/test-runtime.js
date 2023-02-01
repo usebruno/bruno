@@ -11,8 +11,8 @@ class TestRuntime {
   constructor() {
   }
 
-  runTests(testsFile, request, response, environment, collectionPath) {
-    const bru = new Bru(environment);
+  runTests(testsFile, request, response, environment, collectionVariables, collectionPath) {
+    const bru = new Bru(environment, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
@@ -45,6 +45,7 @@ class TestRuntime {
       request,
       response,
       environment,
+      collectionVariables,
       results: __brunoTestResults.getResults()
     };
   }
