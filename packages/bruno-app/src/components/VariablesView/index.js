@@ -34,7 +34,7 @@ const VariablesView = ({collection}) => {
             handleClose={() => setPopOverOpen(false)}
           >
             <div className="px-2 py-1">
-              {(enabledVariables && enabledVariables.length) ? <VariablesTable variables={enabledVariables} /> : 'No variables found'}
+              {(enabledVariables && enabledVariables.length) ? <VariablesTable variables={enabledVariables} collectionVariables={collection.collectionVariables}/> : 'No variables found'}
             </div>
           </PopOver>
         )}

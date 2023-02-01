@@ -6,12 +6,12 @@ const StyledWrapper = styled.div`
   }
 
   .variable-name{
-    width:100px;
+    min-width:180px;
   }
 
   .variable-value {
-    max-width: 500px;
-    inline-size: 500px;
+    max-width: 600px;
+    inline-size: 600px;
     overflow-wrap: break-word;
   }
 `

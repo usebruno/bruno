@@ -8,11 +8,13 @@ import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
+import 'codemirror/addon/scroll/simplescrollbars.css';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
   require('codemirror/mode/javascript/javascript');
   require('codemirror/mode/xml/xml');
+  require('codemirror/addon/scroll/simplescrollbars');
   require('codemirror/addon/edit/matchbrackets');
   require('codemirror/addon/fold/brace-fold');
   require('codemirror/addon/fold/foldgutter');

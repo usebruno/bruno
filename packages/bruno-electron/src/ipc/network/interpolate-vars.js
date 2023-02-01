@@ -27,34 +27,26 @@ const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
     request.headers[key] = interpolate(value);
   });
 
+  if(request.headers["content-type"] === "application/json") {
+    if(typeof request.data === "object") {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {
+      }
+    }
+
+    if(typeof request.data === "string") {
+      if(request.data.length) {
+        request.data = interpolate(request.data);
+      }
+    }
+  }
+
   each(request.params, (param) => {
     param.value = interpolate(param.value);
   });
-
-  // Todo: Make interpolation work with body mode json
-  const mode = get(request, 'body.mode');
-  switch (mode) {
-    case 'text': {
-      request.body.text = interpolate(request.body.text);
-      break;
-    }
-    case 'xml': {
-      request.body.text = interpolate(request.body.text);
-      break;
-    }
-    case 'multipartForm': {
-      each(request.body.multipartForm, (param) => {
-        param.value = interpolate(param.value);
-      });
-      break;
-    }
-    case 'formUrlEncoded': {
-      each(request.body.formUrlEncoded, (param) => {
-        param.value = interpolate(param.value);
-      });
-      break;
-    }
-  }
 
   return request;
 };

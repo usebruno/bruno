@@ -6,6 +6,9 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.textLink};
     }
   }
+  .danger {
+    color: ${(props) => props.theme.colors.text.danger};
+  }
 
   .test-summary {
     color: ${(props) => props.theme.tabs.active.border};

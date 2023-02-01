@@ -82,8 +82,13 @@ const useCollectionTreeSync = () => {
       toast.success('Collection is already opened');
     };
 
-    const _displayError = (message) => {
-      toast.error(message || 'Something went wrong!');
+    const _displayError = (error) => {
+      if(typeof error === "string") {
+        return toast.error(error || 'Something went wrong!');
+      }
+      if(typeof message === "object") {
+        return toast.error(error.message || 'Something went wrong!');
+      }
     };
 
     const _httpRequestSent = (val) => {

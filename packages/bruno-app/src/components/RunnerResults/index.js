@@ -32,17 +32,19 @@ export default function RunnerResults({collection}) {
     item.pathname = info.pathname;
     item.relativePath = getRelativePath(collection.pathname, info.pathname);
 
-    if(item.testResults) {
-      const failed = item.testResults.filter((result) => result.status === 'fail');
+    if(item.status !== "error") {
+      if(item.testResults) {
+        const failed = item.testResults.filter((result) => result.status === 'fail');
 
-      item.testStatus = failed.length ? 'fail' : 'pass';
-    } else {
-      item.testStatus = 'pass';
+        item.testStatus = failed.length ? 'fail' : 'pass';
+      } else {
+        item.testStatus = 'pass';
+      }
     }
   });
 
-  const passedRequests = items.filter((item) => item.testStatus === 'pass');
-  const failedRequests = items.filter((item) => item.testStatus === 'fail');
+  const passedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'pass');
+  const failedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'fail');
 
   return (
     <StyledWrapper className='px-4'>
@@ -61,14 +63,14 @@ export default function RunnerResults({collection}) {
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                        {item.testStatus === 'pass' ? (
+                        {item.status !== "error" && item.testStatus === 'pass' ? (
                           <IconCircleCheck className="test-success" size={20} strokeWidth={1.5}/>
                         ) : (
                           <IconCircleX className="test-failure" size={20} strokeWidth={1.5}/>
                         )}
                     </span>
-                    <span className='mr-1 ml-2'>{item.relativePath}</span>
-                    {item.status !== "completed" ? (
+                    <span className={`mr-1 ml-2 ${(item.status == "error" || item.testStatus == 'fail') ? 'danger' : ''}`}>{item.relativePath}</span>
+                    {(item.status !== "error" && item.status !== "completed") ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5}/>
                     ) : (
                       <span className='text-xs link cursor-pointer' onClick={() => setSelectedItem(item)}>
@@ -81,6 +83,11 @@ export default function RunnerResults({collection}) {
                       </span>
                     )}
                   </div>
+                  {item.status == "error" ? (
+                    <div className="error-message pl-8 pt-2 text-xs">
+                      {item.error}
+                    </div>
+                  ) : null }
 
                   <ul className="pl-8">
                     {item.testResults ? item.testResults.map((result) => (

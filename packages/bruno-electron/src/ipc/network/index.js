@@ -257,6 +257,9 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           itemUid
         };
 
+        let timeStart;
+        let timeEnd;
+
         try {
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'request-queued',
@@ -305,9 +308,9 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             ...eventData
           });
 
-          const timeStart = Date.now();
+          timeStart = Date.now();
           const response = await axios(request);
-          const timeEnd = Date.now();
+          timeEnd = Date.now();
 
           if(request.script && request.script.length) {
             let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
@@ -346,9 +349,27 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             }
           });
         } catch (error) {
+          let responseReceived = {};
+          let duration = 0;
+
+          if(timeStart && timeEnd) {
+            duration = timeEnd - timeStart;
+          }
+
+          if(error && error.response) {
+            responseReceived = {
+              status: error.response.status,
+              statusText: error.response.statusText,
+              headers: Object.entries(error.response.headers),
+              duration: duration,
+              size: error.response.headers['content-length'] || getSize(error.response.data),
+              data: error.response.data,
+            }
+          }
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'error',
-            error,
+            error: error ? error.message : 'An error occurred while running the request',
+            responseReceived: responseReceived,
             ...eventData
           });
         }
@@ -356,8 +377,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     } catch (error) {
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'error',
-        error,
-        ...eventData
+        error
       });
     }
   });

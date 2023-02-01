@@ -43,6 +43,7 @@ export default class CodeEditor extends React.Component {
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       readOnly: this.props.readOnly,
+      scrollbarStyle: "overlay",
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-Enter': () => {

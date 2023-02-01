@@ -74,7 +74,9 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       ipcMain.emit('main:collection-opened', win, collectionPath, uid);
     } catch(err) {
       if(!options.dontSendDisplayErrors) {
-        win.webContents.send('main:display-error', err.message || 'An error occured while opening the local collection');
+        win.webContents.send('main:display-error', {
+          error: err.message || 'An error occured while opening the local collection'
+        });
       }
     }
   } else {

@@ -888,7 +888,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, error } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -919,6 +919,13 @@ export const collectionsSlice = createSlice({
         if(type === 'test-results') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.testResults = action.payload.testResults;
+        }
+
+        if(type === 'error') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.error = action.payload.error;
+          item.responseReceived = action.payload.responseReceived;
+          item.status = "error";
         }
       }
     }
