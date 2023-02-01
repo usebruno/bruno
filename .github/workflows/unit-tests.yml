@@ -19,3 +19,5 @@ jobs:
       run: npm run test --workspace=packages/bruno-lang
     - name: Test Package bruno-schema
       run: npm run test --workspace=packages/bruno-schema
+    - name: Test Package bruno-app
+      run: npm run test --workspace=packages/bruno-app
