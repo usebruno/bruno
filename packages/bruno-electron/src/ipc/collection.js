@@ -64,6 +64,31 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // rename collection
+  ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
+    try {
+      const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
+      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+      const json = JSON.parse(content);
+
+      json.name = newName;
+
+      const newContent = await stringifyJson(json);
+      await writeFile(brunoJsonFilePath, newContent);
+
+      // todo: listen for bruno.json changes and handle it in watcher
+      // the app will change the name of the collection after parsing the bruno.json file contents
+      mainWindow.webContents.send('main:collection-renamed', {
+        collectionPathname,
+        newName
+      });
+
+      return;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {

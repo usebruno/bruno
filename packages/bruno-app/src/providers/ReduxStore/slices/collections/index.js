@@ -11,6 +11,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import splitOnFirst from 'split-on-first';
 import {
   findCollectionByUid,
+  findCollectionByPathname,
   findItemInCollection,
   findEnvironmentInCollection,
   findItemInCollectionByPathname,
@@ -840,6 +841,14 @@ export const collectionsSlice = createSlice({
           item.testResults = results;
         }
       }
+    },
+    collectionRenamedEvent: (state, action) => {
+      const { collectionPathname, newName } = action.payload;
+      const collection = findCollectionByPathname(state.collections, collectionPathname);
+
+      if (collection) {
+        collection.name = newName;
+      }
     }
   }
 });
@@ -891,7 +900,8 @@ export const {
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
-  testResultsEvent
+  testResultsEvent,
+  collectionRenamedEvent
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

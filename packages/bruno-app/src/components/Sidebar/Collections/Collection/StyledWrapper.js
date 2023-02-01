@@ -52,6 +52,12 @@ const Wrapper = styled.div`
       }
     }
   }
+
+  #sidebar-collection-name {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
 `;
 
 export default Wrapper;

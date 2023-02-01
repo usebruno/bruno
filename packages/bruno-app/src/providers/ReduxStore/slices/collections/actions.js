@@ -11,7 +11,6 @@ import {
   moveCollectionItemToRootOfCollection,
   findCollectionByUid,
   recursivelyGetAllItemUids,
-  transformCollectionToSaveToIdb,
   transformRequestToSaveToFilesystem,
   findParentItemInCollection,
   findEnvironmentInCollection,
@@ -48,26 +47,16 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  if (collection) {
-    const collectionCopy = cloneDeep(collection);
-    collectionCopy.name = newName;
-    const collectionToSave = transformCollectionToSaveToIdb(collectionCopy, {
-      ignoreDraft: true
-    });
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
 
-    collectionSchema
-      .validate(collectionToSave)
-      .then(() => saveCollectionToIdb(window.__idb, collectionToSave))
-      .then(() => {
-        dispatch(
-          _renameCollection({
-            newName: newName,
-            collectionUid: collectionUid
-          })
-        );
-      })
-      .catch((err) => console.log(err));
-  }
+    ipcRenderer
+      .invoke('renderer:rename-collection', newName, collection.pathname)
+      .then(resolve)
+      .catch(reject);
+  });
 };
 
 export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
