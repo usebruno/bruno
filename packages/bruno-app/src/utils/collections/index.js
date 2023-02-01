@@ -164,7 +164,11 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
 
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
   collection.items.push(draggedItem);
-  draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
+  if(draggedItem.type == 'folder') {
+    draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
+  } else {
+    draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
+  }
 };
 
 export const getItemsToResequence = (parent, collection) => {

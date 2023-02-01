@@ -1,6 +1,7 @@
 import path from 'path';
 import toast from 'react-hot-toast';
 import trim from 'lodash/trim';
+import filter from 'lodash/filter';
 import { uuid } from 'utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
@@ -252,6 +253,8 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
       if (!reqWithSameNameExists) {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
+        const requestItems = filter(collection.items, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? (requestItems.length + 1) : 1;
 
         itemSchema
           .validate(itemToSave)
@@ -267,6 +270,8 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         const dirname = path.dirname(item.pathname);
         const fullName = `${dirname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
+        const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
+        itemToSave.seq = requestItems ? (requestItems.length + 1) : 1;
 
         itemSchema
           .validate(itemToSave)
@@ -360,8 +365,6 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
       moveCollectionItem(collectionCopy, draggedItem, targetItem);
       const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
       const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);
-      console.log('itemsToResequence', itemsToResequence);
-      console.log('itemsToResequence2', itemsToResequence2);
 
       return ipcRenderer
         .invoke('renderer:move-file-item', draggedItemPathname, targetItemParent.pathname)
@@ -455,15 +458,23 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 
     const draggedItemPathname = draggedItem.pathname;
     moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
-    const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
-    const itemsToResequence2 = getItemsToResequence(collectionCopy, collectionCopy);
 
-    return ipcRenderer
-      .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
-      .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
-      .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
-      .then(resolve)
-      .catch((error) => reject(error));
+    if(isItemAFolder(draggedItem)) {
+      return ipcRenderer
+        .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
+        .then(resolve)
+        .catch((error) => reject(error));
+    } else {
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+      const itemsToResequence2 = getItemsToResequence(collectionCopy, collectionCopy);
+
+      return ipcRenderer
+        .invoke('renderer:move-file-item', draggedItemPathname, collectionCopy.pathname)
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
+        .then(resolve)
+        .catch((error) => reject(error));
+    }
   });
 };
 
@@ -501,8 +512,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     const filename = resolveRequestFilename(requestName);
     if (!itemUid) {
       const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
-      item.seq = collectionCopy.items ? collectionCopy.items.length : 1;
-      item.seq = item.seq + 1;
+      const requestItems = filter(collection.items, (i) => i.type !== 'folder');
+      item.seq = requestItems.length + 1;
 
       if (!reqWithSameNameExists) {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
@@ -516,8 +527,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       const currentItem = findItemInCollection(collection, itemUid);
       if (currentItem) {
         const reqWithSameNameExists = find(currentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
-        item.seq = currentItem.items ? currentItem.items.length : 1;
-        item.seq = item.seq + 1;
+        const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
+        item.seq = requestItems.length + 1;
         if (!reqWithSameNameExists) {
           const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${filename}`;
           const { ipcRenderer } = window;
