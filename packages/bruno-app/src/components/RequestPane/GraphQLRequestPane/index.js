@@ -8,6 +8,8 @@ import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
+import Script from 'components/RequestPane/Script';
+import Tests from 'components/RequestPane/Tests';
 import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -89,6 +91,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
       }
+      case 'script': {
+        return <Script item={item} collection={collection} />;
+      }
+      case 'tests': {
+        return <Tests item={item} collection={collection} />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -121,6 +129,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+        </div>
+        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
+          Script
+        </div>
+        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
+          Tests
         </div>
         <div className="flex flex-grow justify-end items-center" style={{fontSize: 13}}>
           <div className='flex items-center cursor-pointer hover:underline' onClick={loadGqlSchema}>

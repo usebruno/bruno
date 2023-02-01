@@ -220,7 +220,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     }
   });
 
-  ipcMain.handle('renderer:run-collection-folder', async (event, folder, collection, environment, recursive) => {
+  ipcMain.handle('renderer:run-collection-folder', async (event, folder, collection, environment, collectionVariables, recursive) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const folderUid = folder ? folder.uid : null;

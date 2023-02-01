@@ -161,7 +161,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
     }));
 
     ipcRenderer
-      .invoke('renderer:run-collection-folder', folder, collectionCopy, environment, recursive)
+      .invoke('renderer:run-collection-folder', folder, collectionCopy, environment, collectionCopy.collectionVariables, recursive)
       .then(resolve)
       .catch((err) => {
         toast.error(get(err, 'error.message') || 'Something went wrong!');
