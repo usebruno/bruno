@@ -3,8 +3,8 @@ const { uidSchema } = require("../common");
 
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
-  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less'),
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined()
 }).noUnknown(true).strict();
@@ -12,7 +12,7 @@ const environmentVariablesSchema = Yup.object({
 
 const environmentSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().min(1).max(50, 'name must be 100 characters or less').required('name is required'),
+  name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
 }).noUnknown(true).strict();
 
@@ -20,25 +20,25 @@ const environmentsSchema = Yup.array().of(environmentSchema);
 
 const keyValueSchema = Yup.object({
   uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
-  value: Yup.string().nullable().max(2048, 'value must be 2048 characters or less'),
-  description: Yup.string().nullable().max(2048, 'description must be 2048 characters or less'),
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  description: Yup.string().nullable(),
   enabled: Yup.boolean()
 }).noUnknown(true).strict();
 
-const requestUrlSchema = Yup.string().min(0).max(2048, 'name must be 2048 characters or less').defined();
-const requestMethodSchema = Yup.string().oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD']).required('method is required');
+const requestUrlSchema = Yup.string().min(0).defined();
+const requestMethodSchema = Yup.string().oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']).required('method is required');
 
 const graphqlBodySchema = Yup.object({
-  query:  Yup.string().max(10240, 'json must be 10240 characters or less').nullable(),
-  variables:  Yup.string().max(10240, 'text must be 10240 characters or less').nullable(),
+  query:  Yup.string().nullable(),
+  variables:  Yup.string().nullable(),
 }).noUnknown(true).strict();
 
 const requestBodySchema = Yup.object({
   mode: Yup.string().oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql']).required('mode is required'),
-  json:  Yup.string().max(10240, 'json must be 10240 characters or less').nullable(),
-  text:  Yup.string().max(10240, 'text must be 10240 characters or less').nullable(),
-  xml:  Yup.string().max(10240, 'xml must be 10240 characters or less').nullable(),
+  json:  Yup.string().nullable(),
+  text:  Yup.string().nullable(),
+  xml:  Yup.string().nullable(),
   formUrlEncoded:  Yup.array().of(keyValueSchema).nullable(),
   multipartForm:  Yup.array().of(keyValueSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
@@ -63,15 +63,14 @@ const itemSchema = Yup.object({
   seq: Yup.number().min(1),
   name: Yup.string()
     .min(1, 'name must be atleast 1 characters')
-    .max(50, 'name must be 100 characters or less')
     .required('name is required'),
   request: requestSchema.when('type', {
       is: (type) => ['http-request', 'graphql-request'].includes(type),
       then: (schema) => schema.required('request is required when item-type is request')
     }),
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
-  filename: Yup.string().max(1024, 'filename cannot be more than 1024 characters').nullable(),
-  pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
+  filename: Yup.string().nullable(),
+  pathname: Yup.string().nullable()
 }).noUnknown(true).strict();
 
 const collectionSchema = Yup.object({
@@ -79,7 +78,6 @@ const collectionSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string()
     .min(1, 'name must be atleast 1 characters')
-    .max(50, 'name must be 100 characters or less')
     .required('name is required'),
   items:  Yup.array().of(itemSchema),
   activeEnvironmentUid: Yup.string()
@@ -87,7 +85,7 @@ const collectionSchema = Yup.object({
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
     .nullable(),
   environments: environmentsSchema,
-  pathname: Yup.string().max(1024, 'pathname cannot be more than 1024 characters').nullable()
+  pathname: Yup.string().nullable()
 }).noUnknown(true).strict();
 
 

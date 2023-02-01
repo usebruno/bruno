@@ -31,7 +31,7 @@ describe('Request Schema Validation', () => {
 
     return Promise.all([
       expect(requestSchema.validate(request)).rejects.toEqual(
-        validationErrorWithMessages('method must be one of the following values: GET, POST, PUT, DELETE, PATCH, HEAD')
+        validationErrorWithMessages('method must be one of the following values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS')
       )
     ]);
   });
