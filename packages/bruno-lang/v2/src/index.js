@@ -6,20 +6,22 @@ const grammar = ohm.grammar(`Bru {
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   tagend = nl "}"
+  validkey = ~(st | ":") any
+  validvalue = ~nl any
   
   headers = "headers" st* "{" pairlist? tagend
   
   pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
-  pair = st* key st* ":" st* val st*
-  key = ~tagend alnum*
-  val = ~tagend letter*
+  pair = st* key st* ":" st* value st*
+  key = ~tagend validkey*
+  value = ~tagend validvalue*
 
-  script = "script" st* "{" nl* codeblock tagend
-  test = "test" st* "{" codeblock tagend
+  script = "script" st* "{" nl* textblock tagend
+  test = "test" st* "{" textblock tagend
 
-  codeblock = codeline (~tagend nl codeline)*
-  codeline = codechar*
-  codechar = ~nl any
+  textblock = textline (~tagend nl textline)*
+  textline = textchar*
+  textchar = ~nl any
 }`);
 
 const mapPairListToKeyValPairs = (pairList = [], enabled = true) => {
@@ -54,34 +56,34 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
   },
-  pair(_1, key, _2, _3, _4, val, _5) {
+  pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = val.ast;
+    res[key.ast] = value.ast;
     return res;
   },
   key(chars) {
     return chars.sourceString;
   },
-  val(chars) {
-    return chars.sourceString;
+  value(chars) {
+    return chars.sourceString ? chars.sourceString.trim() : '';
   },
-  script(_1, _2, _3, _4, codeblock, _5) {
+  script(_1, _2, _3, _4, textblock, _5) {
     return {
-      script: codeblock.sourceString
+      script: textblock.sourceString
     };
   },
-  test(_1, _2, _3, codeblock, _4) {
+  test(_1, _2, _3, textblock, _4) {
     return {
-      test: codeblock.sourceString
+      test: textblock.sourceString
     };;
   },
-  codeblock(line, _1, rest) {
+  textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
   },
-  codeline(chars) {
+  textline(chars) {
     return chars.sourceString;
   },
-  codechar(char) {
+  textchar(char) {
     return char.sourceString;
   },
   nl(_1, _2) {

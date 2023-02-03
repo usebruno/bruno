@@ -59,19 +59,19 @@ headers {
   it("should parse multi headers", () => {
     const input = `
 headers {
-  hello: world
-  foo: bar
+  content-type: application/json
+  Authorization: JWT secret
 }`;
 
     const output = bruToJsonV2(input);
     const expected = {
       "headers": [{
-        "name": "hello",
-        "value": "world",
+        "name": "content-type",
+        "value": "application/json",
         "enabled": true
       }, {
-        "name": "foo",
-        "value": "bar",
+        "name": "Authorization",
+        "value": "JWT secret",
         "enabled": true
       }]
     };
