@@ -4,8 +4,12 @@ describe("parser", () => {
   it("should parse the bru file", () => {
     const input = `
 headers {
-  hello: world
-  foo: bar
+  content-type: application/json
+  Authorization: Bearer 123
+}
+
+headers:disabled {
+  transaction-id: {{transactionId}}
 }
 
 script {
@@ -19,18 +23,24 @@ script {
     const expected = {
       "headers": [
         {
-          "name": "hello",
-          "value": "world",
+          "name": "content-type",
+          "value": "application/json",
           "enabled": true
         },
         {
-          "name": "foo",
-          "value": "bar",
+          "name": "Authorization",
+          "value": "Bearer 123",
           "enabled": true
+        },
+        {
+          "name": "transaction-id",
+          "value": "{{transactionId}}",
+          "enabled": false
         }
       ],
       "script": "  function onResponse(request, response) {\n    expect(response.status).to.equal(200);\n  }"
     }
+
     expect(output).toEqual(expected);
   });
 });

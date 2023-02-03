@@ -95,6 +95,23 @@ headers {
     expect(output).toEqual(expected);
   });
 
+  it("should parse disabled headers", () => {
+    const input = `
+headers:disabled {
+  content-type: application/json
+}`;
+
+    const output = bruToJsonV2(input);
+    const expected = {
+      "headers": [{
+        "name": "content-type",
+        "value": "application/json",
+        "enabled": false
+      }]
+    };
+    expect(output).toEqual(expected);
+  });
+
   it("should throw error on invalid header", () => {
     const input = `
 headers {

@@ -2,15 +2,17 @@ const ohm = require("ohm-js");
 const _ = require('lodash');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (script | test | headers)*
+  BruFile = (script | test | headersdisabled | headers)*
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   tagend = nl "}"
   validkey = ~(st | ":") any
   validvalue = ~nl any
 
-  headers = "headers" st* "{" pairlist? tagend
+  headers = "headers" pairblock
+  headersdisabled = "headers:disabled" pairblock
 
+  pairblock = st* "{" pairlist? tagend
   pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
@@ -38,6 +40,12 @@ const mapPairListToKeyValPairs = (pairList = [], enabled = true) => {
   });
 };
 
+const concatArrays = (objValue, srcValue) => {
+  if (_.isArray(objValue) && _.isArray(srcValue)) {
+    return objValue.concat(srcValue);
+  }
+};
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if(!tags || !tags.ast || !tags.ast.length) {
@@ -45,13 +53,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     }
 
     return _.reduce(tags.ast, (result, item) => {
-      return _.assign(result, item);
+      return _.mergeWith(result, item, concatArrays);
     }, {});
   },
-  headers(_1, _2, _3, pairlist, _4) {
+  headers(_1, pairblock) {
     return {
-      headers: mapPairListToKeyValPairs(pairlist.ast)
+      headers: mapPairListToKeyValPairs(pairblock.ast)
     };
+  },
+  headersdisabled(_1, pairblock) {
+    return {
+      headers: mapPairListToKeyValPairs(pairblock.ast, false)
+    };
+  },
+  pairblock(_1, _2, pairlist, _3) {
+    return pairlist.ast;
   },
   pairlist(_1, pair, _2, rest, _3) {
     return [pair.ast, ...rest.ast];
