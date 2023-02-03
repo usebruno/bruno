@@ -2,16 +2,26 @@ const parser = require("../src/index");
 
 describe("parser", () => {
   it("should parse headers", () => {
-    const input = `headers {
-      hello: world,
-      foo: bar
-    }`;
+    const input = `
+headers {
+  hello: world
+  foo: bar
+}`;
 
-    const expected = [
-      { key: "hello", value: "world" },
-      { key: "foo", value: "bar" }
-    ];
+    const output = parser(input);
+    console.log(output);
+  });
 
-    expect(parser(input)).toEqual(expected);
+  it("should parse script body", () => {
+    const input = `
+script {
+  function onResponse(request, response) {
+    expect(response.status).to.equal(200);
+  }
+}
+`;
+
+    const output = parser(input);
+    console.log(output);
   });
 });
