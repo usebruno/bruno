@@ -8,11 +8,11 @@ const grammar = ohm.grammar(`Bru {
   tagend = nl "}"
   validkey = ~(st | ":") any
   validvalue = ~nl any
-  
+
   headers = "headers" st* "{" pairlist? tagend
-  
+
   pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
-  pair = st* key st* ":" st* value st*
+  pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*
 
@@ -58,7 +58,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = value.ast;
+    res[key.ast] = _.get(value, 'ast[0]', '');
     return res;
   },
   key(chars) {

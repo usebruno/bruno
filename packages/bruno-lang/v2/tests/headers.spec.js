@@ -56,6 +56,23 @@ headers {
     assertSingleHeader(input);
   });
 
+  it("should parse single header with empty value", () => {
+    const input = `
+headers {
+  hello:
+}`;
+
+    const output = bruToJsonV2(input);
+    const expected = {
+      "headers": [{
+        "name": "hello",
+        "value": "",
+        "enabled": true
+      }]
+    };
+    expect(output).toEqual(expected);
+  });
+
   it("should parse multi headers", () => {
     const input = `
 headers {
