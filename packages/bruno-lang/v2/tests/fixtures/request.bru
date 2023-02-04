@@ -27,6 +27,23 @@ headers:disabled {
   transaction-id: {{transactionId}}
 }
 
+body:json {
+  {
+    "hello": "world"
+  }
+}
+
+body:text {
+  This is a text body
+}
+
+body:xml {
+  <xml>
+    <name>John</name>
+    <age>30</age>
+  </xml>
+}
+
 body:form-urlencoded {
   apikey: secret
   numbers: +91998877665
@@ -43,23 +60,6 @@ body:multipart-form {
 
 body:multipart-form:disabled {
   message: hello
-}
-
-body:json {
-  {
-    "hello": "world"
-  }
-}
-
-body:text {
-  This is a text body
-}
-
-body:xml {
-  <xml>
-    <name>John</name>
-    <age>30</age>
-  </xml>
 }
 
 body:graphql {
@@ -103,7 +103,11 @@ assert:disabled {
   $res.body.message: success
 }
 
-test {
+script {
+  const foo = 'bar';
+}
+
+tests {
   function onResponse(request, response) {
     expect(response.status).to.equal(200);
   }

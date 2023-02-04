@@ -5,7 +5,7 @@
     "seq": "1"
   },
   "http": {
-    "method": "GET",
+    "method": "get",
     "url": "https://api.textlocal.in/send/",
     "body": "json"
   },
@@ -40,12 +40,12 @@
     }
   ],
   "body": {
-    "json": "  {\n    \"hello\": \"world\"\n  }",
-    "text": "  This is a text body",
-    "xml": "  <xml>\n    <name>John</name>\n    <age>30</age>\n  </xml>",
+    "json": "{\n  \"hello\": \"world\"\n}",
+    "text": "This is a text body",
+    "xml": "<xml>\n  <name>John</name>\n  <age>30</age>\n</xml>",
     "graphql": {
-      "query": "  {\n    launchesPast {\n      launch_site {\n        site_name\n      }\n      launch_success\n    }\n  }",
-      "variables": "  {\n    \"limit\": 5\n  }"
+      "query": "{\n  launchesPast {\n    launch_site {\n      site_name\n    }\n    launch_success\n  }\n}",
+      "variables": "{\n  \"limit\": 5\n}"
     },
     "formUrlEncoded": [
       {
@@ -86,23 +86,25 @@
     {
       "name": "token",
       "value": "$res.body.token",
+      "local": false,
       "enabled": true
     },
     {
       "name": "petId",
       "value": "$res.body.id",
+      "local": false,
       "enabled": false
-    }
-  ],
-  "varsLocal": [
+    },
     {
       "name": "orderNumber",
       "value": "$res.body.orderNumber",
+      "local": true,
       "enabled": true
     },
     {
       "name": "transactionId",
       "value": "$res.body.transactionId",
+      "local": true,
       "enabled": false
     }
   ],
@@ -118,6 +120,7 @@
       "enabled": false
     }
   ],
-  "test": "  function onResponse(request, response) {\n    expect(response.status).to.equal(200);\n  }",
-  "docs": "  This request needs auth token to be set in the headers."
+  "script": "const foo = 'bar';",
+  "tests": "function onResponse(request, response) {\n  expect(response.status).to.equal(200);\n}",
+  "docs": "This request needs auth token to be set in the headers."
 }

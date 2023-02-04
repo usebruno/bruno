@@ -6,8 +6,7 @@ const {
 const _ = require('lodash');
 const {
   indentString,
-  outdentString,
-  get
+  outdentString
 } = require('./utils');
 
 const inlineTag  = require('./inline-tag');
@@ -64,7 +63,7 @@ const bruToJson = (fileContents) => {
     }
   };
 
-  const body = get(json, 'request.body');
+  const body = _.get(json, 'request.body');
 
   if(body && body.text) {
     body.text = outdentString(body.text);

@@ -14,7 +14,7 @@ script {
 `;
 
     const output = parser(input);
-    const expected = "  function onResponse(request, response) {\n    expect(response.status).to.equal(200);\n  }";
+    const expected = "function onResponse(request, response) {\n  expect(response.status).to.equal(200);\n}";
     expect(output.script).toEqual(expected);
   });
 });

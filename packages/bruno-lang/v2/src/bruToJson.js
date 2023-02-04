@@ -1,5 +1,8 @@
 const ohm = require("ohm-js");
 const _ = require('lodash');
+const {
+  outdentString
+} = require('../../v1/src/utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -21,7 +24,7 @@ const _ = require('lodash');
  * 
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | querydisabled | query | headersdisabled | headers | bodies | varsandassert | script | test | docs)*
+  BruFile = (meta | http | querydisabled | query | headersdisabled | headers | bodies | varsandassert | script | tests | docs)*
   bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms
   bodyforms = bodyformurlencodeddisabled | bodyformurlencoded | bodymultipartdisabled | bodymultipart
 
@@ -81,7 +84,7 @@ const grammar = ohm.grammar(`Bru {
   bodymultipartdisabled = "body:multipart-form:disabled" dictionary
 
   script = "script" st* "{" nl* textblock tagend
-  test = "test" st* "{" nl* textblock tagend
+  tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
@@ -148,7 +151,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   get(_1, dictionary) {
     return {
       http: {
-        method: 'GET',
+        method: 'get',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -156,7 +159,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   post(_1, dictionary) {
     return {
       http: {
-        method: 'POST',
+        method: 'post',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -164,7 +167,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   put(_1, dictionary) {
     return {
       http: {
-        method: 'PUT',
+        method: 'put',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -172,7 +175,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   delete(_1, dictionary) {
     return {
       http: {
-        method: 'DELETE',
+        method: 'delete',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -180,7 +183,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   options(_1, dictionary) {
     return {
       http: {
-        method: 'OPTIONS',
+        method: 'options',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -188,7 +191,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   head(_1, dictionary) {
     return {
       http: {
-        method: 'HEAD',
+        method: 'head',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -196,7 +199,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   connect(_1, dictionary) {
     return {
       http: {
-        method: 'CONNECT',
+        method: 'connect',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
@@ -252,21 +255,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   bodyjson(_1, _2, _3, _4, textblock, _5) {
     return {
       body: {
-        json: textblock.sourceString
+        json: outdentString(textblock.sourceString)
       }
     };
   },
   bodytext(_1, _2, _3, _4, textblock, _5) {
     return {
       body: {
-        text: textblock.sourceString
+        text: outdentString(textblock.sourceString)
       }
     };
   },
   bodyxml(_1, _2, _3, _4, textblock, _5) {
     return {
       body: {
-        xml: textblock.sourceString
+        xml: outdentString(textblock.sourceString)
       }
     };
   },
@@ -274,7 +277,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         graphql: {
-          query: textblock.sourceString
+          query: outdentString(textblock.sourceString)
         }
       }
     };
@@ -283,29 +286,37 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         graphql: {
-          variables: textblock.sourceString
+          variables: outdentString(textblock.sourceString)
         }
       }
     };
   },
   vars(_1, dictionary) {
+    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    _.each(vars, (val) => { val.local = false; });
     return {
-      vars: mapPairListToKeyValPairs(dictionary.ast)
+      vars
     };
   },
   varsdisabled(_1, dictionary) {
+    const vars = mapPairListToKeyValPairs(dictionary.ast, false);
+    _.each(vars, (val) => { val.local = false; });
     return {
-      vars: mapPairListToKeyValPairs(dictionary.ast, false)
+      vars
     };
   },
   varslocal(_1, dictionary) {
+    const varsLocal = mapPairListToKeyValPairs(dictionary.ast);
+    _.each(varsLocal, (val) => { val.local = true; });
     return {
-      varsLocal: mapPairListToKeyValPairs(dictionary.ast)
+      vars: varsLocal
     };
   },
   varslocaldisabled(_1, dictionary) {
+    const varsLocal = mapPairListToKeyValPairs(dictionary.ast, false);
+    _.each(varsLocal, (val) => { val.local = true; });
     return {
-      varsLocal: mapPairListToKeyValPairs(dictionary.ast, false)
+      vars: varsLocal
     };
   },
   assert(_1, dictionary) {
@@ -320,17 +331,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   script(_1, _2, _3, _4, textblock, _5) {
     return {
-      script: textblock.sourceString
+      script: outdentString(textblock.sourceString)
     };
   },
-  test(_1, _2, _3, _4, textblock, _5) {
+  tests(_1, _2, _3, _4, textblock, _5) {
     return {
-      test: textblock.sourceString
+      tests: outdentString(textblock.sourceString)
     };;
   },
   docs(_1, _2, _3, _4, textblock, _5) {
     return {
-      docs: textblock.sourceString
+      docs: outdentString(textblock.sourceString)
     };
   },
   textblock(line, _1, rest) {
