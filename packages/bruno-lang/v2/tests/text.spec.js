@@ -1,3 +1,6 @@
+/**
+ * This test file is used to test the text parser.
+ */
 const parser = require("../src/index");
 
 describe("script parser", () => {

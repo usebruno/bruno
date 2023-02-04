@@ -1,7 +1,11 @@
-const bruToJsonV2 = require("../src/index");
+/**
+ * This test file is used to test the text parser.
+ */
+
+const parser = require("../src/index");
 
 const assertSingleHeader = (input) => {
-  const output = bruToJsonV2(input);
+  const output = parser(input);
 
   const expected = {
     "headers": [{
@@ -19,7 +23,7 @@ describe("headers parser", () => {
 headers {
 }`;
 
-    const output = bruToJsonV2(input);
+    const output = parser(input);
     const expected = {
       "headers": []
     };
@@ -62,7 +66,7 @@ headers {
   hello:
 }`;
 
-    const output = bruToJsonV2(input);
+    const output = parser(input);
     const expected = {
       "headers": [{
         "name": "hello",
@@ -80,7 +84,7 @@ headers {
   Authorization: JWT secret
 }`;
 
-    const output = bruToJsonV2(input);
+    const output = parser(input);
     const expected = {
       "headers": [{
         "name": "content-type",
@@ -101,7 +105,7 @@ headers:disabled {
   content-type: application/json
 }`;
 
-    const output = bruToJsonV2(input);
+    const output = parser(input);
     const expected = {
       "headers": [{
         "name": "content-type",
@@ -119,7 +123,7 @@ headers {
   foo
 }`;
 
-    expect(() => bruToJsonV2(input)).toThrow();
+    expect(() => parser(input)).toThrow();
   });
 
   it("should throw error on invalid header", () => {
@@ -128,7 +132,7 @@ headers {
   hello: world
   foo: bar}`;
 
-    expect(() => bruToJsonV2(input)).toThrow();
+    expect(() => parser(input)).toThrow();
   });
 });
 
