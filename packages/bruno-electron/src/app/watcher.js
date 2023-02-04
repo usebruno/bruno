@@ -4,11 +4,13 @@ const path = require('path');
 const chokidar = require('chokidar');
 const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/filesystem');
 const {
-  bruToJson,
-  jsonToBru,
   bruToEnvJson,
   envJsonToBru,
 } = require('@usebruno/lang');
+const {
+  bruToJson,
+  jsonToBru
+} = require('../bru');
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -179,6 +181,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = bruToJson(bru);
+      console.log(JSON.stringify(file.data, null, 2));
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {

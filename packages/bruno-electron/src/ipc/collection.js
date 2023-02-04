@@ -3,10 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
 const {
-  jsonToBru,
-  bruToJson,
   envJsonToBru,
 } = require('@usebruno/lang');
+const {
+  bruToJson,
+  jsonToBru
+} = require('../bru');
+
 const {
   isValidPathname,
   writeFile,

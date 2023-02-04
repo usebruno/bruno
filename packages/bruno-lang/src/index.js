@@ -3,9 +3,10 @@ const {
   jsonToBru,
   bruToEnvJson,
   envJsonToBru
-} = require('./v1/src');
+} = require('../v1/src');
 
-const bruToJsonV2 = require('./v2/src/bruToJson');
+const bruToJsonV2 = require('../v2/src/bruToJson');
+const jsonToBruV2 = require('../v2/src/jsonToBru');
 
 module.exports = {
   bruToJson,
@@ -13,5 +14,6 @@ module.exports = {
   bruToEnvJson,
   envJsonToBru,
 
-  bruToJsonV2
+  bruToJsonV2,
+  jsonToBruV2
 };

@@ -4,6 +4,8 @@
   "main": "src/index.js",
   "files": [
     "src",
+    "v1",
+    "v2",
     "package.json"
   ],
   "scripts": {
