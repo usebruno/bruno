@@ -1,27 +1,73 @@
 const ohm = require("ohm-js");
 const _ = require('lodash');
 
+/**
+ * A Bru file is made up of blocks.
+ * There are two types of blocks
+ *
+ * 1. Dictionary Blocks - These are blocks that have key value pairs
+ * ex:
+ *  headers {
+ *   content-type: application/json
+ *  }
+ * 
+ * 2. Text Blocks - These are blocks that have text
+ * ex:
+ * body:json {
+ *  {
+ *   "username": "John Nash",
+ *   "password": "governingdynamics
+ *  }
+ * 
+ */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (script | test | querydisabled | query | headersdisabled | headers | bodies )*
+  BruFile = (meta | http | querydisabled | query | headersdisabled | headers | bodies | varsandassert | script | test | docs)*
   bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms
   bodyforms = bodyformurlencodeddisabled | bodyformurlencoded | bodymultipartdisabled | bodymultipart
+
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   tagend = nl "}"
   validkey = ~(st | ":") any
   validvalue = ~nl any
 
-  headers = "headers" pairblock
-  headersdisabled = "headers:disabled" pairblock
-
-  query = "query" pairblock
-  querydisabled = "query:disabled" pairblock
-
-  pairblock = st* "{" pairlist? tagend
+  // Dictionary Blocks
+  dictionary = st* "{" pairlist? tagend
   pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*
+
+  // Text Blocks
+  textblock = textline (~tagend nl textline)*
+  textline = textchar*
+  textchar = ~nl any
+
+  meta = "meta" dictionary
+
+  http = get | post | put | delete | options | head | connect | trace
+  get = "get" dictionary
+  post = "post" dictionary
+  put = "put" dictionary
+  delete = "delete" dictionary
+  options = "options" dictionary
+  head = "head" dictionary
+  connect = "connect" dictionary
+  trace = "trace" dictionary
+
+  headers = "headers" dictionary
+  headersdisabled = "headers:disabled" dictionary
+
+  query = "query" dictionary
+  querydisabled = "query:disabled" dictionary
+
+  varsandassert = vars | varsdisabled | varslocal | varslocaldisabled | assert | assertdisabled
+  vars = "vars" dictionary
+  varsdisabled = "vars:disabled" dictionary
+  varslocal = "vars:local" dictionary
+  varslocaldisabled = "vars:local:disabled" dictionary
+  assert = "assert" dictionary
+  assertdisabled = "assert:disabled" dictionary
 
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
@@ -29,17 +75,14 @@ const grammar = ohm.grammar(`Bru {
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
 
-  bodyformurlencoded = "body:form-urlencoded" pairblock
-  bodyformurlencodeddisabled = "body:form-urlencoded:disabled" pairblock
-  bodymultipart = "body:multipart-form" pairblock
-  bodymultipartdisabled = "body:multipart-form:disabled" pairblock
+  bodyformurlencoded = "body:form-urlencoded" dictionary
+  bodyformurlencodeddisabled = "body:form-urlencoded:disabled" dictionary
+  bodymultipart = "body:multipart-form" dictionary
+  bodymultipartdisabled = "body:multipart-form:disabled" dictionary
 
   script = "script" st* "{" nl* textblock tagend
-  test = "test" st* "{" textblock tagend
-
-  textblock = textline (~tagend nl textline)*
-  textline = textchar*
-  textchar = ~nl any
+  test = "test" st* "{" nl* textblock tagend
+  docs = "docs" st* "{" nl* textblock tagend
 }`);
 
 const mapPairListToKeyValPairs = (pairList = [], enabled = true) => {
@@ -62,6 +105,14 @@ const concatArrays = (objValue, srcValue) => {
   }
 };
 
+const mapPairListToKeyValPair = (pairList = []) => {
+  if(!pairList || !pairList.length) {
+    return {};
+  }
+
+  return _.merge({}, ...pairList[0]);
+}
+
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
     if(!tags || !tags.ast || !tags.ast.length) {
@@ -72,27 +123,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       return _.mergeWith(result, item, concatArrays);
     }, {});
   },
-  query(_1, pairblock) {
-    return {
-      query: mapPairListToKeyValPairs(pairblock.ast)
-    };
-  },
-  querydisabled(_1, pairblock) {
-    return {
-      query: mapPairListToKeyValPairs(pairblock.ast, false)
-    };
-  },
-  headers(_1, pairblock) {
-    return {
-      headers: mapPairListToKeyValPairs(pairblock.ast)
-    };
-  },
-  headersdisabled(_1, pairblock) {
-    return {
-      headers: mapPairListToKeyValPairs(pairblock.ast, false)
-    };
-  },
-  pairblock(_1, _2, pairlist, _3) {
+  dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
   },
   pairlist(_1, pair, _2, rest, _3) {
@@ -109,31 +140,112 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   value(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
-  bodyformurlencoded(_1, pairblock) {
+  meta(_1, dictionary) {
     return {
-      body: {
-        formUrlEncoded: mapPairListToKeyValPairs(pairblock.ast)
+      meta: mapPairListToKeyValPair(dictionary.ast)
+    };
+  },
+  get(_1, dictionary) {
+    return {
+      http: {
+        method: 'GET',
+        ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
   },
-  bodyformurlencodeddisabled(_1, pairblock) {
+  post(_1, dictionary) {
     return {
-      body: {
-        formUrlEncoded: mapPairListToKeyValPairs(pairblock.ast, false)
+      http: {
+        method: 'POST',
+        ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
   },
-  bodymultipart(_1, pairblock) {
+  put(_1, dictionary) {
     return {
-      body: {
-        multipartForm: mapPairListToKeyValPairs(pairblock.ast)
+      http: {
+        method: 'PUT',
+        ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
   },
-  bodymultipartdisabled(_1, pairblock) {
+  delete(_1, dictionary) {
+    return {
+      http: {
+        method: 'DELETE',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  options(_1, dictionary) {
+    return {
+      http: {
+        method: 'OPTIONS',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  head(_1, dictionary) {
+    return {
+      http: {
+        method: 'HEAD',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  connect(_1, dictionary) {
+    return {
+      http: {
+        method: 'CONNECT',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  query(_1, dictionary) {
+    return {
+      query: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  querydisabled(_1, dictionary) {
+    return {
+      query: mapPairListToKeyValPairs(dictionary.ast, false)
+    };
+  },
+  headers(_1, dictionary) {
+    return {
+      headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  headersdisabled(_1, dictionary) {
+    return {
+      headers: mapPairListToKeyValPairs(dictionary.ast, false)
+    };
+  },
+  bodyformurlencoded(_1, dictionary) {
     return {
       body: {
-        multipartForm: mapPairListToKeyValPairs(pairblock.ast, false)
+        formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast)
+      }
+    };
+  },
+  bodyformurlencodeddisabled(_1, dictionary) {
+    return {
+      body: {
+        formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast, false)
+      }
+    };
+  },
+  bodymultipart(_1, dictionary) {
+    return {
+      body: {
+        multipartForm: mapPairListToKeyValPairs(dictionary.ast)
+      }
+    };
+  },
+  bodymultipartdisabled(_1, dictionary) {
+    return {
+      body: {
+        multipartForm: mapPairListToKeyValPairs(dictionary.ast, false)
       }
     };
   },
@@ -176,15 +288,50 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  vars(_1, dictionary) {
+    return {
+      vars: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  varsdisabled(_1, dictionary) {
+    return {
+      vars: mapPairListToKeyValPairs(dictionary.ast, false)
+    };
+  },
+  varslocal(_1, dictionary) {
+    return {
+      varsLocal: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  varslocaldisabled(_1, dictionary) {
+    return {
+      varsLocal: mapPairListToKeyValPairs(dictionary.ast, false)
+    };
+  },
+  assert(_1, dictionary) {
+    return {
+      assert: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  assertdisabled(_1, dictionary) {
+    return {
+      assert: mapPairListToKeyValPairs(dictionary.ast, false)
+    };
+  },
   script(_1, _2, _3, _4, textblock, _5) {
     return {
       script: textblock.sourceString
     };
   },
-  test(_1, _2, _3, textblock, _4) {
+  test(_1, _2, _3, _4, textblock, _5) {
     return {
       test: textblock.sourceString
     };;
+  },
+  docs(_1, _2, _3, _4, textblock, _5) {
+    return {
+      docs: textblock.sourceString
+    };
   },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
