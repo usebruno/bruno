@@ -10,6 +10,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "arcsecond": "^5.0.0"
+    "arcsecond": "^5.0.0",
+    "ohm-js": "^16.6.0"
   }
 }
