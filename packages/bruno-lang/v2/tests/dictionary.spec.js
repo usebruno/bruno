@@ -2,7 +2,7 @@
  * This test file is used to test the text parser.
  */
 
-const parser = require("../src/index");
+const parser = require("../src/bruToJson");
 
 const assertSingleHeader = (input) => {
   const output = parser(input);

@@ -1,6 +1,6 @@
 const fs = require("fs");
 const path = require("path");
-const parser = require("../src/index");
+const parser = require("../src/bruToJson");
 
 describe("parser", () => {
   it("should parse the bru file", () => {
