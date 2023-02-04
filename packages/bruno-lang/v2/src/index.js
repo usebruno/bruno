@@ -2,7 +2,9 @@ const ohm = require("ohm-js");
 const _ = require('lodash');
 
 const grammar = ohm.grammar(`Bru {
-  BruFile = (script | test | headersdisabled | headers)*
+  BruFile = (script | test | querydisabled | query | headersdisabled | headers | bodies )*
+  bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms
+  bodyforms = bodyformurlencodeddisabled | bodyformurlencoded | bodymultipartdisabled | bodymultipart
   nl = "\\r"? "\\n"
   st = " " | "\\t"
   tagend = nl "}"
@@ -12,11 +14,25 @@ const grammar = ohm.grammar(`Bru {
   headers = "headers" pairblock
   headersdisabled = "headers:disabled" pairblock
 
+  query = "query" pairblock
+  querydisabled = "query:disabled" pairblock
+
   pairblock = st* "{" pairlist? tagend
   pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*
+
+  bodyjson = "body:json" st* "{" nl* textblock tagend
+  bodytext = "body:text" st* "{" nl* textblock tagend
+  bodyxml = "body:xml" st* "{" nl* textblock tagend
+  bodygraphql = "body:graphql" st* "{" nl* textblock tagend
+  bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
+
+  bodyformurlencoded = "body:form-urlencoded" pairblock
+  bodyformurlencodeddisabled = "body:form-urlencoded:disabled" pairblock
+  bodymultipart = "body:multipart-form" pairblock
+  bodymultipartdisabled = "body:multipart-form:disabled" pairblock
 
   script = "script" st* "{" nl* textblock tagend
   test = "test" st* "{" textblock tagend
@@ -56,6 +72,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       return _.mergeWith(result, item, concatArrays);
     }, {});
   },
+  query(_1, pairblock) {
+    return {
+      query: mapPairListToKeyValPairs(pairblock.ast)
+    };
+  },
+  querydisabled(_1, pairblock) {
+    return {
+      query: mapPairListToKeyValPairs(pairblock.ast, false)
+    };
+  },
   headers(_1, pairblock) {
     return {
       headers: mapPairListToKeyValPairs(pairblock.ast)
@@ -82,6 +108,73 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   value(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  bodyformurlencoded(_1, pairblock) {
+    return {
+      body: {
+        formUrlEncoded: mapPairListToKeyValPairs(pairblock.ast)
+      }
+    };
+  },
+  bodyformurlencodeddisabled(_1, pairblock) {
+    return {
+      body: {
+        formUrlEncoded: mapPairListToKeyValPairs(pairblock.ast, false)
+      }
+    };
+  },
+  bodymultipart(_1, pairblock) {
+    return {
+      body: {
+        multipartForm: mapPairListToKeyValPairs(pairblock.ast)
+      }
+    };
+  },
+  bodymultipartdisabled(_1, pairblock) {
+    return {
+      body: {
+        multipartForm: mapPairListToKeyValPairs(pairblock.ast, false)
+      }
+    };
+  },
+  bodyjson(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        json: textblock.sourceString
+      }
+    };
+  },
+  bodytext(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        text: textblock.sourceString
+      }
+    };
+  },
+  bodyxml(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        xml: textblock.sourceString
+      }
+    };
+  },
+  bodygraphql(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        graphql: {
+          query: textblock.sourceString
+        }
+      }
+    };
+  },
+  bodygraphqlvars(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        graphql: {
+          variables: textblock.sourceString
+        }
+      }
+    };
   },
   script(_1, _2, _3, _4, textblock, _5) {
     return {
