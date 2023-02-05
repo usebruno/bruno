@@ -1,7 +1,10 @@
 {
-  "name": "usebruno",
+  "name": "@usebruno/cli",
   "version": "0.1.0",
   "main": "src/index.js",
+  "bin": {
+    "bru": "./bin/bru.js"
+  },
   "files": [
     "src",
     "package.json"
