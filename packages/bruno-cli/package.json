@@ -8,5 +8,10 @@
   "files": [
     "src",
     "package.json"
-  ]
+  ],
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "inquirer": "^9.1.4",
+    "yargs": "^17.6.2"
+  }
 }
