@@ -53,36 +53,30 @@ const jsonToBru = (json) => {
 `;
   }
 
-  if(query && query.length && enabled(query).length) {
-    bru += `query {
-${indentString(enabled(query).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+  if(query && query.length) {
+    bru += 'query {';
+    if(enabled(query).length) {
+      bru += `\n${indentString(enabled(query).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
+    if(disabled(query).length) {
+      bru += `\n${indentString(disabled(query).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    bru += '\n}\n\n';
   }
 
-  if(query && query.length && disabled(query).length) {
-    bru += `query:disabled {
-${indentString(disabled(query).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+  if(headers && headers.length) {
+    bru += 'headers {';
+    if(enabled(headers).length) {
+      bru += `\n${indentString(enabled(headers).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
-  }
+    if(disabled(headers).length) {
+      bru += `\n${indentString(disabled(headers).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-  if(headers && headers.length && enabled(headers).length) {
-  bru += `headers {
-${indentString(enabled(headers).map(header => `${header.name}: ${header.value}`).join('\n'))}
-}
-
-`;
-  }
-
-  if(headers && headers.length && disabled(headers).length) {
-  bru += `headers:disabled {
-${indentString(disabled(headers).map(header => `${header.name}: ${header.value}`).join('\n'))}
-}
-
-`;
+    bru += '\n}\n\n';
   }
 
   if(body && body.json && body.json.length) {
@@ -109,52 +103,42 @@ ${indentString(body.xml)}
 `;
   }
 
-  if(body && body.formUrlEncoded && enabled(body.formUrlEncoded).length) {
-  bru += `body:form-urlencoded {
-${indentString(enabled(body.formUrlEncoded).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+  if(body && body.formUrlEncoded) {
+    bru += `body:form-urlencoded {`;
+    if(enabled(body.formUrlEncoded).length) {
+      bru += `\n${indentString(enabled(body.formUrlEncoded).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
+    if(disabled(body.formUrlEncoded).length) {
+      bru += `\n${indentString(disabled(body.formUrlEncoded).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    bru += '\n}\n\n';
   }
 
-  if(body && body.formUrlEncoded && disabled(body.formUrlEncoded).length) {
-  bru += `body:form-urlencoded:disabled {
-${indentString(disabled(body.formUrlEncoded).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+  if(body && body.multipartForm) {
+    bru += `body:multipart-form {`;
+    if(enabled(body.multipartForm).length) {
+      bru += `\n${indentString(enabled(body.multipartForm).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
-  }
+    if(disabled(body.multipartForm).length) {
+      bru += `\n${indentString(disabled(body.multipartForm).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-  if(body && body.multipartForm && enabled(body.multipartForm).length) {
-  bru += `body:multipart-form {
-${indentString(enabled(body.multipartForm).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
-
-`;
-  }
-
-  if(body && body.multipartForm && disabled(body.multipartForm).length) {
-  bru += `body:multipart-form:disabled {
-${indentString(disabled(body.multipartForm).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
-
-`;
+    bru += '\n}\n\n';
   }
 
   if(body && body.graphql && body.graphql.query) {
-  bru += `body:graphql {
-${indentString(body.graphql.query)}
-}
-
-`;
+    bru += `body:graphql {\n`;
+    bru += `${indentString(body.graphql.query)}`;
+    bru += '\n}\n\n';
   }
 
   if(body && body.graphql && body.graphql.variables) {
-  bru += `body:graphql:vars {
-${indentString(body.graphql.variables)}
-}
-
-`;
+    bru += `body:graphql:vars {\n`;
+    bru += `${indentString(body.graphql.variables)}`
+    bru += '\n}\n\n';
   }
 
   if(vars && vars.length) {
@@ -163,53 +147,39 @@ ${indentString(body.graphql.variables)}
     const varsLocalEnabled = _.filter(vars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(vars, (v) => !v.enabled && v.local);
 
+    bru += `vars {`;
+
     if(varsEnabled.length) {
-      bru += `vars {
-${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
-
-`;
-    }
-
-    if(varsDisabled.length) {
-      bru += `vars:disabled {
-${indentString(varsDisabled.map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
-
-`;
+      bru += `\n${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}`;
     }
 
     if(varsLocalEnabled.length) {
-      bru += `vars:local {
-${indentString(varsLocalEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+      bru += `\n${indentString(varsLocalEnabled.map(item => `@${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
+    if(varsDisabled.length) {
+      bru += `\n${indentString(varsDisabled.map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
     }
 
     if(varsLocalDisabled.length) {
-      bru += `vars:local:disabled {
-${indentString(varsLocalDisabled.map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
-
-`;
+      bru += `\n${indentString(varsLocalDisabled.map(item => `~@${item.name}: ${item.value}`).join('\n'))}`;
     }
+
+    bru += '\n}\n\n';
   }
 
-  if(assert && enabled(assert).length) {
-  bru += `assert {
-${indentString(enabled(assert).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+  if(assert && assert.length) {
+    bru += `assert {`;
 
-`;
-  }
+    if(enabled(assert).length) {
+      bru += `\n${indentString(enabled(assert).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-  if(assert && disabled(assert).length) {
-  bru += `assert:disabled {
-${indentString(disabled(assert).map(item => `${item.name}: ${item.value}`).join('\n'))}
-}
+    if(disabled(assert).length) {
+      bru += `\n${indentString(disabled(assert).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
 
-`;
+    bru += '\n}\n\n';
   }
 
   if(script && script.length) {
@@ -235,7 +205,6 @@ ${indentString(docs)}
 
 `;
   }
-  
 
   return stripLastLine(bru);
 };

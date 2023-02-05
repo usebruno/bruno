@@ -5,26 +5,20 @@ meta {
 }
 
 get {
-  url: https://api.textlocal.in/send/
+  url: https://api.textlocal.in/send
   body: json
 }
 
 query {
   apiKey: secret
   numbers: 998877665
-}
-
-query:disabled {
-  message: hello
+  ~message: hello
 }
 
 headers {
   content-type: application/json
   Authorization: Bearer 123
-}
-
-headers:disabled {
-  transaction-id: {{transactionId}}
+  ~transaction-id: {{transactionId}}
 }
 
 body:json {
@@ -47,19 +41,13 @@ body:xml {
 body:form-urlencoded {
   apikey: secret
   numbers: +91998877665
-}
-
-body:form-urlencoded:disabled {
-  message: hello
+  ~message: hello
 }
 
 body:multipart-form {
   apikey: secret
   numbers: +91998877665
-}
-
-body:multipart-form:disabled {
-  message: hello
+  ~message: hello
 }
 
 body:graphql {
@@ -81,26 +69,14 @@ body:graphql:vars {
 
 vars {
   token: $res.body.token
-}
-
-vars:disabled {
-  petId: $res.body.id
-}
-
-vars:local {
-  orderNumber: $res.body.orderNumber
-}
-
-vars:local:disabled {
-  transactionId: $res.body.transactionId
+  @orderNumber: $res.body.orderNumber
+  ~petId: $res.body.id
+  ~@transactionId: $res.body.transactionId
 }
 
 assert {
   $res.status: 200
-}
-
-assert:disabled {
-  $res.body.message: success
+  ~$res.body.message: success
 }
 
 script {

@@ -24,9 +24,9 @@ const {
  * 
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | querydisabled | query | headersdisabled | headers | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | headers | bodies | varsandassert | script | tests | docs)*
   bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms
-  bodyforms = bodyformurlencodeddisabled | bodyformurlencoded | bodymultipartdisabled | bodymultipart
+  bodyforms = bodyformurlencoded | bodymultipart
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -59,18 +59,13 @@ const grammar = ohm.grammar(`Bru {
   trace = "trace" dictionary
 
   headers = "headers" dictionary
-  headersdisabled = "headers:disabled" dictionary
 
   query = "query" dictionary
-  querydisabled = "query:disabled" dictionary
 
-  varsandassert = vars | varsdisabled | varslocal | varslocaldisabled | assert | assertdisabled
+  varsandassert = vars | varslocal | assert
   vars = "vars" dictionary
-  varsdisabled = "vars:disabled" dictionary
   varslocal = "vars:local" dictionary
-  varslocaldisabled = "vars:local:disabled" dictionary
   assert = "assert" dictionary
-  assertdisabled = "assert:disabled" dictionary
 
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
@@ -79,25 +74,30 @@ const grammar = ohm.grammar(`Bru {
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
 
   bodyformurlencoded = "body:form-urlencoded" dictionary
-  bodyformurlencodeddisabled = "body:form-urlencoded:disabled" dictionary
   bodymultipart = "body:multipart-form" dictionary
-  bodymultipartdisabled = "body:multipart-form:disabled" dictionary
 
   script = "script" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
-const mapPairListToKeyValPairs = (pairList = [], enabled = true) => {
+const mapPairListToKeyValPairs = (pairList = []) => {
   if(!pairList.length) {
     return [];
   }
   return _.map(pairList[0], pair => {
-    const key = _.keys(pair)[0];
+    let name = _.keys(pair)[0];
+    let value = pair[name];
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === "~") {
+      name = name.slice(1);
+      enabled = false;
+    }
+
     return {
-      name: key,
-      value: pair[key],
-      enabled: enabled
+      name,
+      value,
+      enabled
     };
   });
 };
@@ -142,6 +142,27 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   value(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  textblock(line, _1, rest) {
+    return [line.ast, ...rest.ast].join('\n');
+  },
+  textline(chars) {
+    return chars.sourceString;
+  },
+  textchar(char) {
+    return char.sourceString;
+  },
+  nl(_1, _2) {
+    return '';
+  },
+  st(_) {
+    return '';
+  },
+  tagend(_1 ,_2) {
+    return '';
+  },
+  _iter(...elements) {
+    return elements.map(e => e.ast);
   },
   meta(_1, dictionary) {
     return {
@@ -209,19 +230,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       query: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  querydisabled(_1, dictionary) {
-    return {
-      query: mapPairListToKeyValPairs(dictionary.ast, false)
-    };
-  },
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
-    };
-  },
-  headersdisabled(_1, dictionary) {
-    return {
-      headers: mapPairListToKeyValPairs(dictionary.ast, false)
     };
   },
   bodyformurlencoded(_1, dictionary) {
@@ -231,24 +242,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  bodyformurlencodeddisabled(_1, dictionary) {
-    return {
-      body: {
-        formUrlEncoded: mapPairListToKeyValPairs(dictionary.ast, false)
-      }
-    };
-  },
   bodymultipart(_1, dictionary) {
     return {
       body: {
         multipartForm: mapPairListToKeyValPairs(dictionary.ast)
-      }
-    };
-  },
-  bodymultipartdisabled(_1, dictionary) {
-    return {
-      body: {
-        multipartForm: mapPairListToKeyValPairs(dictionary.ast, false)
       }
     };
   },
@@ -293,40 +290,23 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   vars(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast);
-    _.each(vars, (val) => { val.local = false; });
+    _.each(vars, (v) => {
+      let name = v.name;
+      if (name && name.length && name.charAt(0) === "@") {
+        v.name = name.slice(1);
+        v.local = true;
+      } else {
+        v.local = false;
+      }
+    });
+
     return {
       vars
-    };
-  },
-  varsdisabled(_1, dictionary) {
-    const vars = mapPairListToKeyValPairs(dictionary.ast, false);
-    _.each(vars, (val) => { val.local = false; });
-    return {
-      vars
-    };
-  },
-  varslocal(_1, dictionary) {
-    const varsLocal = mapPairListToKeyValPairs(dictionary.ast);
-    _.each(varsLocal, (val) => { val.local = true; });
-    return {
-      vars: varsLocal
-    };
-  },
-  varslocaldisabled(_1, dictionary) {
-    const varsLocal = mapPairListToKeyValPairs(dictionary.ast, false);
-    _.each(varsLocal, (val) => { val.local = true; });
-    return {
-      vars: varsLocal
     };
   },
   assert(_1, dictionary) {
     return {
       assert: mapPairListToKeyValPairs(dictionary.ast)
-    };
-  },
-  assertdisabled(_1, dictionary) {
-    return {
-      assert: mapPairListToKeyValPairs(dictionary.ast, false)
     };
   },
   script(_1, _2, _3, _4, textblock, _5) {
@@ -343,27 +323,6 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       docs: outdentString(textblock.sourceString)
     };
-  },
-  textblock(line, _1, rest) {
-    return [line.ast, ...rest.ast].join('\n');
-  },
-  textline(chars) {
-    return chars.sourceString;
-  },
-  textchar(char) {
-    return char.sourceString;
-  },
-  nl(_1, _2) {
-    return '';
-  },
-  st(_) {
-    return '';
-  },
-  tagend(_1 ,_2) {
-    return '';
-  },
-  _iter(...elements) {
-    return elements.map(e => e.ast);
   }
 });
 

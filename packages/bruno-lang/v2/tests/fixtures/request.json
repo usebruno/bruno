@@ -6,7 +6,7 @@
   },
   "http": {
     "method": "get",
-    "url": "https://api.textlocal.in/send/",
+    "url": "https://api.textlocal.in/send",
     "body": "json"
   },
   "query": [{
@@ -90,16 +90,16 @@
       "enabled": true
     },
     {
-      "name": "petId",
-      "value": "$res.body.id",
-      "local": false,
-      "enabled": false
-    },
-    {
       "name": "orderNumber",
       "value": "$res.body.orderNumber",
       "local": true,
       "enabled": true
+    },
+    {
+      "name": "petId",
+      "value": "$res.body.id",
+      "local": false,
+      "enabled": false
     },
     {
       "name": "transactionId",

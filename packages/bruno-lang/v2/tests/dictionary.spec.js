@@ -101,8 +101,8 @@ headers {
 
   it("should parse disabled headers", () => {
     const input = `
-headers:disabled {
-  content-type: application/json
+headers {
+  ~content-type: application/json
 }`;
 
     const output = parser(input);
