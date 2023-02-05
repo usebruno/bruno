@@ -3,7 +3,6 @@ const chalk = require('chalk');
 
 const { CLI_EPILOGUE, CLI_VERSION } = require('./constants');
 
-
 const printBanner = () => {
   console.log(chalk.yellow(`Bru CLI ${CLI_VERSION}`));
 }

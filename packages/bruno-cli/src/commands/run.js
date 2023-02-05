@@ -1,43 +1,44 @@
 const chalk = require('chalk');
 const {
+  exists,
+  isFile,
+  isDirectory
+} = require('../utils/filesystem');
+const {
+  runSingleRequest
+} = require('../runner/run-single-request');
+const {
   CLI_EPILOGUE,
 } = require('../constants');
 
-const command = 'run';
+const command = 'run <filename>';
 const desc = 'Run a request';
 
-const cmdArgs = {
-  filename: {
-    desc: 'Run a request',
-    type: 'string',
-  }
-};
-
-
 const builder = async (yargs) => {
-  yargs.options(cmdArgs).epilogue(CLI_EPILOGUE).help();
-  yargs.example('$0 filename', 'Run a request');
+  yargs.example('$0 run request.bru', 'Run a request');
 };
 
 const handler = async function (argv) {
   try {
-    if (!argv.filename) {
-      console.log(chalk.cyan('Please specify a filename'));
-      console.log(`Example: ${argv.$0} run request.bru`);
+    const { filename } = argv;
 
-      return;
+    const pathExists = await exists(filename);
+    if(!pathExists) {
+      console.error(chalk.red(`File or directory ${filename} does not exist`));
     }
-    console.log("here");
+
+    const _isFile = await isFile(filename);
+    if(_isFile) {
+      runSingleRequest(filename);
+    }
   } catch (err) {
     console.error(err);
   }
 };
 
-
 module.exports = {
 	command,
 	desc,
 	builder,
-  cmdArgs,
   handler
 };

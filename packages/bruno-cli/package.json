@@ -13,6 +13,7 @@
     "@usebruno/js": "0.1.0",
     "@usebruno/lang": "0.1.0",
     "chalk": "^3.0.0",
+    "fs-extra": "^10.1.0",
     "inquirer": "^9.1.4",
     "yargs": "^17.6.2"
   }
