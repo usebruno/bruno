@@ -138,7 +138,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return res;
   },
   key(chars) {
-    return chars.sourceString;
+    return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';

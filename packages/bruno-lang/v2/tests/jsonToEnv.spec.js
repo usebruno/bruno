@@ -1,0 +1,55 @@
+const parser = require("../src/jsonToEnv");
+
+describe("env parser", () => {
+  it("should parse empty vars", () => {
+    const input = {
+      "variables": []
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+}
+`;
+
+    expect(output).toEqual(expected);
+  });
+
+  it("should parse single var line", () => {
+    const input = {
+      "variables": [{
+        "name": "url",
+        "value": "http://localhost:3000",
+        "enabled" : true,
+      }]
+    };
+
+    const output = parser(input);
+    const expected = `vars {
+  url: http://localhost:3000
+}
+`;
+    expect(output).toEqual(expected);
+  });
+
+  it("should parse multiple var lines", () => {
+    const input = {
+      "variables": [{
+        "name": "url",
+        "value": "http://localhost:3000",
+        "enabled" : true
+      }, {
+        "name": "port",
+        "value": "3000",
+        "enabled" : false
+      }]
+    };
+
+    const expected = `vars {
+  url: http://localhost:3000
+  ~port: 3000
+}
+`;
+    const output = parser(input);
+    expect(output).toEqual(expected);
+  });
+});
