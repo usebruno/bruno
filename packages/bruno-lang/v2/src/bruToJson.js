@@ -25,7 +25,7 @@ const {
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | bodies | varsandassert | script | tests | docs)*
-  bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms
+  bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
   nl = "\\r"? "\\n"
@@ -67,6 +67,7 @@ const grammar = ohm.grammar(`Bru {
   varslocal = "vars:local" dictionary
   assert = "assert" dictionary
 
+  body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
@@ -165,8 +166,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return elements.map(e => e.ast);
   },
   meta(_1, dictionary) {
+    let meta = mapPairListToKeyValPair(dictionary.ast);
+
+    if(!meta.seq) {
+      meta.seq = 1;
+    }
+
+    if(!meta.type) {
+      meta.type = 'http';
+    }
+
     return {
-      meta: mapPairListToKeyValPair(dictionary.ast)
+      meta
     };
   },
   get(_1, dictionary) {
@@ -246,6 +257,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         multipartForm: mapPairListToKeyValPairs(dictionary.ast)
+      }
+    };
+  },
+  body(_1, _2, _3, _4, textblock, _5) {
+    return {
+      http: {
+        body: 'json'
+      },
+      body: {
+        json: outdentString(textblock.sourceString)
       }
     };
   },
