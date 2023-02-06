@@ -80,8 +80,8 @@ const grammar = ohm.grammar(`Bru {
   bodymultipart = "body:multipart-form" dictionary
 
   script = scriptreq | scriptres
-  scriptreq = "script:req" st* "{" nl* textblock tagend
-  scriptres = "script:res" st* "{" nl* textblock tagend
+  scriptreq = "script:pre-request" st* "{" nl* textblock tagend
+  scriptres = "script:post-response" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);

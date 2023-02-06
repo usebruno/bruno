@@ -211,7 +211,7 @@ ${indentString(body.xml)}
   }
 
   if(script && script.req && script.req.length) {
-  bru += `script:req {
+  bru += `script:pre-request {
 ${indentString(script.req)}
 }
 
@@ -219,7 +219,7 @@ ${indentString(script.req)}
   }
 
   if(script && script.res && script.res.length) {
-  bru += `script:res {
+  bru += `script:post-response {
 ${indentString(script.res)}
 }
 

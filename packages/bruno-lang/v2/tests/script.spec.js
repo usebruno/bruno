@@ -6,7 +6,7 @@ const parser = require("../src/bruToJson");
 describe("script parser", () => {
   it("should parse request script", () => {
     const input = `
-script:req {
+script:pre-request {
   $req.setHeader('Content-Type', 'application/json');
 }
 `;
@@ -22,7 +22,7 @@ script:req {
 
   it("should parse response script", () => {
     const input = `
-script:res {
+script:post-response {
   expect(response.status).to.equal(200);
 }
 `;
