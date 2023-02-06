@@ -5,7 +5,7 @@ const FormData = require('form-data');
 const path = require('path');
 const axios = require('axios');
 const prepareRequest = require('./prepare-request');
-const { ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime } = require('@usebruno/js');
 const {
   bruToJson
 } = require('./bru');
@@ -63,7 +63,10 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
 
     const response = await axios(request);
 
-    const responseScriptFile = get(bruJson, 'request.script.req');
+    const varsRuntime = new VarsRuntime();
+    varsRuntime.runResponseVars(bruJson.request.vars.res, request, response, envVars, collectionVariables);
+
+    const responseScriptFile = get(bruJson, 'request.script.res');
     if(responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       const result = scriptRuntime.runResponseScript(responseScriptFile, response, envVars, collectionVariables, collectionPath);
