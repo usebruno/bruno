@@ -65,8 +65,8 @@ const grammar = ohm.grammar(`Bru {
   query = "query" dictionary
 
   varsandassert = varsreq | varsres | assert
-  varsreq = "vars:req" dictionary
-  varsres = "vars:res" dictionary
+  varsreq = "vars:pre-request" dictionary
+  varsres = "vars:post-response" dictionary
   assert = "assert" dictionary
 
   body = "body" st* "{" nl* textblock tagend

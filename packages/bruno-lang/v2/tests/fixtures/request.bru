@@ -67,12 +67,12 @@ body:graphql:vars {
   }
 }
 
-vars:req {
+vars:pre-request {
   departingDate: 2020-01-01
   ~returningDate: 2020-01-02
 }
 
-vars:res {
+vars:post-response {
   token: $res.body.token
   @orderNumber: $res.body.orderNumber
   ~petId: $res.body.id

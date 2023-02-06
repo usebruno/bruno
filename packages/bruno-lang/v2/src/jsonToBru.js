@@ -149,7 +149,7 @@ ${indentString(body.xml)}
     const varsLocalEnabled = _.filter(reqvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(reqvars, (v) => !v.enabled && v.local);
 
-    bru += `vars:req {`;
+    bru += `vars:pre-request {`;
 
     if(varsEnabled.length) {
       bru += `\n${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}`;
@@ -175,7 +175,7 @@ ${indentString(body.xml)}
     const varsLocalEnabled = _.filter(resvars, (v) => v.enabled && v.local);
     const varsLocalDisabled = _.filter(resvars, (v) => !v.enabled && v.local);
 
-    bru += `vars:res {`;
+    bru += `vars:post-response {`;
 
     if(varsEnabled.length) {
       bru += `\n${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}`;
