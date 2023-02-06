@@ -2,12 +2,17 @@ const Mustache = require('mustache');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
+const path = require('path');
 const axios = require('axios');
 const prepareRequest = require('./prepare-request');
 const { ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const {
   bruToJson
 } = require('./bru');
+const {
+  stripExtension
+} = require('../utils/filesystem');
+const chalk = require('chalk');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -30,9 +35,9 @@ const getEnvVars = (environment = {}) => {
   return envVars;
 };
 
-const runSingleRequest = async function (filepath) {
+const runSingleRequest = async function (filename, collectionPath, collectionVariables) {
   try {
-    const bruContent = fs.readFileSync(filepath, 'utf8');
+    const bruContent = fs.readFileSync(filename, 'utf8');
 
     const bruJson = bruToJson(bruContent);
     const request = prepareRequest(bruJson.request);
@@ -50,10 +55,6 @@ const runSingleRequest = async function (filepath) {
 
     const envVars = getEnvVars({});
 
-    //todo: 
-    const collectionVariables = {};
-    const collectionPath = '/Users/anoop/Github/github-rest-api-collection';
-
     if(request.script && request.script.length) {
       let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
       const scriptRuntime = new ScriptRuntime();
@@ -62,19 +63,31 @@ const runSingleRequest = async function (filepath) {
 
     const response = await axios(request);
 
-    if(request.script && request.script.length) {
-      let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
+    const scriptFile = get(bruJson, 'request.script');
+    if(scriptFile && scriptFile.length) {
+      let script = scriptFile + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
       const scriptRuntime = new ScriptRuntime();
       const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
     }
 
+    let testResults = [];
     const testFile = get(bruJson, 'request.tests');
     if(testFile && testFile.length) {
       const testRuntime = new TestRuntime();
       const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+      testResults = get(result, 'results', []);
     }
 
-    console.log(response.status);
+    console.log(chalk.blue(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
+    if(testResults && testResults.length) {
+      each(testResults, (testResult) => {
+        if(testResult.status === 'pass') {
+          console.log(chalk.green(`   ✔️ `) + chalk.dim(testResult.description));
+        } else {
+          console.log(chalk.red(`   ✘ `) + chalk.red(testResult.description));
+        }
+      });
+    }
   } catch (err) {
     Promise.reject(err);
   }

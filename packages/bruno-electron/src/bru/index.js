@@ -39,9 +39,9 @@ const bruToJson = (bru) => {
         "params": _.get(json, "query", []),
         "headers":  _.get(json, "headers", []),
         "body":  _.get(json, "body", {}),
-      },
-      "script": _.get(json, "script", ""),
-      "test": _.get(json, "test", "")
+        "script": _.get(json, "script", ""),
+        "tests": _.get(json, "tests", "")
+      }
     };
 
     transformedJson.request.body.mode = _.get(json, "http.mode", "none");
@@ -85,7 +85,7 @@ const jsonToBru = (json) => {
     headers: _.get(json, 'request.headers', []),
     body: _.get(json, 'request.body', {}),
     script: _.get(json, 'script', ''),
-    test: _.get(json, 'test', ''),
+    tests: _.get(json, 'tests', ''),
   };
 
   return jsonToBruV2(bruJson);

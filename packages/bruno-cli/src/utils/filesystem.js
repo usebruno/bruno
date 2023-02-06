@@ -99,6 +99,10 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+const stripExtension = (filename = '') => {
+  return filename.replace(/\.[^/.]+$/, "");
+}
+
 module.exports = {
   exists,
   isSymbolicLink,
@@ -110,5 +114,6 @@ module.exports = {
   hasBruExtension,
   createDirectory,
   searchForFiles,
-  searchForBruFiles
+  searchForBruFiles,
+  stripExtension
 };

@@ -37,13 +37,11 @@ class TestRuntime {
         root: [collectionPath]
       }
     });
-    console.log(__brunoTestResults);
 
     vm.run(testsFile, path.join(collectionPath, 'vm.js'));
 
     return {
       request,
-      response,
       environment,
       collectionVariables,
       results: __brunoTestResults.getResults()
