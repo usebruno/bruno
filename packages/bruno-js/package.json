@@ -8,5 +8,8 @@
   ],
   "peerDependencies": {
     "vm2": "^3.9.13"
+  },
+  "dependencies": {
+    "json-query": "^2.2.2"
   }
 }

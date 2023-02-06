@@ -1,10 +1,10 @@
 const {
   ScriptRuntime
-} = require('./scripts/script-runtime');
+} = require('./script-runtime');
 
 const {
   TestRuntime
-} = require('./scripts/test-runtime');
+} = require('./test-runtime');
 
 module.exports = {
   ScriptRuntime,

@@ -78,7 +78,9 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
       testResults = get(result, 'results', []);
     }
 
-    console.log(chalk.blue(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
+    console.log(JSON.stringify(bruJson, null, 2));
+
+    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
     if(testResults && testResults.length) {
       each(testResults, (testResult) => {
         if(testResult.status === 'pass') {
