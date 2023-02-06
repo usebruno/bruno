@@ -55,19 +55,18 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
 
     const envVars = getEnvVars({});
 
-    if(request.script && request.script.length) {
-      let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
+    const requestScriptFile = get(bruJson, 'request.script.req');
+    if(requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = scriptRuntime.runRequestScript(script, request, envVars, collectionVariables, collectionPath);
+      const result = scriptRuntime.runRequestScript(requestScriptFile, request, envVars, collectionVariables, collectionPath);
     }
 
     const response = await axios(request);
 
-    const scriptFile = get(bruJson, 'request.script');
-    if(scriptFile && scriptFile.length) {
-      let script = scriptFile + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
+    const responseScriptFile = get(bruJson, 'request.script.req');
+    if(responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
+      const result = scriptRuntime.runResponseScript(responseScriptFile, response, envVars, collectionVariables, collectionPath);
     }
 
     let testResults = [];
@@ -78,19 +77,18 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
       testResults = get(result, 'results', []);
     }
 
-    console.log(JSON.stringify(bruJson, null, 2));
-
     console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
     if(testResults && testResults.length) {
       each(testResults, (testResult) => {
         if(testResult.status === 'pass') {
-          console.log(chalk.green(`   ✔️ `) + chalk.dim(testResult.description));
+          console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
         } else {
-          console.log(chalk.red(`   ✘ `) + chalk.red(testResult.description));
+          console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
         }
       });
     }
   } catch (err) {
+    console.log(err.response);
     Promise.reject(err);
   }
 };

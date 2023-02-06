@@ -32,7 +32,9 @@ const handler = async function (argv) {
 
     const _isFile = await isFile(filename);
     if(_isFile) {
-      runSingleRequest(filename, collectionPath, collectionVariables);
+      console.log(chalk.yellow('Running Request \n'));
+      await runSingleRequest(filename, collectionPath, collectionVariables);
+      console.log(chalk.green('\nDone!'));
     }
   } catch (err) {
     console.error(err);
