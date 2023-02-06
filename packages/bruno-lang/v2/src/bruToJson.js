@@ -30,13 +30,15 @@ const grammar = ohm.grammar(`Bru {
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
+  stnl = st | nl
   tagend = nl "}"
+  optionalnl = ~tagend nl
   validkey = ~(st | ":") any
   validvalue = ~nl any
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
-  pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
+  pairlist = optionalnl* pair (~tagend nl pair)* (~tagend space)*
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*

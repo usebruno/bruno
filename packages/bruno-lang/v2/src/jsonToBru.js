@@ -103,7 +103,7 @@ ${indentString(body.xml)}
 `;
   }
 
-  if(body && body.formUrlEncoded) {
+  if(body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `body:form-urlencoded {`;
     if(enabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(enabled(body.formUrlEncoded).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
@@ -116,7 +116,7 @@ ${indentString(body.xml)}
     bru += '\n}\n\n';
   }
 
-  if(body && body.multipartForm) {
+  if(body && body.multipartForm && body.multipartForm.length) {
     bru += `body:multipart-form {`;
     if(enabled(body.multipartForm).length) {
       bru += `\n${indentString(enabled(body.multipartForm).map(item => `${item.name}: ${item.value}`).join('\n'))}`;

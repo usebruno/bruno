@@ -81,6 +81,7 @@ headers {
     const input = `
 headers {
   content-type: application/json
+    
   Authorization: JWT secret
 }`;
 
