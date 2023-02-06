@@ -18,12 +18,12 @@ class ScriptRuntime {
   }
 
   runRequestScript(script, request, environment, collectionVariables, collectionPath) {
-    const $bru = new Bru(environment, collectionVariables);
-    const $req = new BrunoRequest(request);
+    const bru = new Bru(environment, collectionVariables);
+    const req = new BrunoRequest(request);
 
     const context = {
-      $bru,
-      $req
+      bru,
+      req
     };
     const vm = new NodeVM({
       sandbox: context,
@@ -53,12 +53,12 @@ class ScriptRuntime {
   }
 
   runResponseScript(script, response, environment, collectionVariables, collectionPath) {
-    const $bru = new Bru(environment, collectionVariables);
-    const $res = new BrunoResponse(response);
+    const bru = new Bru(environment, collectionVariables);
+    const res = new BrunoResponse(response);
 
     const context = {
-      $bru,
-      $res
+      bru,
+      res
     };
     const vm = new NodeVM({
       sandbox: context,

@@ -1,26 +1,26 @@
 class BrunoResponse {
-  constructor(response) {
-    this._response = response;
-    this.status = response.status;
-    this.statusText = response.statusText;
-    this.headers = response.headers;
-    this.body = response.data;
+  constructor(res) {
+    this.res = res;
+    this.status = res.status;
+    this.statusText = res.statusText;
+    this.headers = res.headers;
+    this.body = res.data;
   }
 
   getStatus() {
-    return this._response.status;
+    return this.res.status;
   }
 
   getHeader(name) {
-    return this._response.header[name];
+    return this.res.header[name];
   }
 
   getHeaders() {
-    return this._response.headers;
+    return this.res.headers;
   }
 
   getBody() {
-    return this._response.data;
+    return this.res.data;
   }
 }
 

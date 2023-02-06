@@ -21,18 +21,18 @@ class TestRuntime {
   }
 
   runTests(testsFile, request, response, environment, collectionVariables, collectionPath) {
-    const $bru = new Bru(environment, collectionVariables);
-    const $req = new BrunoRequest(request);
-    const $res = new BrunoResponse(response);
+    const bru = new Bru(environment, collectionVariables);
+    const req = new BrunoRequest(request);
+    const res = new BrunoResponse(response);
 
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
 
     const context = {
       test,
-      $bru,
-      $req,
-      $res,
+      bru,
+      req,
+      res,
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults

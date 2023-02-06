@@ -1,46 +1,50 @@
 class BrunoRequest {
-  constructor(request) {
-    this._request = request;
+  constructor(req) {
+    this.req = req;
+    this.url = req.url;
+    this.method = req.method;
+    this.headers = req.headers;
+    this.body = req.data;
   }
 
   getUrl() {
-    return this._request.url;
+    return this.req.url;
   }
 
   setUrl(url) {
-    this._request.url = url;
+    this.req.url = url;
   }
 
   getMethod() {
-    return this._request.method;
+    return this.req.method;
   }
 
   setMethod(method) {
-    this._request.method = method;
+    this.req.method = method;
   }
 
   getHeaders() {
-    return this._request.headers;
+    return this.req.headers;
   }
 
   setHeaders(headers) {
-    this._request.headers = headers;
+    this.req.headers = headers;
   }
 
   getHeader(name) {
-    return this._request.headers[name];
+    return this.req.headers[name];
   }
 
   setHeader(name, value) {
-    this._request.headers[name] = value;
+    this.req.headers[name] = value;
   }
 
   getBody() {
-    return this._request.data;
+    return this.req.data;
   }
 
   setBody(data) {
-    this._request.data = data;
+    this.req.data = data;
   }
 }
 

@@ -42,9 +42,9 @@ const jsonToBru = (json) => {
     bru += `${http.method} {
   url: ${http.url}`;
 
-    if(http.body && http.body.length) {
+    if(http.mode && http.mode.length) {
       bru += `
-  body: ${http.body}`;
+  body: ${http.mode}`;
     }
 
     bru += `
