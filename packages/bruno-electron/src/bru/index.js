@@ -1,9 +1,41 @@
 const _ = require('lodash');
 const {
+  bruToEnvJson: bruToEnvJsonV1,
+  envJsonToBru: envJsonToBruV1,
   bruToJson: bruToJsonV1,
+
   bruToJsonV2,
-  jsonToBruV2
+  jsonToBruV2,
+  bruToEnvJsonV2,
+  envJsonToBruV2
 } = require('@usebruno/lang');
+const { each } = require('lodash');
+
+const bruToEnvJson = (bru) => {
+  try {
+    const json = bruToEnvJsonV2(bru);
+
+    // the app env format requires each variable to have a type
+    // this need to be evaulated and safely removed
+    // i don't see it being used in schema validation
+    if(json && json.variables && json.variables.length) {
+      each(json.variables, (v) => v.type = "text");
+    }
+
+    return json;
+  } catch (error) {
+    return Promise.reject(e);
+  }
+}
+
+const envJsonToBru = (json) => {
+  try {
+    const bru = envJsonToBruV2(json);
+    return bru;
+  } catch (error) {
+    return Promise.reject(e);
+  }
+}
 
 /**
  * The transformer function for converting a BRU file to JSON.
@@ -48,7 +80,7 @@ const bruToJson = (bru) => {
 
     return transformedJson;
   } catch (e) {
-    return bruToJsonV1(bru);
+    return Promise.reject(e);
   }
 };
 /**
@@ -93,5 +125,7 @@ const jsonToBru = (json) => {
 
 module.exports = {
   bruToJson,
-  jsonToBru
+  jsonToBru,
+  bruToEnvJson,
+  envJsonToBru,
 };

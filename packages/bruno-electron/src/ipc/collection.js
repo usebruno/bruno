@@ -4,8 +4,6 @@ const path = require('path');
 const { ipcMain } = require('electron');
 const {
   envJsonToBru,
-} = require('@usebruno/lang');
-const {
   bruToJson,
   jsonToBru
 } = require('../bru');

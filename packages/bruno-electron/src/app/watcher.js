@@ -6,8 +6,6 @@ const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/files
 const {
   bruToEnvJson,
   envJsonToBru,
-} = require('@usebruno/lang');
-const {
   bruToJson,
   jsonToBru
 } = require('../bru');

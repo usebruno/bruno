@@ -51,7 +51,9 @@ const concatArrays = (objValue, srcValue) => {
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruEnvFile(tags) {
     if(!tags || !tags.ast || !tags.ast.length) {
-      return {};
+      return {
+        variables: []
+      };
     }
 
     return _.reduce(tags.ast, (result, item) => {
