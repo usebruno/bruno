@@ -62,9 +62,9 @@ const grammar = ohm.grammar(`Bru {
 
   query = "query" dictionary
 
-  varsandassert = vars | varslocal | assert
-  vars = "vars" dictionary
-  varslocal = "vars:local" dictionary
+  varsandassert = varsreq | varsres | assert
+  varsreq = "vars:req" dictionary
+  varsres = "vars:res" dictionary
   assert = "assert" dictionary
 
   body = "body" st* "{" nl* textblock tagend
@@ -77,7 +77,9 @@ const grammar = ohm.grammar(`Bru {
   bodyformurlencoded = "body:form-urlencoded" dictionary
   bodymultipart = "body:multipart-form" dictionary
 
-  script = "script" st* "{" nl* textblock tagend
+  script = scriptreq | scriptres
+  scriptreq = "script:req" st* "{" nl* textblock tagend
+  scriptres = "script:res" st* "{" nl* textblock tagend
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
@@ -309,7 +311,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
-  vars(_1, dictionary) {
+  varsreq(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast);
     _.each(vars, (v) => {
       let name = v.name;
@@ -322,7 +324,27 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     });
 
     return {
-      vars
+      vars: {
+        req: vars
+      }
+    };
+  },
+  varsres(_1, dictionary) {
+    const vars = mapPairListToKeyValPairs(dictionary.ast);
+    _.each(vars, (v) => {
+      let name = v.name;
+      if (name && name.length && name.charAt(0) === "@") {
+        v.name = name.slice(1);
+        v.local = true;
+      } else {
+        v.local = false;
+      }
+    });
+
+    return {
+      vars: {
+        res: vars
+      }
     };
   },
   assert(_1, dictionary) {
@@ -330,9 +352,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       assert: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
-  script(_1, _2, _3, _4, textblock, _5) {
+  scriptreq(_1, _2, _3, _4, textblock, _5) {
     return {
-      script: outdentString(textblock.sourceString)
+      script: {
+        req: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  scriptres(_1, _2, _3, _4, textblock, _5) {
+    return {
+      script: {
+        res: outdentString(textblock.sourceString)
+      }
     };
   },
   tests(_1, _2, _3, _4, textblock, _5) {

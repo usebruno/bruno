@@ -67,7 +67,12 @@ body:graphql:vars {
   }
 }
 
-vars {
+vars:req {
+  departingDate: 2020-01-01
+  ~returningDate: 2020-01-02
+}
+
+vars:res {
   token: $res.body.token
   @orderNumber: $res.body.orderNumber
   ~petId: $res.body.id
@@ -79,7 +84,7 @@ assert {
   ~$res.body.message: success
 }
 
-script {
+script:req {
   const foo = 'bar';
 }
 

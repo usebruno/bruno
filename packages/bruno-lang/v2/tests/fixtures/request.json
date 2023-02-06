@@ -82,32 +82,48 @@
       }
     ]
   },
-  "vars": [
-    {
-      "name": "token",
-      "value": "$res.body.token",
-      "local": false,
-      "enabled": true
-    },
-    {
-      "name": "orderNumber",
-      "value": "$res.body.orderNumber",
-      "local": true,
-      "enabled": true
-    },
-    {
-      "name": "petId",
-      "value": "$res.body.id",
-      "local": false,
-      "enabled": false
-    },
-    {
-      "name": "transactionId",
-      "value": "$res.body.transactionId",
-      "local": true,
-      "enabled": false
-    }
-  ],
+  "vars": {
+    "req": [
+      {
+        "name": "departingDate",
+        "value": "2020-01-01",
+        "local": false,
+        "enabled": true
+      },
+      {
+        "name": "returningDate",
+        "value": "2020-01-02",
+        "local": false,
+        "enabled": false
+      }
+    ],
+    "res": [
+      {
+        "name": "token",
+        "value": "$res.body.token",
+        "local": false,
+        "enabled": true
+      },
+      {
+        "name": "orderNumber",
+        "value": "$res.body.orderNumber",
+        "local": true,
+        "enabled": true
+      },
+      {
+        "name": "petId",
+        "value": "$res.body.id",
+        "local": false,
+        "enabled": false
+      },
+      {
+        "name": "transactionId",
+        "value": "$res.body.transactionId",
+        "local": true,
+        "enabled": false
+      }
+    ]
+  },
   "assert": [
     {
       "name": "$res.status",
@@ -120,7 +136,9 @@
       "enabled": false
     }
   ],
-  "script": "const foo = 'bar';",
+  "script": {
+    "req": "const foo = 'bar';"
+  },
   "tests": "function onResponse(request, response) {\n  expect(response.status).to.equal(200);\n}",
   "docs": "This request needs auth token to be set in the headers."
 }

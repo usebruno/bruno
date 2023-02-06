@@ -141,13 +141,41 @@ ${indentString(body.xml)}
     bru += '\n}\n\n';
   }
 
-  if(vars && vars.length) {
-    const varsEnabled = _.filter(vars, (v) => v.enabled && !v.local);
-    const varsDisabled = _.filter(vars, (v) => !v.enabled && !v.local);
-    const varsLocalEnabled = _.filter(vars, (v) => v.enabled && v.local);
-    const varsLocalDisabled = _.filter(vars, (v) => !v.enabled && v.local);
+  let reqvars = _.get(vars, 'req');
+  let resvars = _.get(vars, 'res');
+  if(reqvars && reqvars.length) {
+    const varsEnabled = _.filter(reqvars, (v) => v.enabled && !v.local);
+    const varsDisabled = _.filter(reqvars, (v) => !v.enabled && !v.local);
+    const varsLocalEnabled = _.filter(reqvars, (v) => v.enabled && v.local);
+    const varsLocalDisabled = _.filter(reqvars, (v) => !v.enabled && v.local);
 
-    bru += `vars {`;
+    bru += `vars:req {`;
+
+    if(varsEnabled.length) {
+      bru += `\n${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    if(varsLocalEnabled.length) {
+      bru += `\n${indentString(varsLocalEnabled.map(item => `@${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    if(varsDisabled.length) {
+      bru += `\n${indentString(varsDisabled.map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    if(varsLocalDisabled.length) {
+      bru += `\n${indentString(varsLocalDisabled.map(item => `~@${item.name}: ${item.value}`).join('\n'))}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+  if(resvars && resvars.length) {
+    const varsEnabled = _.filter(resvars, (v) => v.enabled && !v.local);
+    const varsDisabled = _.filter(resvars, (v) => !v.enabled && !v.local);
+    const varsLocalEnabled = _.filter(resvars, (v) => v.enabled && v.local);
+    const varsLocalDisabled = _.filter(resvars, (v) => !v.enabled && v.local);
+
+    bru += `vars:res {`;
 
     if(varsEnabled.length) {
       bru += `\n${indentString(varsEnabled.map(item => `${item.name}: ${item.value}`).join('\n'))}`;
@@ -182,9 +210,17 @@ ${indentString(body.xml)}
     bru += '\n}\n\n';
   }
 
-  if(script && script.length) {
-  bru += `script {
-${indentString(script)}
+  if(script && script.req && script.req.length) {
+  bru += `script:req {
+${indentString(script.req)}
+}
+
+`;
+  }
+
+  if(script && script.res && script.res.length) {
+  bru += `script:res {
+${indentString(script.res)}
 }
 
 `;
