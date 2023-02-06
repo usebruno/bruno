@@ -53,7 +53,10 @@ const requestSchema = Yup.object({
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(keyValueSchema).required('params are required'),
   body: requestBodySchema,
-  script: Yup.string().nullable(),
+  script: Yup.object({
+    req: Yup.string().nullable(),
+    res: Yup.string().nullable()
+  }).noUnknown(true).strict(),
   tests: Yup.string().nullable()
 }).noUnknown(true).strict();
 

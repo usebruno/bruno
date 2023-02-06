@@ -181,7 +181,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = bruToJson(bru);
-      console.log(JSON.stringify(file.data, null, 2));
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {

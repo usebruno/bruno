@@ -99,10 +99,10 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const envVars = getEnvVars(environment);
 
-      if(request.script && request.script.length) {
-        let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
+      const requestScript = get(request, 'script.req');
+      if(requestScript && requestScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runRequestScript(script, request, envVars, collectionVariables, collectionPath);
+        const result = scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: result.environment,
@@ -130,10 +130,10 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const response = await axios(request);
 
-      if(request.script && request.script.length) {
-        let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
+      const responseScript = get(request, 'script.res');
+      if(responseScript && responseScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
+        const result = scriptRuntime.runResponseScript(responseScript, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: result.environment,
@@ -280,10 +280,10 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             request.data = form;
           }
 
-          if(request.script && request.script.length) {
-            let script = request.script + '\n if (typeof onRequest === "function") {onRequest(__brunoRequest);}';
+          const requestScript = get(request, 'script.req');
+          if(requestScript && requestScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runRequestScript(script, request, envVars, collectionVariables, collectionPath);
+            const result = scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
     
             mainWindow.webContents.send('main:script-environment-update', {
               environment: result.environment,
@@ -312,10 +312,10 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const response = await axios(request);
           timeEnd = Date.now();
 
-          if(request.script && request.script.length) {
-            let script = request.script + '\n if (typeof onResponse === "function") {onResponse(__brunoResponse);}';
+          const responseScript = get(request, 'script.res');
+          if(responseScript && responseScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runResponseScript(script, response, envVars, collectionVariables, collectionPath);
+            const result = scriptRuntime.runResponseScript(responseScript, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:script-environment-update', {
               environment: result.environment,

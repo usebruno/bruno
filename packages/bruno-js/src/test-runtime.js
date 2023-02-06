@@ -7,23 +7,32 @@ const BrunoResponse = require('./bruno-response');
 const Test = require('./test');
 const TestResults = require('./test-results');
 
+// Inbuilt Library Support
+const atob = require('atob');
+const btoa = require('btoa');
+const lodash = require('lodash');
+const moment = require('moment');
+const uuid = require('uuid');
+const nanoid = require('nanoid');
+const CryptoJS = require('crypto-js');
+
 class TestRuntime {
   constructor() {
   }
 
   runTests(testsFile, request, response, environment, collectionVariables, collectionPath) {
-    const bru = new Bru(environment, collectionVariables);
-    const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
+    const $bru = new Bru(environment, collectionVariables);
+    const $req = new BrunoRequest(request);
+    const $res = new BrunoResponse(response);
 
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
 
     const context = {
-      bru,
-      req,
-      res,
       test,
+      $bru,
+      $req,
+      $res,
       expect: chai.expect,
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults
@@ -34,7 +43,16 @@ class TestRuntime {
       require: {
         context: 'sandbox',
         external: true,
-        root: [collectionPath]
+        root: [collectionPath],
+        mock: {
+          atob,
+          btoa,
+          lodash,
+          moment,
+          uuid,
+          nanoid,
+          'crypto-js': CryptoJS
+        }
       }
     });
 

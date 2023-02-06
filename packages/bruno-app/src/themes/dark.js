@@ -193,9 +193,9 @@ const darkTheme = {
 
   codemirror: {
     bg: '#1e1e1e',
-    border: 'transparent',
+    border: '#373737',
     gutter: {
-      bg: '#1e1e1e'
+      bg: '#262626'
     },
     variable: {
       valid: 'rgb(11 178 126)',

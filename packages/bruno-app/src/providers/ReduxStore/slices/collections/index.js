@@ -652,7 +652,23 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.script = action.payload.script;
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script.req = action.payload.script;
+        }
+      }
+    },
+    updateResponseScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.script = item.draft.request.script || {};
+          item.draft.request.script.res = action.payload.script;
         }
       }
     },
@@ -971,6 +987,7 @@ export const {
   updateRequestGraphqlQuery,
   updateRequestGraphqlVariables,
   updateRequestScript,
+  updateResponseScript,
   updateRequestTests,
   updateRequestMethod,
   collectionAddFileEvent,

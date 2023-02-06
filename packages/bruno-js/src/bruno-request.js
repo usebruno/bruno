@@ -35,11 +35,11 @@ class BrunoRequest {
     this._request.headers[name] = value;
   }
 
-  getData() {
+  getBody() {
     return this._request.data;
   }
 
-  setData(data) {
+  setBody(data) {
     this._request.data = data;
   }
 }

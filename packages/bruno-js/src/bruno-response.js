@@ -1,6 +1,10 @@
 class BrunoResponse {
   constructor(response) {
     this._response = response;
+    this.status = response.status;
+    this.statusText = response.statusText;
+    this.headers = response.headers;
+    this.body = response.data;
   }
 
   getStatus() {
@@ -15,7 +19,7 @@ class BrunoResponse {
     return this._response.headers;
   }
 
-  getData() {
+  getBody() {
     return this._response.data;
   }
 }

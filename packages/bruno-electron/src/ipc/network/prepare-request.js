@@ -59,7 +59,7 @@ const prepareRequest = (request) => {
     axiosRequest.data = graphqlQuery;
   }
 
-  if (request.script && request.script.length) {
+  if (request.script) {
     axiosRequest.script = request.script;
   }
 
