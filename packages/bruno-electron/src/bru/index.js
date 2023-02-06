@@ -107,7 +107,7 @@ const jsonToBru = (json) => {
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
       url: _.get(json, 'request.url'),
-      mode: _.get(json, 'request.body.mode', 'none')
+      body: _.get(json, 'request.body.mode', 'none')
     },
     query: _.get(json, 'request.params', []),
     headers: _.get(json, 'request.headers', []),
