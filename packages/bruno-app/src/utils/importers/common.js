@@ -30,6 +30,7 @@ export const updateUidsInCollection = (_collection) => {
       item.uid = uuid();
 
       each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
+      each(get(item, 'request.query'), (param) => (param.uid = uuid()));
       each(get(item, 'request.params'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
       each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
@@ -48,7 +49,35 @@ export const updateUidsInCollection = (_collection) => {
     });
   };
   updateEnvUids(collection.environments);
-  updateEnvUids(collection.environments);
+
+  console.log(collection);
+
+  return collection;
+};
+
+// todo
+// need to eventually get rid of supporting old collection app models
+// 1. start with making request type a constant fetched from a single place
+// 2. move references of param and replace it with query inside the app
+export const transformItemsInCollection = (collection) => {
+  const transformItems = (items = []) => {
+    each(items, (item) => {
+      if (['http', 'graphql'].includes(item.type)) {
+        item.type = `${item.type}-request`;
+        if(item.request.query) {
+          item.request.params = item.request.query;
+        }
+
+        delete item.request.query;
+      }
+
+      if (item.items && item.items.length) {
+        transformItems(item.items);
+      }
+    });
+  };
+
+  transformItems(collection.items);
 
   return collection;
 };

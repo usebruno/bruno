@@ -38,7 +38,7 @@ const grammar = ohm.grammar(`Bru {
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
-  pairlist = optionalnl* pair (~tagend nl pair)* (~tagend space)*
+  pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*

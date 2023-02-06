@@ -9,6 +9,13 @@ const {
   bruToJson,
   jsonToBru
 } = require('../bru');
+
+const {
+  isLegacyEnvFile,
+  migrateLegacyEnvFile,
+  isLegacyBruFile,
+  migrateLegacyBruFile
+} = require('../bru/migrate');
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -55,7 +62,13 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
       },
     };
 
-    const bruContent = fs.readFileSync(pathname, 'utf8');
+    let bruContent = fs.readFileSync(pathname, 'utf8');
+
+    // migrate old env json to bru file
+    if(isLegacyEnvFile(bruContent)) {
+      bruContent = await migrateLegacyEnvFile(bruContent, pathname);
+    }
+
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
@@ -117,11 +130,11 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher add: ${pathname}`);
 
   if(isJsonEnvironmentConfig(pathname, collectionPath)) {
-    // migrate old env json to bru file
     try {
       const dirname = path.dirname(pathname);
-      const jsonStr = fs.readFileSync(pathname, 'utf8');
-      const jsonData = JSON.parse(jsonStr);
+      const bruContent = fs.readFileSync(pathname, 'utf8');
+
+      const jsonData = JSON.parse(bruContent);
 
       const envDirectory = path.join(dirname, 'environments');
       if (!fs.existsSync(envDirectory)) {
@@ -177,8 +190,14 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     }
 
     try {
-      const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = bruToJson(bru);
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      // migrate old bru format to new bru format
+      if(isLegacyBruFile(bruContent)) {
+        bruContent = await migrateLegacyBruFile(bruContent, pathname);
+      }
+
+      file.data = bruToJson(bruContent);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {

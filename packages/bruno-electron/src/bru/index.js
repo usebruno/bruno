@@ -1,9 +1,5 @@
 const _ = require('lodash');
 const {
-  bruToEnvJson: bruToEnvJsonV1,
-  envJsonToBru: envJsonToBruV1,
-  bruToJson: bruToJsonV1,
-
   bruToJsonV2,
   jsonToBruV2,
   bruToEnvJsonV2,
@@ -56,7 +52,7 @@ const bruToJson = (bru) => {
     } else if(requestType === "graphql") {
       requestType = "graphql-request";
     } else {
-      requestType = "http";
+      requestType = "http-request";
     }
 
     const sequence = _.get(json, "meta.seq")

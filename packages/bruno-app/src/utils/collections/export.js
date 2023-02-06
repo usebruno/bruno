@@ -19,6 +19,31 @@ const deleteUidsInItems = (items) => {
   });
 };
 
+/**
+ * Some of the models in the app are not consistent with the Collection Json format
+ * This function is used to transform the models to the Collection Json format
+ */
+const transformItem = (items = []) => {
+  each(items, (item) => {
+    if (['http-request', 'graphql-request'].includes(item.type)) {
+      item.request.query = item.request.params;
+      delete item.request.params;
+
+      if(item.type === 'graphql-request') {
+        item.type = 'graphql';
+      }
+
+      if(item.type === 'http-request') {
+        item.type = 'http';
+      }
+    }
+
+    if (item.items && item.items.length) {
+      transformItem(item.items);
+    }
+  });
+};
+
 const deleteUidsInEnvs = (envs) => {
   each(envs, (env) => {
     delete env.uid;
@@ -31,6 +56,8 @@ const exportCollection = (collection) => {
   delete collection.uid;
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
+  transformItem(collection.items);
+
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
