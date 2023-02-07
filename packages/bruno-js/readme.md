@@ -1,6 +1,6 @@
-# bruno-lang
+# bruno-js
 
-The language utils for working with `.bru` files
+Provides the script, test, vars and assert runtimes.
 
 ### Publish to Npm Registry
 ```bash

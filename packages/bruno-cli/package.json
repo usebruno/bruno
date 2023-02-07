@@ -7,6 +7,7 @@
   },
   "files": [
     "src",
+    "bin",
     "package.json"
   ],
   "dependencies": {
@@ -16,6 +17,9 @@
     "chalk": "^3.0.0",
     "fs-extra": "^10.1.0",
     "inquirer": "^9.1.4",
+    "lodash": "^4.17.21",
+    "mustache": "^4.2.0",
+    "qs": "^6.11.0",
     "yargs": "^17.6.2"
   }
 }

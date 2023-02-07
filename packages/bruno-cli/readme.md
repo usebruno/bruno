@@ -1,6 +1,6 @@
-# bruno-lang
+# bruno-cli
 
-The language utils for working with `.bru` files
+Bru CLI
 
 ### Publish to Npm Registry
 ```bash
