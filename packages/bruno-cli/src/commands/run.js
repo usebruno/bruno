@@ -7,7 +7,7 @@ const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
 const { bruToJson } = require('../utils/bru');
 
-const command = 'run <filename>';
+const command = 'run [filename]';
 const desc = 'Run a request';
 
 const printRunSummary = (assertionResults, testResults) => {
@@ -38,6 +38,8 @@ const printRunSummary = (assertionResults, testResults) => {
 };
 
 const getBruFilesRecursively = (dir) => {
+  const environmentsPath = 'environments';
+
   const getFilesInOrder = (dir) => {
     let bruJsons = [];
   
@@ -48,7 +50,12 @@ const getBruFilesRecursively = (dir) => {
         const filePath = path.join(currentPath, file);
         const stats = fs.lstatSync(filePath);
   
-        if (stats.isDirectory()) {
+        // todo: we might need a ignore config inside bruno.json
+        if (stats.isDirectory() &&
+          filePath !== environmentsPath &&
+          !filePath.startsWith(".git") &&
+          !filePath.startsWith("node_modules")
+        ) {
           traverse(filePath);
         }
       }
@@ -105,25 +112,37 @@ const builder = async (yargs) => {
 
 const handler = async function (argv) {
   try {
-    const {
+    let {
       filename,
       env,
       r: recursive
     } = argv;
-
-    const pathExists = await exists(filename);
-    if(!pathExists) {
-      console.error(chalk.red(`File or directory ${filename} does not exist`));
-      return;
-    }
+    const collectionPath = process.cwd();
 
     // todo
     // right now, bru must be run from the root of the collection
     // will add support in the future to run it from anywhere inside the collection
-    const collectionPath = process.cwd();
-    const collectionVariables = {};
+    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+    const brunoJsonExists = await exists(brunoJsonPath);
+    if(!brunoJsonExists) {
+      console.error(chalk.red(`You can run only at the root of a collection`));
+      return;
+    }
 
+    if(filename && filename.length) {
+      const pathExists = await exists(filename);
+      if(!pathExists) {
+        console.error(chalk.red(`File or directory ${filename} does not exist`));
+        return;
+      }
+    } else {
+      filename = "./";
+      recursive = true;
+    }
+
+    const collectionVariables = {};
     let envVars = {};
+
     if(env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
       const envPathExists = await exists(envFile);
