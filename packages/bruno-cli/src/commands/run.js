@@ -1,7 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { exists, isFile, isDirectory } = require('../utils/filesystem');
+const { exists, isFile, isDirectory, getSubDirectories } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
@@ -37,21 +37,78 @@ const printRunSummary = (assertionResults, testResults) => {
   console.log(chalk.bold(testSummary));
 };
 
+const getBruFilesRecursively = (dir) => {
+  const getFilesInOrder = (dir) => {
+    let bruJsons = [];
+  
+    const traverse = (currentPath) => {
+      const filesInCurrentDir = fs.readdirSync(currentPath);
+  
+      for (const file of filesInCurrentDir) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+  
+        if (stats.isDirectory()) {
+          traverse(filePath);
+        }
+      }
+  
+      const currentDirBruJsons = [];
+      for (const file of filesInCurrentDir) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+  
+        if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const bruJson = bruToJson(bruContent);
+          currentDirBruJsons.push({
+            bruFilepath: filePath,
+            bruJson
+          });
+        }
+      }
+
+      // order requests by sequence
+      currentDirBruJsons.sort((a, b) => {
+        const aSequence = a.bruJson.seq || 0;
+        const bSequence = b.bruJson.seq || 0;
+        return aSequence - bSequence;
+      });
+
+      bruJsons = bruJsons.concat(currentDirBruJsons);
+    };
+  
+    traverse(dir);
+    return bruJsons;
+  };
+
+  const bruJsons = getFilesInOrder(dir);
+  return bruJsons;
+};
+
 const builder = async (yargs) => {
   yargs
+    .option('r', {
+      describe: 'Indicates a recursive run',
+      type: 'boolean',
+      default: false
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string',
     })
     .example('$0 run request.bru', 'Run a request')
-    .example('$0 run request.bru --env local', 'Run a request with the environment set to local');
+    .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
+    .example('$0 run folder', 'Run all requests in a folder')
+    .example('$0 run folder -r', 'Run all requests in a folder recursively')
 };
 
 const handler = async function (argv) {
   try {
     const {
       filename,
-      env
+      env,
+      r: recursive
     } = argv;
 
     const pathExists = await exists(filename);
@@ -97,27 +154,33 @@ const handler = async function (argv) {
 
     const _isDirectory = await isDirectory(filename);
     if(_isDirectory) {
-      console.log(chalk.yellow('Running Collection \n'));
+      let bruJsons = [];
+      if(!recursive) {
+        console.log(chalk.yellow('Running Folder \n'));
+        const files = fs.readdirSync(filename);
+        const bruFiles = files.filter((file) => file.endsWith('.bru'));
 
-      const files = fs.readdirSync(filename);
-      const bruFiles = files.filter((file) => file.endsWith('.bru'));
-      const bruJsons = [];
-      for (const bruFile of bruFiles) {
-        const bruFilepath = path.join(filename, bruFile)
-        const bruContent = fs.readFileSync(bruFilepath, 'utf8');
-        const bruJson = bruToJson(bruContent);
-        bruJsons.push({
-          bruFilepath,
-          bruJson
+        for (const bruFile of bruFiles) {
+          const bruFilepath = path.join(filename, bruFile)
+          const bruContent = fs.readFileSync(bruFilepath, 'utf8');
+          const bruJson = bruToJson(bruContent);
+          bruJsons.push({
+            bruFilepath,
+            bruJson
+          });
+        }
+
+        // order requests by sequence
+        bruJsons.sort((a, b) => {
+          const aSequence = a.bruJson.seq || 0;
+          const bSequence = b.bruJson.seq || 0;
+          return aSequence - bSequence;
         });
-      }
+      } else {
+        console.log(chalk.yellow('Running Folder Recursively \n'));
 
-      // order requests by sequence
-      bruJsons.sort((a, b) => {
-        const aSequence = a.bruJson.seq || 0;
-        const bSequence = b.bruJson.seq || 0;
-        return aSequence - bSequence;
-      });
+        bruJsons = await getBruFilesRecursively(filename);
+      }
 
       let assertionResults = [];
       let testResults = [];

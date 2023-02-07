@@ -103,6 +103,21 @@ const stripExtension = (filename = '') => {
   return filename.replace(/\.[^/.]+$/, "");
 }
 
+const getSubDirectories = (dir) => {
+  try {
+    const files = fs.readdirSync(dir);
+    const subDirectories = files
+      .filter((file) => {
+        return fs.lstatSync(path.join(dir, file)).isDirectory();
+      })
+      .sort();
+
+      return subDirectories;
+  } catch (err) {
+    return [];
+  }
+};
+
 module.exports = {
   exists,
   isSymbolicLink,
@@ -115,5 +130,6 @@ module.exports = {
   createDirectory,
   searchForFiles,
   searchForBruFiles,
-  stripExtension
+  stripExtension,
+  getSubDirectories
 };
