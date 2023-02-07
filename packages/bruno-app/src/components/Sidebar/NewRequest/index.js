@@ -24,7 +24,14 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
       requestMethod: 'GET'
     },
     validationSchema: Yup.object({
-      requestName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      requestName: Yup.string()
+        .min(1, 'must be atleast 1 characters')
+        .required('name is required')
+        .test({
+          name: 'requestName',
+          message: 'The request name "index" is reserved in bruno',
+          test: value => !(value.trim().toLowerCase().includes('index')),
+        })
     }),
     onSubmit: (values) => {
       if (isEphermal) {

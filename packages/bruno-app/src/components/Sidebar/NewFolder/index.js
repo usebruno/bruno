@@ -15,7 +15,19 @@ const NewFolder = ({ collection, item, onClose }) => {
       folderName: ''
     },
     validationSchema: Yup.object({
-      folderName: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      folderName: Yup.string()
+        .min(1, 'must be atleast 1 characters')
+        .required('name is required')
+        .test({
+          name: 'folderName',
+          message: 'The folder name "environments" at the root of the collection is reserved in bruno',
+          test:(value) => {
+            if(item && item.uid) {
+              return true;
+            }
+            return !(value.trim().toLowerCase().includes('environments'))
+          }
+        })
     }),
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
