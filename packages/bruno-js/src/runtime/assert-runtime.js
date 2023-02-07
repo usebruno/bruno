@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const chai = require('chai');  
-const { nanoid } = require('nanoid');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsExpression, createResponseParser } = require('../utils');
@@ -40,7 +39,7 @@ const { expect } = chai;
  * isBoolean   : is boolean
  */
 const parseAssertionOperator = (str = '') => {
-  if(!str || typeof str !== 'string' || str.length) {
+  if(!str || typeof str !== 'string' || !str.length) {
     return {
       operator: 'eq',
       value: str
