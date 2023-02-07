@@ -4,6 +4,7 @@ const path = require('path');
 const { exists, isFile } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { rpad } = require('../utils/common');
 
 const command = 'run <filename>';
 const desc = 'Run a request';
@@ -55,11 +56,41 @@ const handler = async function (argv) {
     const _isFile = await isFile(filename);
     if(_isFile) {
       console.log(chalk.yellow('Running Request \n'));
-      await runSingleRequest(filename, collectionPath, collectionVariables, envVars);
-      console.log(chalk.green('\nDone!'));
+      const {
+        assertionResults,
+        testResults
+      } = await runSingleRequest(filename, collectionPath, collectionVariables, envVars);
+
+      // display assertion results and test results summary
+      const totalAssertions = assertionResults.length;
+      const passedAssertions = assertionResults.filter((result) => result.status === 'pass').length;
+      const failedAssertions = totalAssertions - passedAssertions;
+
+      const totalTests = testResults.length;
+      const passedTests = testResults.filter((result) => result.status === 'pass').length;
+      const failedTests = totalTests - passedTests;
+      const maxLength = 12;
+
+      let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
+      if (failedTests > 0) {
+        assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+      }
+      assertSummary += `, ${totalTests} total`;
+
+      let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
+      if (failedAssertions > 0) {
+        testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
+      }
+      testSummary += `, ${totalAssertions} total`;
+
+      console.log("\n" + chalk.bold(assertSummary));
+      console.log(chalk.bold(testSummary));
+
+      console.log(chalk.dim(chalk.grey('Ran all requests.')));
     }
   } catch (err) {
-    // console.error(err.message);
+    console.log("Something went wrong");
+    console.error(chalk.red(err.message));
   }
 };
 

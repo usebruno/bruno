@@ -130,7 +130,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const responseScript = get(request, 'script.res');
       if(responseScript && responseScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runResponseScript(responseScript, response, envVars, collectionVariables, collectionPath);
+        const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           environment: result.environment,
@@ -319,7 +319,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const responseScript = get(request, 'script.res');
           if(responseScript && responseScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runResponseScript(responseScript, response, envVars, collectionVariables, collectionPath);
+            const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:script-environment-update', {
               environment: result.environment,

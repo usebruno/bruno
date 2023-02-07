@@ -1,11 +1,11 @@
 const { NodeVM } = require('vm2');
 const chai = require('chai');  
 const path = require('path');
-const Bru = require('./bru');
-const BrunoRequest = require('./bruno-request');
-const BrunoResponse = require('./bruno-response');
-const Test = require('./test');
-const TestResults = require('./test-results');
+const Bru = require('../bru');
+const BrunoRequest = require('../bruno-request');
+const BrunoResponse = require('../bruno-response');
+const Test = require('../test');
+const TestResults = require('../test-results');
 
 // Inbuilt Library Support
 const atob = require('atob');
@@ -67,6 +67,4 @@ class TestRuntime {
   }
 }
 
-module.exports = {
-  TestRuntime
-};
+module.exports = TestRuntime;

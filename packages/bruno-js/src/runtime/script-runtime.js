@@ -1,8 +1,8 @@
 const { NodeVM } = require('vm2');
 const path = require('path');
-const Bru = require('./bru');
-const BrunoRequest = require('./bruno-request');
-const BrunoResponse = require('./bruno-response');
+const Bru = require('../bru');
+const BrunoRequest = require('../bruno-request');
+const BrunoResponse = require('../bruno-response');
 
 // Inbuilt Library Support
 const atob = require('atob');
@@ -52,12 +52,14 @@ class ScriptRuntime {
     };
   }
 
-  runResponseScript(script, response, environment, collectionVariables, collectionPath) {
+  runResponseScript(script, request, response, environment, collectionVariables, collectionPath) {
     const bru = new Bru(environment, collectionVariables);
+    const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
     const context = {
       bru,
+      req,
       res
     };
     const vm = new NodeVM({
@@ -88,6 +90,4 @@ class ScriptRuntime {
   }
 }
 
-module.exports = {
-  ScriptRuntime
-};
+module.exports = ScriptRuntime;

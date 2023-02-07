@@ -5,10 +5,18 @@ const evaluateJsExpression = (expression, context) => {
   return fn(...Object.values(context));
 };
 
-const createResponseParser = (res = {}) => (expr)  => {
-  const output = jsonQuery(expr, { data: res.data });
+const createResponseParser = (response = {}) => {
+  const res = (expr)  => {
+    const output = jsonQuery(expr, { data: response.data });
+    return output ? output.value : null;
+  }
 
-  return output ? output.value : null;
+  res.status = response.status;
+  res.statusText = response.statusText;
+  res.headers = response.headers;
+  res.body = response.data;
+
+  return res;
 };
 
 module.exports = {

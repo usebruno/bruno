@@ -1,7 +1,7 @@
 const _ = require('lodash');
-const Bru = require('./bru');
-const BrunoRequest = require('./bruno-request');
-const { evaluateJsExpression, createResponseParser } = require('./utils');
+const Bru = require('../bru');
+const BrunoRequest = require('../bruno-request');
+const { evaluateJsExpression, createResponseParser } = require('../utils');
 
 class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath) {
@@ -59,6 +59,4 @@ class VarsRuntime {
   }
 }
 
-module.exports = {
-  VarsRuntime
-};
+module.exports = VarsRuntime;
