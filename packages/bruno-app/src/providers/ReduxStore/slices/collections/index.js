@@ -38,6 +38,14 @@ export const collectionsSlice = createSlice({
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
+
+      // last action is used to track the last action performed on the collection
+      // this is optional
+      // this is used in scenarios where we want to know the last action performed on the collection
+      // and take some extra action based on that
+      // for example, when a env is created, we want to auto select it the env modal
+      collection.lastAction = null;
+
       collapseCollection(collection);
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
@@ -54,13 +62,12 @@ export const collectionsSlice = createSlice({
     removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
-    addEnvironment: (state, action) => {
-      const { environment, collectionUid } = action.payload;
+    updateLastAction: (state, action) => {
+      const { collectionUid, lastAction } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        collection.environments = collection.environments || [];
-        collection.environments.push(environment);
+        collection.lastAction = lastAction;
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -846,6 +853,14 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
         } else {
           collection.environments.push(environment);
+
+          const lastAction = collection.lastAction;
+          if(lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
+            collection.lastAction = null;
+            if(lastAction.payload === environment.name) {
+              collection.activeEnvironmentUid = environment.uid;
+            }
+          }
         }
       }
     },
@@ -952,7 +967,7 @@ export const {
   createCollection,
   renameCollection,
   removeCollection,
-  addEnvironment,
+  updateLastAction,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,

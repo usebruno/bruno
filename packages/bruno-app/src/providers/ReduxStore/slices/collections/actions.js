@@ -17,13 +17,14 @@ import {
   findEnvironmentInCollection,
   isItemARequest,
   isItemAFolder,
-  refreshUidsInItem,
+  refreshUidsInItem
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
+  updateLastAction,
   resetRunResults,
   requestCancelled,
   responseReceived,
@@ -574,6 +575,13 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, name)
+      .then(dispatch(updateLastAction({
+        collectionUid,
+        lastAction: {
+          type: 'ADD_ENVIRONMENT',
+          payload: name
+        }
+      })))
       .then(resolve)
       .catch(reject);
   });
