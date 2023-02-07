@@ -1,13 +1,40 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { exists, isFile } = require('../utils/filesystem');
+const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
 
 const command = 'run <filename>';
 const desc = 'Run a request';
+
+const printRunSummary = (assertionResults, testResults) => {
+  // display assertion results and test results summary
+  const totalAssertions = assertionResults.length;
+  const passedAssertions = assertionResults.filter((result) => result.status === 'pass').length;
+  const failedAssertions = totalAssertions - passedAssertions;
+
+  const totalTests = testResults.length;
+  const passedTests = testResults.filter((result) => result.status === 'pass').length;
+  const failedTests = totalTests - passedTests;
+  const maxLength = 12;
+
+  let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
+  if (failedTests > 0) {
+    assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+  }
+  assertSummary += `, ${totalTests} total`;
+
+  let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
+  if (failedAssertions > 0) {
+    testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
+  }
+  testSummary += `, ${totalAssertions} total`;
+
+  console.log("\n" + chalk.bold(assertSummary));
+  console.log(chalk.bold(testSummary));
+};
 
 const builder = async (yargs) => {
   yargs
@@ -61,31 +88,31 @@ const handler = async function (argv) {
         testResults
       } = await runSingleRequest(filename, collectionPath, collectionVariables, envVars);
 
-      // display assertion results and test results summary
-      const totalAssertions = assertionResults.length;
-      const passedAssertions = assertionResults.filter((result) => result.status === 'pass').length;
-      const failedAssertions = totalAssertions - passedAssertions;
+      printRunSummary(assertionResults, testResults);
+      console.log(chalk.dim(chalk.grey('Done.')));
+    }
 
-      const totalTests = testResults.length;
-      const passedTests = testResults.filter((result) => result.status === 'pass').length;
-      const failedTests = totalTests - passedTests;
-      const maxLength = 12;
+    const _isDirectory = await isDirectory(filename);
+    if(_isDirectory) {
+      console.log(chalk.yellow('Running Collection \n'));
 
-      let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
-      if (failedTests > 0) {
-        assertSummary += `, ${chalk.red(`${failedTests} failed`)}`;
+      const files = fs.readdirSync(filename);
+      const bruFiles = files.filter((file) => file.endsWith('.bru'));
+
+      let assertionResults = [];
+      let testResults = [];
+
+      for (const bruFile of bruFiles) {
+        const {
+          assertionResults: _assertionResults,
+          testResults: _testResults
+        } = await runSingleRequest(path.join(filename, bruFile), collectionPath, collectionVariables, envVars);
+
+        assertionResults = assertionResults.concat(_assertionResults);
+        testResults = testResults.concat(_testResults);
       }
-      assertSummary += `, ${totalTests} total`;
 
-      let testSummary = `${rpad('Assertions:', maxLength)} ${chalk.green(`${passedAssertions} passed`)}`;
-      if (failedAssertions > 0) {
-        testSummary += `, ${chalk.red(`${failedAssertions} failed`)}`;
-      }
-      testSummary += `, ${totalAssertions} total`;
-
-      console.log("\n" + chalk.bold(assertSummary));
-      console.log(chalk.bold(testSummary));
-
+      printRunSummary(assertionResults, testResults);
       console.log(chalk.dim(chalk.grey('Ran all requests.')));
     }
   } catch (err) {
