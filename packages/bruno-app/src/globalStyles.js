@@ -43,7 +43,11 @@ const GlobalStyle = createGlobalStyle`
   .btn-close {
     color: ${(props) => props.theme.button.close.color};
     background: ${(props) => props.theme.button.close.bg};
-    border: solid 1px ${(props) => props.theme.button.close.border};;
+    border: solid 1px ${(props) => props.theme.button.close.border};
+
+    &.btn-border {
+      border: solid 1px #696969;
+    }
 
     &:hover,
     &:focus {

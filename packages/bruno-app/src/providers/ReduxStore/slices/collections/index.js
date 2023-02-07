@@ -888,10 +888,8 @@ export const collectionsSlice = createSlice({
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
-      console.log('here');
       if (collection) {
-      console.log('here2');
-      collection.showRunner = !collection.showRunner;
+        collection.showRunner = !collection.showRunner;
       }
     },
     showRunnerView: (state, action) => {
@@ -919,14 +917,30 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, error } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         const folder = findItemInCollection(collection, folderUid);
         const request = findItemInCollection(collection, itemUid);
 
-        collection.runnerResult = collection.runnerResult || {items: []};
+        collection.runnerResult = collection.runnerResult || {info: {}, items: []};
+
+        // todo
+        // get startedAt and endedAt from the runner and display it in the UI
+        if(type === 'testrun-started') {
+          const info = collection.runnerResult.info;
+          info.collectionUid = collectionUid;
+          info.folderUid = folderUid;
+          info.isRecursive = isRecursive;
+          info.status = 'started';
+        }
+
+        if(type === 'testrun-ended') {
+          const info = collection.runnerResult.info;
+          info.status = 'ended';
+        }
+
 
         if(type === 'request-queued') {
           collection.runnerResult.items.push({
@@ -958,6 +972,15 @@ export const collectionsSlice = createSlice({
           item.responseReceived = action.payload.responseReceived;
           item.status = "error";
         }
+      }
+    },
+    closeCollectionRunner: (state, action) => {
+      const { collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.runnerResult = null;
+        collection.showRunner = false;
       }
     }
   }
@@ -1017,7 +1040,8 @@ export const {
   showRunnerView,
   hideRunnerView,
   resetRunResults,
-  runFolderEvent
+  runFolderEvent,
+  closeCollectionRunner
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

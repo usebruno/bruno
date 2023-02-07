@@ -229,6 +229,13 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       folder = collection;
     }
 
+    mainWindow.webContents.send('main:run-folder-event', {
+      type: 'testrun-started',
+      isRecursive: recursive,
+      collectionUid,
+      folderUid
+    });
+
     try {
       const envVars = getEnvVars(environment);
       let folderRequests = [];
@@ -374,6 +381,12 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           });
         }
       }
+
+      mainWindow.webContents.send('main:run-folder-event', {
+        type: 'testrun-ended',
+        collectionUid,
+        folderUid
+      });
     } catch (error) {
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'error',

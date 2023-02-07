@@ -518,6 +518,19 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 }
 
+export const getTotalRequestCountInCollection = (collection) => {
+  let count = 0;
+  each(collection.items, (item) => {
+    if (isItemARequest(item)) {
+      count++;
+    } else if (isItemAFolder(item)) {
+      count += getTotalRequestCountInCollection(item);
+    }
+  });
+
+  return count;
+};
+
 export const getAllVariables = (collection) => {
   const environmentVariables = getEnvironmentVariables(collection);
 

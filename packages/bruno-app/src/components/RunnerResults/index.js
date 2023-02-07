@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import path from 'path';
+import { useDispatch } from 'react-redux';
 import { get, each, cloneDeep } from 'lodash';
-import { findItemInCollection } from 'utils/collections';
+import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { closeCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -13,6 +16,7 @@ const getRelativePath = (fullPath, pathname) => {
 }
 
 export default function RunnerResults({collection}) {
+  const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
@@ -23,6 +27,7 @@ export default function RunnerResults({collection}) {
 
   const collectionCopy = cloneDeep(collection);
   const items = cloneDeep(get(collection, 'runnerResult.items', []));
+  const runnerInfo = get(collection, 'runnerResult.info', {});
   each(items, (item) => {
     const info = findItemInCollection(collectionCopy, item.uid);
 
@@ -43,8 +48,46 @@ export default function RunnerResults({collection}) {
     }
   });
 
+  const runCollection = () => {
+    dispatch(runCollectionFolder(collection.uid, null, true));
+  };
+
+  const runAgain = () => {
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive));
+  };
+
+  const closeRunner = () => {
+    dispatch(closeCollectionRunner({
+      collectionUid: collection.uid,
+    }));
+  };
+
+  const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const passedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'pass');
   const failedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'fail');
+
+  if(!items || !items.length) {
+    return (
+      <StyledWrapper className='px-4'>
+        <div className='font-medium mt-6 title flex items-center'>
+          Runner
+          <IconRun size={20} strokeWidth={1.5} className='ml-2'/>
+        </div>
+
+        <div className='mt-6'>
+          You have <span className='font-medium'>{totalRequestsInCollection}</span> requests in this collection.
+        </div>
+
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
+          Run Collection
+        </button>
+
+        <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={closeRunner}>
+          Close
+        </button>
+      </StyledWrapper>
+    );
+  }
 
   return (
     <StyledWrapper className='px-4'>
@@ -115,6 +158,20 @@ export default function RunnerResults({collection}) {
               </div>
             );
           })}
+
+          {runnerInfo.status === 'ended' ? (
+            <div className="mt-2 mb-4">
+              <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
+                Run Again
+              </button>
+              <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" onClick={runCollection}>
+                Run Collection
+              </button>
+              <button className="btn btn-sm btn-close mt-6 ml-3" onClick={closeRunner}>
+                Close
+              </button>
+            </div>
+          ) : null}
         </div>
         <div className='flex flex-1' style={{width: '50%'}}>
           {selectedItem ? (
