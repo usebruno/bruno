@@ -1,4 +1,3 @@
-const fs = require('fs');
 const chalk = require('chalk');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
@@ -6,14 +5,10 @@ const axios = require('axios');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
-const { bruToJson } = require('../utils/bru');
 const { stripExtension } = require('../utils/filesystem');
 
-const runSingleRequest = async function (filename, collectionPath, collectionVariables, envVariables) {
+const runSingleRequest = async function (filename, bruJson, collectionPath, collectionVariables, envVariables) {
   try {
-    const bruContent = fs.readFileSync(filename, 'utf8');
-
-    const bruJson = bruToJson(bruContent);
     const request = prepareRequest(bruJson.request);
 
     // make axios work in node using form data

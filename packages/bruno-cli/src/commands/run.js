@@ -5,6 +5,7 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
+const { bruToJson } = require('../utils/bru');
 
 const command = 'run <filename>';
 const desc = 'Run a request';
@@ -83,10 +84,12 @@ const handler = async function (argv) {
     const _isFile = await isFile(filename);
     if(_isFile) {
       console.log(chalk.yellow('Running Request \n'));
+      const bruContent = fs.readFileSync(filename, 'utf8');
+      const bruJson = bruToJson(bruContent);
       const {
         assertionResults,
         testResults
-      } = await runSingleRequest(filename, collectionPath, collectionVariables, envVars);
+      } = await runSingleRequest(filename, bruJson, collectionPath, collectionVariables, envVars);
 
       printRunSummary(assertionResults, testResults);
       console.log(chalk.dim(chalk.grey('Done.')));
@@ -98,15 +101,36 @@ const handler = async function (argv) {
 
       const files = fs.readdirSync(filename);
       const bruFiles = files.filter((file) => file.endsWith('.bru'));
+      const bruJsons = [];
+      for (const bruFile of bruFiles) {
+        const bruFilepath = path.join(filename, bruFile)
+        const bruContent = fs.readFileSync(bruFilepath, 'utf8');
+        const bruJson = bruToJson(bruContent);
+        bruJsons.push({
+          bruFilepath,
+          bruJson
+        });
+      }
+
+      // order requests by sequence
+      bruJsons.sort((a, b) => {
+        const aSequence = a.bruJson.seq || 0;
+        const bSequence = b.bruJson.seq || 0;
+        return aSequence - bSequence;
+      });
 
       let assertionResults = [];
       let testResults = [];
 
-      for (const bruFile of bruFiles) {
+      for (const iter of bruJsons) {
+        const {
+          bruFilepath,
+          bruJson
+        } = iter;
         const {
           assertionResults: _assertionResults,
           testResults: _testResults
-        } = await runSingleRequest(path.join(filename, bruFile), collectionPath, collectionVariables, envVars);
+        } = await runSingleRequest(bruFilepath, bruJson, collectionPath, collectionVariables, envVars);
 
         assertionResults = assertionResults.concat(_assertionResults);
         testResults = testResults.concat(_testResults);
