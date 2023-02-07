@@ -1,41 +1,15 @@
-const Mustache = require('mustache');
 const fs = require('fs');
+const chalk = require('chalk');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
-const path = require('path');
 const axios = require('axios');
 const prepareRequest = require('./prepare-request');
+const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime } = require('@usebruno/js');
-const {
-  bruToJson
-} = require('./bru');
-const {
-  stripExtension
-} = require('../utils/filesystem');
-const chalk = require('chalk');
+const { bruToJson } = require('../utils/bru');
+const { stripExtension } = require('../utils/filesystem');
 
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
-};
-
-const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {};
-  }
-
-  const envVars = {};
-  each(variables, (variable) => {
-    if(variable.enabled) {
-      envVars[variable.name] = Mustache.escape(variable.value);
-    }
-  });
-
-  return envVars;
-};
-
-const runSingleRequest = async function (filename, collectionPath, collectionVariables) {
+const runSingleRequest = async function (filename, collectionPath, collectionVariables, envVariables) {
   try {
     const bruContent = fs.readFileSync(filename, 'utf8');
 
@@ -53,30 +27,46 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
       request.data = form;
     }
 
-    const envVars = getEnvVars({});
+    // run pre-request vars
+    const preRequestVars = get(bruJson, 'request.vars.req');
+    if(preRequestVars && preRequestVars.length) {
+      const varsRuntime = new VarsRuntime();
+      varsRuntime.runPreRequestVars(preRequestVars, request, envVariables, collectionVariables, collectionPath);
+    }
 
+    // run pre request script
     const requestScriptFile = get(bruJson, 'request.script.req');
     if(requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = scriptRuntime.runRequestScript(requestScriptFile, request, envVars, collectionVariables, collectionPath);
+      scriptRuntime.runRequestScript(requestScriptFile, request, envVariables, collectionVariables, collectionPath);
     }
 
+    // interpolate variables inside request
+    interpolateVars(request, envVariables, collectionVariables);
+
+    // run request
     const response = await axios(request);
 
-    const varsRuntime = new VarsRuntime();
-    varsRuntime.runResponseVars(bruJson.request.vars.res, request, response, envVars, collectionVariables);
+    // run post-response vars
+    const postResponseVars = get(bruJson, 'request.vars.res');
+    if(postResponseVars && postResponseVars.length) {
+      const varsRuntime = new VarsRuntime();
+      varsRuntime.runPostResponseVars(postResponseVars, request, response, envVariables, collectionVariables, collectionPath);
+    }
 
+    // run post response script
     const responseScriptFile = get(bruJson, 'request.script.res');
     if(responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = scriptRuntime.runResponseScript(responseScriptFile, response, envVars, collectionVariables, collectionPath);
+      scriptRuntime.runResponseScript(responseScriptFile, response, envVariables, collectionVariables, collectionPath);
     }
 
+    // run tests
     let testResults = [];
     const testFile = get(bruJson, 'request.tests');
     if(testFile && testFile.length) {
       const testRuntime = new TestRuntime();
-      const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+      const result = testRuntime.runTests(testFile, request, response, envVariables, collectionVariables, collectionPath);
       testResults = get(result, 'results', []);
     }
 
@@ -91,8 +81,7 @@ const runSingleRequest = async function (filename, collectionPath, collectionVar
       });
     }
   } catch (err) {
-    console.log(err.response);
-    Promise.reject(err);
+    console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
   }
 };
 

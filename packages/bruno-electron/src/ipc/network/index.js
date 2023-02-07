@@ -9,10 +9,7 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
-const {
-  sortFolder,
-  getAllRequestsInFolderRecursively
-} = require('./helper');
+const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {

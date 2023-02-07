@@ -1,43 +1,61 @@
+const _ = require('lodash');
 const Bru = require('./bru');
 const BrunoRequest = require('./bruno-request');
-const BrunoResponse = require('./bruno-response');
-const _ = require('lodash');
-const jsonQuery = require('json-query');
-
+const { evaluateJsExpression, createResponseParser } = require('./utils');
 
 class VarsRuntime {
-  constructor() {
-  }
-
-  runResponseVars(vars, request, response, environment, collectionVariables, collectionPath) {
-    const bru = new Bru(environment, collectionVariables);
-    const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
-
-    res.q = function(expr) {
-        const output = jsonQuery(expr, {data: res.body});
-
-        return output.value;
+  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath) {
+    const enabledVars = _.filter(vars, (v) => v.enabled);
+    if(!enabledVars.length) {
+      return;
     }
 
-    const result = {
+    const bru = new Bru(envVariables, collectionVariables);
+    const req = new BrunoRequest(request);
 
+    const bruContext = {
+      bru,
+      req
     };
 
     const context = {
-        bru,
-        req,
-        res
+      ...envVariables,
+      ...collectionVariables,
+      ...bruContext
     }
-    console.log(JSON.stringify(vars, null, 2));
 
-    _.each(vars, (v) => {
-        result[v.name] = eval(v.value, context);
+    _.each(enabledVars, (v) => {
+      const value = evaluateJsExpression(v.value, context);
+      bru.setVar(v.name, value);
     });
+  }
 
-    console.log(result);
+  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath) {
+    const enabledVars = _.filter(vars, (v) => v.enabled);
+    if(!enabledVars.length) {
+      return;
+    }
 
+    const bru = new Bru(envVariables, collectionVariables);
+    const req = new BrunoRequest(request);
+    const res = createResponseParser(response);
 
+    const bruContext = {
+      bru,
+      req,
+      res
+    };
+
+    const context = {
+      ...envVariables,
+      ...collectionVariables,
+      ...bruContext
+    }
+
+    _.each(enabledVars, (v) => {
+      const value = evaluateJsExpression(v.value, context);
+      bru.setVar(v.name, value);
+    });
   }
 }
 

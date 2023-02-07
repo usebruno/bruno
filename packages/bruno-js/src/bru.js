@@ -1,12 +1,12 @@
 
 class Bru {
-  constructor(environment, collectionVariables) {
-    this._environment = environment;
+  constructor(envVariables, collectionVariables) {
+    this._envVariables = envVariables;
     this._collectionVariables = collectionVariables;
   }
 
   getEnvVar(key) {
-    return this._environment[key];
+    return this._envVariables[key];
   }
 
   setEnvVar(key, value) {
@@ -15,11 +15,11 @@ class Bru {
     }
 
     // gracefully ignore if key is not present in environment
-    if(!this._environment.hasOwnProperty(key)) {
+    if(!this._envVariables.hasOwnProperty(key)) {
       return;
     }
 
-    this._environment[key] = value;
+    this._envVariables[key] = value;
   }
 
   setVar(key, value) {
