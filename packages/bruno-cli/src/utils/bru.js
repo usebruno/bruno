@@ -48,7 +48,7 @@ const bruToJson = (bru) => {
       }
     };
 
-    transformedJson.request.body.mode = _.get(json, "http.mode", "none");
+    transformedJson.request.body.mode = _.get(json, "http.body", "none");
 
     return transformedJson;
   } catch (err) {
