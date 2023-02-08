@@ -20,6 +20,9 @@ You can use git or any version control of your choice to collaborate over your a
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
+### Website 📄
+Please visit [here](https://www.usebruno.com) to checkout our website and download the app
+
 ### Documentation 📄
 Please visit [here](https://docs.usebruno.com) for documentation
 
