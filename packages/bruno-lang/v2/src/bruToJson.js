@@ -42,6 +42,13 @@ const grammar = ohm.grammar(`Bru {
   pair = st* key st* ":" st* value? st*
   key = ~tagend validkey*
   value = ~tagend validvalue*
+  
+  // Dictionary for Assert Block
+  assertdictionary = st* "{" assertpairlist? tagend
+  assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
+  assertpair = st* assertkey st* ":" st* value? st*
+  assertkey = ~tagend assertvalidkey*
+  assertvalidkey = ~(":") any
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
@@ -67,7 +74,7 @@ const grammar = ohm.grammar(`Bru {
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
   varsres = "vars:post-response" dictionary
-  assert = "assert" dictionary
+  assert = "assert" assertdictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -146,6 +153,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  assertdictionary(_1, _2, pairlist, _3) {
+    return pairlist.ast;
+  },
+  assertpairlist(_1, pair, _2, rest, _3) {
+    return [pair.ast, ...rest.ast];
+  },
+  assertpair(_1, key, _2, _3, _4, value, _5) {
+    let res = {};
+    res[key.ast] = _.get(value, 'ast[0]', '');
+    return res;
+  },
+  assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   textblock(line, _1, rest) {
