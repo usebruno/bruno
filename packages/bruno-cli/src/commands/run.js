@@ -162,13 +162,17 @@ const handler = async function (argv) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
       const bruJson = bruToJson(bruContent);
-      const {
-        assertionResults,
-        testResults
-      } = await runSingleRequest(filename, bruJson, collectionPath, collectionVariables, envVars);
+      const result = await runSingleRequest(filename, bruJson, collectionPath, collectionVariables, envVars);
 
-      printRunSummary(assertionResults, testResults);
-      console.log(chalk.dim(chalk.grey('Done.')));
+      if(result) {
+        const {
+          assertionResults,
+          testResults
+        } = result;
+
+        printRunSummary(assertionResults, testResults);
+        console.log(chalk.dim(chalk.grey('Done.')));
+      }
     }
 
     const _isDirectory = await isDirectory(filename);
@@ -209,13 +213,17 @@ const handler = async function (argv) {
           bruFilepath,
           bruJson
         } = iter;
-        const {
-          assertionResults: _assertionResults,
-          testResults: _testResults
-        } = await runSingleRequest(bruFilepath, bruJson, collectionPath, collectionVariables, envVars);
+        const result = await runSingleRequest(bruFilepath, bruJson, collectionPath, collectionVariables, envVars);
 
-        assertionResults = assertionResults.concat(_assertionResults);
-        testResults = testResults.concat(_testResults);
+        if(result) {
+          const {
+            assertionResults: _assertionResults,
+            testResults: _testResults
+          } = result;
+  
+          assertionResults = assertionResults.concat(_assertionResults);
+          testResults = testResults.concat(_testResults);
+        }
       }
 
       printRunSummary(assertionResults, testResults);
