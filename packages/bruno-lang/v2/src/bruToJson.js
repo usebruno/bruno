@@ -33,22 +33,22 @@ const grammar = ohm.grammar(`Bru {
   stnl = st | nl
   tagend = nl "}"
   optionalnl = ~tagend nl
-  validkey = ~(st | ":") any
-  validvalue = ~nl any
+  keychar = ~(tagend | st | nl | ":") any
+  valuechar = ~(nl | tagend) any
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
-  pair = st* key st* ":" st* value? st*
-  key = ~tagend validkey*
-  value = ~tagend validvalue*
+  pair = st* key st* ":" st* value st*
+  key = keychar*
+  value = valuechar*
   
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
-  assertpair = st* assertkey st* ":" st* value? st*
-  assertkey = ~tagend assertvalidkey*
-  assertvalidkey = ~(":") any
+  assertpair = st* assertkey st* ":" st* value st*
+  assertkey = ~tagend assertkeychar*
+  assertkeychar = ~(tagend | nl | ":") any
 
   // Text Blocks
   textblock = textline (~tagend nl textline)*
@@ -146,7 +146,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = _.get(value, 'ast[0]', '');
+    res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
   key(chars) {
@@ -163,7 +163,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   assertpair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = _.get(value, 'ast[0]', '');
+    res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
   assertkey(chars) {

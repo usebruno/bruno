@@ -50,8 +50,6 @@ export const updateUidsInCollection = (_collection) => {
   };
   updateEnvUids(collection.environments);
 
-  console.log(collection);
-
   return collection;
 };
 

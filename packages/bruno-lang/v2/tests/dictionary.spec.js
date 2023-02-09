@@ -1,5 +1,5 @@
 /**
- * This test file is used to test the text parser.
+ * This test file is used to test the dictionary parser.
  */
 
 const parser = require("../src/bruToJson");
@@ -113,6 +113,24 @@ headers {
         "value": "application/json",
         "enabled": false
       }]
+    };
+    expect(output).toEqual(expected);
+  });
+
+  it("should parse empty url", () => {
+    const input = `
+get {
+  url: 
+  body: json
+}`;
+
+    const output = parser(input);
+    const expected = {
+      "http": {
+        "url": "",
+        "method": "get",
+        "body": "json",
+      }
     };
     expect(output).toEqual(expected);
   });
