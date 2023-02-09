@@ -307,7 +307,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach(item => {
-          if (item.type === 'http-request') {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
