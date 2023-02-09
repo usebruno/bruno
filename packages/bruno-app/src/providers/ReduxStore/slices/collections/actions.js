@@ -1,6 +1,7 @@
 import path from 'path';
 import toast from 'react-hot-toast';
 import trim from 'lodash/trim';
+import find from 'lodash/find';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { uuid } from 'utils/common';
@@ -192,7 +193,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
           .then(() => resolve())
           .catch((error) => reject(error));
       } else {
-        return reject(new Error('folder with same name already exists'));
+        return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
       }
     } else {
       const currentItem = findItemInCollection(collection, itemUid);
@@ -207,7 +208,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
             .then(() => resolve())
             .catch((error) => reject(error));
         } else {
-          return reject(new Error('folder with same name already exists'));
+          return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
         }
       } else {
         return reject(new Error('unable to find parent folder'));
@@ -285,7 +286,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(resolve)
           .catch(reject);
       } else {
-        return reject(new Error(`${requestName} already exists in collection`));
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
     } else {
       const reqWithSameNameExists = find(parentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
@@ -302,7 +303,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(resolve)
           .catch(reject);
       } else {
-        return reject(new Error(`${requestName} already exists in the folder`));
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
     }
   });
@@ -544,7 +545,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
       } else {
-        return reject(new Error(`${requestName} already exists in collection`));
+        return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
     } else {
       const currentItem = findItemInCollection(collection, itemUid);
@@ -558,7 +559,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
         } else {
-          return reject(new Error(`${requestName} already exists in the folder`));
+          return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }
       }
     }

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
@@ -19,8 +20,13 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
       name: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
     }),
     onSubmit: (values) => {
-      dispatch(cloneItem(values.name, item.uid, collection.uid));
-      onClose();
+      dispatch(cloneItem(values.name, item.uid, collection.uid))
+        .then(() => {
+          onClose();
+        })
+        .catch((err) => {
+          toast.error(err ? err.message : 'An error occured while cloning the request')
+        });
     }
   });
 
