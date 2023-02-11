@@ -27,6 +27,20 @@ describe("utils", () => {
       expect(cache.size).toBe(1);
     });
 
+    it("should use cached expression", () => {
+      const expr = "res.data.pets";
+
+      evaluateJsExpression(expr, context);
+
+      const fn = cache.get(expr);
+      expect(fn).toBeDefined();
+
+      evaluateJsExpression(expr, context);
+
+      // cache should not be overwritten
+      expect(cache.get(expr)).toBe(fn);
+    });
+
     it("should identify top level variables", () => {
       const expr = "res.data.pets[0].toUpperCase()";
       evaluateJsExpression(expr, context);
