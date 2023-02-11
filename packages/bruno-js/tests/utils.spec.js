@@ -8,6 +8,7 @@ describe("utils", () => {
       }
     };
 
+    beforeEach(() => cache.clear());
     afterEach(() => cache.clear());
 
     it("should evaluate expression", () => {
