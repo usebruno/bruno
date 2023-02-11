@@ -26,14 +26,26 @@ const compileJsExpression = (expr) => {
   const matches = expr.match(/([\w\.$]+)/g) ?? [];
 
   // get valid js identifiers (foo, bar)
-  const names = matches
-    .filter(match => /^[a-zA-Z$_]/.test(match))
-    .map(match => match.split('.')[0]);
+  const vars = new Set(
+    matches
+      .filter(match => /^[a-zA-Z$_]/.test(match))   // starts with valid js identifier (foo.bar)
+      .map(match => match.split('.')[0])            // top level identifier (foo)
+      .filter(name => !JS_KEYWORDS.includes(name))  // exclude js keywords
+  );
 
-  // exclude js keywords and get unique vars
-  const vars = new Set(names.filter(name => !JS_KEYWORDS.includes(name)));
-  const spread = [...vars].join(", ");
-  const body = `const { ${spread} } = context; return ${expr}`;
+  // globals such as Math
+  const globals = [...vars].filter(name => name in globalThis);
+
+  const code = {
+    vars: [...vars].join(", "),
+    // pick global from context or globalThis
+    globals: globals
+      .map(name => ` ${name} = ${name} ?? globalThis.${name};`)
+      .join('')
+  };
+
+  const body = `let { ${code.vars} } = context; ${code.globals}; return ${expr}`;
+
   return new Function("context", body);
 };
 
