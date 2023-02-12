@@ -1,4 +1,5 @@
 const jsonQuery = require('json-query');
+const { get } = require("./get");
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -69,6 +70,27 @@ const createResponseParser = (response = {}) => {
   res.statusText = response.statusText;
   res.headers = response.headers;
   res.body = response.data;
+
+  /**
+   * Get supports deep object navigation and filtering
+   * 1. Easy array navigation
+   *    ```js
+   *    res.get('customer.orders.items.amount')
+   *    ```
+   * 2. Deep navigation .. double dots
+   *    ```js
+   *    res.get('..items.amount')
+   *    ```
+   * 3. Array indexing
+   *    ```js
+   *    res.get('..items[0].amount')
+   *    ```
+   * 4. Array filtering [?] with corresponding js filter
+   *    ```js
+   *    res.get('..items[?].amount', i => i.amount > 20) 
+   *    ```
+   */
+  res.get = (path, ...filters) => get(response.data, path, ...filters);
 
   return res;
 };
