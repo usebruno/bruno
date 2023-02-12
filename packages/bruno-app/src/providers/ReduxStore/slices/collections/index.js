@@ -23,7 +23,7 @@ import {
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platform';
 
 const PATH_SEPARATOR = path.sep;
 
@@ -712,7 +712,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
       if (collection) {
-        const dirname = path.dirname(file.meta.pathname);
+        const dirname = getDirectoryName(file.meta.pathname);
         const subDirectories = getSubdirectoriesFromRoot(collection.pathname, dirname);
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;

@@ -22,6 +22,7 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
+import { getDirectoryName } from 'utils/common/platform';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -232,14 +233,14 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       return reject(new Error('Unable to locate item'));
     }
 
-    const dirname = path.dirname(item.pathname);
+    const dirname = getDirectoryName(item.pathname);
 
     let newPathname = '';
     if (item.type === 'folder') {
-      newPathname = `${dirname}${PATH_SEPARATOR}${trim(newName)}`;
+      newPathname = path.join(dirname, trim(newName));
     } else {
       const filename = resolveRequestFilename(newName);
-      newPathname = `${dirname}${PATH_SEPARATOR}${filename}`;
+      newPathname = path.join(dirname, filename);
     }
     const { ipcRenderer } = window;
 
@@ -291,8 +292,8 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
     } else {
       const reqWithSameNameExists = find(parentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
       if (!reqWithSameNameExists) {
-        const dirname = path.dirname(item.pathname);
-        const fullName = `${dirname}${PATH_SEPARATOR}${filename}`;
+        const dirname = getDirectoryName(item.pathname);
+        const fullName = path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? (requestItems.length + 1) : 1;

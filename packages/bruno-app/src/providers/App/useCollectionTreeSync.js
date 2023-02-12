@@ -33,6 +33,10 @@ const useCollectionTreeSync = () => {
     };
 
     const _collectionTreeUpdated = (type, val) => {
+      if(window.__IS_DEV__) {
+        console.log(type);
+        console.log(val);
+      }
       if (type === 'addDir') {
         dispatch(
           collectionAddDirectoryEvent({
