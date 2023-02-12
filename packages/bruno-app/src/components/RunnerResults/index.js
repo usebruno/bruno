@@ -6,10 +6,15 @@ import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/act
 import { closeCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
+import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 
 const getRelativePath = (fullPath, pathname) => {
+  // convert to unix style path
+  fullPath = slash(fullPath);
+  pathname = slash(pathname);
+
   let relativePath = path.relative(fullPath, pathname);
   const { dir, name } = path.parse(relativePath);
   return path.join(dir, name);
