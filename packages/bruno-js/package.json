@@ -9,6 +9,9 @@
   "peerDependencies": {
     "vm2": "^3.9.13"
   },
+  "scripts": {
+    "test": "jest --testPathIgnorePatterns test.js"
+  },
   "dependencies": {
     "atob": "^2.1.2",
     "ajv": "^8.12.0",
