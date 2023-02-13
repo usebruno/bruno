@@ -39,7 +39,8 @@ describe("get", () => {
     ["customer.orders.foo", undefined],
     ["..customer.foo", undefined],
     ["..address", [{ city: "bangalore" }]],                // .. will return array
-    ["..address[0]", { city: "bangalore" }]
+    ["..address[0]", { city: "bangalore" }],
+    ["..items..amount[?][0]", 40, amt => amt > 30]
   ])("%s should be %j %s", (expr, result, filter = undefined) => {
     expect(get(data, expr, filter)).toEqual(result);
   });
