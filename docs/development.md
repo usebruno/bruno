@@ -12,7 +12,10 @@ Bruno is deing developed as a desktop app. You need to load the app by running t
 nvm use
 
 # install deps
-npm i
+npm i --legacy-peer-deps
+
+# build graphql docs
+npm run build:graphql-docs
 
 # run next app
 npm run dev --workspace=packages/bruno-app
