@@ -5,7 +5,7 @@ Bruno is deing developed as a desktop app. You need to load the app by running t
 ### Dependencies
 * NodeJS v18
 
-###
+### Local Development
 
 ```bash
 # use nodejs 18 version
@@ -17,17 +17,14 @@ npm i --legacy-peer-deps
 # build graphql docs
 npm run build:graphql-docs
 
-# run next app
+# run next app (terminal 1)
 npm run dev --workspace=packages/bruno-app
 
-# run electron app
+# run electron app (terminal 2)
 npm run dev --workspace=packages/bruno-electron
-
-# build next app
-npm run build --workspace=packages/bruno-app
 ```
 
-### fix
+### troubleshooting
 
 You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
 
