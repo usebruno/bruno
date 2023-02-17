@@ -27,7 +27,6 @@ const template = [
   {
      label: 'View',
      submenu: [
-      { role: 'reload'},
       { role: 'toggledevtools'},
       { role: 'separator'},
       { role: 'resetzoom'},
