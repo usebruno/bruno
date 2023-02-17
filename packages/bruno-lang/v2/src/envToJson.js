@@ -6,16 +6,18 @@ const grammar = ohm.grammar(`Bru {
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
+  stnl = st | nl
   tagend = nl "}"
-  validkey = ~(st | ":") any
-  validvalue = ~nl any
+  optionalnl = ~tagend nl
+  keychar = ~(tagend | st | nl | ":") any
+  valuechar = ~(nl | tagend) any
 
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
-  pairlist = nl* pair (~tagend nl pair)* (~tagend space)*
-  pair = st* key st* ":" st* value? st*
-  key = ~tagend validkey*
-  value = ~tagend validvalue*
+  pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
+  pair = st* key st* ":" st* value st*
+  key = keychar*
+  value = valuechar*
 
   vars = "vars" dictionary
 }`);
@@ -68,7 +70,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   pair(_1, key, _2, _3, _4, value, _5) {
     let res = {};
-    res[key.ast] = _.get(value, 'ast[0]', '');
+    res[key.ast] = value.ast ? value.ast.trim() : '';
     return res;
   },
   key(chars) {

@@ -85,4 +85,33 @@ vars {
 
     expect(output).toEqual(expected);
   });
+
+  it("should parse vars with empty values", () => {
+    const input = `
+vars {
+  url: 
+  phone: 
+  api-key:
+}
+`;
+
+    const output = parser(input);
+    const expected = {
+      "variables": [{
+        "name": "url",
+        "value": "",
+        "enabled" : true,
+      }, {
+        "name": "phone",
+        "value": "",
+        "enabled" : true,
+      }, {
+        "name": "api-key",
+        "value": "",
+        "enabled" : true,
+      }]
+    };
+
+    expect(output).toEqual(expected);
+  });
 });
