@@ -23,25 +23,7 @@ You would need [Node v14.x or the latest LTS version](https://nodejs.org/en/) an
 
 ### Lets start coding
 
-```bash
-# clone and cd into bruno
-# use Node 14.x, Npm 8.x
-
-# Install deps (note that we use npm workspaces)
-npm i
-
-# run next app
-npm run dev:web
-
-# run electron app
-# neededonly if you want to test changes related to electron app
-# please note that both web and electron use the same code
-# if it works in web, then it should also work in electron
-npm run dev:electron
-
-# open in browser
-open http://localhost:3000
-```
+Please reference [development.md](docs/development.md) for instructions on running the local development environment.
 
 ### Raising Pull Request
 

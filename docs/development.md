@@ -18,10 +18,10 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 
 # run next app (terminal 1)
-npm run dev --workspace=packages/bruno-app
+npm run dev:web
 
 # run electron app (terminal 2)
-npm run dev --workspace=packages/bruno-electron
+npm run dev:electron
 ```
 
 ### Troubleshooting
@@ -35,6 +35,6 @@ You might encounter a `Unsupported platform` error when you run `npm install`. T
 npm test --workspace=packages/bruno-schema
 
 # bruno-lang
-npm test --workspace=packages/bruno-schema
+npm test --workspace=packages/bruno-lang
 
 ```
