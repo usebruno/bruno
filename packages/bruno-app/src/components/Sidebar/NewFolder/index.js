@@ -25,7 +25,7 @@ const NewFolder = ({ collection, item, onClose }) => {
             if(item && item.uid) {
               return true;
             }
-            return !(value.trim().toLowerCase().includes('environments'))
+            return value && !(value.trim().toLowerCase().includes('environments'))
           }
         })
     }),

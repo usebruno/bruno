@@ -30,7 +30,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
         .test({
           name: 'requestName',
           message: 'The request name "index" is reserved in bruno',
-          test: value => !(value.trim().toLowerCase().includes('index')),
+          test: value => value && !(value.trim().toLowerCase().includes('index')),
         })
     }),
     onSubmit: (values) => {

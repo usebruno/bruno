@@ -57,11 +57,12 @@ const grammar = ohm.grammar(`Bru {
 
   meta = "meta" dictionary
 
-  http = get | post | put | delete | options | head | connect | trace
+  http = get | post | put | delete | patch | options | head | connect | trace
   get = "get" dictionary
   post = "post" dictionary
   put = "put" dictionary
   delete = "delete" dictionary
+  patch = "patch" dictionary
   options = "options" dictionary
   head = "head" dictionary
   connect = "connect" dictionary
@@ -233,6 +234,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       http: {
         method: 'delete',
+        ...mapPairListToKeyValPair(dictionary.ast)
+      }
+    };
+  },
+  patch(_1, dictionary) {
+    return {
+      http: {
+        method: 'patch',
         ...mapPairListToKeyValPair(dictionary.ast)
       }
     };
