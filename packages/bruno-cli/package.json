@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "main": "src/index.js",
   "bin": {
     "bru": "./bin/bru.js"
@@ -11,7 +11,7 @@
     "package.json"
   ],
   "dependencies": {
-    "@usebruno/js": "0.1.1",
+    "@usebruno/js": "0.2.0",
     "@usebruno/lang": "0.2.2",
     "axios": "^1.3.2",
     "chai": "^4.3.7",
