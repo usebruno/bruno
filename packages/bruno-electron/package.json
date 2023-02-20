@@ -1,5 +1,5 @@
 {
-  "version": "0.9.3",
+  "version": "0.9.4",
   "name": "bruno",
   "description": "Opensource API Client",
   "homepage": "https://www.usebruno.com",
@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@usebruno/js": "0.1.0",
-    "@usebruno/lang": "0.1.0",
-    "@usebruno/schema": "0.1.0",
+    "@usebruno/lang": "0.2.2",
+    "@usebruno/schema": "0.3.1",
     "axios": "^0.26.0",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",

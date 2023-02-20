@@ -18,7 +18,7 @@ const template = [
      submenu: [
       { role: 'undo'},
       { role: 'redo'},
-      { role: 'separator'},
+      { type: 'separator'},
       { role: 'cut'},
       { role: 'copy'},
       { role: 'paste'}
@@ -27,13 +27,12 @@ const template = [
   {
      label: 'View',
      submenu: [
-      { role: 'reload'},
       { role: 'toggledevtools'},
-      { role: 'separator'},
+      { type: 'separator'},
       { role: 'resetzoom'},
       { role: 'zoomin'},
       { role: 'zoomout'},
-      { role: 'separator'},
+      { type: 'separator'},
       { role: 'togglefullscreen'}
     ]
   },

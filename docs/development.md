@@ -1,40 +1,40 @@
-## development
+## Development
 
 Bruno is deing developed as a desktop app. You need to load the app by running the nextjs app in one terminal and then run the electron app in another terminal.
 
 ### Dependencies
 * NodeJS v18
 
-###
+### Local Development
 
 ```bash
 # use nodejs 18 version
 nvm use
 
 # install deps
-npm i
+npm i --legacy-peer-deps
 
-# run next app
-npm run dev --workspace=packages/bruno-app
+# build graphql docs
+npm run build:graphql-docs
 
-# run electron app
-npm run dev --workspace=packages/bruno-electron
+# run next app (terminal 1)
+npm run dev:web
 
-# build next app
-npm run build --workspace=packages/bruno-app
+# run electron app (terminal 2)
+npm run dev:electron
 ```
 
-### fix
+### Troubleshooting
 
 You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
 
-### testing
+### Testing
 
 ```bash
 # bruno-schema
 npm test --workspace=packages/bruno-schema
 
 # bruno-lang
-npm test --workspace=packages/bruno-schema
+npm test --workspace=packages/bruno-lang
 
 ```
