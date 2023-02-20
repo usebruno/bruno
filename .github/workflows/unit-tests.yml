@@ -15,6 +15,10 @@ jobs:
         node-version: 16
     - name: Install dependencies
       run: npm i --legacy-peer-deps
+    - name: Test Package bruno-query
+      run: npm run test --workspace=packages/bruno-query
+    - name: Build Package bruno-query
+      run: npm run build --workspace=packages/bruno-query
     - name: Test Package bruno-lang
       run: npm run test --workspace=packages/bruno-lang
     - name: Test Package bruno-schema
