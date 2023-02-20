@@ -7,6 +7,7 @@
     "packages/bruno-cli",
     "packages/bruno-tauri",
     "packages/bruno-schema",
+    "packages/bruno-query",
     "packages/bruno-js",
     "packages/bruno-lang",
     "packages/bruno-testbench",
@@ -14,15 +15,18 @@
   ],
   "devDependencies": {
     "@faker-js/faker": "^7.6.0",
+    "@jest/globals": "^29.2.0",
     "@playwright/test": "^1.27.1",
     "jest": "^29.2.0",
-    "randomstring": "^1.2.2"
+    "randomstring": "^1.2.2",
+    "ts-jest": "^29.0.5"
   },
   "scripts": {
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
+    "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:chrome-extension": "./scripts/build-chrome-extension.sh",
     "build:electron": "./scripts/build-electron.sh",
