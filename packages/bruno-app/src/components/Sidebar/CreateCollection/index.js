@@ -84,7 +84,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-folder-name"
             type="text"
             name="collectionFolderName"
-            ref={inputRef}
             className="block textbox mt-2 w-full"
             onChange={formik.handleChange}
             autoComplete="off"
