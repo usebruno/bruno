@@ -1,4 +1,5 @@
-const { evaluateJsExpression, internalExpressionCache: cache } = require("../src/utils");
+const { describe, it, expect } = require("@jest/globals");
+const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser } = require("../src/utils");
 
 describe("utils", () => {
   describe("expression evaluation", () => {
@@ -110,6 +111,30 @@ describe("utils", () => {
       const result = evaluateJsExpression(expr, context);
 
       expect(result).toBe(startTime);
+    });
+  });
+
+  describe("response parser", () => {
+    const res = createResponseParser({
+      status: 200,
+      data: {
+        order: {
+          items: [
+            { id: 1, amount: 10 },
+            { id: 2, amount: 20 }
+          ]
+        }
+      }
+    });
+
+    it("should default to bruno query", () => {
+      const value = res("..items[?].amount[0]", i => i.amount > 10);
+      expect(value).toBe(20);
+    });
+
+    it("should allow json-query", () => {
+      const value = res.jq("order.items[amount > 10].amount");
+      expect(value).toBe(20);
     });
   });
 });

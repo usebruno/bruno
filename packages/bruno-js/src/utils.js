@@ -1,4 +1,5 @@
 const jsonQuery = require('json-query');
+const { get } = require("@usebruno/query");
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -60,15 +61,19 @@ const evaluateJsExpression = (expression, context) => {
 };
 
 const createResponseParser = (response = {}) => {
-  const res = (expr) => {
-    const output = jsonQuery(expr, { data: response.data });
-    return output ? output.value : null;
+  const res = (expr, ...fns) => {
+    return get(response.data, expr, ...fns);
   };
 
   res.status = response.status;
   res.statusText = response.statusText;
   res.headers = response.headers;
   res.body = response.data;
+
+  res.jq = (expr) => {
+    const output = jsonQuery(expr, { data: response.data });
+    return output ? output.value : null;
+  };
 
   return res;
 };
