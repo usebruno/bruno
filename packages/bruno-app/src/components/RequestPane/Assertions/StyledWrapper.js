@@ -24,7 +24,7 @@ const Wrapper = styled.div`
         width: 30%;
       }
 
-      &:nth-child(3) {
+      &:nth-child(4) {
         width: 70px;
       }
     }

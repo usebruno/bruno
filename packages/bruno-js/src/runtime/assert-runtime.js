@@ -11,7 +11,6 @@ const { expect } = chai;
  * 
  * eq          : equal to
  * neq         : not equal to
- * like        : like
  * gt          : greater than
  * gte         : greater than or equal to
  * lt          : less than
@@ -20,7 +19,6 @@ const { expect } = chai;
  * notIn       : not in
  * contains    : contains
  * notContains : not contains
- * count       : count
  * length      : length
  * matches     : matches
  * notMatches  : not matches
@@ -47,8 +45,8 @@ const parseAssertionOperator = (str = '') => {
   }
 
   const operators = [
-    'eq', 'neq', 'like', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
-    'contains', 'notContains', 'count', 'length', 'matches', 'notMatches',
+    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
+    'contains', 'notContains', 'length', 'matches', 'notMatches',
     'startsWith', 'endsWith', 'between', 'isEmpty', 'isNull', 'isUndefined',
     'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
   ];
@@ -114,9 +112,6 @@ class AssertRuntime {
           case 'neq':
             expect(lhs).to.not.equal(rhs);
             break;
-          case 'like':
-            expect(lhs).to.match(new RegExp(rhs));
-            break;
           case 'gt':
             expect(lhs).to.be.greaterThan(rhs);
             break;
@@ -141,9 +136,6 @@ class AssertRuntime {
           case 'notContains':
             expect(lhs).to.not.include(rhs);
             break;
-          case 'count':
-            expect(lhs).to.have.lengthOf(rhs);
-            break;
           case 'length':
             expect(lhs).to.have.lengthOf(rhs);
             break;
@@ -160,7 +152,7 @@ class AssertRuntime {
             expect(lhs).to.endWith(rhs);
             break;
           case 'between':
-            const [min, max] = value.split(' ');
+            const [min, max] = value.split(',');
             expect(lhs).to.be.within(min, max);
             break;
           case 'isEmpty':

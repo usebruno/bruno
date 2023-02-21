@@ -8,7 +8,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Vars from 'components/RequestPane/Vars';
-import Assert from 'components/RequestPane/Assert';
+import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
@@ -42,7 +42,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         return <Vars item={item} collection={collection} />;
       }
       case 'assert': {
-        return <Assert item={item} collection={collection} />;
+        return <Assertions item={item} collection={collection} />;
       }
       case 'script': {
         return <Script item={item} collection={collection} />;

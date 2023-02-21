@@ -1,17 +1,14 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
 import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import AssertionRow from './AssertionRow';
 import StyledWrapper from './StyledWrapper';
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
 
   const handleAddAssertion = () => {
@@ -66,55 +63,25 @@ const Assertions = ({ item, collection }) => {
         <thead>
           <tr>
             <td>Expr</td>
+            <td>Operator</td>
             <td>Value</td>
             <td></td>
           </tr>
         </thead>
         <tbody>
           {assertions && assertions.length
-            ? assertions.map((assertion, index) => {
+            ? assertions.map((assertion) => {
                 return (
-                  <tr key={assertion.uid}>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={assertion.name}
-                        className="mousetrap"
-                        onChange={(e) => handleAssertionChange(e, assertion, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={assertion.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) => handleAssertionChange({
-                          target: {
-                            value: newValue
-                          }
-                        }, assertion, 'value')}
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={assertion.enabled}
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleAssertionChange(e, assertion, 'enabled')}
-                        />
-                        <button onClick={() => handleRemoveAssertion(assertion)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <AssertionRow
+                    key={assertion.uid}
+                    assertion={assertion}
+                    item={item}
+                    collection={collection}
+                    handleAssertionChange={handleAssertionChange}
+                    handleRemoveAssertion={handleRemoveAssertion}
+                    onSave={onSave}
+                    handleRun={handleRun}
+                  />
                 );
               })
             : null}
