@@ -1,16 +1,16 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import VarsTable from './VarsTable';
 import StyledWrapper from './StyledWrapper';
 
-const Script = ({ item, collection }) => {
+const Vars = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
-  const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
+  const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
+  const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
 
   const {
     storedTheme
@@ -43,28 +43,14 @@ const Script = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col">
       <div className='flex-1 mt-2'>
         <div className='mb-1 title text-xs'>Pre Request</div>
-        <CodeEditor
-          collection={collection} value={requestScript || ''}
-          theme={storedTheme}
-          onEdit={onRequestScriptEdit}
-          mode='javascript'
-          onRun={onRun}
-          onSave={onSave}
-        />
+        <VarsTable item={item} collection={collection} vars={requestVars} varType='request'/>
       </div>
-      <div className='flex-1 mt-6'>
+      <div className='flex-1'>
         <div className='mt-1 mb-1 title text-xs'>Post Response</div>
-        <CodeEditor
-          collection={collection} value={responseScript || ''}
-          theme={storedTheme}
-          onEdit={onResponseScriptEdit}
-          mode='javascript'
-          onRun={onRun}
-          onSave={onSave}
-        />
+        <VarsTable item={item} collection={collection} vars={responseVars} varType='response'/>
       </div>
     </StyledWrapper>
   );
 };
 
-export default Script;
+export default Vars;

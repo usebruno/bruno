@@ -7,6 +7,7 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import Vars from 'components/RequestPane/Vars';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
@@ -35,6 +36,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
+      }
+      case 'vars': {
+        return <Vars item={item} collection={collection} />;
       }
       case 'script': {
         return <Script item={item} collection={collection} />;
@@ -75,6 +79,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
         </div>
+        <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
+          Vars
+        </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
         </div>
@@ -89,7 +96,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           </div>
         ) : null}
       </div>
-      <section className={`flex w-full ${focusedTab.requestPaneTab === 'script' ? '' : 'mt-5'}`}>{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className={`flex w-full ${['script', 'vars'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}>{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>
   );
 };

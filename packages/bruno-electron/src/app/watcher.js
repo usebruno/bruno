@@ -40,11 +40,15 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
   const params = _.get(request, 'request.params', []);
   const headers = _.get(request, 'request.headers', []);
+  const requestVars = _.get(request, 'request.vars.req', []);
+  const responseVars = _.get(request, 'request.vars.res', []);
   const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
 
   params.forEach((param) => param.uid = uuid());
   headers.forEach((header) => header.uid = uuid());
+  requestVars.forEach((variable) => variable.uid = uuid());
+  responseVars.forEach((variable) => variable.uid = uuid());
   bodyFormUrlEncoded.forEach((param) => param.uid = uuid());
   bodyMultipartForm.forEach((param) => param.uid = uuid());
 

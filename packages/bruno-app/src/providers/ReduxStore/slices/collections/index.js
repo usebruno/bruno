@@ -707,6 +707,100 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if(type === 'request') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.req = item.draft.request.vars.req || [];
+            item.draft.request.vars.req.push({
+              uid: uuid(),
+              name: '',
+              value: '',
+              local: false,
+              enabled: true
+            });
+          } else if(type === 'response') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.res = item.draft.request.vars.res || [];
+            item.draft.request.vars.res.push({
+              uid: uuid(),
+              name: '',
+              value: '',
+              local: false,
+              enabled: true
+            });
+          }
+        }
+      }
+    },
+    updateVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if(type === 'request') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.req = item.draft.request.vars.req || [];
+
+            const reqVar = find(item.draft.request.vars.req, (v) => v.uid === action.payload.var.uid);
+            if (reqVar) {
+              reqVar.name = action.payload.var.name;
+              reqVar.value = action.payload.var.value;
+              reqVar.description = action.payload.var.description;
+              reqVar.enabled = action.payload.var.enabled;
+            }
+          } else if(type === 'response') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.res = item.draft.request.vars.res || [];
+            const resVar = find(item.draft.request.vars.res, (v) => v.uid === action.payload.var.uid);
+            if (resVar) {
+              resVar.name = action.payload.var.name;
+              resVar.value = action.payload.var.value;
+              resVar.description = action.payload.var.description;
+              resVar.enabled = action.payload.var.enabled;
+            }
+          }
+        }
+      }
+    },
+    deleteVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          if(type === 'request') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.req = item.draft.request.vars.req || [];
+            item.draft.request.vars.req = item.draft.request.vars.req.filter((v) => v.uid !== action.payload.varUid);
+          } else if(type === 'response') {
+            item.draft.request.vars = item.draft.request.vars || {};
+            item.draft.request.vars.res = item.draft.request.vars.res || [];
+            item.draft.request.vars.res = item.draft.request.vars.res.filter((v) => v.uid !== action.payload.varUid);
+          }
+        }
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
@@ -1028,6 +1122,9 @@ export const {
   updateResponseScript,
   updateRequestTests,
   updateRequestMethod,
+  addVar,
+  updateVar,
+  deleteVar,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,

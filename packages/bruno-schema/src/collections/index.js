@@ -26,6 +26,15 @@ const keyValueSchema = Yup.object({
   enabled: Yup.boolean()
 }).noUnknown(true).strict();
 
+const varsSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  description: Yup.string().nullable(),
+  local: Yup.boolean(),
+  enabled: Yup.boolean()
+}).noUnknown(true).strict();
+
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string().oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']).required('method is required');
 
@@ -57,6 +66,10 @@ const requestSchema = Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()
   }).noUnknown(true).strict(),
+  vars: Yup.object({
+    req: Yup.array().of(varsSchema).nullable(),
+    res: Yup.array().of(varsSchema).nullable()
+  }).noUnknown(true).strict().nullable(),
   tests: Yup.string().nullable()
 }).noUnknown(true).strict();
 

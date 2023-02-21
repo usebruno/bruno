@@ -68,7 +68,7 @@ const QueryParams = ({ item, collection }) => {
       <table>
         <thead>
           <tr>
-            <td>Key</td>
+            <td>Name</td>
             <td>Value</td>
             <td></td>
           </tr>
