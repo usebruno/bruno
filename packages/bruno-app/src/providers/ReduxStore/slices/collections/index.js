@@ -1022,6 +1022,19 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    assertionResultsEvent: (state, action) => {
+      const { itemUid, collectionUid, results } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      console.log(results);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item) {
+          item.assertionResults = results;
+        }
+      }
+    },
     collectionRenamedEvent: (state, action) => {
       const { collectionPathname, newName } = action.payload;
       const collection = findCollectionByPathname(state.collections, collectionPathname);
@@ -1112,6 +1125,11 @@ export const collectionsSlice = createSlice({
           item.testResults = action.payload.testResults;
         }
 
+        if(type === 'assertion-results') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.assertionResults = action.payload.assertionResults;
+        }
+
         if(type === 'error') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.error = action.payload.error;
@@ -1187,6 +1205,7 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   testResultsEvent,
+  assertionResultsEvent,
   collectionRenamedEvent,
   toggleRunnerView,
   showRunnerView,

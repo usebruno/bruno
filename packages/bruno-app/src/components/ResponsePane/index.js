@@ -50,7 +50,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <Timeline request={item.requestSent} response={item.response}/>;
       }
       case 'tests': {
-        return <TestResults results={item.testResults} />;
+        return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
       }
 
       default: {
@@ -103,7 +103,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           Timeline
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
-          <TestResultsLabel results={item.testResults} />
+          <TestResultsLabel results={item.testResults} assertionResults={item.assertionResults} />
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">

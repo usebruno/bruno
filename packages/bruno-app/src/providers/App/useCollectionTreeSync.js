@@ -10,6 +10,7 @@ import {
   requestSentEvent,
   requestQueuedEvent,
   testResultsEvent,
+  assertionResultsEvent,
   scriptEnvironmentUpdateEvent,
   collectionRenamedEvent,
   runFolderEvent
@@ -111,6 +112,10 @@ const useCollectionTreeSync = () => {
       dispatch(testResultsEvent(val));
     };
 
+    const _assertionResults = (val) => {
+      dispatch(assertionResultsEvent(val));
+    };
+
     const _collectionRenamed = (val) => {
       dispatch(collectionRenamedEvent(val));
     };
@@ -129,8 +134,9 @@ const useCollectionTreeSync = () => {
     const removeListener6 = ipcRenderer.on('main:script-environment-update', _scriptEnvironmentUpdate);
     const removeListener7 = ipcRenderer.on('main:http-request-queued', _httpRequestQueued);
     const removeListener8 = ipcRenderer.on('main:test-results', _testResults);
-    const removeListener9 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
-    const removeListener10 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
+    const removeListener9 = ipcRenderer.on('main:assertion-results', _assertionResults);
+    const removeListener10 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
+    const removeListener11 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
 
     return () => {
       removeListener1();
@@ -143,6 +149,7 @@ const useCollectionTreeSync = () => {
       removeListener8();
       removeListener9();
       removeListener10();
+      removeListener11();
     };
   }, [isElectron]);
 };

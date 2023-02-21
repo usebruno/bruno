@@ -7,10 +7,10 @@ const StyledWrapper = styled.div`
 
   .test-failure {
     color: ${(props) => props.theme.colors.text.danger};
+  }
 
-    .error-message {
-      color: ${(props) => props.theme.colors.text.muted};
-    }
+  .error-message {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

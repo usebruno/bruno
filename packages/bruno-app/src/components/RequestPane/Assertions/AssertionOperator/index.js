@@ -49,14 +49,6 @@ const AssertionOperator = ({ operator, onChange }) => {
         return 'equals';
       case 'neq':
         return 'notEquals';
-      case 'gt':
-        return 'greaterThan';
-      case 'gte':
-        return 'greaterThanOrEqual';
-      case 'lt':
-        return 'lessThan';
-      case 'lte':
-        return 'lessThanOrEqual';
       default:
         return operator;
     }

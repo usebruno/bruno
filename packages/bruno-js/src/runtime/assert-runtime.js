@@ -1,8 +1,9 @@
 const _ = require('lodash');
-const chai = require('chai');  
+const chai = require('chai');
+const { nanoid } = require('nanoid');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const { evaluateJsExpression, createResponseParser } = require('../utils');
+const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
 
@@ -51,8 +52,19 @@ const parseAssertionOperator = (str = '') => {
     'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
   ];
 
+  const unaryOperators = [
+    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+  ];
+
   const [operator, ...rest] = str.trim().split(' ');
   const value = rest.join(' ');
+
+  if(unaryOperators.includes(operator)) {
+    return {
+      operator,
+      value: ''
+    };
+  }
 
   if(operators.includes(operator)) {
     return {
@@ -65,6 +77,45 @@ const parseAssertionOperator = (str = '') => {
     operator: 'eq',
     value: str
   };
+};
+
+const isUnaryOperator = (operator) => {
+  const unaryOperators = [
+    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+  ];
+
+  return unaryOperators.includes(operator);
+};
+
+const evaluateRhsOperand = (rhsOperand, operator, context) => {
+  if(isUnaryOperator(operator)) {
+    return;
+  }
+
+  // gracefulle allyow both a,b as well as [a, b]
+  if(operator === 'in' || operator === 'notIn') {
+    if(rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
+      rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
+    }
+
+    return rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
+  }
+
+  if(operator === 'between') {
+    const [lhs, rhs] = rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
+    return [lhs, rhs];
+  }
+
+  // gracefully allow both ^[a-Z] as well as /^[a-Z]/
+  if(operator === 'matches' || operator === 'notMatches') {
+    if(rhsOperand.startsWith('/') && rhsOperand.endsWith('/')) {
+      rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
+    }
+
+    return rhsOperand;
+  }
+
+  return evaluateJsTemplateLiteral(rhsOperand, context);
 };
 
 class AssertRuntime {
@@ -103,7 +154,7 @@ class AssertRuntime {
 
       try {
         const lhs = evaluateJsExpression(lhsExpr, context);
-        const rhs = evaluateJsExpression(rhsOperand, context);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context);
 
         switch(operator) {
           case 'eq':
@@ -191,6 +242,7 @@ class AssertRuntime {
         }
 
         assertionResults.push({
+          uid: nanoid(),
           lhsExpr,
           rhsExpr,
           rhsOperand,
@@ -200,6 +252,7 @@ class AssertRuntime {
       }
       catch (err) {
         assertionResults.push({
+          uid: nanoid(),
           lhsExpr,
           rhsExpr,
           rhsOperand,

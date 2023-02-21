@@ -50,6 +50,14 @@ export default function RunnerResults({collection}) {
       } else {
         item.testStatus = 'pass';
       }
+
+      if(item.assertionResults) {
+        const failed = item.assertionResults.filter((result) => result.status === 'fail');
+
+        item.assertionStatus = failed.length ? 'fail' : 'pass';
+      } else {
+        item.assertionStatus = 'pass';
+      }
     }
   });
 
@@ -68,8 +76,12 @@ export default function RunnerResults({collection}) {
   };
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
-  const passedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'pass');
-  const failedRequests = items.filter((item) => item.status !== "error" && item.testStatus === 'fail');
+  const passedRequests = items.filter((item) => {
+    return item.status !== "error" && item.testStatus === 'pass' && item.assertionStatus === 'pass';
+  });
+  const failedRequests = items.filter((item) => {
+    return item.status !== "error" && item.testStatus === 'fail' || item.assertionStatus === 'fail';
+  });
 
   if(!items || !items.length) {
     return (
@@ -139,7 +151,7 @@ export default function RunnerResults({collection}) {
 
                   <ul className="pl-8">
                     {item.testResults ? item.testResults.map((result) => (
-                      <li key={result.uid} className="py-1">
+                      <li key={result.uid}>
                         {result.status === 'pass' ? (
                           <span className="test-success flex items-center">
                             <IconCheck size={18} strokeWidth={2} className="mr-2"/>
@@ -150,6 +162,26 @@ export default function RunnerResults({collection}) {
                             <span className="test-failure flex items-center">
                               <IconX size={18} strokeWidth={2} className="mr-2"/>
                               {result.description}
+                            </span>
+                            <span className="error-message pl-8 text-xs">
+                              {result.error}
+                            </span>
+                          </>
+                        )}
+                      </li>
+                    )): null}
+                    {item.assertionResults ? item.assertionResults.map((result) => (
+                      <li key={result.uid}>
+                        {result.status === 'pass' ? (
+                          <span className="test-success flex items-center">
+                            <IconCheck size={18} strokeWidth={2} className="mr-2"/>
+                            {result.lhsExpr}: {result.rhsExpr}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="test-failure flex items-center">
+                              <IconX size={18} strokeWidth={2} className="mr-2"/>
+                              {result.lhsExpr}: {result.rhsExpr}
                             </span>
                             <span className="error-message pl-8 text-xs">
                               {result.error}

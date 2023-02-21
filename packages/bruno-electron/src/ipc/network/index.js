@@ -167,6 +167,19 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         });
       }
 
+      // run assertions
+      const assertions = get(request, 'assertions');
+      if(assertions && assertions.length) {
+        const assertRuntime = new AssertRuntime();
+        const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
+
+        mainWindow.webContents.send('main:assertion-results', {
+          results: results,
+          itemUid: item.uid,
+          collectionUid
+        });
+      }
+
       // run tests
       const testFile = get(item, 'request.tests');
       if(testFile && testFile.length) {
@@ -359,7 +372,13 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const postResponseVars = get(request, 'vars.res', []);
           if(postResponseVars && postResponseVars.length) {
             const varsRuntime = new VarsRuntime();
-            varsRuntime.runPostResponseVars(postResponseVars, request, response, envVars, collectionVariables, collectionPath);
+            const result = varsRuntime.runPostResponseVars(postResponseVars, request, response, envVars, collectionVariables, collectionPath);
+
+            mainWindow.webContents.send('main:script-environment-update', {
+              envVariables: result.envVariables,
+              collectionVariables: result.collectionVariables,
+              collectionUid
+            });
           }
 
           // run response script
@@ -375,6 +394,21 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             });
           }
 
+          // run assertions
+          const assertions = get(item, 'request.assertions');
+          if(assertions && assertions.length) {
+            const assertRuntime = new AssertRuntime();
+            const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
+
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'assertion-results',
+              assertionResults: results,
+              itemUid: item.uid,
+              collectionUid
+            });
+          }
+
+          // run tests
           const testFile = get(item, 'request.tests');
           if(testFile && testFile.length) {
             const testRuntime = new TestRuntime();

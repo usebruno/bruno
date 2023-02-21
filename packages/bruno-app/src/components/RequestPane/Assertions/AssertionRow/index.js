@@ -94,8 +94,6 @@ const AssertionRow = ({
     operator,
     value
   } = parseAssertionOperator(assertion.value);
-  console.log(operator);
-  console.log(value);
 
   return (
     <tr key={assertion.uid}>
