@@ -63,6 +63,9 @@ const prepareRequest = (request) => {
     axiosRequest.script = request.script;
   }
 
+  axiosRequest.vars = request.vars;
+  axiosRequest.assertions = request.assertions;
+
   return axiosRequest;
 };
 

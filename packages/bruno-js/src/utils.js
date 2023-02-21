@@ -60,6 +60,46 @@ const evaluateJsExpression = (expression, context) => {
   return fn(context);
 };
 
+const evaluateJsTemplateLiteral = (templateLiteral, context) => {
+  if(!templateLiteral || !templateLiteral.length || typeof templateLiteral !== 'string') {
+    return templateLiteral;
+  }
+
+  templateLiteral = templateLiteral.trim();
+
+  if(templateLiteral === 'true') {
+    return true;
+  }
+
+  if(templateLiteral === 'false') {
+    return false;
+  }
+
+  if(templateLiteral === 'null') {
+    return null;
+  }
+
+  if(templateLiteral === 'undefined') {
+    return undefined;
+  }
+
+  if(templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
+    return templateLiteral.slice(1, -1);
+  }
+
+  if(templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
+    return templateLiteral.slice(1, -1);
+  }
+
+  if(!isNaN(templateLiteral)) {
+    return Number(templateLiteral);
+  }
+
+  templateLiteral = "`" + templateLiteral + "`";
+
+  return evaluateJsExpression(templateLiteral, context);
+};
+
 const createResponseParser = (response = {}) => {
   const res = (expr, ...fns) => {
     return get(response.data, expr, ...fns);
@@ -80,6 +120,7 @@ const createResponseParser = (response = {}) => {
 
 module.exports = {
   evaluateJsExpression,
+  evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache
 };

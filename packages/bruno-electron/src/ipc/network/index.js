@@ -3,7 +3,7 @@ const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
 const { forOwn, extend, each, get } = require('lodash');
-const { ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -96,13 +96,27 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const envVars = getEnvVars(environment);
 
+      // run pre-request vars
+      const preRequestVars = get(request, 'vars.req', []);
+      if(preRequestVars && preRequestVars.length) {
+        const varsRuntime = new VarsRuntime();
+        const result = varsRuntime.runPreRequestVars(preRequestVars, request, envVars, collectionVariables, collectionPath);
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          collectionUid
+        });
+      }
+
+      // run pre-request script
       const requestScript = get(request, 'script.req');
       if(requestScript && requestScript.length) {
         const scriptRuntime = new ScriptRuntime();
         const result = scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
-          environment: result.environment,
+          envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
           collectionUid
         });
@@ -127,18 +141,33 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const response = await axios(request);
 
+      // run post-response vars
+      const postResponseVars = get(request, 'vars.res', []);
+      if(postResponseVars && postResponseVars.length) {
+        const varsRuntime = new VarsRuntime();
+        const result = varsRuntime.runPostResponseVars(postResponseVars, request, response, envVars, collectionVariables, collectionPath);
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          collectionUid
+        });
+      }
+
+      // run post-response script
       const responseScript = get(request, 'script.res');
       if(responseScript && responseScript.length) {
         const scriptRuntime = new ScriptRuntime();
         const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
-          environment: result.environment,
+          envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
           collectionUid
         });
       }
 
+      // run tests
       const testFile = get(item, 'request.tests');
       if(testFile && testFile.length) {
         const testRuntime = new TestRuntime();
@@ -284,18 +313,27 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             request.data = form;
           }
 
+          // run pre-request vars
+          const preRequestVars = get(request, 'vars.req', []);
+          if(preRequestVars && preRequestVars.length) {
+            const varsRuntime = new VarsRuntime();
+            varsRuntime.runPreRequestVars(preRequestVars, request, envVars, collectionVariables, collectionPath);
+          }
+
+          // run pre-request script
           const requestScript = get(request, 'script.req');
           if(requestScript && requestScript.length) {
             const scriptRuntime = new ScriptRuntime();
             const result = scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
     
             mainWindow.webContents.send('main:script-environment-update', {
-              environment: result.environment,
+              envVariables: result.envVariables,
               collectionVariables: result.collectionVariables,
               collectionUid
             });
           }
 
+          // interpolate variables inside request
           interpolateVars(request, envVars, collectionVariables);
 
           // todo:
@@ -312,17 +350,26 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             ...eventData
           });
 
+          // send request
           timeStart = Date.now();
           const response = await axios(request);
           timeEnd = Date.now();
 
+          // run post-response vars
+          const postResponseVars = get(request, 'vars.res', []);
+          if(postResponseVars && postResponseVars.length) {
+            const varsRuntime = new VarsRuntime();
+            varsRuntime.runPostResponseVars(postResponseVars, request, response, envVars, collectionVariables, collectionPath);
+          }
+
+          // run response script
           const responseScript = get(request, 'script.res');
           if(responseScript && responseScript.length) {
             const scriptRuntime = new ScriptRuntime();
             const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:script-environment-update', {
-              environment: result.environment,
+              envVariables: result.envVariables,
               collectionVariables: result.collectionVariables,
               collectionUid
             });

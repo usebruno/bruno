@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const { evaluateJsExpression, createResponseParser } = require('../utils');
+const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath) {
@@ -25,9 +25,13 @@ class VarsRuntime {
     }
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsExpression(v.value, context);
+      const value = evaluateJsTemplateLiteral(v.value, context);
       bru.setVar(v.name, value);
     });
+
+    return {
+      collectionVariables
+    };
   }
 
   runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath) {
@@ -56,6 +60,11 @@ class VarsRuntime {
       const value = evaluateJsExpression(v.value, context);
       bru.setVar(v.name, value);
     });
+
+    return {
+      envVariables,
+      collectionVariables
+    };
   }
 }
 

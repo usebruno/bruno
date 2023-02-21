@@ -183,7 +183,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, environment, collectionVariables } = action.payload;
+      const { collectionUid, envVariables, collectionVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -191,7 +191,7 @@ export const collectionsSlice = createSlice({
         const activeEnvironment = findEnvironmentInCollection(collection, activeEnvironmentUid);
 
         if (activeEnvironment) {
-          forOwn(environment, (value, key) => {
+          forOwn(envVariables, (value, key) => {
             const variable = find(activeEnvironment.variables, (v) => v.name === key);
 
             if (variable) {
@@ -201,7 +201,6 @@ export const collectionsSlice = createSlice({
         }
 
         collection.collectionVariables = collectionVariables;
-
       }
     },
     requestCancelled: (state, action) => {
