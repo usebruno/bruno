@@ -707,6 +707,59 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addAssertion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.assertions = item.draft.request.assertions || [];
+          item.draft.request.assertions.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+        }
+      }
+    },
+    updateAssertion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const assertion = item.draft.request.assertions.find((a) => a.uid === action.payload.assertion.uid);
+          if (assertion) {
+            assertion.name = action.payload.assertion.name;
+            assertion.value = action.payload.assertion.value;
+            assertion.enabled = action.payload.assertion.enabled;
+          }
+        }
+      }
+    },
+    deleteAssertion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.assertions = item.draft.request.assertions.filter((a) => a.uid !== action.payload.assertUid);
+        }
+      }
+    },
     addVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
@@ -1122,6 +1175,9 @@ export const {
   updateResponseScript,
   updateRequestTests,
   updateRequestMethod,
+  addAssertion,
+  updateAssertion,
+  deleteAssertion,
   addVar,
   updateVar,
   deleteVar,

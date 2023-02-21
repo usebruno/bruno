@@ -45,6 +45,8 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
+      padding-left: 0;
+      padding-right: 0;
     }
   }
   

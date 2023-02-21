@@ -13,7 +13,7 @@ assert {
 
     const output = parser(input);
     const expected = {
-      "assert": [{
+      "assertions": [{
         name: "res(\"data.airports\").filter(a => a.code ===\"BLR\").name",
         value: '"Bangalore International Airport"',
         enabled: true

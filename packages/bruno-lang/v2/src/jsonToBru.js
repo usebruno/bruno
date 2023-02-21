@@ -24,7 +24,7 @@ const jsonToBru = (json) => {
     script,
     tests,
     vars,
-    assert,
+    assertions,
     docs
   } = json;
 
@@ -196,15 +196,15 @@ ${indentString(body.xml)}
     bru += '\n}\n\n';
   }
 
-  if(assert && assert.length) {
+  if(assertions && assertions.length) {
     bru += `assert {`;
 
-    if(enabled(assert).length) {
-      bru += `\n${indentString(enabled(assert).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
+    if(enabled(assertions).length) {
+      bru += `\n${indentString(enabled(assertions).map(item => `${item.name}: ${item.value}`).join('\n'))}`;
     }
 
-    if(disabled(assert).length) {
-      bru += `\n${indentString(disabled(assert).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
+    if(disabled(assertions).length) {
+      bru += `\n${indentString(disabled(assertions).map(item => `~${item.name}: ${item.value}`).join('\n'))}`;
     }
 
     bru += '\n}\n\n';

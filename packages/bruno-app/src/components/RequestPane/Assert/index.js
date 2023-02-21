@@ -1,22 +1,22 @@
 import React from 'react';
+import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
+import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 
-const VarsTable = ({ item, collection, vars, varType }) => {
+const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
 
-  const handleAddVar = () => {
+  const handleAddAssertion = () => {
     dispatch(
-      addVar({
-        type: varType,
+      addAssertion({
         itemUid: item.uid,
         collectionUid: collection.uid
       })
@@ -25,37 +25,35 @@ const VarsTable = ({ item, collection, vars, varType }) => {
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
-  const handleVarChange = (e, v, type) => {
-    const _var = cloneDeep(v);
+  const handleAssertionChange = (e, _assertion, type) => {
+    const assertion = cloneDeep(_assertion);
     switch (type) {
       case 'name': {
-        _var.name = e.target.value;
+        assertion.name = e.target.value;
         break;
       }
       case 'value': {
-        _var.value = e.target.value;
+        assertion.value = e.target.value;
         break;
       }
       case 'enabled': {
-        _var.enabled = e.target.checked;
+        assertion.enabled = e.target.checked;
         break;
       }
     }
     dispatch(
-      updateVar({
-        type: varType,
-        var: _var,
+      updateAssertion({
+        assertion: assertion,
         itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
   };
 
-  const handleRemoveVar = (_var) => {
+  const handleRemoveAssertion = (assertion) => {
     dispatch(
-      deleteVar({
-        type: varType,
-        varUid: _var.uid,
+      deleteAssertion({
+        assertUid: assertion.uid,
         itemUid: item.uid,
         collectionUid: collection.uid
       })
@@ -67,30 +65,16 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       <table>
         <thead>
           <tr>
-            <td>Name</td>
-            { varType === 'request' ? (
-              <td>
-                <div className='flex items-center'>
-                  <span>Value</span>
-                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var"/>
-                </div>
-              </td>
-            ) :  (
-              <td>
-                <div className='flex items-center'>
-                  <span>Expr</span>
-                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var"/>
-                </div>
-              </td>
-            )}
+            <td>Expr</td>
+            <td>Value</td>
             <td></td>
           </tr>
         </thead>
         <tbody>
-          {vars && vars.length
-            ? vars.map((_var, index) => {
+          {assertions && assertions.length
+            ? assertions.map((assertion, index) => {
                 return (
-                  <tr key={_var.uid}>
+                  <tr key={assertion.uid}>
                     <td>
                       <input
                         type="text"
@@ -98,21 +82,21 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         autoCorrect="off"
                         autoCapitalize="off"
                         spellCheck="false"
-                        value={_var.name}
+                        value={assertion.name}
                         className="mousetrap"
-                        onChange={(e) => handleVarChange(e, _var, 'name')}
+                        onChange={(e) => handleAssertionChange(e, assertion, 'name')}
                       />
                     </td>
                     <td>
                       <SingleLineEditor
-                        value={_var.value}
+                        value={assertion.value}
                         theme={storedTheme}
                         onSave={onSave}
-                        onChange={(newValue) => handleVarChange({
+                        onChange={(newValue) => handleAssertionChange({
                           target: {
                             value: newValue
                           }
-                        }, _var, 'value')}
+                        }, assertion, 'value')}
                         onRun={handleRun}
                         collection={collection}
                       />
@@ -121,11 +105,11 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                       <div className="flex items-center">
                         <input
                           type="checkbox"
-                          checked={_var.enabled}
+                          checked={assertion.enabled}
                           className="mr-3 mousetrap"
-                          onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          onChange={(e) => handleAssertionChange(e, assertion, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveVar(_var)}>
+                        <button onClick={() => handleRemoveAssertion(assertion)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>
@@ -136,10 +120,10 @@ const VarsTable = ({ item, collection, vars, varType }) => {
             : null}
         </tbody>
       </table>
-      <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
-        + Add
+      <button className="btn-add-assertion text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
+        + Add Assertion
       </button>
     </StyledWrapper>
   );
 };
-export default VarsTable;
+export default Assertions;

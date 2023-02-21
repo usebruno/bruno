@@ -70,6 +70,7 @@ const requestSchema = Yup.object({
     req: Yup.array().of(varsSchema).nullable(),
     res: Yup.array().of(varsSchema).nullable()
   }).noUnknown(true).strict().nullable(),
+  assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable()
 }).noUnknown(true).strict();
 

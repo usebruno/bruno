@@ -282,6 +282,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
             script: si.draft.request.script,
+            vars: si.draft.request.vars,
+            assertions: si.draft.request.assertions,
             tests: si.draft.request.tests
           };
         }
@@ -302,6 +304,8 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             },
             script: si.request.script,
+            vars: si.request.vars,
+            assertions: si.request.assertions,
             tests: si.request.tests
           };
         }
@@ -350,6 +354,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       body: _item.request.body,
       script: _item.request.script,
       vars: _item.request.vars,
+      assertions: _item.request.assertions,
       tests: _item.request.tests
     }
   };

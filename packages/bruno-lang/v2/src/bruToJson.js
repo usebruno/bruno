@@ -381,7 +381,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   assert(_1, dictionary) {
     return {
-      assert: mapPairListToKeyValPairs(dictionary.ast)
+      assertions: mapPairListToKeyValPairs(dictionary.ast)
     };
   },
   scriptreq(_1, _2, _3, _4, textblock, _5) {

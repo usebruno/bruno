@@ -8,6 +8,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Vars from 'components/RequestPane/Vars';
+import Assert from 'components/RequestPane/Assert';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
@@ -40,6 +41,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       case 'vars': {
         return <Vars item={item} collection={collection} />;
       }
+      case 'assert': {
+        return <Assert item={item} collection={collection} />;
+      }
       case 'script': {
         return <Script item={item} collection={collection} />;
       }
@@ -71,7 +75,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
-          Params
+          Query
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
@@ -84,6 +88,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
+        </div>
+        <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
+          Assert
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests

@@ -9,6 +9,9 @@ const deleteUidsInItems = (items) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
       each(get(item, 'request.headers'), (header) => delete header.uid);
       each(get(item, 'request.params'), (param) => delete param.uid);
+      each(get(item, 'request.vars.req'), (v) => delete v.uid);
+      each(get(item, 'request.vars.res'), (v) => delete v.uid);
+      each(get(item, 'request.vars.assertions'), (a) => delete a.uid);
       each(get(item, 'request.body.multipartForm'), (param) => delete param.uid);
       each(get(item, 'request.body.formUrlEncoded'), (param) => delete param.uid);
     }
