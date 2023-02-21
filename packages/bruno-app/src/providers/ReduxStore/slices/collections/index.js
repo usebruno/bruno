@@ -8,7 +8,7 @@ import filter from 'lodash/filter';
 import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
 import { createSlice } from '@reduxjs/toolkit';
-import splitOnFirst from 'split-on-first';
+import { splitOnFirst } from 'utils/url';
 import {
   findCollectionByUid,
   findCollectionByPathname,

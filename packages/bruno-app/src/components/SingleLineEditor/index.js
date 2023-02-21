@@ -102,7 +102,7 @@ class SingleLineEditor extends Component {
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value);
+      this.editor.setValue(this.props.value || '');
     }
     this.ignoreChangeEvent = false;
   }

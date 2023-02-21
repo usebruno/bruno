@@ -40,3 +40,16 @@ export const stringifyQueryParams = (params) => {
 
   return queryString.join('&');
 };
+
+export const splitOnFirst = (str, char) => {
+  if(!str || !str.length) {
+    return [str];
+  }
+
+  let index = str.indexOf(char);
+  if (index === -1) {
+    return [str];
+  }
+
+  return [str.slice(0, index), str.slice(index + 1)];
+};
