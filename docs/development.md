@@ -28,6 +28,16 @@ npm run dev:electron
 
 You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
 
+```shell
+# Delete node_modules in sub-directories
+find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
+  rm -rf "$dir"
+done
+
+# Delete package-lock in sub-directories
+find . -type f -name "package-lock.json" -delete
+```
+
 ### Testing
 
 ```bash
@@ -36,5 +46,4 @@ npm test --workspace=packages/bruno-schema
 
 # bruno-lang
 npm test --workspace=packages/bruno-lang
-
 ```
