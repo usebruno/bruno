@@ -6,6 +6,7 @@ directories:
   output: out
 files:
   - "**/*"
+afterSign: notarize.js
 mac:
   artifactName: ${name}_${version}_${arch}_${os}.${ext}
   category: public.app-category.developer-tools
@@ -20,6 +21,7 @@ mac:
         - arm64
   icon: resources/icons/mac/icon.icns
   hardenedRuntime: true
+  identity: "Anoop MD (W7LPPWA48L)"
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
 linux:

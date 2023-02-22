@@ -1,6 +1,7 @@
 node_modules
 web
 out
+.env
 
 pnpm-lock.yaml
 package-lock.json
