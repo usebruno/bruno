@@ -8,6 +8,8 @@ import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
+import Vars from 'components/RequestPane/Vars';
+import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import { useTheme } from 'providers/Theme';
@@ -91,6 +93,12 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
       }
+      case 'vars': {
+        return <Vars item={item} collection={collection} />;
+      }
+      case 'assert': {
+        return <Assertions item={item} collection={collection} />;
+      }
       case 'script': {
         return <Script item={item} collection={collection} />;
       }
@@ -130,8 +138,14 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
         </div>
+        <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
+          Vars
+        </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
+        </div>
+        <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
+          Assert
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
@@ -143,7 +157,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             ) : null}
             {!isSchemaLoading && !schema ? <IconDownload size={18} strokeWidth={1.5}/> : null }
             {!isSchemaLoading && schema ? <IconRefresh size={18} strokeWidth={1.5}/> : null }
-            <span className='ml-1'>{schema ? 'Schema' : 'Load Schema'}</span>
+            <span className='ml-1'>Schema</span>
           </div>
           <div
             className='flex items-center cursor-pointer hover:underline ml-2'

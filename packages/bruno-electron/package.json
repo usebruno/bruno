@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder --mac",
+    "dist": "electron-builder --win --linux --mac",
     "pack": "electron-builder --dir"
   },
   "dependencies": {
