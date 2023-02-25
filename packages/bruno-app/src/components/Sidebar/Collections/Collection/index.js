@@ -55,12 +55,6 @@ const Collection = ({ collection, searchText }) => {
     dispatch(collectionClicked(collection.uid));
   };
 
-  if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
-      return null;
-    }
-  }
-
   const handleExportClick = () => {
     const collectionCopy = cloneDeep(collection);
     exportCollection(transformCollectionToSaveToIdb(collectionCopy));
