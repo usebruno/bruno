@@ -55,12 +55,6 @@ const Collection = ({ collection, searchText }) => {
     dispatch(collectionClicked(collection.uid));
   };
 
-  if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
-      return null;
-    }
-  }
-
   const handleExportClick = () => {
     const collectionCopy = cloneDeep(collection);
     exportCollection(transformCollectionToSaveToIdb(collectionCopy));
@@ -79,6 +73,12 @@ const Collection = ({ collection, searchText }) => {
       isOver: monitor.isOver()
     })
   });
+
+  if (searchText && searchText.length) {
+    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
+      return null;
+    }
+  }
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
