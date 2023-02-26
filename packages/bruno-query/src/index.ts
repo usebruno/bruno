@@ -19,11 +19,11 @@ function normalize(value: any) {
 /**
  * Gets value of a prop from source.
  * 
- * If source is an array get value for each item.
+ * If source is an array get value from each item.
  * 
  * If deep is true then recursively gets values for prop in nested objects.
  * 
- * Once a value if found will not recurese further into that value.
+ * Once a value is found will not recurse further into that value.
  */
 function getValue(source: any, prop: string, deep = false): any {
   if (typeof source !== 'object') return;
@@ -47,14 +47,27 @@ function getValue(source: any, prop: string, deep = false): any {
   return normalize(value);
 }
 
-type PredicateOrMapper = (obj: any) => any;
+type PredicateOrMapper = ((obj: any) => any) | Record<string, any>;
+
+/**
+ * Make a predicate function that checks scalar properties for equality
+ */
+function objectPredicate(obj: Record<string, any>) {
+  return (item: any) => {
+    for (const [key, value] of Object.entries(obj)) {
+      if (item[key] !== value) return false;
+    }
+    return true;
+  };
+}
 
 /**
  * Apply filter on source array or object
  * 
  * If the filter returns a non boolean non null value it is treated as a mapped value
  */
-function filterOrMap(source: any, fun: PredicateOrMapper) {
+function filterOrMap(source: any, funOrObj: PredicateOrMapper) {
+  const fun = typeof funOrObj === 'object' ? objectPredicate(funOrObj) : funOrObj;
   const isArray = Array.isArray(source);
   const list = isArray ? source : [source];
   const result = [] as any[];
@@ -67,7 +80,7 @@ function filterOrMap(source: any, fun: PredicateOrMapper) {
       result.push(value); // mapper
     }
   }
-  return isArray ? result : result[0];
+  return normalize(isArray ? result : result[0]);
 }
 
 /**
@@ -89,7 +102,11 @@ function filterOrMap(source: any, fun: PredicateOrMapper) {
  *    ```js
  *    get(data, '..items[?].amount', i => i.amount > 20) 
  *    ```
- * 5. Array mapping [?] with corresponding mapper function
+ * 5. Array filtering [?] with simple object predicate, same as (i => i.id === 2 && i.amount === 20)
+ *    ```js
+ *    get(data, '..items[?]', { id: 2, amount: 20 }) 
+ *    ```
+ * 6. Array mapping [?] with corresponding mapper function
  *    ```js
  *    get(data, '..items[?].amount', i => i.amount + 10) 
  *    ```
@@ -121,7 +138,7 @@ export function get(source: any, path: string, ...fns: PredicateOrMapper[]) {
         source = filterOrMap(source, fun);
         break;
       case typeof token === 'number':
-        source = source[token];
+        source = normalize(source[token]);
         break;
       default:
         source = getValue(source, token as string, lookbehind === "..");

@@ -18,6 +18,10 @@ Array filtering [?] with corresponding filter function
 ```js
 get(data, '..items[?].amount', i => i.amount > 20) 
 ```
+Array filtering [?] with simple object predicate, same as (i => i.id === 2 && i.amount === 20)
+```js
+get(data, '..items[?]', { id: 2, amount: 20 }) 
+```
 Array mapping [?] with corresponding mapper function
 ```js
 get(data, '..items[?].amount', i => i.amount + 10) 
