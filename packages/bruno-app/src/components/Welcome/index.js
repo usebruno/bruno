@@ -2,7 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { IconBrandGithub, IconPlus, IconUpload, IconFolders, IconSpeakerphone } from '@tabler/icons';
+import { IconBrandGithub, IconPlus, IconUpload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -74,15 +74,18 @@ const Welcome = () => {
 
       <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
+        <div className="flex items-center mt-2">
+          <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
+            <IconBook size={18} strokeWidth={2} />
+            <span className="label ml-2">Documentation</span>
+          </a>
+        </div>
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
             <IconSpeakerphone size={18} strokeWidth={2} />
             <span className="label ml-2">Report Issues</span>
           </a>
         </div>
-        {/* <div className="flex items-center mt-2">
-          <IconBook size={18} strokeWidth={2}/><span className="label ml-2">Docs</span>
-        </div> */}
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
             <IconBrandGithub size={18} strokeWidth={2} />

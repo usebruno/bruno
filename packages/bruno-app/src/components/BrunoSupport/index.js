@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from 'components/Modal/index';
-import { IconSpeakerphone, IconBrandTwitter, IconBrandGithub, IconBrandDiscord } from '@tabler/icons';
+import { IconSpeakerphone, IconBrandTwitter, IconBrandGithub, IconBrandDiscord, IconBook } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const BrunoSupport = ({ onClose }) => {
@@ -8,6 +8,12 @@ const BrunoSupport = ({ onClose }) => {
     <StyledWrapper>
       <Modal size="sm" title={'Support'} handleCancel={onClose} hideFooter={true}>
         <div className="collection-options">
+          <div className="mt-2">
+            <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">
+              <IconBook size={18} strokeWidth={2} />
+              <span className="label ml-2">Documentation</span>
+            </a>
+          </div>
           <div className="mt-2">
             <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="flex items-end">
               <IconSpeakerphone size={18} strokeWidth={2} />
