@@ -3,6 +3,9 @@ web
 out
 .env
 
+// certs
+sectigo.*
+
 pnpm-lock.yaml
 package-lock.json
 yarn.lock

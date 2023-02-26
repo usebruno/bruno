@@ -33,3 +33,5 @@ linux:
 win:
   artifactName: ${name}_${version}_${arch}_win.${ext}
   icon: resources/icons/png
+  certificateFile: sectigo.pfx
+  certificatePassword: "secret"
