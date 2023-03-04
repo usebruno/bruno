@@ -1,6 +1,7 @@
 import React from 'react';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
+import importInsomniaCollection from 'utils/importers/insomnia-collection';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
@@ -21,6 +22,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };
 
+  const handleImportInsomniaCollection = () => {
+    importInsomniaCollection()
+      .then((collection) => {
+        handleSubmit(collection);
+      })
+      .catch((err) => toastError(err, 'Insomnia Import collection failed'));
+  };
+
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
       <div>
@@ -35,6 +44,12 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
           onClick={handleImportPostmanCollection}
         >
           Postman Collection
+        </div>
+        <div
+          className='text-link hover:underline cursor-pointer mt-2'
+          onClick={handleImportInsomniaCollection}
+        >
+          Insomnia Collection
         </div>
       </div>
     </Modal>
