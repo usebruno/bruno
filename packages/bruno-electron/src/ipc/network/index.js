@@ -169,14 +169,14 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       // run assertions
       const assertions = get(request, 'assertions');
-        const assertRuntime = new AssertRuntime();
-        const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
+      const assertRuntime = new AssertRuntime();
+      const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
 
-        mainWindow.webContents.send('main:assertion-results', {
-          results: results,
-          itemUid: item.uid,
-          collectionUid
-        });
+      mainWindow.webContents.send('main:assertion-results', {
+        results: results,
+        itemUid: item.uid,
+        collectionUid
+      });
 
       // run tests
       const testFile = get(item, 'request.tests');
