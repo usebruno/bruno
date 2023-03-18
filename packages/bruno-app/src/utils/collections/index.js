@@ -433,7 +433,7 @@ export const humanizeRequestBodyMode = (mode) => {
       break;
     }
     case 'formUrlEncoded': {
-      label = 'Form Url Encoded';
+      label = 'Form URL Encoded';
       break;
     }
     case 'multipartForm': {

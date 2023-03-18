@@ -52,7 +52,7 @@ const RequestBodyMode = ({ item, collection }) => {
               onModeChange('formUrlEncoded');
             }}
           >
-            Form Url Encoded
+            Form URL Encoded
           </div>
           <div className="label-item font-medium">Raw</div>
           <div
