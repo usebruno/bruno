@@ -102,7 +102,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
                 checked={formik.values.requestType === 'http-request'}
               />
               <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                REST
+                HTTP
               </label>
 
               <input
