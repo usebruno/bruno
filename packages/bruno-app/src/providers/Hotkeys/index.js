@@ -10,6 +10,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import BrunoSupport from 'components/BrunoSupport';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -143,6 +144,23 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind(['command+h', 'ctrl+h']);
     };
   }, [setShowNewRequestModal]);
+
+  // close tab hotkey
+  useEffect(() => {
+    Mousetrap.bind(['command+w', 'ctrl+w'], (e) => {
+      dispatch(
+        closeTabs({
+          tabUids: [activeTabUid]
+        })
+      );
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+w', 'ctrl+w']);
+    };
+  }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
