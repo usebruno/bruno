@@ -6,6 +6,7 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
+const chaiHttp = require('chai-http');
 
 /**
  * Assertion operators
@@ -92,7 +93,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return;
   }
 
-  // gracefulle allyow both a,b as well as [a, b]
+  // gracefully allow both a,b as well as [a, b]
   if(operator === 'in' || operator === 'notIn') {
     if(rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
@@ -225,6 +226,7 @@ class AssertRuntime {
             expect(lhs).to.be.false;
             break;
           case 'isJson':
+            chai.use(chaiHttp);
             expect(lhs).to.be.json;
             break;
           case 'isNumber':
