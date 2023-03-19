@@ -19,7 +19,7 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 
 # build bruno query
-npm run build:build:bruno-query
+npm run build:bruno-query
 
 # run next app (terminal 1)
 npm run dev:web
