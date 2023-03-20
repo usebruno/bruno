@@ -102,7 +102,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
                 checked={formik.values.requestType === 'http-request'}
               />
               <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
-                Http
+                HTTP
               </label>
 
               <input
@@ -118,7 +118,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
                 checked={formik.values.requestType === 'graphql-request'}
               />
               <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
-                Graphql
+                GraphQL
               </label>
             </div>
           </div>
@@ -145,7 +145,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
 
           <div className="mt-4">
             <label htmlFor="request-url" className="block font-semibold">
-              Url
+              URL
             </label>
 
             <div className="flex items-center mt-2 ">

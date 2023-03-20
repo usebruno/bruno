@@ -32,7 +32,7 @@ const useGraphqlSchema = (endpoint, environment) => {
           setSchema(buildClientSchema(s.data));
           setIsLoading(false);
           localStorage.setItem(localStorageKey, JSON.stringify(s.data));
-          toast.success('Graphql Schema loaded successfully');
+          toast.success('GraphQL Schema loaded successfully');
         } else {
           return Promise.reject(new Error('An error occurred while introspecting schema'));
         }
@@ -40,7 +40,7 @@ const useGraphqlSchema = (endpoint, environment) => {
       .catch((err) => {
         setIsLoading(false);
         setError(err);
-        toast.error('Error occured while loading Graphql Schema');
+        toast.error('Error occured while loading GraphQL Schema');
       });
   };
 
