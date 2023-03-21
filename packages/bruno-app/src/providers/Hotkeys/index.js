@@ -160,7 +160,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       Mousetrap.unbind(['command+w', 'ctrl+w']);
     };
-  }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
+  }, [activeTabUid]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
