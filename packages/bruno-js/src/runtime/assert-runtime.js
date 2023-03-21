@@ -6,7 +6,19 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
-const chaiHttp = require('chai-http');
+chai.use(function (chai, utils) {
+  // Custom assertion for checking if a variable is JSON
+  chai.Assertion.addMethod('json', function () {
+    const obj = this._obj;
+    const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) && obj.constructor === Object;
+
+    this.assert(
+      isJson,
+      `expected ${utils.inspect(obj)} to be JSON`,
+      `expected ${utils.inspect(obj)} not to be JSON`
+    );
+  });
+});
 
 /**
  * Assertion operators
@@ -226,7 +238,6 @@ class AssertRuntime {
             expect(lhs).to.be.false;
             break;
           case 'isJson':
-            chai.use(chaiHttp);
             expect(lhs).to.be.json;
             break;
           case 'isNumber':
