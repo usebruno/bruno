@@ -8,7 +8,7 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 const { expect } = chai;
 chai.use(function (chai, utils) {
   // Custom assertion for checking if a variable is JSON
-  chai.Assertion.addMethod('json', function () {
+  chai.Assertion.addProperty('json', function () {
     const obj = this._obj;
     const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) && obj.constructor === Object;
 
