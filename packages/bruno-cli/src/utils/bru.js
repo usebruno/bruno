@@ -42,7 +42,7 @@ const bruToJson = (bru) => {
         "headers":  _.get(json, "headers", []),
         "body":  _.get(json, "body", {}),
         "vars": _.get(json, "vars", []),
-        "assert": _.get(json, "assert", []),
+        "assertions": _.get(json, "assertions", []),
         "script": _.get(json, "script", ""),
         "tests": _.get(json, "tests", "")
       }

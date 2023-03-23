@@ -60,7 +60,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
 
     // run assertions
     let assertionResults = [];
-    const assertions = get(bruJson, 'request.assert');
+    const assertions = get(bruJson, 'request.assertions');
     if(assertions && assertions.length) {
       const assertRuntime = new AssertRuntime();
       assertionResults = assertRuntime.runAssertions(assertions, request, response, envVariables, collectionVariables, collectionPath);

@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "@usebruno/query": "0.1.0",
-    "atob": "^2.1.2",
     "ajv": "^8.12.0",
+    "atob": "^2.1.2",
     "btoa": "^1.2.1",
     "crypto-js": "^4.1.1",
     "json-query": "^2.2.2",
