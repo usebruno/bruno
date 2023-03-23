@@ -6,6 +6,19 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
+chai.use(function (chai, utils) {
+  // Custom assertion for checking if a variable is JSON
+  chai.Assertion.addProperty('json', function () {
+    const obj = this._obj;
+    const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) && obj.constructor === Object;
+
+    this.assert(
+      isJson,
+      `expected ${utils.inspect(obj)} to be JSON`,
+      `expected ${utils.inspect(obj)} not to be JSON`
+    );
+  });
+});
 
 /**
  * Assertion operators
@@ -92,7 +105,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return;
   }
 
-  // gracefulle allyow both a,b as well as [a, b]
+  // gracefully allow both a,b as well as [a, b]
   if(operator === 'in' || operator === 'notIn') {
     if(rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
