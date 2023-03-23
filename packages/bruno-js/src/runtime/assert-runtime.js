@@ -20,6 +20,25 @@ chai.use(function (chai, utils) {
   });
 });
 
+// Custom assertion for matching regex
+chai.use(function (chai, utils) {
+  chai.Assertion.addMethod('match', function (regex) {
+    const obj = this._obj;
+    let match = false;
+    if(obj === undefined) {
+      match = false;
+    } else {
+      match = regex.test(obj);
+    }
+
+    this.assert(
+      match,
+      `expected ${utils.inspect(obj)} to match ${regex}`,
+      `expected ${utils.inspect(obj)} not to match ${regex}`
+    );
+  });
+});
+
 /**
  * Assertion operators
  * 
