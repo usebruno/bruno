@@ -27,6 +27,10 @@ const Wrapper = styled.div`
       &:nth-child(4) {
         width: 70px;
       }
+
+      select {
+        background-color: transparent;
+      }
     }
   }
 
