@@ -28,6 +28,15 @@ class TestRuntime {
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
 
+    if(!testsFile || !testsFile.length) {
+      return {
+        request,
+        envVariables,
+        collectionVariables,
+        results: __brunoTestResults.getResults()
+      };
+    }
+
     const context = {
       test,
       bru,

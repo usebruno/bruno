@@ -179,17 +179,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       });
 
       // run tests
-      const testFile = get(item, 'request.tests');
-      if(testFile && testFile.length) {
-        const testRuntime = new TestRuntime();
-        const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+      const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+      const testRuntime = new TestRuntime();
+      const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
-        mainWindow.webContents.send('main:test-results', {
-          results: result.results,
-          itemUid: item.uid,
-          collectionUid
-        });
-      }
+      mainWindow.webContents.send('main:test-results', {
+        results: testResults.results,
+        itemUid: item.uid,
+        collectionUid
+      });
 
       deleteCancelToken(cancelTokenUid);
 
@@ -407,17 +405,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           }
 
           // run tests
-          const testFile = get(item, 'request.tests');
-          if(testFile && testFile.length) {
-            const testRuntime = new TestRuntime();
-            const result = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+          const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+          const testRuntime = new TestRuntime();
+          const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'test-results',
-              testResults: result.results,
-              ...eventData
-            });
-          }
+          mainWindow.webContents.send('main:run-folder-event', {
+            type: 'test-results',
+            testResults: testResults.results,
+            ...eventData
+          });
 
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'response-received',
