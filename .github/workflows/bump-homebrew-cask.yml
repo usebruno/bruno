@@ -1,4 +1,5 @@
 name: Bump Homebrew Cask
+
 on:
   release:
     types: [published]
@@ -8,4 +9,4 @@ jobs:
     runs-on: macos-10.15
     steps:
       - name: Bump Homebrew Cask
-         run: brew bump-cask-pr bruno --version "${GITHUB_REF_NAME#v}"  
+        run: brew bump-cask-pr bruno --version "${GITHUB_REF_NAME#v}"  
