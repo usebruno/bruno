@@ -42,6 +42,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
         request.data = interpolate(request.data);
       }
     }
+  } else {
+    request.data = interpolate(request.data);
   }
 
   each(request.params, (param) => {
