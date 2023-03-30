@@ -20,6 +20,14 @@ You can use git or any version control of your choice to collaborate over your a
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
+### Run across multiple platforms 🖥️
+![bruno](assets/images/run-anywhere.png) <br /><br />
+
+### Collaborate via Git 👩‍💻🧑‍💻
+Or any version control system of your choice
+
+![bruno](assets/images/version-control.png) <br /><br />
+
 ### Website 📄
 Please visit [here](https://www.usebruno.com) to checkout our website and download the app
 
