@@ -1,14 +1,20 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "main": "src/index.js",
   "bin": {
     "bru": "./bin/bru.js"
   },
+  "bugs": {
+    "url": "https://github.com/usebruno/bruno/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/usebruno/bruno.git"
+  },
   "files": [
     "src",
     "bin",
-    "assets",
     "readme.md",
     "package.json"
   ],
