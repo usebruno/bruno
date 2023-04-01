@@ -32,7 +32,7 @@ bruno run folder --env Local
 ```
 
 ## Demo
-![demo](assets/images/cli-demo.png)
+![demo](../../assets/images/cli-demo.png)
 
 ## Support
 If you encounter any issues or have any feedback or suggestions, please raise them on our [GitHub repository](https://github.com/usebruno/bruno)
