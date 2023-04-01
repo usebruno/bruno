@@ -13,8 +13,8 @@
     "pack": "electron-builder --dir"
   },
   "dependencies": {
-    "@usebruno/js": "0.2.0",
-    "@usebruno/lang": "0.2.2",
+    "@usebruno/js": "0.3.0",
+    "@usebruno/lang": "0.3.0",
     "@usebruno/schema": "0.3.1",
     "axios": "^0.26.0",
     "chai": "^4.3.7",
