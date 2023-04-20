@@ -49,3 +49,15 @@ export const safeStringifyJSON = (obj, indent=false) => {
     return obj;
   }
 }
+
+// Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
+export const normalizeFileName = (name) => {
+  if (!name) {
+    return name;
+  }
+
+  const validChars = /[^\w\s-]/g;
+  const formattedName = name.replace(validChars, '-');
+
+  return formattedName;
+}

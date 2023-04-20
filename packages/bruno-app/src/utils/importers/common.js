@@ -3,7 +3,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid } from 'utils/common';
+import { uuid, normalizeFileName } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
@@ -63,6 +63,8 @@ export const updateUidsInCollection = (_collection) => {
 export const transformItemsInCollection = (collection) => {
   const transformItems = (items = []) => {
     each(items, (item) => {
+      item.name = normalizeFileName(item.name);
+
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
         if(item.request.query) {
