@@ -122,6 +122,12 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
             response: null
           })
         );
+
+        if(err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+          console.log('>> request cancelled');
+          return;
+        }
+
         console.log('>> sending request failed');
         console.log(err);
         toast.error(err ? err.message : 'Something went wrong!');

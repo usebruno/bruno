@@ -202,6 +202,12 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       // need to convey the error to the UI
       // and need not be always a network error
       deleteCancelToken(cancelTokenUid);
+      
+      if (axios.isCancel(error)) {
+        let error = new Error("Request cancelled");
+        error.isCancel = true;
+        return Promise.reject(error);
+      }
 
       if(error.response) {
         return {
