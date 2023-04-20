@@ -158,7 +158,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const responseScript = get(request, 'script.res');
       if(responseScript && responseScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
+        const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
@@ -333,7 +333,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const requestScript = get(request, 'script.req');
           if(requestScript && requestScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
+            const result = await scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
     
             mainWindow.webContents.send('main:script-environment-update', {
               envVariables: result.envVariables,
@@ -381,7 +381,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           const responseScript = get(request, 'script.res');
           if(responseScript && responseScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
+            const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
 
             mainWindow.webContents.send('main:script-environment-update', {
               envVariables: result.envVariables,

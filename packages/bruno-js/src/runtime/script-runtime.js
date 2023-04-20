@@ -19,6 +19,7 @@ const moment = require('moment');
 const uuid = require('uuid');
 const nanoid = require('nanoid');
 const axios = require('axios');
+const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 
 class ScriptRuntime {
@@ -56,6 +57,7 @@ class ScriptRuntime {
           uuid,
           nanoid,
           axios,
+          'node-fetch': fetch,
           'crypto-js': CryptoJS
         }
       }
@@ -69,7 +71,7 @@ class ScriptRuntime {
     };
   }
 
-  runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath) {
+  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath) {
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -92,12 +94,15 @@ class ScriptRuntime {
           moment,
           uuid,
           nanoid,
+          axios,
+          'node-fetch': fetch,
           'crypto-js': CryptoJS
         }
       }
     });
 
-    vm.run(script, path.join(collectionPath, 'vm.js'));
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`,  path.join(collectionPath, 'vm.js'));
+    await asyncVM();
 
     return {
       response,

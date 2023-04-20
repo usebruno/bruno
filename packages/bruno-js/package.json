@@ -16,12 +16,14 @@
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
     "atob": "^2.1.2",
+    "axios": "^0.26.0",
     "btoa": "^1.2.1",
     "crypto-js": "^4.1.1",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "nanoid": "3.3.4",
+    "node-fetch": "2.*",
     "uuid": "^9.0.0"
   }
 }
