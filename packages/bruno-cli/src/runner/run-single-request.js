@@ -1,3 +1,4 @@
+const qs = require('qs');
 const chalk = require('chalk');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
@@ -38,6 +39,11 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables);
+
+    // stringify the request url encoded params
+    if(request.headers['content-type'] = 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data);
+    }
 
     // run request
     const response = await axios(request);
