@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import xmlFormat from 'xml-formatter';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -48,6 +49,16 @@ export const safeStringifyJSON = (obj, indent=false) => {
   } catch (e) {
     return obj;
   }
+}
+
+export const formatResponse = (response) => {
+  var type = response.headers.find((element) => element[0]=='content-type')[1];
+  if(type.includes("json")){
+    return safeStringifyJSON(response.data);
+  }if(type.includes("xml")){
+    return xmlFormat(response.data, {collapseContent: true});
+  }
+  return response.data;
 }
 
 // Remove any characters that are not alphanumeric, spaces, hyphens, or underscores

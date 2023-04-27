@@ -1,7 +1,7 @@
 import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
+import { formatResponse } from 'utils/common';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
@@ -15,6 +15,7 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -40,7 +41,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           item={item}
           collection={collection}
           width={rightPaneWidth}
-          value={response.data ? safeStringifyJSON(response.data, true) : ''}
+          value={response.data ? formatResponse(response): ''}
         />;
       }
       case 'headers': {
