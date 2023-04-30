@@ -35,6 +35,15 @@ const printRunSummary = (assertionResults, testResults) => {
 
   console.log("\n" + chalk.bold(assertSummary));
   console.log(chalk.bold(testSummary));
+
+  return {
+    totalAssertions,
+    passedAssertions,
+    failedAssertions,
+    totalTests,
+    passedTests,
+    failedTests
+  }
 };
 
 const getBruFilesRecursively = (dir) => {
@@ -45,6 +54,10 @@ const getBruFilesRecursively = (dir) => {
   
     const traverse = (currentPath) => {
       const filesInCurrentDir = fs.readdirSync(currentPath);
+
+      if (currentPath.includes('node_modules')) {
+        return;
+      }
   
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
@@ -170,8 +183,14 @@ const handler = async function (argv) {
           testResults
         } = result;
 
-        printRunSummary(assertionResults, testResults);
+        const summary = printRunSummary(assertionResults, testResults);
         console.log(chalk.dim(chalk.grey('Done.')));
+
+        if(summary.failedAssertions > 0 || summary.failedTests > 0) {
+          process.exit(1);
+        }
+      } else {
+        process.exit(1);
       }
     }
 
@@ -226,12 +245,17 @@ const handler = async function (argv) {
         }
       }
 
-      printRunSummary(assertionResults, testResults);
+      const summary = printRunSummary(assertionResults, testResults);
       console.log(chalk.dim(chalk.grey('Ran all requests.')));
+
+      if(summary.failedAssertions > 0 || summary.failedTests > 0) {
+        process.exit(1);
+      }
     }
   } catch (err) {
     console.log("Something went wrong");
     console.error(chalk.red(err.message));
+    process.exit(1);
   }
 };
 
