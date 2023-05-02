@@ -41,7 +41,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     interpolateVars(request, envVariables, collectionVariables);
 
     // stringify the request url encoded params
-    if(request.headers['content-type'] = 'application/x-www-form-urlencoded') {
+    if(request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
     }
 
