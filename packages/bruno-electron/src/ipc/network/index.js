@@ -1,3 +1,4 @@
+const qs = require('qs');
 const axios = require('axios');
 const Mustache = require('mustache');
 const FormData = require('form-data');
@@ -123,6 +124,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       }
 
       interpolateVars(request, envVars, collectionVariables);
+
+      // stringify the request url encoded params
+      if(request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+        request.data = qs.stringify(request.data);
+      }
 
       // todo:
       // i have no clue why electron can't send the request object 

@@ -42,6 +42,15 @@ const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
         request.data = interpolate(request.data);
       }
     }
+  } else if(request.headers["content-type"] === "application/x-www-form-urlencoded") {
+    if(typeof request.data === "object") {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {
+      }
+    }
   } else {
     request.data = interpolate(request.data);
   }

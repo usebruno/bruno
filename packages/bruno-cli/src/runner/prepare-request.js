@@ -1,5 +1,4 @@
 const { get, each, filter } = require('lodash');
-const qs = require('qs');
 
 const prepareRequest = (request) => {
   const headers = {};
@@ -41,7 +40,7 @@ const prepareRequest = (request) => {
     const params = {};
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
     each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = qs.stringify(params);
+    axiosRequest.data = params;
   }
 
   if (request.body.mode === 'multipartForm') {
