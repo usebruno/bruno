@@ -51,8 +51,16 @@ export const safeStringifyJSON = (obj, indent=false) => {
   }
 }
 
+export const getContentTypeHeader = (headers) => {
+  let header = headers.find((element) => element[0]=='content-type');
+  if(header && header[1]){
+    return header[1];
+  }
+  return '';
+}
+
 export const formatResponse = (response) => {
-  var type = response.headers.find((element) => element[0]=='content-type')[1];
+  var type = getContentTypeHeader(response.headers);
   if(type.includes("json")){
     return safeStringifyJSON(response.data);
   }if(type.includes("xml")){
