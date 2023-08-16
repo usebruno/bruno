@@ -45,6 +45,14 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
       request.data = qs.stringify(request.data);
     }
 
+    if((collectionVariables.certificateValidation && collectionVariables.certificateValidation == 'false') 
+        || (!collectionVariables.certificateValidation && envVariables.certificateValidation && envVariables.certificateValidation == 'false')) {
+      const https = require('https');
+      request.httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      });
+    }
+
     // run request
     const response = await axios(request);
 

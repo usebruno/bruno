@@ -65,6 +65,16 @@ const getSize = (data) => {
   return 0;
 };
 
+const configureRequest = (request, variables) => {
+  if((variables.certificateValidation && variables.certificateValidation == 'false')) {
+    const https = require('https');
+    request.httpsAgent = new https.Agent({
+      rejectUnauthorized: false
+    });
+  }
+  return request;
+}
+
 const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
@@ -145,8 +155,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         cancelTokenUid
       });
 
+      
+      configureRequest(request, {...envVars,...collectionVariables});
+      
       const response = await axios(request);
-
+      
       // run post-response vars
       const postResponseVars = get(request, 'vars.res', []);
       if(postResponseVars && postResponseVars.length) {
@@ -244,6 +257,8 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     try {
       const envVars = getEnvVars(environment);
       const request = prepareGqlIntrospectionRequest(endpoint, envVars);
+
+      configureRequest(request, envVars);
 
       const response = await axios(request);
 
@@ -370,6 +385,8 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             },
             ...eventData
           });
+
+          configureRequest(request, {...envVars,...collectionVariables});
 
           // send request
           timeStart = Date.now();
