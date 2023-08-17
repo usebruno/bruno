@@ -6,7 +6,7 @@ const Support = () => {
   return (
     <StyledWrapper>
       <div className="rows">
-        <div>
+        <div className="mt-2">
           <a href="https://docs.usebruno.com" target="_blank" className="flex items-end">
             <IconBook size={18} strokeWidth={2} />
             <span className="label ml-2">Documentation</span>

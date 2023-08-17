@@ -2,6 +2,7 @@ import Modal from 'components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
 import Support from './Support';
+import General from './General';
 import Theme from './Theme';
 import StyledWrapper from './StyledWrapper';
 
@@ -17,7 +18,7 @@ const Preferences = ({ onClose }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'general': {
-        return <div>General</div>;
+        return <General />;
       }
 
       case 'theme': {
