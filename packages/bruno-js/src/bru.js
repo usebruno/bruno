@@ -5,6 +5,10 @@ class Bru {
     this._collectionVariables = collectionVariables;
   }
 
+  getProcessEnv(key) {
+    return process.env[key];
+  }
+
   getEnvVar(key) {
     return this._envVariables[key];
   }
@@ -16,7 +20,7 @@ class Bru {
 
     // gracefully ignore if key is not present in environment
     if(!this._envVariables.hasOwnProperty(key)) {
-      return;
+       return;
     }
 
     this._envVariables[key] = value;
