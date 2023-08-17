@@ -1,0 +1,53 @@
+import Modal from 'components/Modal/index';
+import classnames from 'classnames';
+import React, { useState } from 'react';
+import Support from './Support';
+import Theme from './Theme';
+import StyledWrapper from './StyledWrapper';
+
+const Preferences = ({ onClose }) => {
+  const [tab, setTab] = useState('general');
+
+  const getTabClassname = (tabName) => {
+    return classnames(`tab select-none ${tabName}`, {
+      active: tabName === tab
+    });
+  };
+
+  const getTabPanel = (tab) => {
+    switch (tab) {
+      case 'general': {
+        return <div>General</div>;
+      }
+
+      case 'theme': {
+        return <Theme />;
+      }
+
+      case 'support': {
+        return <Support />;
+      }
+    }
+  };
+
+  return (
+    <StyledWrapper>
+      <Modal size="lg" title="Preferences" handleCancel={onClose} hideFooter={true}>
+        <div className="flex items-center px-2 tabs" role="tablist">
+          <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
+            General
+          </div>
+          <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
+            Theme
+          </div>
+          <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
+            Support
+          </div>
+        </div>
+        <section className="flex flex-grow px-2 mt-4 tab-panel">{getTabPanel(tab)}</section>
+      </Modal>
+    </StyledWrapper>
+  );
+};
+
+export default Preferences;

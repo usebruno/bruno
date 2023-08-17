@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  color: var(--color-text);
-  .collection-options {
+  color: ${(props) => props.theme.text};
+  .rows {
     svg {
       position: relative;
       top: -1px;

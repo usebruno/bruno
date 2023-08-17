@@ -4,7 +4,6 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
-  leftMenuBarOpen: false,
   screenWidth: 500,
   showHomePage: false
 };
@@ -15,14 +14,6 @@ export const appSlice = createSlice({
   reducers: {
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
-    },
-    toggleLeftMenuBar: (state) => {
-      state.leftMenuBarOpen = !state.leftMenuBarOpen;
-      if(state.leftMenuBarOpen) {
-        state.leftSidebarWidth += 48;
-      } else {
-        state.leftSidebarWidth -= 48;
-      }
     },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
@@ -42,6 +33,6 @@ export const appSlice = createSlice({
   }
 });
 
-export const { idbConnectionReady, toggleLeftMenuBar, refreshScreenWidth, updateLeftSidebarWidth, updateIsDragging, showHomePage, hideHomePage } = appSlice.actions;
+export const { idbConnectionReady, refreshScreenWidth, updateLeftSidebarWidth, updateIsDragging, showHomePage, hideHomePage } = appSlice.actions;
 
 export default appSlice.reducer;

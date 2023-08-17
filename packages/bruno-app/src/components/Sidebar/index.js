@@ -1,13 +1,13 @@
-import MenuBar from './MenuBar';
 import TitleBar from './TitleBar';
 import Collections from './Collections';
-import StyledWrapper, { BottomWrapper, VersionNumber } from './StyledWrapper';
-import GitHubButton from 'react-github-btn'
+import StyledWrapper from './StyledWrapper';
+import GitHubButton from 'react-github-btn';
+import Preferences from 'components/Preferences';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconChevronsRight } from '@tabler/icons';
-import { updateLeftSidebarWidth, updateIsDragging, toggleLeftMenuBar } from 'providers/ReduxStore/slices/app';
+import { IconSettings } from '@tabler/icons';
+import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
@@ -15,7 +15,7 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const leftMenuBarOpen = useSelector((state) => state.app.leftMenuBarOpen);
+  const [ preferencesOpen, setPreferencesOpen ] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
@@ -76,16 +76,14 @@ const Sidebar = () => {
     setAsideWidth(leftSidebarWidth);
   }, [leftSidebarWidth]);
 
-  const leftMenuBarWidth = leftMenuBarOpen ? 48 : 0;
-  const collectionsWidth = asideWidth - leftMenuBarWidth;
 
   return (
     <StyledWrapper className="flex relative">
       <aside>
         <div className="flex flex-row h-full w-full">
-          {leftMenuBarOpen && <MenuBar />}
+          {preferencesOpen && <Preferences onClose={() => setPreferencesOpen(false)} />}
 
-          <div className="flex flex-col w-full" style={{width: collectionsWidth}}>
+          <div className="flex flex-col w-full" style={{width: asideWidth}}>
             <div className="flex flex-col flex-grow">
               <TitleBar />
               <Collections />
@@ -93,8 +91,7 @@ const Sidebar = () => {
 
             <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
               <div className="flex items-center ml-1 text-xs ">
-                {!leftMenuBarOpen && <IconChevronsRight size={24} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => dispatch(toggleLeftMenuBar())} />}
-                {/* <IconLayoutGrid size={20} strokeWidth={1.5} className="mr-2"/> */}
+                <IconSettings size={18} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => setPreferencesOpen(true)} />
               </div>
               <div className="pl-1" style={{position: 'relative', top: '3px'}}>
                 {storedTheme === 'dark' ? (
