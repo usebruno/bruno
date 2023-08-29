@@ -21,7 +21,7 @@ This command will run all the requests in your collection. You can also run a si
 bru run request.bru
 ```
 
-Or run all requests in a folder:
+Or run all requests in a collection's subfolder:
 ```bash
 bru run folder
 ```
