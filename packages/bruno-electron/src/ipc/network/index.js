@@ -72,16 +72,17 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
     const cancelTokenUid = uuid();
 
+    mainWindow.webContents.send('main:http-request-queued', {
+      collectionUid,
+      itemUid: item.uid,
+      cancelTokenUid
+    });
+
+    const _request = item.draft ? item.draft.request : item.request;
+    const request = prepareRequest(_request);
+    const envVars = getEnvVars(environment);
+
     try {
-      mainWindow.webContents.send('main:http-request-queued', {
-        collectionUid,
-        itemUid: item.uid,
-        cancelTokenUid
-      });
-
-      const _request = item.draft ? item.draft.request : item.request;
-      const request = prepareRequest(_request);
-
       // make axios work in node using form data
       // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
       if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
@@ -96,8 +97,6 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const cancelToken = axios.CancelToken.source();
       request.cancelToken = cancelToken.token;
       saveCancelToken(cancelTokenUid, cancelToken);
-
-      const envVars = getEnvVars(environment);
 
       // run pre-request vars
       const preRequestVars = get(request, 'vars.req', []);
@@ -226,7 +225,29 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         return Promise.reject(error);
       }
 
-      if(error.response) {
+      if(error && error.response) {
+        // run assertions
+        const assertions = get(request, 'assertions');
+        const assertRuntime = new AssertRuntime();
+        const results = assertRuntime.runAssertions(assertions, request, error.response, envVars, collectionVariables, collectionPath);
+  
+        mainWindow.webContents.send('main:assertion-results', {
+          results: results,
+          itemUid: item.uid,
+          collectionUid
+        });
+  
+        // run tests
+        const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+        const testRuntime = new TestRuntime();
+        const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+  
+        mainWindow.webContents.send('main:test-results', {
+          results: testResults.results,
+          itemUid: item.uid,
+          collectionUid
+        });
+  
         return {
           status: error.response.status,
           statusText: error.response.statusText,
@@ -334,15 +355,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         let timeStart;
         let timeEnd;
 
+        mainWindow.webContents.send('main:run-folder-event', {
+          type: 'request-queued',
+          ...eventData
+        });
+
+        const _request = item.draft ? item.draft.request : item.request;
+        const request = prepareRequest(_request);
+
         try {
-          mainWindow.webContents.send('main:run-folder-event', {
-            type: 'request-queued',
-            ...eventData
-          });
-
-          const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request);
-
           // make axios work in node using form data
           // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
           if(request.headers && request.headers['content-type'] === 'multipart/form-data') {
@@ -485,7 +506,43 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
               size: error.response.headers['content-length'] || getSize(error.response.data),
               data: error.response.data,
             }
+
+            // run assertions
+            const assertions = get(item, 'request.assertions');
+            if(assertions && assertions.length) {
+              const assertRuntime = new AssertRuntime();
+              const results = assertRuntime.runAssertions(assertions, request, error.response, envVars, collectionVariables, collectionPath);
+
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'assertion-results',
+                assertionResults: results,
+                itemUid: item.uid,
+                collectionUid
+              });
+            }
+
+            // run tests
+            const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+            const testRuntime = new TestRuntime();
+            const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'test-results',
+              testResults: testResults.results,
+              ...eventData
+            });
+
+            // if we get a response from the server, we consider it as a success
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'response-received',
+              error: error ? error.message : 'An error occurred while running the request',
+              responseReceived: responseReceived,
+              ...eventData
+            });
+
+            return;
           }
+
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'error',
             error: error ? error.message : 'An error occurred while running the request',
