@@ -1,4 +1,5 @@
 const qs = require('qs');
+const https = require('https');
 const axios = require('axios');
 const Mustache = require('mustache');
 const FormData = require('form-data');
@@ -11,6 +12,7 @@ const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../util
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
+const { getPreferences } = require('../../app/preferences'); 
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -145,6 +147,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         cancelTokenUid
       });
 
+      const preferences = getPreferences();
+      const sslVerification = get(preferences, 'request.sslVerification', true);
+
+      if(!sslVerification) {
+        request.httpsAgent = new https.Agent({
+          rejectUnauthorized: false
+        });
+      }
+
       const response = await axios(request);
 
       // run post-response vars
@@ -244,6 +255,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
     try {
       const envVars = getEnvVars(environment);
       const request = prepareGqlIntrospectionRequest(endpoint, envVars);
+
+      const preferences = getPreferences();
+      const sslVerification = get(preferences, 'request.sslVerification', true);
+
+      if(!sslVerification) {
+        request.httpsAgent = new https.Agent({
+          rejectUnauthorized: false
+        });
+      }
 
       const response = await axios(request);
 
@@ -370,6 +390,15 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
             },
             ...eventData
           });
+
+          const preferences = getPreferences();
+          const sslVerification = get(preferences, 'request.sslVerification', true);
+
+          if(!sslVerification) {
+            request.httpsAgent = new https.Agent({
+              rejectUnauthorized: false
+            });
+          }
 
           // send request
           timeStart = Date.now();
