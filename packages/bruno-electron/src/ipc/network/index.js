@@ -540,7 +540,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
               ...eventData
             });
 
-            return;
+            continue;
           }
 
           mainWindow.webContents.send('main:run-folder-event', {
