@@ -1,4 +1,4 @@
-require('dotenv');
+require('dotenv').config({ path: process.env.DOTENV_PATH })
 
 const config = {
   "appId": "com.usebruno.app",
