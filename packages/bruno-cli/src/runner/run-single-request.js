@@ -9,8 +9,10 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 
 const runSingleRequest = async function (filename, bruJson, collectionPath, collectionVariables, envVariables) {
+  let request;
+
   try {
-    const request = prepareRequest(bruJson.request);
+    request = prepareRequest(bruJson.request);
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -105,7 +107,61 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
       testResults
     };
   } catch (err) {
-    console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+    if(err && err.response) {
+      console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${err.response.status} ${err.response.statusText})`));
+
+      // run post-response vars
+      const postResponseVars = get(bruJson, 'request.vars.res');
+      if(postResponseVars && postResponseVars.length) {
+        const varsRuntime = new VarsRuntime();
+        varsRuntime.runPostResponseVars(postResponseVars, request, err.response, envVariables, collectionVariables, collectionPath);
+      }
+
+      // run post response script
+      const responseScriptFile = get(bruJson, 'request.script.res');
+      if(responseScriptFile && responseScriptFile.length) {
+        const scriptRuntime = new ScriptRuntime();
+        scriptRuntime.runResponseScript(responseScriptFile, request, err.response, envVariables, collectionVariables, collectionPath);
+      }
+
+      // run assertions
+      let assertionResults = [];
+      const assertions = get(bruJson, 'request.assertions');
+      if(assertions && assertions.length) {
+        const assertRuntime = new AssertRuntime();
+        assertionResults = assertRuntime.runAssertions(assertions, request, err.response, envVariables, collectionVariables, collectionPath);
+
+        each(assertionResults, (r) => {
+          if(r.status === 'pass') {
+            console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
+          } else {
+            console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
+            console.log(chalk.red(`      ${r.error}`));
+          }
+        });
+      }
+
+      // run tests
+      let testResults = [];
+      const testFile = get(bruJson, 'request.tests');
+      if(testFile && testFile.length) {
+        const testRuntime = new TestRuntime();
+        const result = testRuntime.runTests(testFile, request, err.response, envVariables, collectionVariables, collectionPath);
+        testResults = get(result, 'results', []);
+      }
+
+      if(testResults && testResults.length) {
+        each(testResults, (testResult) => {
+          if(testResult.status === 'pass') {
+            console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
+          } else {
+            console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
+          }
+        });
+      }
+    } else {
+      console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+    }
   }
 };
 
