@@ -36,7 +36,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     const requestScriptFile = get(bruJson, 'request.script.req');
     if(requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      scriptRuntime.runRequestScript(requestScriptFile, request, envVariables, collectionVariables, collectionPath);
+      await scriptRuntime.runRequestScript(requestScriptFile, request, envVariables, collectionVariables, collectionPath);
     }
 
     // interpolate variables inside request
@@ -63,7 +63,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     const responseScriptFile = get(bruJson, 'request.script.res');
     if(responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      scriptRuntime.runResponseScript(responseScriptFile, request, response, envVariables, collectionVariables, collectionPath);
+      await scriptRuntime.runResponseScript(responseScriptFile, request, response, envVariables, collectionVariables, collectionPath);
     }
 
     // run assertions
@@ -121,7 +121,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
       const responseScriptFile = get(bruJson, 'request.script.res');
       if(responseScriptFile && responseScriptFile.length) {
         const scriptRuntime = new ScriptRuntime();
-        scriptRuntime.runResponseScript(responseScriptFile, request, err.response, envVariables, collectionVariables, collectionPath);
+        await scriptRuntime.runResponseScript(responseScriptFile, request, err.response, envVariables, collectionVariables, collectionPath);
       }
 
       // run assertions
