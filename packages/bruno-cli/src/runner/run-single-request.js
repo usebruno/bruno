@@ -1,5 +1,6 @@
 const qs = require('qs');
 const chalk = require('chalk');
+const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
 const axios = require('axios');
@@ -44,11 +45,25 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables);
 
-    const insecure = get(getOptions(), 'insecure', false);
+    const options = getOptions();
+    const insecure = get(options, 'insecure', false);
     if(insecure) {
       request.httpsAgent = new https.Agent({
         rejectUnauthorized: false
       });
+    }
+    else {
+      const cacert = options['cacert'];
+      if (cacert && cacert.length > 1) {
+        try {
+          caCrt = fs.readFileSync(cacert)
+          request.httpsAgent = new https.Agent({
+            ca: caCrt
+          });
+        } catch(err) {
+          console.log('Error reading CA cert file:' + cacert, err);
+        }
+      }
     }
 
     // stringify the request url encoded params
