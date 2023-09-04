@@ -46,7 +46,6 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
 
     const insecure = get(getOptions(), 'insecure', false);
     if(insecure) {
-      console.log("Certificate validation has been disabled.");
       request.httpsAgent = new https.Agent({
         rejectUnauthorized: false
       });
