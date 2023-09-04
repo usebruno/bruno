@@ -15,13 +15,11 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [ preferencesOpen, setPreferencesOpen ] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
-  const {
-    storedTheme
-  } = useTheme();
+  const { storedTheme } = useTheme();
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -76,24 +74,23 @@ const Sidebar = () => {
     setAsideWidth(leftSidebarWidth);
   }, [leftSidebarWidth]);
 
-
   return (
-    <StyledWrapper className="flex relative">
+    <StyledWrapper className="flex relative h-screen">
       <aside>
-        <div className="flex flex-row h-full w-full">
+        <div className="flex flex-row h-screen w-full">
           {preferencesOpen && <Preferences onClose={() => setPreferencesOpen(false)} />}
 
-          <div className="flex flex-col w-full" style={{width: asideWidth}}>
+          <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
               <TitleBar />
               <Collections />
             </div>
 
-            <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
+            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center cursor-pointer select-none">
               <div className="flex items-center ml-1 text-xs ">
                 <IconSettings size={18} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => setPreferencesOpen(true)} />
               </div>
-              <div className="pl-1" style={{position: 'relative', top: '3px'}}>
+              <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 {storedTheme === 'dark' ? (
                   <GitHubButton
                     href="https://github.com/usebruno/bruno"
