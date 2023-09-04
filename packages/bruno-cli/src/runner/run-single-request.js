@@ -3,10 +3,12 @@ const chalk = require('chalk');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
 const axios = require('axios');
+const https = require('https');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
+const { getOptions } = require('../utils/bru');
 
 const runSingleRequest = async function (filename, bruJson, collectionPath, collectionVariables, envVariables) {
   let request;
@@ -41,6 +43,13 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables);
+
+    const insecure = get(getOptions(), 'insecure', false);
+    if(insecure) {
+      request.httpsAgent = new https.Agent({
+        rejectUnauthorized: false
+      });
+    }
 
     // stringify the request url encoded params
     if(request.headers['content-type'] === 'application/x-www-form-urlencoded') {

@@ -5,7 +5,7 @@ const { exists, isFile, isDirectory, getSubDirectories } = require('../utils/fil
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
-const { bruToJson } = require('../utils/bru');
+const { bruToJson, getOptions } = require('../utils/bru');
 
 const command = 'run [filename]';
 const desc = 'Run a request';
@@ -117,6 +117,10 @@ const builder = async (yargs) => {
       describe: 'Environment variables',
       type: 'string',
     })
+    .option('insecure', {
+      type: 'boolean',
+      description: 'Allow insecure server connections'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -128,6 +132,7 @@ const handler = async function (argv) {
     let {
       filename,
       env,
+      insecure,
       r: recursive
     } = argv;
     const collectionPath = process.cwd();
@@ -169,6 +174,11 @@ const handler = async function (argv) {
       const envJson = bruToEnvJson(envBruContent);
       envVars = getEnvVars(envJson);
     }
+
+    const options = getOptions();
+    if(insecure) {
+      options['insecure'] = true
+    } 
 
     const _isFile = await isFile(filename);
     if(_isFile) {
