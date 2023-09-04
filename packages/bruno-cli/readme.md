@@ -39,6 +39,8 @@ If you encounter any issues or have any feedback or suggestions, please raise th
 
 Thank you for using Bruno CLI!
 
+## Changelog
+See [here](changelog.md)
 
 ## License
 [MIT](license.md)

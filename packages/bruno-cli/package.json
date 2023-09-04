@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "main": "src/index.js",
   "bin": {
     "bru": "./bin/bru.js"
@@ -16,6 +16,7 @@
     "src",
     "bin",
     "readme.md",
+    "changelog.md",
     "package.json"
   ],
   "dependencies": {
