@@ -80,8 +80,14 @@ const getEnvVars = (environment = {}) => {
   return envVars;
 };
 
+const options = {};
+const getOptions = () => {
+  return options;
+}
+
 module.exports = {
   bruToJson,
   bruToEnvJson,
-  getEnvVars
+  getEnvVars,
+  getOptions
 };
