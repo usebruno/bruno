@@ -38,7 +38,9 @@ const safeParseJSON = (data) => {
 const getEnvVars = (environment = {}) => {
   const variables = environment.variables;
   if (!variables || !variables.length) {
-    return {};
+    return {
+      __name__: environment.name
+    };
   }
 
   const envVars = {};
@@ -48,7 +50,10 @@ const getEnvVars = (environment = {}) => {
     }
   });
 
-  return envVars;
+  return {
+    ...envVars,
+    __name__: environment.name
+  }
 };
 
 const getSize = (data) => {

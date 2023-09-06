@@ -1,8 +1,12 @@
 
 class Bru {
   constructor(envVariables, collectionVariables) {
-    this._envVariables = envVariables;
-    this._collectionVariables = collectionVariables;
+    this.envVariables = envVariables;
+    this.collectionVariables = collectionVariables;
+  }
+
+  getEnvName() {
+    return this.envVariables.__name__;
   }
 
   getProcessEnv(key) {
@@ -10,7 +14,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this._envVariables[key];
+    return this.envVariables[key];
   }
 
   setEnvVar(key, value) {
@@ -19,11 +23,11 @@ class Bru {
     }
 
     // gracefully ignore if key is not present in environment
-    if(!this._envVariables.hasOwnProperty(key)) {
+    if(!this.envVariables.hasOwnProperty(key)) {
        return;
     }
 
-    this._envVariables[key] = value;
+    this.envVariables[key] = value;
   }
 
   setVar(key, value) {
@@ -31,11 +35,11 @@ class Bru {
       throw new Error('Key is required');
     }
 
-    this._collectionVariables[key] = value;
+    this.collectionVariables[key] = value;
   }
 
   getVar(key) {
-    return this._collectionVariables[key];
+    return this.collectionVariables[key];
   }
 }
 
