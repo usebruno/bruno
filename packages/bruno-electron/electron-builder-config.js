@@ -11,7 +11,6 @@ const config = {
   "files": [
     "**/*"
   ],
-  "afterSign": "notarize.js",
   "mac": {
     "artifactName": "${name}_${version}_${arch}_${os}.${ext}",
     "category": "public.app-category.developer-tools",
