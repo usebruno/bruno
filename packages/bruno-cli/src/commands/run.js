@@ -113,6 +113,10 @@ const builder = async (yargs) => {
       type: 'boolean',
       default: false
     })
+    .option('cacert', {
+      type: 'string',
+      description: 'CA certificate to verify peer against'
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string',
@@ -131,6 +135,7 @@ const handler = async function (argv) {
   try {
     let {
       filename,
+      cacert,
       env,
       insecure,
       r: recursive
@@ -178,7 +183,21 @@ const handler = async function (argv) {
     const options = getOptions();
     if(insecure) {
       options['insecure'] = true
-    } 
+    }
+    if(cacert && cacert.length) {
+      if(insecure) {
+        console.error(chalk.red(`Ignoring the cacert option since insecure connections are enabled`));
+      }
+      else {
+        const pathExists = await exists(cacert);
+        if(pathExists) {
+          options['cacert'] = cacert
+        }
+        else {
+          console.error(chalk.red(`Cacert File ${cacert} does not exist`));
+        }
+      }
+    }
 
     const _isFile = await isFile(filename);
     if(_isFile) {
