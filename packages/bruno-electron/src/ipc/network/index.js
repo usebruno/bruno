@@ -154,6 +154,21 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
           rejectUnauthorized: false
         });
       }
+      else {
+        const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+        cacertFile = cacertArray.find(el => el);
+        if (cacertFile && cacertFile.length > 1) {
+          try {
+            const fs = require('fs');
+            caCrt = fs.readFileSync(cacertFile)
+            request.httpsAgent = new https.Agent({
+              ca: caCrt
+            });
+          } catch(err) {
+            console.log('Error reading CA cert file:' + cacertFile, err);
+          }
+        }
+      }
 
       const response = await axios(request);
 
