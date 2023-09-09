@@ -53,7 +53,8 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
       });
     }
     else {
-      const cacert = options['cacert'];
+      const cacertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+      const cacertFile = cacertArray.find(el => el);
       if (cacert && cacert.length > 1) {
         try {
           caCrt = fs.readFileSync(cacert)
