@@ -47,24 +47,27 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
+    const httpsAgentRequestFields = {};
     if(insecure) {
-      request.httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-      });
+      httpsAgentRequestFields['rejectUnauthorized'] = false;
     }
     else {
       const cacertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const cacertFile = cacertArray.find(el => el);
+      const cacert = cacertArray.find(el => el);
       if (cacert && cacert.length > 1) {
         try {
-          caCrt = fs.readFileSync(cacert)
-          request.httpsAgent = new https.Agent({
-            ca: caCrt
-          });
+          caCrt = fs.readFileSync(cacert);
+          httpsAgentRequestFields['ca'] = caCrt;
         } catch(err) {
           console.log('Error reading CA cert file:' + cacert, err);
         }
       }
+    }
+
+    if (Object.keys(httpsAgentRequestFields).length > 0) {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
 
     // stringify the request url encoded params

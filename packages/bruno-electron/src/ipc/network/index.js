@@ -148,11 +148,9 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const preferences = getPreferences();
       const sslVerification = get(preferences, 'request.sslVerification', true);
-
+      const httpsAgentRequestFields = {};
       if(!sslVerification) {
-        request.httpsAgent = new https.Agent({
-          rejectUnauthorized: false
-        });
+        httpsAgentRequestFields['rejectUnauthorized'] = false;
       }
       else {
         const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
@@ -160,14 +158,18 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         if (cacertFile && cacertFile.length > 1) {
           try {
             const fs = require('fs');
-            caCrt = fs.readFileSync(cacertFile)
-            request.httpsAgent = new https.Agent({
-              ca: caCrt
-            });
+            caCrt = fs.readFileSync(cacertFile);
+            httpsAgentRequestFields['ca'] = caCrt;
           } catch(err) {
             console.log('Error reading CA cert file:' + cacertFile, err);
           }
         }
+      }
+
+      if (Object.keys(httpsAgentRequestFields).length > 0) {
+        request.httpsAgent = new https.Agent({
+          ...httpsAgentRequestFields
+        });
       }
 
       const response = await axios(request);
