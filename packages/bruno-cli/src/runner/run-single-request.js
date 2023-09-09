@@ -54,7 +54,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     else {
       const cacertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
       const cacert = cacertArray.find(el => el);
-      if (cacert && cacert.length > 1) {
+      if(cacert && cacert.length > 1) {
         try {
           caCrt = fs.readFileSync(cacert);
           httpsAgentRequestFields['ca'] = caCrt;
@@ -64,7 +64,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
       }
     }
 
-    if (Object.keys(httpsAgentRequestFields).length > 0) {
+    if(Object.keys(httpsAgentRequestFields).length > 0) {
       request.httpsAgent = new https.Agent({
         ...httpsAgentRequestFields
       });

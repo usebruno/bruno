@@ -155,7 +155,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       else {
         const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
         cacertFile = cacertArray.find(el => el);
-        if (cacertFile && cacertFile.length > 1) {
+        if(cacertFile && cacertFile.length > 1) {
           try {
             const fs = require('fs');
             caCrt = fs.readFileSync(cacertFile);
@@ -166,7 +166,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         }
       }
 
-      if (Object.keys(httpsAgentRequestFields).length > 0) {
+      if(Object.keys(httpsAgentRequestFields).length > 0) {
         request.httpsAgent = new https.Agent({
           ...httpsAgentRequestFields
         });
