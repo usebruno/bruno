@@ -76,8 +76,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
     const cancelTokenUid = uuid();
+    const requestUid = uuid();
 
-    mainWindow.webContents.send('main:http-request-queued', {
+    mainWindow.webContents.send('main:run-request-event', {
+      type: 'request-queued',
+      requestUid,
       collectionUid,
       itemUid: item.uid,
       cancelTokenUid
@@ -112,6 +115,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
+          requestUid,
           collectionUid
         });
       }
@@ -125,6 +129,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
+          requestUid,
           collectionUid
         });
       }
@@ -139,7 +144,8 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       // todo:
       // i have no clue why electron can't send the request object 
       // without safeParseJSON(safeStringifyJSON(request.data))
-      mainWindow.webContents.send('main:http-request-sent', {
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'request-sent',
         requestSent: {
           url: request.url,
           method: request.method,
@@ -148,6 +154,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         },
         collectionUid,
         itemUid: item.uid,
+        requestUid,
         cancelTokenUid
       });
 
@@ -188,6 +195,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
+          requestUid,
           collectionUid
         });
       }
@@ -201,6 +209,7 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
           collectionVariables: result.collectionVariables,
+          requestUid,
           collectionUid
         });
       }
@@ -210,9 +219,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const assertRuntime = new AssertRuntime();
       const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
 
-      mainWindow.webContents.send('main:assertion-results', {
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'assertion-results',
         results: results,
         itemUid: item.uid,
+        requestUid,
         collectionUid
       });
 
@@ -221,9 +232,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       const testRuntime = new TestRuntime();
       const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
-      mainWindow.webContents.send('main:test-results', {
+      mainWindow.webContents.send('main:run-request-event', {
+        type: 'test-results',
         results: testResults.results,
         itemUid: item.uid,
+        requestUid,
         collectionUid
       });
 
@@ -253,9 +266,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         const assertRuntime = new AssertRuntime();
         const results = assertRuntime.runAssertions(assertions, request, error.response, envVars, collectionVariables, collectionPath);
   
-        mainWindow.webContents.send('main:assertion-results', {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'assertion-results',
           results: results,
           itemUid: item.uid,
+          requestUid,
           collectionUid
         });
   
@@ -264,9 +279,11 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
         const testRuntime = new TestRuntime();
         const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
   
-        mainWindow.webContents.send('main:test-results', {
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results',
           results: testResults.results,
           itemUid: item.uid,
+          requestUid,
           collectionUid
         });
   

@@ -14,6 +14,7 @@ const VariablesView = ({collection}) => {
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   const variables = get(environment, 'variables', []);
   const enabledVariables = filter(variables, (variable) => variable.enabled);
+  const showVariablesTable = enabledVariables.length > 0 || (collection.collectionVariables && Object.keys(collection.collectionVariables).length > 0);
 
   return (
     <StyledWrapper
@@ -34,7 +35,12 @@ const VariablesView = ({collection}) => {
             handleClose={() => setPopOverOpen(false)}
           >
             <div className="px-2 py-1">
-              {(enabledVariables && enabledVariables.length) ? <VariablesTable variables={enabledVariables} collectionVariables={collection.collectionVariables}/> : 'No variables found'}
+              {showVariablesTable ? (
+                <VariablesTable
+                  variables={enabledVariables}
+                  collectionVariables={collection.collectionVariables}
+                />
+              ) : 'No variables found'}
             </div>
           </PopOver>
         )}

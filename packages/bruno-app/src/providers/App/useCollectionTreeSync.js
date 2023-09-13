@@ -7,12 +7,9 @@ import {
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
-  requestSentEvent,
-  requestQueuedEvent,
-  testResultsEvent,
-  assertionResultsEvent,
   scriptEnvironmentUpdateEvent,
   collectionRenamedEvent,
+  runRequestEvent,
   runFolderEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
@@ -96,24 +93,8 @@ const useCollectionTreeSync = () => {
       }
     };
 
-    const _httpRequestSent = (val) => {
-      dispatch(requestSentEvent(val));
-    };
-
     const _scriptEnvironmentUpdate = (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
-    };
-
-    const _httpRequestQueued = (val) => {
-      dispatch(requestQueuedEvent(val));
-    };
-
-    const _testResults = (val) => {
-      dispatch(testResultsEvent(val));
-    };
-
-    const _assertionResults = (val) => {
-      dispatch(assertionResultsEvent(val));
     };
 
     const _collectionRenamed = (val) => {
@@ -124,19 +105,20 @@ const useCollectionTreeSync = () => {
       dispatch(runFolderEvent(val));
     };
 
+    const _runRequestEvent = (val) => {
+      dispatch(runRequestEvent(val));
+    };
+
     ipcRenderer.invoke('renderer:ready');
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
     const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
     const removeListener4 = ipcRenderer.on('main:display-error', _displayError);
-    const removeListener5 = ipcRenderer.on('main:http-request-sent', _httpRequestSent);
-    const removeListener6 = ipcRenderer.on('main:script-environment-update', _scriptEnvironmentUpdate);
-    const removeListener7 = ipcRenderer.on('main:http-request-queued', _httpRequestQueued);
-    const removeListener8 = ipcRenderer.on('main:test-results', _testResults);
-    const removeListener9 = ipcRenderer.on('main:assertion-results', _assertionResults);
-    const removeListener10 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
-    const removeListener11 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
+    const removeListener5 = ipcRenderer.on('main:script-environment-update', _scriptEnvironmentUpdate);
+    const removeListener6 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
+    const removeListener7 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
+    const removeListener8 = ipcRenderer.on('main:run-request-event', _runRequestEvent);
 
     return () => {
       removeListener1();
@@ -147,9 +129,6 @@ const useCollectionTreeSync = () => {
       removeListener6();
       removeListener7();
       removeListener8();
-      removeListener9();
-      removeListener10();
-      removeListener11();
     };
   }, [isElectron]);
 };

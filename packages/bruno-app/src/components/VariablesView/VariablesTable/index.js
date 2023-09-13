@@ -26,7 +26,7 @@ const VariablesTable = ({ variables, collectionVariables }) => {
               <div className='variable-value pl-2 whitespace-normal text-left flex-grow'>{variable.value}</div>
             </div>
           );
-        }) : null}
+        }) : <small>No env variables found</small>}
 
         <div className='mt-2 font-medium'>Collection Variables</div>
         {(collectionVars && collectionVars.length) ? collectionVars.map((variable) => {
@@ -36,7 +36,7 @@ const VariablesTable = ({ variables, collectionVariables }) => {
               <div className='variable-value pl-2 whitespace-normal text-left flex-grow'>{variable.value}</div>
             </div>
           );
-        }) : null}
+        }) : <small>No collection variables found</small>}
       </div>
     </StyledWrapper>
   );

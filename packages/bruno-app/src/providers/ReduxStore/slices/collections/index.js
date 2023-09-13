@@ -156,32 +156,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    requestSentEvent: (state, action) => {
-      const { itemUid, collectionUid, cancelTokenUid, requestSent } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          item.requestSent = requestSent
-          item.response = item.response || {};
-          item.requestState = 'sending';
-          item.cancelTokenUid = cancelTokenUid;
-        }
-      }
-    },
-    requestQueuedEvent: (state, action) => {
-      const { itemUid, collectionUid, cancelTokenUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-        if (item) {
-          item.requestState = 'queued';
-          item.cancelTokenUid = cancelTokenUid;
-        }
-      }
-    },
     scriptEnvironmentUpdateEvent: (state, action) => {
       const { collectionUid, envVariables, collectionVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1010,31 +984,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    testResultsEvent: (state, action) => {
-      const { itemUid, collectionUid, results } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-
-        if (item) {
-          item.testResults = results;
-        }
-      }
-    },
-    assertionResultsEvent: (state, action) => {
-      const { itemUid, collectionUid, results } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-      console.log(results);
-
-      if (collection) {
-        const item = findItemInCollection(collection, itemUid);
-
-        if (item) {
-          item.assertionResults = results;
-        }
-      }
-    },
     collectionRenamedEvent: (state, action) => {
       const { collectionPathname, newName } = action.payload;
       const collection = findCollectionByPathname(state.collections, collectionPathname);
@@ -1073,6 +1022,45 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.runnerResult = null;
+      }
+    },
+    runRequestEvent: (state, action) => {
+      const { itemUid, collectionUid, type, requestUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (item) {
+          if(type === 'request-queued') {
+            const { cancelTokenUid } = action.payload;
+            item.requestUid = requestUid;
+            item.requestState = 'queued';
+            item.response = null;
+            item.cancelTokenUid = cancelTokenUid;
+          }
+
+          if(type === 'request-sent') {
+            const { cancelTokenUid, requestSent } = action.payload;
+            item.requestSent = requestSent;
+
+            // sometimes the response is received before the request-sent event arrives
+            if(item.requestUid === requestUid && item.requestState === 'queued') {
+              item.requestUid = requestUid;
+              item.requestState = 'sending';
+              item.cancelTokenUid = cancelTokenUid;
+            }
+          }
+
+          if(type === 'assertion-results') {
+            const { results } = action.payload;
+            item.assertionResults = results;
+          }
+
+          if(type === 'test-results') {
+            const { results } = action.payload;
+            item.testResults = results;
+          }
+        }
       }
     },
     runFolderEvent: (state, action) => {
@@ -1162,8 +1150,6 @@ export const {
   deleteItem,
   renameItem,
   cloneItem,
-  requestSentEvent,
-  requestQueuedEvent,
   scriptEnvironmentUpdateEvent,
   requestCancelled,
   responseReceived,
@@ -1204,13 +1190,12 @@ export const {
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
-  testResultsEvent,
-  assertionResultsEvent,
   collectionRenamedEvent,
   toggleRunnerView,
   showRunnerView,
   hideRunnerView,
   resetRunResults,
+  runRequestEvent,
   runFolderEvent,
   closeCollectionRunner
 } = collectionsSlice.actions;
