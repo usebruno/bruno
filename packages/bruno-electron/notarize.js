@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: process.env.DOTENV_PATH });
 const fs = require('fs');
 const path = require('path');
 const electron_notarize = require('electron-notarize');

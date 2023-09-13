@@ -1,4 +1,4 @@
-require('dotenv').config({ path: process.env.DOTENV_PATH })
+require('dotenv').config({ path: process.env.DOTENV_PATH });
 
 const config = {
   "appId": "com.usebruno.app",
@@ -11,6 +11,7 @@ const config = {
   "files": [
     "**/*"
   ],
+  "afterSign": "notarize.js",
   "mac": {
     "artifactName": "${name}_${version}_${arch}_${os}.${ext}",
     "category": "public.app-category.developer-tools",
