@@ -26,13 +26,29 @@ class ScriptRuntime {
   constructor() {
   }
 
-  async runRequestScript(script, request, envVariables, collectionVariables, collectionPath){
+  async runRequestScript(script, request, envVariables, collectionVariables, collectionPath, onConsoleLog){
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
+
     const context = {
       bru,
       req
     };
+
+    if(onConsoleLog && typeof onConsoleLog === 'function') {
+      const customLogger = (type) => {
+        return (...args) => {
+          onConsoleLog(type, args);
+        }
+      };
+      context.console = {
+        log: customLogger('log'),
+        info: customLogger('info'),
+        warn: customLogger('warn'),
+        error: customLogger('error')
+      }
+    }
+
     const vm = new NodeVM({
       sandbox: context,
       require: {
@@ -71,7 +87,7 @@ class ScriptRuntime {
     };
   }
 
-  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath) {
+  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog){
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -81,6 +97,21 @@ class ScriptRuntime {
       req,
       res
     };
+
+    if(onConsoleLog && typeof onConsoleLog === 'function') {
+      const customLogger = (type) => {
+        return (...args) => {
+          onConsoleLog(type, args);
+        }
+      };
+      context.console = {
+        log: customLogger('log'),
+        info: customLogger('info'),
+        warn: customLogger('warn'),
+        error: customLogger('error')
+      }
+    }
+
     const vm = new NodeVM({
       sandbox: context,
       require: {

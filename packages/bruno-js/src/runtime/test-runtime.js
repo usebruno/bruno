@@ -20,7 +20,7 @@ class TestRuntime {
   constructor() {
   }
 
-  runTests(testsFile, request, response, envVariables, collectionVariables, collectionPath) {
+  runTests(testsFile, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog){
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -46,6 +46,20 @@ class TestRuntime {
       assert: chai.assert,
       __brunoTestResults: __brunoTestResults
     };
+
+    if(onConsoleLog && typeof onConsoleLog === 'function') {
+      const customLogger = (type) => {
+        return (...args) => {
+          onConsoleLog(type, args);
+        }
+      };
+      context.console = {
+        log: customLogger('log'),
+        info: customLogger('info'),
+        warn: customLogger('warn'),
+        error: customLogger('error')
+      }
+    }
 
     const vm = new NodeVM({
       sandbox: context,

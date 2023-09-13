@@ -119,6 +119,9 @@ const useCollectionTreeSync = () => {
     const removeListener6 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
     const removeListener7 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
     const removeListener8 = ipcRenderer.on('main:run-request-event', _runRequestEvent);
+    const removeListener9 = ipcRenderer.on('main:console-log', (val) => {
+      console[val.type](...val.args);
+    });
 
     return () => {
       removeListener1();
@@ -129,6 +132,7 @@ const useCollectionTreeSync = () => {
       removeListener6();
       removeListener7();
       removeListener8();
+      removeListener9();
     };
   }, [isElectron]);
 };

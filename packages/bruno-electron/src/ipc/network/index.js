@@ -78,6 +78,15 @@ const registerNetworkIpc = (mainWindow) => {
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
+
+      mainWindow.webContents.send('main:console-log', {
+        type,
+        args
+      });
+    };
+
     mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
@@ -124,7 +133,7 @@ const registerNetworkIpc = (mainWindow) => {
       const requestScript = get(request, 'script.req');
       if(requestScript && requestScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
+        const result = await scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath, onConsoleLog);
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
@@ -204,7 +213,7 @@ const registerNetworkIpc = (mainWindow) => {
       const responseScript = get(request, 'script.res');
       if(responseScript && responseScript.length) {
         const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
+        const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath, onConsoleLog);
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
@@ -233,7 +242,7 @@ const registerNetworkIpc = (mainWindow) => {
       const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
       if(testFile && testFile.length) {
         const testRuntime = new TestRuntime();
-        const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+        const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath, onConsoleLog);
 
         mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
@@ -291,7 +300,7 @@ const registerNetworkIpc = (mainWindow) => {
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
         if(testFile && testFile.length) {
           const testRuntime = new TestRuntime();
-          const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+          const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath, onConsoleLog);
     
           mainWindow.webContents.send('main:run-request-event', {
             type: 'test-results',
@@ -374,6 +383,15 @@ const registerNetworkIpc = (mainWindow) => {
     const collectionPath = collection.pathname;
     const folderUid = folder ? folder.uid : null;
 
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
+
+      mainWindow.webContents.send('main:console-log', {
+        type,
+        args
+      });
+    };
+
     if(!folder) {
       folder = collection;
     }
@@ -447,7 +465,7 @@ const registerNetworkIpc = (mainWindow) => {
           const requestScript = get(request, 'script.req');
           if(requestScript && requestScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = await scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath);
+            const result = await scriptRuntime.runRequestScript(requestScript, request, envVars, collectionVariables, collectionPath, onConsoleLog);
     
             mainWindow.webContents.send('main:script-environment-update', {
               envVariables: result.envVariables,
@@ -504,7 +522,7 @@ const registerNetworkIpc = (mainWindow) => {
           const responseScript = get(request, 'script.res');
           if(responseScript && responseScript.length) {
             const scriptRuntime = new ScriptRuntime();
-            const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath);
+            const result = await scriptRuntime.runResponseScript(responseScript, request, response, envVars, collectionVariables, collectionPath, onConsoleLog);
 
             mainWindow.webContents.send('main:script-environment-update', {
               envVariables: result.envVariables,
@@ -531,7 +549,7 @@ const registerNetworkIpc = (mainWindow) => {
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
           if(testFile && testFile.length) {
             const testRuntime = new TestRuntime();
-            const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+            const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath, onConsoleLog);
 
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'test-results',
@@ -594,7 +612,7 @@ const registerNetworkIpc = (mainWindow) => {
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
             if(testFile && testFile.length) {
               const testRuntime = new TestRuntime();
-              const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+              const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath, onConsoleLog);
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
