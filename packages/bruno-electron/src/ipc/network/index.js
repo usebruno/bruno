@@ -72,7 +72,7 @@ const getSize = (data) => {
   return 0;
 };
 
-const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
+const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
     const cancelTokenUid = uuid();
@@ -216,29 +216,40 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       // run assertions
       const assertions = get(request, 'assertions');
-      const assertRuntime = new AssertRuntime();
-      const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
+      if(assertions && assertions.length) {
+        const assertRuntime = new AssertRuntime();
+        const results = assertRuntime.runAssertions(assertions, request, response, envVars, collectionVariables, collectionPath);
 
-      mainWindow.webContents.send('main:run-request-event', {
-        type: 'assertion-results',
-        results: results,
-        itemUid: item.uid,
-        requestUid,
-        collectionUid
-      });
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'assertion-results',
+          results: results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+      }
 
       // run tests
       const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testRuntime = new TestRuntime();
-      const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+      if(testFile && testFile.length) {
+        const testRuntime = new TestRuntime();
+        const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
-      mainWindow.webContents.send('main:run-request-event', {
-        type: 'test-results',
-        results: testResults.results,
-        itemUid: item.uid,
-        requestUid,
-        collectionUid
-      });
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results',
+          results: testResults.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: testResults.envVariables,
+          collectionVariables: testResults.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
 
       deleteCancelToken(cancelTokenUid);
 
@@ -263,29 +274,40 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
       if(error && error.response) {
         // run assertions
         const assertions = get(request, 'assertions');
-        const assertRuntime = new AssertRuntime();
-        const results = assertRuntime.runAssertions(assertions, request, error.response, envVars, collectionVariables, collectionPath);
-  
-        mainWindow.webContents.send('main:run-request-event', {
-          type: 'assertion-results',
-          results: results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+        if(assertions && assertions.length) {
+          const assertRuntime = new AssertRuntime();
+          const results = assertRuntime.runAssertions(assertions, request, error.response, envVars, collectionVariables, collectionPath);
+    
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'assertion-results',
+            results: results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
   
         // run tests
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-        const testRuntime = new TestRuntime();
-        const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
-  
-        mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+        if(testFile && testFile.length) {
+          const testRuntime = new TestRuntime();
+          const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+    
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: testResults.envVariables,
+            collectionVariables: testResults.collectionVariables,
+            requestUid,
+            collectionUid
+          });
+        }
   
         return {
           status: error.response.status,
@@ -507,14 +529,22 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
           // run tests
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-          const testRuntime = new TestRuntime();
-          const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
+          if(testFile && testFile.length) {
+            const testRuntime = new TestRuntime();
+            const testResults = testRuntime.runTests(testFile, request, response, envVars, collectionVariables, collectionPath);
 
-          mainWindow.webContents.send('main:run-folder-event', {
-            type: 'test-results',
-            testResults: testResults.results,
-            ...eventData
-          });
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'test-results',
+              testResults: testResults.results,
+              ...eventData
+            });
+
+            mainWindow.webContents.send('main:script-environment-update', {
+              envVariables: testResults.envVariables,
+              collectionVariables: testResults.collectionVariables,
+              collectionUid
+            });
+          }
 
           mainWindow.webContents.send('main:run-folder-event', {
             type: 'response-received',
@@ -562,14 +592,22 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
             // run tests
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testRuntime = new TestRuntime();
-            const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
+            if(testFile && testFile.length) {
+              const testRuntime = new TestRuntime();
+              const testResults = testRuntime.runTests(testFile, request, error.response, envVars, collectionVariables, collectionPath);
 
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'test-results',
-              testResults: testResults.results,
-              ...eventData
-            });
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'test-results',
+                testResults: testResults.results,
+                ...eventData
+              });
+
+              mainWindow.webContents.send('main:script-environment-update', {
+                envVariables: testResults.envVariables,
+                collectionVariables: testResults.collectionVariables,
+                collectionUid
+              });
+            }
 
             // if we get a response from the server, we consider it as a success
             mainWindow.webContents.send('main:run-folder-event', {
