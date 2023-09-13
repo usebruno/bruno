@@ -153,10 +153,27 @@ const registerNetworkIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
       const preferences = getPreferences();
       const sslVerification = get(preferences, 'request.sslVerification', true);
-
+      const httpsAgentRequestFields = {};
       if(!sslVerification) {
+        httpsAgentRequestFields['rejectUnauthorized'] = false;
+      }
+      else {
+        const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+        cacertFile = cacertArray.find(el => el);
+        if(cacertFile && cacertFile.length > 1) {
+          try {
+            const fs = require('fs');
+            caCrt = fs.readFileSync(cacertFile);
+            httpsAgentRequestFields['ca'] = caCrt;
+          } catch(err) {
+            console.log('Error reading CA cert file:' + cacertFile, err);
+          }
+        }
+      }
+
+      if(Object.keys(httpsAgentRequestFields).length > 0) {
         request.httpsAgent = new https.Agent({
-          rejectUnauthorized: false
+          ...httpsAgentRequestFields
         });
       }
 
