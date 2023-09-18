@@ -35,7 +35,7 @@ const EnvironmentSelector = ({ collection }) => {
           toast.success(`No Environments are active now`);
         }
       })
-      .catch((err) => console.log(err) && toast.error('An error occured while selecting the environment'));
+      .catch((err) => console.log(err) && toast.error('An error occurred while selecting the environment'));
   };
 
   return (
@@ -64,7 +64,7 @@ const EnvironmentSelector = ({ collection }) => {
             }}
           >
             <IconDatabaseOff size={18} strokeWidth={1.5} />
-            <span className='ml-2'>No Environment</span>
+            <span className="ml-2">No Environment</span>
           </div>
           <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
             <div className="pr-2 text-gray-600">

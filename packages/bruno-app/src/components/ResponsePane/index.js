@@ -2,7 +2,7 @@ import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { safeStringifyJSON } from 'utils/common';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
@@ -36,18 +36,21 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        return <QueryResult
-          item={item}
-          collection={collection}
-          width={rightPaneWidth}
-          value={response.data ? safeStringifyJSON(response.data, true) : ''}
-        />;
+        return (
+          <QueryResult
+            item={item}
+            collection={collection}
+            width={rightPaneWidth}
+            value={response.data ? (isJson(response.headers) ? safeStringifyJSON(response.data, true) : response.data) : ''}
+            mode={getContentType(response.headers)}
+          />
+        );
       }
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline request={item.requestSent} response={item.response}/>;
+        return <Timeline request={item.requestSent} response={item.response} />;
       }
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
@@ -81,13 +84,35 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.responsePaneTab) {
-    return <div className="pb-4 px-4">An error occured!</div>;
+    return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
       active: tabName === focusedTab.responsePaneTab
     });
+  };
+
+  const getContentType = (headers) => {
+    if (headers && headers.length) {
+      let contentType = headers
+        .filter((header) => header[0].toLowerCase() === 'content-type')
+        .map((header) => {
+          return header[1];
+        });
+      if (contentType && contentType.length) {
+        if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
+          return 'application/ld+json';
+        } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
+          return 'application/xml';
+        }
+      }
+    }
+    return '';
+  };
+
+  const isJson = (headers) => {
+    return getContentType(headers) === 'application/ld+json';
   };
 
   return (

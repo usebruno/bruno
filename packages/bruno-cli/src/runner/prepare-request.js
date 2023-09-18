@@ -2,9 +2,13 @@ const { get, each, filter } = require('lodash');
 
 const prepareRequest = (request) => {
   const headers = {};
+  let contentTypeDefined = false;
   each(request.headers, (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
+      if (h.name.toLowerCase() === 'content-type') {
+        contentTypeDefined = true;
+      }
     }
   });
 
@@ -17,7 +21,9 @@ const prepareRequest = (request) => {
   request.body = request.body || {};
 
   if (request.body.mode === 'json') {
-    axiosRequest.headers['content-type'] = 'application/json';
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/json';
+    }
     try {
       axiosRequest.data = JSON.parse(request.body.json);
     } catch (ex) {
@@ -26,12 +32,16 @@ const prepareRequest = (request) => {
   }
 
   if (request.body.mode === 'text') {
-    axiosRequest.headers['content-type'] = 'text/plain';
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'text/plain';
+    }
     axiosRequest.data = request.body.text;
   }
 
   if (request.body.mode === 'xml') {
-    axiosRequest.headers['content-type'] = 'text/xml';
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'text/xml';
+    }
     axiosRequest.data = request.body.xml;
   }
 
@@ -56,7 +66,9 @@ const prepareRequest = (request) => {
       query: get(request, 'body.graphql.query'),
       variables: JSON.parse(get(request, 'body.graphql.variables') || '{}')
     };
-    axiosRequest.headers['content-type'] = 'application/json';
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/json';
+    }
     axiosRequest.data = graphqlQuery;
   }
 

@@ -6,14 +6,12 @@ import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
 
-const QueryResult = ({ item, collection, value, width, disableRunEventListener }) => {
-  const {
-    storedTheme
-  } = useTheme();
+const QueryResult = ({ item, collection, value, width, disableRunEventListener, mode }) => {
+  const { storedTheme } = useTheme();
   const dispatch = useDispatch();
 
   const onRun = () => {
-    if(disableRunEventListener) {
+    if (disableRunEventListener) {
       return;
     }
     dispatch(sendRequest(item, collection.uid));
@@ -22,7 +20,7 @@ const QueryResult = ({ item, collection, value, width, disableRunEventListener }
   return (
     <StyledWrapper className="px-3 w-full" style={{ maxWidth: width }}>
       <div className="h-full">
-        <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value || ''} readOnly />
+        <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value || ''} mode={mode} readOnly />
       </div>
     </StyledWrapper>
   );
