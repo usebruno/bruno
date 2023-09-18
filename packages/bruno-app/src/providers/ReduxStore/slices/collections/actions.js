@@ -56,10 +56,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
       return reject(new Error('Collection not found'));
     }
 
-    ipcRenderer
-      .invoke('renderer:rename-collection', newName, collection.pathname)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('renderer:rename-collection', newName, collection.pathname).then(resolve).catch(reject);
   });
 };
 
@@ -123,7 +120,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
           })
         );
 
-        if(err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
           console.log('>> request cancelled');
           return;
         }
@@ -166,12 +163,21 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    dispatch(resetRunResults({
-      collectionUid: collection.uid
-    }));
+    dispatch(
+      resetRunResults({
+        collectionUid: collection.uid
+      })
+    );
 
     ipcRenderer
-      .invoke('renderer:run-collection-folder', folder, collectionCopy, environment, collectionCopy.collectionVariables, recursive)
+      .invoke(
+        'renderer:run-collection-folder',
+        folder,
+        collectionCopy,
+        environment,
+        collectionCopy.collectionVariables,
+        recursive
+      )
       .then(resolve)
       .catch((err) => {
         toast.error(get(err, 'error.message') || 'Something went wrong!');
@@ -190,7 +196,10 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
     }
 
     if (!itemUid) {
-      const folderWithSameNameExists = find(collection.items, (i) => i.type === 'folder' && trim(i.name) === trim(folderName));
+      const folderWithSameNameExists = find(
+        collection.items,
+        (i) => i.type === 'folder' && trim(i.name) === trim(folderName)
+      );
       if (!folderWithSameNameExists) {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${folderName}`;
         const { ipcRenderer } = window;
@@ -205,7 +214,10 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
     } else {
       const currentItem = findItemInCollection(collection, itemUid);
       if (currentItem) {
-        const folderWithSameNameExists = find(currentItem.items, (i) => i.type === 'folder' && trim(i.name) === trim(folderName));
+        const folderWithSameNameExists = find(
+          currentItem.items,
+          (i) => i.type === 'folder' && trim(i.name) === trim(folderName)
+        );
         if (!folderWithSameNameExists) {
           const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${folderName}`;
           const { ipcRenderer } = window;
@@ -250,10 +262,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:rename-item', item.pathname, newPathname, newName)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
   });
 };
 
@@ -280,12 +289,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
     const itemToSave = refreshUidsInItem(transformRequestToSaveToFilesystem(item));
     itemToSave.name = trim(newName);
     if (!parentItem) {
-      const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+      const reqWithSameNameExists = find(
+        collection.items,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+      );
       if (!reqWithSameNameExists) {
         const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
         const requestItems = filter(collection.items, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? (requestItems.length + 1) : 1;
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         itemSchema
           .validate(itemToSave)
@@ -296,13 +308,16 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
     } else {
-      const reqWithSameNameExists = find(parentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+      const reqWithSameNameExists = find(
+        parentItem.items,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+      );
       if (!reqWithSameNameExists) {
         const dirname = getDirectoryName(item.pathname);
         const fullName = path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? (requestItems.length + 1) : 1;
+        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         itemSchema
           .validate(itemToSave)
@@ -490,7 +505,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
     const draggedItemPathname = draggedItem.pathname;
     moveCollectionItemToRootOfCollection(collectionCopy, draggedItem);
 
-    if(isItemAFolder(draggedItem)) {
+    if (isItemAFolder(draggedItem)) {
       return ipcRenderer
         .invoke('renderer:move-folder-item', draggedItemPathname, collectionCopy.pathname)
         .then(resolve)
@@ -542,7 +557,10 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     // itemUid is null when we are creating a new request at the root level
     const filename = resolveRequestFilename(requestName);
     if (!itemUid) {
-      const reqWithSameNameExists = find(collection.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+      const reqWithSameNameExists = find(
+        collection.items,
+        (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+      );
       const requestItems = filter(collection.items, (i) => i.type !== 'folder');
       item.seq = requestItems.length + 1;
 
@@ -557,7 +575,10 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     } else {
       const currentItem = findItemInCollection(collection, itemUid);
       if (currentItem) {
-        const reqWithSameNameExists = find(currentItem.items, (i) => i.type !== 'folder' && trim(i.filename) === trim(filename));
+        const reqWithSameNameExists = find(
+          currentItem.items,
+          (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
+        );
         const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
         item.seq = requestItems.length + 1;
         if (!reqWithSameNameExists) {
@@ -583,13 +604,17 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, name)
-      .then(dispatch(updateLastAction({
-        collectionUid,
-        lastAction: {
-          type: 'ADD_ENVIRONMENT',
-          payload: name
-        }
-      })))
+      .then(
+        dispatch(
+          updateLastAction({
+            collectionUid,
+            lastAction: {
+              type: 'ADD_ENVIRONMENT',
+              payload: name
+            }
+          })
+        )
+      )
       .then(resolve)
       .catch(reject);
   });
@@ -793,9 +818,6 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:import-collection', collection, collectionLocation)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
   });
 };

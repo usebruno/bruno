@@ -24,29 +24,24 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const query = item.draft ? get(item, 'draft.request.body.graphql.query') : get(item, 'request.body.graphql.query');
-  const variables = item.draft ? get(item, 'draft.request.body.graphql.variables') : get(item, 'request.body.graphql.variables');
+  const variables = item.draft
+    ? get(item, 'draft.request.body.graphql.variables')
+    : get(item, 'request.body.graphql.variables');
   const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
-  const {
-    storedTheme
-  } = useTheme();
+  const { storedTheme } = useTheme();
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  
-  let {
-    schema,
-    loadSchema,
-    isLoading: isSchemaLoading,
-    error: schemaError
-  } = useGraphqlSchema(url, environment);
+
+  let { schema, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment);
 
   const loadGqlSchema = () => {
-    if(!isSchemaLoading) {
+    if (!isSchemaLoading) {
       loadSchema();
     }
   };
 
   useEffect(() => {
-    if(onSchemaLoad) {
+    if (onSchemaLoad) {
       onSchemaLoad(schema);
     }
   }, [schema]);
@@ -75,17 +70,19 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'query': {
-        return <QueryEditor
-          collection={collection}
-          theme={storedTheme}
-          schema={schema}
-          width={leftPaneWidth}
-          onSave={onSave}
-          value={query}
-          onRun={onRun}
-          onEdit={onQueryChange}
-          onClickReference={handleGqlClickReference}
-        />;
+        return (
+          <QueryEditor
+            collection={collection}
+            theme={storedTheme}
+            schema={schema}
+            width={leftPaneWidth}
+            onSave={onSave}
+            value={query}
+            onRun={onRun}
+            onEdit={onQueryChange}
+            onClickReference={handleGqlClickReference}
+          />
+        );
       }
       case 'variables': {
         return <GraphQLVariables item={item} variables={variables} collection={collection} />;
@@ -150,20 +147,16 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
-        <div className="flex flex-grow justify-end items-center" style={{fontSize: 13}}>
-          <div className='flex items-center cursor-pointer hover:underline' onClick={loadGqlSchema}>
-            {isSchemaLoading ? (
-              <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5}/>
-            ) : null}
-            {!isSchemaLoading && !schema ? <IconDownload size={18} strokeWidth={1.5}/> : null }
-            {!isSchemaLoading && schema ? <IconRefresh size={18} strokeWidth={1.5}/> : null }
-            <span className='ml-1'>Schema</span>
+        <div className="flex flex-grow justify-end items-center" style={{ fontSize: 13 }}>
+          <div className="flex items-center cursor-pointer hover:underline" onClick={loadGqlSchema}>
+            {isSchemaLoading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+            {!isSchemaLoading && !schema ? <IconDownload size={18} strokeWidth={1.5} /> : null}
+            {!isSchemaLoading && schema ? <IconRefresh size={18} strokeWidth={1.5} /> : null}
+            <span className="ml-1">Schema</span>
           </div>
-          <div
-            className='flex items-center cursor-pointer hover:underline ml-2'
-            onClick={toggleDocs}
-          >
-            <IconBook size={18} strokeWidth={1.5} /><span className='ml-1'>Docs</span>
+          <div className="flex items-center cursor-pointer hover:underline ml-2" onClick={toggleDocs}>
+            <IconBook size={18} strokeWidth={1.5} />
+            <span className="ml-1">Docs</span>
           </div>
         </div>
       </div>

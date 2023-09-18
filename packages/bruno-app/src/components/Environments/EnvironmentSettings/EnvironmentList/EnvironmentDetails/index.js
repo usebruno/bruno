@@ -10,8 +10,16 @@ const EnvironmentDetails = ({ environment, collection }) => {
 
   return (
     <div className="px-6 flex-grow flex flex-col pt-6" style={{ maxWidth: '700px' }}>
-      {openEditModal && <RenameEnvironment onClose={() => setOpenEditModal(false)} environment={environment} collection={collection} />}
-      {openDeleteModal && <DeleteEnvironment onClose={() => setOpenDeleteModal(false)} environment={environment} collection={collection} />}
+      {openEditModal && (
+        <RenameEnvironment onClose={() => setOpenEditModal(false)} environment={environment} collection={collection} />
+      )}
+      {openDeleteModal && (
+        <DeleteEnvironment
+          onClose={() => setOpenDeleteModal(false)}
+          environment={environment}
+          collection={collection}
+        />
+      )}
       <div className="flex">
         <div className="flex flex-grow items-center">
           <IconDatabase className="cursor-pointer" size={20} strokeWidth={1.5} />

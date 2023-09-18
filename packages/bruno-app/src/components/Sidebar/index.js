@@ -88,7 +88,12 @@ const Sidebar = () => {
 
             <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center cursor-pointer select-none">
               <div className="flex items-center ml-1 text-xs ">
-                <IconSettings size={18} strokeWidth={1.5} className="mr-2  hover:text-gray-700" onClick={() => setPreferencesOpen(true)} />
+                <IconSettings
+                  size={18}
+                  strokeWidth={1.5}
+                  className="mr-2  hover:text-gray-700"
+                  onClick={() => setPreferencesOpen(true)}
+                />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 {storedTheme === 'dark' ? (

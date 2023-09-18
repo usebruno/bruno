@@ -11,9 +11,11 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
 
   const onSubmit = (recursive) => {
-    dispatch(showRunnerView({
-      collectionUid: collection.uid,
-    }));
+    dispatch(
+      showRunnerView({
+        collectionUid: collection.uid
+      })
+    );
     dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));
     onClose();
   };
@@ -25,25 +27,21 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title='Collection Runner' hideFooter={true} handleCancel={onClose}>
-        <div className='mb-1'>
-          <span className='font-medium'>Run</span>
-          <span className='ml-1 text-xs'>({runLength} requests)</span>
+      <Modal size="md" title="Collection Runner" hideFooter={true} handleCancel={onClose}>
+        <div className="mb-1">
+          <span className="font-medium">Run</span>
+          <span className="ml-1 text-xs">({runLength} requests)</span>
         </div>
-        <div className='mb-8'>
-          This will only run the requests in this folder. 
-        </div>
+        <div className="mb-8">This will only run the requests in this folder.</div>
 
-        <div className='mb-1'>
-          <span className='font-medium'>Recursive Run</span>
-          <span className='ml-1 text-xs'>({recursiveRunLength} requests)</span>
+        <div className="mb-1">
+          <span className="font-medium">Recursive Run</span>
+          <span className="ml-1 text-xs">({recursiveRunLength} requests)</span>
         </div>
-        <div className='mb-8'>
-          This will run all the requests in this folder and all its subfolders. 
-        </div>
+        <div className="mb-8">This will run all the requests in this folder and all its subfolders.</div>
 
         <div className="flex justify-end bruno-modal-footer">
-          <span className='mr-3'>
+          <span className="mr-3">
             <button type="button" onClick={onClose} className="btn btn-md btn-close">
               Cancel
             </button>

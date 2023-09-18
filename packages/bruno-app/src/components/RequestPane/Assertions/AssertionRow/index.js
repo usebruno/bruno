@@ -6,7 +6,7 @@ import { useTheme } from 'providers/Theme';
 
 /**
  * Assertion operators
- * 
+ *
  * eq          : equal to
  * neq         : not equal to
  * gt          : greater than
@@ -35,7 +35,7 @@ import { useTheme } from 'providers/Theme';
  * isBoolean   : is boolean
  */
 const parseAssertionOperator = (str = '') => {
-  if(!str || typeof str !== 'string' || !str.length) {
+  if (!str || typeof str !== 'string' || !str.length) {
     return {
       operator: 'eq',
       value: str
@@ -43,27 +43,58 @@ const parseAssertionOperator = (str = '') => {
   }
 
   const operators = [
-    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
-    'contains', 'notContains', 'length', 'matches', 'notMatches',
-    'startsWith', 'endsWith', 'between', 'isEmpty', 'isNull', 'isUndefined',
-    'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'eq',
+    'neq',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'notIn',
+    'contains',
+    'notContains',
+    'length',
+    'matches',
+    'notMatches',
+    'startsWith',
+    'endsWith',
+    'between',
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   const unaryOperators = [
-    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   const [operator, ...rest] = str.trim().split(' ');
   const value = rest.join(' ');
 
-  if(unaryOperators.includes(operator)) {
+  if (unaryOperators.includes(operator)) {
     return {
       operator,
       value: ''
     };
   }
 
-  if(operators.includes(operator)) {
+  if (operators.includes(operator)) {
     return {
       operator,
       value
@@ -78,22 +109,33 @@ const parseAssertionOperator = (str = '') => {
 
 const isUnaryOperator = (operator) => {
   const unaryOperators = [
-    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   return unaryOperators.includes(operator);
 };
 
 const AssertionRow = ({
-  item, collection, assertion, handleAssertionChange, handleRemoveAssertion,
-  onSave, handleRun
+  item,
+  collection,
+  assertion,
+  handleAssertionChange,
+  handleRemoveAssertion,
+  onSave,
+  handleRun
 }) => {
   const { storedTheme } = useTheme();
 
-  const {
-    operator,
-    value
-  } = parseAssertionOperator(assertion.value);
+  const { operator, value } = parseAssertionOperator(assertion.value);
 
   return (
     <tr key={assertion.uid}>
@@ -112,11 +154,17 @@ const AssertionRow = ({
       <td>
         <AssertionOperator
           operator={operator}
-          onChange={(op) => handleAssertionChange({
-            target: {
-              value: `${op} ${value}`
-            }
-          }, assertion, 'value')}
+          onChange={(op) =>
+            handleAssertionChange(
+              {
+                target: {
+                  value: `${op} ${value}`
+                }
+              },
+              assertion,
+              'value'
+            )
+          }
         />
       </td>
       <td>
@@ -126,20 +174,22 @@ const AssertionRow = ({
             theme={storedTheme}
             readOnly={true}
             onSave={onSave}
-            onChange={(newValue) => handleAssertionChange({
-              target: {
-                value: newValue
-              }
-            }, assertion, 'value')}
+            onChange={(newValue) =>
+              handleAssertionChange(
+                {
+                  target: {
+                    value: newValue
+                  }
+                },
+                assertion,
+                'value'
+              )
+            }
             onRun={handleRun}
             collection={collection}
           />
         ) : (
-          <input
-            type="text"
-            className='cursor-default'
-            disabled
-          />
+          <input type="text" className="cursor-default" disabled />
         )}
       </td>
       <td>

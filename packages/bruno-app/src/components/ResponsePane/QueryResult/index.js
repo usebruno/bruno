@@ -20,7 +20,14 @@ const QueryResult = ({ item, collection, value, width, disableRunEventListener, 
   return (
     <StyledWrapper className="px-3 w-full" style={{ maxWidth: width }}>
       <div className="h-full">
-        <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value || ''} mode={mode} readOnly />
+        <CodeEditor
+          collection={collection}
+          theme={storedTheme}
+          onRun={onRun}
+          value={value || ''}
+          mode={mode}
+          readOnly
+        />
       </div>
     </StyledWrapper>
   );

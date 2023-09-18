@@ -18,10 +18,16 @@ const CreateOrOpenCollection = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => console.log(err) && toast.error('An error occured while opening the collection'));
+    dispatch(openCollection()).catch(
+      (err) => console.log(err) && toast.error('An error occured while opening the collection')
+    );
   };
   const CreateLink = () => (
-    <LinkStyle className="underline text-link cursor-pointer" theme={theme} onClick={() => setCreateCollectionModalOpen(true)}>
+    <LinkStyle
+      className="underline text-link cursor-pointer"
+      theme={theme}
+      onClick={() => setCreateCollectionModalOpen(true)}
+    >
       Create
     </LinkStyle>
   );

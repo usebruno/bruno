@@ -1,4 +1,4 @@
-import React, { useState, useEffect}  from 'react';
+import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
@@ -18,7 +18,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
 
   useEffect(() => {
-    const el = document.querySelector(".method-selector-container");
+    const el = document.querySelector('.method-selector-container');
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
@@ -56,8 +56,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           maxWidth: `calc(100% - ${methodSelectorWidth}px)`
         }}
       >
-        <SingleLineEditor 
-          value={url} 
+        <SingleLineEditor
+          value={url}
           onSave={onSave}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
@@ -65,7 +65,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           collection={collection}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
-          <SendIcon color={theme.requestTabPanel.url.icon} width={22}/>
+          <SendIcon color={theme.requestTabPanel.url.icon} width={22} />
         </div>
       </div>
     </StyledWrapper>

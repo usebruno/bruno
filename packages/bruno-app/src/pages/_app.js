@@ -36,7 +36,7 @@ function MyApp({ Component, pageProps }) {
     setDomLoaded(true);
   }, []);
 
-  if(!domLoaded) {
+  if (!domLoaded) {
     return null;
   }
 

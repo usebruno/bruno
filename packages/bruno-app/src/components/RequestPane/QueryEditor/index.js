@@ -43,7 +43,7 @@ export default class QueryEditor extends React.Component {
       mode: 'graphql',
       // mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection),
+        variables: getAllVariables(this.props.collection)
       },
       theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -51,7 +51,7 @@ export default class QueryEditor extends React.Component {
       autoCloseBrackets: true,
       matchBrackets: true,
       showCursorWhenSelecting: true,
-      scrollbarStyle: "overlay",
+      scrollbarStyle: 'overlay',
       readOnly: this.props.readOnly ? 'nocursor' : false,
       foldGutter: {
         minFoldSize: 4
@@ -179,14 +179,13 @@ export default class QueryEditor extends React.Component {
   }
 
   // Todo: Overlay is messing up with schema hint
-  // Fix this  
+  // Fix this
   addOverlay = () => {
     // let variables = getAllVariables(this.props.collection);
     // this.variables = variables;
-
     // defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
     // this.editor.setOption('mode', 'brunovariables');
-  }
+  };
 
   render() {
     return (

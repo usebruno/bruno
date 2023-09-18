@@ -43,7 +43,7 @@ export default class CodeEditor extends React.Component {
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       readOnly: this.props.readOnly,
-      scrollbarStyle: "overlay",
+      scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
         'Cmd-Enter': () => {
@@ -96,7 +96,7 @@ export default class CodeEditor extends React.Component {
       this.editor.setValue(this.props.value);
     }
 
-    if(this.editor) {
+    if (this.editor) {
       let variables = getEnvironmentVariables(this.props.collection);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
@@ -135,7 +135,7 @@ export default class CodeEditor extends React.Component {
 
     defineCodeMirrorBrunoVariablesMode(variables, mode);
     this.editor.setOption('mode', 'brunovariables');
-  }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {

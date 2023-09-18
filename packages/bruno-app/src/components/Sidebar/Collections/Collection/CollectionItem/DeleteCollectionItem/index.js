@@ -31,7 +31,13 @@ const DeleteCollectionItem = ({ onClose, item, collection }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="sm" title={`Delete ${isFolder ? 'Folder' : 'Request'}`} confirmText="Delete" handleConfirm={onConfirm} handleCancel={onClose}>
+      <Modal
+        size="sm"
+        title={`Delete ${isFolder ? 'Folder' : 'Request'}`}
+        confirmText="Delete"
+        handleConfirm={onConfirm}
+        handleCancel={onClose}
+      >
         Are you sure you want to delete <span className="font-semibold">{item.name}</span> ?
       </Modal>
     </StyledWrapper>

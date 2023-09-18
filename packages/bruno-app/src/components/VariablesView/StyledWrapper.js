@@ -10,6 +10,6 @@ const StyledWrapper = styled.div`
     width: 1rem;
     font-size: 10px;
   }
-`
+`;
 
 export default StyledWrapper;

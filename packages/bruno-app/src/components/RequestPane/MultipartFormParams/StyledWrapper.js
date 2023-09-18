@@ -41,7 +41,6 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.table.input.color};
     background: transparent;
 
-
     &:focus {
       outline: none !important;
       border: solid 1px transparent;

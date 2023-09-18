@@ -16,7 +16,10 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       name: item.name
     },
     validationSchema: Yup.object({
-      name: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      name: Yup.string()
+        .min(1, 'must be atleast 1 characters')
+        .max(50, 'must be 50 characters or less')
+        .required('name is required')
     }),
     onSubmit: (values) => {
       dispatch(renameItem(values.name, item.uid, collection.uid));
@@ -33,7 +36,13 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title={`Rename ${isFolder ? 'Folder' : 'Request'}`} confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal
+      size="sm"
+      title={`Rename ${isFolder ? 'Folder' : 'Request'}`}
+      confirmText="Rename"
+      handleConfirm={onSubmit}
+      handleCancel={onClose}
+    >
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="name" className="block font-semibold">

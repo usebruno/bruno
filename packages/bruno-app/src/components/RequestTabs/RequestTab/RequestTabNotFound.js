@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 
-const RequestTabNotFound = ({handleCloseClick}) => {
+const RequestTabNotFound = ({ handleCloseClick }) => {
   const [showErrorMessage, setShowErrorMessage] = useState(false);
 
   // add a delay component in react that shows a loading spinner
@@ -13,7 +13,7 @@ const RequestTabNotFound = ({handleCloseClick}) => {
     }, 300);
   }, []);
 
-  if(!showErrorMessage) {
+  if (!showErrorMessage) {
     return null;
   }
 

@@ -5,8 +5,8 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.variables.name.color};
   }
 
-  .variable-name{
-    min-width:180px;
+  .variable-name {
+    min-width: 180px;
   }
 
   .variable-value {
@@ -14,6 +14,6 @@ const StyledWrapper = styled.div`
     inline-size: 600px;
     overflow-wrap: break-word;
   }
-`
+`;
 
 export default StyledWrapper;

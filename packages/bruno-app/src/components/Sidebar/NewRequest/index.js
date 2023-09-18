@@ -30,7 +30,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
         .test({
           name: 'requestName',
           message: 'The request name "index" is reserved in bruno',
-          test: value => value && !(value.trim().toLowerCase().includes('index')),
+          test: (value) => value && !value.trim().toLowerCase().includes('index')
         })
     }),
     onSubmit: (values) => {
@@ -51,7 +51,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
               addTab({
                 uid: uid,
                 collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab({type: values.requestType})
+                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
               })
             );
             onClose();
@@ -140,7 +140,9 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
               onChange={formik.handleChange}
               value={formik.values.requestName || ''}
             />
-            {formik.touched.requestName && formik.errors.requestName ? <div className="text-red-500">{formik.errors.requestName}</div> : null}
+            {formik.touched.requestName && formik.errors.requestName ? (
+              <div className="text-red-500">{formik.errors.requestName}</div>
+            ) : null}
           </div>
 
           <div className="mt-4">
@@ -150,7 +152,10 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
 
             <div className="flex items-center mt-2 ">
               <div className="flex items-center h-full method-selector-container">
-                <HttpMethodSelector method={formik.values.requestMethod} onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)} />
+                <HttpMethodSelector
+                  method={formik.values.requestMethod}
+                  onMethodSelect={(val) => formik.setFieldValue('requestMethod', val)}
+                />
               </div>
               <div className="flex items-center flex-grow input-container h-full">
                 <input
@@ -167,7 +172,9 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
                 />
               </div>
             </div>
-            {formik.touched.requestUrl && formik.errors.requestUrl ? <div className="text-red-500">{formik.errors.requestUrl}</div> : null}
+            {formik.touched.requestUrl && formik.errors.requestUrl ? (
+              <div className="text-red-500">{formik.errors.requestUrl}</div>
+            ) : null}
           </div>
         </form>
       </Modal>

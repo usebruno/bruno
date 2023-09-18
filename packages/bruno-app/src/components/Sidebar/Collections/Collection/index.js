@@ -97,13 +97,26 @@ const Collection = ({ collection, searchText }) => {
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}
       {showNewFolderModal && <NewFolder collection={collection} onClose={() => setShowNewFolderModal(false)} />}
-      {showRenameCollectionModal && <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />}
-      {showRemoveCollectionModal && <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />}
-      {showRunCollectionModal && <RunCollectionItem collection={collection} onClose={() => setShowRunCollectionModal(false)} />}
+      {showRenameCollectionModal && (
+        <RenameCollection collection={collection} onClose={() => setShowRenameCollectionModal(false)} />
+      )}
+      {showRemoveCollectionModal && (
+        <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
+      )}
+      {showRunCollectionModal && (
+        <RunCollectionItem collection={collection} onClose={() => setShowRunCollectionModal(false)} />
+      )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div className="flex flex-grow items-center overflow-hidden" onClick={handleClick}>
-          <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ width: 16, minWidth:16, color: 'rgb(160 160 160)' }} />
-          <div className="ml-1" id="sidebar-collection-name">{collection.name}</div>
+          <IconChevronRight
+            size={16}
+            strokeWidth={2}
+            className={iconClassName}
+            style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+          />
+          <div className="ml-1" id="sidebar-collection-name">
+            {collection.name}
+          </div>
         </div>
         <div className="collection-actions">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">

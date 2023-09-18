@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .bruno-modal-content  {
+  .bruno-modal-content {
     padding-bottom: 1rem;
   }
 `;

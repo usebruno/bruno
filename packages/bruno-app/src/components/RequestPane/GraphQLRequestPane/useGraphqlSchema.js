@@ -13,7 +13,7 @@ const useGraphqlSchema = (endpoint, environment) => {
   const [schema, setSchema] = useState(() => {
     try {
       const saved = localStorage.getItem(localStorageKey);
-      if(!saved) {
+      if (!saved) {
         return null;
       }
       return buildClientSchema(JSON.parse(saved));

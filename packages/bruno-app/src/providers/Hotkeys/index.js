@@ -165,9 +165,15 @@ export const HotkeysProvider = (props) => {
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showBrunoSupportModal && <BrunoSupport onClose={() => setShowBrunoSupportModal(false)} />}
-      {showSaveRequestModal && <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />}
-      {showEnvSettingsModal && <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />}
-      {showNewRequestModal && <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)} />}
+      {showSaveRequestModal && (
+        <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />
+      )}
+      {showEnvSettingsModal && (
+        <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
+      )}
+      {showNewRequestModal && (
+        <NewRequest collection={getCurrentCollection()} onClose={() => setShowNewRequestModal(false)} />
+      )}
       <div>{props.children}</div>
     </HotkeysContext.Provider>
   );

@@ -15,7 +15,10 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
       collectionLocation: ''
     },
     validationSchema: Yup.object({
-      collectionLocation: Yup.string().min(1, 'must be atleast 1 characters').max(500, 'must be 500 characters or less').required('name is required')
+      collectionLocation: Yup.string()
+        .min(1, 'must be atleast 1 characters')
+        .max(500, 'must be 500 characters or less')
+        .required('name is required')
     }),
     onSubmit: (values) => {
       console.log('here');
@@ -49,7 +52,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
           <label htmlFor="collectionName" className="block font-semibold">
             Name
           </label>
-          <div className='mt-2'>{collectionName}</div>
+          <div className="mt-2">{collectionName}</div>
 
           <>
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">

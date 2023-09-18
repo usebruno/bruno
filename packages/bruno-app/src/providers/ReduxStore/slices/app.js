@@ -33,6 +33,13 @@ export const appSlice = createSlice({
   }
 });
 
-export const { idbConnectionReady, refreshScreenWidth, updateLeftSidebarWidth, updateIsDragging, showHomePage, hideHomePage } = appSlice.actions;
+export const {
+  idbConnectionReady,
+  refreshScreenWidth,
+  updateLeftSidebarWidth,
+  updateIsDragging,
+  showHomePage,
+  hideHomePage
+} = appSlice.actions;
 
 export default appSlice.reducer;

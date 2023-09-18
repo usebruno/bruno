@@ -10,7 +10,7 @@ const StyledWrapper = styled.div`
     cursor: pointer;
 
     &:hover {
-      background-color: ${(props) => props.theme.plainGrid.hoverBg};;
+      background-color: ${(props) => props.theme.plainGrid.hoverBg};
     }
   }
 `;

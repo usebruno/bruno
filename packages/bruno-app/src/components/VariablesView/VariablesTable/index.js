@@ -18,25 +18,33 @@ const VariablesTable = ({ variables, collectionVariables }) => {
   return (
     <StyledWrapper>
       <div className="flex flex-col w-full">
-        <div className='mb-2 font-medium'>Environment Variables</div>
-        {(variables && variables.length) ? variables.map((variable) => {
-          return (
-            <div key={variable.uid} className="flex">
-              <div className='variable-name text-yellow-600 text-right pr-2'>{variable.name}</div>
-              <div className='variable-value pl-2 whitespace-normal text-left flex-grow'>{variable.value}</div>
-            </div>
-          );
-        }) : <small>No env variables found</small>}
+        <div className="mb-2 font-medium">Environment Variables</div>
+        {variables && variables.length ? (
+          variables.map((variable) => {
+            return (
+              <div key={variable.uid} className="flex">
+                <div className="variable-name text-yellow-600 text-right pr-2">{variable.name}</div>
+                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">{variable.value}</div>
+              </div>
+            );
+          })
+        ) : (
+          <small>No env variables found</small>
+        )}
 
-        <div className='mt-2 font-medium'>Collection Variables</div>
-        {(collectionVars && collectionVars.length) ? collectionVars.map((variable) => {
-          return (
-            <div key={variable.uid} className="flex">
-              <div className='variable-name text-yellow-600 text-right pr-2'>{variable.name}</div>
-              <div className='variable-value pl-2 whitespace-normal text-left flex-grow'>{variable.value}</div>
-            </div>
-          );
-        }) : <small>No collection variables found</small>}
+        <div className="mt-2 font-medium">Collection Variables</div>
+        {collectionVars && collectionVars.length ? (
+          collectionVars.map((variable) => {
+            return (
+              <div key={variable.uid} className="flex">
+                <div className="variable-name text-yellow-600 text-right pr-2">{variable.name}</div>
+                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">{variable.value}</div>
+              </div>
+            );
+          })
+        ) : (
+          <small>No collection variables found</small>
+        )}
       </div>
     </StyledWrapper>
   );

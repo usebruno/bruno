@@ -26,7 +26,7 @@ export const waitForNextTick = () => {
 };
 
 export const safeParseJSON = (str) => {
-  if(!str || !str.length || typeof str !== 'string') {
+  if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
   try {
@@ -36,19 +36,19 @@ export const safeParseJSON = (str) => {
   }
 };
 
-export const safeStringifyJSON = (obj, indent=false) => {
-  if(!obj) {
+export const safeStringifyJSON = (obj, indent = false) => {
+  if (!obj) {
     return obj;
   }
   try {
-    if(indent) {
+    if (indent) {
       return JSON.stringify(obj, null, 2);
     }
     return JSON.stringify(obj);
   } catch (e) {
     return obj;
   }
-}
+};
 
 // Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
 export const normalizeFileName = (name) => {
@@ -60,4 +60,4 @@ export const normalizeFileName = (name) => {
   const formattedName = name.replace(validChars, '-');
 
   return formattedName;
-}
+};

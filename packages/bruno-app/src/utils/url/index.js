@@ -4,7 +4,7 @@ import each from 'lodash/each';
 import filter from 'lodash/filter';
 
 const hasLength = (str) => {
-  if(!str || !str.length) {
+  if (!str || !str.length) {
     return false;
   }
 
@@ -18,7 +18,7 @@ export const parseQueryParams = (query) => {
     return [];
   }
 
-  let params =  query.split('&').map(param => {
+  let params = query.split('&').map((param) => {
     let [name, value = ''] = param.split('=');
     return { name, value };
   });
@@ -42,7 +42,7 @@ export const stringifyQueryParams = (params) => {
 };
 
 export const splitOnFirst = (str, char) => {
-  if(!str || !str.length) {
+  if (!str || !str.length) {
     return [str];
   }
 

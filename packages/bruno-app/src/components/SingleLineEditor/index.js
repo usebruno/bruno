@@ -27,32 +27,32 @@ class SingleLineEditor extends Component {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
-      mode: "brunovariables",
+      mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection),
+        variables: getAllVariables(this.props.collection)
       },
       extraKeys: {
-        "Enter": () => {
+        Enter: () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        "Ctrl-Enter": () => {
+        'Ctrl-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        "Cmd-Enter": () => {
+        'Cmd-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        "Alt-Enter": () => {
+        'Alt-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        "Shift-Enter": () => {
+        'Shift-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
@@ -69,8 +69,8 @@ class SingleLineEditor extends Component {
         },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
-        'Tab': () => {}
-      },
+        Tab: () => {}
+      }
     });
     this.editor.setValue(this.props.value || '');
     this.editor.on('change', this._onEdit);
@@ -115,14 +115,12 @@ class SingleLineEditor extends Component {
     let variables = getAllVariables(this.props.collection);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, "text/plain");
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'brunovariables');
-  }
+  };
 
   render() {
-    return (
-      <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>
-    );
+    return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
   }
 }
 export default SingleLineEditor;

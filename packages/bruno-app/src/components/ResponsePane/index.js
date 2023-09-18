@@ -41,7 +41,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             item={item}
             collection={collection}
             width={rightPaneWidth}
-            value={response.data ? (isJson(response.headers) ? safeStringifyJSON(response.data, true) : response.data) : ''}
+            value={
+              response.data ? (isJson(response.headers) ? safeStringifyJSON(response.data, true) : response.data) : ''
+            }
             mode={getContentType(response.headers)}
           />
         );

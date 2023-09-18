@@ -158,13 +158,13 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
   // If the dragged item is already at the root of the collection, do nothing
-  if(!draggedItemParent) {
+  if (!draggedItemParent) {
     return;
   }
 
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
   collection.items.push(draggedItem);
-  if(draggedItem.type == 'folder') {
+  if (draggedItem.type == 'folder') {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
   } else {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
@@ -174,10 +174,10 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
 export const getItemsToResequence = (parent, collection) => {
   let itemsToResequence = [];
 
-  if(!parent) {
+  if (!parent) {
     let index = 1;
     each(collection.items, (item) => {
-      if(isItemARequest(item)) {
+      if (isItemARequest(item)) {
         itemsToResequence.push({
           pathname: item.pathname,
           seq: index++
@@ -190,7 +190,7 @@ export const getItemsToResequence = (parent, collection) => {
   if (parent.items && parent.items.length) {
     let index = 1;
     each(parent.items, (item) => {
-      if(isItemARequest(item)) {
+      if (isItemARequest(item)) {
         itemsToResequence.push({
           pathname: item.pathname,
           seq: index++
@@ -499,11 +499,11 @@ export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
 };
 
 export const getDefaultRequestPaneTab = (item) => {
-  if(item.type === 'http-request') {
+  if (item.type === 'http-request') {
     return 'params';
   }
 
-  if(item.type === 'graphql-request') {
+  if (item.type === 'graphql-request') {
     return 'query';
   }
 };
@@ -514,7 +514,7 @@ export const getEnvironmentVariables = (collection) => {
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
     if (environment) {
       each(environment.variables, (variable) => {
-        if(variable.name && variable.value && variable.enabled) {
+        if (variable.name && variable.value && variable.enabled) {
           variables[variable.name] = variable.value;
         }
       });
@@ -522,7 +522,7 @@ export const getEnvironmentVariables = (collection) => {
   }
 
   return variables;
-}
+};
 
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
@@ -544,4 +544,4 @@ export const getAllVariables = (collection) => {
     ...environmentVariables,
     ...collection.collectionVariables
   };
-}
+};

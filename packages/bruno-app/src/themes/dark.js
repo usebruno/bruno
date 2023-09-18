@@ -20,7 +20,7 @@ const darkTheme = {
     bg: 'rgb(48, 48, 49)',
 
     name: {
-      color: '#569cd6',
+      color: '#569cd6'
     }
   },
 

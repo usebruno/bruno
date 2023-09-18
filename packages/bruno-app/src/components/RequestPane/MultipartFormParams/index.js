@@ -4,7 +4,11 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addMultipartFormParam, updateMultipartFormParam, deleteMultipartFormParam } from 'providers/ReduxStore/slices/collections';
+import {
+  addMultipartFormParam,
+  updateMultipartFormParam,
+  deleteMultipartFormParam
+} from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -88,22 +92,33 @@ const MultipartFormParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor 
+                      <SingleLineEditor
                         onSave={onSave}
                         theme={storedTheme}
-                        value={param.value} 
-                        onChange={(newValue) => handleParamChange({
-                          target: {
-                            value: newValue
-                          }
-                        }, param, 'value')}
+                        value={param.value}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            param,
+                            'value'
+                          )
+                        }
                         onRun={handleRun}
                         collection={collection}
                       />
                     </td>
                     <td>
                       <div className="flex items-center">
-                        <input type="checkbox" checked={param.enabled} className="mr-3 mousetrap" onChange={(e) => handleParamChange(e, param, 'enabled')} />
+                        <input
+                          type="checkbox"
+                          checked={param.enabled}
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                        />
                         <button onClick={() => handleRemoveParams(param)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
