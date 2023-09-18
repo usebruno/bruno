@@ -18,14 +18,14 @@ const getRelativePath = (fullPath, pathname) => {
   let relativePath = path.relative(fullPath, pathname);
   const { dir, name } = path.parse(relativePath);
   return path.join(dir, name);
-}
+};
 
-export default function RunnerResults({collection}) {
+export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
-    if(!collection.runnerResult) {
+    if (!collection.runnerResult) {
       setSelectedItem(null);
     }
   }, [collection, setSelectedItem]);
@@ -42,8 +42,8 @@ export default function RunnerResults({collection}) {
     item.pathname = info.pathname;
     item.relativePath = getRelativePath(collection.pathname, info.pathname);
 
-    if(item.status !== "error") {
-      if(item.testResults) {
+    if (item.status !== 'error') {
+      if (item.testResults) {
         const failed = item.testResults.filter((result) => result.status === 'fail');
 
         item.testStatus = failed.length ? 'fail' : 'pass';
@@ -51,7 +51,7 @@ export default function RunnerResults({collection}) {
         item.testStatus = 'pass';
       }
 
-      if(item.assertionResults) {
+      if (item.assertionResults) {
         const failed = item.assertionResults.filter((result) => result.status === 'fail');
 
         item.assertionStatus = failed.length ? 'fail' : 'pass';
@@ -70,29 +70,31 @@ export default function RunnerResults({collection}) {
   };
 
   const closeRunner = () => {
-    dispatch(closeCollectionRunner({
-      collectionUid: collection.uid,
-    }));
+    dispatch(
+      closeCollectionRunner({
+        collectionUid: collection.uid
+      })
+    );
   };
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const passedRequests = items.filter((item) => {
-    return item.status !== "error" && item.testStatus === 'pass' && item.assertionStatus === 'pass';
+    return item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
   });
   const failedRequests = items.filter((item) => {
-    return item.status !== "error" && item.testStatus === 'fail' || item.assertionStatus === 'fail';
+    return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
 
-  if(!items || !items.length) {
+  if (!items || !items.length) {
     return (
-      <StyledWrapper className='px-4'>
-        <div className='font-medium mt-6 title flex items-center'>
+      <StyledWrapper className="px-4">
+        <div className="font-medium mt-6 title flex items-center">
           Runner
-          <IconRun size={20} strokeWidth={1.5} className='ml-2'/>
+          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
 
-        <div className='mt-6'>
-          You have <span className='font-medium'>{totalRequestsInCollection}</span> requests in this collection.
+        <div className="mt-6">
+          You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
@@ -107,13 +109,13 @@ export default function RunnerResults({collection}) {
   }
 
   return (
-    <StyledWrapper className='px-4'>
-      <div className='font-medium mt-6 mb-4 title flex items-center'>
+    <StyledWrapper className="px-4">
+      <div className="font-medium mt-6 mb-4 title flex items-center">
         Runner
-        <IconRun size={20} strokeWidth={1.5} className='ml-2'/>
+        <IconRun size={20} strokeWidth={1.5} className="ml-2" />
       </div>
-      <div className='flex'>
-        <div className='flex flex-col flex-1'>
+      <div className="flex">
+        <div className="flex flex-col flex-1">
           <div className="py-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
@@ -123,73 +125,69 @@ export default function RunnerResults({collection}) {
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                        {item.status !== "error" && item.testStatus === 'pass' ? (
-                          <IconCircleCheck className="test-success" size={20} strokeWidth={1.5}/>
-                        ) : (
-                          <IconCircleX className="test-failure" size={20} strokeWidth={1.5}/>
-                        )}
+                      {item.status !== 'error' && item.testStatus === 'pass' ? (
+                        <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                      ) : (
+                        <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                      )}
                     </span>
-                    <span className={`mr-1 ml-2 ${(item.status == "error" || item.testStatus == 'fail') ? 'danger' : ''}`}>{item.relativePath}</span>
-                    {(item.status !== "error" && item.status !== "completed") ? (
-                      <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5}/>
+                    <span
+                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                    >
+                      {item.relativePath}
+                    </span>
+                    {item.status !== 'error' && item.status !== 'completed' ? (
+                      <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                     ) : (
-                      <span className='text-xs link cursor-pointer' onClick={() => setSelectedItem(item)}>
-                        (<span className='mr-1'>
-                          {get(item.responseReceived, 'status')}
-                        </span>
-                        <span>
-                          {get(item.responseReceived, 'statusText')}
-                        </span>)
+                      <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
+                        <span>{get(item.responseReceived, 'statusText')}</span>)
                       </span>
                     )}
                   </div>
-                  {item.status == "error" ? (
-                    <div className="error-message pl-8 pt-2 text-xs">
-                      {item.error}
-                    </div>
-                  ) : null }
+                  {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
                   <ul className="pl-8">
-                    {item.testResults ? item.testResults.map((result) => (
-                      <li key={result.uid}>
-                        {result.status === 'pass' ? (
-                          <span className="test-success flex items-center">
-                            <IconCheck size={18} strokeWidth={2} className="mr-2"/>
-                            {result.description}
-                          </span>
-                        ) : (
-                          <>
-                            <span className="test-failure flex items-center">
-                              <IconX size={18} strokeWidth={2} className="mr-2"/>
-                              {result.description}
-                            </span>
-                            <span className="error-message pl-8 text-xs">
-                              {result.error}
-                            </span>
-                          </>
-                        )}
-                      </li>
-                    )): null}
-                    {item.assertionResults ? item.assertionResults.map((result) => (
-                      <li key={result.uid}>
-                        {result.status === 'pass' ? (
-                          <span className="test-success flex items-center">
-                            <IconCheck size={18} strokeWidth={2} className="mr-2"/>
-                            {result.lhsExpr}: {result.rhsExpr}
-                          </span>
-                        ) : (
-                          <>
-                            <span className="test-failure flex items-center">
-                              <IconX size={18} strokeWidth={2} className="mr-2"/>
-                              {result.lhsExpr}: {result.rhsExpr}
-                            </span>
-                            <span className="error-message pl-8 text-xs">
-                              {result.error}
-                            </span>
-                          </>
-                        )}
-                      </li>
-                    )): null}
+                    {item.testResults
+                      ? item.testResults.map((result) => (
+                          <li key={result.uid}>
+                            {result.status === 'pass' ? (
+                              <span className="test-success flex items-center">
+                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                                {result.description}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="test-failure flex items-center">
+                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                                  {result.description}
+                                </span>
+                                <span className="error-message pl-8 text-xs">{result.error}</span>
+                              </>
+                            )}
+                          </li>
+                        ))
+                      : null}
+                    {item.assertionResults
+                      ? item.assertionResults.map((result) => (
+                          <li key={result.uid}>
+                            {result.status === 'pass' ? (
+                              <span className="test-success flex items-center">
+                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                                {result.lhsExpr}: {result.rhsExpr}
+                              </span>
+                            ) : (
+                              <>
+                                <span className="test-failure flex items-center">
+                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                                  {result.lhsExpr}: {result.rhsExpr}
+                                </span>
+                                <span className="error-message pl-8 text-xs">{result.error}</span>
+                              </>
+                            )}
+                          </li>
+                        ))
+                      : null}
                   </ul>
                 </div>
               </div>
@@ -210,25 +208,25 @@ export default function RunnerResults({collection}) {
             </div>
           ) : null}
         </div>
-        <div className='flex flex-1' style={{width: '50%'}}>
+        <div className="flex flex-1" style={{ width: '50%' }}>
           {selectedItem ? (
-            <div className='flex flex-col w-full overflow-auto'>
+            <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
-                <span className='mr-2'>{selectedItem.relativePath}</span>
+                <span className="mr-2">{selectedItem.relativePath}</span>
                 <span>
                   {selectedItem.testStatus === 'pass' ? (
-                    <IconCircleCheck className="test-success" size={20} strokeWidth={1.5}/>
+                    <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                   ) : (
-                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5}/>
+                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                   )}
                 </span>
               </div>
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
-              <ResponsePane item={selectedItem} collection={collection}/>
+              <ResponsePane item={selectedItem} collection={collection} />
             </div>
           ) : null}
         </div>
       </div>
     </StyledWrapper>
   );
-};
+}

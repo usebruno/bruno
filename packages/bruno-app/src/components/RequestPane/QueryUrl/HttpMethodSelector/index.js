@@ -10,7 +10,9 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="flex w-full items-center pl-3 py-1 select-none uppercase">
-        <div className="flex-grow font-medium" id="create-new-request-method">{method}</div>
+        <div className="flex-grow font-medium" id="create-new-request-method">
+          {method}
+        </div>
         <div>
           <IconCaretDown className="caret ml-2 mr-2" size={14} strokeWidth={2} />
         </div>

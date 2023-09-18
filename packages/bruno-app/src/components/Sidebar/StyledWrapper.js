@@ -32,7 +32,7 @@ const Wrapper = styled.div`
       input {
         border: ${(props) => props.theme.sidebar.search.border};
         border-radius: 2px;
-        background-color:  ${(props) => props.theme.sidebar.search.bg};
+        background-color: ${(props) => props.theme.sidebar.search.bg};
 
         &:focus {
           outline: none;

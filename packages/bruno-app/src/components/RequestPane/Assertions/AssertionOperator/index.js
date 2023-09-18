@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * Assertion operators
- * 
+ *
  * eq          : equal to
  * neq         : not equal to
  * gt          : greater than
@@ -33,10 +33,32 @@ import React from 'react';
 
 const AssertionOperator = ({ operator, onChange }) => {
   const operators = [
-    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
-    'contains', 'notContains', 'length', 'matches', 'notMatches',
-    'startsWith', 'endsWith', 'between', 'isEmpty', 'isNull', 'isUndefined',
-    'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'eq',
+    'neq',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'notIn',
+    'contains',
+    'notContains',
+    'length',
+    'matches',
+    'notMatches',
+    'startsWith',
+    'endsWith',
+    'between',
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   const handleChange = (e) => {
@@ -44,7 +66,7 @@ const AssertionOperator = ({ operator, onChange }) => {
   };
 
   const getLabel = (operator) => {
-    switch(operator) {
+    switch (operator) {
       case 'eq':
         return 'equals';
       case 'neq':

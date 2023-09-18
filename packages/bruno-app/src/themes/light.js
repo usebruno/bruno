@@ -9,7 +9,7 @@ const lightTheme = {
       green: '#047857',
       danger: 'rgb(185, 28, 28)',
       muted: '#4b5563',
-      purple: '#8e44ad',
+      purple: '#8e44ad'
     },
     bg: {
       danger: '#dc3545'
@@ -24,7 +24,7 @@ const lightTheme = {
     bg: '#fff',
 
     name: {
-      color: '#546de5',
+      color: '#546de5'
     }
   },
 

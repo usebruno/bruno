@@ -22,7 +22,7 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
   brunoParent.items = brunoParent.items || [];
 
   each(item, (i) => {
-    if(isItemAFolder(i)) {
+    if (isItemAFolder(i)) {
       const brunoFolderItem = {
         uid: uuid(),
         name: i.name,
@@ -30,13 +30,13 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
         items: []
       };
       brunoParent.items.push(brunoFolderItem);
-      if(i.item && i.item.length) {
+      if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item);
       }
     } else {
-      if(i.request) {
+      if (i.request) {
         let url = '';
-        if(typeof i.request.url === 'string') {
+        if (typeof i.request.url === 'string') {
           url = i.request.url;
         } else {
           url = get(i, 'request.url.raw') || '';
@@ -63,8 +63,8 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
         };
 
         const bodyMode = get(i, 'request.body.mode');
-        if(bodyMode) {
-          if(bodyMode === 'formdata') {
+        if (bodyMode) {
+          if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
             each(i.request.body.formdata, (param) => {
               brunoRequestItem.request.body.formUrlEncoded.push({
@@ -77,7 +77,7 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
             });
           }
 
-          if(bodyMode === 'urlencoded') {
+          if (bodyMode === 'urlencoded') {
             brunoRequestItem.request.body.mode = 'formUrlEncoded';
             each(i.request.body.urlencoded, (param) => {
               brunoRequestItem.request.body.formUrlEncoded.push({
@@ -90,9 +90,9 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
             });
           }
 
-          if(bodyMode === 'raw') {
+          if (bodyMode === 'raw') {
             const language = get(i, 'request.body.options.raw.language');
-            if(language === 'json') {
+            if (language === 'json') {
               brunoRequestItem.request.body.mode = 'json';
               brunoRequestItem.request.body.json = i.request.body.raw;
             } else if (language === 'xml') {
@@ -135,7 +135,7 @@ const importPostmanV2Collection = (collection) => {
   const brunoCollection = {
     name: collection.info.name,
     uid: uuid(),
-    version: "1",
+    version: '1',
     items: [],
     environments: []
   };
@@ -144,7 +144,6 @@ const importPostmanV2Collection = (collection) => {
 
   return brunoCollection;
 };
-
 
 const parsePostmanCollection = (str) => {
   return new Promise((resolve, reject) => {
@@ -157,14 +156,14 @@ const parsePostmanCollection = (str) => {
         'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
       ];
 
-      if(v2Schemas.includes(schema)) {
+      if (v2Schemas.includes(schema)) {
         return resolve(importPostmanV2Collection(collection));
       }
 
       throw new BrunoError('Unknown postman schema');
     } catch (err) {
       console.log(err);
-      if(err instanceof BrunoError) {
+      if (err instanceof BrunoError) {
         return reject(err);
       }
 

@@ -100,7 +100,7 @@ const Wrapper = styled.div`
       border-radius: 0px;
       outline: none;
       box-shadow: none;
-      transition: border-color ease-in-out .1s;
+      transition: border-color ease-in-out 0.1s;
       border-radius: 3px;
       background-color: ${(props) => props.theme.modal.input.bg};
       border: 1px solid ${(props) => props.theme.modal.input.border};

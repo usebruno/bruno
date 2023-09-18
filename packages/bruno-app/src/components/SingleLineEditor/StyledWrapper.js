@@ -49,7 +49,6 @@ const StyledWrapper = styled.div`
       padding-right: 0;
     }
   }
-  
 `;
 
 export default StyledWrapper;

@@ -1,9 +1,9 @@
 /**
  * Preferences Provider
- * 
+ *
  * This provider is responsible for managing the user's preferences in the app.
  * The preferences are stored in the browser local storage.
- * 
+ *
  * On start, an IPC event is published to the main process to set the preferences in the electron process.
  */
 
@@ -30,21 +30,20 @@ export const PreferencesProvider = (props) => {
   const { ipcRenderer } = window;
 
   useEffect(() => {
-    ipcRenderer
-      .invoke('renderer:set-preferences', preferences)
-      .catch(err => {
-        toast.error(err.message || 'Preferences sync error');
-      });
+    ipcRenderer.invoke('renderer:set-preferences', preferences).catch((err) => {
+      toast.error(err.message || 'Preferences sync error');
+    });
   }, [preferences, toast]);
 
   const validatedSetPreferences = (newPreferences) => {
     return new Promise((resolve, reject) => {
-      preferencesSchema.validate(newPreferences, { abortEarly: true })
-        .then(validatedPreferences => {
+      preferencesSchema
+        .validate(newPreferences, { abortEarly: true })
+        .then((validatedPreferences) => {
           setPreferences(validatedPreferences);
           resolve(validatedPreferences);
         })
-        .catch(error => {
+        .catch((error) => {
           let errMsg = error.message || 'Preferences validation error';
           toast.error(errMsg);
           reject(error);
@@ -60,9 +59,7 @@ export const PreferencesProvider = (props) => {
 
   return (
     <PreferencesContext.Provider value={value}>
-      <>
-        {props.children}
-      </>
+      <>{props.children}</>
     </PreferencesContext.Provider>
   );
 };

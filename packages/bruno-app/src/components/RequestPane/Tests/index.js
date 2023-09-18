@@ -11,9 +11,7 @@ const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
 
-  const {
-    storedTheme
-  } = useTheme();
+  const { storedTheme } = useTheme();
 
   const onEdit = (value) => {
     dispatch(
@@ -31,10 +29,11 @@ const Tests = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full">
       <CodeEditor
-        collection={collection} value={tests || ''}
+        collection={collection}
+        value={tests || ''}
         theme={storedTheme}
         onEdit={onEdit}
-        mode='javascript'
+        mode="javascript"
         onRun={onRun}
         onSave={onSave}
       />

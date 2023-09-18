@@ -10,9 +10,11 @@ const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
 
   const handleRun = () => {
-    dispatch(toggleRunnerView({
-      collectionUid: collection.uid
-    }));
+    dispatch(
+      toggleRunnerView({
+        collectionUid: collection.uid
+      })
+    );
   };
 
   return (
@@ -26,7 +28,7 @@ const CollectionToolBar = ({ collection }) => {
           <span className="mr-2">
             <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>
-          <VariablesView collection={collection}/>
+          <VariablesView collection={collection} />
           <EnvironmentSelector collection={collection} />
         </div>
       </div>

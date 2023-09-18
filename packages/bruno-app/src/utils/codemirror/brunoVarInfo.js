@@ -14,7 +14,7 @@ if (!SERVER_RENDERED) {
 
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
-    if(!str || !str.length || typeof str !== 'string') {
+    if (!str || !str.length || typeof str !== 'string') {
       return;
     }
     // str is of format {{variableName}}, extract variableName
@@ -32,8 +32,7 @@ if (!SERVER_RENDERED) {
     return into;
   };
 
-  CodeMirror.defineOption('brunoVarInfo', false, function(cm, options, old) {
-
+  CodeMirror.defineOption('brunoVarInfo', false, function (cm, options, old) {
     if (old && old !== CodeMirror.Init) {
       const oldOnMouseOver = cm.state.brunoVarInfo.onMouseOver;
       CodeMirror.off(cm.getWrapperElement(), 'mouseover', oldOnMouseOver);
@@ -50,10 +49,7 @@ if (!SERVER_RENDERED) {
 
   function createState(options) {
     return {
-      options:
-        options instanceof Function
-          ? {render: options}
-          : options === true ? {} : options,
+      options: options instanceof Function ? { render: options } : options === true ? {} : options
     };
   }
 
@@ -70,7 +66,7 @@ if (!SERVER_RENDERED) {
       return;
     }
 
-    if(target.className !== 'cm-variable-valid') {
+    if (target.className !== 'cm-variable-valid') {
       return;
     }
 
@@ -79,19 +75,19 @@ if (!SERVER_RENDERED) {
     const hoverTime = getHoverTime(cm);
     state.hoverTimeout = setTimeout(onHover, hoverTime);
 
-    const onMouseMove = function() {
+    const onMouseMove = function () {
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = setTimeout(onHover, hoverTime);
     };
 
-    const onMouseOut = function() {
+    const onMouseOut = function () {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       clearTimeout(state.hoverTimeout);
       state.hoverTimeout = undefined;
     };
 
-    const onHover = function() {
+    const onHover = function () {
       CodeMirror.off(document, 'mousemove', onMouseMove);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
       state.hoverTimeout = undefined;
@@ -105,7 +101,7 @@ if (!SERVER_RENDERED) {
   function onMouseHover(cm, box) {
     const pos = cm.coordsChar({
       left: (box.left + box.right) / 2,
-      top: (box.top + box.bottom) / 2,
+      top: (box.top + box.bottom) / 2
     });
 
     const state = cm.state.brunoVarInfo;
@@ -128,21 +124,12 @@ if (!SERVER_RENDERED) {
     const popupBox = popup.getBoundingClientRect();
     const popupStyle = popup.currentStyle || window.getComputedStyle(popup);
     const popupWidth =
-      popupBox.right -
-      popupBox.left +
-      parseFloat(popupStyle.marginLeft) +
-      parseFloat(popupStyle.marginRight);
+      popupBox.right - popupBox.left + parseFloat(popupStyle.marginLeft) + parseFloat(popupStyle.marginRight);
     const popupHeight =
-      popupBox.bottom -
-      popupBox.top +
-      parseFloat(popupStyle.marginTop) +
-      parseFloat(popupStyle.marginBottom);
+      popupBox.bottom - popupBox.top + parseFloat(popupStyle.marginTop) + parseFloat(popupStyle.marginBottom);
 
     let topPos = box.bottom;
-    if (
-      popupHeight > window.innerHeight - box.bottom - 15 &&
-      box.top > window.innerHeight - box.bottom
-    ) {
+    if (popupHeight > window.innerHeight - box.bottom - 15 && box.top > window.innerHeight - box.bottom) {
       topPos = box.top - popupHeight;
     }
 
@@ -166,23 +153,23 @@ if (!SERVER_RENDERED) {
 
     let popupTimeout;
 
-    const onMouseOverPopup = function() {
+    const onMouseOverPopup = function () {
       clearTimeout(popupTimeout);
     };
 
-    const onMouseOut = function() {
+    const onMouseOut = function () {
       clearTimeout(popupTimeout);
       popupTimeout = setTimeout(hidePopup, 200);
     };
 
-    const hidePopup = function() {
+    const hidePopup = function () {
       CodeMirror.off(popup, 'mouseover', onMouseOverPopup);
       CodeMirror.off(popup, 'mouseout', onMouseOut);
       CodeMirror.off(cm.getWrapperElement(), 'mouseout', onMouseOut);
 
       if (popup.style.opacity) {
         popup.style.opacity = 0;
-        setTimeout(function() {
+        setTimeout(function () {
           if (popup.parentNode) {
             popup.parentNode.removeChild(popup);
           }

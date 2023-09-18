@@ -29,9 +29,7 @@ export const AppProvider = (props) => {
 
   return (
     <AppContext.Provider {...props} value="appProvider">
-      <StyledWrapper>
-        {props.children}
-      </StyledWrapper>
+      <StyledWrapper>{props.children}</StyledWrapper>
     </AppContext.Provider>
   );
 };

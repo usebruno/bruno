@@ -99,7 +99,12 @@ const EnvironmentVariables = ({ environment, collection }) => {
                     </td>
                     <td>
                       <div className="flex items-center">
-                        <input type="checkbox" checked={variable.enabled} className="mr-3 mousetrap" onChange={(e) => handleVarChange(e, variable, 'enabled')} />
+                        <input
+                          type="checkbox"
+                          checked={variable.enabled}
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleVarChange(e, variable, 'enabled')}
+                        />
                         <button onClick={() => handleRemoveVars(variable)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
@@ -119,7 +124,12 @@ const EnvironmentVariables = ({ environment, collection }) => {
       </div>
 
       <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" disabled={!hasChanges} onClick={saveChanges}>
+        <button
+          type="submit"
+          className="submit btn btn-md btn-secondary mt-2"
+          disabled={!hasChanges}
+          onClick={saveChanges}
+        >
           Save
         </button>
       </div>

@@ -33,22 +33,13 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
       <div>
-        <div
-          className='text-link hover:underline cursor-pointer'
-          onClick={handleImportBrunoCollection}
-        >
+        <div className="text-link hover:underline cursor-pointer" onClick={handleImportBrunoCollection}>
           Bruno Collection
         </div>
-        <div
-          className='text-link hover:underline cursor-pointer mt-2'
-          onClick={handleImportPostmanCollection}
-        >
+        <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportPostmanCollection}>
           Postman Collection
         </div>
-        <div
-          className='text-link hover:underline cursor-pointer mt-2'
-          onClick={handleImportInsomniaCollection}
-        >
+        <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportInsomniaCollection}>
           Insomnia Collection
         </div>
       </div>

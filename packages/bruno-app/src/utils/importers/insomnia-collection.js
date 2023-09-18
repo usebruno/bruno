@@ -21,15 +21,14 @@ const parseGraphQL = (text) => {
     return {
       query: graphql.query,
       variables: JSON.stringify(graphql.variables, null, 2)
-    }
+    };
   } catch (e) {
     return {
       query: '',
       variables: {}
-    }
+    };
   }
-}
-  
+};
 
 const transformInsomniaRequestItem = (request) => {
   const brunoRequestItem = {
@@ -111,7 +110,6 @@ const transformInsomniaRequestItem = (request) => {
     brunoRequestItem.request.body.graphql = parseGraphQL(request.body.text);
   }
 
-
   return brunoRequestItem;
 };
 
@@ -119,7 +117,7 @@ const parseInsomniaCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
-    version: "1",
+    version: '1',
     items: [],
     environments: []
   };
@@ -128,7 +126,9 @@ const parseInsomniaCollection = (data) => {
     try {
       const insomniaExport = JSON.parse(data);
       const insomniaResources = get(insomniaExport, 'resources', []);
-      const insomniaCollection = insomniaResources.find(resource => resource._type === 'workspace' && resource.scope === 'collection');
+      const insomniaCollection = insomniaResources.find(
+        (resource) => resource._type === 'workspace' && resource.scope === 'collection'
+      );
 
       if (!insomniaCollection) {
         reject(new BrunoError('Collection not found inside Insomnia export'));
@@ -136,31 +136,33 @@ const parseInsomniaCollection = (data) => {
 
       brunoCollection.name = insomniaCollection.name;
 
-      const requestsAndFolders = insomniaResources.filter(
-        (resource) => resource._type === 'request' || resource._type === 'request_group'
-      ) || [];
+      const requestsAndFolders =
+        insomniaResources.filter((resource) => resource._type === 'request' || resource._type === 'request_group') ||
+        [];
 
       function createFolderStructure(resources, parentId = null) {
-        const requestGroups = resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
+        const requestGroups =
+          resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
         const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
 
         const folders = requestGroups.map((folder) => {
-          const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === folder._id);
+          const requests = resources.filter(
+            (resource) => resource._type === 'request' && resource.parentId === folder._id
+          );
 
           return {
             uid: uuid(),
             name: folder.name,
             type: 'folder',
-            items: createFolderStructure(resources, folder._id).concat(requests.map(transformInsomniaRequestItem)),
-          }
+            items: createFolderStructure(resources, folder._id).concat(requests.map(transformInsomniaRequestItem))
+          };
         });
 
         return folders.concat(requests.map(transformInsomniaRequestItem));
       }
 
-      brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id),
-
-      resolve(brunoCollection);
+      (brunoCollection.items = createFolderStructure(requestsAndFolders, insomniaCollection._id)),
+        resolve(brunoCollection);
     } catch (err) {
       reject(new BrunoError('An error occurred while parsing the Insomnia collection'));
     }

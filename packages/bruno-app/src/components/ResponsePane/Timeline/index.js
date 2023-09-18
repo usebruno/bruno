@@ -3,7 +3,7 @@ import forOwn from 'lodash/forOwn';
 import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
 
-const Timeline = ({ request, response}) => {
+const Timeline = ({ request, response }) => {
   const requestHeaders = [];
   const responseHeaders = response.headers || [];
 
@@ -22,32 +22,32 @@ const Timeline = ({ request, response}) => {
   return (
     <StyledWrapper className="px-3 pb-4 w-full">
       <div>
-        <pre className='line request font-bold'>
+        <pre className="line request font-bold">
           <span className="arrow">{'>'}</span> {request.method} {request.url}
         </pre>
         {requestHeaders.map((h) => {
           return (
-            <pre className='line request' key={h.name}>
+            <pre className="line request" key={h.name}>
               <span className="arrow">{'>'}</span> {h.name}: {h.value}
             </pre>
           );
         })}
 
         {requestData ? (
-          <pre className='line request'>
+          <pre className="line request">
             <span className="arrow">{'>'}</span> data {requestData}
           </pre>
         ) : null}
       </div>
 
-      <div className='mt-4'>
-        <pre className='line response font-bold'>
+      <div className="mt-4">
+        <pre className="line response font-bold">
           <span className="arrow">{'<'}</span> {response.status} {response.statusText}
         </pre>
 
         {responseHeaders.map((h) => {
           return (
-            <pre className='line response' key={h[0]}>
+            <pre className="line response" key={h[0]}>
               <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
             </pre>
           );

@@ -21,11 +21,11 @@ const NewFolder = ({ collection, item, onClose }) => {
         .test({
           name: 'folderName',
           message: 'The folder name "environments" at the root of the collection is reserved in bruno',
-          test:(value) => {
-            if(item && item.uid) {
+          test: (value) => {
+            if (item && item.uid) {
               return true;
             }
-            return value && !(value.trim().toLowerCase().includes('environments'))
+            return value && !value.trim().toLowerCase().includes('environments');
           }
         })
     }),
@@ -64,7 +64,9 @@ const NewFolder = ({ collection, item, onClose }) => {
             onChange={formik.handleChange}
             value={formik.values.folderName || ''}
           />
-          {formik.touched.folderName && formik.errors.folderName ? <div className="text-red-500">{formik.errors.folderName}</div> : null}
+          {formik.touched.folderName && formik.errors.folderName ? (
+            <div className="text-red-500">{formik.errors.folderName}</div>
+          ) : null}
         </div>
       </form>
     </Modal>

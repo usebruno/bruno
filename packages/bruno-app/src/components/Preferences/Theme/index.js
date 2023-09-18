@@ -22,7 +22,7 @@ const Theme = () => {
 
   return (
     <StyledWrapper>
-      <div className='bruno-form'>
+      <div className="bruno-form">
         <div className="flex items-center mt-2">
           <input
             id="light-theme"
@@ -31,7 +31,7 @@ const Theme = () => {
             name="theme"
             onChange={(e) => {
               formik.handleChange(e);
-              formik.handleSubmit()
+              formik.handleSubmit();
             }}
             value="light"
             checked={formik.values.theme === 'light'}
@@ -47,7 +47,7 @@ const Theme = () => {
             name="theme"
             onChange={(e) => {
               formik.handleChange(e);
-              formik.handleSubmit()
+              formik.handleSubmit();
             }}
             value="dark"
             checked={formik.values.theme === 'dark'}

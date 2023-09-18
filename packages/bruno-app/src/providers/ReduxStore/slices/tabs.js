@@ -80,6 +80,7 @@ export const tabsSlice = createSlice({
   }
 });
 
-export const { addTab, focusTab, updateRequestPaneTabWidth, updateRequestPaneTab, updateResponsePaneTab, closeTabs } = tabsSlice.actions;
+export const { addTab, focusTab, updateRequestPaneTabWidth, updateRequestPaneTab, updateResponsePaneTab, closeTabs } =
+  tabsSlice.actions;
 
 export default tabsSlice.reducer;

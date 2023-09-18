@@ -23,7 +23,7 @@ const getPlatform = () => {
 };
 
 const getPosthogClient = () => {
-  if(posthogClient) {
+  if (posthogClient) {
     return posthogClient;
   }
 
@@ -34,7 +34,7 @@ const getPosthogClient = () => {
 const getAnonymousTrackingId = () => {
   let id = localStorage.getItem('bruno.anonymousTrackingId');
 
-  if(!id || !id.length || id.length !== 21) {
+  if (!id || !id.length || id.length !== 21) {
     id = uuid();
     localStorage.setItem('bruno.anonymousTrackingId', id);
   }
@@ -43,11 +43,11 @@ const getAnonymousTrackingId = () => {
 };
 
 const trackStart = () => {
-  if(isPlaywrightTestRunning()) {
+  if (isPlaywrightTestRunning()) {
     return;
   }
 
-  if(isDevEnv()) {
+  if (isDevEnv()) {
     return;
   }
 
@@ -67,7 +67,7 @@ const trackStart = () => {
 const useTelemetry = () => {
   useEffect(() => {
     trackStart();
-    setInterval(trackStart , 24 * 60 * 60 * 1000);
+    setInterval(trackStart, 24 * 60 * 60 * 1000);
   }, []);
 };
 

@@ -16,7 +16,10 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
       name: environment.name
     },
     validationSchema: Yup.object({
-      name: Yup.string().min(1, 'must be atleast 1 characters').max(50, 'must be 50 characters or less').required('name is required')
+      name: Yup.string()
+        .min(1, 'must be atleast 1 characters')
+        .max(50, 'must be 50 characters or less')
+        .required('name is required')
     }),
     onSubmit: (values) => {
       dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
@@ -40,7 +43,13 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
 
   return (
     <Portal>
-      <Modal size="sm" title={'Rename Environment'} confirmText="Rename" handleConfirm={onSubmit} handleCancel={onClose}>
+      <Modal
+        size="sm"
+        title={'Rename Environment'}
+        confirmText="Rename"
+        handleConfirm={onSubmit}
+        handleCancel={onClose}
+      >
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
             <label htmlFor="name" className="block font-semibold">
@@ -59,7 +68,9 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
               onChange={formik.handleChange}
               value={formik.values.name || ''}
             />
-            {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
+            {formik.touched.name && formik.errors.name ? (
+              <div className="text-red-500">{formik.errors.name}</div>
+            ) : null}
           </div>
         </form>
       </Modal>

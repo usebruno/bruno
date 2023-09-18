@@ -11,11 +11,21 @@ const EnvironmentSettings = ({ collection, onClose }) => {
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal size="md" title="Environments" confirmText={'Close'} handleConfirm={onClose} handleCancel={onClose} hideCancel={true}>
+        <Modal
+          size="md"
+          title="Environments"
+          confirmText={'Close'}
+          handleConfirm={onClose}
+          handleCancel={onClose}
+          hideCancel={true}
+        >
           {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
           <div className="text-center">
             <p>No environments found!</p>
-            <button className="btn-create-environment text-link pr-2 py-3 mt-2 select-none" onClick={() => setOpenCreateModal(true)}>
+            <button
+              className="btn-create-environment text-link pr-2 py-3 mt-2 select-none"
+              onClick={() => setOpenCreateModal(true)}
+            >
               + <span>Create Environment</span>
             </button>
           </div>

@@ -9,9 +9,7 @@ import StyledWrapper from './StyledWrapper';
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
 
-  const {
-    storedTheme
-  } = useTheme();
+  const { storedTheme } = useTheme();
 
   const onEdit = (value) => {
     dispatch(
@@ -29,10 +27,11 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   return (
     <StyledWrapper className="w-full">
       <CodeEditor
-        collection={collection} value={variables || ''}
+        collection={collection}
+        value={variables || ''}
         theme={storedTheme}
         onEdit={onEdit}
-        mode='javascript'
+        mode="javascript"
         onRun={onRun}
         onSave={onSave}
       />

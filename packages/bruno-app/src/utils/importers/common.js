@@ -1,4 +1,3 @@
-
 import each from 'lodash/each';
 import get from 'lodash/get';
 
@@ -67,7 +66,7 @@ export const transformItemsInCollection = (collection) => {
 
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
-        if(item.request.query) {
+        if (item.request.query) {
           item.request.params = item.request.query;
         }
 
@@ -89,7 +88,7 @@ export const hydrateSeqInCollection = (collection) => {
   const hydrateSeq = (items = []) => {
     let index = 1;
     each(items, (item) => {
-      if(isItemARequest(item) && !item.seq) {
+      if (isItemARequest(item) && !item.seq) {
         item.seq = index;
         index++;
       }
@@ -101,4 +100,4 @@ export const hydrateSeqInCollection = (collection) => {
   hydrateSeq(collection.items);
 
   return collection;
-}
+};

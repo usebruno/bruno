@@ -92,18 +92,29 @@ const RequestHeaders = ({ item, collection }) => {
                         value={header.value}
                         theme={storedTheme}
                         onSave={onSave}
-                        onChange={(newValue) => handleHeaderValueChange({
-                          target: {
-                            value: newValue
-                          }
-                        }, header, 'value')}
+                        onChange={(newValue) =>
+                          handleHeaderValueChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            header,
+                            'value'
+                          )
+                        }
                         onRun={handleRun}
                         collection={collection}
                       />
                     </td>
                     <td>
                       <div className="flex items-center">
-                        <input type="checkbox" checked={header.enabled} className="mr-3 mousetrap" onChange={(e) => handleHeaderValueChange(e, header, 'enabled')} />
+                        <input
+                          type="checkbox"
+                          checked={header.enabled}
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                        />
                         <button onClick={() => handleRemoveHeader(header)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>

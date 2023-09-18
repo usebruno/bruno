@@ -68,18 +68,18 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         <thead>
           <tr>
             <td>Name</td>
-            { varType === 'request' ? (
+            {varType === 'request' ? (
               <td>
-                <div className='flex items-center'>
+                <div className="flex items-center">
                   <span>Value</span>
-                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var"/>
+                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var" />
                 </div>
               </td>
-            ) :  (
+            ) : (
               <td>
-                <div className='flex items-center'>
+                <div className="flex items-center">
                   <span>Expr</span>
-                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var"/>
+                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var" />
                 </div>
               </td>
             )}
@@ -108,11 +108,17 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}
-                        onChange={(newValue) => handleVarChange({
-                          target: {
-                            value: newValue
-                          }
-                        }, _var, 'value')}
+                        onChange={(newValue) =>
+                          handleVarChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            _var,
+                            'value'
+                          )
+                        }
                         onRun={handleRun}
                         collection={collection}
                       />

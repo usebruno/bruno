@@ -15,11 +15,7 @@ import StyledWrapper from './StyledWrapper';
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
 
-  const {
-    requestSent,
-    responseReceived,
-    testResults
-  } = item;
+  const { requestSent, responseReceived, testResults } = item;
 
   const headers = get(item, 'responseReceived.headers', {});
   const status = get(item, 'responseReceived.status', 0);
@@ -31,13 +27,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {
-        return <QueryResult
-          item={item}
-          collection={collection}
-          width={rightPaneWidth}
-          disableRunEventListener={true}
-          value={(responseReceived && responseReceived.data) ? safeStringifyJSON(responseReceived.data, true) : ''}
-        />;
+        return (
+          <QueryResult
+            item={item}
+            collection={collection}
+            width={rightPaneWidth}
+            disableRunEventListener={true}
+            value={responseReceived && responseReceived.data ? safeStringifyJSON(responseReceived.data, true) : ''}
+          />
+        );
       }
       case 'headers': {
         return <ResponseHeaders headers={headers} />;

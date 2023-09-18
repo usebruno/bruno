@@ -14,7 +14,11 @@ const Bruno = ({ width }) => {
           stroke="none"
           points="36,47.2521 32.9167,49.6688 30.4167,49.6688 30.3333,53.5021 31.0833,57.0021 32.1667,58.9188 35,60.4188 39.5833,59.8355 41.1667,58.0855 42.1667,53.8355 41.9167,49.8355 39.9167,50.0855"
         />
-        <polygon fill="#3F3F3F" stroke="none" points="32.5,36.9188 30.9167,40.6688 33.0833,41.9188 34.3333,42.4188 38.6667,42.5855 41.5833,40.3355 39.8333,37.0855" />
+        <polygon
+          fill="#3F3F3F"
+          stroke="none"
+          points="32.5,36.9188 30.9167,40.6688 33.0833,41.9188 34.3333,42.4188 38.6667,42.5855 41.5833,40.3355 39.8333,37.0855"
+        />
       </g>
       <g id="hair" />
       <g id="skin" />
@@ -84,8 +88,27 @@ const Bruno = ({ width }) => {
           strokeWidth="2"
           d="M52.6309,46.4628c0,0-3.0781,6.7216-7.8049,8.2712"
         />
-        <path fill="none" stroke="#000000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="2" d="M19.437,46.969c0,0,3.0781,6.0823,7.8049,7.632" />
-        <line x1="36.2078" x2="36.2078" y1="47.3393" y2="44.3093" fill="none" stroke="#000000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="2" />
+        <path
+          fill="none"
+          stroke="#000000"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="10"
+          strokeWidth="2"
+          d="M19.437,46.969c0,0,3.0781,6.0823,7.8049,7.632"
+        />
+        <line
+          x1="36.2078"
+          x2="36.2078"
+          y1="47.3393"
+          y2="44.3093"
+          fill="none"
+          stroke="#000000"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="10"
+          strokeWidth="2"
+        />
       </g>
     </svg>
   );

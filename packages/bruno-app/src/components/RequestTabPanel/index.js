@@ -33,7 +33,9 @@ const RequestTabPanel = () => {
 
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
-  const [leftPaneWidth, setLeftPaneWidth] = useState(focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2); // 2.2 so that request pane is relatively smaller
+  const [leftPaneWidth, setLeftPaneWidth] = useState(
+    focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
+  ); // 2.2 so that request pane is relatively smaller
   const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   const [dragging, setDragging] = useState(false);
 
@@ -45,10 +47,10 @@ const RequestTabPanel = () => {
   const onSchemaLoad = (schema) => setSchema(schema);
   const toggleDocs = () => setShowGqlDocs((showGqlDocs) => !showGqlDocs);
   const handleGqlClickReference = (reference) => {
-    if(docExplorerRef.current) {
+    if (docExplorerRef.current) {
       docExplorerRef.current.showDocForReference(reference);
     }
-    if(!showGqlDocs) {
+    if (!showGqlDocs) {
       setShowGqlDocs(true);
     }
   };
@@ -66,10 +68,13 @@ const RequestTabPanel = () => {
     if (dragging) {
       e.preventDefault();
       let leftPaneXPosition = e.clientX + 2;
-      if (leftPaneXPosition < (asideWidth+ DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH) || leftPaneXPosition > (screenWidth - MIN_RIGHT_PANE_WIDTH )) {
+      if (
+        leftPaneXPosition < asideWidth + DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH ||
+        leftPaneXPosition > screenWidth - MIN_RIGHT_PANE_WIDTH
+      ) {
         return;
       }
-      setLeftPaneWidth(leftPaneXPosition- asideWidth);
+      setLeftPaneWidth(leftPaneXPosition - asideWidth);
       setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
     }
   };
@@ -114,8 +119,8 @@ const RequestTabPanel = () => {
   }
 
   const showRunner = collection.showRunner;
-  if(showRunner) {
-    return <RunnerResults collection={collection}/>;
+  if (showRunner) {
+    return <RunnerResults collection={collection} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);
@@ -138,7 +143,13 @@ const RequestTabPanel = () => {
       </div>
       <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
-          <div className="px-4" style={{ width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`, height: `calc(100% - ${DEFAULT_PADDING}px)` }}>
+          <div
+            className="px-4"
+            style={{
+              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
+              height: `calc(100% - ${DEFAULT_PADDING}px)`
+            }}
+          >
             {item.type === 'graphql-request' ? (
               <GraphQLRequestPane
                 item={item}
@@ -150,7 +161,9 @@ const RequestTabPanel = () => {
               />
             ) : null}
 
-            {item.type === 'http-request' ? <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} /> : null}
+            {item.type === 'http-request' ? (
+              <HttpRequestPane item={item} collection={collection} leftPaneWidth={leftPaneWidth} />
+            ) : null}
           </div>
         </section>
 
@@ -165,17 +178,13 @@ const RequestTabPanel = () => {
 
       {item.type === 'graphql-request' ? (
         <div className={`graphql-docs-explorer-container ${showGqlDocs ? '' : 'hidden'}`}>
-          <DocExplorer schema={schema} ref={(r) => docExplorerRef.current = r}>
-            <button
-              className='mr-2'
-              onClick={toggleDocs}
-              aria-label="Close Documentation Explorer"
-            >
+          <DocExplorer schema={schema} ref={(r) => (docExplorerRef.current = r)}>
+            <button className="mr-2" onClick={toggleDocs} aria-label="Close Documentation Explorer">
               {'\u2715'}
             </button>
           </DocExplorer>
         </div>
-      ): null}
+      ) : null}
     </StyledWrapper>
   );
 };

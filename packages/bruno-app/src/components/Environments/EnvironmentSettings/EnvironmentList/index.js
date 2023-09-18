@@ -14,12 +14,12 @@ const EnvironmentList = ({ collection }) => {
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
-    if(selectedEnvironment) {
+    if (selectedEnvironment) {
       return;
     }
-      
+
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-    if(environment) {
+    if (environment) {
       setSelectedEnvironment(environment);
     } else {
       setSelectedEnvironment(environments && environments.length ? environments[0] : null);
@@ -28,9 +28,9 @@ const EnvironmentList = ({ collection }) => {
 
   useEffect(() => {
     // check env add
-    if (prevEnvUids && prevEnvUids.length &&  envUids.length > prevEnvUids.length) {
+    if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
-      if(newEnv){
+      if (newEnv) {
         setSelectedEnvironment(newEnv);
       }
     }
@@ -38,7 +38,7 @@ const EnvironmentList = ({ collection }) => {
     // check env delete
     if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
       setSelectedEnvironment(environments && environments.length ? environments[0] : null);
-    }     
+    }
   }, [envUids, environments, prevEnvUids]);
 
   if (!selectedEnvironment) {

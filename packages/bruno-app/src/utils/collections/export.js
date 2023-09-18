@@ -32,11 +32,11 @@ const transformItem = (items = []) => {
       item.request.query = item.request.params;
       delete item.request.params;
 
-      if(item.type === 'graphql-request') {
+      if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }
 
-      if(item.type === 'http-request') {
+      if (item.type === 'http-request') {
         item.type = 'http';
       }
     }
@@ -60,7 +60,6 @@ const exportCollection = (collection) => {
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   transformItem(collection.items);
-
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });

@@ -91,22 +91,33 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor 
+                      <SingleLineEditor
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}
-                        onChange={(newValue) => handleParamChange({
-                          target: {
-                            value: newValue
-                          }
-                        }, param, 'value')}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            param,
+                            'value'
+                          )
+                        }
                         onRun={handleRun}
                         collection={collection}
                       />
                     </td>
                     <td>
                       <div className="flex items-center">
-                        <input type="checkbox" checked={param.enabled} className="mr-3 mousetrap" onChange={(e) => handleParamChange(e, param, 'enabled')} />
+                        <input
+                          type="checkbox"
+                          checked={param.enabled}
+                          className="mr-3 mousetrap"
+                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                        />
                         <button onClick={() => handleRemoveParam(param)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>

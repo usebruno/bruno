@@ -86,9 +86,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const handleClick = (event) => {
-    dispatch(hideRunnerView({
-      collectionUid: collection.uid
-    }));
+    dispatch(
+      hideRunnerView({
+        collectionUid: collection.uid
+      })
+    );
     if (isItemARequest(item)) {
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
@@ -151,12 +153,24 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   return (
     <StyledWrapper className={className}>
-      {renameItemModalOpen && <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />}
-      {cloneItemModalOpen && <CloneCollectionItem item={item} collection={collection} onClose={() => setCloneItemModalOpen(false)} />}
-      {deleteItemModalOpen && <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />}
-      {newRequestModalOpen && <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />}
-      {newFolderModalOpen && <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />}
-      {runCollectionModalOpen && <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />}
+      {renameItemModalOpen && (
+        <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />
+      )}
+      {cloneItemModalOpen && (
+        <CloneCollectionItem item={item} collection={collection} onClose={() => setCloneItemModalOpen(false)} />
+      )}
+      {deleteItemModalOpen && (
+        <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />
+      )}
+      {newRequestModalOpen && (
+        <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />
+      )}
+      {newFolderModalOpen && (
+        <NewFolder item={item} collection={collection} onClose={() => setNewFolderModalOpen(false)} />
+      )}
+      {runCollectionModalOpen && (
+        <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
+      )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -185,7 +199,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
             }}
           >
             <div style={{ width: 16, minWidth: 16 }}>
-              {isFolder ? <IconChevronRight size={16} strokeWidth={2} className={iconClassName} style={{ color: 'rgb(160 160 160)' }} /> : null}
+              {isFolder ? (
+                <IconChevronRight
+                  size={16}
+                  strokeWidth={2}
+                  className={iconClassName}
+                  style={{ color: 'rgb(160 160 160)' }}
+                />
+              ) : null}
             </div>
 
             <div className="ml-1 flex items-center overflow-hidden">

@@ -28,7 +28,14 @@ const SaveRequest = ({ items, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="Save Request" confirmText="Save" cancelText="Cancel" handleCancel={onClose} handleConfirm={onClose}>
+      <Modal
+        size="md"
+        title="Save Request"
+        confirmText="Save"
+        cancelText="Cancel"
+        handleCancel={onClose}
+        handleConfirm={onClose}
+      >
         <p className="mb-2">Select a folder to save request:</p>
         <div className="folder-list">
           {showFolders && showFolders.length

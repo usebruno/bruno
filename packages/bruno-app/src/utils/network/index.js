@@ -35,18 +35,12 @@ export const fetchGqlSchema = async (endpoint, environment) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('fetch-gql-schema', endpoint, environment)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment).then(resolve).catch(reject);
   });
 };
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {
   return new Promise((resolve, reject) => {
-    ipcRenderer
-      .invoke('cancel-http-request', cancelTokenUid)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
   });
 };

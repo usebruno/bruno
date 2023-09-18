@@ -45,20 +45,24 @@ const TitleBar = () => {
   const handleTitleClick = () => dispatch(showHomePage());
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => console.log(err) && toast.error('An error occured while opening the collection'));
+    dispatch(openCollection()).catch(
+      (err) => console.log(err) && toast.error('An error occured while opening the collection')
+    );
   };
 
   return (
     <StyledWrapper className="px-2 py-2">
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
-      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} /> : null}
+      {importCollectionModalOpen ? (
+        <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
+      ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
-      ): null}
+      ) : null}
 
       <div className="flex items-center">
         <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>

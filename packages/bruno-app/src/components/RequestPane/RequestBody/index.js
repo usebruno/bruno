@@ -13,9 +13,7 @@ const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
-  const {
-    storedTheme
-  } = useTheme();
+  const { storedTheme } = useTheme();
 
   const onEdit = (value) => {
     dispatch(
@@ -45,7 +43,15 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <CodeEditor collection={collection} theme={storedTheme} value={bodyContent[bodyMode] || ''} onEdit={onEdit} onRun={onRun} onSave={onSave} mode={codeMirrorMode[bodyMode]} />
+        <CodeEditor
+          collection={collection}
+          theme={storedTheme}
+          value={bodyContent[bodyMode] || ''}
+          onEdit={onEdit}
+          onRun={onRun}
+          onSave={onSave}
+          mode={codeMirrorMode[bodyMode]}
+        />
       </StyledWrapper>
     );
   }

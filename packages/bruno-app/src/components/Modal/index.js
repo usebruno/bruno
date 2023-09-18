@@ -14,7 +14,15 @@ const ModalHeader = ({ title, handleCancel }) => (
 
 const ModalContent = ({ children }) => <div className="bruno-modal-content px-4 py-6">{children}</div>;
 
-const ModalFooter = ({ confirmText, cancelText, handleSubmit, handleCancel, confirmDisabled, hideCancel, hideFooter }) => {
+const ModalFooter = ({
+  confirmText,
+  cancelText,
+  handleSubmit,
+  handleCancel,
+  confirmDisabled,
+  hideCancel,
+  hideFooter
+}) => {
   confirmText = confirmText || 'Save';
   cancelText = cancelText || 'Cancel';
 
@@ -30,7 +38,12 @@ const ModalFooter = ({ confirmText, cancelText, handleSubmit, handleCancel, conf
         </button>
       </span>
       <span>
-        <button type="submit" className="submit btn btn-md btn-secondary" disabled={confirmDisabled} onClick={handleSubmit}>
+        <button
+          type="submit"
+          className="submit btn btn-md btn-secondary"
+          disabled={confirmDisabled}
+          onClick={handleSubmit}
+        >
           {confirmText}
         </button>
       </span>
@@ -38,7 +51,18 @@ const ModalFooter = ({ confirmText, cancelText, handleSubmit, handleCancel, conf
   );
 };
 
-const Modal = ({ size, title, confirmText, cancelText, handleCancel, handleConfirm, children, confirmDisabled, hideCancel, hideFooter }) => {
+const Modal = ({
+  size,
+  title,
+  confirmText,
+  cancelText,
+  handleCancel,
+  handleConfirm,
+  children,
+  confirmDisabled,
+  hideCancel,
+  hideFooter
+}) => {
   const [isClosing, setIsClosing] = useState(false);
   const escFunction = (event) => {
     const escKeyCode = 27;
@@ -64,7 +88,7 @@ const Modal = ({ size, title, confirmText, cancelText, handleCancel, handleConfi
   if (isClosing) {
     classes += ' modal--animate-out';
   }
-  if(hideFooter) {
+  if (hideFooter) {
     classes += ' modal-footer-none';
   }
   return (

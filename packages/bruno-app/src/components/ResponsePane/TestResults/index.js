@@ -5,11 +5,7 @@ const TestResults = ({ results, assertionResults }) => {
   results = results || [];
   assertionResults = assertionResults || [];
   if (!results.length && !assertionResults.length) {
-    return (
-      <div className="px-3">
-        No tests found
-      </div>
-    );
+    return <div className="px-3">No tests found</div>;
   }
 
   const passedTests = results.filter((result) => result.status === 'pass');
@@ -19,7 +15,7 @@ const TestResults = ({ results, assertionResults }) => {
   const failedAssertions = assertionResults.filter((result) => result.status === 'fail');
 
   return (
-    <StyledWrapper className='flex flex-col px-3'>
+    <StyledWrapper className="flex flex-col px-3">
       <div className="py-2 font-medium test-summary">
         Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
       </div>
@@ -27,18 +23,12 @@ const TestResults = ({ results, assertionResults }) => {
         {results.map((result) => (
           <li key={result.uid} className="py-1">
             {result.status === 'pass' ? (
-              <span className="test-success">
-                &#x2714;&nbsp; {result.description}
-              </span>
+              <span className="test-success">&#x2714;&nbsp; {result.description}</span>
             ) : (
               <>
-                <span className="test-failure">
-                  &#x2718;&nbsp; {result.description}
-                </span>
+                <span className="test-failure">&#x2718;&nbsp; {result.description}</span>
                 <br />
-                <span className="error-message pl-8">
-                  {result.error}
-                </span>
+                <span className="error-message pl-8">{result.error}</span>
               </>
             )}
           </li>
@@ -46,7 +36,8 @@ const TestResults = ({ results, assertionResults }) => {
       </ul>
 
       <div className="py-2 font-medium test-summary">
-        Assertions ({assertionResults.length}/{assertionResults.length}), Passed: {passedAssertions.length}, Failed: {failedAssertions.length}
+        Assertions ({assertionResults.length}/{assertionResults.length}), Passed: {passedAssertions.length}, Failed:{' '}
+        {failedAssertions.length}
       </div>
       <ul className="">
         {assertionResults.map((result) => (
@@ -61,9 +52,7 @@ const TestResults = ({ results, assertionResults }) => {
                   &#x2718;&nbsp; {result.lhsExpr}: {result.rhsExpr}
                 </span>
                 <br />
-                <span className="error-message pl-8">
-                  {result.error}
-                </span>
+                <span className="error-message pl-8">{result.error}</span>
               </>
             )}
           </li>

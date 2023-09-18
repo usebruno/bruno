@@ -31,7 +31,7 @@ const useCollectionTreeSync = () => {
     };
 
     const _collectionTreeUpdated = (type, val) => {
-      if(window.__IS_DEV__) {
+      if (window.__IS_DEV__) {
         console.log(type);
         console.log(val);
       }
@@ -85,10 +85,10 @@ const useCollectionTreeSync = () => {
     };
 
     const _displayError = (error) => {
-      if(typeof error === "string") {
+      if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
       }
-      if(typeof message === "object") {
+      if (typeof message === 'object') {
         return toast.error(error.message || 'Something went wrong!');
       }
     };

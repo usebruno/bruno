@@ -482,7 +482,10 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.body.formUrlEncoded = filter(item.draft.request.body.formUrlEncoded, (p) => p.uid !== action.payload.paramUid);
+          item.draft.request.body.formUrlEncoded = filter(
+            item.draft.request.body.formUrlEncoded,
+            (p) => p.uid !== action.payload.paramUid
+          );
         }
       }
     },
@@ -537,7 +540,10 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.body.multipartForm = filter(item.draft.request.body.multipartForm, (p) => p.uid !== action.payload.paramUid);
+          item.draft.request.body.multipartForm = filter(
+            item.draft.request.body.multipartForm,
+            (p) => p.uid !== action.payload.paramUid
+          );
         }
       }
     },
@@ -729,7 +735,9 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          item.draft.request.assertions = item.draft.request.assertions.filter((a) => a.uid !== action.payload.assertUid);
+          item.draft.request.assertions = item.draft.request.assertions.filter(
+            (a) => a.uid !== action.payload.assertUid
+          );
         }
       }
     },
@@ -744,7 +752,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          if(type === 'request') {
+          if (type === 'request') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req.push({
@@ -754,7 +762,7 @@ export const collectionsSlice = createSlice({
               local: false,
               enabled: true
             });
-          } else if(type === 'response') {
+          } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             item.draft.request.vars.res.push({
@@ -779,7 +787,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          if(type === 'request') {
+          if (type === 'request') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.req = item.draft.request.vars.req || [];
 
@@ -790,7 +798,7 @@ export const collectionsSlice = createSlice({
               reqVar.description = action.payload.var.description;
               reqVar.enabled = action.payload.var.enabled;
             }
-          } else if(type === 'response') {
+          } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             const resVar = find(item.draft.request.vars.res, (v) => v.uid === action.payload.var.uid);
@@ -815,11 +823,11 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          if(type === 'request') {
+          if (type === 'request') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.req = item.draft.request.vars.req || [];
             item.draft.request.vars.req = item.draft.request.vars.req.filter((v) => v.uid !== action.payload.varUid);
-          } else if(type === 'response') {
+          } else if (type === 'response') {
             item.draft.request.vars = item.draft.request.vars || {};
             item.draft.request.vars.res = item.draft.request.vars.res || [];
             item.draft.request.vars.res = item.draft.request.vars.res.filter((v) => v.uid !== action.payload.varUid);
@@ -922,7 +930,7 @@ export const collectionsSlice = createSlice({
           // whenever a user attempts to sort a req within the same folder
           // the seq is updated, but everything else remains the same
           // we don't want to lose the draft in this case
-          if(areItemsTheSameExceptSeqUpdate(item, file.data)) {
+          if (areItemsTheSameExceptSeqUpdate(item, file.data)) {
             item.seq = file.data.seq;
           } else {
             item.name = file.data.name;
@@ -968,16 +976,16 @@ export const collectionsSlice = createSlice({
         collection.environments = collection.environments || [];
 
         const existingEnv = collection.environments.find((e) => e.uid === environment.uid);
-        
+
         if (existingEnv) {
           existingEnv.variables = environment.variables;
         } else {
           collection.environments.push(environment);
 
           const lastAction = collection.lastAction;
-          if(lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
+          if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
             collection.lastAction = null;
-            if(lastAction.payload === environment.name) {
+            if (lastAction.payload === environment.name) {
               collection.activeEnvironmentUid = environment.uid;
             }
           }
@@ -1031,7 +1039,7 @@ export const collectionsSlice = createSlice({
       if (collection) {
         const item = findItemInCollection(collection, itemUid);
         if (item) {
-          if(type === 'request-queued') {
+          if (type === 'request-queued') {
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
             item.requestState = 'queued';
@@ -1039,24 +1047,24 @@ export const collectionsSlice = createSlice({
             item.cancelTokenUid = cancelTokenUid;
           }
 
-          if(type === 'request-sent') {
+          if (type === 'request-sent') {
             const { cancelTokenUid, requestSent } = action.payload;
             item.requestSent = requestSent;
 
             // sometimes the response is received before the request-sent event arrives
-            if(item.requestUid === requestUid && item.requestState === 'queued') {
+            if (item.requestUid === requestUid && item.requestState === 'queued') {
               item.requestUid = requestUid;
               item.requestState = 'sending';
               item.cancelTokenUid = cancelTokenUid;
             }
           }
 
-          if(type === 'assertion-results') {
+          if (type === 'assertion-results') {
             const { results } = action.payload;
             item.assertionResults = results;
           }
 
-          if(type === 'test-results') {
+          if (type === 'test-results') {
             const { results } = action.payload;
             item.testResults = results;
           }
@@ -1071,11 +1079,11 @@ export const collectionsSlice = createSlice({
         const folder = findItemInCollection(collection, folderUid);
         const request = findItemInCollection(collection, itemUid);
 
-        collection.runnerResult = collection.runnerResult || {info: {}, items: []};
+        collection.runnerResult = collection.runnerResult || { info: {}, items: [] };
 
         // todo
         // get startedAt and endedAt from the runner and display it in the UI
-        if(type === 'testrun-started') {
+        if (type === 'testrun-started') {
           const info = collection.runnerResult.info;
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
@@ -1083,46 +1091,45 @@ export const collectionsSlice = createSlice({
           info.status = 'started';
         }
 
-        if(type === 'testrun-ended') {
+        if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
         }
 
-
-        if(type === 'request-queued') {
+        if (type === 'request-queued') {
           collection.runnerResult.items.push({
             uid: request.uid,
             status: 'queued'
           });
         }
 
-        if(type === 'request-sent') {
+        if (type === 'request-sent') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
         }
 
-        if(type === 'response-received') {
+        if (type === 'response-received') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
         }
 
-        if(type === 'test-results') {
+        if (type === 'test-results') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.testResults = action.payload.testResults;
         }
 
-        if(type === 'assertion-results') {
+        if (type === 'assertion-results') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
         }
 
-        if(type === 'error') {
+        if (type === 'error') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
-          item.status = "error";
+          item.status = 'error';
         }
       }
     },

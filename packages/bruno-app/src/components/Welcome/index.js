@@ -18,7 +18,9 @@ const Welcome = () => {
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
-    dispatch(openCollection()).catch((err) => console.log(err) && toast.error('An error occured while opening the collection'));
+    dispatch(openCollection()).catch(
+      (err) => console.log(err) && toast.error('An error occured while opening the collection')
+    );
   };
 
   const handleImportCollection = (collection) => {
@@ -37,14 +39,16 @@ const Welcome = () => {
   return (
     <StyledWrapper className="pb-4 px-6 mt-6">
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
-      {importCollectionModalOpen ? <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} /> : null}
+      {importCollectionModalOpen ? (
+        <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
+      ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
-      ): null}
+      ) : null}
 
       <div className="">
         <Bruno width={50} />
@@ -61,14 +65,14 @@ const Welcome = () => {
           </span>
         </div>
         <div className="flex items-center ml-6" onClick={handleOpenCollection}>
-            <IconFolders size={18} strokeWidth={2} />
-            <span className="label ml-2">
-              Open Collection
-            </span>
-          </div>
+          <IconFolders size={18} strokeWidth={2} />
+          <span className="label ml-2">Open Collection</span>
+        </div>
         <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
           <IconUpload size={18} strokeWidth={2} />
-          <span className="label ml-2" id="import-collection">Import Collection</span>
+          <span className="label ml-2" id="import-collection">
+            Import Collection
+          </span>
         </div>
       </div>
 
