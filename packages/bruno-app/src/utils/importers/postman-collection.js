@@ -91,7 +91,10 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           }
 
           if (bodyMode === 'raw') {
-            const language = get(i, 'request.body.options.raw.language');
+            let language = get(i, 'request.body.options.raw.language');
+            if (!language) {
+              language = searchLanguageByHeader(i.request.header);
+            }
             if (language === 'json') {
               brunoRequestItem.request.body.mode = 'json';
               brunoRequestItem.request.body.json = i.request.body.raw;
@@ -129,6 +132,21 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
       }
     }
   });
+};
+
+const searchLanguageByHeader = (headers) => {
+  let contentType;
+  each(headers, (header) => {
+    if (header.key.toLowerCase() === 'content-type' && !header.disabled) {
+      if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(header.value)) {
+        contentType = 'json';
+      } else if (typeof header.value == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(header.value)) {
+        contentType = 'xml';
+      }
+      return false;
+    }
+  });
+  return contentType;
 };
 
 const importPostmanV2Collection = (collection) => {
