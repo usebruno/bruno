@@ -20,17 +20,13 @@ type SchemaDocProps = {
 export default function SchemaDoc({ schema, onClickType }: SchemaDocProps) {
   const queryType = schema.getQueryType();
   const mutationType = schema.getMutationType && schema.getMutationType();
-  const subscriptionType =
-    schema.getSubscriptionType && schema.getSubscriptionType();
+  const subscriptionType = schema.getSubscriptionType && schema.getSubscriptionType();
 
   return (
     <div>
       <MarkdownContent
         className="doc-type-description"
-        markdown={
-          schema.description ||
-          'A GraphQL schema provides a root type for each kind of operation.'
-        }
+        markdown={schema.description || 'A GraphQL schema provides a root type for each kind of operation.'}
       />
       <div className="doc-category">
         <div className="doc-category-title">{'root types'}</div>

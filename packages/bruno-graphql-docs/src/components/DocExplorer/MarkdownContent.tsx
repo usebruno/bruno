@@ -12,7 +12,7 @@ type Maybe<T> = T | null | undefined;
 
 const md = new MD({
   // render urls as links, à la github-flavored markdown
-  linkify: true,
+  linkify: true
 });
 
 type MarkdownContentProps = {
@@ -20,18 +20,10 @@ type MarkdownContentProps = {
   className?: string;
 };
 
-export default function MarkdownContent({
-  markdown,
-  className,
-}: MarkdownContentProps) {
+export default function MarkdownContent({ markdown, className }: MarkdownContentProps) {
   if (!markdown) {
     return <div />;
   }
 
-  return (
-    <div
-      className={className}
-      dangerouslySetInnerHTML={{ __html: md.render(markdown) }}
-    />
-  );
+  return <div className={className} dangerouslySetInnerHTML={{ __html: md.render(markdown) }} />;
 }

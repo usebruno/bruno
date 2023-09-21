@@ -17,11 +17,7 @@ type ArgumentProps = {
   showDefaultValue?: boolean;
 };
 
-export default function Argument({
-  arg,
-  onClickType,
-  showDefaultValue,
-}: ArgumentProps) {
+export default function Argument({ arg, onClickType, showDefaultValue }: ArgumentProps) {
   return (
     <span className="arg">
       <span className="arg-name">{arg.name}</span>

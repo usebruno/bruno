@@ -13,7 +13,7 @@ import {
   GraphQLUnionType,
   GraphQLEnumType,
   GraphQLType,
-  GraphQLEnumValue,
+  GraphQLEnumValue
 } from 'graphql';
 
 import Argument from './Argument';
@@ -33,10 +33,7 @@ type TypeDocState = {
   showDeprecated: boolean;
 };
 
-export default class TypeDoc extends React.Component<
-  TypeDocProps,
-  TypeDocState
-> {
+export default class TypeDoc extends React.Component<TypeDocProps, TypeDocState> {
   constructor(props: TypeDocProps) {
     super(props);
     this.state = { showDeprecated: false };
@@ -74,7 +71,7 @@ export default class TypeDoc extends React.Component<
       typesDef = (
         <div id="doc-types" className="doc-category">
           <div className="doc-category-title">{typesTitle}</div>
-          {types.map(subtype => (
+          {types.map((subtype) => (
             <div key={subtype.name} className="doc-category-item">
               <TypeLink type={subtype} onClick={onClickType} />
             </div>
@@ -88,27 +85,19 @@ export default class TypeDoc extends React.Component<
     let deprecatedFieldsDef;
     if (type && 'getFields' in type) {
       const fieldMap = type.getFields();
-      const fields = Object.keys(fieldMap).map(name => fieldMap[name]);
+      const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
       fieldsDef = (
         <div id="doc-fields" className="doc-category">
           <div className="doc-category-title">{'fields'}</div>
           {fields
-            .filter(field => !field.deprecationReason)
-            .map(field => (
-              <Field
-                key={field.name}
-                type={type}
-                field={field}
-                onClickType={onClickType}
-                onClickField={onClickField}
-              />
+            .filter((field) => !field.deprecationReason)
+            .map((field) => (
+              <Field key={field.name} type={type} field={field} onClickType={onClickType} onClickField={onClickField} />
             ))}
         </div>
       );
 
-      const deprecatedFields = fields.filter(field =>
-        Boolean(field.deprecationReason),
-      );
+      const deprecatedFields = fields.filter((field) => Boolean(field.deprecationReason));
       if (deprecatedFields.length > 0) {
         deprecatedFieldsDef = (
           <div id="doc-deprecated-fields" className="doc-category">
@@ -118,7 +107,7 @@ export default class TypeDoc extends React.Component<
                 {'Show deprecated fields...'}
               </button>
             ) : (
-              deprecatedFields.map(field => (
+              deprecatedFields.map((field) => (
                 <Field
                   key={field.name}
                   type={type}
@@ -141,16 +130,14 @@ export default class TypeDoc extends React.Component<
         <div className="doc-category">
           <div className="doc-category-title">{'values'}</div>
           {values
-            .filter(value => Boolean(!value.deprecationReason))
-            .map(value => (
+            .filter((value) => Boolean(!value.deprecationReason))
+            .map((value) => (
               <EnumValue key={value.name} value={value} />
             ))}
         </div>
       );
 
-      const deprecatedValues = values.filter(value =>
-        Boolean(value.deprecationReason),
-      );
+      const deprecatedValues = values.filter((value) => Boolean(value.deprecationReason));
       if (deprecatedValues.length > 0) {
         deprecatedValuesDef = (
           <div className="doc-category">
@@ -160,9 +147,7 @@ export default class TypeDoc extends React.Component<
                 {'Show deprecated values...'}
               </button>
             ) : (
-              deprecatedValues.map(value => (
-                <EnumValue key={value.name} value={value} />
-              ))
+              deprecatedValues.map((value) => <EnumValue key={value.name} value={value} />)
             )}
           </div>
         );
@@ -173,9 +158,7 @@ export default class TypeDoc extends React.Component<
       <div>
         <MarkdownContent
           className="doc-type-description"
-          markdown={
-            ('description' in type && type.description) || 'No Description'
-          }
+          markdown={('description' in type && type.description) || 'No Description'}
         />
         {type instanceof GraphQLObjectType && typesDef}
         {fieldsDef}
@@ -200,9 +183,7 @@ type FieldProps = {
 function Field({ type, field, onClickType, onClickField }: FieldProps) {
   return (
     <div className="doc-category-item">
-      <a
-        className="field-name"
-        onClick={event => onClickField(field, type, event)}>
+      <a className="field-name" onClick={(event) => onClickField(field, type, event)}>
         {field.name}
       </a>
       {'args' in field &&
@@ -211,27 +192,19 @@ function Field({ type, field, onClickType, onClickField }: FieldProps) {
           '(',
           <span key="args">
             {field.args
-              .filter(arg => !arg.deprecationReason)
-              .map(arg => (
+              .filter((arg) => !arg.deprecationReason)
+              .map((arg) => (
                 <Argument key={arg.name} arg={arg} onClickType={onClickType} />
               ))}
           </span>,
-          ')',
+          ')'
         ]}
       {': '}
       <TypeLink type={field.type} onClick={onClickType} />
       <DefaultValue field={field} />
-      {field.description && (
-        <MarkdownContent
-          className="field-short-description"
-          markdown={field.description}
-        />
-      )}
+      {field.description && <MarkdownContent className="field-short-description" markdown={field.description} />}
       {'deprecationReason' in field && field.deprecationReason && (
-        <MarkdownContent
-          className="doc-deprecation"
-          markdown={field.deprecationReason}
-        />
+        <MarkdownContent className="doc-deprecation" markdown={field.deprecationReason} />
       )}
     </div>
   );
@@ -245,16 +218,8 @@ function EnumValue({ value }: EnumValue) {
   return (
     <div className="doc-category-item">
       <div className="enum-value">{value.name}</div>
-      <MarkdownContent
-        className="doc-value-description"
-        markdown={value.description}
-      />
-      {value.deprecationReason && (
-        <MarkdownContent
-          className="doc-deprecation"
-          markdown={value.deprecationReason}
-        />
-      )}
+      <MarkdownContent className="doc-value-description" markdown={value.description} />
+      {value.deprecationReason && <MarkdownContent className="doc-deprecation" markdown={value.deprecationReason} />}
     </div>
   );
 }

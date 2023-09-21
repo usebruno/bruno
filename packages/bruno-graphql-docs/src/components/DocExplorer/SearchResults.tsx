@@ -20,15 +20,9 @@ type SearchResultsProps = {
   onClickField: OnClickFieldFunction;
 };
 
-export default class SearchResults extends React.Component<
-  SearchResultsProps,
-  {}
-> {
+export default class SearchResults extends React.Component<SearchResultsProps, {}> {
   shouldComponentUpdate(nextProps: SearchResultsProps) {
-    return (
-      this.props.schema !== nextProps.schema ||
-      this.props.searchValue !== nextProps.searchValue
-    );
+    return this.props.schema !== nextProps.schema || this.props.searchValue !== nextProps.searchValue;
   }
 
   render() {
@@ -47,15 +41,12 @@ export default class SearchResults extends React.Component<
 
     // Move the within type name to be the first searched.
     if (withinType) {
-      typeNames = typeNames.filter(n => n !== withinType.name);
+      typeNames = typeNames.filter((n) => n !== withinType.name);
       typeNames.unshift(withinType.name);
     }
 
     for (const typeName of typeNames) {
-      if (
-        matchedWithin.length + matchedTypes.length + matchedFields.length >=
-        100
-      ) {
+      if (matchedWithin.length + matchedTypes.length + matchedFields.length >= 100) {
         break;
       }
 
@@ -64,21 +55,19 @@ export default class SearchResults extends React.Component<
         matchedTypes.push(
           <div className="doc-category-item" key={typeName}>
             <TypeLink type={type} onClick={onClickType} />
-          </div>,
+          </div>
         );
       }
 
       if (type && 'getFields' in type) {
         const fields = type.getFields();
-        Object.keys(fields).forEach(fieldName => {
+        Object.keys(fields).forEach((fieldName) => {
           const field = fields[fieldName];
           let matchingArgs;
 
           if (!isMatch(fieldName, searchValue)) {
             if ('args' in field && field.args.length) {
-              matchingArgs = field.args.filter(arg =>
-                isMatch(arg.name, searchValue),
-              );
+              matchingArgs = field.args.filter((arg) => isMatch(arg.name, searchValue));
               if (matchingArgs.length === 0) {
                 return;
               }
@@ -89,28 +78,18 @@ export default class SearchResults extends React.Component<
 
           const match = (
             <div className="doc-category-item" key={typeName + '.' + fieldName}>
-              {withinType !== type && [
-                <TypeLink key="type" type={type} onClick={onClickType} />,
-                '.',
-              ]}
-              <a
-                className="field-name"
-                onClick={event => onClickField(field, type, event)}>
+              {withinType !== type && [<TypeLink key="type" type={type} onClick={onClickType} />, '.']}
+              <a className="field-name" onClick={(event) => onClickField(field, type, event)}>
                 {field.name}
               </a>
               {matchingArgs && [
                 '(',
                 <span key="args">
-                  {matchingArgs.map(arg => (
-                    <Argument
-                      key={arg.name}
-                      arg={arg}
-                      onClickType={onClickType}
-                      showDefaultValue={false}
-                    />
+                  {matchingArgs.map((arg) => (
+                    <Argument key={arg.name} arg={arg} onClickType={onClickType} showDefaultValue={false} />
                   ))}
                 </span>,
-                ')',
+                ')'
               ]}
             </div>
           );
@@ -124,10 +103,7 @@ export default class SearchResults extends React.Component<
       }
     }
 
-    if (
-      matchedWithin.length + matchedTypes.length + matchedFields.length ===
-      0
-    ) {
+    if (matchedWithin.length + matchedTypes.length + matchedFields.length === 0) {
       return <span className="doc-alert-text">{'No results found.'}</span>;
     }
 
@@ -156,7 +132,7 @@ export default class SearchResults extends React.Component<
 
 function isMatch(sourceText: string, searchValue: string) {
   try {
-    const escaped = searchValue.replace(/[^_0-9A-Za-z]/g, ch => '\\' + ch);
+    const escaped = searchValue.replace(/[^_0-9A-Za-z]/g, (ch) => '\\' + ch);
     return sourceText.search(new RegExp(escaped, 'i')) !== -1;
   } catch (e) {
     return sourceText.toLowerCase().indexOf(searchValue.toLowerCase()) !== -1;

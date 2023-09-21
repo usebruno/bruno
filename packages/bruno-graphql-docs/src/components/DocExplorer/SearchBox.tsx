@@ -21,10 +21,7 @@ type SearchBoxState = {
   value: string;
 };
 
-export default class SearchBox extends React.Component<
-  SearchBoxProps,
-  SearchBoxState
-> {
+export default class SearchBox extends React.Component<SearchBoxProps, SearchBoxState> {
   debouncedOnSearch: OnSearchFn;
 
   constructor(props: SearchBoxProps) {
@@ -47,10 +44,7 @@ export default class SearchBox extends React.Component<
           aria-label={this.props.placeholder}
         />
         {this.state.value && (
-          <button
-            className="search-box-clear"
-            onClick={this.handleClear}
-            aria-label="Clear search input">
+          <button className="search-box-clear" onClick={this.handleClear} aria-label="Clear search input">
             {'\u2715'}
           </button>
         )}
@@ -58,7 +52,7 @@ export default class SearchBox extends React.Component<
     );
   }
 
-  handleChange: ChangeEventHandler<HTMLInputElement> = event => {
+  handleChange: ChangeEventHandler<HTMLInputElement> = (event) => {
     const value = event.currentTarget.value;
     this.setState({ value });
     this.debouncedOnSearch(value);

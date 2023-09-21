@@ -25,7 +25,7 @@
 }
 
 .graphql-docs-container .doc-explorer-back {
-  color: #3B5998;
+  color: #3b5998;
   cursor: pointer;
   margin: -7px 0 -6px -8px;
   overflow-x: hidden;
@@ -42,8 +42,8 @@
 }
 
 .graphql-docs-container .doc-explorer-back:before {
-  border-left: 2px solid #3B5998;
-  border-top: 2px solid #3B5998;
+  border-left: 2px solid #3b5998;
+  border-top: 2px solid #3b5998;
   content: '';
   display: inline-block;
   height: 9px;
@@ -74,7 +74,7 @@
   min-width: 300px;
 }
 
-.graphql-docs-container .doc-type-description p:first-child ,
+.graphql-docs-container .doc-type-description p:first-child,
 .graphql-docs-container .doc-type-description blockquote:first-child {
   margin-top: 0;
 }
@@ -100,7 +100,7 @@
 .graphql-docs-container .doc-type-description pre,
 .graphql-docs-container .doc-category code,
 .graphql-docs-container .doc-category pre {
-  --saf-0: rgba(var(--sk_foreground_low,29,28,29),0.13);
+  --saf-0: rgba(var(--sk_foreground_low, 29, 28, 29), 0.13);
   font-size: 12px;
   line-height: 1.50001;
   font-variant-ligatures: none;
@@ -118,7 +118,7 @@
   padding: 2px 3px 1px;
   border: 1px solid var(--saf-0);
   border-radius: 3px;
-  background-color: rgba(var(--sk_foreground_min,29,28,29),.04);
+  background-color: rgba(var(--sk_foreground_min, 29, 28, 29), 0.04);
   color: #e01e5a;
   background-color: white;
 }
@@ -146,15 +146,15 @@
 }
 
 .graphql-docs-container .keyword {
-  color: #B11A04;
+  color: #b11a04;
 }
 
 .graphql-docs-container .type-name {
-  color: #CA9800;
+  color: #ca9800;
 }
 
 .graphql-docs-container .field-name {
-  color: #1F61A0;
+  color: #1f61a0;
 }
 
 .graphql-docs-container .field-short-description {
@@ -165,11 +165,11 @@
 }
 
 .graphql-docs-container .enum-value {
-  color: #0B7FC7;
+  color: #0b7fc7;
 }
 
 .graphql-docs-container .arg-name {
-  color: #8B2BB9;
+  color: #8b2bb9;
 }
 
 .graphql-docs-container .arg {
@@ -189,13 +189,13 @@
 }
 
 .graphql-docs-container .arg-default-value {
-  color: #43A047;
+  color: #43a047;
 }
 
 .graphql-docs-container .doc-deprecation {
   background: #fffae8;
   box-shadow: inset 0 0 1px #bfb063;
-  color: #867F70;
+  color: #867f70;
   line-height: 16px;
   margin: 8px -8px;
   max-height: 80px;

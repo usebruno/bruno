@@ -27,37 +27,27 @@ export default function FieldDoc({ field, onClickType }: FieldDocProps) {
       <div id="doc-args" className="doc-category">
         <div className="doc-category-title">{'arguments'}</div>
         {field.args
-          .filter(arg => !arg.deprecationReason)
+          .filter((arg) => !arg.deprecationReason)
           .map((arg: GraphQLArgument) => (
             <div key={arg.name} className="doc-category-item">
               <div>
                 <Argument arg={arg} onClickType={onClickType} />
               </div>
-              <MarkdownContent
-                className="doc-value-description"
-                markdown={arg.description}
-              />
+              <MarkdownContent className="doc-value-description" markdown={arg.description} />
               {arg && 'deprecationReason' in arg && (
-                <MarkdownContent
-                  className="doc-deprecation"
-                  markdown={arg?.deprecationReason}
-                />
+                <MarkdownContent className="doc-deprecation" markdown={arg?.deprecationReason} />
               )}
             </div>
           ))}
       </div>
     );
-    const deprecatedArgs = field.args.filter(arg =>
-      Boolean(arg.deprecationReason),
-    );
+    const deprecatedArgs = field.args.filter((arg) => Boolean(arg.deprecationReason));
     if (deprecatedArgs.length > 0) {
       deprecatedArgsDef = (
         <div id="doc-deprecated-args" className="doc-category">
           <div className="doc-category-title">{'deprecated arguments'}</div>
           {!showDeprecated ? (
-            <button
-              className="show-btn"
-              onClick={() => handleShowDeprecated(!showDeprecated)}>
+            <button className="show-btn" onClick={() => handleShowDeprecated(!showDeprecated)}>
               {'Show deprecated arguments...'}
             </button>
           ) : (
@@ -66,15 +56,9 @@ export default function FieldDoc({ field, onClickType }: FieldDocProps) {
                 <div>
                   <Argument arg={arg} onClickType={onClickType} />
                 </div>
-                <MarkdownContent
-                  className="doc-value-description"
-                  markdown={arg.description}
-                />
+                <MarkdownContent className="doc-value-description" markdown={arg.description} />
                 {arg && 'deprecationReason' in arg && (
-                  <MarkdownContent
-                    className="doc-deprecation"
-                    markdown={arg?.deprecationReason}
-                  />
+                  <MarkdownContent className="doc-deprecation" markdown={arg?.deprecationReason} />
                 )}
               </div>
             ))
@@ -85,12 +69,7 @@ export default function FieldDoc({ field, onClickType }: FieldDocProps) {
   }
 
   let directivesDef;
-  if (
-    field &&
-    field.astNode &&
-    field.astNode.directives &&
-    field.astNode.directives.length > 0
-  ) {
+  if (field && field.astNode && field.astNode.directives && field.astNode.directives.length > 0) {
     directivesDef = (
       <div id="doc-directives" className="doc-category">
         <div className="doc-category-title">{'directives'}</div>
@@ -107,15 +86,9 @@ export default function FieldDoc({ field, onClickType }: FieldDocProps) {
 
   return (
     <div>
-      <MarkdownContent
-        className="doc-type-description"
-        markdown={field?.description || 'No Description'}
-      />
+      <MarkdownContent className="doc-type-description" markdown={field?.description || 'No Description'} />
       {field && 'deprecationReason' in field && (
-        <MarkdownContent
-          className="doc-deprecation"
-          markdown={field?.deprecationReason}
-        />
+        <MarkdownContent className="doc-deprecation" markdown={field?.deprecationReason} />
       )}
       <div className="doc-category">
         <div className="doc-category-title">{'type'}</div>

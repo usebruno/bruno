@@ -26,9 +26,7 @@ export default function DefaultValue({ field }: DefaultValueProps) {
     return (
       <span>
         {' = '}
-        <span className="arg-default-value">
-          {printDefault(astFromValue(field.defaultValue, field.type))}
-        </span>
+        <span className="arg-default-value">{printDefault(astFromValue(field.defaultValue, field.type))}</span>
       </span>
     );
   }

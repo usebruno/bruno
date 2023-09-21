@@ -7,29 +7,17 @@ import {
   GraphQLInterfaceType,
   GraphQLInputObjectType,
   GraphQLType,
-  GraphQLNamedType,
+  GraphQLNamedType
 } from 'graphql';
 
-export type FieldType =
-  | GraphQLField<{}, {}, {}>
-  | GraphQLInputField
-  | GraphQLArgument;
+export type FieldType = GraphQLField<{}, {}, {}> | GraphQLInputField | GraphQLArgument;
 
 export type OnClickFieldFunction = (
   field: FieldType,
-  type?:
-    | GraphQLObjectType
-    | GraphQLInterfaceType
-    | GraphQLInputObjectType
-    | GraphQLType,
-  event?: MouseEvent,
+  type?: GraphQLObjectType | GraphQLInterfaceType | GraphQLInputObjectType | GraphQLType,
+  event?: MouseEvent
 ) => void;
 
-export type OnClickTypeFunction = (
-  type: GraphQLNamedType,
-  event?: MouseEvent<HTMLAnchorElement>,
-) => void;
+export type OnClickTypeFunction = (type: GraphQLNamedType, event?: MouseEvent<HTMLAnchorElement>) => void;
 
-export type OnClickFieldOrTypeFunction =
-  | OnClickFieldFunction
-  | OnClickTypeFunction;
+export type OnClickFieldOrTypeFunction = OnClickFieldFunction | OnClickTypeFunction;

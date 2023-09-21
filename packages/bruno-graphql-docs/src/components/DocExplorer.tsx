@@ -24,7 +24,7 @@ type NavStackItem = {
 
 const initialNav: NavStackItem = {
   name: 'Schema',
-  title: 'Documentation Explorer',
+  title: 'Documentation Explorer'
 };
 
 type DocExplorerProps = {
@@ -53,10 +53,7 @@ type DocExplorerState = {
  *     top bar. Typically this will be a "close" button for temporary explorer.
  *
  */
-export class DocExplorer extends React.Component<
-  DocExplorerProps,
-  DocExplorerState
-> {
+export class DocExplorer extends React.Component<DocExplorerProps, DocExplorerState> {
   // handleClickTypeOrField: OnClickTypeFunction | OnClickFieldFunction
   constructor(props: DocExplorerProps) {
     super(props);
@@ -64,10 +61,7 @@ export class DocExplorer extends React.Component<
     this.state = { navStack: [initialNav] };
   }
 
-  shouldComponentUpdate(
-    nextProps: DocExplorerProps,
-    nextState: DocExplorerState,
-  ) {
+  shouldComponentUpdate(nextProps: DocExplorerProps, nextState: DocExplorerState) {
     return (
       this.props.schema !== nextProps.schema ||
       this.state.navStack !== nextState.navStack ||
@@ -82,9 +76,7 @@ export class DocExplorer extends React.Component<
 
     let content;
     if (schemaErrors) {
-      content = (
-        <div className="error-container">{'Error fetching schema'}</div>
-      );
+      content = <div className="error-container">{'Error fetching schema'}</div>;
     } else if (schema === undefined) {
       // Schema is undefined when it is being loaded via introspection.
       content = (
@@ -107,9 +99,7 @@ export class DocExplorer extends React.Component<
         />
       );
     } else if (navStack.length === 1) {
-      content = (
-        <SchemaDoc schema={schema} onClickType={this.handleClickType} />
-      );
+      content = <SchemaDoc schema={schema} onClickType={this.handleClickType} />;
     } else if (isType(navItem.def)) {
       content = (
         <TypeDoc
@@ -120,17 +110,10 @@ export class DocExplorer extends React.Component<
         />
       );
     } else {
-      content = (
-        <FieldDoc
-          field={navItem.def as FieldType}
-          onClickType={this.handleClickType}
-        />
-      );
+      content = <FieldDoc field={navItem.def as FieldType} onClickType={this.handleClickType} />;
     }
 
-    const shouldSearchBoxAppear =
-      navStack.length === 1 ||
-      (isType(navItem.def) && 'getFields' in navItem.def);
+    const shouldSearchBoxAppear = navStack.length === 1 || (isType(navItem.def) && 'getFields' in navItem.def);
 
     let prevName;
     if (navStack.length > 1) {
@@ -139,22 +122,18 @@ export class DocExplorer extends React.Component<
 
     return (
       <div className="graphql-docs-container">
-        <section
-          className="doc-explorer"
-          key={navItem.name}
-          aria-label="Documentation Explorer">
+        <section className="doc-explorer" key={navItem.name} aria-label="Documentation Explorer">
           <div className="doc-explorer-title-bar">
             {prevName && (
               <button
                 className="doc-explorer-back"
                 onClick={this.handleNavBackClick}
-                aria-label={`Go back to ${prevName}`}>
+                aria-label={`Go back to ${prevName}`}
+              >
                 {prevName}
               </button>
             )}
-            <div className="doc-explorer-title">
-              {navItem.title || navItem.name}
-            </div>
+            <div className="doc-explorer-title">{navItem.title || navItem.name}</div>
             <div className="doc-explorer-rhs">{this.props.children}</div>
           </div>
           <div className="doc-explorer-contents">
@@ -181,9 +160,9 @@ export class DocExplorer extends React.Component<
         navStack: navStack.concat([
           {
             name: typeOrField.name,
-            def: typeOrField,
-          },
-        ]),
+            def: typeOrField
+          }
+        ])
       });
     }
   }

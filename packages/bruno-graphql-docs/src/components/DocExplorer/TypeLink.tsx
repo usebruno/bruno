@@ -6,12 +6,7 @@
  */
 
 import React from 'react';
-import {
-  GraphQLList,
-  GraphQLNonNull,
-  GraphQLType,
-  GraphQLNamedType,
-} from 'graphql';
+import { GraphQLList, GraphQLNonNull, GraphQLType, GraphQLNamedType } from 'graphql';
 import { OnClickTypeFunction } from './types';
 
 type Maybe<T> = T | null | undefined;
@@ -47,11 +42,12 @@ function renderType(type: Maybe<GraphQLType>, onClick: OnClickTypeFunction) {
   return (
     <a
       className="type-name"
-      onClick={event => {
+      onClick={(event) => {
         event.preventDefault();
         onClick(type as GraphQLNamedType, event);
       }}
-      href="#">
+      href="#"
+    >
       {type?.name}
     </a>
   );
