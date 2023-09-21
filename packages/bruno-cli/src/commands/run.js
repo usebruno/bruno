@@ -1,7 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { exists, isFile, isDirectory, getSubDirectories } = require('../utils/filesystem');
+const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
@@ -103,8 +103,7 @@ const getBruFilesRecursively = (dir) => {
     return bruJsons;
   };
 
-  const bruJsons = getFilesInOrder(dir);
-  return bruJsons;
+  return getFilesInOrder(dir);
 };
 
 const builder = async (yargs) => {
@@ -122,6 +121,10 @@ const builder = async (yargs) => {
       describe: 'Environment variables',
       type: 'string'
     })
+    .option('env-var', {
+      describe: 'Overwrite a single environment variable, multiple usages possible',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -129,12 +132,16 @@ const builder = async (yargs) => {
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
-    .example('$0 run folder -r', 'Run all requests in a folder recursively');
+    .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example(
+      '$0 run request.bru --env local --env-var secret=xxx',
+      'Run a request with the environment set to local and overwrite the variable secret with value xxx'
+    );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, insecure, r: recursive } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -173,6 +180,35 @@ const handler = async function (argv) {
       const envBruContent = fs.readFileSync(envFile, 'utf8');
       const envJson = bruToEnvJson(envBruContent);
       envVars = getEnvVars(envJson);
+    }
+
+    if (envVar) {
+      if (typeof envVar === 'string') {
+        let parts = envVar.split('=');
+        if (parts.length !== 2) {
+          console.error(
+            chalk.red(`overridable environment variable not correct: use name=value - presented: `) +
+              chalk.dim(`${envVar}`)
+          );
+          return;
+        }
+        envVars[parts[0]] = parts[1];
+      } else if (typeof envVar === 'object' && Array.isArray(envVar)) {
+        envVar.forEach((value) => {
+          let parts = value.split('=');
+          if (parts.length !== 2) {
+            console.error(
+              chalk.red(`overridable environment variable not correct: use name=value - presented: `) +
+                chalk.dim(`${value}`)
+            );
+            return;
+          }
+          envVars[parts[0]] = parts[1];
+        });
+      } else {
+        console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
+        return;
+      }
     }
 
     const options = getOptions();
@@ -240,7 +276,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = await getBruFilesRecursively(filename);
+        bruJsons = getBruFilesRecursively(filename);
       }
 
       let assertionResults = [];
