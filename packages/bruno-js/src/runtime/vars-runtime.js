@@ -6,7 +6,7 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
-    if(!enabledVars.length) {
+    if (!enabledVars.length) {
       return;
     }
 
@@ -22,7 +22,7 @@ class VarsRuntime {
       ...envVariables,
       ...collectionVariables,
       ...bruContext
-    }
+    };
 
     _.each(enabledVars, (v) => {
       const value = evaluateJsTemplateLiteral(v.value, context);
@@ -36,7 +36,7 @@ class VarsRuntime {
 
   runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
-    if(!enabledVars.length) {
+    if (!enabledVars.length) {
       return;
     }
 
@@ -54,7 +54,7 @@ class VarsRuntime {
       ...envVariables,
       ...collectionVariables,
       ...bruContext
-    }
+    };
 
     _.each(enabledVars, (v) => {
       const value = evaluateJsExpression(v.value, context);

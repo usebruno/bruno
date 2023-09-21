@@ -12,11 +12,7 @@ chai.use(function (chai, utils) {
     const obj = this._obj;
     const isJson = typeof obj === 'object' && obj !== null && !Array.isArray(obj) && obj.constructor === Object;
 
-    this.assert(
-      isJson,
-      `expected ${utils.inspect(obj)} to be JSON`,
-      `expected ${utils.inspect(obj)} not to be JSON`
-    );
+    this.assert(isJson, `expected ${utils.inspect(obj)} to be JSON`, `expected ${utils.inspect(obj)} not to be JSON`);
   });
 });
 
@@ -25,7 +21,7 @@ chai.use(function (chai, utils) {
   chai.Assertion.addMethod('match', function (regex) {
     const obj = this._obj;
     let match = false;
-    if(obj === undefined) {
+    if (obj === undefined) {
       match = false;
     } else {
       match = regex.test(obj);
@@ -41,7 +37,7 @@ chai.use(function (chai, utils) {
 
 /**
  * Assertion operators
- * 
+ *
  * eq          : equal to
  * neq         : not equal to
  * gt          : greater than
@@ -70,7 +66,7 @@ chai.use(function (chai, utils) {
  * isBoolean   : is boolean
  */
 const parseAssertionOperator = (str = '') => {
-  if(!str || typeof str !== 'string' || !str.length) {
+  if (!str || typeof str !== 'string' || !str.length) {
     return {
       operator: 'eq',
       value: str
@@ -78,27 +74,58 @@ const parseAssertionOperator = (str = '') => {
   }
 
   const operators = [
-    'eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'in', 'notIn',
-    'contains', 'notContains', 'length', 'matches', 'notMatches',
-    'startsWith', 'endsWith', 'between', 'isEmpty', 'isNull', 'isUndefined',
-    'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'eq',
+    'neq',
+    'gt',
+    'gte',
+    'lt',
+    'lte',
+    'in',
+    'notIn',
+    'contains',
+    'notContains',
+    'length',
+    'matches',
+    'notMatches',
+    'startsWith',
+    'endsWith',
+    'between',
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   const unaryOperators = [
-    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   const [operator, ...rest] = str.trim().split(' ');
   const value = rest.join(' ');
 
-  if(unaryOperators.includes(operator)) {
+  if (unaryOperators.includes(operator)) {
     return {
       operator,
       value: ''
     };
   }
 
-  if(operators.includes(operator)) {
+  if (operators.includes(operator)) {
     return {
       operator,
       value
@@ -113,34 +140,43 @@ const parseAssertionOperator = (str = '') => {
 
 const isUnaryOperator = (operator) => {
   const unaryOperators = [
-    'isEmpty', 'isNull', 'isUndefined', 'isDefined', 'isTruthy', 'isFalsy', 'isJson', 'isNumber', 'isString', 'isBoolean'
+    'isEmpty',
+    'isNull',
+    'isUndefined',
+    'isDefined',
+    'isTruthy',
+    'isFalsy',
+    'isJson',
+    'isNumber',
+    'isString',
+    'isBoolean'
   ];
 
   return unaryOperators.includes(operator);
 };
 
 const evaluateRhsOperand = (rhsOperand, operator, context) => {
-  if(isUnaryOperator(operator)) {
+  if (isUnaryOperator(operator)) {
     return;
   }
 
   // gracefully allow both a,b as well as [a, b]
-  if(operator === 'in' || operator === 'notIn') {
-    if(rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
+  if (operator === 'in' || operator === 'notIn') {
+    if (rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
     }
 
     return rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
   }
 
-  if(operator === 'between') {
+  if (operator === 'between') {
     const [lhs, rhs] = rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
     return [lhs, rhs];
   }
 
   // gracefully allow both ^[a-Z] as well as /^[a-Z]/
-  if(operator === 'matches' || operator === 'notMatches') {
-    if(rhsOperand.startsWith('/') && rhsOperand.endsWith('/')) {
+  if (operator === 'matches' || operator === 'notMatches') {
+    if (rhsOperand.startsWith('/') && rhsOperand.endsWith('/')) {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
     }
 
@@ -153,7 +189,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 class AssertRuntime {
   runAssertions(assertions, request, response, envVariables, collectionVariables, collectionPath) {
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
-    if(!enabledAssertions.length) {
+    if (!enabledAssertions.length) {
       return [];
     }
 
@@ -171,7 +207,7 @@ class AssertRuntime {
       ...envVariables,
       ...collectionVariables,
       ...bruContext
-    }
+    };
 
     const assertionResults = [];
 
@@ -179,16 +215,13 @@ class AssertRuntime {
     for (const v of enabledAssertions) {
       const lhsExpr = v.name;
       const rhsExpr = v.value;
-      const {
-        operator,
-        value: rhsOperand
-      } = parseAssertionOperator(rhsExpr);
+      const { operator, value: rhsOperand } = parseAssertionOperator(rhsExpr);
 
       try {
         const lhs = evaluateJsExpression(lhsExpr, context);
         const rhs = evaluateRhsOperand(rhsOperand, operator, context);
 
-        switch(operator) {
+        switch (operator) {
           case 'eq':
             expect(lhs).to.equal(rhs);
             break;
@@ -281,8 +314,7 @@ class AssertRuntime {
           operator,
           status: 'pass'
         });
-      }
-      catch (err) {
+      } catch (err) {
         assertionResults.push({
           uid: nanoid(),
           lhsExpr,

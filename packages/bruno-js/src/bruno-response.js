@@ -12,7 +12,7 @@ class BrunoResponse {
   }
 
   getHeader(name) {
-    return (this.res && this.res.headers) ? this.res.headers[name] : null;
+    return this.res && this.res.headers ? this.res.headers[name] : null;
   }
 
   getHeaders() {

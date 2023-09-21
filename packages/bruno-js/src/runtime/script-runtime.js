@@ -23,10 +23,9 @@ const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 
 class ScriptRuntime {
-  constructor() {
-  }
+  constructor() {}
 
-  async runRequestScript(script, request, envVariables, collectionVariables, collectionPath, onConsoleLog){
+  async runRequestScript(script, request, envVariables, collectionVariables, collectionPath, onConsoleLog) {
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
 
@@ -35,18 +34,18 @@ class ScriptRuntime {
       req
     };
 
-    if(onConsoleLog && typeof onConsoleLog === 'function') {
+    if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
           onConsoleLog(type, args);
-        }
+        };
       };
       context.console = {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
         error: customLogger('error')
-      }
+      };
     }
 
     const vm = new NodeVM({
@@ -78,7 +77,7 @@ class ScriptRuntime {
         }
       }
     });
-    const asyncVM = vm.run(`module.exports = async () => { ${script} }`,  path.join(collectionPath, 'vm.js'));
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
     return {
       request,
@@ -87,7 +86,7 @@ class ScriptRuntime {
     };
   }
 
-  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog){
+  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog) {
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -98,18 +97,18 @@ class ScriptRuntime {
       res
     };
 
-    if(onConsoleLog && typeof onConsoleLog === 'function') {
+    if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
           onConsoleLog(type, args);
-        }
+        };
       };
       context.console = {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
         error: customLogger('error')
-      }
+      };
     }
 
     const vm = new NodeVM({
@@ -132,7 +131,7 @@ class ScriptRuntime {
       }
     });
 
-    const asyncVM = vm.run(`module.exports = async () => { ${script} }`,  path.join(collectionPath, 'vm.js'));
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
 
     return {

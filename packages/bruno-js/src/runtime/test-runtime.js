@@ -1,5 +1,5 @@
 const { NodeVM } = require('vm2');
-const chai = require('chai');  
+const chai = require('chai');
 const path = require('path');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
@@ -17,10 +17,9 @@ const nanoid = require('nanoid');
 const CryptoJS = require('crypto-js');
 
 class TestRuntime {
-  constructor() {
-  }
+  constructor() {}
 
-  runTests(testsFile, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog){
+  runTests(testsFile, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog) {
     const bru = new Bru(envVariables, collectionVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -28,7 +27,7 @@ class TestRuntime {
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
 
-    if(!testsFile || !testsFile.length) {
+    if (!testsFile || !testsFile.length) {
       return {
         request,
         envVariables,
@@ -47,18 +46,18 @@ class TestRuntime {
       __brunoTestResults: __brunoTestResults
     };
 
-    if(onConsoleLog && typeof onConsoleLog === 'function') {
+    if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
           onConsoleLog(type, args);
-        }
+        };
       };
       context.console = {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
         error: customLogger('error')
-      }
+      };
     }
 
     const vm = new NodeVM({

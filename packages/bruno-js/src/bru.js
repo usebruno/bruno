@@ -1,4 +1,3 @@
-
 class Bru {
   constructor(envVariables, collectionVariables) {
     this.envVariables = envVariables;
@@ -18,20 +17,20 @@ class Bru {
   }
 
   setEnvVar(key, value) {
-    if(!key) {
+    if (!key) {
       throw new Error('Key is required');
     }
 
     // gracefully ignore if key is not present in environment
-    if(!this.envVariables.hasOwnProperty(key)) {
-       return;
+    if (!this.envVariables.hasOwnProperty(key)) {
+      return;
     }
 
     this.envVariables[key] = value;
   }
 
   setVar(key, value) {
-    if(!key) {
+    if (!key) {
       throw new Error('Key is required');
     }
 
