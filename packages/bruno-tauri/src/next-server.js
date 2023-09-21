@@ -13,11 +13,11 @@ const devServer = async (dir, port) => {
   server.listen(port || 8000, () => {
     // Todo: Need to listen to tauri close event and close the server
     // app.on('before-quit', () => server.close())
-  })
-}
+  });
+};
 
-const run = async() => {
-  await devServer("../../renderer", 8000);
+const run = async () => {
+  await devServer('../../renderer', 8000);
 };
 
 run();
