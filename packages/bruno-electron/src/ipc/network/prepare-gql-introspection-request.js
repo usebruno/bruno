@@ -7,8 +7,8 @@ Mustache.escape = function (value) {
 };
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars) => {
-  if(endpoint && endpoint.length) {
-    endpoint =  Mustache.render(endpoint, envVars);
+  if (endpoint && endpoint.length) {
+    endpoint = Mustache.render(endpoint, envVars);
   }
   const introspectionQuery = getIntrospectionQuery();
   const queryParams = {
@@ -19,7 +19,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars) => {
     method: 'POST',
     url: endpoint,
     headers: {
-      'Accept': 'application/json',
+      Accept: 'application/json',
       'Content-Type': 'application/json'
     },
     data: JSON.stringify(queryParams)

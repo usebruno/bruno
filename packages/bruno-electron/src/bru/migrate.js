@@ -34,15 +34,15 @@ const isLegacyBruFile = (bruContent = '') => {
 
   for (let line of lines) {
     line = line.trim();
-    if (line.startsWith("name")) {
+    if (line.startsWith('name')) {
       hasName = true;
-    } else if (line.startsWith("method")) {
+    } else if (line.startsWith('method')) {
       hasMethod = true;
-    } else if (line.startsWith("url")) {
+    } else if (line.startsWith('url')) {
       hasUrl = true;
     }
   }
-  
+
   return hasName && hasMethod && hasUrl;
 };
 
@@ -51,16 +51,16 @@ const migrateLegacyBruFile = async (bruContent, pathname) => {
 
   let type = _.get(json, 'type');
   if (type === 'http-request') {
-    type = "http";
+    type = 'http';
   } else if (type === 'graphql-request') {
-    type = "graphql";
+    type = 'graphql';
   } else {
-    type = "http";
+    type = 'http';
   }
 
   let script = {};
   let legacyScript = _.get(json, 'request.script');
-  if(legacyScript && legacyScript.trim().length > 0) {
+  if (legacyScript && legacyScript.trim().length > 0) {
     script = {
       res: legacyScript
     };
@@ -70,7 +70,7 @@ const migrateLegacyBruFile = async (bruContent, pathname) => {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: _.get(json, 'seq'),
+      seq: _.get(json, 'seq')
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
@@ -81,7 +81,7 @@ const migrateLegacyBruFile = async (bruContent, pathname) => {
     headers: _.get(json, 'request.headers', []),
     body: _.get(json, 'request.body', {}),
     script: script,
-    tests: _.get(json, 'request.tests', ''),
+    tests: _.get(json, 'request.tests', '')
   };
 
   const newBruContent = jsonToBruV2(bruJson);
@@ -89,7 +89,7 @@ const migrateLegacyBruFile = async (bruContent, pathname) => {
   await writeFile(pathname, newBruContent);
 
   return newBruContent;
-}
+};
 
 module.exports = {
   isLegacyEnvFile,

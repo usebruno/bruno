@@ -4,7 +4,7 @@ const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
 
-const exists = async p => {
+const exists = async (p) => {
   try {
     await fsPromises.access(p);
     return true;
@@ -13,7 +13,7 @@ const exists = async p => {
   }
 };
 
-const isSymbolicLink = filepath => {
+const isSymbolicLink = (filepath) => {
   try {
     return fs.existsSync(filepath) && fs.lstatSync(filepath).isSymbolicLink();
   } catch (_) {
@@ -21,7 +21,7 @@ const isSymbolicLink = filepath => {
   }
 };
 
-const isFile = filepath => {
+const isFile = (filepath) => {
   try {
     return fs.existsSync(filepath) && fs.lstatSync(filepath).isFile();
   } catch (_) {
@@ -29,7 +29,7 @@ const isFile = filepath => {
   }
 };
 
-const isDirectory = dirPath => {
+const isDirectory = (dirPath) => {
   try {
     return fs.existsSync(dirPath) && fs.lstatSync(dirPath).isDirectory();
   } catch (_) {
@@ -37,14 +37,14 @@ const isDirectory = dirPath => {
   }
 };
 
-const normalizeAndResolvePath = pathname => {
+const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
     const targetPath = path.resolve(absPath, fs.readlinkSync(pathname));
     if (isFile(targetPath) || isDirectory(targetPath)) {
       return path.resolve(targetPath);
     }
-    console.error(`Cannot resolve link target "${pathname}" (${targetPath}).`)
+    console.error(`Cannot resolve link target "${pathname}" (${targetPath}).`);
     return '';
   }
   return path.resolve(pathname);
@@ -53,29 +53,29 @@ const normalizeAndResolvePath = pathname => {
 const writeFile = async (pathname, content) => {
   try {
     fs.writeFileSync(pathname, content, {
-      encoding: "utf8"
+      encoding: 'utf8'
     });
   } catch (err) {
     return Promise.reject(err);
   }
 };
 
-const hasJsonExtension = filename => {
-  if (!filename || typeof filename !== 'string') return false
-  return ['json'].some(ext => filename.toLowerCase().endsWith(`.${ext}`))
-}
+const hasJsonExtension = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
 
-const hasBruExtension = filename => {
-  if (!filename || typeof filename !== 'string') return false
-  return ['bru'].some(ext => filename.toLowerCase().endsWith(`.${ext}`))
-}
+const hasBruExtension = (filename) => {
+  if (!filename || typeof filename !== 'string') return false;
+  return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+};
 
 const createDirectory = async (dir) => {
-  if(!dir) {
+  if (!dir) {
     throw new Error(`directory: path is null`);
   }
 
-  if (fs.existsSync(dir)){
+  if (fs.existsSync(dir)) {
     throw new Error(`directory: ${dir} already exists`);
   }
 
@@ -108,7 +108,7 @@ const searchForFiles = (dir, extension) => {
     }
   }
   return results;
-}
+};
 
 const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');

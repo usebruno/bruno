@@ -1,8 +1,4 @@
-const {
-  each,
-  filter
-} = require('lodash');
-
+const { each, filter } = require('lodash');
 
 const sortCollection = (collection) => {
   const items = collection.items || [];

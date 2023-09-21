@@ -6,9 +6,9 @@ Mustache.escape = function (value) {
   return value;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
+const interpolateVars = (request, envVars = {}, collectionVariables = {}) => {
   const interpolate = (str) => {
-    if(!str || !str.length || typeof str !== "string") {
+    if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
@@ -27,29 +27,27 @@ const interpolateVars = (request, envVars = {}, collectionVariables ={}) => {
     request.headers[key] = interpolate(value);
   });
 
-  if(request.headers["content-type"] === "application/json") {
-    if(typeof request.data === "object") {
+  if (request.headers['content-type'] === 'application/json') {
+    if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = interpolate(parsed);
         request.data = JSON.parse(parsed);
-      } catch (err) {
-      }
+      } catch (err) {}
     }
 
-    if(typeof request.data === "string") {
-      if(request.data.length) {
+    if (typeof request.data === 'string') {
+      if (request.data.length) {
         request.data = interpolate(request.data);
       }
     }
-  } else if(request.headers["content-type"] === "application/x-www-form-urlencoded") {
-    if(typeof request.data === "object") {
+  } else if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+    if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = interpolate(parsed);
         request.data = JSON.parse(parsed);
-      } catch (err) {
-      }
+      } catch (err) {}
     }
   } else {
     request.data = interpolate(request.data);

@@ -3,19 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/filesystem');
-const {
-  bruToEnvJson,
-  envJsonToBru,
-  bruToJson,
-  jsonToBru
-} = require('../bru');
+const { bruToEnvJson, envJsonToBru, bruToJson, jsonToBru } = require('../bru');
 
-const {
-  isLegacyEnvFile,
-  migrateLegacyEnvFile,
-  isLegacyBruFile,
-  migrateLegacyBruFile
-} = require('../bru/migrate');
+const { isLegacyEnvFile, migrateLegacyEnvFile, isLegacyBruFile, migrateLegacyBruFile } = require('../bru/migrate');
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -46,16 +36,16 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
 
-  params.forEach((param) => param.uid = uuid());
-  headers.forEach((header) => header.uid = uuid());
-  requestVars.forEach((variable) => variable.uid = uuid());
-  responseVars.forEach((variable) => variable.uid = uuid());
-  assertions.forEach((assertion) => assertion.uid = uuid());
-  bodyFormUrlEncoded.forEach((param) => param.uid = uuid());
-  bodyMultipartForm.forEach((param) => param.uid = uuid());
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+  assertions.forEach((assertion) => (assertion.uid = uuid()));
+  bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
+  bodyMultipartForm.forEach((param) => (param.uid = uuid()));
 
   return request;
-}
+};
 
 const addEnvironmentFile = async (win, pathname, collectionUid) => {
   try {
@@ -65,13 +55,13 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
         collectionUid,
         pathname,
         name: basename
-      },
+      }
     };
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
     // migrate old env json to bru file
-    if(isLegacyEnvFile(bruContent)) {
+    if (isLegacyEnvFile(bruContent)) {
       bruContent = await migrateLegacyEnvFile(bruContent, pathname);
     }
 
@@ -79,10 +69,10 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
-    _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
+    _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
@@ -101,14 +91,14 @@ const changeEnvironmentFile = async (win, pathname, collectionUid) => {
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
-    _.each(_.get(file, 'data.variables', []), (variable) => variable.uid = uuid());
+    _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
     // we are reusing the addEnvironmentFile event itself
     // this is because the uid of the pathname remains the same
     // and the collection tree will be able to update the existing environment
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
@@ -118,24 +108,24 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname),
+        name: path.basename(pathname)
       },
       data: {
         uid: getRequestUid(pathname),
-        name: path.basename(pathname).substring(0, path.basename(pathname).length - 4),
+        name: path.basename(pathname).substring(0, path.basename(pathname).length - 4)
       }
     };
 
     win.webContents.send('main:collection-tree-updated', 'unlinkEnvironmentFile', file);
   } catch (err) {
-    console.error(err)
+    console.error(err);
   }
 };
 
 const add = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher add: ${pathname}`);
 
-  if(isJsonEnvironmentConfig(pathname, collectionPath)) {
+  if (isJsonEnvironmentConfig(pathname, collectionPath)) {
     try {
       const dirname = path.dirname(pathname);
       const bruContent = fs.readFileSync(pathname, 'utf8');
@@ -147,7 +137,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
         fs.mkdirSync(envDirectory);
       }
 
-      for(const env of jsonData) {
+      for (const env of jsonData) {
         const bruEnvFilename = path.join(envDirectory, `${env.name}.bru`);
         const bruContent = envJsonToBru(env);
         await writeFile(bruEnvFilename, bruContent);
@@ -161,12 +151,12 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  if(isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return addEnvironmentFile(win, pathname, collectionUid);
   }
 
   // migrate old json files to bru
-  if(hasJsonExtension(pathname)) {
+  if (hasJsonExtension(pathname)) {
     try {
       const json = fs.readFileSync(pathname, 'utf8');
       const jsonData = JSON.parse(json);
@@ -178,7 +168,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       const re = /(.*)\.json$/;
       const subst = `$1.bru`;
       const bruFilename = pathname.replace(re, subst);
-      
+
       await writeFile(bruFilename, content);
       await fs.unlinkSync(pathname);
     } catch (err) {
@@ -186,20 +176,20 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  if(hasBruExtension(pathname)) {
+  if (hasBruExtension(pathname)) {
     const file = {
       meta: {
         collectionUid,
         pathname,
-        name: path.basename(pathname),
+        name: path.basename(pathname)
       }
-    }
+    };
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       // migrate old bru format to new bru format
-      if(isLegacyBruFile(bruContent)) {
+      if (isLegacyBruFile(bruContent)) {
         bruContent = await migrateLegacyBruFile(bruContent, pathname);
       }
 
@@ -207,7 +197,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
   }
 };
@@ -215,7 +205,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 const addDirectory = (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if(pathname === envDirectory) {
+  if (pathname === envDirectory) {
     return;
   }
 
@@ -223,44 +213,43 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname),
+      name: path.basename(pathname)
     }
   };
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
-  if(isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return changeEnvironmentFile(win, pathname, collectionUid);
   }
 
-  if(hasBruExtension(pathname)) {
+  if (hasBruExtension(pathname)) {
     try {
       const file = {
         meta: {
           collectionUid,
           pathname,
-          name: path.basename(pathname),
+          name: path.basename(pathname)
         }
       };
-    
+
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = bruToJson(bru);
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
   }
-
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  if(isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
 
-  if(hasBruExtension(pathname)) {
+  if (hasBruExtension(pathname)) {
     const file = {
       meta: {
         collectionUid,
@@ -270,12 +259,12 @@ const unlink = (win, pathname, collectionUid, collectionPath) => {
     };
     win.webContents.send('main:collection-tree-updated', 'unlink', file);
   }
-}
+};
 
 const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   const envDirectory = path.join(collectionPath, 'environments');
 
-  if(pathname === envDirectory) {
+  if (pathname === envDirectory) {
     return;
   }
 
@@ -287,15 +276,15 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
-}
+};
 
 class Watcher {
-  constructor () {
+  constructor() {
     this.watchers = {};
   }
 
-  addWatcher (win, watchPath, collectionUid) {
-    if(this.watchers[watchPath]) {
+  addWatcher(win, watchPath, collectionUid) {
+    if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
 
@@ -309,7 +298,7 @@ class Watcher {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
         usePolling: false,
-        ignored: path => ["node_modules", ".git", "bruno.json"].some(s => path.includes(s)),
+        ignored: (path) => ['node_modules', '.git', 'bruno.json'].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {
@@ -318,28 +307,28 @@ class Watcher {
         },
         depth: 20
       });
-  
+
       watcher
-        .on('add', pathname => add(win, pathname, collectionUid, watchPath))
-        .on('addDir', pathname => addDirectory(win, pathname, collectionUid, watchPath))
-        .on('change', pathname => change(win, pathname, collectionUid, watchPath))
-        .on('unlink', pathname => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', pathname => unlinkDir(win, pathname, collectionUid, watchPath))
-  
-        self.watchers[watchPath] = watcher;
+        .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
+        .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
+        .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
+        .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath));
+
+      self.watchers[watchPath] = watcher;
     }, 100);
   }
 
-  hasWatcher (watchPath) {
+  hasWatcher(watchPath) {
     return this.watchers[watchPath];
   }
 
-  removeWatcher (watchPath, win) {
-    if(this.watchers[watchPath]) {
+  removeWatcher(watchPath, win) {
+    if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
     }
   }
-};
+}
 
-module.exports =  Watcher;
+module.exports = Watcher;

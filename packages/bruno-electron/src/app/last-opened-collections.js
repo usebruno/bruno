@@ -18,8 +18,8 @@ class LastOpenedCollections {
   add(collectionPath) {
     const collections = this.store.get('lastOpenedCollections') || [];
 
-    if(isDirectory(collectionPath)) {
-      if(!collections.includes(collectionPath)) {
+    if (isDirectory(collectionPath)) {
+      if (!collections.includes(collectionPath)) {
         collections.push(collectionPath);
         this.store.set('lastOpenedCollections', collections);
       }
@@ -29,8 +29,8 @@ class LastOpenedCollections {
   remove(collectionPath) {
     let collections = this.store.get('lastOpenedCollections') || [];
 
-    if(collections.includes(collectionPath)) {
-      collections = _.filter(collections, c => c !== collectionPath);
+    if (collections.includes(collectionPath)) {
+      collections = _.filter(collections, (c) => c !== collectionPath);
       this.store.set('lastOpenedCollections', collections);
     }
   }
@@ -38,6 +38,6 @@ class LastOpenedCollections {
   removeAll() {
     return this.store.set('lastOpenedCollections', []);
   }
-};
+}
 
 module.exports = LastOpenedCollections;

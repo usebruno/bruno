@@ -6,7 +6,7 @@ const template = [
     submenu: [
       {
         label: 'Open Local Collection',
-        click () {
+        click() {
           ipcMain.emit('main:open-collection');
         }
       },
@@ -14,40 +14,35 @@ const template = [
     ]
   },
   {
-     label: 'Edit',
-     submenu: [
-      { role: 'undo'},
-      { role: 'redo'},
-      { type: 'separator'},
-      { role: 'cut'},
-      { role: 'copy'},
-      { role: 'paste'}
+    label: 'Edit',
+    submenu: [
+      { role: 'undo' },
+      { role: 'redo' },
+      { type: 'separator' },
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' }
     ]
   },
   {
-     label: 'View',
-     submenu: [
-      { role: 'toggledevtools'},
-      { type: 'separator'},
-      { role: 'resetzoom'},
-      { role: 'zoomin'},
-      { role: 'zoomout'},
-      { type: 'separator'},
-      { role: 'togglefullscreen'}
+    label: 'View',
+    submenu: [
+      { role: 'toggledevtools' },
+      { type: 'separator' },
+      { role: 'resetzoom' },
+      { role: 'zoomin' },
+      { role: 'zoomout' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' }
     ]
   },
   {
-     role: 'window',
-     submenu: [
-      { role: 'minimize'},
-      { role: 'close'}
-    ]
+    role: 'window',
+    submenu: [{ role: 'minimize' }, { role: 'close' }]
   },
   {
     role: 'help',
-    submenu: [
-      { label: 'Learn More'}
-    ]
+    submenu: [{ label: 'Learn More' }]
   }
 ];
 

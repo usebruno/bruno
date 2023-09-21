@@ -35,8 +35,8 @@ app.on('ready', async () => {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js")
-    },
+      preload: path.join(__dirname, 'preload.js')
+    }
   });
 
   const url = isDev
@@ -50,7 +50,7 @@ app.on('ready', async () => {
   mainWindow.loadURL(url);
   watcher = new Watcher();
 
-  mainWindow.webContents.on('new-window', function(e, url) {
+  mainWindow.webContents.on('new-window', function (e, url) {
     e.preventDefault();
     require('electron').shell.openExternal(url);
   });

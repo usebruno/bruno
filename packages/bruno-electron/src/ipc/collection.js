@@ -2,11 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const { ipcMain } = require('electron');
-const {
-  envJsonToBru,
-  bruToJson,
-  jsonToBru
-} = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru } = require('../bru');
 
 const {
   isValidPathname,
@@ -21,7 +17,7 @@ const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { setPreferences } = require("../app/preferences");
+const { setPreferences } = require('../app/preferences');
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -36,35 +32,38 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create collection
-  ipcMain.handle('renderer:create-collection', async (event, collectionName, collectionFolderName, collectionLocation) => {
-    try {
-      const dirPath = path.join(collectionLocation, collectionFolderName);
-      if (fs.existsSync(dirPath)){
-        throw new Error(`collection: ${dirPath} already exists`);
+  ipcMain.handle(
+    'renderer:create-collection',
+    async (event, collectionName, collectionFolderName, collectionLocation) => {
+      try {
+        const dirPath = path.join(collectionLocation, collectionFolderName);
+        if (fs.existsSync(dirPath)) {
+          throw new Error(`collection: ${dirPath} already exists`);
+        }
+
+        if (!isValidPathname(dirPath)) {
+          throw new Error(`collection: invalid pathname - ${dir}`);
+        }
+
+        await createDirectory(dirPath);
+
+        const uid = generateUidBasedOnHash(dirPath);
+        const content = await stringifyJson({
+          version: '1',
+          name: collectionName,
+          type: 'collection'
+        });
+        await writeFile(path.join(dirPath, 'bruno.json'), content);
+
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, collectionName);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+
+        return;
+      } catch (error) {
+        return Promise.reject(error);
       }
-
-      if(!isValidPathname(dirPath)) {
-        throw new Error(`collection: invalid pathname - ${dir}`);
-      }
-
-      await createDirectory(dirPath);
-
-      const uid = generateUidBasedOnHash(dirPath);
-      const content = await stringifyJson({
-        version: '1',
-        name: collectionName,
-        type: 'collection'
-      });
-      await writeFile(path.join(dirPath, 'bruno.json'), content);
-
-      mainWindow.webContents.send('main:collection-opened', dirPath, uid, collectionName);
-      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
-
-      return;
-    } catch (error) {
-      return Promise.reject(error);
     }
-  });
+  );
 
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
@@ -94,7 +93,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
-      if (fs.existsSync(pathname)){
+      if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
 
@@ -108,7 +107,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
     try {
-      if (!fs.existsSync(pathname)){
+      if (!fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
 
@@ -123,12 +122,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)){
+      if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
       const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)){
+      if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
@@ -145,12 +144,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)){
+      if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
       const envFilePath = path.join(envDirPath, `${environment.name}.bru`);
-      if (!fs.existsSync(envFilePath)){
+      if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
@@ -166,12 +165,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
-      if (!fs.existsSync(envFilePath)){
+      if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
       const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)){
+      if (fs.existsSync(newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -186,7 +185,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
-      if (!fs.existsSync(envFilePath)){
+      if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
@@ -199,18 +198,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
-      if (!fs.existsSync(oldPath)){
+      if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)){
+      if (fs.existsSync(newPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
       // if its directory, rename and return
-      if(isDirectory(oldPath)) {
+      if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
-        for(let bruFile of bruFilesAtSource) {
+        for (let bruFile of bruFilesAtSource) {
           const newBruFilePath = bruFile.replace(oldPath, newPath);
           moveRequestUid(bruFile, newBruFilePath);
         }
@@ -218,7 +217,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const isBru = hasBruExtension(oldPath);
-      if(!isBru) {
+      if (!isBru) {
         throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
@@ -241,8 +240,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, pathname) => {
     try {
-      if (!fs.existsSync(pathname)){
-          fs.mkdirSync(pathname);
+      if (!fs.existsSync(pathname)) {
+        fs.mkdirSync(pathname);
       } else {
         return Promise.reject(new Error('The directory already exists'));
       }
@@ -254,20 +253,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // delete file/folder
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
-      if(type === 'folder') {
-        if(!fs.existsSync(pathname)) {
+      if (type === 'folder') {
+        if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
         }
 
         // delete the request uid mappings
         const bruFilesAtSource = await searchForBruFiles(pathname);
-        for(let bruFile of bruFilesAtSource) {
+        for (let bruFile of bruFilesAtSource) {
           deleteRequestUid(bruFile);
         }
 
-        fs.rmSync(pathname, { recursive: true, force: true});
+        fs.rmSync(pathname, { recursive: true, force: true });
       } else if (['http-request', 'graphql-request'].includes(type)) {
-        if(!fs.existsSync(pathname)) {
+        if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
 
@@ -283,13 +282,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   ipcMain.handle('renderer:open-collection', () => {
-    if(watcher && mainWindow) {
+    if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);
     }
   });
 
   ipcMain.handle('renderer:remove-collection', async (event, collectionPath) => {
-    if(watcher && mainWindow) {
+    if (watcher && mainWindow) {
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
       lastOpenedCollections.remove(collectionPath);
@@ -301,13 +300,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       let collectionName = collection.name;
       let collectionPath = path.join(collectionLocation, collectionName);
 
-      if (fs.existsSync(collectionPath)){
+      if (fs.existsSync(collectionPath)) {
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach(item => {
+        items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
@@ -317,7 +316,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
-            if(item.items && item.items.length) {
+            if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
           }
@@ -326,11 +325,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const parseEnvironments = (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
-        if(!fs.existsSync(envDirPath)){
+        if (!fs.existsSync(envDirPath)) {
           fs.mkdirSync(envDirPath);
         }
 
-        environments.forEach(env => {
+        environments.forEach((env) => {
           const content = envJsonToBru(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
           fs.writeFileSync(filePath, content);
@@ -355,7 +354,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // create folder and files based on collection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
-
     } catch (error) {
       return Promise.reject(error);
     }
@@ -363,11 +361,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
-      for(let item of itemsToResequence) {
+      for (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
         const jsonData = bruToJson(bru);
 
-        if(jsonData.seq !== item.seq) {
+        if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
           const content = jsonToBru(jsonData);
           await writeFile(item.pathname, content);
@@ -397,17 +395,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const folderName = path.basename(folderPath);
       const newFolderPath = path.join(destinationPath, folderName);
 
-      if(!fs.existsSync(folderPath)) {
+      if (!fs.existsSync(folderPath)) {
         throw new Error(`folder: ${folderPath} does not exist`);
       }
 
-      if(fs.existsSync(newFolderPath)) {
+      if (fs.existsSync(newFolderPath)) {
         throw new Error(`folder: ${newFolderPath} already exists`);
       }
 
       const bruFilesAtSource = await searchForBruFiles(folderPath);
 
-      for(let bruFile of bruFilesAtSource) {
+      for (let bruFile of bruFilesAtSource) {
         const newBruFilePath = bruFile.replace(folderPath, newFolderPath);
         moveRequestUid(bruFile, newBruFilePath);
       }
@@ -422,9 +420,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     // reload last opened collections
     const lastOpened = lastOpenedCollections.getAll();
 
-    if(lastOpened && lastOpened.length) {
-      for(let collectionPath of lastOpened) {
-        if(isDirectory(collectionPath)) {
+    if (lastOpened && lastOpened.length) {
+      for (let collectionPath of lastOpened) {
+        if (isDirectory(collectionPath)) {
           openCollection(mainWindow, watcher, collectionPath, {
             dontSendDisplayErrors: true
           });
@@ -440,7 +438,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.on('main:open-collection', () => {
-    if(watcher && mainWindow) {
+    if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);
     }
   });
@@ -449,12 +447,11 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     watcher.addWatcher(win, pathname, uid);
     lastOpenedCollections.add(pathname);
   });
-
-}
+};
 
 const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
   registerRendererEventHandlers(mainWindow, watcher, lastOpenedCollections);
   registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
-}
+};
 
 module.exports = registerCollectionsIpc;

@@ -2,7 +2,7 @@
  * we maintain a cache of request uids to ensure that we
  * preserve the same uid for a request even when the request
  * moves to a different location
- * 
+ *
  * In the past, we used to generate unique ids based on the
  * pathname of the request, but we faced problems when implementing
  * functionality where the user can move the request to a different
