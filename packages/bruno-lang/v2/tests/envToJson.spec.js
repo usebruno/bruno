@@ -1,20 +1,20 @@
-const parser = require("../src/envToJson");
+const parser = require('../src/envToJson');
 
-describe("env parser", () => {
-  it("should parse empty vars", () => {
+describe('env parser', () => {
+  it('should parse empty vars', () => {
     const input = `
 vars {
 }`;
 
     const output = parser(input);
     const expected = {
-      "variables": []
+      variables: []
     };
 
     expect(output).toEqual(expected);
   });
 
-  it("should parse single var line", () => {
+  it('should parse single var line', () => {
     const input = `
 vars {
   url: http://localhost:3000
@@ -22,17 +22,19 @@ vars {
 
     const output = parser(input);
     const expected = {
-      "variables": [{
-        "name": "url",
-        "value": "http://localhost:3000",
-        "enabled" : true,
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true
+        }
+      ]
     };
 
     expect(output).toEqual(expected);
   });
 
-  it("should parse multiple var lines", () => {
+  it('should parse multiple var lines', () => {
     const input = `
 vars {
   url: http://localhost:3000
@@ -42,25 +44,29 @@ vars {
 
     const output = parser(input);
     const expected = {
-      "variables": [{
-        "name": "url",
-        "value": "http://localhost:3000",
-        "enabled" : true
-      }, {
-        "name": "port",
-        "value": "3000",
-        "enabled" : true
-      }, {
-        "name": "token",
-        "value": "secret",
-        "enabled" : false
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: true
+        },
+        {
+          name: 'token',
+          value: 'secret',
+          enabled: false
+        }
+      ]
     };
 
     expect(output).toEqual(expected);
   });
 
-  it("should gracefully handle empty lines and spaces", () => {
+  it('should gracefully handle empty lines and spaces', () => {
     const input = `
 
 vars {
@@ -72,21 +78,24 @@ vars {
 
     const output = parser(input);
     const expected = {
-      "variables": [{
-        "name": "url",
-        "value": "http://localhost:3000",
-        "enabled" : true,
-      }, {
-        "name": "port",
-        "value": "3000",
-        "enabled" : true,
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: true
+        }
+      ]
     };
 
     expect(output).toEqual(expected);
   });
 
-  it("should parse vars with empty values", () => {
+  it('should parse vars with empty values', () => {
     const input = `
 vars {
   url: 
@@ -97,19 +106,23 @@ vars {
 
     const output = parser(input);
     const expected = {
-      "variables": [{
-        "name": "url",
-        "value": "",
-        "enabled" : true,
-      }, {
-        "name": "phone",
-        "value": "",
-        "enabled" : true,
-      }, {
-        "name": "api-key",
-        "value": "",
-        "enabled" : true,
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: '',
+          enabled: true
+        },
+        {
+          name: 'phone',
+          value: '',
+          enabled: true
+        },
+        {
+          name: 'api-key',
+          value: '',
+          enabled: true
+        }
+      ]
     };
 
     expect(output).toEqual(expected);

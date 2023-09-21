@@ -8,19 +8,25 @@ const safeParseJson = (json) => {
 };
 
 const indentString = (str) => {
-  if(!str || !str.length) {
+  if (!str || !str.length) {
     return str;
   }
 
-  return str.split("\n").map(line => "  " + line).join("\n");
+  return str
+    .split('\n')
+    .map((line) => '  ' + line)
+    .join('\n');
 };
 
 const outdentString = (str) => {
-  if(!str || !str.length) {
+  if (!str || !str.length) {
     return str;
   }
 
-  return str.split("\n").map(line => line.replace(/^  /, '')).join("\n");
+  return str
+    .split('\n')
+    .map((line) => line.replace(/^  /, ''))
+    .join('\n');
 };
 
 module.exports = {

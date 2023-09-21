@@ -1,6 +1,5 @@
 const { bodyJsonTag } = require('../src/body-tag');
 
-
 describe('bodyJsonTag', () => {
   const testbodyJson = (input, expected) => {
     const result = bodyJsonTag.run(input);

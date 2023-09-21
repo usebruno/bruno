@@ -1,4 +1,4 @@
-const ohm = require("ohm-js");
+const ohm = require('ohm-js');
 const _ = require('lodash');
 
 const grammar = ohm.grammar(`Env {
@@ -20,9 +20,13 @@ const concatArrays = (objValue, srcValue) => {
 
 const sem = grammar.createSemantics().addAttribute('ast', {
   EnvFile(entries) {
-    return _.reduce(entries.ast, (result, item) => {
-      return _.mergeWith(result, item, concatArrays);
-    }, {});
+    return _.reduce(
+      entries.ast,
+      (result, item) => {
+        return _.mergeWith(result, item, concatArrays);
+      },
+      {}
+    );
   },
   entry(_1, key, _2, _3, _4, value, _5, _6) {
     return { [key.ast.trim()]: value.ast.trim() };
@@ -40,7 +44,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return '';
   },
   _iter(...elements) {
-    return elements.map(e => e.ast);
+    return elements.map((e) => e.ast);
   }
 });
 
@@ -53,7 +57,7 @@ const parser = (input) => {
   } else {
     throw new Error(match.message);
   }
-}
+};
 
 function postProcessEntries(ast) {
   const processed = {};

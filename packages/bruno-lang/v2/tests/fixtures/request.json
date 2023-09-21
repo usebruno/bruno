@@ -9,19 +9,23 @@
     "url": "https://api.textlocal.in/send",
     "body": "json"
   },
-  "query": [{
-    "name": "apiKey",
-    "value": "secret",
-    "enabled": true
-  }, {
-    "name": "numbers",
-    "value": "998877665",
-    "enabled": true
-  }, {
-    "name": "message",
-    "value": "hello",
-    "enabled": false
-  }],
+  "query": [
+    {
+      "name": "apiKey",
+      "value": "secret",
+      "enabled": true
+    },
+    {
+      "name": "numbers",
+      "value": "998877665",
+      "enabled": true
+    },
+    {
+      "name": "message",
+      "value": "hello",
+      "enabled": false
+    }
+  ],
   "headers": [
     {
       "name": "content-type",
@@ -66,7 +70,7 @@
     ],
     "multipartForm": [
       {
-      "name": "apikey",
+        "name": "apikey",
         "value": "secret",
         "enabled": true
       },

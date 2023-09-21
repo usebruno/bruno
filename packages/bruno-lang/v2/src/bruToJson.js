@@ -1,8 +1,6 @@
-const ohm = require("ohm-js");
+const ohm = require('ohm-js');
 const _ = require('lodash');
-const {
-  outdentString
-} = require('../../v1/src/utils');
+const { outdentString } = require('../../v1/src/utils');
 
 /**
  * A Bru file is made up of blocks.
@@ -13,7 +11,7 @@ const {
  *  headers {
  *   content-type: application/json
  *  }
- * 
+ *
  * 2. Text Blocks - These are blocks that have text
  * ex:
  * body:json {
@@ -21,7 +19,7 @@ const {
  *   "username": "John Nash",
  *   "password": "governingdynamics
  *  }
- * 
+ *
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | bodies | varsandassert | script | tests | docs)*
@@ -95,14 +93,14 @@ const grammar = ohm.grammar(`Bru {
 }`);
 
 const mapPairListToKeyValPairs = (pairList = []) => {
-  if(!pairList.length) {
+  if (!pairList.length) {
     return [];
   }
-  return _.map(pairList[0], pair => {
+  return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
     let enabled = true;
-    if (name && name.length && name.charAt(0) === "~") {
+    if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
       enabled = false;
     }
@@ -122,22 +120,26 @@ const concatArrays = (objValue, srcValue) => {
 };
 
 const mapPairListToKeyValPair = (pairList = []) => {
-  if(!pairList || !pairList.length) {
+  if (!pairList || !pairList.length) {
     return {};
   }
 
   return _.merge({}, ...pairList[0]);
-}
+};
 
 const sem = grammar.createSemantics().addAttribute('ast', {
   BruFile(tags) {
-    if(!tags || !tags.ast || !tags.ast.length) {
+    if (!tags || !tags.ast || !tags.ast.length) {
       return {};
     }
 
-    return _.reduce(tags.ast, (result, item) => {
-      return _.mergeWith(result, item, concatArrays);
-    }, {});
+    return _.reduce(
+      tags.ast,
+      (result, item) => {
+        return _.mergeWith(result, item, concatArrays);
+      },
+      {}
+    );
   },
   dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
@@ -185,20 +187,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   st(_) {
     return '';
   },
-  tagend(_1 ,_2) {
+  tagend(_1, _2) {
     return '';
   },
   _iter(...elements) {
-    return elements.map(e => e.ast);
+    return elements.map((e) => e.ast);
   },
   meta(_1, dictionary) {
     let meta = mapPairListToKeyValPair(dictionary.ast);
 
-    if(!meta.seq) {
+    if (!meta.seq) {
       meta.seq = 1;
     }
 
-    if(!meta.type) {
+    if (!meta.type) {
       meta.type = 'http';
     }
 
@@ -347,7 +349,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const vars = mapPairListToKeyValPairs(dictionary.ast);
     _.each(vars, (v) => {
       let name = v.name;
-      if (name && name.length && name.charAt(0) === "@") {
+      if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
       } else {
@@ -365,7 +367,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const vars = mapPairListToKeyValPairs(dictionary.ast);
     _.each(vars, (v) => {
       let name = v.name;
-      if (name && name.length && name.charAt(0) === "@") {
+      if (name && name.length && name.charAt(0) === '@') {
         v.name = name.slice(1);
         v.local = true;
       } else {
@@ -401,7 +403,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   tests(_1, _2, _3, _4, textblock, _5) {
     return {
       tests: outdentString(textblock.sourceString)
-    };;
+    };
   },
   docs(_1, _2, _3, _4, textblock, _5) {
     return {
@@ -413,11 +415,11 @@ const sem = grammar.createSemantics().addAttribute('ast', {
 const parser = (input) => {
   const match = grammar.match(input);
 
-  if(match.succeeded()) {
+  if (match.succeeded()) {
     return sem(match).ast;
   } else {
     throw new Error(match.message);
   }
-}
+};
 
 module.exports = parser;

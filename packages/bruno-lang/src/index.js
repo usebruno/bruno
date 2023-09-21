@@ -1,9 +1,4 @@
-const {
-  bruToJson,
-  jsonToBru,
-  bruToEnvJson,
-  envJsonToBru
-} = require('../v1/src');
+const { bruToJson, jsonToBru, bruToEnvJson, envJsonToBru } = require('../v1/src');
 
 const bruToJsonV2 = require('../v2/src/bruToJson');
 const jsonToBruV2 = require('../v2/src/jsonToBru');

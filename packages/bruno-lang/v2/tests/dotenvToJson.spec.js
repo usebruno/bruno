@@ -27,7 +27,7 @@ BEEP=false
     const expected = {
       FOO: 'bar',
       BAZ: 2,
-      BEEP: false,
+      BEEP: false
     };
     const output = parser(input);
     expect(output).toEqual(expected);

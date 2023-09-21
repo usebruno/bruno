@@ -1,7 +1,4 @@
-const {
-  between,
-  regex,
-} = require("arcsecond");
+const { between, regex } = require('arcsecond');
 const { each } = require('lodash');
 const keyValLines = require('./key-val-lines');
 
@@ -10,7 +7,7 @@ const end = regex(/^[\r?\n]*\/vars\s*[\r?\n]*/);
 
 const envVarsTag = between(begin)(end)(keyValLines).map(([variables]) => {
   each(variables, (variable) => {
-    variable.type = "text"
+    variable.type = 'text';
   });
 
   return {

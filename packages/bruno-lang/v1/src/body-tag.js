@@ -1,8 +1,4 @@
-const {
-  between,
-  regex,
-  everyCharUntil
-} = require("arcsecond");
+const { between, regex, everyCharUntil } = require('arcsecond');
 const keyvalLines = require('./key-val-lines');
 
 // body(type=json)
@@ -37,7 +33,7 @@ const bodyGraphqlTag = between(bodyGraphqlBegin)(bodyEnd)(everyCharUntil(bodyEnd
         query: bodyGraphql
       }
     }
-  }
+  };
 });
 
 const bodyGraphqlVarsTag = between(bodyGraphqlVarsBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((varsGraphql) => {
@@ -47,7 +43,7 @@ const bodyGraphqlVarsTag = between(bodyGraphqlVarsBegin)(bodyEnd)(everyCharUntil
         variables: varsGraphql
       }
     }
-  }
+  };
 });
 
 const bodyTextTag = between(bodyTextBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyText) => {
@@ -55,7 +51,7 @@ const bodyTextTag = between(bodyTextBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map
     body: {
       text: bodyText
     }
-  }
+  };
 });
 
 const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyXml) => {
@@ -63,16 +59,16 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
     body: {
       xml: bodyXml
     }
-  }
+  };
 });
 
 /**
  * We have deprecated form-url-encoded type in body tag, it was a misspelling on my part
  * The new type is form-urlencoded
- * 
+ *
  * Very few peope would have used this. I launched this to the public on 22 Jan 2023
  * And I am making the change on 23 Jan 2023
- * 
+ *
  * This deprecated tag can be removed on 1 April 2023
  */
 
@@ -90,20 +86,22 @@ const bodyMultipartForm = regex(/^body\s*\(\s*type\s*=\s*multipart-form\s*\)\s*\
 // todo: fix this
 const bodyEndRelaxed = regex(/^[\r?\n]*\/body\s*[\r?\n]*/);
 
-const bodyFormUrlEncodedTagDeprecated = between(bodyFormUrlEncodedDeprecated)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
-  return {
-    body: {
-      formUrlEncoded: result
-    }
+const bodyFormUrlEncodedTagDeprecated = between(bodyFormUrlEncodedDeprecated)(bodyEndRelaxed)(keyvalLines).map(
+  ([result]) => {
+    return {
+      body: {
+        formUrlEncoded: result
+      }
+    };
   }
-});
+);
 
 const bodyFormUrlEncodedTag = between(bodyFormUrlEncoded)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
   return {
     body: {
       formUrlEncoded: result
     }
-  }
+  };
 });
 
 const bodyMultipartFormTag = between(bodyMultipartForm)(bodyEndRelaxed)(keyvalLines).map(([result]) => {
@@ -111,7 +109,7 @@ const bodyMultipartFormTag = between(bodyMultipartForm)(bodyEndRelaxed)(keyvalLi
     body: {
       multipartForm: result
     }
-  }
+  };
 });
 
 module.exports = {

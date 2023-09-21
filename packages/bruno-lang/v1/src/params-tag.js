@@ -1,7 +1,4 @@
-const {
-  between,
-  regex
-} = require("arcsecond");
+const { between, regex } = require('arcsecond');
 const keyValLines = require('./key-val-lines');
 
 const begin = regex(/^params\s*\r?\n/);

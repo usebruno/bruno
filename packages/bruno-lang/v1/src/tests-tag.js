@@ -1,8 +1,4 @@
-const {
-  between,
-  regex,
-  everyCharUntil
-} = require("arcsecond");
+const { between, regex, everyCharUntil } = require('arcsecond');
 
 const testsBegin = regex(/^tests\s*\r?\n/);
 const testsEnd = regex(/^[\r?\n]+\/tests[\s\r?\n]*/);

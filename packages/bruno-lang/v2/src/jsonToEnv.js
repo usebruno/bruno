@@ -8,7 +8,7 @@ const envToJson = (json) => {
     return `  ${prefix}${name}: ${value}`;
   });
 
-  if(!vars || !vars.length) {
+  if (!vars || !vars.length) {
     return `vars {
 }
 `;

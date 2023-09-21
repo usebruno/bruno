@@ -1,9 +1,5 @@
 const inlineTag = require('../src/inline-tag');
-const {
-  sepBy,
-  char,
-  many
-} = require('arcsecond');
+const { sepBy, char, many } = require('arcsecond');
 
 describe('type', () => {
   it('should parse the type', () => {
@@ -54,5 +50,5 @@ body-mode json
       [{ body: { mode: 'json' } }],
       []
     ]);
-  })
+  });
 });

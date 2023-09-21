@@ -1,7 +1,7 @@
-const bruToJson = require("../src/bruToJson");
+const bruToJson = require('../src/bruToJson');
 
-describe("defaults", () => {
-  it("should parse the default type and seq", () => {
+describe('defaults', () => {
+  it('should parse the default type and seq', () => {
     const input = `
 meta {
   name: Create user
@@ -12,21 +12,21 @@ post {
 }
 `;
     const expected = {
-      "meta": {
-        "name": "Create user",
-        "seq": 1,
-        "type": "http"
+      meta: {
+        name: 'Create user',
+        seq: 1,
+        type: 'http'
       },
-      "http": {
-        "method": "post",
-        "url": "/users"
+      http: {
+        method: 'post',
+        url: '/users'
       }
     };
     const output = bruToJson(input);
     expect(output).toEqual(expected);
   });
 
-  it("should parse the default body mode as json if the body is found", () => {
+  it('should parse the default body mode as json if the body is found', () => {
     const input = `
 meta {
   name: Create user
@@ -45,18 +45,18 @@ body {
 `;
 
     const expected = {
-      "meta": {
-        "name": "Create user",
-        "seq": 1,
-        "type": "http"
+      meta: {
+        name: 'Create user',
+        seq: 1,
+        type: 'http'
       },
-      "http": {
-        "method": "post",
-        "url": "/users",
-        "body": "json"
+      http: {
+        method: 'post',
+        url: '/users',
+        body: 'json'
       },
-      "body": {
-        "json": "{\n  name: John\n  age: 30\n}"
+      body: {
+        json: '{\n  name: John\n  age: 30\n}'
       }
     };
 

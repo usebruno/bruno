@@ -1,9 +1,9 @@
-const parser = require("../src/jsonToEnv");
+const parser = require('../src/jsonToEnv');
 
-describe("env parser", () => {
-  it("should parse empty vars", () => {
+describe('env parser', () => {
+  it('should parse empty vars', () => {
     const input = {
-      "variables": []
+      variables: []
     };
 
     const output = parser(input);
@@ -14,13 +14,15 @@ describe("env parser", () => {
     expect(output).toEqual(expected);
   });
 
-  it("should parse single var line", () => {
+  it('should parse single var line', () => {
     const input = {
-      "variables": [{
-        "name": "url",
-        "value": "http://localhost:3000",
-        "enabled" : true,
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true
+        }
+      ]
     };
 
     const output = parser(input);
@@ -31,17 +33,20 @@ describe("env parser", () => {
     expect(output).toEqual(expected);
   });
 
-  it("should parse multiple var lines", () => {
+  it('should parse multiple var lines', () => {
     const input = {
-      "variables": [{
-        "name": "url",
-        "value": "http://localhost:3000",
-        "enabled" : true
-      }, {
-        "name": "port",
-        "value": "3000",
-        "enabled" : false
-      }]
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true
+        },
+        {
+          name: 'port',
+          value: '3000',
+          enabled: false
+        }
+      ]
     };
 
     const expected = `vars {
