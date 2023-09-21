@@ -12,7 +12,7 @@ const rpad = (str, width) => {
     paddedStr = paddedStr + ' ';
   }
   return paddedStr;
-}
+};
 
 module.exports = {
   lpad,
