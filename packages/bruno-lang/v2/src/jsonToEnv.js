@@ -2,22 +2,42 @@ const _ = require('lodash');
 
 const envToJson = (json) => {
   const variables = _.get(json, 'variables', []);
-  const vars = variables.map((variable) => {
-    const { name, value, enabled } = variable;
-    const prefix = enabled ? '' : '~';
-    return `  ${prefix}${name}: ${value}`;
-  });
+  const vars = variables
+    .filter((variable) => !variable.secret)
+    .map((variable) => {
+      const { name, value, enabled } = variable;
+      const prefix = enabled ? '' : '~';
+      return `  ${prefix}${name}: ${value}`;
+    });
 
-  if (!vars || !vars.length) {
+  const secretVars = variables
+    .filter((variable) => variable.secret)
+    .map((variable) => {
+      const { name, enabled } = variable;
+      const prefix = enabled ? '' : '~';
+      return `  ${prefix}${name}`;
+    });
+
+  if (!variables || !variables.length) {
     return `vars {
 }
 `;
   }
 
-  const output = `vars {
+  let output = '';
+  if (vars.length) {
+    output += `vars {
 ${vars.join('\n')}
 }
 `;
+  }
+
+  if (secretVars.length) {
+    output += `vars:secret [
+${secretVars.join(',\n')}
+]
+`;
+  }
 
   return output;
 };

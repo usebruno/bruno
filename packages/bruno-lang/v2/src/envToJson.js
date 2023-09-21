@@ -2,7 +2,7 @@ const ohm = require('ohm-js');
 const _ = require('lodash');
 
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars)*
+  BruEnvFile = (vars | secretvars)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -19,6 +19,13 @@ const grammar = ohm.grammar(`Bru {
   key = keychar*
   value = valuechar*
 
+  // Array Blocks
+  array = st* "[" stnl* valuelist stnl* "]"
+  valuelist = stnl* arrayvalue stnl* ("," stnl* arrayvalue)*
+  arrayvalue = arrayvaluechar*
+  arrayvaluechar = ~(nl | st | "[" | "]" | ",") any
+
+  secretvars = "vars:secret" array
   vars = "vars" dictionary
 }`);
 
@@ -39,6 +46,29 @@ const mapPairListToKeyValPairs = (pairList = []) => {
     return {
       name,
       value,
+      enabled
+    };
+  });
+};
+
+const mapArrayListToKeyValPairs = (arrayList = []) => {
+  arrayList = arrayList.filter((v) => v && v.length);
+
+  if (!arrayList.length) {
+    return [];
+  }
+
+  return _.map(arrayList, (value) => {
+    let name = value;
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === '~') {
+      name = name.slice(1);
+      enabled = false;
+    }
+
+    return {
+      name,
+      value: null,
       enabled
     };
   });
@@ -65,6 +95,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       },
       {}
     );
+  },
+  array(_1, _2, _3, valuelist, _4, _5) {
+    return valuelist.ast;
+  },
+  arrayvalue(chars) {
+    return chars.sourceString ? chars.sourceString.trim() : '';
+  },
+  valuelist(_1, value, _2, _3, _4, rest) {
+    return [value.ast, ...rest.ast];
   },
   dictionary(_1, _2, pairlist, _3) {
     return pairlist.ast;
@@ -97,6 +136,18 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   vars(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast);
+    _.each(vars, (v) => {
+      v.secret = false;
+    });
+    return {
+      variables: vars
+    };
+  },
+  secretvars: (_1, array) => {
+    const vars = mapArrayListToKeyValPairs(array.ast);
+    _.each(vars, (v) => {
+      v.secret = true;
+    });
     return {
       variables: vars
     };
