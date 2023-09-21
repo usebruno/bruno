@@ -51,7 +51,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   request.url = interpolate(request.url);
 
   forOwn(request.headers, (value, key) => {
-    request.headers[key] = interpolate(value);
+    delete request.headers[key];
+    request.headers[interpolate(key)] = interpolate(value);
   });
 
   if (request.headers['content-type'] === 'application/json') {
