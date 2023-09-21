@@ -6,10 +6,10 @@ function normalize(value: any) {
 
   const values = [] as any[];
 
-  value.forEach(item => {
+  value.forEach((item) => {
     const value = normalize(item);
     if (value != null) {
-      values.push(...Array.isArray(value) ? value : [value]);
+      values.push(...(Array.isArray(value) ? value : [value]));
     }
   });
 
@@ -18,11 +18,11 @@ function normalize(value: any) {
 
 /**
  * Gets value of a prop from source.
- * 
+ *
  * If source is an array get value from each item.
- * 
+ *
  * If deep is true then recursively gets values for prop in nested objects.
- * 
+ *
  * Once a value is found will not recurse further into that value.
  */
 function getValue(source: any, prop: string, deep = false): any {
@@ -31,7 +31,7 @@ function getValue(source: any, prop: string, deep = false): any {
   let value;
 
   if (Array.isArray(source)) {
-    value = source.map(item => getValue(item, prop, deep));
+    value = source.map((item) => getValue(item, prop, deep));
   } else {
     value = source[prop];
     if (deep) {
@@ -63,7 +63,7 @@ function objectPredicate(obj: Record<string, any>) {
 
 /**
  * Apply filter on source array or object
- * 
+ *
  * If the filter returns a non boolean non null value it is treated as a mapped value
  */
 function filterOrMap(source: any, funOrObj: PredicateOrMapper) {
@@ -75,7 +75,7 @@ function filterOrMap(source: any, funOrObj: PredicateOrMapper) {
     if (item == null) continue;
     const value = fun(item);
     if (value === true) {
-      result.push(item);  // predicate
+      result.push(item); // predicate
     } else if (value != null && value !== false) {
       result.push(value); // mapper
     }
@@ -85,7 +85,7 @@ function filterOrMap(source: any, funOrObj: PredicateOrMapper) {
 
 /**
  * Getter with deep navigation, filter and map support
- * 
+ *
  * 1. Easy array navigation
  *    ```js
  *    get(data, 'customer.orders.items.amount')
@@ -100,48 +100,49 @@ function filterOrMap(source: any, funOrObj: PredicateOrMapper) {
  *    ```
  * 4. Array filtering [?] with corresponding filter function
  *    ```js
- *    get(data, '..items[?].amount', i => i.amount > 20) 
+ *    get(data, '..items[?].amount', i => i.amount > 20)
  *    ```
  * 5. Array filtering [?] with simple object predicate, same as (i => i.id === 2 && i.amount === 20)
  *    ```js
- *    get(data, '..items[?]', { id: 2, amount: 20 }) 
+ *    get(data, '..items[?]', { id: 2, amount: 20 })
  *    ```
  * 6. Array mapping [?] with corresponding mapper function
  *    ```js
- *    get(data, '..items[?].amount', i => i.amount + 10) 
+ *    get(data, '..items[?].amount', i => i.amount + 10)
  *    ```
  */
 export function get(source: any, path: string, ...fns: PredicateOrMapper[]) {
   const paths = path
     .replace(/\s+/g, '')
     .split(/(\.{1,2}|\[\?\]|\[\d+\])/g) // ["..", "items", "[?]", ".", "amount", "[0]" ]
-    .filter(s => s.length > 0)
-    .map(str => {
+    .filter((s) => s.length > 0)
+    .map((str) => {
       str = str.replace(/\[|\]/g, '');
       const index = parseInt(str);
       return isNaN(index) ? str : index;
     });
 
-  let index = 0, lookbehind = '' as string | number, funIndex = 0;
+  let index = 0,
+    lookbehind = '' as string | number,
+    funIndex = 0;
 
   while (source != null && index < paths.length) {
     const token = paths[index++];
 
     switch (true) {
-      case token === "..":
-      case token === ".":
+      case token === '..':
+      case token === '.':
         break;
-      case token === "?":
+      case token === '?':
         const fun = fns[funIndex++];
-        if (fun == null)
-          throw new Error(`missing function for ${lookbehind}`);
+        if (fun == null) throw new Error(`missing function for ${lookbehind}`);
         source = filterOrMap(source, fun);
         break;
       case typeof token === 'number':
         source = normalize(source[token]);
         break;
       default:
-        source = getValue(source, token as string, lookbehind === "..");
+        source = getValue(source, token as string, lookbehind === '..');
     }
 
     lookbehind = token;
