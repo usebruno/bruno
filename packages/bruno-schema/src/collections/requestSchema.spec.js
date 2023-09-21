@@ -1,6 +1,6 @@
 const { expect } = require('@jest/globals');
-const { uuid, validationErrorWithMessages } = require("../utils/testUtils");
-const { requestSchema } = require("./index");
+const { uuid, validationErrorWithMessages } = require('../utils/testUtils');
+const { requestSchema } = require('./index');
 
 describe('Request Schema Validation', () => {
   it('request schema must validate successfully - simple request', async () => {
@@ -31,7 +31,9 @@ describe('Request Schema Validation', () => {
 
     return Promise.all([
       expect(requestSchema.validate(request)).rejects.toEqual(
-        validationErrorWithMessages('method must be one of the following values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS')
+        validationErrorWithMessages(
+          'method must be one of the following values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS'
+        )
       )
     ]);
   });

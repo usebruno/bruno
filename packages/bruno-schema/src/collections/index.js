@@ -1,5 +1,5 @@
 const Yup = require('yup');
-const { uidSchema } = require("../common");
+const { uidSchema } = require('../common');
 
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
@@ -7,14 +7,17 @@ const environmentVariablesSchema = Yup.object({
   value: Yup.string().nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
   enabled: Yup.boolean().defined()
-}).noUnknown(true).strict();
-
+})
+  .noUnknown(true)
+  .strict();
 
 const environmentSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().min(1).required('name is required'),
   variables: Yup.array().of(environmentVariablesSchema).required('variables are required')
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 const environmentsSchema = Yup.array().of(environmentSchema);
 
@@ -24,7 +27,9 @@ const keyValueSchema = Yup.object({
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
   enabled: Yup.boolean()
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 const varsSchema = Yup.object({
   uid: uidSchema,
@@ -33,25 +38,35 @@ const varsSchema = Yup.object({
   description: Yup.string().nullable(),
   local: Yup.boolean(),
   enabled: Yup.boolean()
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 const requestUrlSchema = Yup.string().min(0).defined();
-const requestMethodSchema = Yup.string().oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']).required('method is required');
+const requestMethodSchema = Yup.string()
+  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+  .required('method is required');
 
 const graphqlBodySchema = Yup.object({
-  query:  Yup.string().nullable(),
-  variables:  Yup.string().nullable(),
-}).noUnknown(true).strict();
+  query: Yup.string().nullable(),
+  variables: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
 
 const requestBodySchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql']).required('mode is required'),
-  json:  Yup.string().nullable(),
-  text:  Yup.string().nullable(),
-  xml:  Yup.string().nullable(),
-  formUrlEncoded:  Yup.array().of(keyValueSchema).nullable(),
-  multipartForm:  Yup.array().of(keyValueSchema).nullable(),
+  mode: Yup.string()
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql'])
+    .required('mode is required'),
+  json: Yup.string().nullable(),
+  text: Yup.string().nullable(),
+  xml: Yup.string().nullable(),
+  formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
+  multipartForm: Yup.array().of(keyValueSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
@@ -65,38 +80,43 @@ const requestSchema = Yup.object({
   script: Yup.object({
     req: Yup.string().nullable(),
     res: Yup.string().nullable()
-  }).noUnknown(true).strict(),
+  })
+    .noUnknown(true)
+    .strict(),
   vars: Yup.object({
     req: Yup.array().of(varsSchema).nullable(),
     res: Yup.array().of(varsSchema).nullable()
-  }).noUnknown(true).strict().nullable(),
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
   tests: Yup.string().nullable()
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 const itemSchema = Yup.object({
   uid: uidSchema,
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder']).required('type is required'),
   seq: Yup.number().min(1),
-  name: Yup.string()
-    .min(1, 'name must be atleast 1 characters')
-    .required('name is required'),
+  name: Yup.string().min(1, 'name must be atleast 1 characters').required('name is required'),
   request: requestSchema.when('type', {
-      is: (type) => ['http-request', 'graphql-request'].includes(type),
-      then: (schema) => schema.required('request is required when item-type is request')
-    }),
+    is: (type) => ['http-request', 'graphql-request'].includes(type),
+    then: (schema) => schema.required('request is required when item-type is request')
+  }),
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
   filename: Yup.string().nullable(),
   pathname: Yup.string().nullable()
-}).noUnknown(true).strict();
+})
+  .noUnknown(true)
+  .strict();
 
 const collectionSchema = Yup.object({
   version: Yup.string().oneOf(['1']).required('version is required'),
   uid: uidSchema,
-  name: Yup.string()
-    .min(1, 'name must be atleast 1 characters')
-    .required('name is required'),
-  items:  Yup.array().of(itemSchema),
+  name: Yup.string().min(1, 'name must be atleast 1 characters').required('name is required'),
+  items: Yup.array().of(itemSchema),
   activeEnvironmentUid: Yup.string()
     .length(21, 'activeEnvironmentUid must be 21 characters in length')
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
@@ -108,8 +128,9 @@ const collectionSchema = Yup.object({
     items: Yup.array()
   }),
   collectionVariables: Yup.object()
-}).noUnknown(true).strict();
-
+})
+  .noUnknown(true)
+  .strict();
 
 module.exports = {
   requestSchema,

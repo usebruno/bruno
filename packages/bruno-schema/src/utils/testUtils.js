@@ -5,7 +5,7 @@ const { expect } = require('@jest/globals');
 const uuid = () => {
   // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
   const urlAlphabet = 'useandom26T198340PX75pxJACKVERYMINDBUSHWOLFGQZbfghjklqvwyzrict';
-  const customNanoId = customAlphabet (urlAlphabet, 21);
+  const customNanoId = customAlphabet(urlAlphabet, 21);
 
   return customNanoId();
 };
@@ -14,7 +14,7 @@ const validationErrorWithMessages = (...errors) => {
   return expect.objectContaining({
     errors
   });
-}
+};
 
 module.exports = {
   uuid,

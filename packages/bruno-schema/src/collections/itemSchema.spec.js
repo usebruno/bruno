@@ -1,6 +1,6 @@
 const { expect } = require('@jest/globals');
-const { uuid, validationErrorWithMessages } = require("../utils/testUtils");
-const { itemSchema } = require("./index");
+const { uuid, validationErrorWithMessages } = require('../utils/testUtils');
+const { itemSchema } = require('./index');
 
 describe('Item Schema Validation', () => {
   it('item schema must validate successfully - simple items', async () => {
@@ -21,9 +21,7 @@ describe('Item Schema Validation', () => {
     };
 
     return Promise.all([
-      expect(itemSchema.validate(item)).rejects.toEqual(
-        validationErrorWithMessages('name is required')
-      )
+      expect(itemSchema.validate(item)).rejects.toEqual(validationErrorWithMessages('name is required'))
     ]);
   });
 
