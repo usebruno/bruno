@@ -5,7 +5,7 @@ import * as faker from './utils/data-faker';
 test.describe('bruno e2e test', () => {
   let homePage;
 
-  test.beforeEach(async ({ page }) => {  
+  test.beforeEach(async ({ page }) => {
     homePage = new HomePage(page);
 
     await homePage.open();
@@ -45,5 +45,4 @@ test.describe('bruno e2e test', () => {
     await homePage.updateUser();
     await expect(homePage.statusRequestSuccess).toBeVisible();
   });
-
 });

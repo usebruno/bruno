@@ -1,7 +1,7 @@
 exports.HomePage = class HomePage {
   constructor(page) {
     this.page = page;
-    
+
     // welcome
     this.createCollectionSelector = page.locator('#create-collection');
     this.addCollectionSelector = page.locator('#add-collection');
@@ -22,7 +22,7 @@ exports.HomePage = class HomePage {
     this.statusRequestSuccess = page.getByText('200 OK');
     this.statusRequestNotFound = page.getByText('404 Not Found');
     this.statusRequestCreated = page.getByText('201 Created');
-    
+
     // create collection
     this.collectionNameField = page.locator('#collection-name');
     this.submitButton = page.locator(`button[type='submit']`);
@@ -83,4 +83,4 @@ exports.HomePage = class HomePage {
     await this.submitButton.click();
     await this.sendRequestButton.click();
   }
-}
+};
