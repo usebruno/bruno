@@ -5,7 +5,7 @@ const { BrowserWindow, app, Menu } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
-const LastOpenedCollections = require('./app/last-opened-collections');
+const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const Watcher = require('./app/watcher');

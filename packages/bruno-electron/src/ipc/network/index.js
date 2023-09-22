@@ -12,7 +12,7 @@ const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../util
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { getPreferences } = require('../../app/preferences');
+const { getPreferences } = require('../../store/preferences');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
