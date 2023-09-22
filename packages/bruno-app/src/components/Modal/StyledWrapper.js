@@ -19,7 +19,7 @@ const Wrapper = styled.div`
     align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
-    z-index: 1003;
+    z-index: 10;
   }
 
   .bruno-modal-card {
@@ -28,7 +28,7 @@ const Wrapper = styled.div`
     background: var(--color-background-top);
     border-radius: var(--border-radius);
     position: relative;
-    z-index: 1003;
+    z-index: 10;
     max-width: calc(100% - var(--spacing-base-unit));
     box-shadow: var(--box-shadow-base);
     display: flex;

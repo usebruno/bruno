@@ -2,13 +2,16 @@ import React, { useReducer } from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
+import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import reducer from './reducer';
+import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
   const [state, reducerDispatch] = useReducer(reducer, { hasChanges: false, variables: environment.variables || [] });
   const { variables, hasChanges } = state;
 
@@ -86,15 +89,11 @@ const EnvironmentVariables = ({ environment, collection }) => {
                       />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
+                      <SingleLineEditor
                         value={variable.value}
-                        className="mousetrap"
-                        onChange={(e) => handleVarChange(e, variable, 'value')}
+                        theme={storedTheme}
+                        onChange={(newValue) => handleVarChange({ target: { value: newValue } }, variable, 'value')}
+                        collection={collection}
                       />
                     </td>
                     <td>

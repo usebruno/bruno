@@ -1,5 +1,6 @@
 import React from 'react';
 import forOwn from 'lodash/forOwn';
+import isObject from 'lodash/isObject';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
@@ -15,6 +16,14 @@ const VariablesTable = ({ variables, collectionVariables }) => {
     });
   });
 
+  const getValueToDisplay = (value) => {
+    if (value === undefined) {
+      return '';
+    }
+
+    return isObject(value) ? JSON.stringify(value) : value;
+  };
+
   return (
     <StyledWrapper>
       <div className="flex flex-col w-full">
@@ -24,7 +33,9 @@ const VariablesTable = ({ variables, collectionVariables }) => {
             return (
               <div key={variable.uid} className="flex">
                 <div className="variable-name text-yellow-600 text-right pr-2">{variable.name}</div>
-                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">{variable.value}</div>
+                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">
+                  {getValueToDisplay(variable.value)}
+                </div>
               </div>
             );
           })
@@ -38,7 +49,9 @@ const VariablesTable = ({ variables, collectionVariables }) => {
             return (
               <div key={variable.uid} className="flex">
                 <div className="variable-name text-yellow-600 text-right pr-2">{variable.name}</div>
-                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">{variable.value}</div>
+                <div className="variable-value pl-2 whitespace-normal text-left flex-grow">
+                  {getValueToDisplay(variable.value)}
+                </div>
               </div>
             );
           })

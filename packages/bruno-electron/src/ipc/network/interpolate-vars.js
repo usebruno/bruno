@@ -1,24 +1,51 @@
-const Mustache = require('mustache');
-const { each, get, forOwn } = require('lodash');
+const Handlebars = require('handlebars');
+const { each, forOwn, cloneDeep } = require('lodash');
 
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
+const interpolateEnvVars = (str, processEnvVars) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  const template = Handlebars.compile(str, { noEscape: true });
+
+  return template({
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  });
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}) => {
+const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+  // we clone envVars because we don't want to modify the original object
+  envVars = cloneDeep(envVars);
+
+  // envVars can inturn have values as {{process.env.VAR_NAME}}
+  // so we need to interpolate envVars first with processEnvVars
+  forOwn(envVars, (value, key) => {
+    envVars[key] = interpolateEnvVars(value, processEnvVars);
+  });
+
   const interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
+    const template = Handlebars.compile(str, { noEscape: true });
+
     // collectionVariables take precedence over envVars
     const combinedVars = {
       ...envVars,
-      ...collectionVariables
+      ...collectionVariables,
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
     };
 
-    return Mustache.render(str, combinedVars);
+    return template(combinedVars);
   };
 
   request.url = interpolate(request.url);

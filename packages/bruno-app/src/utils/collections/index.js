@@ -542,6 +542,11 @@ export const getAllVariables = (collection) => {
 
   return {
     ...environmentVariables,
-    ...collection.collectionVariables
+    ...collection.collectionVariables,
+    process: {
+      env: {
+        ...collection.processEnvVariables
+      }
+    }
   };
 };

@@ -4,17 +4,26 @@ const path = require('path');
 const chokidar = require('chokidar');
 const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/filesystem');
 const { bruToEnvJson, envJsonToBru, bruToJson, jsonToBru } = require('../bru');
+const { dotenvToJson } = require('@usebruno/lang');
 
 const { isLegacyEnvFile, migrateLegacyEnvFile, isLegacyBruFile, migrateLegacyBruFile } = require('../bru/migrate');
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
+const { setDotEnvVars } = require('../store/process-env');
 
 const isJsonEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
   return dirname === collectionPath && basename === 'environments.json';
+};
+
+const isDotEnvFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === '.env';
 };
 
 const isBruEnvironmentConfig = (pathname, collectionPath) => {
@@ -125,6 +134,25 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
 const add = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher add: ${pathname}`);
 
+  if (isDotEnvFile(pathname, collectionPath)) {
+    try {
+      const content = fs.readFileSync(pathname, 'utf8');
+      const jsonData = dotenvToJson(content);
+
+      setDotEnvVars(collectionUid, jsonData);
+      const payload = {
+        collectionUid,
+        processEnvVariables: {
+          ...process.env,
+          ...jsonData
+        }
+      };
+      win.webContents.send('main:process-env-update', payload);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   if (isJsonEnvironmentConfig(pathname, collectionPath)) {
     try {
       const dirname = path.dirname(pathname);
@@ -220,6 +248,25 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
+  if (isDotEnvFile(pathname, collectionPath)) {
+    try {
+      const content = fs.readFileSync(pathname, 'utf8');
+      const jsonData = dotenvToJson(content);
+
+      setDotEnvVars(collectionUid, jsonData);
+      const payload = {
+        collectionUid,
+        processEnvVariables: {
+          ...process.env,
+          ...jsonData
+        }
+      };
+      win.webContents.send('main:process-env-update', payload);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return changeEnvironmentFile(win, pathname, collectionUid);
   }

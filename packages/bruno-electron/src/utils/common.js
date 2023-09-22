@@ -41,10 +41,39 @@ const generateUidBasedOnHash = (str) => {
   return `${hash}`.padEnd(21, '0');
 };
 
+const flattenDataForDotNotation = (data) => {
+  var result = {};
+  function recurse(current, prop) {
+    if (Object(current) !== current) {
+      result[prop] = current;
+    } else if (Array.isArray(current)) {
+      for (var i = 0, l = current.length; i < l; i++) {
+        recurse(current[i], prop + '[' + i + ']');
+      }
+      if (l == 0) {
+        result[prop] = [];
+      }
+    } else {
+      var isEmpty = true;
+      for (var p in current) {
+        isEmpty = false;
+        recurse(current[p], prop ? prop + '.' + p : p);
+      }
+      if (isEmpty && prop) {
+        result[prop] = {};
+      }
+    }
+  }
+
+  recurse(data, '');
+  return result;
+};
+
 module.exports = {
   uuid,
   stringifyJson,
   parseJson,
   simpleHash,
-  generateUidBasedOnHash
+  generateUidBasedOnHash,
+  flattenDataForDotNotation
 };
