@@ -183,18 +183,17 @@ const handler = async function (argv) {
     }
 
     if (envVar) {
+      let processVars;
       if (typeof envVar === 'string') {
-        let parts = envVar.split('=');
-        if (parts.length !== 2) {
-          console.error(
-            chalk.red(`overridable environment variable not correct: use name=value - presented: `) +
-              chalk.dim(`${envVar}`)
-          );
-          return;
-        }
-        envVars[parts[0]] = parts[1];
+        processVars = [envVar];
       } else if (typeof envVar === 'object' && Array.isArray(envVar)) {
-        envVar.forEach((value) => {
+        processVars = envVar;
+      } else {
+        console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
+        return;
+      }
+      if (processVars && Array.isArray(processVars)) {
+        processVars.forEach((value) => {
           let parts = value.split('=');
           if (parts.length !== 2) {
             console.error(
@@ -205,9 +204,6 @@ const handler = async function (argv) {
           }
           envVars[parts[0]] = parts[1];
         });
-      } else {
-        console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        return;
       }
     }
 
