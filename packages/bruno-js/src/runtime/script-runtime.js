@@ -10,6 +10,7 @@ const punycode = require('punycode');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
+const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const atob = require('atob');
@@ -37,7 +38,7 @@ class ScriptRuntime {
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
-          onConsoleLog(type, args);
+          onConsoleLog(type, cleanJson(args));
         };
       };
       context.console = {
@@ -81,8 +82,8 @@ class ScriptRuntime {
     await asyncVM();
     return {
       request,
-      envVariables,
-      collectionVariables
+      envVariables: cleanJson(envVariables),
+      collectionVariables: cleanJson(collectionVariables)
     };
   }
 
@@ -100,7 +101,7 @@ class ScriptRuntime {
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
-          onConsoleLog(type, args);
+          onConsoleLog(type, cleanJson(args));
         };
       };
       context.console = {
@@ -136,8 +137,8 @@ class ScriptRuntime {
 
     return {
       response,
-      envVariables,
-      collectionVariables
+      envVariables: cleanJson(envVariables),
+      collectionVariables: cleanJson(collectionVariables)
     };
   }
 }
