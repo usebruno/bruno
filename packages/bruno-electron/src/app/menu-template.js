@@ -1,4 +1,6 @@
 const { ipcMain } = require('electron');
+const openAboutWindow = require('about-window').default;
+const { join } = require('path');
 
 const template = [
   {
@@ -42,7 +44,18 @@ const template = [
   },
   {
     role: 'help',
-    submenu: [{ label: 'Learn More' }]
+    submenu: [
+      {
+        label: 'About Bruno',
+        click: () =>
+          openAboutWindow({
+            icon_path: join(__dirname, '../../resources/icons/png/128x128.png'),
+            homepage: 'https://www.usebruno.com/',
+            package_json_dir: join(__dirname, '../..')
+          })
+      },
+      { label: 'Learn More' }
+    ]
   }
 ];
 
