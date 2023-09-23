@@ -1,7 +1,8 @@
 import React from 'react';
-import { IconFiles, IconRun } from '@tabler/icons';
+import { uuid } from 'utils/common';
+import { IconFiles, IconRun, IconEye } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
-import VariablesView from 'components/VariablesView';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import { toggleRunnerView } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
@@ -17,6 +18,16 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+  const viewVariables = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'variables'
+      })
+    );
+  };
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -28,7 +39,9 @@ const CollectionToolBar = ({ collection }) => {
           <span className="mr-2">
             <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>
-          <VariablesView collection={collection} />
+          <span className="mr-3">
+            <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+          </span>
           <EnvironmentSelector collection={collection} />
         </div>
       </div>

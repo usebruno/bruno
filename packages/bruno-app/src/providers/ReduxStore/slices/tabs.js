@@ -19,12 +19,22 @@ export const tabsSlice = createSlice({
       if (alreadyExists) {
         return;
       }
+
+      if (action.payload.type === 'variables') {
+        const tab = find(state.tabs, (t) => t.collectionUid === action.payload.collectionUid && t.type === 'variables');
+        if (tab) {
+          state.activeTabUid = tab.uid;
+          return;
+        }
+      }
+
       state.tabs.push({
         uid: action.payload.uid,
         collectionUid: action.payload.collectionUid,
         requestPaneWidth: null,
         requestPaneTab: action.payload.requestPaneTab || 'params',
-        responsePaneTab: 'response'
+        responsePaneTab: 'response',
+        type: action.payload.type || 'request'
       });
       state.activeTabUid = action.payload.uid;
     },
@@ -55,16 +65,22 @@ export const tabsSlice = createSlice({
     closeTabs: (state, action) => {
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
+
+      // remove the tabs from the state
       state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
         const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
 
+        // if the active tab no longer exists, set the active tab to the last tab in the list
+        // this implies that the active tab was closed
         if (!activeTabStillExists) {
-          // attempt to load sibling tabs (based on collections) of the dead tab
+          // load sibling tabs of the current collection
           const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
 
+          // if there are sibling tabs, set the active tab to the last sibling tab
+          // otherwise, set the active tab to the last tab in the list
           if (siblingTabs && siblingTabs.length) {
             state.activeTabUid = last(siblingTabs).uid;
           } else {
