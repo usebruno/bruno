@@ -1,7 +1,7 @@
 {
   "version": "v0.14.1",
   "name": "bruno",
-  "description": "Opensource API Client",
+  "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
   "private": true,
   "main": "src/index.js",

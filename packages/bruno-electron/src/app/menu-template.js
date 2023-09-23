@@ -7,7 +7,7 @@ const template = [
     label: 'Collection',
     submenu: [
       {
-        label: 'Open Local Collection',
+        label: 'Open Collection',
         click() {
           ipcMain.emit('main:open-collection');
         }
@@ -49,12 +49,13 @@ const template = [
         label: 'About Bruno',
         click: () =>
           openAboutWindow({
-            icon_path: join(__dirname, '../../resources/icons/png/128x128.png'),
+            product_name: 'Bruno',
+            icon_path: join(__dirname, '../../resources/icons/png/256x256.png'),
             homepage: 'https://www.usebruno.com/',
             package_json_dir: join(__dirname, '../..')
           })
       },
-      { label: 'Learn More' }
+      { label: 'Documentation', click: () => ipcMain.emit('main:open-docs') }
     ]
   }
 ];

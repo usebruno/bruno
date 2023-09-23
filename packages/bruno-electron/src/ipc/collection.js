@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru } = require('../bru');
 
 const {
@@ -441,6 +441,11 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);
     }
+  });
+
+  ipcMain.on('main:open-docs', () => {
+    const docsURL = 'https://docs.usebruno.com';
+    shell.openExternal(docsURL);
   });
 
   ipcMain.on('main:collection-opened', (win, pathname, uid) => {

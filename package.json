@@ -13,6 +13,7 @@
     "packages/bruno-testbench",
     "packages/bruno-graphql-docs"
   ],
+  "homepage": "https://usebruno.com",
   "devDependencies": {
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",
