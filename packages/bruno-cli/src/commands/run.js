@@ -1,11 +1,13 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
+const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions } = require('../utils/bru');
+const { dotenvToJson } = require('@usebruno/lang');
 
 const command = 'run [filename]';
 const desc = 'Run a request';
@@ -225,12 +227,34 @@ const handler = async function (argv) {
       }
     }
 
+    // load .env file at root of collection if it exists
+    const dotEnvPath = path.join(collectionPath, '.env');
+    const dotEnvExists = await exists(dotEnvPath);
+    const processEnvVars = {
+      ...process.env
+    };
+    if (dotEnvExists) {
+      const content = fs.readFileSync(dotEnvPath, 'utf8');
+      const jsonData = dotenvToJson(content);
+
+      forOwn(jsonData, (value, key) => {
+        processEnvVars[key] = value;
+      });
+    }
+
     const _isFile = await isFile(filename);
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
       const bruJson = bruToJson(bruContent);
-      const result = await runSingleRequest(filename, bruJson, collectionPath, collectionVariables, envVars);
+      const result = await runSingleRequest(
+        filename,
+        bruJson,
+        collectionPath,
+        collectionVariables,
+        envVars,
+        processEnvVars
+      );
 
       if (result) {
         const { assertionResults, testResults } = result;
@@ -281,7 +305,14 @@ const handler = async function (argv) {
 
       for (const iter of bruJsons) {
         const { bruFilepath, bruJson } = iter;
-        const result = await runSingleRequest(bruFilepath, bruJson, collectionPath, collectionVariables, envVars);
+        const result = await runSingleRequest(
+          bruFilepath,
+          bruJson,
+          collectionPath,
+          collectionVariables,
+          envVars,
+          processEnvVars
+        );
 
         if (result) {
           const { assertionResults: _assertionResults, testResults: _testResults } = result;

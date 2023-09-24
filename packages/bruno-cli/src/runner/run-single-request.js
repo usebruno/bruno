@@ -11,7 +11,14 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 
-const runSingleRequest = async function (filename, bruJson, collectionPath, collectionVariables, envVariables) {
+const runSingleRequest = async function (
+  filename,
+  bruJson,
+  collectionPath,
+  collectionVariables,
+  envVariables,
+  processEnvVars
+) {
   let request;
 
   try {
@@ -49,7 +56,7 @@ const runSingleRequest = async function (filename, bruJson, collectionPath, coll
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVariables, collectionVariables);
+    interpolateVars(request, envVariables, collectionVariables, processEnvVars);
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
