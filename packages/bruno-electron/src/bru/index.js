@@ -15,7 +15,7 @@ const bruToEnvJson = (bru) => {
 
     return json;
   } catch (error) {
-    return Promise.reject(e);
+    return Promise.reject(error);
   }
 };
 
@@ -24,7 +24,7 @@ const envJsonToBru = (json) => {
     const bru = envJsonToBruV2(json);
     return bru;
   } catch (error) {
-    return Promise.reject(e);
+    return Promise.reject(error);
   }
 };
 
@@ -32,7 +32,7 @@ const envJsonToBru = (json) => {
  * The transformer function for converting a BRU file to JSON.
  *
  * We map the json response from the bru lang and transform it into the DSL
- * format that the app users
+ * format that the app uses
  *
  * @param {string} bru The BRU file content.
  * @returns {object} The JSON representation of the BRU file.

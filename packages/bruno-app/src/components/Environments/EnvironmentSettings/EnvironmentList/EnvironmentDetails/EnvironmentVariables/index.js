@@ -47,6 +47,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
         variable.enabled = e.target.checked;
         break;
       }
+      case 'secret': {
+        variable.secret = e.target.checked;
+        break;
+      }
     }
     reducerDispatch({
       type: 'UPDATE_VAR',
@@ -66,8 +70,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
       <table>
         <thead>
           <tr>
+            <td>Enabled</td>
             <td>Name</td>
             <td>Value</td>
+            <td>Secret</td>
             <td></td>
           </tr>
         </thead>
@@ -76,6 +82,14 @@ const EnvironmentVariables = ({ environment, collection }) => {
             ? variables.map((variable, index) => {
                 return (
                   <tr key={variable.uid}>
+                    <td className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={variable.enabled}
+                        className="mr-3 mousetrap"
+                        onChange={(e) => handleVarChange(e, variable, 'enabled')}
+                      />
+                    </td>
                     <td>
                       <input
                         type="text"
@@ -97,17 +111,17 @@ const EnvironmentVariables = ({ environment, collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={variable.enabled}
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleVarChange(e, variable, 'enabled')}
-                        />
-                        <button onClick={() => handleRemoveVars(variable)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
+                      <input
+                        type="checkbox"
+                        checked={variable.secret}
+                        className="mr-3 mousetrap"
+                        onChange={(e) => handleVarChange(e, variable, 'secret')}
+                      />
+                    </td>
+                    <td>
+                      <button onClick={() => handleRemoveVars(variable)}>
+                        <IconTrash strokeWidth={1.5} size={20} />
+                      </button>
                     </td>
                   </tr>
                 );

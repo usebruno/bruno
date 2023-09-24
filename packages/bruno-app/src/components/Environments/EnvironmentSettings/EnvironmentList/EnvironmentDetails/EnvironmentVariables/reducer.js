@@ -12,6 +12,7 @@ const reducer = (state, action) => {
           name: '',
           value: '',
           type: 'text',
+          secret: false,
           enabled: true
         });
         draft.hasChanges = true;
@@ -24,6 +25,7 @@ const reducer = (state, action) => {
         variable.name = action.variable.name;
         variable.value = action.variable.value;
         variable.enabled = action.variable.enabled;
+        variable.secret = action.variable.secret;
         draft.hasChanges = true;
       });
     }

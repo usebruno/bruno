@@ -26,7 +26,8 @@ vars {
         {
           name: 'url',
           value: 'http://localhost:3000',
-          enabled: true
+          enabled: true,
+          secret: false
         }
       ]
     };
@@ -48,17 +49,20 @@ vars {
         {
           name: 'url',
           value: 'http://localhost:3000',
-          enabled: true
+          enabled: true,
+          secret: false
         },
         {
           name: 'port',
           value: '3000',
-          enabled: true
+          enabled: true,
+          secret: false
         },
         {
           name: 'token',
           value: 'secret',
-          enabled: false
+          enabled: false,
+          secret: false
         }
       ]
     };
@@ -82,12 +86,14 @@ vars {
         {
           name: 'url',
           value: 'http://localhost:3000',
-          enabled: true
+          enabled: true,
+          secret: false
         },
         {
           name: 'port',
           value: '3000',
-          enabled: true
+          enabled: true,
+          secret: false
         }
       ]
     };
@@ -110,17 +116,197 @@ vars {
         {
           name: 'url',
           value: '',
-          enabled: true
+          enabled: true,
+          secret: false
         },
         {
           name: 'phone',
           value: '',
-          enabled: true
+          enabled: true,
+          secret: false
         },
         {
           name: 'api-key',
           value: '',
-          enabled: true
+          enabled: true,
+          secret: false
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse empty secret vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000
+}
+
+vars:secret [
+
+]
+`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse secret vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000
+}
+
+vars:secret [
+  token
+]
+`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'token',
+          value: null,
+          enabled: true,
+          secret: true
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse multiline secret vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000
+}
+
+vars:secret [
+  access_token,
+  access_secret,
+
+  ~access_password
+]
+`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'access_token',
+          value: null,
+          enabled: true,
+          secret: true
+        },
+        {
+          name: 'access_secret',
+          value: null,
+          enabled: true,
+          secret: true
+        },
+        {
+          name: 'access_password',
+          value: null,
+          enabled: false,
+          secret: true
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse inline secret vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000
+}
+
+vars:secret [access_key]
+`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'access_key',
+          value: null,
+          enabled: true,
+          secret: true
+        }
+      ]
+    };
+
+    expect(output).toEqual(expected);
+  });
+
+  it('should parse inline multiple secret vars', () => {
+    const input = `
+vars {
+  url: http://localhost:3000
+}
+
+vars:secret [access_key,access_secret,    access_password  ]
+`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [
+        {
+          name: 'url',
+          value: 'http://localhost:3000',
+          enabled: true,
+          secret: false
+        },
+        {
+          name: 'access_key',
+          value: null,
+          enabled: true,
+          secret: true
+        },
+        {
+          name: 'access_secret',
+          value: null,
+          enabled: true,
+          secret: true
+        },
+        {
+          name: 'access_password',
+          value: null,
+          enabled: true,
+          secret: true
         }
       ]
     };

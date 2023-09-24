@@ -18,6 +18,15 @@ const { openCollectionDialog, openCollection } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { setPreferences } = require('../store/preferences');
+const EnvironmentSecretsStore = require('../store/env-secrets');
+
+const environmentSecretsStore = new EnvironmentSecretsStore();
+
+const envHasSecrets = (environment = {}) => {
+  const secrets = _.filter(environment.variables, (v) => v.secret);
+
+  return secrets && secrets.length > 0;
+};
 
 const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
   // browse directory
@@ -153,6 +162,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
+      if (envHasSecrets(environment)) {
+        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
+      }
+
       const content = envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -175,6 +188,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       fs.renameSync(envFilePath, newEnvFilePath);
+
+      environmentSecretsStore.renameEnvironment(collectionPathname, environmentName, newName);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -190,6 +205,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       fs.unlinkSync(envFilePath);
+
+      environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
     } catch (error) {
       return Promise.reject(error);
     }
