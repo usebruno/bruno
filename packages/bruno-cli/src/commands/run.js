@@ -193,17 +193,18 @@ const handler = async function (argv) {
         return;
       }
       if (processVars && Array.isArray(processVars)) {
-        processVars.forEach((value) => {
-          let parts = value.split('=');
-          if (parts.length !== 2) {
+        for (const value of processVars.values()) {
+          // split the string at the first equals sign
+          const match = value.match(/^([^=]+)=(.*)$/);
+          if (!match) {
             console.error(
-              chalk.red(`overridable environment variable not correct: use name=value - presented: `) +
+              chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
                 chalk.dim(`${value}`)
             );
             return;
           }
-          envVars[parts[0]] = parts[1];
-        });
+          envVars[match[1]] = match[2];
+        }
       }
     }
 
