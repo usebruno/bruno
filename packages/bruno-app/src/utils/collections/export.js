@@ -54,11 +54,22 @@ const deleteUidsInEnvs = (envs) => {
   });
 };
 
+const deleteSecretsInEnvs = (envs) => {
+  each(envs, (env) => {
+    each(env.variables, (variable) => {
+      if (variable.secret) {
+        variable.value = '';
+      }
+    });
+  });
+};
+
 const exportCollection = (collection) => {
   // delete uids
   delete collection.uid;
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
+  deleteSecretsInEnvs(collection.environments);
   transformItem(collection.items);
 
   const fileName = `${collection.name}.json`;

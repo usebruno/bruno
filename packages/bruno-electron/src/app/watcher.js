@@ -9,6 +9,10 @@ const { isLegacyEnvFile, migrateLegacyEnvFile, isLegacyBruFile, migrateLegacyBru
 const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
+const { decryptString } = require('../utils/encryption');
+const EnvironmentSecretsStore = require('../store/env-secrets');
+
+const environmentSecretsStore = new EnvironmentSecretsStore();
 
 const isJsonEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -47,7 +51,13 @@ const hydrateRequestWithUuid = (request, pathname) => {
   return request;
 };
 
-const addEnvironmentFile = async (win, pathname, collectionUid) => {
+const envHasSecrets = (environment = {}) => {
+  const secrets = _.filter(environment.variables, (v) => v.secret);
+
+  return secrets && secrets.length > 0;
+};
+
+const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
     const basename = path.basename(pathname);
     const file = {
@@ -70,13 +80,25 @@ const addEnvironmentFile = async (win, pathname, collectionUid) => {
     file.data.uid = getRequestUid(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
+
+    // hydrate environment variables with secrets
+    if (envHasSecrets(file.data)) {
+      const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
+      _.each(envSecrets, (secret) => {
+        const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+        if (variable) {
+          variable.value = decryptString(secret.value);
+        }
+      });
+    }
+
     win.webContents.send('main:collection-tree-updated', 'addEnvironmentFile', file);
   } catch (err) {
     console.error(err);
   }
 };
 
-const changeEnvironmentFile = async (win, pathname, collectionUid) => {
+const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
     const basename = path.basename(pathname);
     const file = {
@@ -92,6 +114,17 @@ const changeEnvironmentFile = async (win, pathname, collectionUid) => {
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
+
+    // hydrate environment variables with secrets
+    if (envHasSecrets(file.data)) {
+      const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
+      _.each(envSecrets, (secret) => {
+        const variable = _.find(file.data.variables, (v) => v.name === secret.name);
+        if (variable) {
+          variable.value = decryptString(secret.value);
+        }
+      });
+    }
 
     // we are reusing the addEnvironmentFile event itself
     // this is because the uid of the pathname remains the same
@@ -152,7 +185,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   }
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
-    return addEnvironmentFile(win, pathname, collectionUid);
+    return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
   // migrate old json files to bru
@@ -221,7 +254,7 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
-    return changeEnvironmentFile(win, pathname, collectionUid);
+    return changeEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
   if (hasBruExtension(pathname)) {

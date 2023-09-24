@@ -6,7 +6,8 @@ const environmentVariablesSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   type: Yup.string().oneOf(['text']).required('type is required'),
-  enabled: Yup.boolean().defined()
+  enabled: Yup.boolean().defined(),
+  secret: Yup.boolean()
 })
   .noUnknown(true)
   .strict();
