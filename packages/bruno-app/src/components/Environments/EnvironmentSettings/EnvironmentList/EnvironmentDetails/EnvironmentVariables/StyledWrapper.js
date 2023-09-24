@@ -12,12 +12,14 @@ const Wrapper = styled.div`
       border: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder};
       padding: 4px 10px;
 
-      &:nth-child(1) {
-        width: 30%;
+      &:nth-child(1),
+      &:nth-child(4),
+      &:nth-child(5) {
+        width: 70px;
       }
 
-      &:nth-child(3) {
-        width: 70px;
+      &:nth-child(2) {
+        width: 25%;
       }
     }
 
