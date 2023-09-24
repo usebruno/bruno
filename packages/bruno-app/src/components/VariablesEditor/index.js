@@ -34,7 +34,7 @@ const EnvVariables = ({ collection, theme }) => {
     return (
       <>
         <h1 className="font-semibold mt-4 mb-2">Environment Variables</h1>
-        <div className="muted">No environment selected</div>
+        <div className="muted text-xs">No environment selected</div>
       </>
     );
   }
@@ -55,7 +55,7 @@ const EnvVariables = ({ collection, theme }) => {
       {enabledEnvVars.length > 0 ? (
         <KeyValueExplorer data={envVarsObj} theme={theme} />
       ) : (
-        <div className="muted">No environment variables found</div>
+        <div className="muted text-xs">No environment variables found</div>
       )}
     </>
   );
@@ -70,7 +70,7 @@ const CollectionVariables = ({ collection, theme }) => {
       {collectionVariablesFound ? (
         <KeyValueExplorer data={collection.collectionVariables} theme={theme} />
       ) : (
-        <div className="muted">No collection variables found</div>
+        <div className="muted text-xs">No collection variables found</div>
       )}
     </>
   );
@@ -85,6 +85,12 @@ const VariablesEditor = ({ collection }) => {
     <StyledWrapper className="px-4 py-4">
       <CollectionVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
+
+      <div className="mt-8 muted text-xs">
+        Note: As of today, collection variables can only be set via the api -{' '}
+        <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
+        In the next release, we will add a UI to set and modify collection variables.
+      </div>
     </StyledWrapper>
   );
 };
