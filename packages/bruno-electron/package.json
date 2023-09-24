@@ -10,7 +10,8 @@
     "clean": "rimraf dist",
     "dev": "electron .",
     "dist": "electron-builder --mac --config electron-builder-config.js",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "test": "jest"
   },
   "dependencies": {
     "@usebruno/js": "0.4.0",
@@ -31,6 +32,7 @@
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",
     "nanoid": "3.3.4",
+    "node-machine-id": "^1.1.12",
     "qs": "^6.11.0",
     "uuid": "^9.0.0",
     "vm2": "^3.9.13",
