@@ -1,4 +1,3 @@
-
 :root {
   --color-brand: #546de5;
   --color-text: rgb(52 52 52);
@@ -21,7 +20,8 @@
   --color-method-head: rgb(52 52 52);
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   font-size: 1rem;
@@ -38,15 +38,18 @@ body {
   font-size: 0.875rem;
 }
 
-body::-webkit-scrollbar, .CodeMirror-vscrollbar::-webkit-scrollbar {
+body::-webkit-scrollbar,
+.CodeMirror-vscrollbar::-webkit-scrollbar {
   width: 0.6rem;
 }
- 
-body::-webkit-scrollbar-track, .CodeMirror-vscrollbar::-webkit-scrollbar-track {
+
+body::-webkit-scrollbar-track,
+.CodeMirror-vscrollbar::-webkit-scrollbar-track {
   background-color: #f1f1f1;
 }
- 
-body::-webkit-scrollbar-thumb, .CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
+
+body::-webkit-scrollbar-thumb,
+.CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
   background-color: #cdcdcd;
   border-radius: 5rem;
 }

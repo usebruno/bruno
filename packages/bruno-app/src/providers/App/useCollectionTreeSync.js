@@ -8,6 +8,7 @@ import {
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
   scriptEnvironmentUpdateEvent,
+  processEnvUpdateEvent,
   collectionRenamedEvent,
   runRequestEvent,
   runFolderEvent
@@ -97,6 +98,10 @@ const useCollectionTreeSync = () => {
       dispatch(scriptEnvironmentUpdateEvent(val));
     };
 
+    const _processEnvUpdate = (val) => {
+      dispatch(processEnvUpdateEvent(val));
+    };
+
     const _collectionRenamed = (val) => {
       dispatch(collectionRenamedEvent(val));
     };
@@ -119,7 +124,8 @@ const useCollectionTreeSync = () => {
     const removeListener6 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
     const removeListener7 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
     const removeListener8 = ipcRenderer.on('main:run-request-event', _runRequestEvent);
-    const removeListener9 = ipcRenderer.on('main:console-log', (val) => {
+    const removeListener9 = ipcRenderer.on('main:process-env-update', _processEnvUpdate);
+    const removeListener10 = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
     });
 
@@ -133,6 +139,7 @@ const useCollectionTreeSync = () => {
       removeListener7();
       removeListener8();
       removeListener9();
+      removeListener10();
     };
   }, [isElectron]);
 };

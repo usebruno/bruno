@@ -12,7 +12,8 @@ const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../util
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { getPreferences } = require('../../app/preferences');
+const { getPreferences } = require('../../store/preferences');
+const { getProcessEnvVars } = require('../../store/process-env');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -129,12 +130,14 @@ const registerNetworkIpc = (mainWindow) => {
             collectionPath
           );
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
+          if (result) {
+            mainWindow.webContents.send('main:script-environment-update', {
+              envVariables: result.envVariables,
+              collectionVariables: result.collectionVariables,
+              requestUid,
+              collectionUid
+            });
+          }
         }
 
         // run pre-request script
@@ -158,7 +161,9 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        interpolateVars(request, envVars, collectionVariables);
+        const processEnvVars = getProcessEnvVars(collectionUid);
+
+        interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
         // stringify the request url encoded params
         if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
@@ -222,12 +227,14 @@ const registerNetworkIpc = (mainWindow) => {
             collectionPath
           );
 
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
+          if (result) {
+            mainWindow.webContents.send('main:script-environment-update', {
+              envVariables: result.envVariables,
+              collectionVariables: result.collectionVariables,
+              requestUid,
+              collectionUid
+            });
+          }
         }
 
         // run post-response script
@@ -520,7 +527,21 @@ const registerNetworkIpc = (mainWindow) => {
             const preRequestVars = get(request, 'vars.req', []);
             if (preRequestVars && preRequestVars.length) {
               const varsRuntime = new VarsRuntime();
-              varsRuntime.runPreRequestVars(preRequestVars, request, envVars, collectionVariables, collectionPath);
+              const result = varsRuntime.runPreRequestVars(
+                preRequestVars,
+                request,
+                envVars,
+                collectionVariables,
+                collectionPath
+              );
+
+              if (result) {
+                mainWindow.webContents.send('main:script-environment-update', {
+                  envVariables: result.envVariables,
+                  collectionVariables: result.collectionVariables,
+                  collectionUid
+                });
+              }
             }
 
             // run pre-request script
@@ -543,8 +564,10 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
+            const processEnvVars = getProcessEnvVars(collectionUid);
+
             // interpolate variables inside request
-            interpolateVars(request, envVars, collectionVariables);
+            interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -587,11 +610,13 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath
               );
 
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: result.envVariables,
-                collectionVariables: result.collectionVariables,
-                collectionUid
-              });
+              if (result) {
+                mainWindow.webContents.send('main:script-environment-update', {
+                  envVariables: result.envVariables,
+                  collectionVariables: result.collectionVariables,
+                  collectionUid
+                });
+              }
             }
 
             // run response script

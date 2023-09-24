@@ -177,6 +177,14 @@ export const collectionsSlice = createSlice({
         collection.collectionVariables = collectionVariables;
       }
     },
+    processEnvUpdateEvent: (state, action) => {
+      const { collectionUid, processEnvVariables } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.processEnvVariables = processEnvVariables;
+      }
+    },
     requestCancelled: (state, action) => {
       const { itemUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1158,6 +1166,7 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
   saveRequest,

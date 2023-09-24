@@ -6,6 +6,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
+const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const atob = require('atob');
@@ -49,7 +50,7 @@ class TestRuntime {
     if (onConsoleLog && typeof onConsoleLog === 'function') {
       const customLogger = (type) => {
         return (...args) => {
-          onConsoleLog(type, args);
+          onConsoleLog(type, cleanJson(args));
         };
       };
       context.console = {
@@ -82,9 +83,9 @@ class TestRuntime {
 
     return {
       request,
-      envVariables,
-      collectionVariables,
-      results: __brunoTestResults.getResults()
+      envVariables: cleanJson(envVariables),
+      collectionVariables: cleanJson(collectionVariables),
+      results: cleanJson(__brunoTestResults.getResults())
     };
   }
 }

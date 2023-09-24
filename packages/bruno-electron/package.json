@@ -1,7 +1,7 @@
 {
   "version": "v0.14.1",
   "name": "bruno",
-  "description": "Opensource API Client",
+  "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
   "private": true,
   "main": "src/index.js",
@@ -28,6 +28,7 @@
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
+    "handlebars": "^4.7.8",
     "is-valid-path": "^0.1.1",
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",

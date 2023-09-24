@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { findItemInCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import RequestTabNotFound from './RequestTabNotFound';
+import SpecialTab from './SpecialTab';
 
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
@@ -55,6 +56,14 @@ const RequestTab = ({ tab, collection }) => {
 
     return color;
   };
+
+  if (tab.type === 'variables') {
+    return (
+      <StyledWrapper className="flex items-center justify-between tab-container px-1">
+        <SpecialTab handleCloseClick={handleCloseClick} text="Variables" />
+      </StyledWrapper>
+    );
+  }
 
   const item = findItemInCollection(collection, tab.uid);
 

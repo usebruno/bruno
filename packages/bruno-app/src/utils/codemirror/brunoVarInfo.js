@@ -8,6 +8,7 @@
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const { get } = require('lodash');
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -20,7 +21,7 @@ if (!SERVER_RENDERED) {
     // str is of format {{variableName}}, extract variableName
     // we are seeing that from the gql query editor, the token string is of format variableName
     const variableName = str.replace('{{', '').replace('}}', '').trim();
-    const variableValue = options.variables[variableName];
+    const variableValue = get(options.variables, variableName);
 
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');

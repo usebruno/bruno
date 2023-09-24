@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru } = require('../bru');
 
 const {
@@ -17,7 +17,7 @@ const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { setPreferences } = require('../app/preferences');
+const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -458,6 +458,11 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     if (watcher && mainWindow) {
       openCollectionDialog(mainWindow, watcher);
     }
+  });
+
+  ipcMain.on('main:open-docs', () => {
+    const docsURL = 'https://docs.usebruno.com';
+    shell.openExternal(docsURL);
   });
 
   ipcMain.on('main:collection-opened', (win, pathname, uid) => {

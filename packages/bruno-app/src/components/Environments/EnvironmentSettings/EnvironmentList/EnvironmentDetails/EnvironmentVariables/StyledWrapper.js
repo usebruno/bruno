@@ -5,10 +5,20 @@ const Wrapper = styled.div`
     width: 100%;
     border-collapse: collapse;
     font-weight: 600;
+    table-layout: fixed;
 
     thead,
     td {
       border: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder};
+      padding: 4px 10px;
+
+      &:nth-child(1) {
+        width: 30%;
+      }
+
+      &:nth-child(3) {
+        width: 70px;
+      }
     }
 
     thead {
@@ -16,7 +26,7 @@ const Wrapper = styled.div`
       font-size: 0.8125rem;
       user-select: none;
     }
-    td {
+    thead td {
       padding: 6px 10px;
     }
   }

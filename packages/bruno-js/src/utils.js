@@ -118,9 +118,28 @@ const createResponseParser = (response = {}) => {
   return res;
 };
 
+/**
+ * Objects that are created inside vm2 execution context result in an serilaization error when sent to the renderer process
+ * Error sending from webFrameMain:  Error: Failed to serialize arguments
+ *    at s.send (node:electron/js2c/browser_init:169:631)
+ *    at g.send (node:electron/js2c/browser_init:165:2156)
+ * How to reproduce
+ *    Remove the cleanJson fix and execute the below post response script
+ *    bru.setVar("a", {b:3});
+ * Todo: Find a better fix
+ */
+const cleanJson = (data) => {
+  try {
+    return JSON.parse(JSON.stringify(data));
+  } catch (e) {
+    return data;
+  }
+};
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
-  internalExpressionCache
+  internalExpressionCache,
+  cleanJson
 };

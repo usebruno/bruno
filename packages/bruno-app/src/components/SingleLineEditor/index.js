@@ -31,6 +31,7 @@ class SingleLineEditor extends Component {
       brunoVarInfo: {
         variables: getAllVariables(this.props.collection)
       },
+      scrollbarStyle: null,
       extraKeys: {
         Enter: () => {
           if (this.props.onRun) {
