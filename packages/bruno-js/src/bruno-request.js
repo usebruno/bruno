@@ -46,6 +46,10 @@ class BrunoRequest {
   setBody(data) {
     this.req.data = data;
   }
+
+  setMaxRedirects(maxRedirects) {
+    this.req.maxRedirects = maxRedirects;
+  }
 }
 
 module.exports = BrunoRequest;
