@@ -127,6 +127,11 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('output', {
+      alias: 'o',
+      describe: 'Path to write JSON results to',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -138,12 +143,16 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
+    )
+    .example(
+      '$0 run request.bru --output results.json',
+      'Run a request and write the results to results.json in the current directory'
     );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -243,36 +252,24 @@ const handler = async function (argv) {
     }
 
     const _isFile = await isFile(filename);
+    let assertionResults = [];
+    let testResults = [];
+    let requestResults = [];
+
+    let bruJsons = [];
+
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
       const bruContent = fs.readFileSync(filename, 'utf8');
       const bruJson = bruToJson(bruContent);
-      const result = await runSingleRequest(
-        filename,
-        bruJson,
-        collectionPath,
-        collectionVariables,
-        envVars,
-        processEnvVars
-      );
-
-      if (result) {
-        const { assertionResults, testResults } = result;
-
-        const summary = printRunSummary(assertionResults, testResults);
-        console.log(chalk.dim(chalk.grey('Done.')));
-
-        if (summary.failedAssertions > 0 || summary.failedTests > 0) {
-          process.exit(1);
-        }
-      } else {
-        process.exit(1);
-      }
+      bruJsons.push({
+        bruFilepath: filename,
+        bruJson
+      });
     }
 
     const _isDirectory = await isDirectory(filename);
     if (_isDirectory) {
-      let bruJsons = [];
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
         const files = fs.readdirSync(filename);
@@ -287,8 +284,6 @@ const handler = async function (argv) {
             bruJson
           });
         }
-
-        // order requests by sequence
         bruJsons.sort((a, b) => {
           const aSequence = a.bruJson.seq || 0;
           const bSequence = b.bruJson.seq || 0;
@@ -299,35 +294,50 @@ const handler = async function (argv) {
 
         bruJsons = getBruFilesRecursively(filename);
       }
+    }
 
-      let assertionResults = [];
-      let testResults = [];
+    for (const iter of bruJsons) {
+      const { bruFilepath, bruJson } = iter;
+      const result = await runSingleRequest(
+        bruFilepath,
+        bruJson,
+        collectionPath,
+        collectionVariables,
+        envVars,
+        processEnvVars
+      );
 
-      for (const iter of bruJsons) {
-        const { bruFilepath, bruJson } = iter;
-        const result = await runSingleRequest(
-          bruFilepath,
-          bruJson,
-          collectionPath,
-          collectionVariables,
-          envVars,
-          processEnvVars
-        );
+      if (result) {
+        requestResults.push(result);
+        const { assertionResults: _assertionResults, testResults: _testResults } = result;
 
-        if (result) {
-          const { assertionResults: _assertionResults, testResults: _testResults } = result;
-
-          assertionResults = assertionResults.concat(_assertionResults);
-          testResults = testResults.concat(_testResults);
-        }
+        assertionResults = assertionResults.concat(_assertionResults);
+        testResults = testResults.concat(_testResults);
       }
+    }
 
-      const summary = printRunSummary(assertionResults, testResults);
-      console.log(chalk.dim(chalk.grey('Ran all requests.')));
+    const summary = printRunSummary(assertionResults, testResults);
+    console.log(chalk.dim(chalk.grey('Ran all requests.')));
 
-      if (summary.failedAssertions > 0 || summary.failedTests > 0) {
+    if (outputPath && outputPath.length) {
+      const outputDir = path.dirname(outputPath);
+      const outputDirExists = await exists(outputDir);
+      if (!outputDirExists) {
+        console.error(chalk.red(`Output directory ${outputDir} does not exist`));
         process.exit(1);
       }
+
+      const outputJson = {
+        summary,
+        requestResults
+      };
+
+      fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+    }
+
+    if (summary.failedAssertions > 0 || summary.failedTests > 0) {
+      process.exit(1);
     }
   } catch (err) {
     console.log('Something went wrong');
