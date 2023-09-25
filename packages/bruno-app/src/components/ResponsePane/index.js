@@ -1,8 +1,8 @@
 import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
 import { useDispatch, useSelector } from 'react-redux';
+import { formatResponse } from 'utils/common';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
@@ -41,9 +41,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             item={item}
             collection={collection}
             width={rightPaneWidth}
-            value={
-              response.data ? (isJson(response.headers) ? safeStringifyJSON(response.data, true) : response.data) : ''
-            }
+            value={response.data ? formatResponse(response) : ''}
             mode={getContentType(response.headers)}
           />
         );
