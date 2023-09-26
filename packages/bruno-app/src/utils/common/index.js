@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import xmlFormat from 'xml-formatter';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -60,4 +61,33 @@ export const normalizeFileName = (name) => {
   const formattedName = name.replace(validChars, '-');
 
   return formattedName;
+};
+
+export const getContentType = (headers) => {
+  if (headers && headers.length) {
+    let contentType = headers
+      .filter((header) => header[0].toLowerCase() === 'content-type')
+      .map((header) => {
+        return header[1];
+      });
+    if (contentType && contentType.length) {
+      if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
+        return 'application/ld+json';
+      } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
+        return 'application/xml';
+      }
+    }
+  }
+  return '';
+};
+
+export const formatResponse = (response) => {
+  let type = getContentType(response.headers);
+  if (type.includes('json')) {
+    return safeStringifyJSON(response.data);
+  }
+  if (type.includes('xml')) {
+    return xmlFormat(response.data, { collapseContent: true });
+  }
+  return response.data;
 };
