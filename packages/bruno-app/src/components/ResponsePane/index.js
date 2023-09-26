@@ -2,7 +2,7 @@ import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { formatResponse } from 'utils/common';
+import { getContentType, formatResponse } from 'utils/common';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
@@ -91,24 +91,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     return classnames(`tab select-none ${tabName}`, {
       active: tabName === focusedTab.responsePaneTab
     });
-  };
-
-  const getContentType = (headers) => {
-    if (headers && headers.length) {
-      let contentType = headers
-        .filter((header) => header[0].toLowerCase() === 'content-type')
-        .map((header) => {
-          return header[1];
-        });
-      if (contentType && contentType.length) {
-        if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?json/.test(contentType[0])) {
-          return 'application/ld+json';
-        } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
-          return 'application/xml';
-        }
-      }
-    }
-    return '';
   };
 
   const isJson = (headers) => {
