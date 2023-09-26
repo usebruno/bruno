@@ -7,7 +7,7 @@
     "passedTests": 0,
     "failedTests": 0
   },
-  "requestResults": [
+  "results": [
     {
       "request": {
         "method": "GET",

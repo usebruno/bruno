@@ -254,7 +254,7 @@ const handler = async function (argv) {
     const _isFile = await isFile(filename);
     let assertionResults = [];
     let testResults = [];
-    let requestResults = [];
+    let testrunResults = [];
 
     let bruJsons = [];
 
@@ -308,7 +308,7 @@ const handler = async function (argv) {
       );
 
       if (result) {
-        requestResults.push(result);
+        testrunResults.push(result);
         const { assertionResults: _assertionResults, testResults: _testResults } = result;
 
         assertionResults = assertionResults.concat(_assertionResults);
@@ -329,7 +329,7 @@ const handler = async function (argv) {
 
       const outputJson = {
         summary,
-        requestResults
+        results: testrunResults
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));

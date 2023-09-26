@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.0
+
+- `--output` flag to collect the results of your API tests
+
 ## 0.8.0
 
 - `--env-var` flag to set environment variables
