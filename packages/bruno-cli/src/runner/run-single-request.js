@@ -171,6 +171,18 @@ const runSingleRequest = async function (
     }
 
     return {
+      request: {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        data: request.data
+      },
+      response: {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      },
       assertionResults,
       testResults
     };
