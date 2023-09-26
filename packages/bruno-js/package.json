@@ -1,6 +1,7 @@
 {
   "name": "@usebruno/js",
   "version": "0.5.0",
+  "license" : "MIT",
   "main": "src/index.js",
   "files": [
     "src",
