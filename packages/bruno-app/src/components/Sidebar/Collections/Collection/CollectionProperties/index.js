@@ -35,7 +35,7 @@ const CollectionProperties = ({ collection, onClose }) => {
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Environments&nbsp;:</td>
-            <td className="py-2 px-2">{collection.environments.length}</td>
+            <td className="py-2 px-2">{collection.environments?.length || 0}</td>
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Requests&nbsp;:</td>
