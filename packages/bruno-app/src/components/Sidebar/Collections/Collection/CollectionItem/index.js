@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { collectionFolderClicked, hideRunnerView } from 'providers/ReduxStore/slices/collections';
+import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -86,11 +86,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const handleClick = (event) => {
-    dispatch(
-      hideRunnerView({
-        collectionUid: collection.uid
-      })
-    );
     if (isItemARequest(item)) {
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(

@@ -10,6 +10,10 @@ const initialState = {
   activeTabUid: null
 };
 
+const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
+  return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
+};
+
 export const tabsSlice = createSlice({
   name: 'tabs',
   initialState,
@@ -20,8 +24,8 @@ export const tabsSlice = createSlice({
         return;
       }
 
-      if (action.payload.type === 'variables') {
-        const tab = find(state.tabs, (t) => t.collectionUid === action.payload.collectionUid && t.type === 'variables');
+      if (['variables', 'collection-settings', 'collection-runner'].includes(action.payload.type)) {
+        const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
         if (tab) {
           state.activeTabUid = tab.uid;
           return;

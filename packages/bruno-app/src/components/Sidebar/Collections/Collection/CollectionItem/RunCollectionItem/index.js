@@ -1,9 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
+import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { showRunnerView } from 'providers/ReduxStore/slices/collections';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
@@ -12,8 +13,10 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
 
   const onSubmit = (recursive) => {
     dispatch(
-      showRunnerView({
-        collectionUid: collection.uid
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-runner'
       })
     );
     dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));

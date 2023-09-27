@@ -4,7 +4,6 @@ import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
-import { toggleRunnerView } from 'providers/ReduxStore/slices/collections';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionToolBar = ({ collection }) => {
@@ -12,8 +11,10 @@ const CollectionToolBar = ({ collection }) => {
 
   const handleRun = () => {
     dispatch(
-      toggleRunnerView({
-        collectionUid: collection.uid
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-runner'
       })
     );
   };

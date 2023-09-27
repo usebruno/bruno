@@ -3,7 +3,7 @@ import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, each, cloneDeep } from 'lodash';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { closeCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import slash from 'utils/common/slash';
@@ -69,9 +69,9 @@ export default function RunnerResults({ collection }) {
     dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive));
   };
 
-  const closeRunner = () => {
+  const resetRunner = () => {
     dispatch(
-      closeCollectionRunner({
+      resetCollectionRunner({
         collectionUid: collection.uid
       })
     );
@@ -101,8 +101,8 @@ export default function RunnerResults({ collection }) {
           Run Collection
         </button>
 
-        <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={closeRunner}>
-          Close
+        <button className="submit btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
+          Reset
         </button>
       </StyledWrapper>
     );
@@ -202,8 +202,8 @@ export default function RunnerResults({ collection }) {
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6 ml-3" onClick={runCollection}>
                 Run Collection
               </button>
-              <button className="btn btn-sm btn-close mt-6 ml-3" onClick={closeRunner}>
-                Close
+              <button className="btn btn-sm btn-close mt-6 ml-3" onClick={resetRunner}>
+                Reset
               </button>
             </div>
           ) : null}

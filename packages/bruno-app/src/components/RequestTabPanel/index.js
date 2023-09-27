@@ -120,8 +120,7 @@ const RequestTabPanel = () => {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
 
-  const showRunner = collection.showRunner;
-  if (showRunner) {
+  if (focusedTab.type === 'collection-runner') {
     return <RunnerResults collection={collection} />;
   }
 

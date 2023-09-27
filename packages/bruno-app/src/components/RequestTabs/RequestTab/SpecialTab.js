@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconVariable, IconSettings } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type }) => {
   const getTabInfo = (type) => {
@@ -17,6 +17,14 @@ const SpecialTab = ({ handleCloseClick, type }) => {
           <>
             <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
             <span className="ml-1">Variables</span>
+          </>
+        );
+      }
+      case 'collection-runner': {
+        return (
+          <>
+            <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1">Runner</span>
           </>
         );
       }

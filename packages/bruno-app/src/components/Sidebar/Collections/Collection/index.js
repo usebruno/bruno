@@ -1,5 +1,6 @@
 import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
+import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDrop } from 'react-dnd';
@@ -8,12 +9,12 @@ import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import CollectionProperties from './CollectionProperties';
-import RunCollectionItem from './CollectionItem/RunCollectionItem';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
@@ -26,7 +27,6 @@ const Collection = ({ collection, searchText }) => {
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const [showRunCollectionModal, setShowRunCollectionModal] = useState(false);
   const [collectionPropertiesModal, setCollectionPropertiesModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
@@ -40,6 +40,16 @@ const Collection = ({ collection, searchText }) => {
       </div>
     );
   });
+
+  const handleRun = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-runner'
+      })
+    );
+  };
 
   useEffect(() => {
     if (searchText && searchText.length) {
@@ -105,9 +115,6 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
-      {showRunCollectionModal && (
-        <RunCollectionItem collection={collection} onClose={() => setShowRunCollectionModal(false)} />
-      )}
       {collectionPropertiesModal && (
         <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
       )}
@@ -147,7 +154,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowRunCollectionModal(true);
+                handleRun();
               }}
             >
               Run

@@ -1016,30 +1016,6 @@ export const collectionsSlice = createSlice({
         collection.name = newName;
       }
     },
-    toggleRunnerView: (state, action) => {
-      const { collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.showRunner = !collection.showRunner;
-      }
-    },
-    showRunnerView: (state, action) => {
-      const { collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.showRunner = true;
-      }
-    },
-    hideRunnerView: (state, action) => {
-      const { collectionUid } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.showRunner = false;
-      }
-    },
     resetRunResults: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1149,13 +1125,12 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    closeCollectionRunner: (state, action) => {
+    resetCollectionRunner: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         collection.runnerResult = null;
-        collection.showRunner = false;
       }
     }
   }
@@ -1216,13 +1191,10 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
-  toggleRunnerView,
-  showRunnerView,
-  hideRunnerView,
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
-  closeCollectionRunner
+  resetCollectionRunner
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

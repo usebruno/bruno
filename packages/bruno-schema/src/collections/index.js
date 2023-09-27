@@ -124,7 +124,6 @@ const collectionSchema = Yup.object({
     .nullable(),
   environments: environmentsSchema,
   pathname: Yup.string().nullable(),
-  showRunner: Yup.boolean(),
   runnerResult: Yup.object({
     items: Yup.array()
   }),
