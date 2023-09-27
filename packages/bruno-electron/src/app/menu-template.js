@@ -51,7 +51,7 @@ const template = [
         click: () =>
           openAboutWindow({
             product_name: 'Bruno',
-            icon_path: join(__dirname, '../../resources/icons/png/256x256.png'),
+            icon_path: join(process.cwd(), '/resources/icons/png/256x256.png'),
             homepage: 'https://www.usebruno.com/',
             package_json_dir: join(__dirname, '../..')
           })
