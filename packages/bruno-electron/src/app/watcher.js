@@ -12,6 +12,7 @@ const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
+const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -28,6 +29,13 @@ const isDotEnvFile = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
 
   return dirname === collectionPath && basename === '.env';
+};
+
+const isBrunoConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'bruno.json';
 };
 
 const isBruEnvironmentConfig = (pathname, collectionPath) => {
@@ -167,6 +175,17 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
 const add = async (win, pathname, collectionUid, collectionPath) => {
   console.log(`watcher add: ${pathname}`);
 
+  if (isBrunoConfigFile(pathname, collectionPath)) {
+    try {
+      const content = fs.readFileSync(pathname, 'utf8');
+      const jsonData = JSON.parse(content);
+
+      setBrunoConfig(collectionUid, jsonData);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -281,6 +300,17 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
 };
 
 const change = async (win, pathname, collectionUid, collectionPath) => {
+  if (isBrunoConfigFile(pathname, collectionPath)) {
+    try {
+      const content = fs.readFileSync(pathname, 'utf8');
+      const jsonData = JSON.parse(content);
+
+      setBrunoConfig(collectionUid, jsonData);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   if (isDotEnvFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
@@ -378,7 +408,7 @@ class Watcher {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
         usePolling: false,
-        ignored: (path) => ['node_modules', '.git', 'bruno.json'].some((s) => path.includes(s)),
+        ignored: (path) => ['node_modules', '.git'].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {

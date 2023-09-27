@@ -5,20 +5,12 @@ const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
 
-// uid inside collections is deprecated, but we still need to validate it
-// for backward compatibility
-const uidSchema = Yup.string()
-  .length(21, 'uid must be 21 characters in length')
-  .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric');
-
+// todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
-  uid: uidSchema,
-  name: Yup.string().nullable().max(256, 'name must be 256 characters or less'),
+  name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
   version: Yup.string().oneOf(['1']).required('type is required')
-})
-  .noUnknown(true)
-  .strict();
+});
 
 const readConfigFile = async (pathname) => {
   try {

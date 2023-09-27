@@ -18,7 +18,7 @@
     "@usebruno/lang": "0.4.0",
     "@usebruno/schema": "0.4.0",
     "about-window": "^1.15.2",
-    "axios": "^0.26.0",
+    "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "dotenv": "^16.0.3",

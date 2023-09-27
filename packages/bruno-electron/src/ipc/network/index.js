@@ -14,6 +14,7 @@ const interpolateVars = require('./interpolate-vars');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
+const { getBrunoConfig } = require('../../store/bruno-config');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -162,6 +163,31 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         const processEnvVars = getProcessEnvVars(collectionUid);
+
+        const brunoConfig = getBrunoConfig(collectionUid);
+        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+        if (proxyEnabled) {
+          const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+          const proxyHostname = get(brunoConfig, 'proxy.hostname');
+          const proxyPort = get(brunoConfig, 'proxy.port');
+          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+          const proxyConfig = {
+            protocol: proxyProtocol,
+            hostname: proxyHostname,
+            port: proxyPort
+          };
+          if (proxyAuthEnabled) {
+            const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+            const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+            proxyConfig.auth = {
+              username: proxyAuthUsername,
+              password: proxyAuthPassword
+            };
+          }
+
+          request.proxy = proxyConfig;
+        }
 
         interpolateVars(request, envVars, collectionVariables, processEnvVars);
 

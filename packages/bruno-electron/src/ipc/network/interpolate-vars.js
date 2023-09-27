@@ -84,6 +84,17 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = interpolate(param.value);
   });
 
+  if (request.proxy) {
+    request.proxy.protocol = interpolate(request.proxy.protocol);
+    request.proxy.hostname = interpolate(request.proxy.hostname);
+    request.proxy.port = interpolate(request.proxy.port);
+
+    if (request.proxy.auth) {
+      request.proxy.auth.username = interpolate(request.proxy.auth.username);
+      request.proxy.auth.password = interpolate(request.proxy.auth.password);
+    }
+  }
+
   return request;
 };
 
