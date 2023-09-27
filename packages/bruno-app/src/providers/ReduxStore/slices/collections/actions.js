@@ -750,15 +750,32 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
-export const openCollectionEvent = (uid, pathname, name) => (dispatch, getState) => {
+export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
+  const state = getState();
+
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  if (!collection) {
+    return reject(new Error('Collection not found'));
+  }
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collectionUid)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
   const collection = {
     version: '1',
     uid: uid,
-    name: name,
+    name: brunoConfig.name,
     pathname: pathname,
     items: [],
     showRunner: false,
-    collectionVariables: {}
+    collectionVariables: {},
+    brunoConfig: brunoConfig
   };
 
   return new Promise((resolve, reject) => {

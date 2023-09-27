@@ -14,6 +14,7 @@ import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
+import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
@@ -126,6 +127,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'variables') {
     return <VariablesEditor collection={collection} />;
+  }
+
+  if (focusedTab.type === 'collection-settings') {
+    return <CollectionSettings collection={collection} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);

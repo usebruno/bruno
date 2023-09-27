@@ -59,10 +59,10 @@ const openCollectionDialog = async (win, watcher) => {
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
   if (!watcher.hasWatcher(collectionPath)) {
     try {
-      const { name } = await getCollectionConfigFile(collectionPath);
+      const brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
 
-      win.webContents.send('main:collection-opened', collectionPath, uid, name);
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', win, collectionPath, uid);
     } catch (err) {
       if (!options.dontSendDisplayErrors) {

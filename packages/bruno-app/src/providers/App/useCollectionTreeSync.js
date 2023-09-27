@@ -11,7 +11,8 @@ import {
   processEnvUpdateEvent,
   collectionRenamedEvent,
   runRequestEvent,
-  runFolderEvent
+  runFolderEvent,
+  brunoConfigUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
@@ -27,8 +28,8 @@ const useCollectionTreeSync = () => {
 
     const { ipcRenderer } = window;
 
-    const _openCollection = (pathname, uid, name) => {
-      dispatch(openCollectionEvent(uid, pathname, name));
+    const _openCollection = (pathname, uid, brunoConfig) => {
+      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
     };
 
     const _collectionTreeUpdated = (type, val) => {
@@ -128,6 +129,7 @@ const useCollectionTreeSync = () => {
     const removeListener10 = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
     });
+    const removeListener11 = ipcRenderer.on('main:bruno-config-update', (val) => dispatch(brunoConfigUpdateEvent(val)));
 
     return () => {
       removeListener1();
@@ -140,6 +142,7 @@ const useCollectionTreeSync = () => {
       removeListener8();
       removeListener9();
       removeListener10();
+      removeListener11();
     };
   }, [isElectron]);
 };

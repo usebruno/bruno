@@ -57,14 +57,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(dirPath);
 
         const uid = generateUidBasedOnHash(dirPath);
-        const content = await stringifyJson({
+        const brunoConfig = {
           version: '1',
           name: collectionName,
           type: 'collection'
-        });
+        };
+        const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, collectionName);
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
 
         return;
@@ -356,14 +357,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const content = await stringifyJson({
+      const brunoConfig = {
         version: '1',
         name: collection.name,
         type: 'collection'
-      });
+      };
+      const content = await stringifyJson(brunoConfig);
       await writeFile(path.join(collectionPath, 'bruno.json'), content);
 
-      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, collectionName);
+      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
 
       lastOpenedCollections.add(collectionPath);
@@ -450,6 +452,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:set-preferences', async (event, preferences) => {
     setPreferences(preferences);
+  });
+
+  ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
+    try {
+      const brunoConfigPath = path.join(collectionPath, 'bruno.json');
+      const content = await stringifyJson(brunoConfig);
+      await writeFile(brunoConfigPath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   });
 };
 

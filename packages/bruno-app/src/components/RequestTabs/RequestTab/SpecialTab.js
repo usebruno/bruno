@@ -1,13 +1,31 @@
 import React from 'react';
-import { IconVariable } from '@tabler/icons';
+import { IconVariable, IconSettings } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, text }) => {
+const SpecialTab = ({ handleCloseClick, type }) => {
+  const getTabInfo = (type) => {
+    switch (type) {
+      case 'collection-settings': {
+        return (
+          <>
+            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1">Settings</span>
+          </>
+        );
+      }
+      case 'variables': {
+        return (
+          <>
+            <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1">Variables</span>
+          </>
+        );
+      }
+    }
+  };
+
   return (
     <>
-      <div className="flex items-center tab-label pl-2">
-        <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
-        <span className="ml-1">{text}</span>
-      </div>
+      <div className="flex items-center tab-label pl-2">{getTabInfo(type)}</div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
         <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
           <path

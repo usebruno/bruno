@@ -128,7 +128,8 @@ const collectionSchema = Yup.object({
   runnerResult: Yup.object({
     items: Yup.array()
   }),
-  collectionVariables: Yup.object()
+  collectionVariables: Yup.object(),
+  brunoConfig: Yup.object()
 })
   .noUnknown(true)
   .strict();

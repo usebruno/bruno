@@ -1,6 +1,6 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye } from '@tabler/icons';
+import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
@@ -28,6 +28,16 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+  const viewCollectionSettings = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+  };
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -41,6 +51,9 @@ const CollectionToolBar = ({ collection }) => {
           </span>
           <span className="mr-3">
             <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+          </span>
+          <span className="mr-3">
+            <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
           </span>
           <EnvironmentSelector collection={collection} />
         </div>

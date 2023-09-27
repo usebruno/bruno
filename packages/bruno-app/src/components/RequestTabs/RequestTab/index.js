@@ -57,10 +57,10 @@ const RequestTab = ({ tab, collection }) => {
     return color;
   };
 
-  if (tab.type === 'variables') {
+  if (['collection-settings', 'variables'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <SpecialTab handleCloseClick={handleCloseClick} text="Variables" />
+        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
       </StyledWrapper>
     );
   }

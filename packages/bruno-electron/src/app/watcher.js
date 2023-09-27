@@ -178,9 +178,9 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = JSON.parse(content);
+      const brunoConfig = JSON.parse(content);
 
-      setBrunoConfig(collectionUid, jsonData);
+      setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
       console.error(err);
     }
@@ -303,9 +303,15 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = JSON.parse(content);
+      const brunoConfig = JSON.parse(content);
 
-      setBrunoConfig(collectionUid, jsonData);
+      const payload = {
+        collectionUid,
+        brunoConfig: brunoConfig
+      };
+
+      setBrunoConfig(collectionUid, brunoConfig);
+      win.webContents.send('main:bruno-config-update', payload);
     } catch (err) {
       console.error(err);
     }
