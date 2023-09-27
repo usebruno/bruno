@@ -102,6 +102,7 @@ const registerNetworkIpc = (mainWindow) => {
       const _request = item.draft ? item.draft.request : item.request;
       const request = prepareRequest(_request);
       const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
 
       try {
         // make axios work in node using form data
@@ -128,7 +129,8 @@ const registerNetworkIpc = (mainWindow) => {
             request,
             envVars,
             collectionVariables,
-            collectionPath
+            collectionPath,
+            processEnvVars
           );
 
           if (result) {
@@ -151,7 +153,8 @@ const registerNetworkIpc = (mainWindow) => {
             envVars,
             collectionVariables,
             collectionPath,
-            onConsoleLog
+            onConsoleLog,
+            processEnvVars
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -161,8 +164,6 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
         }
-
-        const processEnvVars = getProcessEnvVars(collectionUid);
 
         const brunoConfig = getBrunoConfig(collectionUid);
         const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
@@ -250,7 +251,8 @@ const registerNetworkIpc = (mainWindow) => {
             response,
             envVars,
             collectionVariables,
-            collectionPath
+            collectionPath,
+            processEnvVars
           );
 
           if (result) {
@@ -274,7 +276,8 @@ const registerNetworkIpc = (mainWindow) => {
             envVars,
             collectionVariables,
             collectionPath,
-            onConsoleLog
+            onConsoleLog,
+            processEnvVars
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -318,7 +321,8 @@ const registerNetworkIpc = (mainWindow) => {
             envVars,
             collectionVariables,
             collectionPath,
-            onConsoleLog
+            onConsoleLog,
+            processEnvVars
           );
 
           mainWindow.webContents.send('main:run-request-event', {
@@ -391,7 +395,8 @@ const registerNetworkIpc = (mainWindow) => {
               envVars,
               collectionVariables,
               collectionPath,
-              onConsoleLog
+              onConsoleLog,
+              processEnvVars
             );
 
             mainWindow.webContents.send('main:run-request-event', {
@@ -536,6 +541,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           const _request = item.draft ? item.draft.request : item.request;
           const request = prepareRequest(_request);
+          const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
             // make axios work in node using form data
@@ -580,7 +586,8 @@ const registerNetworkIpc = (mainWindow) => {
                 envVars,
                 collectionVariables,
                 collectionPath,
-                onConsoleLog
+                onConsoleLog,
+                processEnvVars
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -589,8 +596,6 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid
               });
             }
-
-            const processEnvVars = getProcessEnvVars(collectionUid);
 
             // interpolate variables inside request
             interpolateVars(request, envVars, collectionVariables, processEnvVars);
@@ -633,7 +638,8 @@ const registerNetworkIpc = (mainWindow) => {
                 response,
                 envVars,
                 collectionVariables,
-                collectionPath
+                collectionPath,
+                processEnvVars
               );
 
               if (result) {
@@ -656,7 +662,8 @@ const registerNetworkIpc = (mainWindow) => {
                 envVars,
                 collectionVariables,
                 collectionPath,
-                onConsoleLog
+                onConsoleLog,
+                processEnvVars
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -698,7 +705,8 @@ const registerNetworkIpc = (mainWindow) => {
                 envVars,
                 collectionVariables,
                 collectionPath,
-                onConsoleLog
+                onConsoleLog,
+                processEnvVars
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -776,7 +784,8 @@ const registerNetworkIpc = (mainWindow) => {
                   envVars,
                   collectionVariables,
                   collectionPath,
-                  onConsoleLog
+                  onConsoleLog,
+                  processEnvVars
                 );
 
                 mainWindow.webContents.send('main:run-folder-event', {

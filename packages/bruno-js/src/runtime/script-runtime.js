@@ -27,8 +27,16 @@ const CryptoJS = require('crypto-js');
 class ScriptRuntime {
   constructor() {}
 
-  async runRequestScript(script, request, envVariables, collectionVariables, collectionPath, onConsoleLog) {
-    const bru = new Bru(envVariables, collectionVariables);
+  async runRequestScript(
+    script,
+    request,
+    envVariables,
+    collectionVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars
+  ) {
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
 
     const context = {
@@ -89,8 +97,17 @@ class ScriptRuntime {
     };
   }
 
-  async runResponseScript(script, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog) {
-    const bru = new Bru(envVariables, collectionVariables);
+  async runResponseScript(
+    script,
+    request,
+    response,
+    envVariables,
+    collectionVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars
+  ) {
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 

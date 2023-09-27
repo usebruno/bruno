@@ -4,13 +4,13 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 class VarsRuntime {
-  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath) {
+  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
 
     const bruContext = {
@@ -34,13 +34,13 @@ class VarsRuntime {
     };
   }
 
-  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath) {
+  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 

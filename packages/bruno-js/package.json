@@ -21,6 +21,7 @@
     "btoa": "^1.2.1",
     "chai": "^4.3.7",
     "crypto-js": "^4.1.1",
+    "handlebars": "^4.7.8",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",

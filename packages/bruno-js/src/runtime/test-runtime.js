@@ -20,8 +20,17 @@ const CryptoJS = require('crypto-js');
 class TestRuntime {
   constructor() {}
 
-  runTests(testsFile, request, response, envVariables, collectionVariables, collectionPath, onConsoleLog) {
-    const bru = new Bru(envVariables, collectionVariables);
+  runTests(
+    testsFile,
+    request,
+    response,
+    envVariables,
+    collectionVariables,
+    collectionPath,
+    onConsoleLog,
+    processEnvVars
+  ) {
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
