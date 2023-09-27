@@ -92,11 +92,23 @@ export const tabsSlice = createSlice({
       if (!state.tabs || !state.tabs.length) {
         state.activeTabUid = null;
       }
+    },
+    closeAllCollectionTabs: (state, action) => {
+      const collectionUid = action.payload.collectionUid;
+      state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
+      state.activeTabUid = null;
     }
   }
 });
 
-export const { addTab, focusTab, updateRequestPaneTabWidth, updateRequestPaneTab, updateResponsePaneTab, closeTabs } =
-  tabsSlice.actions;
+export const {
+  addTab,
+  focusTab,
+  updateRequestPaneTabWidth,
+  updateRequestPaneTab,
+  updateResponsePaneTab,
+  closeTabs,
+  closeAllCollectionTabs
+} = tabsSlice.actions;
 
 export default tabsSlice.reducer;

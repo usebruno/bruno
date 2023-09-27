@@ -42,8 +42,8 @@ import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { isLocalCollection, resolveRequestFilename } from 'utils/common/platform';
+import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
+import { resolveRequestFilename } from 'utils/common/platform';
 
 const PATH_SEPARATOR = path.sep;
 
@@ -723,11 +723,7 @@ export const removeCollection = (collectionUid) => (dispatch, getState) => {
     ipcRenderer
       .invoke('renderer:remove-collection', collection.pathname)
       .then(() => {
-        dispatch(
-          closeTabs({
-            tabUids: recursivelyGetAllItemUids(collection.items)
-          })
-        );
+        dispatch(closeAllCollectionTabs({ collectionUid }));
       })
       .then(waitForNextTick)
       .then(() => {
