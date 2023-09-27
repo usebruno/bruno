@@ -39,7 +39,5 @@
   "overrides": {
     "rollup": "3.2.5"
   },
-  "dependencies": {
-    "xml-formatter": "^3.3.2"
-  }
+  "dependencies": {}
 }

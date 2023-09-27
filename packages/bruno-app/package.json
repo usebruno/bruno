@@ -53,6 +53,7 @@
     "sass": "^1.46.0",
     "styled-components": "^5.3.3",
     "tailwindcss": "^2.2.19",
+    "xml-formatter": "^3.5.0",
     "yup": "^0.32.11"
   },
   "devDependencies": {
