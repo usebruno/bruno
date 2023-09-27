@@ -72,19 +72,27 @@ const RequestHeaders = ({ item, collection }) => {
         </thead>
         <tbody>
           {headers && headers.length
-            ? headers.map((header, index) => {
+            ? headers.map((header) => {
                 return (
                   <tr key={header.uid}>
                     <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
+                      <SingleLineEditor
                         value={header.name}
-                        className="mousetrap"
-                        onChange={(e) => handleHeaderValueChange(e, header, 'name')}
+                        theme={storedTheme}
+                        onSave={onSave}
+                        onChange={(newValue) =>
+                          handleHeaderValueChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            header,
+                            'name'
+                          )
+                        }
+                        onRun={handleRun}
+                        collection={collection}
                       />
                     </td>
                     <td>
