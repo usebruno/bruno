@@ -1,7 +1,7 @@
 {
   "name": "@usebruno/js",
   "version": "0.5.0",
-  "license" : "MIT",
+  "license": "MIT",
   "main": "src/index.js",
   "files": [
     "src",
@@ -19,6 +19,7 @@
     "atob": "^2.1.2",
     "axios": "^0.26.0",
     "btoa": "^1.2.1",
+    "chai": "^4.3.7",
     "crypto-js": "^4.1.1",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",

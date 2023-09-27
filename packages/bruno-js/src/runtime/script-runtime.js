@@ -21,6 +21,7 @@ const uuid = require('uuid');
 const nanoid = require('nanoid');
 const axios = require('axios');
 const fetch = require('node-fetch');
+const chai = require('chai');
 const CryptoJS = require('crypto-js');
 
 class ScriptRuntime {
@@ -73,6 +74,7 @@ class ScriptRuntime {
           uuid,
           nanoid,
           axios,
+          chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS
         }

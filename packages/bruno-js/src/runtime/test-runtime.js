@@ -74,6 +74,7 @@ class TestRuntime {
           moment,
           uuid,
           nanoid,
+          chai,
           'crypto-js': CryptoJS
         }
       }
