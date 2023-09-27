@@ -17,7 +17,8 @@ const runSingleRequest = async function (
   collectionPath,
   collectionVariables,
   envVariables,
-  processEnvVars
+  processEnvVars,
+  brunoConfig
 ) {
   let request;
 
@@ -39,7 +40,14 @@ const runSingleRequest = async function (
     const preRequestVars = get(bruJson, 'request.vars.req');
     if (preRequestVars && preRequestVars.length) {
       const varsRuntime = new VarsRuntime();
-      varsRuntime.runPreRequestVars(preRequestVars, request, envVariables, collectionVariables, collectionPath);
+      varsRuntime.runPreRequestVars(
+        preRequestVars,
+        request,
+        envVariables,
+        collectionVariables,
+        collectionPath,
+        processEnvVars
+      );
     }
 
     // run pre request script
@@ -51,8 +59,35 @@ const runSingleRequest = async function (
         request,
         envVariables,
         collectionVariables,
-        collectionPath
+        collectionPath,
+        null,
+        processEnvVars
       );
+    }
+
+    // set proxy if enabled
+    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+    if (proxyEnabled) {
+      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+      const proxyHostname = get(brunoConfig, 'proxy.hostname');
+      const proxyPort = get(brunoConfig, 'proxy.port');
+      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+      const proxyConfig = {
+        protocol: proxyProtocol,
+        hostname: proxyHostname,
+        port: proxyPort
+      };
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+        proxyConfig.auth = {
+          username: proxyAuthUsername,
+          password: proxyAuthPassword
+        };
+      }
+
+      request.proxy = proxyConfig;
     }
 
     // interpolate variables inside request
@@ -102,7 +137,8 @@ const runSingleRequest = async function (
         response,
         envVariables,
         collectionVariables,
-        collectionPath
+        collectionPath,
+        processEnvVars
       );
     }
 
@@ -116,7 +152,9 @@ const runSingleRequest = async function (
         response,
         envVariables,
         collectionVariables,
-        collectionPath
+        collectionPath,
+        null,
+        processEnvVars
       );
     }
 
@@ -155,7 +193,9 @@ const runSingleRequest = async function (
         response,
         envVariables,
         collectionVariables,
-        collectionPath
+        collectionPath,
+        null,
+        processEnvVars
       );
       testResults = get(result, 'results', []);
     }
@@ -202,7 +242,8 @@ const runSingleRequest = async function (
           err.response,
           envVariables,
           collectionVariables,
-          collectionPath
+          collectionPath,
+          processEnvVars
         );
       }
 
@@ -216,7 +257,9 @@ const runSingleRequest = async function (
           err.response,
           envVariables,
           collectionVariables,
-          collectionPath
+          collectionPath,
+          null,
+          processEnvVars
         );
       }
 
@@ -255,7 +298,9 @@ const runSingleRequest = async function (
           err.response,
           envVariables,
           collectionVariables,
-          collectionPath
+          collectionPath,
+          null,
+          processEnvVars
         );
         testResults = get(result, 'results', []);
       }

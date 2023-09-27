@@ -165,6 +165,9 @@ const handler = async function (argv) {
       return;
     }
 
+    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
+    const brunoConfig = JSON.parse(brunoConfigFile);
+
     if (filename && filename.length) {
       const pathExists = await exists(filename);
       if (!pathExists) {
@@ -304,7 +307,8 @@ const handler = async function (argv) {
         collectionPath,
         collectionVariables,
         envVars,
-        processEnvVars
+        processEnvVars,
+        brunoConfig
       );
 
       if (result) {

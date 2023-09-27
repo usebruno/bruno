@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.0
+
+- Support for proxying requests through a proxy server
+
 ## 0.9.0
 
 - `--output` flag to collect the results of your API tests
