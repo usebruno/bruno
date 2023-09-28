@@ -178,7 +178,7 @@ const lightTheme = {
   requestTabs: {
     color: 'rgb(52, 52, 52)',
     bg: '#f7f7f7',
-    borromBorder: '#efefef',
+    bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',

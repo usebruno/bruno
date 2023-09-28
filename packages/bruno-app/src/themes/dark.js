@@ -174,7 +174,7 @@ const darkTheme = {
   requestTabs: {
     color: '#ccc',
     bg: '#2A2D2F',
-    borromBorder: '#444',
+    bottomBorder: '#444',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(204, 204, 204)',
