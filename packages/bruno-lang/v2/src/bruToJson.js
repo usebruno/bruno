@@ -22,7 +22,8 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | headers | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
+  auths = authbasic | authbearer 
   bodies = bodyjson | bodytext | bodyxml | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
@@ -75,6 +76,9 @@ const grammar = ohm.grammar(`Bru {
   varsres = "vars:post-response" dictionary
   assert = "assert" assertdictionary
 
+  authbasic = "auth:basic" dictionary
+  authbearer = "auth:bearer" dictionary
+
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
@@ -92,13 +96,21 @@ const grammar = ohm.grammar(`Bru {
   docs = "docs" st* "{" nl* textblock tagend
 }`);
 
-const mapPairListToKeyValPairs = (pairList = []) => {
+const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   if (!pairList.length) {
     return [];
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
     let value = pair[name];
+
+    if (!parseEnabled) {
+      return {
+        name,
+        value
+      };
+    }
+
     let enabled = true;
     if (name && name.length && name.charAt(0) === '~') {
       name = name.slice(1);
@@ -280,6 +292,33 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  authbasic(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const username = usernameKey ? usernameKey.value : '';
+    const password = passwordKey ? passwordKey.value : '';
+    return {
+      auth: {
+        basic: {
+          username,
+          password
+        }
+      }
+    };
+  },
+  authbearer(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const tokenKey = _.find(auth, { name: 'token' });
+    const token = tokenKey ? tokenKey.value : '';
+    return {
+      auth: {
+        bearer: {
+          token
+        }
+      }
     };
   },
   bodyformurlencoded(_1, dictionary) {
