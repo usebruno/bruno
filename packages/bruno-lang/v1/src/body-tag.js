@@ -66,7 +66,7 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
  * We have deprecated form-url-encoded type in body tag, it was a misspelling on my part
  * The new type is form-urlencoded
  *
- * Very few peope would have used this. I launched this to the public on 22 Jan 2023
+ * Very few people would have used this. I launched this to the public on 22 Jan 2023
  * And I am making the change on 23 Jan 2023
  *
  * This deprecated tag can be removed on 1 April 2023
