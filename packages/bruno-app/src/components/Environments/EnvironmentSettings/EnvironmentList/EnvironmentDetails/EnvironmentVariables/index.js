@@ -23,7 +23,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
           type: 'CHANGES_SAVED'
         });
       })
-      .catch(() => toast.error('An error occured while saving the changes'));
+      .catch(() => toast.error('An error occurred while saving the changes'));
   };
 
   const addVariable = () => {

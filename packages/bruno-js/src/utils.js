@@ -11,7 +11,7 @@ const JS_KEYWORDS = `
   .filter((word) => word.length > 0);
 
 /**
- * Creates a function from a Javascript expression
+ * Creates a function from a JavaScript expression
  *
  * When the function is called, the variables used in this expression are picked up from the context
  *
@@ -119,7 +119,7 @@ const createResponseParser = (response = {}) => {
 };
 
 /**
- * Objects that are created inside vm2 execution context result in an serilaization error when sent to the renderer process
+ * Objects that are created inside vm2 execution context result in an serialization error when sent to the renderer process
  * Error sending from webFrameMain:  Error: Failed to serialize arguments
  *    at s.send (node:electron/js2c/browser_init:169:631)
  *    at g.send (node:electron/js2c/browser_init:165:2156)

@@ -43,7 +43,7 @@ const Wrapper = styled.div`
         }
 
         &.border-top {
-          border-top: solid 1px ${(props) => props.theme.dropdown.seperator};
+          border-top: solid 1px ${(props) => props.theme.dropdown.separator};
         }
       }
     }

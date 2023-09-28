@@ -27,7 +27,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
           toast.success('Environment created in collection');
           onClose();
         })
-        .catch(() => toast.error('An error occured while created the environment'));
+        .catch(() => toast.error('An error occurred while created the environment'));
     }
   });
 

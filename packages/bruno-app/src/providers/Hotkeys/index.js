@@ -93,7 +93,7 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
-  // edit environmentss (ctrl/cmd + e)
+  // edit environments (ctrl/cmd + e)
   useEffect(() => {
     Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);

@@ -10,7 +10,7 @@ exports.HomePage = class HomePage {
 
     // sample collection
     this.loadSampleCollectionSuccessToast = page.getByText('Sample Collection loaded successfully');
-    this.sampeCollectionSelector = page.locator('#sidebar-collection-name');
+    this.sampleCollectionSelector = page.locator('#sidebar-collection-name');
     this.getUsersSelector = page.getByText('Users');
     this.getSingleUserSelector = page.getByText('Single User');
     this.getUserNotFoundSelector = page.getByText('User Not Found');
@@ -43,7 +43,7 @@ exports.HomePage = class HomePage {
   }
 
   async getUsers() {
-    await this.sampeCollectionSelector.click();
+    await this.sampleCollectionSelector.click();
     await this.getUsersSelector.click();
     await this.sendRequestButton.click();
   }

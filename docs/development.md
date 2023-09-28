@@ -1,6 +1,6 @@
 ## Development
 
-Bruno is deing developed as a desktop app. You need to load the app by running the nextjs app in one terminal and then run the electron app in another terminal.
+Bruno is being developed as a desktop app. You need to load the app by running the nextjs app in one terminal and then run the electron app in another terminal.
 
 ### Dependencies
 * NodeJS v18

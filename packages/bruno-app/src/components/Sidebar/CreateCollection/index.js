@@ -36,7 +36,7 @@ const CreateCollection = ({ onClose }) => {
           toast.success('Collection created');
           onClose();
         })
-        .catch(() => toast.error('An error occured while creating the collection'));
+        .catch(() => toast.error('An error occurred while creating the collection'));
     }
   });
 

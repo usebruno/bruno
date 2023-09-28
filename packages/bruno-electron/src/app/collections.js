@@ -67,7 +67,7 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
-          error: err.message || 'An error occured while opening the local collection'
+          error: err.message || 'An error occurred while opening the local collection'
         });
       }
     }

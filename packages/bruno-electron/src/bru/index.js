@@ -7,7 +7,7 @@ const bruToEnvJson = (bru) => {
     const json = bruToEnvJsonV2(bru);
 
     // the app env format requires each variable to have a type
-    // this need to be evaulated and safely removed
+    // this need to be evaluated and safely removed
     // i don't see it being used in schema validation
     if (json && json.variables && json.variables.length) {
       each(json.variables, (v) => (v.type = 'text'));

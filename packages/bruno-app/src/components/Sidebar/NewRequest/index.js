@@ -5,14 +5,14 @@ import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
-import { newEphermalHttpRequest } from 'providers/ReduxStore/slices/collections';
+import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
 import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
-const NewRequest = ({ collection, item, isEphermal, onClose }) => {
+const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
@@ -34,10 +34,10 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
         })
     }),
     onSubmit: (values) => {
-      if (isEphermal) {
+      if (isEphemeral) {
         const uid = uuid();
         dispatch(
-          newEphermalHttpRequest({
+          newEphemeralHttpRequest({
             uid: uid,
             requestName: values.requestName,
             requestType: values.requestType,
@@ -56,7 +56,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
             );
             onClose();
           })
-          .catch((err) => toast.error(err ? err.message : 'An error occured while adding the request'));
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
           newHttpRequest({
@@ -69,7 +69,7 @@ const NewRequest = ({ collection, item, isEphermal, onClose }) => {
           })
         )
           .then(() => onClose())
-          .catch((err) => toast.error(err ? err.message : 'An error occured while adding the request'));
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
     }
   });

@@ -13,7 +13,7 @@ const RemoveCollection = ({ onClose, collection }) => {
         toast.success('Collection removed');
         onClose();
       })
-      .catch(() => toast.error('An error occured while removing the collection'));
+      .catch(() => toast.error('An error occurred while removing the collection'));
   };
 
   return (

@@ -27,7 +27,7 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
           toast.success('Environment renamed successfully');
           onClose();
         })
-        .catch(() => toast.error('An error occured while renaming the environment'));
+        .catch(() => toast.error('An error occurred while renaming the environment'));
     }
   });
 

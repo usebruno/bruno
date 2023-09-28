@@ -112,7 +112,7 @@ const RequestTabPanel = () => {
   }
 
   if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
-    return <div className="pb-4 px-4">An error occured!</div>;
+    return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);

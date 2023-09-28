@@ -229,7 +229,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    newEphermalHttpRequest: (state, action) => {
+    newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection && collection.items && collection.items.length) {
@@ -1154,7 +1154,7 @@ export const {
   requestCancelled,
   responseReceived,
   saveRequest,
-  newEphermalHttpRequest,
+  newEphemeralHttpRequest,
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,

@@ -28,7 +28,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
           onClose();
         })
         .catch((err) => {
-          toast.error(err ? err.message : 'An error occured while cloning the request');
+          toast.error(err ? err.message : 'An error occurred while cloning the request');
         });
     }
   });

@@ -70,7 +70,7 @@ const lightTheme = {
     bg: '#fff',
     hoverBg: '#e9e9e9',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
-    seperator: '#e7e7e7',
+    separator: '#e7e7e7',
     labelBg: '#f3f3f3'
   },
 
@@ -178,7 +178,7 @@ const lightTheme = {
   requestTabs: {
     color: 'rgb(52, 52, 52)',
     bg: '#f7f7f7',
-    borromBorder: '#efefef',
+    bottomBorder: '#efefef',
     icon: {
       color: '#9f9f9f',
       hoverColor: 'rgb(76 76 76)',
