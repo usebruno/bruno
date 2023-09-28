@@ -11,7 +11,7 @@ const JS_KEYWORDS = `
   .filter((word) => word.length > 0);
 
 /**
- * Creates a function from a Javascript expression
+ * Creates a function from a JavaScript expression
  *
  * When the function is called, the variables used in this expression are picked up from the context
  *
