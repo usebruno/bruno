@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1
+
+- fix(#233) Fixed Issue related to content header parsing
+
 ## 0.10.0
 
 - Support for proxying requests through a proxy server
