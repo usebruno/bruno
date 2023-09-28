@@ -445,6 +445,22 @@ export const humanizeRequestBodyMode = (mode) => {
   return label;
 };
 
+export const humanizeRequestAuthMode = (mode) => {
+  let label = 'No Auth';
+  switch (mode) {
+    case 'basic': {
+      label = 'Basic Auth';
+      break;
+    }
+    case 'bearer': {
+      label = 'Bearer Token';
+      break;
+    }
+  }
+
+  return label;
+};
+
 export const refreshUidsInItem = (item) => {
   item.uid = uuid();
 
