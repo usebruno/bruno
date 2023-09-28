@@ -84,7 +84,7 @@ export const getContentType = (headers) => {
 export const formatResponse = (response) => {
   let type = getContentType(response.headers);
   if (type.includes('json')) {
-    return safeStringifyJSON(response.data);
+    return safeStringifyJSON(response.data, true);
   }
   if (type.includes('xml')) {
     return xmlFormat(response.data, { collapseContent: true });
