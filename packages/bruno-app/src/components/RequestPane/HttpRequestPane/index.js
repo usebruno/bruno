@@ -73,7 +73,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex items-center tabs" role="tablist">
+      <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
           Query
         </div>
