@@ -165,6 +165,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
+        // proxy configuration
         const brunoConfig = getBrunoConfig(collectionUid);
         const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
         if (proxyEnabled) {
@@ -595,6 +596,32 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables: result.collectionVariables,
                 collectionUid
               });
+            }
+
+            // proxy configuration
+            const brunoConfig = getBrunoConfig(collectionUid);
+            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+            if (proxyEnabled) {
+              const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+              const proxyHostname = get(brunoConfig, 'proxy.hostname');
+              const proxyPort = get(brunoConfig, 'proxy.port');
+              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+              const proxyConfig = {
+                protocol: proxyProtocol,
+                hostname: proxyHostname,
+                port: proxyPort
+              };
+              if (proxyAuthEnabled) {
+                const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+                const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+                proxyConfig.auth = {
+                  username: proxyAuthUsername,
+                  password: proxyAuthPassword
+                };
+              }
+
+              request.proxy = proxyConfig;
             }
 
             // interpolate variables inside request
