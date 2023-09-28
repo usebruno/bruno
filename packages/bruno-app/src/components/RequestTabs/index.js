@@ -76,7 +76,7 @@ const RequestTabs = () => {
     });
   };
 
-  // Todo: Must support ephermal requests
+  // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
