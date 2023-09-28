@@ -70,7 +70,7 @@ const darkTheme = {
     bg: 'rgb(48, 48, 49)',
     hoverBg: '#185387',
     shadow: 'rgb(0 0 0 / 36%) 0px 2px 8px',
-    seperator: '#444',
+    separator: '#444',
     labelBg: '#4a4949'
   },
 

@@ -70,7 +70,7 @@ const lightTheme = {
     bg: '#fff',
     hoverBg: '#e9e9e9',
     shadow: 'rgb(50 50 93 / 25%) 0px 6px 12px -2px, rgb(0 0 0 / 30%) 0px 3px 7px -3px',
-    seperator: '#e7e7e7',
+    separator: '#e7e7e7',
     labelBg: '#f3f3f3'
   },
 
