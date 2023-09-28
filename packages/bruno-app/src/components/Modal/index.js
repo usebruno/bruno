@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ModalHeader = ({ title, handleCancel }) => (
   <div className="bruno-modal-header">
-    {title ? <div className="bruno-modal-heade-title">{title}</div> : null}
+    {title ? <div className="bruno-modal-header-title">{title}</div> : null}
     {handleCancel ? (
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
         ×
