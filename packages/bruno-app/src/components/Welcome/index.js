@@ -93,7 +93,7 @@ const Welcome = () => {
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
             <IconBrandGithub size={18} strokeWidth={2} />
-            <span className="label ml-2">Github</span>
+            <span className="label ml-2">GitHub</span>
           </a>
         </div>
       </div>
