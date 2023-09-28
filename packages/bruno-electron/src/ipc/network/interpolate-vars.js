@@ -1,6 +1,17 @@
 const Handlebars = require('handlebars');
 const { each, forOwn, cloneDeep } = require('lodash');
 
+const getContentType = (headers = {}) => {
+  let contentType = '';
+  forOwn(headers, (value, key) => {
+    if (key && key.toLowerCase() === 'content-type') {
+      contentType = value;
+    }
+  });
+
+  return contentType;
+};
+
 const interpolateEnvVars = (str, processEnvVars) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
@@ -55,7 +66,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.headers[interpolate(key)] = interpolate(value);
   });
 
-  if (request.headers['content-type'] === 'application/json') {
+  const contentType = getContentType(request.headers);
+
+  if (contentType.includes('json')) {
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
@@ -69,7 +82,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = interpolate(request.data);
       }
     }
-  } else if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+  } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
