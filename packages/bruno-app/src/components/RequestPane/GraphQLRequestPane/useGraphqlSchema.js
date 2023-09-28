@@ -40,7 +40,7 @@ const useGraphqlSchema = (endpoint, environment) => {
       .catch((err) => {
         setIsLoading(false);
         setError(err);
-        toast.error('Error occured while loading GraphQL Schema');
+        toast.error('Error occurred while loading GraphQL Schema');
       });
   };
 

@@ -62,7 +62,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
 
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
-    return <div className="pb-4 px-4">An error occured!</div>;
+    return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
   const getTabClassname = (tabName) => {

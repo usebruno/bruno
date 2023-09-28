@@ -14,7 +14,7 @@ const DeleteEnvironment = ({ onClose, environment, collection }) => {
         toast.success('Environment deleted successfully');
         onClose();
       })
-      .catch(() => toast.error('An error occured while deleting the environment'));
+      .catch(() => toast.error('An error occurred while deleting the environment'));
   };
 
   return (

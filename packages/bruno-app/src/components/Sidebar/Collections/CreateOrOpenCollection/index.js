@@ -19,7 +19,7 @@ const CreateOrOpenCollection = () => {
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
-      (err) => console.log(err) && toast.error('An error occured while opening the collection')
+      (err) => console.log(err) && toast.error('An error occurred while opening the collection')
     );
   };
   const CreateLink = () => (

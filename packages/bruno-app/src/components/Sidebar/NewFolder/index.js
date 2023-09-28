@@ -32,7 +32,7 @@ const NewFolder = ({ collection, item, onClose }) => {
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
         .then(() => onClose())
-        .catch((err) => toast.error(err ? err.message : 'An error occured while adding the request'));
+        .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
     }
   });
 

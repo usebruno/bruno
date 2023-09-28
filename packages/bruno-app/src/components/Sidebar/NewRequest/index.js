@@ -56,7 +56,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             );
             onClose();
           })
-          .catch((err) => toast.error(err ? err.message : 'An error occured while adding the request'));
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
           newHttpRequest({
@@ -69,7 +69,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           })
         )
           .then(() => onClose())
-          .catch((err) => toast.error(err ? err.message : 'An error occured while adding the request'));
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
     }
   });
