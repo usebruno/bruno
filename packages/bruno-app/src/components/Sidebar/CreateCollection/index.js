@@ -28,7 +28,9 @@ const CreateCollection = ({ onClose }) => {
         .min(1, 'must be atleast 1 characters')
         .max(50, 'must be 50 characters or less')
         .required('folder name is required'),
-      collectionLocation: Yup.string().required('location is required')
+      collectionLocation: Yup.string()
+        .min(1, 'location is required')
+        .required('location is required')
     }),
     onSubmit: (values) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
@@ -43,7 +45,10 @@ const CreateCollection = ({ onClose }) => {
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        formik.setFieldValue('collectionLocation', dirPath);
+        // When the user closes the diolog without selecting anything dirPath will be false
+        if (typeof dirPath === 'string') {
+          formik.setFieldValue('collectionLocation', dirPath);
+        }
       })
       .catch((error) => {
         formik.setFieldValue('collectionLocation', '');
