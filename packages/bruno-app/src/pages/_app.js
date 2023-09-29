@@ -7,6 +7,7 @@ import { PreferencesProvider } from 'providers/Preferences';
 
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
+import ErrorBoundary from './ErrorBoundary';
 
 import '../styles/app.scss';
 import '../styles/globals.css';
@@ -41,23 +42,25 @@ function MyApp({ Component, pageProps }) {
   }
 
   return (
-    <SafeHydrate>
-      <NoSsr>
-        <Provider store={ReduxStore}>
-          <ThemeProvider>
-            <ToastProvider>
-              <AppProvider>
-                <PreferencesProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </PreferencesProvider>
-              </AppProvider>
-            </ToastProvider>
-          </ThemeProvider>
-        </Provider>
-      </NoSsr>
-    </SafeHydrate>
+    <ErrorBoundary>
+      <SafeHydrate>
+        <NoSsr>
+          <Provider store={ReduxStore}>
+            <ThemeProvider>
+              <ToastProvider>
+                <AppProvider>
+                  <PreferencesProvider>
+                    <HotkeysProvider>
+                      <Component {...pageProps} />
+                    </HotkeysProvider>
+                  </PreferencesProvider>
+                </AppProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </Provider>
+        </NoSsr>
+      </SafeHydrate>
+    </ErrorBoundary>
   );
 }
 
