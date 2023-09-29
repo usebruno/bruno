@@ -10,6 +10,7 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const { HttpsProxyAgent } = require('https-proxy-agent');
+const https = require('https');
 
 const runSingleRequest = async function (
   filename,
