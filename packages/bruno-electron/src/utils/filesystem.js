@@ -114,6 +114,10 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+const sanitizeDirectoryName = (name) => {
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -127,5 +131,6 @@ module.exports = {
   createDirectory,
   browseDirectory,
   searchForFiles,
-  searchForBruFiles
+  searchForBruFiles,
+  sanitizeDirectoryName
 };
