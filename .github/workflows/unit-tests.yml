@@ -1,29 +1,31 @@
 name: Unit Tests
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-node@v3
-      with:
-        node-version: 16
-    - name: Install dependencies
-      run: npm i --legacy-peer-deps
-    - name: Test Package bruno-query
-      run: npm run test --workspace=packages/bruno-query
-    - name: Build Package bruno-query
-      run: npm run build --workspace=packages/bruno-query
-    - name: Test Package bruno-lang
-      run: npm run test --workspace=packages/bruno-lang
-    - name: Test Package bruno-schema
-      run: npm run test --workspace=packages/bruno-schema
-    - name: Test Package bruno-app
-      run: npm run test --workspace=packages/bruno-app
-    - name: Test Package bruno-js
-      run: npm run test --workspace=packages/bruno-js
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm i --legacy-peer-deps
+      - name: Test Package bruno-query
+        run: npm run test --workspace=packages/bruno-query
+      - name: Build Package bruno-query
+        run: npm run build --workspace=packages/bruno-query
+      - name: Test Package bruno-lang
+        run: npm run test --workspace=packages/bruno-lang
+      - name: Test Package bruno-schema
+        run: npm run test --workspace=packages/bruno-schema
+      - name: Test Package bruno-app
+        run: npm run test --workspace=packages/bruno-app
+      - name: Test Package bruno-js
+        run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-electron
+        run: npm run test --workspace=packages/bruno-electron
