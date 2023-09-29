@@ -93,10 +93,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     });
   };
 
-  const isJson = (headers) => {
-    return getContentType(headers) === 'application/ld+json';
-  };
-
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center px-3 tabs" role="tablist">
