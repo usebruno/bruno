@@ -126,9 +126,7 @@ const parseInsomniaCollection = (data) => {
     try {
       const insomniaExport = JSON.parse(data);
       const insomniaResources = get(insomniaExport, 'resources', []);
-      const insomniaCollection = insomniaResources.find(
-        (resource) => resource._type === 'workspace' && resource.scope === 'collection'
-      );
+      const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
 
       if (!insomniaCollection) {
         reject(new BrunoError('Collection not found inside Insomnia export'));
