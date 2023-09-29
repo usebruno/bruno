@@ -10,7 +10,7 @@ const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODE
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
   CodeMirror.registerHelper('hint', 'anyword', (editor, options) => {
-    const word = /[\w$]+/;
+    const word = /[\w$-]+/;
     const wordlist = (options && options.autocomplete) || [];
     let cur = editor.getCursor(),
       curLine = editor.getLine(cur.line);
@@ -18,6 +18,11 @@ if (!SERVER_RENDERED) {
       start = end;
     while (start && word.test(curLine.charAt(start - 1))) --start;
     let curWord = start != end && curLine.slice(start, end);
+
+    // Check if curWord is a valid string before proceeding
+    if (typeof curWord !== 'string' || curWord.length < 3) {
+      return null; // Abort the hint
+    }
 
     const list = (options && options.list) || [];
     const re = new RegExp(word.source, 'g');
