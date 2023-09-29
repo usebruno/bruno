@@ -10,6 +10,7 @@ const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const atob = require('atob');
+const axios = require('axios');
 const btoa = require('btoa');
 const lodash = require('lodash');
 const moment = require('moment');
@@ -20,7 +21,7 @@ const CryptoJS = require('crypto-js');
 class TestRuntime {
   constructor() {}
 
-  runTests(
+  async runTests(
     testsFile,
     request,
     response,
@@ -78,6 +79,7 @@ class TestRuntime {
         root: [collectionPath],
         mock: {
           atob,
+          axios,
           btoa,
           lodash,
           moment,
@@ -89,7 +91,8 @@ class TestRuntime {
       }
     });
 
-    vm.run(testsFile, path.join(collectionPath, 'vm.js'));
+    const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
+    await asyncVM();
 
     return {
       request,

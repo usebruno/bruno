@@ -315,7 +315,7 @@ const registerNetworkIpc = (mainWindow) => {
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
         if (testFile && testFile.length) {
           const testRuntime = new TestRuntime();
-          const testResults = testRuntime.runTests(
+          const testResults = await testRuntime.runTests(
             testFile,
             request,
             response,
@@ -389,7 +389,7 @@ const registerNetworkIpc = (mainWindow) => {
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
           if (testFile && testFile.length) {
             const testRuntime = new TestRuntime();
-            const testResults = testRuntime.runTests(
+            const testResults = await testRuntime.runTests(
               testFile,
               request,
               error.response,
@@ -725,7 +725,7 @@ const registerNetworkIpc = (mainWindow) => {
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
             if (testFile && testFile.length) {
               const testRuntime = new TestRuntime();
-              const testResults = testRuntime.runTests(
+              const testResults = await testRuntime.runTests(
                 testFile,
                 request,
                 response,
@@ -804,7 +804,7 @@ const registerNetworkIpc = (mainWindow) => {
               const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
               if (testFile && testFile.length) {
                 const testRuntime = new TestRuntime();
-                const testResults = testRuntime.runTests(
+                const testResults = await testRuntime.runTests(
                   testFile,
                   request,
                   error.response,

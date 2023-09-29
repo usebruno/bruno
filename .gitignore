@@ -41,3 +41,7 @@ yarn-error.log*
 /test-results/
 /playwright-report/
 /playwright/.cache/
+
+#dev editor
+bruno.iml
+.idea

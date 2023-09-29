@@ -187,7 +187,7 @@ const runSingleRequest = async function (
     const testFile = get(bruJson, 'request.tests');
     if (testFile && testFile.length) {
       const testRuntime = new TestRuntime();
-      const result = testRuntime.runTests(
+      const result = await testRuntime.runTests(
         testFile,
         request,
         response,
@@ -292,7 +292,7 @@ const runSingleRequest = async function (
       const testFile = get(bruJson, 'request.tests');
       if (testFile && testFile.length) {
         const testRuntime = new TestRuntime();
-        const result = testRuntime.runTests(
+        const result = await testRuntime.runTests(
           testFile,
           request,
           err.response,
