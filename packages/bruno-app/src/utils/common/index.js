@@ -76,6 +76,8 @@ export const getContentType = (headers) => {
       } else if (typeof contentType[0] == 'string' && /^[\w\-]+\/([\w\-]+\+)?xml/.test(contentType[0])) {
         return 'application/xml';
       }
+
+      return contentType[0];
     }
   }
   return '';
