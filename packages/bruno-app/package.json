@@ -32,6 +32,7 @@
     "graphql-request": "^3.7.0",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
+    "know-your-http-well": "^0.5.0",
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.1",
     "mousetrap": "^1.6.5",
