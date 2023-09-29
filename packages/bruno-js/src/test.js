@@ -1,6 +1,6 @@
-const Test = (__brunoTestResults, chai) => (description, callback) => {
+const Test = (__brunoTestResults, chai) => async (description, callback) => {
   try {
-    callback();
+    await callback();
     __brunoTestResults.addResult({ description, status: 'pass' });
   } catch (error) {
     console.log(chai.AssertionError);
