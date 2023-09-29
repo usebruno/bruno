@@ -11,7 +11,8 @@ const {
   isDirectory,
   browseDirectory,
   createDirectory,
-  searchForBruFiles
+  searchForBruFiles,
+  sanitizeDirectoryName
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
@@ -315,7 +316,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = collection.name;
+      let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
@@ -359,7 +360,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const uid = generateUidBasedOnHash(collectionPath);
       const brunoConfig = {
         version: '1',
-        name: collection.name,
+        name: collectionName,
         type: 'collection'
       };
       const content = await stringifyJson(brunoConfig);
