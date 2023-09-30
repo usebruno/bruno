@@ -3,7 +3,8 @@
 Bruno is being developed as a desktop app. You need to load the app by running the nextjs app in one terminal and then run the electron app in another terminal.
 
 ### Dependencies
-* NodeJS v18
+
+- NodeJS v18
 
 ### Local Development
 
@@ -15,7 +16,6 @@ nvm use
 npm i --legacy-peer-deps
 
 # build graphql docs
-# note: you can for now ignore the error thrown while building the graphql docs
 npm run build:graphql-docs
 
 # build bruno query
