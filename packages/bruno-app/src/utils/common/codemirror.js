@@ -25,10 +25,11 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
               stream.eat('}');
               let found = pathFoundInVariables(word, variables);
               if (found) {
-                return 'variable-valid';
+                return 'variable-valid random-' + (Math.random() + 1).toString(36).substring(9);
               } else {
-                return 'variable-invalid';
+                return 'variable-invalid random-' + (Math.random() + 1).toString(36).substring(9);
               }
+              // Random classname added so adjacent variables are not rendered in the same SPAN by CodeMirror.
             }
             word += ch;
           }
