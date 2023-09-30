@@ -27,10 +27,11 @@ const CreateCollection = ({ onClose }) => {
       collectionFolderName: Yup.string()
         .min(1, 'must be atleast 1 characters')
         .max(50, 'must be 50 characters or less')
+        .matches(/^[\w\-. ]+$/, 'Folder name contains invalid characters')
         .required('folder name is required'),
       collectionLocation: Yup.string()
         .min(1, 'location is required')
-        .required('location is required')
+        .required('location is required'),
     }),
     onSubmit: (values) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
@@ -68,9 +69,8 @@ const CreateCollection = ({ onClose }) => {
     <Modal size="sm" title="Create Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
-          <label htmlFor="collectionName" className="flex items-center">
-            <span className="font-semibold">Name</span>
-            <Tooltip text="Name of the collection" tooltipId="collection-name" />
+          <label htmlFor="collection-name" className="flex items-center font-semibold">
+            Name
           </label>
           <input
             id="collection-name"
@@ -89,9 +89,34 @@ const CreateCollection = ({ onClose }) => {
             <div className="text-red-500">{formik.errors.collectionName}</div>
           ) : null}
 
-          <label htmlFor="collectionFolderName" className="flex items-center mt-3">
+          <label htmlFor="collection-location" className="block font-semibold mt-3">
+            Location
+          </label>
+          <input
+            id="collection-location"
+            type="text"
+            name="collectionLocation"
+            readOnly={true}
+            className="block textbox mt-2 w-full cursor-pointer"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={formik.values.collectionLocation || ''}
+            onClick={browse}
+          />
+          {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
+            <div className="text-red-500">{formik.errors.collectionLocation}</div>
+          ) : null}
+          <div className="mt-1">
+            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
+              Browse
+            </span>
+          </div>
+
+          <label htmlFor="collection-folder-name" className="flex items-center mt-3">
             <span className="font-semibold">Folder Name</span>
-            <Tooltip text="Name of the folder where your collection is stored" tooltipId="collection-folder-name" />
+            <Tooltip text="This folder will be created under the selected location" tooltipId="collection-folder-name-tooltip" />
           </label>
           <input
             id="collection-folder-name"
@@ -108,34 +133,6 @@ const CreateCollection = ({ onClose }) => {
           {formik.touched.collectionFolderName && formik.errors.collectionFolderName ? (
             <div className="text-red-500">{formik.errors.collectionFolderName}</div>
           ) : null}
-
-          <>
-            <label htmlFor="collectionLocation" className="block font-semibold mt-3">
-              Location
-            </label>
-            <input
-              id="collection-location"
-              type="text"
-              name="collectionLocation"
-              readOnly={true}
-              className="block textbox mt-2 w-full"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.collectionLocation || ''}
-              onClick={browse}
-            />
-          </>
-          {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
-            <div className="text-red-500">{formik.errors.collectionLocation}</div>
-          ) : null}
-
-          <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-              Browse
-            </span>
-          </div>
         </div>
       </form>
     </Modal>
