@@ -3,6 +3,8 @@ const https = require('https');
 const axios = require('axios');
 const Mustache = require('mustache');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
 const { ipcMain } = require('electron');
 const { forOwn, extend, each, get } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
@@ -74,6 +76,29 @@ const getSize = (data) => {
   return 0;
 };
 
+const parseFormData = (data, rootCollectionPath) => {
+  const form = new FormData();
+  forOwn(data, (value, key) => {
+    if (value.toString().indexOf('@file') === 0) {
+      const stringValue = value.toString();
+      const filePaths = stringValue.substring(stringValue.indexOf('(') + 1, stringValue.indexOf(')')).split(',');
+      filePaths.forEach((filePath, index) => {
+        let trimmedFilePath = filePath.trim();
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(rootCollectionPath, trimmedFilePath);
+        }
+        const file = fs.readFileSync(trimmedFilePath);
+        console.log(key);
+        console.log(file);
+        form.append(key, file, path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(key, value);
+    }
+  });
+  return form;
+};
+
 const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
   ipcMain.handle(
@@ -108,10 +133,7 @@ const registerNetworkIpc = (mainWindow) => {
         // make axios work in node using form data
         // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
         if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-          const form = new FormData();
-          forOwn(request.data, (value, key) => {
-            form.append(key, value);
-          });
+          const form = parseFormData(request.data, collectionPath);
           extend(request.headers, form.getHeaders());
           request.data = form;
         }
@@ -548,10 +570,7 @@ const registerNetworkIpc = (mainWindow) => {
             // make axios work in node using form data
             // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
             if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-              const form = new FormData();
-              forOwn(request.data, (value, key) => {
-                form.append(key, value);
-              });
+              const form = parseFormData(request.data, collectionPath);
               extend(request.headers, form.getHeaders());
               request.data = form;
             }
