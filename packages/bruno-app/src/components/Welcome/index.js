@@ -54,7 +54,7 @@ const Welcome = () => {
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
-      <div className="mt-4">Opensource IDE for exploring and testing api's</div>
+      <div className="mt-4">Opensource IDE for exploring and testing APIs</div>
 
       <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">

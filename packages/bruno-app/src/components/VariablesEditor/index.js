@@ -87,7 +87,7 @@ const VariablesEditor = ({ collection }) => {
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
-        Note: As of today, collection variables can only be set via the api -{' '}
+        Note: As of today, collection variables can only be set via the API -{' '}
         <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
         In the next release, we will add a UI to set and modify collection variables.
       </div>
