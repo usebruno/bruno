@@ -1,6 +1,7 @@
 import trim from 'lodash/trim';
 import path from 'path';
 import slash from './slash';
+import platform from 'platform';
 
 export const isElectron = () => {
   if (!window) {
@@ -32,4 +33,11 @@ export const getDirectoryName = (pathname) => {
   pathname = slash(pathname);
 
   return path.dirname(pathname);
+};
+
+export const isWindowsOS = () => {
+  const os = platform.os;
+  const osFamily = os.family.toLowerCase();
+
+  return osFamily.includes('windows');
 };
