@@ -339,11 +339,10 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
     const item = findItemInCollection(collection, itemUid);
     if (item) {
       const { ipcRenderer } = window;
-
+      dispatch(_deleteItem({ itemUid, collectionUid }));
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => resolve())
