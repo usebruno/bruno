@@ -1,21 +1,28 @@
 import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { IconSearch, IconFolders } from '@tabler/icons';
+import { useDispatch, useSelector } from 'react-redux';
+import { IconSearch, IconFolders, IconSortAZ } from '@tabler/icons';
 import Collection from '../Collections/Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
 
 const CollectionsBadge = () => {
+  const dispatch = useDispatch()
   return (
     <div className="items-center mt-2 relative">
-      <div className="collections-badge flex items-center pl-2 pr-2 py-1 select-none">
-        <span className="mr-2">
-          <IconFolders size={18} strokeWidth={1.5} />
-        </span>
-        <span>Collections</span>
+      <div className='collections-badge flex items-center justify-between px-2'  >
+        <div className="flex items-center  py-1 select-none">
+          <span className="mr-2">
+            <IconFolders size={18} strokeWidth={1.5} />
+          </span>
+          <span>Collections</span>
+        </div>
+        <button onClick={() => dispatch(sortCollections())} >
+          <IconSortAZ size={18} strokeWidth={1.5} />
+        </button>
       </div>
     </div>
   );
@@ -64,12 +71,12 @@ const Collections = () => {
       <div className="mt-4 flex flex-col overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
-              return (
-                <DndProvider backend={HTML5Backend} key={c.uid}>
-                  <Collection searchText={searchText} collection={c} key={c.uid} />
-                </DndProvider>
-              );
-            })
+            return (
+              <DndProvider backend={HTML5Backend} key={c.uid}>
+                <Collection searchText={searchText} collection={c} key={c.uid} />
+              </DndProvider>
+            );
+          })
           : null}
       </div>
     </StyledWrapper>

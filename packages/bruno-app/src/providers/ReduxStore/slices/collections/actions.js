@@ -34,6 +34,7 @@ import {
   renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
+  sortCollections as _sortCollections,
   saveRequest as _saveRequest,
   selectEnvironment as _selectEnvironment,
   createCollection as _createCollection,
@@ -353,6 +354,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const sortCollections = () => (dispatch) => {
+  dispatch(_sortCollections())
+}
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
