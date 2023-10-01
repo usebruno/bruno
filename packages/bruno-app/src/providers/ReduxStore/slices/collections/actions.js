@@ -262,7 +262,10 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(() => {
+      dispatch(_renameItem({ newName, itemUid, collectionUid }))
+      resolve()
+    }).catch(reject);
   });
 };
 
@@ -346,7 +349,10 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => resolve())
+        .then(() => {
+          dispatch(_deleteItem({ itemUid, collectionUid }))
+          resolve()
+        })
         .catch((error) => reject(error));
     }
     return;
