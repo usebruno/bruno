@@ -78,6 +78,9 @@ export const collectionsSlice = createSlice({
         collection.lastAction = lastAction;
       }
     },
+    sortCollection: (state) => {
+      state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
+    },
     collectionUnlinkEnvFileEvent: (state, action) => {
       const { data: environment, meta } = action.payload;
       const collection = findCollectionByUid(state.collections, meta.collectionUid);
@@ -149,6 +152,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+
     cloneItem: (state, action) => {
       const collectionUid = action.payload.collectionUid;
       const clonedItem = action.payload.clonedItem;
@@ -1142,6 +1146,7 @@ export const {
   renameCollection,
   removeCollection,
   updateLastAction,
+  sortCollection,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,

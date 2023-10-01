@@ -39,6 +39,7 @@ import {
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  sortCollection as _sortCollection,
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
@@ -358,7 +359,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
     return;
   });
 };
-
+export const sortCollection = () => (dispatch) => {
+  dispatch(_sortCollection())
+}
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
