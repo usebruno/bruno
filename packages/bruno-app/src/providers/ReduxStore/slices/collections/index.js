@@ -44,9 +44,8 @@ export const collectionsSlice = createSlice({
       // this is used in scenarios where we want to know the last action performed on the collection
       // and take some extra action based on that
       // for example, when a env is created, we want to auto select it the env modal
-      collection.importedAt = new Date().getTime()
+      collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-      console.log(collection)
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -73,16 +72,16 @@ export const collectionsSlice = createSlice({
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
     sortCollections: (state, action) => {
-      state.collectionSortOrder = action.payload.order
+      state.collectionSortOrder = action.payload.order;
       switch (action.payload.order) {
         case 'default':
-          state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt)
+          state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
           break;
         case 'alphabetical':
-          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name))
+          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
           break;
         case 'reverseAlphabetical':
-          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name))
+          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
           break;
       }
     },

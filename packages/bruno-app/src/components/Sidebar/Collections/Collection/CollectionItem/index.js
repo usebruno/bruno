@@ -169,7 +169,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
         <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
       {generateCodeItemModalOpen && (
-        <GenerateCodeItem item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">

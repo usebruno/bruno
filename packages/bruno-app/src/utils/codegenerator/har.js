@@ -30,12 +30,11 @@ const createHeaders = (headers, mode) => {
   return headersArray;
 };
 
-const createQuery = (url) => {
-  const params = new URLSearchParams(url);
-  return params.forEach((value, name) => {
+const createQuery = (queryParams = []) => {
+  return queryParams.map((param) => {
     return {
-      name,
-      value
+      name: param.name,
+      value: param.value
     };
   });
 };
@@ -57,28 +56,14 @@ const createPostData = (body) => {
   }
 };
 
-const createUrl = (request) => {
-  let url = request.url;
-  const variablePattern = /\{\{([^}]+)\}\}/g;
-  const variables = request.url.match(variablePattern);
-  if (variables) {
-    variables.forEach((variable) => {
-      const variableName = variable.replaceAll('{', '').replaceAll('}', '');
-      const variableValue = request.vars.req.find((v) => v.name === variableName).value;
-      url = url.replace(variable, variableValue);
-    });
-  }
-  return url;
-};
-
 export const buildHarRequest = (request) => {
   return {
     method: request.method,
-    url: createUrl(request),
+    url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(request.headers, request.body.mode),
-    queryString: createQuery(request.url),
+    queryString: createQuery(request.params),
     postData: createPostData(request.body),
     headersSize: 0,
     bodySize: 0
