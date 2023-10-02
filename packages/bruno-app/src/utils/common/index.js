@@ -51,12 +51,12 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
-export const safeParseXML = (str) => {
+export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
   try {
-    return xmlFormat(str);
+    return xmlFormat(str, options);
   } catch (e) {
     return str;
   }
