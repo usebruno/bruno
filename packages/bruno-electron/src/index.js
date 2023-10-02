@@ -16,9 +16,7 @@ setContentSecurityPolicy(`
 	default-src * 'unsafe-inline' 'unsafe-eval';
 	script-src * 'unsafe-inline' 'unsafe-eval';
 	connect-src * 'unsafe-inline';
-	base-uri 'none';
 	form-action 'none';
-  img-src 'self' data:image/svg+xml;
 `);
 
 const menu = Menu.buildFromTemplate(menuTemplate);

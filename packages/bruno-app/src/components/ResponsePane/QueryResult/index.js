@@ -63,23 +63,28 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
   };
 
   const getTabClassname = (tabName) => {
-    return classnames(`tab select-none ${tabName}`, {
-      active: tabName === tab
+    return classnames(`select-none ${tabName}`, {
+      'text-yellow-500': tabName === tab,
+      'cursor-pointer': tabName !== tab,
     });
   };
 
-  const tabs = [(
-    <div className={getTabClassname('raw')} role="tab" onClick={() => setTab('raw')}>
-      Raw
-    </div>
-  )];
-  if (mode.includes('html')) {
-    tabs.push(
-      <div className={getTabClassname('preview')} role="tab" onClick={() => setTab('preview')}>
-        Preview
-      </div>
+  const getTabs = () => {
+    if (!mode.includes('html')) {
+      return null;
+    }
+
+    return (
+      <>
+        <div className={getTabClassname('raw')} role="tab" onClick={() => setTab('raw')}>
+          Raw
+        </div>
+        <div className={getTabClassname('preview')} role="tab" onClick={() => setTab('preview')}>
+          Preview
+        </div>
+      </>
     );
-  }
+  };
 
   const activeResult = useMemo(() => {
     if (tab === 'preview') {
@@ -108,11 +113,9 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
 
   return (
     <StyledWrapper className="px-3 w-full h-full" style={{ maxWidth: width }}>
-      {tabs.length > 1 ? (
-        <div className="flex flex-wrap items-center px-3 tabs mb-3" role="tablist">
-          {tabs}
-        </div>
-      ) : null}
+      <div className="flex justify-end gap-2 text-xs" role="tablist">
+        {getTabs()}
+      </div>
       {activeResult}
     </StyledWrapper>
   );
