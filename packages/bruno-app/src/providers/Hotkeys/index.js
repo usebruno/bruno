@@ -7,7 +7,6 @@ import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import BrunoSupport from 'components/BrunoSupport';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
@@ -22,7 +21,6 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-  const [showBrunoSupportModal, setShowBrunoSupportModal] = useState(false);
 
   const getCurrentCollectionItems = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -133,18 +131,6 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
-  // help (ctrl/cmd + h)
-  useEffect(() => {
-    Mousetrap.bind(['command+h', 'ctrl+h'], (e) => {
-      setShowBrunoSupportModal(true);
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind(['command+h', 'ctrl+h']);
-    };
-  }, [setShowNewRequestModal]);
-
   // close tab hotkey
   useEffect(() => {
     Mousetrap.bind(['command+w', 'ctrl+w'], (e) => {
@@ -164,7 +150,6 @@ export const HotkeysProvider = (props) => {
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {showBrunoSupportModal && <BrunoSupport onClose={() => setShowBrunoSupportModal(false)} />}
       {showSaveRequestModal && (
         <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />
       )}

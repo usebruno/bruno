@@ -28,7 +28,8 @@ import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platfo
 const PATH_SEPARATOR = path.sep;
 
 const initialState = {
-  collections: []
+  collections: [],
+  collectionSortOrder: 'default'
 };
 
 export const collectionsSlice = createSlice({
@@ -38,12 +39,12 @@ export const collectionsSlice = createSlice({
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
-
       // last action is used to track the last action performed on the collection
       // this is optional
       // this is used in scenarios where we want to know the last action performed on the collection
       // and take some extra action based on that
       // for example, when a env is created, we want to auto select it the env modal
+      collection.importedAt = new Date().getTime();
       collection.lastAction = null;
 
       collapseCollection(collection);
@@ -70,8 +71,19 @@ export const collectionsSlice = createSlice({
     removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
-    sortCollections: (state) => {
-      state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name))
+    sortCollections: (state, action) => {
+      state.collectionSortOrder = action.payload.order;
+      switch (action.payload.order) {
+        case 'default':
+          state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
+          break;
+        case 'alphabetical':
+          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'reverseAlphabetical':
+          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
+          break;
+      }
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;

@@ -4,15 +4,56 @@ import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import classnames from 'classnames';
+import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
+import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 
 import StyledWrapper from './StyledWrapper';
 import { useState } from 'react';
 import { useMemo } from 'react';
 
-const QueryResult = ({ item, collection, value, width, disableRunEventListener, mode }) => {
+const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers }) => {
   const { storedTheme } = useTheme();
   const [tab, setTab] = useState('raw');
   const dispatch = useDispatch();
+  const contentType = getContentType(headers);
+  const mode = getCodeMirrorModeBasedOnContentType(contentType);
+
+  const formatResponse = (data, mode) => {
+    if (!data) {
+      return '';
+    }
+
+    if (mode.includes('json')) {
+      return safeStringifyJSON(data, true);
+    }
+
+    if (mode.includes('xml')) {
+      let parsed = safeParseXML(data, { collapseContent: true });
+
+      if (typeof parsed === 'string') {
+        return parsed;
+      }
+
+      return safeStringifyJSON(parsed, true);
+    }
+
+    if (['text', 'html'].includes(mode)) {
+      if (typeof data === 'string') {
+        return data;
+      }
+
+      return safeStringifyJSON(data);
+    }
+
+    // final fallback
+    if (typeof data === 'string') {
+      return data;
+    }
+
+    return safeStringifyJSON(data);
+  };
+
+  const value = formatResponse(data, mode);
 
   const onRun = () => {
     if (disableRunEventListener) {
@@ -32,7 +73,7 @@ const QueryResult = ({ item, collection, value, width, disableRunEventListener, 
       Raw
     </div>
   )];
-  if (mode.includes('text/html')) {
+  if (mode.includes('html')) {
     tabs.push(
       <div className={getTabClassname('preview')} role="tab" onClick={() => setTab('preview')}>
         Preview
@@ -43,7 +84,7 @@ const QueryResult = ({ item, collection, value, width, disableRunEventListener, 
   const activeResult = useMemo(() => {
     if (tab === 'preview') {
       // Add the Base tag to the head so content loads proparly. This also needs the correct CSP settings
-      const webViewSrc = value.replace('<head>', `<head><base href="${item.requestSent.url}">`);
+      const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent.url}">`);
       return (
         <webview
           src={`data:text/html; charset=utf-8,${encodeURIComponent(webViewSrc)}`}
@@ -58,7 +99,7 @@ const QueryResult = ({ item, collection, value, width, disableRunEventListener, 
         collection={collection}
         theme={storedTheme}
         onRun={onRun}
-        value={value || ''}
+        value={value}
         mode={mode}
         readOnly
       />
