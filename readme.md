@@ -16,8 +16,7 @@ Bruno stores your collections directly in a folder on your filesystem. We use a 
 
 You can use git or any version control of your choice to collaborate over your API collections.
 
-Bruno is offline-only. There are no plans to add cloud-sync to Bruno, Ever. We believe that your data is yours and should be stored on your machine.
-If you are interested to know more about our long term vision, we recently penned some thoughts [here](https://github.com/usebruno/bruno/discussions/269)
+Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We value your data privacy and believe it should stay on your device. Read our long-term vision [here](https://github.com/usebruno/bruno/discussions/269)
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
