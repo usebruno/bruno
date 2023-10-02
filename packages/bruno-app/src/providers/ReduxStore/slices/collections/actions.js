@@ -145,10 +145,12 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     })
     .catch((err) => console.log(err));
 };
+
+// todo: this can be directly put inside the collections/index.js file
+// the coding convention is to put only actions that need ipc in this file
 export const sortCollections = (order) => (dispatch) => {
-  console.log("working")
-  dispatch(_sortCollections(order))
-}
+  dispatch(_sortCollections(order));
+};
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
