@@ -3,7 +3,7 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   margin-inline: -1rem;
   margin-block: -1.5rem;
-
+  position: absolute;
   background-color: ${(props) => props.theme.collection.environment.settings.bg};
 
   .generate-code-sidebar {
