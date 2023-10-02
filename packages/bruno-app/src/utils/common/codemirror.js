@@ -42,3 +42,25 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
     return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
   });
 };
+
+export const getCodeMirrorModeBasedOnContentType = (contentType) => {
+  if (!contentType || typeof contentType !== 'string') {
+    return 'application/text';
+  }
+
+  if (contentType.includes('json')) {
+    return 'application/ld+json';
+  } else if (contentType.includes('xml')) {
+    return 'application/xml';
+  } else if (contentType.includes('html')) {
+    return 'application/html';
+  } else if (contentType.includes('text')) {
+    return 'application/text';
+  } else if (contentType.includes('application/edn')) {
+    return 'application/xml';
+  } else if (mimeType.includes('yaml')) {
+    return 'application/yaml';
+  } else {
+    return 'application/text';
+  }
+};
