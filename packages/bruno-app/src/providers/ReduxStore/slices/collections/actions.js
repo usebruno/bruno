@@ -34,12 +34,12 @@ import {
   renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
-  sortCollections as _sortCollections,
   saveRequest as _saveRequest,
   selectEnvironment as _selectEnvironment,
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  sortCollections as _sortCollections,
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
@@ -145,7 +145,10 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     })
     .catch((err) => console.log(err));
 };
-
+export const sortCollections = (order) => (dispatch) => {
+  console.log("working")
+  dispatch(_sortCollections(order))
+}
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -375,9 +378,6 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const sortCollections = () => (dispatch) => {
-  dispatch(_sortCollections());
-};
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
