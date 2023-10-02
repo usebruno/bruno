@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  color: ${(props) => props.theme.text};
+
   &.modal--animate-out {
     animation: fade-out 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
 
