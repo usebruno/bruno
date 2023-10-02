@@ -16,6 +16,7 @@ import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
+import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -32,6 +33,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
@@ -166,6 +168,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {runCollectionModalOpen && (
         <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
+      {generateCodeItemModalOpen && (
+        <GenerateCodeItem item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+      )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -262,6 +267,18 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   }}
                 >
                   Clone
+                </div>
+              )}
+              {!isFolder && item.type === 'http-request' && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dropdownTippyRef.current.hide();
+                    setGenerateCodeItemModalOpen(true);
+                  }}
+                >
+                  Generate Code
                 </div>
               )}
               <div
