@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { IconSearch, IconFolders, IconSortAZ } from '@tabler/icons';
+import { IconSearch, IconFolders, IconArrowsSort, IconSortAscendingLetters, IconSortDescendingLetters } from '@tabler/icons';
 import Collection from '../Collections/Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
@@ -11,6 +11,23 @@ import { sortCollections } from 'providers/ReduxStore/slices/collections/actions
 
 const CollectionsBadge = () => {
   const dispatch = useDispatch()
+  const { collections } = useSelector((state) => state.collections);
+  const { collectionSortOrder } = useSelector((state) => state.collections);
+  const sortCollectionOrder = () => {
+    let order;
+    switch (collectionSortOrder) {
+      case 'default':
+        order = 'alphabetical'
+        break;
+      case 'alphabetical':
+        order = 'reverseAlphabetical'
+        break;
+      case 'reverseAlphabetical':
+        order = 'default'
+        break;
+    }
+    dispatch(sortCollections({ order }))
+  }
   return (
     <div className="items-center mt-2 relative">
       <div className='collections-badge flex items-center justify-between px-2'  >
@@ -20,9 +37,16 @@ const CollectionsBadge = () => {
           </span>
           <span>Collections</span>
         </div>
-        <button onClick={() => dispatch(sortCollections())} >
-          <IconSortAZ size={18} strokeWidth={1.5} />
-        </button>
+        {
+          collections.length >= 1 && <button onClick={() => sortCollectionOrder()} >
+            {
+              collectionSortOrder == 'default' ? <IconArrowsSort size={18} strokeWidth={1.5} /> : collectionSortOrder == 'alphabetical' ?
+                <IconSortAscendingLetters size={18} strokeWidth={1.5} /> : <IconSortDescendingLetters size={18} strokeWidth={1.5} />
+            }
+
+          </button>
+        }
+
       </div>
     </div>
   );
