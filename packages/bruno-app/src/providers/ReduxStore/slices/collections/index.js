@@ -70,6 +70,9 @@ export const collectionsSlice = createSlice({
     removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
     },
+    sortCollections: (state) => {
+      state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name))
+    },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1141,6 +1144,7 @@ export const {
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
+  sortCollections,
   updateLastAction,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
