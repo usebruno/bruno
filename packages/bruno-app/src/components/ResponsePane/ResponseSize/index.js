@@ -7,7 +7,7 @@ const ResponseSize = ({ size }) => {
   if (size > 1024) {
     // size is greater than 1kb
     let kb = Math.floor(size / 1024);
-    let decimal = ((size % 1024) / 1024).toFixed(2) * 100;
+    let decimal = Math.round(((size % 1024) / 1024).toFixed(2) * 100);
     sizeToDisplay = kb + '.' + decimal + 'KB';
   } else {
     sizeToDisplay = size + 'B';
