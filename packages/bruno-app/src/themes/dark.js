@@ -16,6 +16,12 @@ const darkTheme = {
     }
   },
 
+  input: {
+    bg: 'rgb(65, 65, 65)',
+    border: 'rgb(65, 65, 65)',
+    focusBorder: 'rgb(65, 65, 65)'
+  },
+
   variables: {
     bg: 'rgb(48, 48, 49)',
 

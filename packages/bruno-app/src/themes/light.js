@@ -16,6 +16,12 @@ const lightTheme = {
     }
   },
 
+  input: {
+    bg: 'white',
+    border: '#ccc',
+    focusBorder: '#8b8b8b'
+  },
+
   menubar: {
     bg: 'rgb(44, 44, 44)'
   },
