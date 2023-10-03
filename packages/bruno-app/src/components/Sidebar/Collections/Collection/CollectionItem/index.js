@@ -115,6 +115,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
+  const handleDoubleClick = (event) => {
+    setRenameItemModalOpen(true);
+  };
+
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const isFolder = isItemAFolder(item);
@@ -178,6 +182,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 return (
                   <div
                     onClick={handleClick}
+                    onDoubleClick={handleDoubleClick}
                     className="indent-block"
                     key={i}
                     style={{
@@ -193,6 +198,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             : null}
           <div
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
               paddingLeft: 8
