@@ -161,7 +161,7 @@ const runSingleRequest = async function (
     // run assertions
     let assertionResults = [];
     const assertions = get(bruJson, 'request.assertions');
-    if (assertions && assertions.length) {
+    if (assertions) {
       const assertRuntime = new AssertRuntime();
       assertionResults = assertRuntime.runAssertions(
         assertions,
@@ -185,7 +185,7 @@ const runSingleRequest = async function (
     // run tests
     let testResults = [];
     const testFile = get(bruJson, 'request.tests');
-    if (testFile && testFile.length) {
+    if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime();
       const result = await testRuntime.runTests(
         testFile,
@@ -266,7 +266,7 @@ const runSingleRequest = async function (
       // run assertions
       let assertionResults = [];
       const assertions = get(bruJson, 'request.assertions');
-      if (assertions && assertions.length) {
+      if (assertions) {
         const assertRuntime = new AssertRuntime();
         assertionResults = assertRuntime.runAssertions(
           assertions,
@@ -290,7 +290,7 @@ const runSingleRequest = async function (
       // run tests
       let testResults = [];
       const testFile = get(bruJson, 'request.tests');
-      if (testFile && testFile.length) {
+      if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime();
         const result = await testRuntime.runTests(
           testFile,
