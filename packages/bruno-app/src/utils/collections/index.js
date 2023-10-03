@@ -207,7 +207,7 @@ export const getItemsToResequence = (parent, collection) => {
   return itemsToResequence;
 };
 
-export const transformCollectionToSaveToIdb = (collection, options = {}) => {
+export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
       return {
@@ -285,6 +285,16 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
+            auth: {
+              mode: get(si.draft.request, 'auth.mode', 'none'),
+              basic: {
+                username: get(si.draft.request, 'auth.basic.username', ''),
+                password: get(si.draft.request, 'auth.basic.password', '')
+              },
+              bearer: {
+                token: get(si.draft.request, 'auth.bearer.token', '')
+              }
+            },
             script: si.draft.request.script,
             vars: si.draft.request.vars,
             assertions: si.draft.request.assertions,
@@ -306,6 +316,16 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               graphql: si.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            },
+            auth: {
+              mode: get(si.request, 'auth.mode', 'none'),
+              basic: {
+                username: get(si.request, 'auth.basic.username', ''),
+                password: get(si.request, 'auth.basic.password', '')
+              },
+              bearer: {
+                token: get(si.request, 'auth.bearer.token', '')
+              }
             },
             script: si.request.script,
             vars: si.request.vars,

@@ -322,7 +322,7 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    updateBearerToken: (state, action) => {
+    updateAuth: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
@@ -334,9 +334,14 @@ export const collectionsSlice = createSlice({
           }
 
           item.draft.request.auth = item.draft.request.auth || {};
-          switch (item.draft.request.auth.mode) {
+          switch (action.payload.mode) {
             case 'bearer':
+              item.draft.request.auth.mode = 'bearer';
               item.draft.request.auth.bearer = action.payload.content;
+              break;
+            case 'basic':
+              item.draft.request.auth.mode = 'basic';
+              item.draft.request.auth.basic = action.payload.content;
               break;
           }
         }
@@ -1208,7 +1213,7 @@ export const {
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,
-  updateBearerToken,
+  updateAuth,
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,

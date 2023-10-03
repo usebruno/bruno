@@ -2,6 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import AuthMode from './AuthMode';
 import BearerAuth from './BearerAuth';
+import BasicAuth from './BasicAuth';
 import StyledWrapper from './StyledWrapper';
 
 const Auth = ({ item, collection }) => {
@@ -10,7 +11,7 @@ const Auth = ({ item, collection }) => {
   const getAuthView = () => {
     switch (authMode) {
       case 'basic': {
-        return <div>Basic Auth</div>;
+        return <BasicAuth collection={collection} item={item} />;
       }
       case 'bearer': {
         return <BearerAuth collection={collection} item={item} />;
