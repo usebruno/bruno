@@ -4,12 +4,13 @@ const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
 const axios = require('axios');
-const https = require('https');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const https = require('https');
 
 const runSingleRequest = async function (
   filename,
@@ -65,31 +66,6 @@ const runSingleRequest = async function (
       );
     }
 
-    // set proxy if enabled
-    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    if (proxyEnabled) {
-      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-      const proxyHostname = get(brunoConfig, 'proxy.hostname');
-      const proxyPort = get(brunoConfig, 'proxy.port');
-      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-      const proxyConfig = {
-        protocol: proxyProtocol,
-        hostname: proxyHostname,
-        port: proxyPort
-      };
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-        proxyConfig.auth = {
-          username: proxyAuthUsername,
-          password: proxyAuthPassword
-        };
-      }
-
-      request.proxy = proxyConfig;
-    }
-
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
 
@@ -111,7 +87,30 @@ const runSingleRequest = async function (
       }
     }
 
-    if (Object.keys(httpsAgentRequestFields).length > 0) {
+    // set proxy if enabled
+    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+    if (proxyEnabled) {
+      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+      const proxyHostname = get(brunoConfig, 'proxy.hostname');
+      const proxyPort = get(brunoConfig, 'proxy.port');
+      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+      let proxy;
+
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+
+        proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      } else {
+        proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      }
+
+      request.httpsAgent = new HttpsProxyAgent(
+        proxy,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+    } else if (Object.keys(httpsAgentRequestFields).length > 0) {
       request.httpsAgent = new https.Agent({
         ...httpsAgentRequestFields
       });
