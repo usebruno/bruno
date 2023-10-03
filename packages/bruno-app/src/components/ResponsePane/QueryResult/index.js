@@ -13,7 +13,7 @@ import { useMemo } from 'react';
 
 const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers }) => {
   const { storedTheme } = useTheme();
-  const [tab, setTab] = useState('raw');
+  const [tab, setTab] = useState('preview');
   const dispatch = useDispatch();
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType);
@@ -64,8 +64,8 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
 
   const getTabClassname = (tabName) => {
     return classnames(`select-none ${tabName}`, {
-      'text-yellow-500': tabName === tab,
-      'cursor-pointer': tabName !== tab,
+      active: tabName === tab,
+      'cursor-pointer': tabName !== tab
     });
   };
 
@@ -99,16 +99,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       );
     }
 
-    return (
-      <CodeEditor
-        collection={collection}
-        theme={storedTheme}
-        onRun={onRun}
-        value={value}
-        mode={mode}
-        readOnly
-      />
-    );
+    return <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value} mode={mode} readOnly />;
   }, [tab, collection, storedTheme, onRun, value, mode]);
 
   return (

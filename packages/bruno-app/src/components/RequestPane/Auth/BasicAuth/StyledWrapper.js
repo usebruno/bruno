@@ -7,7 +7,8 @@ const Wrapper = styled.div`
 
   .single-line-editor-wrapper {
     padding: 0.15rem 0.4rem;
-    border: ${(props) => props.theme.input.border};
+    border-radius: 3px;
+    border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
   }
 `;

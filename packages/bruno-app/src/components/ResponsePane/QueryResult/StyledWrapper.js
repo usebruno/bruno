@@ -17,6 +17,12 @@ const StyledWrapper = styled.div`
     height: 100%;
     width: 100%;
   }
+
+  div[role='tablist'] {
+    .active {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+  }
 `;
 
 export default StyledWrapper;

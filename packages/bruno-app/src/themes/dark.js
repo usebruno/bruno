@@ -9,7 +9,8 @@ const darkTheme = {
       green: 'rgb(11 178 126)',
       danger: '#f06f57',
       muted: '#9d9d9d',
-      purple: '#cd56d6'
+      purple: '#cd56d6',
+      yellow: '#f59e0b'
     },
     bg: {
       danger: '#d03544'

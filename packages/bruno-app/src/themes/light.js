@@ -9,7 +9,8 @@ const lightTheme = {
       green: '#047857',
       danger: 'rgb(185, 28, 28)',
       muted: '#4b5563',
-      purple: '#8e44ad'
+      purple: '#8e44ad',
+      yellow: '#d97706'
     },
     bg: {
       danger: '#dc3545'
