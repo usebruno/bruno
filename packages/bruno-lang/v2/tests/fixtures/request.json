@@ -43,6 +43,15 @@
       "enabled": false
     }
   ],
+  "auth": {
+    "basic": {
+      "username": "john",
+      "password": "secret"
+    },
+    "bearer": {
+      "token": "123"
+    }
+  },
   "body": {
     "json": "{\n  \"hello\": \"world\"\n}",
     "text": "This is a text body",

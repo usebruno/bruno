@@ -1,0 +1,25 @@
+import styled from 'styled-components';
+
+const Wrapper = styled.div`
+  font-size: 0.8125rem;
+
+  .auth-mode-selector {
+    background: ${(props) => props.theme.requestTabPanel.bodyModeSelect.color};
+    border-radius: 3px;
+
+    .dropdown-item {
+      padding: 0.2rem 0.6rem !important;
+    }
+
+    .label-item {
+      padding: 0.2rem 0.6rem !important;
+    }
+  }
+
+  .caret {
+    color: rgb(140, 140, 140);
+    fill: rgb(140 140 140);
+  }
+`;
+
+export default Wrapper;
