@@ -355,6 +355,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       url: _item.request.url,
       params: [],
       headers: [],
+      auth: _item.request.auth,
       body: _item.request.body,
       script: _item.request.script,
       vars: _item.request.vars,

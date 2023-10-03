@@ -15,8 +15,8 @@ const AuthMode = ({ item, collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="flex items-center justify-center pl-3 py-1 select-none">
-        {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-2 mr-2" size={14} strokeWidth={2} />
+      <div ref={ref} className="flex items-center justify-center text-yellow-600 select-none">
+        {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
     );
   });

@@ -322,6 +322,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateBearerToken: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          item.draft.request.auth = item.draft.request.auth || {};
+          switch (item.draft.request.auth.mode) {
+            case 'bearer':
+              item.draft.request.auth.bearer = action.payload.content;
+              break;
+          }
+        }
+      }
+    },
     addQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1188,6 +1208,7 @@ export const {
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,
+  updateBearerToken,
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,

@@ -12,7 +12,6 @@ import {
   getItemsToResequence,
   moveCollectionItemToRootOfCollection,
   findCollectionByUid,
-  recursivelyGetAllItemUids,
   transformRequestToSaveToFilesystem,
   findParentItemInCollection,
   findEnvironmentInCollection,

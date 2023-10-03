@@ -108,13 +108,10 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
             <RequestBodyMode item={item} collection={collection} />
           </div>
         ) : null}
-        {focusedTab.requestPaneTab === 'auth' ? (
-          <div className="flex flex-grow justify-end items-center">
-            <AuthMode item={item} collection={collection} />
-          </div>
-        ) : null}
       </div>
-      <section className={`flex w-full ${['script', 'vars'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}>
+      <section
+        className={`flex w-full ${['script', 'vars', 'auth'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}
+      >
         {getTabPanel(focusedTab.requestPaneTab)}
       </section>
     </StyledWrapper>

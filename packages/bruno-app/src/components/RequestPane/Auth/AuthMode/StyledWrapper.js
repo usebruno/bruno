@@ -4,8 +4,7 @@ const Wrapper = styled.div`
   font-size: 0.8125rem;
 
   .auth-mode-selector {
-    background: ${(props) => props.theme.requestTabPanel.bodyModeSelect.color};
-    border-radius: 3px;
+    background: transparent;
 
     .dropdown-item {
       padding: 0.2rem 0.6rem !important;

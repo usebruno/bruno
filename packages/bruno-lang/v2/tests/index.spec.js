@@ -14,7 +14,7 @@ describe('bruToJson', () => {
 });
 
 describe('jsonToBru', () => {
-  it('should parse the bru file', () => {
+  it('should parse the json file', () => {
     const input = require('./fixtures/request.json');
     const expected = fs.readFileSync(path.join(__dirname, 'fixtures', 'request.bru'), 'utf8');
     const output = jsonToBru(input);

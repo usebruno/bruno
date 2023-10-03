@@ -34,6 +34,11 @@ const jsonToBru = (json) => {
   body: ${http.body}`;
     }
 
+    if (http.auth && http.auth.length) {
+      bru += `
+  auth: ${http.auth}`;
+    }
+
     bru += `
 }
 

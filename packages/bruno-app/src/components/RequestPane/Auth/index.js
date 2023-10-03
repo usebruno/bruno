@@ -1,32 +1,30 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import AuthMode from './AuthMode';
+import BearerAuth from './BearerAuth';
 import StyledWrapper from './StyledWrapper';
 
-const RequestBody = ({ item, collection }) => {
-  const dispatch = useDispatch();
+const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
-  const onEdit = (value) => {
-    // dispatch(
-    //   updateRequestBody({
-    //     content: value,
-    //     itemUid: item.uid,
-    //     collectionUid: collection.uid
-    //   })
-    // );
+  const getAuthView = () => {
+    switch (authMode) {
+      case 'basic': {
+        return <div>Basic Auth</div>;
+      }
+      case 'bearer': {
+        return <BearerAuth collection={collection} item={item} />;
+      }
+    }
   };
 
-  if (authMode === 'basic') {
-    return <div>Basic Auth</div>;
-  }
-
-  if (authMode === 'bearer') {
-    return <div>Bearer Token</div>;
-  }
-
-  return <StyledWrapper className="w-full">No Auth</StyledWrapper>;
+  return (
+    <StyledWrapper className="w-full">
+      <div className="flex flex-grow justify-start items-center">
+        <AuthMode item={item} collection={collection} />
+      </div>
+      {getAuthView()}
+    </StyledWrapper>
+  );
 };
-export default RequestBody;
+export default Auth;
