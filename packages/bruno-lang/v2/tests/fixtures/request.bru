@@ -21,6 +21,15 @@ headers {
   ~transaction-id: {{transactionId}}
 }
 
+auth:basic {
+  username: john
+  password: secret
+}
+
+auth:bearer {
+  token: 123
+}
+
 body:json {
   {
     "hello": "world"

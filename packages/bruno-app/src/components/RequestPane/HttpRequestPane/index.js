@@ -7,6 +7,8 @@ import QueryParams from 'components/RequestPane/QueryParams';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
+import Auth from 'components/RequestPane/Auth';
+import AuthMode from 'components/RequestPane/Auth/AuthMode';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
@@ -37,6 +39,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
+      }
+      case 'auth': {
+        return <Auth item={item} collection={collection} />;
       }
       case 'vars': {
         return <Vars item={item} collection={collection} />;
@@ -83,6 +88,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
         </div>
+        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
+          Auth
+        </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
         </div>
@@ -95,11 +103,14 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
-        {/* Moved to post mvp */}
-        {/* <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>Auth</div> */}
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
             <RequestBodyMode item={item} collection={collection} />
+          </div>
+        ) : null}
+        {focusedTab.requestPaneTab === 'auth' ? (
+          <div className="flex flex-grow justify-end items-center">
+            <AuthMode item={item} collection={collection} />
           </div>
         ) : null}
       </div>

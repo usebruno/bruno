@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, query, headers, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -80,6 +80,23 @@ const jsonToBru = (json) => {
     }
 
     bru += '\n}\n\n';
+  }
+
+  if (auth && auth.basic) {
+    bru += `auth:basic {
+${indentString(`username: ${auth.basic.username}`)}
+${indentString(`password: ${auth.basic.password}`)}
+}
+
+`;
+  }
+
+  if (auth && auth.bearer) {
+    bru += `auth:bearer {
+${indentString(`token: ${auth.bearer.token}`)}
+}
+
+`;
   }
 
   if (body && body.json && body.json.length) {
