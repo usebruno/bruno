@@ -13,7 +13,7 @@ const Theme = () => {
       theme: storedTheme
     },
     validationSchema: Yup.object({
-      theme: Yup.string().oneOf(['light', 'dark']).required('theme is required')
+      theme: Yup.string().oneOf(['light', 'dark', 'atomicDark']).required('theme is required')
     }),
     onSubmit: (values) => {
       setStoredTheme(values.theme);
@@ -54,6 +54,22 @@ const Theme = () => {
           />
           <label htmlFor="dark-theme" className="ml-1 cursor-pointer select-none">
             Dark
+          </label>
+
+          <input
+            id="atomic-dark-theme"
+            className="ml-4 cursor-pointer"
+            type="radio"
+            name="theme"
+            onChange={(e) => {
+              formik.handleChange(e);
+              formik.handleSubmit();
+            }}
+            value="atomicDark"
+            checked={formik.values.theme === 'atomicDark'}
+          />
+          <label htmlFor="atomic-dark-theme" className="ml-1 cursor-pointer select-none">
+            Atomic Dark
           </label>
         </div>
       </div>
