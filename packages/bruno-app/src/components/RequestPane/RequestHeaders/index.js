@@ -123,10 +123,11 @@ const RequestHeaders = ({ item, collection }) => {
                         <input
                           type="checkbox"
                           checked={header.enabled}
+                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveHeader(header)}>
+                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>
