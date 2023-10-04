@@ -29,9 +29,7 @@ const CreateCollection = ({ onClose }) => {
         .max(50, 'must be 50 characters or less')
         .matches(/^[\w\-. ]+$/, 'Folder name contains invalid characters')
         .required('folder name is required'),
-      collectionLocation: Yup.string()
-        .min(1, 'location is required')
-        .required('location is required'),
+      collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),
     onSubmit: (values) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
@@ -116,7 +114,10 @@ const CreateCollection = ({ onClose }) => {
 
           <label htmlFor="collection-folder-name" className="flex items-center mt-3">
             <span className="font-semibold">Folder Name</span>
-            <Tooltip text="This folder will be created under the selected location" tooltipId="collection-folder-name-tooltip" />
+            <Tooltip
+              text="This folder will be created under the selected location"
+              tooltipId="collection-folder-name-tooltip"
+            />
           </label>
           <input
             id="collection-folder-name"

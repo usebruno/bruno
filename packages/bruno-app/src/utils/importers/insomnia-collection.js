@@ -39,7 +39,7 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
     return nameSuffix;
   }, 0);
   return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
-}
+};
 
 const transformInsomniaRequestItem = (request, index, allRequests) => {
   const name = addSuffixToDuplicateName(request, index, allRequests);
