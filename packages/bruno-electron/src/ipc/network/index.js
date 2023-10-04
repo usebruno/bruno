@@ -15,6 +15,7 @@ const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
+const { makeAxiosInstance } = require('./axios-instance');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -240,7 +241,10 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        const response = await axios(request);
+        const axiosInstance = makeAxiosInstance();
+
+        /** @type {import('axios').AxiosResponse} */
+        const response = await axiosInstance(request);
 
         // run post-response vars
         const postResponseVars = get(request, 'vars.res', []);
@@ -343,12 +347,16 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
+        // Prevents the duration on leaking to the actual result
+        const requestDuration = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
 
         return {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers,
-          data: response.data
+          data: response.data,
+          duration: requestDuration
         };
       } catch (error) {
         // todo: better error handling
@@ -416,11 +424,15 @@ const registerNetworkIpc = (mainWindow) => {
             });
           }
 
+          // Prevents the duration from leaking to the actual result
+          const requestDuration = error.response.headers.get('request-duration');
+          error.response.headers.delete('request-duration');
           return {
             status: error.response.status,
             statusText: error.response.statusText,
             headers: error.response.headers,
-            data: error.response.data
+            data: error.response.data,
+            duration: requestDuration ?? 0
           };
         }
 
