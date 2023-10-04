@@ -38,15 +38,19 @@ Please visit [here](https://www.usebruno.com) to checkout our website and downlo
 
 Please visit [here](https://docs.usebruno.com) for documentation
 
+### Support ❤️
+
+Woof! If you like project, hit that ⭐ button !!
+
+### Share Testimonials 📣
+
+If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our github discussion](https://github.com/usebruno/bruno/discussions/343)
+
 ### Contribute 👩‍💻🧑‍💻
 
 I am happy that you are looking to improve bruno. Please checkout the [contributing guide](contributing.md)
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
-
-### Support ❤️
-
-Woof! If you like project, hit that ⭐ button !!
 
 ### Authors
 
