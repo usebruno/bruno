@@ -37,6 +37,14 @@ const safeParseJSON = (data) => {
   }
 };
 
+const decommentJSON = (data) => {
+  try {
+    return data.replace(/\\"|"(?:\\"|[^"])*"|(\/\/.*|\/\*[\s\S]*?\*\/)/g, (m, g) => g ? "" : m);
+  } catch (e) {
+    return data;
+  }
+};
+
 const getEnvVars = (environment = {}) => {
   const variables = environment.variables;
   if (!variables || !variables.length) {
@@ -207,7 +215,7 @@ const registerNetworkIpc = (mainWindow) => {
             url: request.url,
             method: request.method,
             headers: request.headers,
-            data: safeParseJSON(safeStringifyJSON(request.data))
+            data: safeParseJSON(safeStringifyJSON(decommentJSON(request.data)))
           },
           collectionUid,
           itemUid: item.uid,
@@ -636,7 +644,7 @@ const registerNetworkIpc = (mainWindow) => {
                 url: request.url,
                 method: request.method,
                 headers: request.headers,
-                data: safeParseJSON(safeStringifyJSON(request.data))
+                data: safeParseJSON(safeStringifyJSON(decommentJSON(request.data)))
               },
               ...eventData
             });
