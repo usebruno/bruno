@@ -25,10 +25,11 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
               stream.eat('}');
               let found = pathFoundInVariables(word, variables);
               if (found) {
-                return 'variable-valid';
+                return 'variable-valid random-' + (Math.random() + 1).toString(36).substring(9);
               } else {
-                return 'variable-invalid';
+                return 'variable-invalid random-' + (Math.random() + 1).toString(36).substring(9);
               }
+              // Random classname added so adjacent variables are not rendered in the same SPAN by CodeMirror.
             }
             word += ch;
           }
@@ -40,4 +41,26 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
 
     return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
   });
+};
+
+export const getCodeMirrorModeBasedOnContentType = (contentType) => {
+  if (!contentType || typeof contentType !== 'string') {
+    return 'application/text';
+  }
+
+  if (contentType.includes('json')) {
+    return 'application/ld+json';
+  } else if (contentType.includes('xml')) {
+    return 'application/xml';
+  } else if (contentType.includes('html')) {
+    return 'application/html';
+  } else if (contentType.includes('text')) {
+    return 'application/text';
+  } else if (contentType.includes('application/edn')) {
+    return 'application/xml';
+  } else if (mimeType.includes('yaml')) {
+    return 'application/yaml';
+  } else {
+    return 'application/text';
+  }
 };

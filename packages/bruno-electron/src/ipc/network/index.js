@@ -291,7 +291,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run assertions
         const assertions = get(request, 'assertions');
-        if (assertions && assertions.length) {
+        if (assertions) {
           const assertRuntime = new AssertRuntime();
           const results = assertRuntime.runAssertions(
             assertions,
@@ -313,7 +313,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run tests
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-        if (testFile && testFile.length) {
+        if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime();
           const testResults = await testRuntime.runTests(
             testFile,
@@ -365,7 +365,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (error && error.response) {
           // run assertions
           const assertions = get(request, 'assertions');
-          if (assertions && assertions.length) {
+          if (assertions) {
             const assertRuntime = new AssertRuntime();
             const results = assertRuntime.runAssertions(
               assertions,
@@ -387,7 +387,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           // run tests
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-          if (testFile && testFile.length) {
+          if (typeof testFile === 'string') {
             const testRuntime = new TestRuntime();
             const testResults = await testRuntime.runTests(
               testFile,
@@ -702,7 +702,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run assertions
             const assertions = get(item, 'request.assertions');
-            if (assertions && assertions.length) {
+            if (assertions) {
               const assertRuntime = new AssertRuntime();
               const results = assertRuntime.runAssertions(
                 assertions,
@@ -723,7 +723,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            if (testFile && testFile.length) {
+            if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
                 testFile,
@@ -781,7 +781,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run assertions
               const assertions = get(item, 'request.assertions');
-              if (assertions && assertions.length) {
+              if (assertions) {
                 const assertRuntime = new AssertRuntime();
                 const results = assertRuntime.runAssertions(
                   assertions,
@@ -802,7 +802,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run tests
               const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-              if (testFile && testFile.length) {
+              if (typeof testFile === 'string') {
                 const testRuntime = new TestRuntime();
                 const testResults = await testRuntime.runTests(
                   testFile,

@@ -7,6 +7,7 @@ meta {
 get {
   url: https://api.textlocal.in/send
   body: json
+  auth: bearer
 }
 
 query {
@@ -19,6 +20,15 @@ headers {
   content-type: application/json
   Authorization: Bearer 123
   ~transaction-id: {{transactionId}}
+}
+
+auth:basic {
+  username: john
+  password: secret
+}
+
+auth:bearer {
+  token: 123
 }
 
 body:json {

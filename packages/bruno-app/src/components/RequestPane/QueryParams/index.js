@@ -115,10 +115,11 @@ const QueryParams = ({ item, collection }) => {
                         <input
                           type="checkbox"
                           checked={param.enabled}
+                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveParam(param)}>
+                        <button tabIndex="-1" onClick={() => handleRemoveParam(param)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>

@@ -53,3 +53,12 @@ export const splitOnFirst = (str, char) => {
 
   return [str.slice(0, index), str.slice(index + 1)];
 };
+
+export const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (err) {
+    return false;
+  }
+};

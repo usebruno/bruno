@@ -30,10 +30,23 @@ const parseGraphQL = (text) => {
   }
 };
 
-const transformInsomniaRequestItem = (request) => {
+const addSuffixToDuplicateName = (item, index, allItems) => {
+  // Check if the request name already exist and if so add a number suffix
+  const nameSuffix = allItems.reduce((nameSuffix, otherItem, otherIndex) => {
+    if (otherItem.name === item.name && otherIndex < index) {
+      nameSuffix++;
+    }
+    return nameSuffix;
+  }, 0);
+  return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
+};
+
+const transformInsomniaRequestItem = (request, index, allRequests) => {
+  const name = addSuffixToDuplicateName(request, index, allRequests);
+
   const brunoRequestItem = {
     uid: uuid(),
-    name: request.name,
+    name,
     type: 'http-request',
     request: {
       url: request.url,
@@ -126,9 +139,7 @@ const parseInsomniaCollection = (data) => {
     try {
       const insomniaExport = JSON.parse(data);
       const insomniaResources = get(insomniaExport, 'resources', []);
-      const insomniaCollection = insomniaResources.find(
-        (resource) => resource._type === 'workspace' && resource.scope === 'collection'
-      );
+      const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
 
       if (!insomniaCollection) {
         reject(new BrunoError('Collection not found inside Insomnia export'));
@@ -145,14 +156,15 @@ const parseInsomniaCollection = (data) => {
           resources.filter((resource) => resource._type === 'request_group' && resource.parentId === parentId) || [];
         const requests = resources.filter((resource) => resource._type === 'request' && resource.parentId === parentId);
 
-        const folders = requestGroups.map((folder) => {
+        const folders = requestGroups.map((folder, index, allFolder) => {
+          const name = addSuffixToDuplicateName(folder, index, allFolder);
           const requests = resources.filter(
             (resource) => resource._type === 'request' && resource.parentId === folder._id
           );
 
           return {
             uid: uuid(),
-            name: folder.name,
+            name,
             type: 'folder',
             items: createFolderStructure(resources, folder._id).concat(requests.map(transformInsomniaRequestItem))
           };

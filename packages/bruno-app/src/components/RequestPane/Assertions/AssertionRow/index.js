@@ -197,10 +197,11 @@ const AssertionRow = ({
           <input
             type="checkbox"
             checked={assertion.enabled}
+            tabIndex="-1"
             className="mr-3 mousetrap"
             onChange={(e) => handleAssertionChange(e, assertion, 'enabled')}
           />
-          <button onClick={() => handleRemoveAssertion(assertion)}>
+          <button tabIndex="-1" onClick={() => handleRemoveAssertion(assertion)}>
             <IconTrash strokeWidth={1.5} size={20} />
           </button>
         </div>

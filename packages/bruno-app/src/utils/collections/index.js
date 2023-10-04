@@ -129,9 +129,11 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
   if (draggedItemParent) {
+    draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
     draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
     draggedItem.pathname = path.join(draggedItemParent.pathname, draggedItem.filename);
   } else {
+    collection.items = sortBy(collection.items, (item) => item.seq);
     collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
   }
 
@@ -143,10 +145,12 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
     let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
 
     if (targetItemParent) {
+      targetItemParent.items = sortBy(targetItemParent.items, (item) => item.seq);
       let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
       targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
       draggedItem.pathname = path.join(targetItemParent.pathname, draggedItem.filename);
     } else {
+      collection.items = sortBy(collection.items, (item) => item.seq);
       let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
       collection.items.splice(targetItemIndex + 1, 0, draggedItem);
       draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
@@ -203,7 +207,7 @@ export const getItemsToResequence = (parent, collection) => {
   return itemsToResequence;
 };
 
-export const transformCollectionToSaveToIdb = (collection, options = {}) => {
+export const transformCollectionToSaveToExportAsFile = (collection, options = {}) => {
   const copyHeaders = (headers) => {
     return map(headers, (header) => {
       return {
@@ -281,6 +285,16 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
+            auth: {
+              mode: get(si.draft.request, 'auth.mode', 'none'),
+              basic: {
+                username: get(si.draft.request, 'auth.basic.username', ''),
+                password: get(si.draft.request, 'auth.basic.password', '')
+              },
+              bearer: {
+                token: get(si.draft.request, 'auth.bearer.token', '')
+              }
+            },
             script: si.draft.request.script,
             vars: si.draft.request.vars,
             assertions: si.draft.request.assertions,
@@ -302,6 +316,16 @@ export const transformCollectionToSaveToIdb = (collection, options = {}) => {
               graphql: si.request.body.graphql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            },
+            auth: {
+              mode: get(si.request, 'auth.mode', 'none'),
+              basic: {
+                username: get(si.request, 'auth.basic.username', ''),
+                password: get(si.request, 'auth.basic.password', '')
+              },
+              bearer: {
+                token: get(si.request, 'auth.bearer.token', '')
+              }
             },
             script: si.request.script,
             vars: si.request.vars,
@@ -351,6 +375,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       url: _item.request.url,
       params: [],
       headers: [],
+      auth: _item.request.auth,
       body: _item.request.body,
       script: _item.request.script,
       vars: _item.request.vars,
@@ -438,6 +463,22 @@ export const humanizeRequestBodyMode = (mode) => {
     }
     case 'multipartForm': {
       label = 'Multipart Form';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAuthMode = (mode) => {
+  let label = 'No Auth';
+  switch (mode) {
+    case 'basic': {
+      label = 'Basic Auth';
+      break;
+    }
+    case 'bearer': {
+      label = 'Bearer Token';
       break;
     }
   }

@@ -2,7 +2,6 @@ import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { getContentType, formatResponse } from 'utils/common';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
@@ -41,8 +40,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             item={item}
             collection={collection}
             width={rightPaneWidth}
-            value={response.data ? formatResponse(response) : ''}
-            mode={getContentType(response.headers)}
+            data={response.data}
+            headers={response.headers}
           />
         );
       }
@@ -93,10 +92,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     });
   };
 
-  const isJson = (headers) => {
-    return getContentType(headers) === 'application/ld+json';
-  };
-
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center px-3 tabs" role="tablist">
@@ -120,7 +115,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           </div>
         ) : null}
       </div>
-      <section className="flex flex-grow mt-5">{getTabPanel(focusedTab.responsePaneTab)}</section>
+      <section className="flex flex-grow">{getTabPanel(focusedTab.responsePaneTab)}</section>
     </StyledWrapper>
   );
 };

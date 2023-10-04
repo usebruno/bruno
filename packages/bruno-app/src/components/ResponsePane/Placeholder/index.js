@@ -13,13 +13,11 @@ const Placeholder = () => {
           <div className="px-1 py-2">Send Request</div>
           <div className="px-1 py-2">New Request</div>
           <div className="px-1 py-2">Edit Environments</div>
-          <div className="px-1 py-2">Help</div>
         </div>
         <div className="flex flex-1 flex-col px-1">
           <div className="px-1 py-2">Cmd + Enter</div>
           <div className="px-1 py-2">Cmd + B</div>
           <div className="px-1 py-2">Cmd + E</div>
-          <div className="px-1 py-2">Cmd + H</div>
         </div>
       </div>
     </StyledWrapper>

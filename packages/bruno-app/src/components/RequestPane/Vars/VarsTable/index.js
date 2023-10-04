@@ -128,10 +128,11 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         <input
                           type="checkbox"
                           checked={_var.enabled}
+                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleVarChange(e, _var, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveVar(_var)}>
+                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>

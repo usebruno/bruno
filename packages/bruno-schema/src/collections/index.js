@@ -69,6 +69,27 @@ const requestBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authBasicSchema = Yup.object({
+  username: Yup.string().nullable(),
+  password: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const authBearerSchema = Yup.object({
+  token: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const authSchema = Yup.object({
+  mode: Yup.string().oneOf(['none', 'basic', 'bearer']).required('mode is required'),
+  basic: authBasicSchema.nullable(),
+  bearer: authBearerSchema.nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
@@ -77,6 +98,7 @@ const requestSchema = Yup.object({
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(keyValueSchema).required('params are required'),
+  auth: authSchema,
   body: requestBodySchema,
   script: Yup.object({
     req: Yup.string().nullable(),
