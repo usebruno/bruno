@@ -46,6 +46,8 @@ const bruToJson = (bru) => {
       requestType = 'http-request';
     } else if (requestType === 'graphql') {
       requestType = 'graphql-request';
+    } else if (requestType === 'hooks') {
+      requestType = 'hooks';
     } else {
       requestType = 'http-request';
     }

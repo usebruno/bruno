@@ -1,10 +1,11 @@
+const os = require('os');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
 const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each, get } = require('lodash');
+const { forOwn, extend, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -15,6 +16,9 @@ const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
+const fs = require('fs');
+const path = require('path');
+const { bruToJson } = require('../../bru');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -143,8 +147,15 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
+        const brunoConfig = getBrunoConfig(collectionUid);
+        const collectionHooksPath = get(brunoConfig, 'hooks', false);
+        const collectionHooks =
+          collectionHooksPath && bruToJson(fs.readFileSync(path.join(collectionPath, collectionHooksPath), 'utf8'));
+
         // run pre-request script
-        const requestScript = get(request, 'script.req');
+        const requestScript = compact([get(collectionHooks, 'request.script.req'), get(request, 'script.req')]).join(
+          os.EOL
+        );
         if (requestScript && requestScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runRequestScript(
@@ -166,7 +177,6 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // proxy configuration
-        const brunoConfig = getBrunoConfig(collectionUid);
         const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
         if (proxyEnabled) {
           const proxyProtocol = get(brunoConfig, 'proxy.protocol');
@@ -267,7 +277,9 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // run post-response script
-        const responseScript = get(request, 'script.res');
+        const responseScript = compact([get(collectionHooks, 'request.script.res'), get(request, 'script.res')]).join(
+          os.EOL
+        );
         if (responseScript && responseScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runResponseScript(
