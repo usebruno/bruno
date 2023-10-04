@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@usebruno/js": "0.6.0",
-    "@usebruno/lang": "0.4.0",
+    "@usebruno/lang": "0.5.0",
     "@usebruno/schema": "0.5.0",
     "about-window": "^1.15.2",
     "axios": "^1.5.1",

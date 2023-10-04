@@ -109,6 +109,18 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     }
   }
 
+  // todo: we have things happening in two places w.r.t basic auth
+  //       need to refactor this in the future
+  // the request.auth (basic auth) object gets set inside the prepare-request.js file
+  if (request.auth) {
+    const username = interpolate(request.auth.username) || '';
+    const password = interpolate(request.auth.password) || '';
+
+    // use auth header based approach and delete the request.auth object
+    request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    delete request.auth;
+  }
+
   return request;
 };
 

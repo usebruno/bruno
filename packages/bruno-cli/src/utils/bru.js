@@ -38,6 +38,7 @@ const bruToJson = (bru) => {
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
+        auth: _.get(json, 'auth', {}),
         params: _.get(json, 'query', []),
         headers: _.get(json, 'headers', []),
         body: _.get(json, 'body', {}),
@@ -49,6 +50,7 @@ const bruToJson = (bru) => {
     };
 
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
+    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
 
     return transformedJson;
   } catch (err) {
