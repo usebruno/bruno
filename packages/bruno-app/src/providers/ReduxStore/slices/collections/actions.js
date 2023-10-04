@@ -39,7 +39,8 @@ import {
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  updateNewRequest
 } from './index';
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
@@ -595,6 +596,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
+        dispatch(updateNewRequest({ newRequestName: item.name }))
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -612,6 +615,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+          // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
+          dispatch(updateNewRequest({ newRequestName: item.name }))
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }

@@ -29,7 +29,8 @@ const PATH_SEPARATOR = path.sep;
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default'
+  collectionSortOrder: 'default',
+  newRequestName: null
 };
 
 export const collectionsSlice = createSlice({
@@ -128,6 +129,10 @@ export const collectionsSlice = createSlice({
           collection.activeEnvironmentUid = null;
         }
       }
+    },
+    updateNewRequest: (state, action) => {
+      const { newRequestName } = action.payload;
+      state.newRequestName = newRequestName;
     },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1200,6 +1205,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  updateNewRequest,
   newItem,
   deleteItem,
   renameItem,
