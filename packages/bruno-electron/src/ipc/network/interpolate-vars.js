@@ -98,6 +98,11 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = interpolate(param.value);
   });
 
+  if (request.auth) {
+    request.auth.username = interpolate(request.auth.username);
+    request.auth.password = interpolate(request.auth.password);
+  }
+
   if (request.proxy) {
     request.proxy.protocol = interpolate(request.proxy.protocol);
     request.proxy.hostname = interpolate(request.proxy.hostname);
