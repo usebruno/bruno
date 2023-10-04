@@ -11,6 +11,7 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import { filenameRegex } from 'utils/common/regex';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -27,6 +28,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .min(1, 'must be atleast 1 characters')
         .required('name is required')
+        .matches(filenameRegex, 'request name contains invalid characters')
         .test({
           name: 'requestName',
           message: 'The request name "index" is reserved in bruno',

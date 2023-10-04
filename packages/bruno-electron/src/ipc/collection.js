@@ -5,7 +5,6 @@ const { ipcMain, shell } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru } = require('../bru');
 
 const {
-  isValidPathname,
   writeFile,
   hasBruExtension,
   isDirectory,
@@ -49,10 +48,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           throw new Error(`collection: ${dirPath} already exists`);
-        }
-
-        if (!isValidPathname(dirPath)) {
-          throw new Error(`collection: invalid pathname - ${dir}`);
         }
 
         await createDirectory(dirPath);

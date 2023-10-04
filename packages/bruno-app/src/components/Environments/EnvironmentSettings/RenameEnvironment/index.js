@@ -6,6 +6,7 @@ import { useFormik } from 'formik';
 import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
+import { filenameRegex } from 'utils/common/regex';
 
 const RenameEnvironment = ({ onClose, environment, collection }) => {
   const dispatch = useDispatch();
@@ -19,6 +20,7 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
       name: Yup.string()
         .min(1, 'must be atleast 1 characters')
         .max(50, 'must be 50 characters or less')
+        .matches(filenameRegex, 'Folder name contains invalid characters')
         .required('name is required')
     }),
     onSubmit: (values) => {

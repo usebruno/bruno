@@ -5,6 +5,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { filenameRegex } from 'utils/common/regex';
 
 const NewFolder = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -18,6 +19,7 @@ const NewFolder = ({ collection, item, onClose }) => {
       folderName: Yup.string()
         .min(1, 'must be atleast 1 characters')
         .required('name is required')
+        .matches(filenameRegex, 'Folder name contains invalid characters')
         .test({
           name: 'folderName',
           message: 'The folder name "environments" at the root of the collection is reserved in bruno',
