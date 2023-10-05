@@ -34,10 +34,15 @@ Or any version control system of your choice
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
-- [Share Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Documentation](https://docs.usebruno.com)
 - [Website](https://www.usebruno.com)
 - [Download](https://www.usebruno.com/downloads)
+
+### Showcase 🎥
+
+- [Testimonials](https://github.com/usebruno/bruno/discussions/343)
+- [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
+- [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
 ### Support ❤️
 
