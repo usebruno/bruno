@@ -30,13 +30,14 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-### Website 📄
+### Important Links 📌
 
-Please visit [here](https://www.usebruno.com) to checkout our website and download the app
-
-### Documentation 📄
-
-Please visit [here](https://docs.usebruno.com) for documentation
+- [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
+- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Share Testimonials](https://github.com/usebruno/bruno/discussions/343)
+- [Documentation](https://docs.usebruno.com)
+- [Website](https://www.usebruno.com)
+- [Download](https://www.usebruno.com/downloads)
 
 ### Support ❤️
 
