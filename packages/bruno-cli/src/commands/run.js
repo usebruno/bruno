@@ -356,7 +356,8 @@ const handler = async function (argv) {
     }
 
     const summary = printRunSummary(results);
-    console.log(chalk.dim(chalk.grey('Ran all requests.')));
+    const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
+    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
     if (outputPath && outputPath.length) {
       const outputDir = path.dirname(outputPath);
