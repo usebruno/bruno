@@ -1200,6 +1200,7 @@ export const {
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
+  updateNewRequest,
   newItem,
   deleteItem,
   renameItem,

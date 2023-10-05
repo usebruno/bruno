@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
@@ -17,9 +17,15 @@ import {
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { findCollectionByUid, getDefaultRequestPaneTab } from 'utils/collections/index';
+import { hideHomePage } from 'providers/ReduxStore/slices/app';
+import { updateLastAction } from 'providers/ReduxStore/slices/collections/index';
 
 const useCollectionTreeSync = () => {
   const dispatch = useDispatch();
+  const tabs = useSelector((state) => state.tabs.tabs);
+  const collections = useSelector((state) => state.collections.collections);
 
   useEffect(() => {
     if (!isElectron()) {
@@ -50,6 +56,25 @@ const useCollectionTreeSync = () => {
             file: val
           })
         );
+
+        const collectionUid = val.meta.collectionUid;
+        const lastAction = findCollectionByUid(collections, collectionUid)?.lastAction;
+
+        // When the request was just created open it in a new tab
+        if (lastAction && lastAction.type === 'ADD_REQUEST') {
+          dispatch(updateLastAction({ lastAction: null, collectionUid }));
+
+          if (lastAction.payload === val.data.name) {
+            dispatch(
+              addTab({
+                uid: val.data.uid,
+                collectionUid: collectionUid,
+                requestPaneTab: getDefaultRequestPaneTab(val.data)
+              })
+            );
+            dispatch(hideHomePage());
+          }
+        }
       }
       if (type === 'change') {
         dispatch(
@@ -115,8 +140,6 @@ const useCollectionTreeSync = () => {
       dispatch(runRequestEvent(val));
     };
 
-    ipcRenderer.invoke('renderer:ready');
-
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
     const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
@@ -144,7 +167,16 @@ const useCollectionTreeSync = () => {
       removeListener10();
       removeListener11();
     };
-  }, [isElectron]);
+  }, [isElectron, tabs, collections]);
+
+  useEffect(() => {
+    if (!isElectron()) {
+      return () => {};
+    }
+
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('renderer:ready');
+  }, []);
 };
 
 export default useCollectionTreeSync;
