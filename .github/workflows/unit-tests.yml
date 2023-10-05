@@ -29,5 +29,7 @@ jobs:
         run: npm run test --workspace=packages/bruno-app
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-cli
+        run: npm run test --workspace=packages/bruno-cli
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
