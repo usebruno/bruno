@@ -123,9 +123,9 @@ const runSingleRequest = async function (
     }
 
     let response, responseTime;
+    const start = Date.now();
     try {
       // run request
-      const start = Date.now();
       response = await axios(request);
       responseTime = Date.now() - start;
     } catch (err) {
