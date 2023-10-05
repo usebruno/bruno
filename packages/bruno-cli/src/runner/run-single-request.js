@@ -10,6 +10,7 @@ const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const { makeAxiosInstance } = require('../utils/axios-instance');
 
 const runSingleRequest = async function (
   filename,
@@ -123,15 +124,23 @@ const runSingleRequest = async function (
     }
 
     let response, responseTime;
-    const start = Date.now();
     try {
       // run request
-      response = await axios(request);
-      responseTime = Date.now() - start;
+      const axiosInstance = makeAxiosInstance();
+
+      /** @type {import('axios').AxiosResponse} */
+      response = await axiosInstance(request);
+
+      // Prevents the duration on leaking to the actual result
+      responseTime = response.headers.get('request-duration');
+      response.headers.delete('request-duration');
     } catch (err) {
       if (err && err.response) {
         response = err.response;
-        responseTime = Date.now() - start;
+
+        // Prevents the duration on leaking to the actual result
+        responseTime = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
@@ -155,10 +164,7 @@ const runSingleRequest = async function (
       }
     }
 
-    console.log(
-      chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
-    );
+    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`));
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
