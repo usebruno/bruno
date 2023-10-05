@@ -29,11 +29,14 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
   });
 };
 
-export const fetchGqlSchema = async (endpoint, environment) => {
+export const fetchGqlSchema = async (endpoint, environment, request, collectionVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment).then(resolve).catch(reject);
+    ipcRenderer
+      .invoke('fetch-gql-schema', endpoint, environment, request, collectionVariables)
+      .then(resolve)
+      .catch(reject);
   });
 };
 
