@@ -41,6 +41,16 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
   return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
 };
 
+const regexVariable = new RegExp('{{.*?}}', 'g');
+
+const normalizeVariables = (value) => {
+  const variables = value.match(regexVariable) || [];
+  each(variables, (variable) => {
+    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
+  });
+  return value;
+};
+
 const transformInsomniaRequestItem = (request, index, allRequests) => {
   const name = addSuffixToDuplicateName(request, index, allRequests);
 
@@ -51,6 +61,11 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     request: {
       url: request.url,
       method: request.method,
+      auth: {
+        mode: 'none',
+        basic: null,
+        bearer: null
+      },
       headers: [],
       params: [],
       body: {
@@ -84,7 +99,22 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     });
   });
 
-  const mimeType = get(request, 'body.mimeType', '');
+  const authType = get(request, 'authentication.type', '');
+
+  if (authType === 'basic') {
+    brunoRequestItem.request.auth.mode = 'basic';
+    brunoRequestItem.request.auth.basic = {
+      username: normalizeVariables(get(request, 'authentication.username', '')),
+      password: normalizeVariables(get(request, 'authentication.password', ''))
+    };
+  } else if (authType === 'bearer') {
+    brunoRequestItem.request.auth.mode = 'bearer';
+    brunoRequestItem.request.auth.bearer = {
+      token: normalizeVariables(get(request, 'authentication.token', ''))
+    };
+  }
+
+  const mimeType = get(request, 'body.mimeType', '').split(';')[0];
 
   if (mimeType === 'application/json') {
     brunoRequestItem.request.body.mode = 'json';
