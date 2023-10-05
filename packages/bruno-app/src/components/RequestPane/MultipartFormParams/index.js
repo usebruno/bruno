@@ -116,10 +116,11 @@ const MultipartFormParams = ({ item, collection }) => {
                         <input
                           type="checkbox"
                           checked={param.enabled}
+                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveParams(param)}>
+                        <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>

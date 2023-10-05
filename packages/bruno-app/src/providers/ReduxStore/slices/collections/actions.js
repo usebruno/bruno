@@ -12,7 +12,6 @@ import {
   getItemsToResequence,
   moveCollectionItemToRootOfCollection,
   findCollectionByUid,
-  recursivelyGetAllItemUids,
   transformRequestToSaveToFilesystem,
   findParentItemInCollection,
   findEnvironmentInCollection,
@@ -22,7 +21,7 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import { getDirectoryName } from 'utils/common/platform';
+import { getDirectoryName, isWindowsOS } from 'utils/common/platform';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -39,6 +38,7 @@ import {
   createCollection as _createCollection,
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  sortCollections as _sortCollections,
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
@@ -145,6 +145,11 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
+// todo: this can be directly put inside the collections/index.js file
+// the coding convention is to put only actions that need ipc in this file
+export const sortCollections = (order) => (dispatch) => {
+  dispatch(_sortCollections(order));
+};
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -262,7 +267,19 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer
+      .invoke('renderer:rename-item', item.pathname, newPathname, newName)
+      .then(() => {
+        // In case of Mac and Linux, we get the unlinkDir and addDir IPC events from electron which takes care of updating the state
+        // But in windows we don't get those events, so we need to update the state manually
+        // This looks like an issue in our watcher library chokidar
+        // GH: https://github.com/usebruno/bruno/issues/251
+        if (isWindowsOS()) {
+          dispatch(_renameItem({ newName, itemUid, collectionUid }));
+        }
+        resolve();
+      })
+      .catch(reject);
   });
 };
 
@@ -346,7 +363,16 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => resolve())
+        .then(() => {
+          // In case of Mac and Linux, we get the unlinkDir IPC event from electron which takes care of updating the state
+          // But in windows we don't get those events, so we need to update the state manually
+          // This looks like an issue in our watcher library chokidar
+          // GH: https://github.com/usebruno/bruno/issues/265
+          if (isWindowsOS()) {
+            dispatch(_deleteItem({ itemUid, collectionUid }));
+          }
+          resolve();
+        })
         .catch((error) => reject(error));
     }
     return;
@@ -604,6 +630,37 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, name)
+      .then(
+        dispatch(
+          updateLastAction({
+            collectionUid,
+            lastAction: {
+              type: 'ADD_ENVIRONMENT',
+              payload: name
+            }
+          })
+        )
+      )
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const baseEnv = findEnvironmentInCollection(collection, baseEnvUid);
+    if (!collection) {
+      return reject(new Error('Environmnent not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:copy-environment', collection.pathname, name, baseEnv.variables)
       .then(
         dispatch(
           updateLastAction({

@@ -28,7 +28,8 @@ import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platfo
 const PATH_SEPARATOR = path.sep;
 
 const initialState = {
-  collections: []
+  collections: [],
+  collectionSortOrder: 'default'
 };
 
 export const collectionsSlice = createSlice({
@@ -38,12 +39,12 @@ export const collectionsSlice = createSlice({
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
-
       // last action is used to track the last action performed on the collection
       // this is optional
       // this is used in scenarios where we want to know the last action performed on the collection
       // and take some extra action based on that
       // for example, when a env is created, we want to auto select it the env modal
+      collection.importedAt = new Date().getTime();
       collection.lastAction = null;
 
       collapseCollection(collection);
@@ -69,6 +70,20 @@ export const collectionsSlice = createSlice({
     },
     removeCollection: (state, action) => {
       state.collections = filter(state.collections, (c) => c.uid !== action.payload.collectionUid);
+    },
+    sortCollections: (state, action) => {
+      state.collectionSortOrder = action.payload.order;
+      switch (action.payload.order) {
+        case 'default':
+          state.collections = state.collections.sort((a, b) => a.importedAt - b.importedAt);
+          break;
+        case 'alphabetical':
+          state.collections = state.collections.sort((a, b) => a.name.localeCompare(b.name));
+          break;
+        case 'reverseAlphabetical':
+          state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
+          break;
+      }
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -304,6 +319,31 @@ export const collectionsSlice = createSlice({
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
           item.draft.request.params = concat(urlParams, disabledParams);
+        }
+      }
+    },
+    updateAuth: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          item.draft.request.auth = item.draft.request.auth || {};
+          switch (action.payload.mode) {
+            case 'bearer':
+              item.draft.request.auth.mode = 'bearer';
+              item.draft.request.auth.bearer = action.payload.content;
+              break;
+            case 'basic':
+              item.draft.request.auth.mode = 'basic';
+              item.draft.request.auth.basic = action.payload.content;
+              break;
+          }
         }
       }
     },
@@ -560,6 +600,20 @@ export const collectionsSlice = createSlice({
             item.draft.request.body.multipartForm,
             (p) => p.uid !== action.payload.paramUid
           );
+        }
+      }
+    },
+    updateRequestAuthMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection && collection.items && collection.items.length) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.auth.mode = action.payload.mode;
         }
       }
     },
@@ -1141,6 +1195,7 @@ export const {
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
+  sortCollections,
   updateLastAction,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
@@ -1158,6 +1213,7 @@ export const {
   collectionClicked,
   collectionFolderClicked,
   requestUrlChanged,
+  updateAuth,
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,
@@ -1170,6 +1226,7 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
   updateRequestGraphqlQuery,

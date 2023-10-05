@@ -66,8 +66,7 @@ if (!SERVER_RENDERED) {
     if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
-
-    if (target.className !== 'cm-variable-valid') {
+    if (!target.classList.contains('cm-variable-valid')) {
       return;
     }
 

@@ -33,7 +33,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             collection={collection}
             width={rightPaneWidth}
             disableRunEventListener={true}
-            value={responseReceived && responseReceived.data ? safeStringifyJSON(responseReceived.data, true) : ''}
+            data={responseReceived.data}
+            headers={responseReceived.headers}
           />
         );
       }

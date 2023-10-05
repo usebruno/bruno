@@ -119,7 +119,7 @@ export default class CodeEditor extends React.Component {
   render() {
     return (
       <StyledWrapper
-        className="h-full"
+        className="h-full w-full"
         aria-label="Code Editor"
         ref={(node) => {
           this._node = node;

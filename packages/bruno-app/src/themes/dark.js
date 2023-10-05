@@ -9,11 +9,18 @@ const darkTheme = {
       green: 'rgb(11 178 126)',
       danger: '#f06f57',
       muted: '#9d9d9d',
-      purple: '#cd56d6'
+      purple: '#cd56d6',
+      yellow: '#f59e0b'
     },
     bg: {
       danger: '#d03544'
     }
+  },
+
+  input: {
+    bg: 'rgb(65, 65, 65)',
+    border: 'rgb(65, 65, 65)',
+    focusBorder: 'rgb(65, 65, 65)'
   },
 
   variables: {

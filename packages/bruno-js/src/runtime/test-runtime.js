@@ -1,6 +1,14 @@
 const { NodeVM } = require('vm2');
 const chai = require('chai');
 const path = require('path');
+const http = require('http');
+const https = require('https');
+const stream = require('stream');
+const util = require('util');
+const zlib = require('zlib');
+const url = require('url');
+const punycode = require('punycode');
+const fs = require('fs');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -29,9 +37,10 @@ class TestRuntime {
     collectionVariables,
     collectionPath,
     onConsoleLog,
-    processEnvVars
+    processEnvVars,
+    allowScriptFilesystemAccess
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
@@ -78,6 +87,16 @@ class TestRuntime {
         external: true,
         root: [collectionPath],
         mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
           atob,
           axios,
           btoa,
@@ -86,7 +105,8 @@ class TestRuntime {
           uuid,
           nanoid,
           chai,
-          'crypto-js': CryptoJS
+          'crypto-js': CryptoJS,
+          fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
     });

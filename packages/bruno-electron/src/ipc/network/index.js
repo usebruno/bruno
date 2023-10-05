@@ -17,6 +17,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+const { makeAxiosInstance } = require('./axios-instance');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -105,6 +106,8 @@ const registerNetworkIpc = (mainWindow) => {
       const request = prepareRequest(_request);
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const allowScriptFilesystemAccess = get(brunoConfig, 'filesystemAccess.allow', false);
 
       try {
         // make axios work in node using form data
@@ -156,7 +159,8 @@ const registerNetworkIpc = (mainWindow) => {
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            allowScriptFilesystemAccess
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -242,7 +246,10 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        const response = await axios(request);
+        const axiosInstance = makeAxiosInstance();
+
+        /** @type {import('axios').AxiosResponse} */
+        const response = await axiosInstance(request);
 
         // run post-response vars
         const postResponseVars = get(request, 'vars.res', []);
@@ -280,7 +287,8 @@ const registerNetworkIpc = (mainWindow) => {
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            allowScriptFilesystemAccess
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -293,7 +301,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run assertions
         const assertions = get(request, 'assertions');
-        if (assertions && assertions.length) {
+        if (assertions) {
           const assertRuntime = new AssertRuntime();
           const results = assertRuntime.runAssertions(
             assertions,
@@ -315,7 +323,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run tests
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-        if (testFile && testFile.length) {
+        if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime();
           const testResults = await testRuntime.runTests(
             testFile,
@@ -325,7 +333,8 @@ const registerNetworkIpc = (mainWindow) => {
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            allowScriptFilesystemAccess
           );
 
           mainWindow.webContents.send('main:run-request-event', {
@@ -345,12 +354,16 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
+        // Prevents the duration on leaking to the actual result
+        const requestDuration = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
 
         return {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers,
-          data: response.data
+          data: response.data,
+          duration: requestDuration
         };
       } catch (error) {
         // todo: better error handling
@@ -367,7 +380,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (error && error.response) {
           // run assertions
           const assertions = get(request, 'assertions');
-          if (assertions && assertions.length) {
+          if (assertions) {
             const assertRuntime = new AssertRuntime();
             const results = assertRuntime.runAssertions(
               assertions,
@@ -389,7 +402,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           // run tests
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-          if (testFile && testFile.length) {
+          if (typeof testFile === 'string') {
             const testRuntime = new TestRuntime();
             const testResults = await testRuntime.runTests(
               testFile,
@@ -399,7 +412,8 @@ const registerNetworkIpc = (mainWindow) => {
               collectionVariables,
               collectionPath,
               onConsoleLog,
-              processEnvVars
+              processEnvVars,
+              allowScriptFilesystemAccess
             );
 
             mainWindow.webContents.send('main:run-request-event', {
@@ -418,11 +432,15 @@ const registerNetworkIpc = (mainWindow) => {
             });
           }
 
+          // Prevents the duration from leaking to the actual result
+          const requestDuration = error.response.headers.get('request-duration');
+          error.response.headers.delete('request-duration');
           return {
             status: error.response.status,
             statusText: error.response.statusText,
             headers: error.response.headers,
-            data: error.response.data
+            data: error.response.data,
+            duration: requestDuration ?? 0
           };
         }
 
@@ -485,6 +503,8 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const allowScriptFilesystemAccess = get(brunoConfig, 'filesystemAccess.allow', false);
 
       const onConsoleLog = (type, args) => {
         console[type](...args);
@@ -590,7 +610,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                allowScriptFilesystemAccess
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -691,7 +712,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                allowScriptFilesystemAccess
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -703,7 +725,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run assertions
             const assertions = get(item, 'request.assertions');
-            if (assertions && assertions.length) {
+            if (assertions) {
               const assertRuntime = new AssertRuntime();
               const results = assertRuntime.runAssertions(
                 assertions,
@@ -724,7 +746,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            if (testFile && testFile.length) {
+            if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
                 testFile,
@@ -734,7 +756,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                allowScriptFilesystemAccess
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -782,7 +805,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run assertions
               const assertions = get(item, 'request.assertions');
-              if (assertions && assertions.length) {
+              if (assertions) {
                 const assertRuntime = new AssertRuntime();
                 const results = assertRuntime.runAssertions(
                   assertions,
@@ -803,7 +826,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run tests
               const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-              if (testFile && testFile.length) {
+              if (typeof testFile === 'string') {
                 const testRuntime = new TestRuntime();
                 const testResults = await testRuntime.runTests(
                   testFile,
@@ -813,7 +836,8 @@ const registerNetworkIpc = (mainWindow) => {
                   collectionVariables,
                   collectionPath,
                   onConsoleLog,
-                  processEnvVars
+                  processEnvVars,
+                  allowScriptFilesystemAccess
                 );
 
                 mainWindow.webContents.send('main:run-folder-event', {

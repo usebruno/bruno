@@ -18,6 +18,20 @@ const prepareRequest = (request) => {
     headers: headers
   };
 
+  // Authentication
+  if (request.auth) {
+    if (request.auth.mode === 'basic') {
+      axiosRequest.auth = {
+        username: get(request, 'auth.basic.username'),
+        password: get(request, 'auth.basic.password')
+      };
+    }
+
+    if (request.auth.mode === 'bearer') {
+      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+  }
+
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';

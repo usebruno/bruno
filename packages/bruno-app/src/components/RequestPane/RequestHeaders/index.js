@@ -8,6 +8,8 @@ import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'prov
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -91,6 +93,7 @@ const RequestHeaders = ({ item, collection }) => {
                             'name'
                           )
                         }
+                        autocomplete={headerAutoCompleteList}
                         onRun={handleRun}
                         collection={collection}
                       />
@@ -120,10 +123,11 @@ const RequestHeaders = ({ item, collection }) => {
                         <input
                           type="checkbox"
                           checked={header.enabled}
+                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
-                        <button onClick={() => handleRemoveHeader(header)}>
+                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
                       </div>
