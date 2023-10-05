@@ -1,3 +1,5 @@
+**English** | [Русский](/contributing_ru.md)
+
 ## Lets make bruno better, together !!
 
 I am happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
