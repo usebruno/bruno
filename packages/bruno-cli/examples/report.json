@@ -1,8 +1,11 @@
 {
   "summary": {
+    "totalRequests": 10,
+    "passedRequests": 10,
+    "failedRequests": 0,
     "totalAssertions": 4,
-    "passedAssertions": 4,
-    "failedAssertions": 0,
+    "passedAssertions": 0,
+    "failedAssertions": 4,
     "totalTests": 0,
     "passedTests": 0,
     "failedTests": 0
@@ -11,53 +14,33 @@
     {
       "request": {
         "method": "GET",
-        "url": "http://localhost:8080/test/v4",
+        "url": "http://localhost:3000/test/v4",
         "headers": {}
       },
       "response": {
-        "status": 200,
-        "statusText": "OK",
+        "status": 404,
+        "statusText": "Not Found",
         "headers": {
           "x-powered-by": "Express",
-          "content-type": "application/json; charset=utf-8",
-          "content-length": "497",
-          "etag": "W/\"1f1-08gGpUcq2NTnMCVT5AuXxQ0DzGE\"",
-          "date": "Mon, 25 Sep 2023 21:43:02 GMT",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "146",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
           "connection": "close"
         },
-        "data": {
-          "path": "/test/v4",
-          "headers": {
-            "accept": "application/json, text/plain, */*",
-            "user-agent": "axios/1.5.0",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "host": "localhost:8080",
-            "connection": "close"
-          },
-          "method": "GET",
-          "body": "",
-          "fresh": false,
-          "hostname": "localhost",
-          "ip": "",
-          "ips": [],
-          "protocol": "http",
-          "query": {},
-          "subdomains": [],
-          "xhr": false,
-          "os": {
-            "hostname": "05512cb2102c"
-          },
-          "connection": {}
-        }
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /test/v4</pre>\n</body>\n</html>\n"
       },
+      "error": null,
       "assertionResults": [
         {
-          "uid": "mTrKBl5YU6jiAVG-phKT4",
+          "uid": "oidgfXLiyD8Jv0NBAHUHF",
           "lhsExpr": "res.status",
           "rhsExpr": "200",
           "rhsOperand": "200",
           "operator": "eq",
-          "status": "pass"
+          "status": "fail",
+          "error": "expected 404 to equal 200"
         }
       ],
       "testResults": []
@@ -65,53 +48,33 @@
     {
       "request": {
         "method": "GET",
-        "url": "http://localhost:8080/test/v2",
+        "url": "http://localhost:3000/test/v2",
         "headers": {}
       },
       "response": {
-        "status": 200,
-        "statusText": "OK",
+        "status": 404,
+        "statusText": "Not Found",
         "headers": {
           "x-powered-by": "Express",
-          "content-type": "application/json; charset=utf-8",
-          "content-length": "497",
-          "etag": "W/\"1f1-lMqxZgVOJiQXjF5yk3AFEU8O9Ro\"",
-          "date": "Mon, 25 Sep 2023 21:43:02 GMT",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "146",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
           "connection": "close"
         },
-        "data": {
-          "path": "/test/v2",
-          "headers": {
-            "accept": "application/json, text/plain, */*",
-            "user-agent": "axios/1.5.0",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "host": "localhost:8080",
-            "connection": "close"
-          },
-          "method": "GET",
-          "body": "",
-          "fresh": false,
-          "hostname": "localhost",
-          "ip": "",
-          "ips": [],
-          "protocol": "http",
-          "query": {},
-          "subdomains": [],
-          "xhr": false,
-          "os": {
-            "hostname": "05512cb2102c"
-          },
-          "connection": {}
-        }
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /test/v2</pre>\n</body>\n</html>\n"
       },
+      "error": null,
       "assertionResults": [
         {
-          "uid": "XsjjGx9cjt5t8tE_t69ZB",
+          "uid": "IgliYuHd9wKp6JNyqyHFK",
           "lhsExpr": "res.status",
           "rhsExpr": "200",
           "rhsOperand": "200",
           "operator": "eq",
-          "status": "pass"
+          "status": "fail",
+          "error": "expected 404 to equal 200"
         }
       ],
       "testResults": []
@@ -119,53 +82,33 @@
     {
       "request": {
         "method": "GET",
-        "url": "http://localhost:8080/test/v3",
+        "url": "http://localhost:3000/test/v3",
         "headers": {}
       },
       "response": {
-        "status": 200,
-        "statusText": "OK",
+        "status": 404,
+        "statusText": "Not Found",
         "headers": {
           "x-powered-by": "Express",
-          "content-type": "application/json; charset=utf-8",
-          "content-length": "497",
-          "etag": "W/\"1f1-tSiYu0/vWz3r+NYRCaed0aW1waw\"",
-          "date": "Mon, 25 Sep 2023 21:43:02 GMT",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "146",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
           "connection": "close"
         },
-        "data": {
-          "path": "/test/v3",
-          "headers": {
-            "accept": "application/json, text/plain, */*",
-            "user-agent": "axios/1.5.0",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "host": "localhost:8080",
-            "connection": "close"
-          },
-          "method": "GET",
-          "body": "",
-          "fresh": false,
-          "hostname": "localhost",
-          "ip": "",
-          "ips": [],
-          "protocol": "http",
-          "query": {},
-          "subdomains": [],
-          "xhr": false,
-          "os": {
-            "hostname": "05512cb2102c"
-          },
-          "connection": {}
-        }
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /test/v3</pre>\n</body>\n</html>\n"
       },
+      "error": null,
       "assertionResults": [
         {
-          "uid": "i_8MmDMtJA9YfvB_FrW15",
+          "uid": "u-3sRebrCyuUbZOkwS0z8",
           "lhsExpr": "res.status",
           "rhsExpr": "200",
           "rhsOperand": "200",
           "operator": "eq",
-          "status": "pass"
+          "status": "fail",
+          "error": "expected 404 to equal 200"
         }
       ],
       "testResults": []
@@ -173,7 +116,7 @@
     {
       "request": {
         "method": "POST",
-        "url": "http://localhost:8080/test/v1",
+        "url": "http://localhost:3000/test/v1",
         "headers": {
           "content-type": "application/json"
         },
@@ -182,56 +125,200 @@
         }
       },
       "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "147",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /test/v1</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [
+        {
+          "uid": "PpKLK6I38I5_ibw4lZqLb",
+          "lhsExpr": "res.status",
+          "rhsExpr": "eq 200",
+          "rhsOperand": "200",
+          "operator": "eq",
+          "status": "fail",
+          "error": "expected 404 to equal 200"
+        }
+      ],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/test",
+        "headers": {}
+      },
+      "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "144",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /test</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "HEAD",
+        "url": "http://localhost:3000/",
+        "headers": {}
+      },
+      "response": {
         "status": 200,
         "statusText": "OK",
         "headers": {
           "x-powered-by": "Express",
-          "content-type": "application/json; charset=utf-8",
-          "content-length": "623",
-          "etag": "W/\"26f-ku5QGz4p9f02u79vJIve7JH3QYM\"",
-          "date": "Mon, 25 Sep 2023 21:43:02 GMT",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "12",
+          "etag": "W/\"c-Lve95gjOVATpfV8EL5X4nxwjKHE\"",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
           "connection": "close"
         },
+        "data": ""
+      },
+      "error": null,
+      "assertionResults": [],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000",
+        "headers": {}
+      },
+      "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "140",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/",
+        "headers": {
+          "content-type": "multipart/form-data; boundary=--------------------------897965859410704836065858"
+        },
         "data": {
-          "path": "/test/v1",
-          "headers": {
-            "accept": "application/json, text/plain, */*",
-            "content-type": "application/json",
-            "user-agent": "axios/1.5.0",
-            "content-length": "16",
-            "accept-encoding": "gzip, compress, deflate, br",
-            "host": "localhost:8080",
-            "connection": "close"
-          },
-          "method": "POST",
-          "body": "{\"test\":\"hello\"}",
-          "fresh": false,
-          "hostname": "localhost",
-          "ip": "",
-          "ips": [],
-          "protocol": "http",
-          "query": {},
-          "subdomains": [],
-          "xhr": false,
-          "os": {
-            "hostname": "05512cb2102c"
-          },
-          "connection": {},
-          "json": {
-            "test": "hello"
-          }
+          "_overheadLength": 103,
+          "_valueLength": 3,
+          "_valuesToMeasure": [],
+          "writable": false,
+          "readable": true,
+          "dataSize": 0,
+          "maxDataSize": 2097152,
+          "pauseStreams": true,
+          "_released": true,
+          "_streams": [],
+          "_currentStream": null,
+          "_insideLoop": false,
+          "_pendingNext": false,
+          "_boundary": "--------------------------897965859410704836065858",
+          "_events": {},
+          "_eventsCount": 3
         }
       },
-      "assertionResults": [
-        {
-          "uid": "hNBSF_GBdSTFHNiyCcOn9",
-          "lhsExpr": "res.status",
-          "rhsExpr": "200",
-          "rhsOperand": "200",
-          "operator": "eq",
-          "status": "pass"
-        }
-      ],
+      "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "140",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/",
+        "headers": {
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "data": "a=b&c=d"
+      },
+      "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "140",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [],
+      "testResults": []
+    },
+    {
+      "request": {
+        "method": "POST",
+        "url": "http://localhost:3000/test",
+        "headers": {
+          "content-type": "text/xml"
+        },
+        "data": "<xml>\n  <test>1</test>\n</xml>"
+      },
+      "response": {
+        "status": 404,
+        "statusText": "Not Found",
+        "headers": {
+          "x-powered-by": "Express",
+          "content-security-policy": "default-src 'none'",
+          "x-content-type-options": "nosniff",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "144",
+          "date": "Fri, 29 Sep 2023 00:37:50 GMT",
+          "connection": "close"
+        },
+        "data": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot POST /test</pre>\n</body>\n</html>\n"
+      },
+      "error": null,
+      "assertionResults": [],
       "testResults": []
     }
   ]

@@ -34,7 +34,7 @@ app.on('ready', async () => {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true,
+      webviewTag: true
     }
   });
 
