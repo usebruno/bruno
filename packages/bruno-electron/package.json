@@ -30,6 +30,8 @@
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
     "handlebars": "^4.7.8",
+    "http-proxy-agent": "^7.0.0",
+    "https-proxy-agent": "^7.0.2",
     "is-valid-path": "^0.1.1",
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",

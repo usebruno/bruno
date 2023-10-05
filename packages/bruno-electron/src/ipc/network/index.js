@@ -15,6 +15,8 @@ const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -165,32 +167,6 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        // proxy configuration
-        const brunoConfig = getBrunoConfig(collectionUid);
-        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-        if (proxyEnabled) {
-          const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-          const proxyHostname = get(brunoConfig, 'proxy.hostname');
-          const proxyPort = get(brunoConfig, 'proxy.port');
-          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-          const proxyConfig = {
-            protocol: proxyProtocol,
-            hostname: proxyHostname,
-            port: proxyPort
-          };
-          if (proxyAuthEnabled) {
-            const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-            const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-            proxyConfig.auth = {
-              username: proxyAuthUsername,
-              password: proxyAuthPassword
-            };
-          }
-
-          request.proxy = proxyConfig;
-        }
-
         interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
         // stringify the request url encoded params
@@ -234,7 +210,33 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        if (Object.keys(httpsAgentRequestFields).length > 0) {
+        // proxy configuration
+        const brunoConfig = getBrunoConfig(collectionUid);
+        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+        if (proxyEnabled) {
+          const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+          const proxyHostname = get(brunoConfig, 'proxy.hostname');
+          const proxyPort = get(brunoConfig, 'proxy.port');
+          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+          let proxy;
+
+          if (proxyAuthEnabled) {
+            const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+            const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+
+            proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+          } else {
+            proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+          }
+
+          request.httpsAgent = new HttpsProxyAgent(
+            proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+
+          request.httpAgent = new HttpProxyAgent(proxy);
+        } else if (Object.keys(httpsAgentRequestFields).length > 0) {
           request.httpsAgent = new https.Agent({
             ...httpsAgentRequestFields
           });
@@ -598,32 +600,6 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            // proxy configuration
-            const brunoConfig = getBrunoConfig(collectionUid);
-            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-            if (proxyEnabled) {
-              const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-              const proxyHostname = get(brunoConfig, 'proxy.hostname');
-              const proxyPort = get(brunoConfig, 'proxy.port');
-              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-              const proxyConfig = {
-                protocol: proxyProtocol,
-                hostname: proxyHostname,
-                port: proxyPort
-              };
-              if (proxyAuthEnabled) {
-                const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-                const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-                proxyConfig.auth = {
-                  username: proxyAuthUsername,
-                  password: proxyAuthPassword
-                };
-              }
-
-              request.proxy = proxyConfig;
-            }
-
             // interpolate variables inside request
             interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
@@ -644,7 +620,32 @@ const registerNetworkIpc = (mainWindow) => {
             const preferences = getPreferences();
             const sslVerification = get(preferences, 'request.sslVerification', true);
 
-            if (!sslVerification) {
+            // proxy configuration
+            const brunoConfig = getBrunoConfig(collectionUid);
+            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+            if (proxyEnabled) {
+              const proxyProtocol = get(brunoConfig, 'proxy.protocol');
+              const proxyHostname = get(brunoConfig, 'proxy.hostname');
+              const proxyPort = get(brunoConfig, 'proxy.port');
+              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+              let proxy;
+
+              if (proxyAuthEnabled) {
+                const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
+                const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+
+                proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+              } else {
+                proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+              }
+
+              request.httpsAgent = new HttpsProxyAgent(proxy, {
+                rejectUnauthorized: sslVerification
+              });
+
+              request.httpAgent = new HttpProxyAgent(proxy);
+            } else if (!sslVerification) {
               request.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
               });
