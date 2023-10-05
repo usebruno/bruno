@@ -26,6 +26,7 @@ import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
   updateLastAction,
+  updateNextAction,
   resetRunResults,
   requestCancelled,
   responseReceived,
@@ -39,8 +40,7 @@ import {
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
-  updateNewRequest
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
@@ -596,8 +596,19 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
-        dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
+        // the useCollectionNextAction() will track this and open the new request in a new tab
+        // once the request is created
+        dispatch(
+          updateNextAction({
+            nextAction: {
+              type: 'OPEN_REQUEST',
+              payload: {
+                pathname: fullName
+              }
+            },
+            collectionUid
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -615,8 +626,20 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-          // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
-          dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
+
+          // the useCollectionNextAction() will track this and open the new request in a new tab
+          // once the request is created
+          dispatch(
+            updateNextAction({
+              nextAction: {
+                type: 'OPEN_REQUEST',
+                payload: {
+                  pathname: fullName
+                }
+              },
+              collectionUid
+            })
+          );
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }

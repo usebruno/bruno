@@ -39,6 +39,8 @@ export const collectionsSlice = createSlice({
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
+
+      // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
       // this is optional
       // this is used in scenarios where we want to know the last action performed on the collection
@@ -46,6 +48,10 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
+
+      // an improvement over the above approach.
+      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
+      collection.nextAction = null;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -91,6 +97,14 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
+      }
+    },
+    updateNextAction: (state, action) => {
+      const { collectionUid, nextAction } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.nextAction = nextAction;
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -1197,10 +1211,10 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
+  updateNextAction,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
-  updateNewRequest,
   newItem,
   deleteItem,
   renameItem,
