@@ -29,8 +29,7 @@ const PATH_SEPARATOR = path.sep;
 
 const initialState = {
   collections: [],
-  collectionSortOrder: 'default',
-  newRequestName: null
+  collectionSortOrder: 'default'
 };
 
 export const collectionsSlice = createSlice({
@@ -129,10 +128,6 @@ export const collectionsSlice = createSlice({
           collection.activeEnvironmentUid = null;
         }
       }
-    },
-    updateNewRequest: (state, action) => {
-      const { newRequestName } = action.payload;
-      state.newRequestName = newRequestName;
     },
     newItem: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);

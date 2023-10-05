@@ -17,15 +17,15 @@ import {
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
-import { updateNewRequest } from 'providers/ReduxStore/slices/collections/index';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { getDefaultRequestPaneTab } from 'utils/collections/index';
+import { findCollectionByUid, getDefaultRequestPaneTab } from 'utils/collections/index';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
+import { updateLastAction } from 'providers/ReduxStore/slices/collections/index';
 
 const useCollectionTreeSync = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
-  const newRequestName = useSelector((state) => state.collections.newRequestName);
+  const collections = useSelector((state) => state.collections.collections);
 
   useEffect(() => {
     if (!isElectron()) {
@@ -57,20 +57,23 @@ const useCollectionTreeSync = () => {
           })
         );
 
-        // Remove the newRequestName so no random stuff happens
-        dispatch(
-          updateNewRequest({ newRequestName: null })
-        );
+        const collectionUid = val.meta.collectionUid;
+        const lastAction = findCollectionByUid(collections, collectionUid)?.lastAction;
+
         // When the request was just created open it in a new tab
-        if (newRequestName === val.data.name) {
-          dispatch(
-            addTab({
-              uid: val.data.uid,
-              collectionUid: val.meta.collectionUid,
-              requestPaneTab: getDefaultRequestPaneTab(val.data)
-            })
-          );
-          dispatch(hideHomePage());
+        if (lastAction && lastAction.type === 'ADD_REQUEST') {
+          dispatch(updateLastAction({ lastAction: null, collectionUid }));
+
+          if (lastAction.payload === val.data.name) {
+            dispatch(
+              addTab({
+                uid: val.data.uid,
+                collectionUid: collectionUid,
+                requestPaneTab: getDefaultRequestPaneTab(val.data)
+              })
+            );
+            dispatch(hideHomePage());
+          }
         }
       }
       if (type === 'change') {
@@ -164,7 +167,7 @@ const useCollectionTreeSync = () => {
       removeListener10();
       removeListener11();
     };
-  }, [isElectron, tabs, newRequestName]);
+  }, [isElectron, tabs, collections]);
 
   useEffect(() => {
     if (!isElectron()) {

@@ -597,7 +597,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
         // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
-        dispatch(updateNewRequest({ newRequestName: item.name }))
+        dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -616,7 +616,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
           // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
-          dispatch(updateNewRequest({ newRequestName: item.name }))
+          dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }
