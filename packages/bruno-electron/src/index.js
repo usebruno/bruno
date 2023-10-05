@@ -36,7 +36,8 @@ app.on('ready', async () => {
       preload: path.join(__dirname, 'preload.js'),
       webviewTag: true
     },
-    icon: path.join(__dirname, 'about/256x256.png')
+    icon: path.join(__dirname, 'about/256x256.png'),
+    autoHideMenuBar: true
   });
 
   const url = isDev
