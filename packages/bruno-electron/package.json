@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder --win --config electron-builder-config.js",
+    "dist": "electron-builder --mac --config electron-builder-config.js",
     "pack": "electron-builder --dir",
     "test": "jest"
   },
