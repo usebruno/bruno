@@ -122,13 +122,16 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
-    let response;
+    let response, responseTime;
     try {
       // run request
+      const start = Date.now();
       response = await axios(request);
+      responseTime = Date.now() - start;
     } catch (err) {
       if (err && err.response) {
         response = err.response;
+        responseTime = Date.now() - start;
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
@@ -142,7 +145,8 @@ const runSingleRequest = async function (
             status: null,
             statusText: null,
             headers: null,
-            data: null
+            data: null,
+            responseTime: 0
           },
           error: err.message,
           assertionResults: [],
@@ -151,7 +155,10 @@ const runSingleRequest = async function (
       }
     }
 
-    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
+    console.log(
+      chalk.green(stripExtension(filename)) +
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+    );
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
@@ -247,7 +254,8 @@ const runSingleRequest = async function (
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data
+        data: response.data,
+        responseTime
       },
       error: null,
       assertionResults,
