@@ -273,7 +273,8 @@ const runSingleRequest = async function (
         status: null,
         statusText: null,
         headers: null,
-        data: null
+        data: null,
+        responseTime: 0
       },
       error: err.message,
       assertionResults: [],
