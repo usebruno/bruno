@@ -1,5 +1,6 @@
 const qs = require('qs');
 const chalk = require('chalk');
+const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
@@ -55,7 +56,7 @@ const runSingleRequest = async function (
     if (requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runRequestScript(
-        requestScriptFile,
+        decomment(requestScriptFile),
         request,
         envVariables,
         collectionVariables,
@@ -180,7 +181,7 @@ const runSingleRequest = async function (
     if (responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runResponseScript(
-        responseScriptFile,
+        decomment(responseScriptFile),
         request,
         response,
         envVariables,
@@ -221,7 +222,7 @@ const runSingleRequest = async function (
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime();
       const result = await testRuntime.runTests(
-        testFile,
+        decomment(testFile),
         request,
         response,
         envVariables,

@@ -21,6 +21,7 @@
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
+    "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
     "electron-is-dev": "^2.0.0",
     "electron-notarize": "^1.2.2",

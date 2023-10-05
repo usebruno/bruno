@@ -1,6 +1,7 @@
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
+const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
@@ -151,7 +152,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (requestScript && requestScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runRequestScript(
-            requestScript,
+            decomment(requestScript),
             request,
             envVars,
             collectionVariables,
@@ -277,7 +278,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (responseScript && responseScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runResponseScript(
-            responseScript,
+            decomment(responseScript),
             request,
             response,
             envVars,
@@ -323,7 +324,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime();
           const testResults = await testRuntime.runTests(
-            testFile,
+            decomment(testFile),
             request,
             response,
             envVars,
@@ -402,7 +403,7 @@ const registerNetworkIpc = (mainWindow) => {
           if (typeof testFile === 'string') {
             const testRuntime = new TestRuntime();
             const testResults = await testRuntime.runTests(
-              testFile,
+              decomment(testFile),
               request,
               error.response,
               envVars,
@@ -603,7 +604,7 @@ const registerNetworkIpc = (mainWindow) => {
             if (requestScript && requestScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runRequestScript(
-                requestScript,
+                decomment(requestScript),
                 request,
                 envVars,
                 collectionVariables,
@@ -704,7 +705,7 @@ const registerNetworkIpc = (mainWindow) => {
             if (responseScript && responseScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runResponseScript(
-                responseScript,
+                decomment(responseScript),
                 request,
                 response,
                 envVars,
@@ -748,7 +749,7 @@ const registerNetworkIpc = (mainWindow) => {
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
-                testFile,
+                decomment(testFile),
                 request,
                 response,
                 envVars,
@@ -828,7 +829,7 @@ const registerNetworkIpc = (mainWindow) => {
               if (typeof testFile === 'string') {
                 const testRuntime = new TestRuntime();
                 const testResults = await testRuntime.runTests(
-                  testFile,
+                  decomment(testFile),
                   request,
                   error.response,
                   envVars,

@@ -29,6 +29,7 @@
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
+    "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.8",

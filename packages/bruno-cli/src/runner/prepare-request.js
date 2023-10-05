@@ -1,4 +1,5 @@
 const { get, each, filter } = require('lodash');
+const decomment = require('decomment');
 
 const prepareRequest = (request) => {
   const headers = {};
@@ -39,7 +40,7 @@ const prepareRequest = (request) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(request.body.json);
+      axiosRequest.data = JSON.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
@@ -78,7 +79,7 @@ const prepareRequest = (request) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(get(request, 'body.graphql.variables') || '{}')
+      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
