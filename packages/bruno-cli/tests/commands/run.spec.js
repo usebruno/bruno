@@ -1,6 +1,6 @@
 const { describe, it, expect } = require('@jest/globals');
 
-const { printRunSummary } = require('./run');
+const { printRunSummary } = require('../../src/commands/run');
 
 describe('printRunSummary', () => {
   // Suppress console.log output
