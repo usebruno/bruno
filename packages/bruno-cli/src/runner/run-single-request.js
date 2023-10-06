@@ -6,6 +6,7 @@ const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
+const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
@@ -92,16 +93,23 @@ const runSingleRequest = async function (
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
     if (proxyEnabled) {
-      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-      const proxyHostname = get(brunoConfig, 'proxy.hostname');
-      const proxyPort = get(brunoConfig, 'proxy.port');
+      let proxy;
+      const interpolationOptions = {
+        envVars: envVariables,
+        collectionVariables,
+        processEnvVars
+      };
+
+      const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
 
-      let proxy;
+      interpolateString;
 
       if (proxyAuthEnabled) {
-        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
+        const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
         proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
       } else {
