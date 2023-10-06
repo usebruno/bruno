@@ -4,8 +4,6 @@ const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
-const axios = requir
-e('axios');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
@@ -168,7 +166,10 @@ const runSingleRequest = async function (
       }
     }
 
-    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`));
+    console.log(
+      chalk.green(stripExtension(filename)) +
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+    );
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
