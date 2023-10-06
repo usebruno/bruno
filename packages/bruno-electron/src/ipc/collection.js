@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const { ipcMain, shell } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru, bruToEnvJson } = require('../bru');
 
 const {
   writeFile,
@@ -11,7 +11,8 @@ const {
   browseDirectory,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  sanitizeFilenme
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
@@ -99,12 +100,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
-      if (fs.existsSync(pathname)) {
-        throw new Error(`path: ${pathname} already exists`);
+      const sanitizedPathname = path.join(pathname, sanitizeFilenme(request.name) + '.bru');
+
+      if (fs.existsSync(sanitizedPathname)) {
+        throw new Error(`path: ${sanitizedPathname} already exists`);
       }
 
       const content = jsonToBru(request);
-      await writeFile(pathname, content);
+      await writeFile(sanitizedPathname, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -132,13 +135,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const filenameSanatized = `${sanitizeFilenme(name)}.bru`;
+      const envFilePath = path.join(envDirPath, filenameSanatized);
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
       const content = envJsonToBru({
-        variables: []
+        variables: [],
+        name: name
       });
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -154,13 +159,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const filenameSanatized = sanitizeFilenme(`${name}.bru`);
+      const envFilePath = path.join(envDirPath, filenameSanatized);
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
       const content = envJsonToBru({
-        variables: baseVariables
+        variables: baseVariables,
+        name: name
       });
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -176,9 +183,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${environment.name}.bru`);
+      let envFilePath = path.join(envDirPath, `${sanitizeFilenme(environment.name)}.bru`);
       if (!fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} does not exist`);
+        // Fallback to unsatized filename for old envs
+        envFilePath = path.join(envDirPath, `${environment.name}.bru`);
+        if (!fs.existsSync(envFilePath)) {
+          throw new Error(`environment: ${envFilePath} does not exist`);
+        }
       }
 
       if (envHasSecrets(environment)) {
@@ -196,15 +207,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      let envFilePath = path.join(envDirPath, `${sanitizeFilenme(environmentName)}.bru`);
       if (!fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} does not exist`);
+        // Fallback to unsatized env name
+        envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+        if (!fs.existsSync(envFilePath)) {
+          throw new Error(`environment: ${envFilePath} does not exist`);
+        }
       }
 
-      const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)) {
+      const newEnvFilePath = path.join(envDirPath, `${sanitizeFilenme(newName)}.bru`);
+      if (fs.existsSync(newEnvFilePath) && envFilePath !== newEnvFilePath) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
+
+      // Update the name in the environment meta
+      const bruContent = fs.readFileSync(envFilePath, 'utf8');
+      const content = bruToEnvJson(bruContent);
+      content.name = newName;
+      await writeFile(envFilePath, envJsonToBru(content));
 
       fs.renameSync(envFilePath, newEnvFilePath);
 
@@ -218,9 +239,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-environment', async (event, collectionPathname, environmentName) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      let envFilePath = path.join(envDirPath, `${sanitizeFilenme(environmentName)}.bru`);
       if (!fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} does not exist`);
+        // Fallback to unsatized env name
+        envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+        if (!fs.existsSync(envFilePath)) {
+          throw new Error(`environment: ${envFilePath} does not exist`);
+        }
       }
 
       fs.unlinkSync(envFilePath);
@@ -232,42 +257,50 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // rename item
-  ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
+  ipcMain.handle('renderer:rename-item', async (event, oldPathFull, newPath, newName) => {
     try {
-      if (!fs.existsSync(oldPath)) {
-        throw new Error(`path: ${oldPath} does not exist`);
-      }
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${oldPath} already exists`);
+      if (!fs.existsSync(oldPathFull)) {
+        throw new Error(`path: ${oldPathFull} does not exist`);
       }
 
       // if its directory, rename and return
-      if (isDirectory(oldPath)) {
-        const bruFilesAtSource = await searchForBruFiles(oldPath);
+      if (isDirectory(oldPathFull)) {
+        const bruFilesAtSource = await searchForBruFiles(oldPathFull);
+
+        const newPathFull = path.join(newPath, newName);
+        if (fs.existsSync(newPathFull)) {
+          throw new Error(`path: ${newPathFull} already exists`);
+        }
 
         for (let bruFile of bruFilesAtSource) {
-          const newBruFilePath = bruFile.replace(oldPath, newPath);
+          const newBruFilePath = bruFile.replace(oldPathFull, newPathFull);
           moveRequestUid(bruFile, newBruFilePath);
         }
-        return fs.renameSync(oldPath, newPath);
+        return fs.renameSync(oldPathFull, newPathFull);
       }
 
-      const isBru = hasBruExtension(oldPath);
+      const isBru = hasBruExtension(oldPathFull);
       if (!isBru) {
-        throw new Error(`path: ${oldPath} is not a bru file`);
+        throw new Error(`path: ${oldPathFull} is not a bru file`);
       }
+
+      const newSantitizedPath = path.join(newPath, sanitizeFilenme(newName) + '.bru');
 
       // update name in file and save new copy, then delete old copy
-      const data = fs.readFileSync(oldPath, 'utf8');
+      const data = fs.readFileSync(oldPathFull, 'utf8');
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
 
-      moveRequestUid(oldPath, newPath);
+      moveRequestUid(oldPathFull, newSantitizedPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
-      await fs.unlinkSync(oldPath);
+      await writeFile(newSantitizedPath, content);
+
+      // Because of santization the name can change but the path stays the same
+      if (newSantitizedPath !== oldPathFull) {
+        fs.unlinkSync(oldPathFull);
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -290,6 +323,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
       if (type === 'folder') {
+        console.log(pathname);
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
         }

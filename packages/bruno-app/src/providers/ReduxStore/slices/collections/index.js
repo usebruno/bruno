@@ -161,6 +161,9 @@ export const collectionsSlice = createSlice({
 
         if (item) {
           item.name = action.payload.newName;
+          if (item.type === 'folder') {
+            item.pathname = path.join(path.dirname(item.pathname), action.payload.newName);
+          }
         }
       }
     },
@@ -962,6 +965,7 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
+      console.log('ADD DIR', action.payload);
       const { dir } = action.payload;
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 
@@ -1049,6 +1053,7 @@ export const collectionsSlice = createSlice({
 
         if (existingEnv) {
           existingEnv.variables = environment.variables;
+          existingEnv.name = environment.name;
         } else {
           collection.environments.push(environment);
 

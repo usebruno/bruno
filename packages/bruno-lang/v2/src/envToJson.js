@@ -2,7 +2,7 @@ const ohm = require('ohm-js');
 const _ = require('lodash');
 
 const grammar = ohm.grammar(`Bru {
-  BruEnvFile = (vars | secretvars)*
+  BruEnvFile = (meta | vars | secretvars)*
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -24,6 +24,8 @@ const grammar = ohm.grammar(`Bru {
   valuelist = stnl* arrayvalue stnl* ("," stnl* arrayvalue)*
   arrayvalue = arrayvaluechar*
   arrayvaluechar = ~(nl | st | "[" | "]" | ",") any
+
+  meta = "meta" dictionary
 
   secretvars = "vars:secret" array
   vars = "vars" dictionary
@@ -72,6 +74,14 @@ const mapArrayListToKeyValPairs = (arrayList = []) => {
       enabled
     };
   });
+};
+
+const mapPairListToKeyValPair = (pairList = []) => {
+  if (!pairList || !pairList.length) {
+    return {};
+  }
+
+  return _.merge({}, ...pairList[0]);
 };
 
 const concatArrays = (objValue, srcValue) => {
@@ -133,6 +143,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
+  },
+  meta(_1, dictionary) {
+    let meta = mapPairListToKeyValPair(dictionary.ast);
+
+    return {
+      name: meta.name
+    };
   },
   vars(_1, dictionary) {
     const vars = mapPairListToKeyValPairs(dictionary.ast);

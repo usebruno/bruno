@@ -28,7 +28,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .min(1, 'must be atleast 1 characters')
         .required('name is required')
-        .matches(filenameRegex, 'request name contains invalid characters')
         .test({
           name: 'requestName',
           message: 'The request name "index" is reserved in bruno',

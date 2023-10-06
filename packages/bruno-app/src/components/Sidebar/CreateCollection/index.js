@@ -7,7 +7,7 @@ import { createCollection } from 'providers/ReduxStore/slices/collections/action
 import toast from 'react-hot-toast';
 import Tooltip from 'components/Tooltip';
 import Modal from 'components/Modal';
-import { filenameRegex } from 'utils/common/regex';
+import { dirnameRegex } from 'utils/common/regex';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
@@ -27,8 +27,9 @@ const CreateCollection = ({ onClose }) => {
         .required('collection name is required'),
       collectionFolderName: Yup.string()
         .min(1, 'must be atleast 1 characters')
-        .max(50, 'must be 50 characters or less')
-        .matches(filenameRegex, 'Folder name contains invalid characters')
+        .max(250, 'must be 250 characters or less')
+        .trim()
+        .matches(dirnameRegex, 'Folder name contains invalid characters')
         .required('folder name is required'),
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),

@@ -5,7 +5,7 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { renameItem } from 'providers/ReduxStore/slices/collections/actions';
-import { filenameRegex } from 'utils/common/regex';
+import { dirnameRegex } from 'utils/common/regex';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -19,8 +19,9 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be atleast 1 characters')
-        .max(50, 'must be 50 characters or less')
-        .matches(filenameRegex, `${isFolder ? 'folder' : 'request'} name contains invalid characters`)
+        .max(250, 'must be 250 characters or less')
+        .trim()
+        .matches(isFolder ? dirnameRegex : /.*/g, `${isFolder ? 'folder' : 'request'} name contains invalid characters`)
         .required('name is required')
     }),
     onSubmit: (values) => {

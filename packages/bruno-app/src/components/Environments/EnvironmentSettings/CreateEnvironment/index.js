@@ -6,7 +6,6 @@ import { useFormik } from 'formik';
 import { addEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
-import { filenameRegex } from 'utils/common/regex';
 
 const CreateEnvironment = ({ collection, onClose }) => {
   const dispatch = useDispatch();
@@ -19,8 +18,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
     validationSchema: Yup.object({
       name: Yup.string()
         .min(1, 'must be atleast 1 characters')
-        .max(50, 'must be 50 characters or less')
-        .matches(filenameRegex, 'Folder name contains invalid characters')
+        .max(250, 'must be 250 characters or less')
         .required('name is required')
     }),
     onSubmit: (values) => {

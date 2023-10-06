@@ -250,7 +250,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-
+    console.log(collection);
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
     if (!item) {
@@ -258,18 +258,10 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
 
     const dirname = getDirectoryName(item.pathname);
-
-    let newPathname = '';
-    if (item.type === 'folder') {
-      newPathname = path.join(dirname, trim(newName));
-    } else {
-      const filename = resolveRequestFilename(newName);
-      newPathname = path.join(dirname, filename);
-    }
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:rename-item', item.pathname, newPathname, newName)
+      .invoke('renderer:rename-item', item.pathname, dirname, newName)
       .then(() => {
         // In case of Mac and Linux, we get the unlinkDir and addDir IPC events from electron which takes care of updating the state
         // But in windows we don't get those events, so we need to update the state manually
@@ -312,14 +304,13 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
       if (!reqWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
         const requestItems = filter(collection.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => ipcRenderer.invoke('renderer:new-request', collection.pathname, itemToSave))
           .then(resolve)
           .catch(reject);
       } else {
@@ -331,15 +322,14 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
       if (!reqWithSameNameExists) {
-        const dirname = getDirectoryName(item.pathname);
-        const fullName = path.join(dirname, filename);
+        const pathname = getDirectoryName(item.pathname);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
         itemSchema
           .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+          .then(() => ipcRenderer.invoke('renderer:new-request', pathname, itemToSave))
           .then(resolve)
           .catch(reject);
       } else {
@@ -592,10 +582,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       item.seq = requestItems.length + 1;
 
       if (!reqWithSameNameExists) {
-        const fullName = `${collection.pathname}${PATH_SEPARATOR}${filename}`;
         const { ipcRenderer } = window;
 
-        ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        ipcRenderer.invoke('renderer:new-request', collection.pathname, item).then(resolve).catch(reject);
         // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
         dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
       } else {
@@ -611,10 +600,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const requestItems = filter(currentItem.items, (i) => i.type !== 'folder');
         item.seq = requestItems.length + 1;
         if (!reqWithSameNameExists) {
-          const fullName = `${currentItem.pathname}${PATH_SEPARATOR}${filename}`;
           const { ipcRenderer } = window;
 
-          ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+          ipcRenderer.invoke('renderer:new-request', currentItem.pathname, item).then(resolve).catch(reject);
           // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
           dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
         } else {
