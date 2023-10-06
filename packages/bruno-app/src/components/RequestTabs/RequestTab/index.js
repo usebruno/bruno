@@ -6,9 +6,13 @@ import { findItemInCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
+import { useTheme } from 'providers/Theme';
+import darkTheme from 'themes/dark';
+import lightTheme from 'themes/light';
 
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
+  const { storedTheme } = useTheme();
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -21,35 +25,38 @@ const RequestTab = ({ tab, collection }) => {
   };
 
   const getMethodColor = (method = '') => {
+    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+
     let color = '';
     method = method.toLocaleLowerCase();
+
     switch (method) {
       case 'get': {
-        color = 'var(--color-method-get)';
+        color = theme.request.methods.get;
         break;
       }
       case 'post': {
-        color = 'var(--color-method-post)';
+        color = theme.request.methods.post;
         break;
       }
       case 'put': {
-        color = 'var(--color-method-put)';
+        color = theme.request.methods.put;
         break;
       }
       case 'delete': {
-        color = 'var(--color-method-delete)';
+        color = theme.request.methods.delete;
         break;
       }
       case 'patch': {
-        color = 'var(--color-method-patch)';
+        color = theme.request.methods.patch;
         break;
       }
       case 'options': {
-        color = 'var(--color-method-options)';
+        color = theme.request.methods.options;
         break;
       }
       case 'head': {
-        color = 'var(--color-method-head)';
+        color = theme.request.methods.head;
         break;
       }
     }
