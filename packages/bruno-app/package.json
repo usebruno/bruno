@@ -26,6 +26,7 @@
     "escape-html": "^1.0.3",
     "file-dialog": "^0.0.8",
     "file-saver": "^2.0.5",
+    "flat": "^6.0.1",
     "formik": "^2.2.9",
     "graphiql": "^1.5.9",
     "graphql": "^16.6.0",
