@@ -28,6 +28,33 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
+// Updated interpolate function to handle nested variables
+const interpolate = (str, combinedVars) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  // Replace nested variables like {{auth.token}} all other types
+  const nestedRegex = /\{\{([^\}]+)\}\}/g;
+  str = str.replace(nestedRegex, (match, p1) => {
+    const nestedKeys = p1.split('.');
+    let value = combinedVars;
+    nestedKeys.forEach((key) => {
+      if (value && typeof value === 'object' && key in value) {
+        value = value[key];
+      } else {
+        value = undefined;
+      }
+    });
+    return value !== undefined ? value : match;
+  });
+
+  // Compile the template with Handlebars
+  const template = Handlebars.compile(str, { noEscape: true });
+
+  return template(combinedVars);
+};
+
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
@@ -43,7 +70,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    const template = Handlebars.compile(str, { noEscape: true });
+    // const template = Handlebars.compile(str, { noEscape: true });
 
     // collectionVariables take precedence over envVars
     const combinedVars = {
@@ -56,7 +83,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       }
     };
 
-    return template(combinedVars);
+    return interpolate(str, combinedVars);
   };
 
   request.url = interpolate(request.url);

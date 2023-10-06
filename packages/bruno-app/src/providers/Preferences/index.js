@@ -30,9 +30,11 @@ export const PreferencesProvider = (props) => {
   const { ipcRenderer } = window;
 
   useEffect(() => {
-    ipcRenderer.invoke('renderer:set-preferences', preferences).catch((err) => {
-      toast.error(err.message || 'Preferences sync error');
-    });
+    if (window && window.ipcRenderer) {
+      window.ipcRenderer.invoke('renderer:set-preferences', preferences).catch((err) => {
+        toast.error(err.message || 'Preferences sync error');
+      });
+    }
   }, [preferences, toast]);
 
   const validatedSetPreferences = (newPreferences) => {
