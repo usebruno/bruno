@@ -29,6 +29,8 @@ const runSingleRequest = async function (
 
     request = prepareRequest(bruJson.request);
 
+    const allowScriptFilesystemAccess = get(brunoConfig, 'filesystemAccess.allow', false);
+
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
@@ -65,7 +67,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        allowScriptFilesystemAccess
       );
     }
 
@@ -206,7 +209,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        allowScriptFilesystemAccess
       );
     }
 
@@ -247,7 +251,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        allowScriptFilesystemAccess
       );
       testResults = get(result, 'results', []);
     }
