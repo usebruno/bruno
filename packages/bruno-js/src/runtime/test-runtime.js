@@ -9,6 +9,7 @@ const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
 const fs = require('fs');
+const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -38,11 +39,24 @@ class TestRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    allowScriptFilesystemAccess
+    scriptingConfig
   ) {
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
@@ -106,6 +120,7 @@ class TestRuntime {
           nanoid,
           chai,
           'crypto-js': CryptoJS,
+          ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
