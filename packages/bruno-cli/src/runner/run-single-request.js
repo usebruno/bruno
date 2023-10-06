@@ -1,5 +1,6 @@
 const qs = require('qs');
 const chalk = require('chalk');
+const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
@@ -20,9 +21,9 @@ const runSingleRequest = async function (
   processEnvVars,
   brunoConfig
 ) {
-  let request;
-
   try {
+    let request;
+
     request = prepareRequest(bruJson.request);
 
     // make axios work in node using form data
@@ -55,7 +56,7 @@ const runSingleRequest = async function (
     if (requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runRequestScript(
-        requestScriptFile,
+        decomment(requestScriptFile),
         request,
         envVariables,
         collectionVariables,
@@ -122,10 +123,43 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
-    // run request
-    const response = await axios(request);
+    let response, responseTime;
+    const start = Date.now();
+    try {
+      // run request
+      response = await axios(request);
+      responseTime = Date.now() - start;
+    } catch (err) {
+      if (err && err.response) {
+        response = err.response;
+        responseTime = Date.now() - start;
+      } else {
+        console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+        return {
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data
+          },
+          response: {
+            status: null,
+            statusText: null,
+            headers: null,
+            data: null,
+            responseTime: 0
+          },
+          error: err.message,
+          assertionResults: [],
+          testResults: []
+        };
+      }
+    }
 
-    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
+    console.log(
+      chalk.green(stripExtension(filename)) +
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+    );
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
@@ -147,7 +181,7 @@ const runSingleRequest = async function (
     if (responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runResponseScript(
-        responseScriptFile,
+        decomment(responseScriptFile),
         request,
         response,
         envVariables,
@@ -188,7 +222,7 @@ const runSingleRequest = async function (
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime();
       const result = await testRuntime.runTests(
-        testFile,
+        decomment(testFile),
         request,
         response,
         envVariables,
@@ -221,102 +255,32 @@ const runSingleRequest = async function (
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data
+        data: response.data,
+        responseTime
       },
+      error: null,
       assertionResults,
       testResults
     };
   } catch (err) {
-    if (err && err.response) {
-      console.log(
-        chalk.green(stripExtension(filename)) + chalk.dim(` (${err.response.status} ${err.response.statusText})`)
-      );
-
-      // run post-response vars
-      const postResponseVars = get(bruJson, 'request.vars.res');
-      if (postResponseVars && postResponseVars.length) {
-        const varsRuntime = new VarsRuntime();
-        varsRuntime.runPostResponseVars(
-          postResponseVars,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
-      }
-
-      // run post response script
-      const responseScriptFile = get(bruJson, 'request.script.res');
-      if (responseScriptFile && responseScriptFile.length) {
-        const scriptRuntime = new ScriptRuntime();
-        await scriptRuntime.runResponseScript(
-          responseScriptFile,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars
-        );
-      }
-
-      // run assertions
-      let assertionResults = [];
-      const assertions = get(bruJson, 'request.assertions');
-      if (assertions) {
-        const assertRuntime = new AssertRuntime();
-        assertionResults = assertRuntime.runAssertions(
-          assertions,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath
-        );
-
-        each(assertionResults, (r) => {
-          if (r.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-            console.log(chalk.red(`      ${r.error}`));
-          }
-        });
-      }
-
-      // run tests
-      let testResults = [];
-      const testFile = get(bruJson, 'request.tests');
-      if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
-        const result = await testRuntime.runTests(
-          testFile,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars
-        );
-        testResults = get(result, 'results', []);
-      }
-
-      if (testResults && testResults.length) {
-        each(testResults, (testResult) => {
-          if (testResult.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
-          }
-        });
-      }
-    } else {
-      console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
-    }
+    return {
+      request: {
+        method: null,
+        url: null,
+        headers: null,
+        data: null
+      },
+      response: {
+        status: null,
+        statusText: null,
+        headers: null,
+        data: null,
+        responseTime: 0
+      },
+      error: err.message,
+      assertionResults: [],
+      testResults: []
+    };
   }
 };
 

@@ -7,6 +7,7 @@ const util = require('util');
 const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
+const fs = require('fs');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -27,6 +28,8 @@ const CryptoJS = require('crypto-js');
 class ScriptRuntime {
   constructor() {}
 
+  // This approach is getting out of hand
+  // Need to refactor this to use a single arg (object) instead of 7
   async runRequestScript(
     script,
     request,
@@ -34,9 +37,10 @@ class ScriptRuntime {
     collectionVariables,
     collectionPath,
     onConsoleLog,
-    processEnvVars
+    processEnvVars,
+    allowScriptFilesystemAccess
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
 
     const context = {
@@ -84,7 +88,8 @@ class ScriptRuntime {
           axios,
           chai,
           'node-fetch': fetch,
-          'crypto-js': CryptoJS
+          'crypto-js': CryptoJS,
+          fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
     });
@@ -105,9 +110,10 @@ class ScriptRuntime {
     collectionVariables,
     collectionPath,
     onConsoleLog,
-    processEnvVars
+    processEnvVars,
+    allowScriptFilesystemAccess
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
 
@@ -138,6 +144,16 @@ class ScriptRuntime {
         external: true,
         root: [collectionPath],
         mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
           atob,
           btoa,
           lodash,
@@ -146,7 +162,8 @@ class ScriptRuntime {
           nanoid,
           axios,
           'node-fetch': fetch,
-          'crypto-js': CryptoJS
+          'crypto-js': CryptoJS,
+          fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
     });

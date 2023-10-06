@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.0
+
+- fix(#119) Support for Basic and Bearer Auth
+
 ## 0.10.1
 
 - fix(#233) Fixed Issue related to content header parsing

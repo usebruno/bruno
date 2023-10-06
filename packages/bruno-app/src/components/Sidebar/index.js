@@ -96,27 +96,16 @@ const Sidebar = () => {
                 />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
-                {storedTheme === 'dark' ? (
-                  <GitHubButton
-                    href="https://github.com/usebruno/bruno"
-                    data-color-scheme="no-preference: dark; light: dark; dark: light;"
-                    data-show-count="true"
-                    aria-label="Star usebruno/bruno on GitHub"
-                  >
-                    Star
-                  </GitHubButton>
-                ) : (
-                  <GitHubButton
-                    href="https://github.com/usebruno/bruno"
-                    data-color-scheme="no-preference: light; light: light; dark: light;"
-                    data-show-count="true"
-                    aria-label="Star usebruno/bruno on GitHub"
-                  >
-                    Star
-                  </GitHubButton>
-                )}
+                <GitHubButton
+                  href="https://github.com/usebruno/bruno"
+                  data-color-scheme={storedTheme}
+                  data-show-count="true"
+                  aria-label="Star usebruno/bruno on GitHub"
+                >
+                  Star
+                </GitHubButton>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.18.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.19.0</div>
             </div>
           </div>
         </div>

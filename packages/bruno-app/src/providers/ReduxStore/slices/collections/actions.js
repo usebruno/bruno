@@ -39,7 +39,8 @@ import {
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
+  updateNewRequest
 } from './index';
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
@@ -595,6 +596,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
+        dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -612,6 +615,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+          // Add the new request name here so it can be opened in a new tab in useCollectionTreeSync.js
+          dispatch(updateLastAction({ lastAction: { type: 'ADD_REQUEST', payload: item.name }, collectionUid }));
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }
@@ -630,6 +635,37 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:create-environment', collection.pathname, name)
+      .then(
+        dispatch(
+          updateLastAction({
+            collectionUid,
+            lastAction: {
+              type: 'ADD_ENVIRONMENT',
+              payload: name
+            }
+          })
+        )
+      )
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const baseEnv = findEnvironmentInCollection(collection, baseEnvUid);
+    if (!collection) {
+      return reject(new Error('Environmnent not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:copy-environment', collection.pathname, name, baseEnv.variables)
       .then(
         dispatch(
           updateLastAction({

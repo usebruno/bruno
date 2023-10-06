@@ -2,10 +2,11 @@ const Handlebars = require('handlebars');
 const { cloneDeep } = require('lodash');
 
 class Bru {
-  constructor(envVariables, collectionVariables, processEnvVars) {
+  constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
     this.envVariables = envVariables;
     this.collectionVariables = collectionVariables;
     this.processEnvVars = cloneDeep(processEnvVars || {});
+    this.collectionPath = collectionPath;
   }
 
   _interpolateEnvVar = (str) => {
@@ -23,6 +24,10 @@ class Bru {
       }
     });
   };
+
+  cwd() {
+    return this.collectionPath;
+  }
 
   getEnvName() {
     return this.envVariables.__name__;

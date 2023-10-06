@@ -34,8 +34,11 @@ app.on('ready', async () => {
       nodeIntegration: true,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
-      webviewTag: true,
-    }
+      webviewTag: true
+    },
+    title: 'Bruno',
+    icon: path.join(__dirname, 'about/256x256.png'),
+    autoHideMenuBar: true
   });
 
   const url = isDev

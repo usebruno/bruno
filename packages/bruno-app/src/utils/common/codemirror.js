@@ -58,7 +58,7 @@ export const getCodeMirrorModeBasedOnContentType = (contentType) => {
     return 'application/text';
   } else if (contentType.includes('application/edn')) {
     return 'application/xml';
-  } else if (mimeType.includes('yaml')) {
+  } else if (contentType.includes('yaml')) {
     return 'application/yaml';
   } else {
     return 'application/text';
