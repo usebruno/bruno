@@ -33,6 +33,8 @@
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.8",
+    "http-proxy-agent": "^7.0.0",
+    "https-proxy-agent": "^7.0.2",
     "inquirer": "^9.1.4",
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",

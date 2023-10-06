@@ -138,7 +138,7 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   }
 
   if (targetItem.type === 'folder') {
-    targetItem.items = targetItem.items || [];
+    targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
     targetItem.items.push(draggedItem);
     draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
   } else {
@@ -166,7 +166,9 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
     return;
   }
 
+  draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+  collection.items = sortBy(collection.items, (item) => item.seq);
   collection.items.push(draggedItem);
   if (draggedItem.type == 'folder') {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
