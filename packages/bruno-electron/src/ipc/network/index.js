@@ -469,7 +469,7 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collectionVariables) => {
+  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collection) => {
     try {
       const envVars = getEnvVars(environment);
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request);
@@ -483,7 +483,8 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      interpolateVars(preparedRequest, envVars, collectionVariables);
+      const processEnvVars = getProcessEnvVars(collection.uid);
+      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
 
       const response = await axios(preparedRequest);
 
