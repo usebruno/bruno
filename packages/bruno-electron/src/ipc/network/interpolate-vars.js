@@ -35,7 +35,9 @@ const interpolate = (str, combinedVars) => {
   }
 
   // Replace nested variables like {{auth.token}} all other types
-  const nestedRegex = /\{\{([^\}]+)\}\}/g;
+  // const nestedRegex = /\{\{([^\}]+)\}\}/g;
+  const nestedRegex = /\{\{([$a-zA-Z_][^\}]+)\}\}/g;
+
   str = str.replace(nestedRegex, (match, p1) => {
     const nestedKeys = p1.split('.');
     let value = combinedVars;
