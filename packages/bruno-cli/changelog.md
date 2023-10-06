@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.12.0
+
+- show response time in milliseconds per request and total
+
 ## 0.11.0
 
 - fix(#119) Support for Basic and Bearer Auth

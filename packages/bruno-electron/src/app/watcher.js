@@ -103,7 +103,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
       const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
-        if (variable) {
+        if (variable && secret.value) {
           variable.value = decryptString(secret.value);
         }
       });
@@ -137,7 +137,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
       const envSecrets = environmentSecretsStore.getEnvSecrets(collectionPath, file.data);
       _.each(envSecrets, (secret) => {
         const variable = _.find(file.data.variables, (v) => v.name === secret.name);
-        if (variable) {
+        if (variable && secret.value) {
           variable.value = decryptString(secret.value);
         }
       });

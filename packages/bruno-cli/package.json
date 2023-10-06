@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -12,6 +12,9 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/usebruno/bruno.git"
+  },
+  "scripts": {
+    "test": "jest"
   },
   "files": [
     "src",
@@ -26,6 +29,7 @@
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
+    "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.8",

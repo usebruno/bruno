@@ -1,5 +1,5 @@
 {
-  "version": "v0.19.0",
+  "version": "v0.20.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -21,6 +21,7 @@
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
+    "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
     "electron-is-dev": "^2.0.0",
     "electron-notarize": "^1.2.2",

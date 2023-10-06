@@ -6,9 +6,11 @@
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
-[![Twitter](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=twitter)](https://twitter.com/use_bruno)
+[![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
+
+**English** | [Русский](/readme_ru.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -30,13 +32,19 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-### Website 📄
+### Important Links 📌
 
-Please visit [here](https://www.usebruno.com) to checkout our website and download the app
+- [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
+- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
+- [Documentation](https://docs.usebruno.com)
+- [Website](https://www.usebruno.com)
+- [Download](https://www.usebruno.com/downloads)
 
-### Documentation 📄
+### Showcase 🎥
 
-Please visit [here](https://docs.usebruno.com) for documentation
+- [Testimonials](https://github.com/usebruno/bruno/discussions/343)
+- [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
+- [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
 ### Support ❤️
 

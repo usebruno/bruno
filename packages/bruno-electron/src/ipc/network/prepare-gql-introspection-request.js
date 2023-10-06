@@ -1,12 +1,13 @@
 const Mustache = require('mustache');
 const { getIntrospectionQuery } = require('graphql');
+const { get } = require('lodash');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
   return value;
 };
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars) => {
+const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
   if (endpoint && endpoint.length) {
     endpoint = Mustache.render(endpoint, envVars);
   }
@@ -15,7 +16,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars) => {
     query: introspectionQuery
   };
 
-  const request = {
+  let axiosRequest = {
     method: 'POST',
     url: endpoint,
     headers: {
@@ -25,7 +26,20 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars) => {
     data: JSON.stringify(queryParams)
   };
 
-  return request;
+  if (request.auth) {
+    if (request.auth.mode === 'basic') {
+      axiosRequest.auth = {
+        username: get(request, 'auth.basic.username'),
+        password: get(request, 'auth.basic.password')
+      };
+    }
+
+    if (request.auth.mode === 'bearer') {
+      axiosRequest.headers.authorization = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+  }
+
+  return axiosRequest;
 };
 
 module.exports = prepareGqlIntrospectionRequest;

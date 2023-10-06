@@ -26,6 +26,7 @@ import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
   updateLastAction,
+  updateNextAction,
   resetRunResults,
   requestCancelled,
   responseReceived,
@@ -595,6 +596,19 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        // the useCollectionNextAction() will track this and open the new request in a new tab
+        // once the request is created
+        dispatch(
+          updateNextAction({
+            nextAction: {
+              type: 'OPEN_REQUEST',
+              payload: {
+                pathname: fullName
+              }
+            },
+            collectionUid
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -612,6 +626,20 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+
+          // the useCollectionNextAction() will track this and open the new request in a new tab
+          // once the request is created
+          dispatch(
+            updateNextAction({
+              nextAction: {
+                type: 'OPEN_REQUEST',
+                payload: {
+                  pathname: fullName
+                }
+              },
+              collectionUid
+            })
+          );
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }
