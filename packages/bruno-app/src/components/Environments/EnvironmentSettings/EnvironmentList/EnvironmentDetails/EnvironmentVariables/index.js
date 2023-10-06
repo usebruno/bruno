@@ -1,4 +1,4 @@
-import React, { useReducer } from 'react';
+import React, { useState, useReducer } from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -14,8 +14,15 @@ const EnvironmentVariables = ({ environment, collection }) => {
   const { storedTheme } = useTheme();
   const [state, reducerDispatch] = useReducer(reducer, { hasChanges: false, variables: environment.variables || [] });
   const { variables, hasChanges } = state;
+  const [validationErrors, setValidationErrors] = useState({});
 
   const saveChanges = () => {
+    // Check if there are validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      toast.error('Invalid environment name. Please fix the errors.');
+      return;
+    }
+
     dispatch(saveEnvironment(cloneDeep(variables), environment.uid, collection.uid))
       .then(() => {
         toast.success('Changes saved successfully');
@@ -34,24 +41,46 @@ const EnvironmentVariables = ({ environment, collection }) => {
 
   const handleVarChange = (e, _variable, type) => {
     const variable = cloneDeep(_variable);
+    let newValidationErrors = { ...validationErrors };
+
     switch (type) {
       case 'name': {
-        variable.name = e.target.value;
+        const newName = e.target.value;
+
+        // Perform validation for the name (e.g., check if it's not empty)
+        if (!newName.trim()) {
+          newValidationErrors = {
+            ...newValidationErrors,
+            [variable.uid]: 'Name cannot be empty'
+          };
+        } else {
+          delete newValidationErrors[variable.uid];
+        }
+
+        variable.name = newName;
         break;
       }
       case 'value': {
-        variable.value = e.target.value;
+        // Additional validation for the 'value' case if needed
+        // For example, check if the value meets certain criteria
         break;
       }
       case 'enabled': {
+        // No validation needed for 'enabled' case
         variable.enabled = e.target.checked;
         break;
       }
       case 'secret': {
+        // No validation needed for 'secret' case
         variable.secret = e.target.checked;
         break;
       }
+      default:
+        break;
     }
+
+    setValidationErrors(newValidationErrors);
+
     reducerDispatch({
       type: 'UPDATE_VAR',
       variable
@@ -98,7 +127,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                         autoCapitalize="off"
                         spellCheck="false"
                         value={variable.name}
-                        className="mousetrap"
+                        className={`mousetrap ${validationErrors[variable.uid] ? 'error' : ''}`}
                         onChange={(e) => handleVarChange(e, variable, 'name')}
                       />
                     </td>
@@ -140,7 +169,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
         <button
           type="submit"
           className="submit btn btn-md btn-secondary mt-2"
-          disabled={!hasChanges}
+          disabled={!hasChanges || Object.keys(validationErrors).length > 0}
           onClick={saveChanges}
         >
           Save
