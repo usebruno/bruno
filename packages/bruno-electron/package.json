@@ -1,5 +1,5 @@
 {
-  "version": "v0.19.0",
+  "version": "v0.20.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -9,7 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder --win --config electron-builder-config.js",
+    "dist": "electron-builder --mac --config electron-builder-config.js",
     "pack": "electron-builder --dir",
     "test": "jest"
   },
@@ -31,6 +31,7 @@
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
     "handlebars": "^4.7.8",
+    "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "is-valid-path": "^0.1.1",
     "lodash": "^4.17.21",

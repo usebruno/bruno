@@ -4,13 +4,16 @@ const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
-const axios = require('axios');
-const https = require('https');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
+const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const https = require('https');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+const { makeAxiosInstance } = require('../utils/axios-instance');
 
 const runSingleRequest = async function (
   filename,
@@ -66,31 +69,6 @@ const runSingleRequest = async function (
       );
     }
 
-    // set proxy if enabled
-    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    if (proxyEnabled) {
-      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-      const proxyHostname = get(brunoConfig, 'proxy.hostname');
-      const proxyPort = get(brunoConfig, 'proxy.port');
-      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-      const proxyConfig = {
-        protocol: proxyProtocol,
-        hostname: proxyHostname,
-        port: proxyPort
-      };
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-        proxyConfig.auth = {
-          username: proxyAuthUsername,
-          password: proxyAuthPassword
-        };
-      }
-
-      request.proxy = proxyConfig;
-    }
-
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
 
@@ -112,7 +90,39 @@ const runSingleRequest = async function (
       }
     }
 
-    if (Object.keys(httpsAgentRequestFields).length > 0) {
+    // set proxy if enabled
+    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+    if (proxyEnabled) {
+      let proxy;
+      const interpolationOptions = {
+        envVars: envVariables,
+        collectionVariables,
+        processEnvVars
+      };
+
+      const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
+      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+      interpolateString;
+
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
+
+        proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      } else {
+        proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      }
+
+      request.httpsAgent = new HttpsProxyAgent(
+        proxy,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+
+      request.httpAgent = new HttpProxyAgent(proxy);
+    } else if (Object.keys(httpsAgentRequestFields).length > 0) {
       request.httpsAgent = new https.Agent({
         ...httpsAgentRequestFields
       });
@@ -124,15 +134,23 @@ const runSingleRequest = async function (
     }
 
     let response, responseTime;
-    const start = Date.now();
     try {
       // run request
-      response = await axios(request);
-      responseTime = Date.now() - start;
+      const axiosInstance = makeAxiosInstance();
+
+      /** @type {import('axios').AxiosResponse} */
+      response = await axiosInstance(request);
+
+      // Prevents the duration on leaking to the actual result
+      responseTime = response.headers.get('request-duration');
+      response.headers.delete('request-duration');
     } catch (err) {
       if (err && err.response) {
         response = err.response;
-        responseTime = Date.now() - start;
+
+        // Prevents the duration on leaking to the actual result
+        responseTime = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {

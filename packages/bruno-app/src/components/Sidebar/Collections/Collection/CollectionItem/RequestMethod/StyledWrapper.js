@@ -25,13 +25,13 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.request.methods.delete};
   }
   .method-patch {
-    color: ${(props) => props.theme.request.methods.put};
+    color: ${(props) => props.theme.request.methods.patch};
   }
   .method-options {
-    color: ${(props) => props.theme.request.methods.put};
+    color: ${(props) => props.theme.request.methods.options};
   }
   .method-head {
-    color: ${(props) => props.theme.request.methods.put};
+    color: ${(props) => props.theme.request.methods.head};
   }
 `;
 
