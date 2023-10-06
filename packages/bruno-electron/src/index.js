@@ -37,8 +37,10 @@ app.on('ready', async () => {
       webviewTag: true
     },
     title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png'),
-    autoHideMenuBar: true
+    icon: path.join(__dirname, 'about/256x256.png')
+    // we will bring this back
+    // see https://github.com/usebruno/bruno/issues/440
+    // autoHideMenuBar: true
   });
 
   const url = isDev
