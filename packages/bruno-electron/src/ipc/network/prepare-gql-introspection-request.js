@@ -16,6 +16,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
     method: 'POST',
     url: endpoint,
     headers: {
+      ...mapHeaders(request.headers),
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
@@ -36,6 +37,12 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
   }
 
   return axiosRequest;
+};
+
+const mapHeaders = (headers) => {
+  const entries = headers.filter((header) => header.enabled).map(({ name, value }) => [name, value]);
+
+  return Object.fromEntries(entries);
 };
 
 module.exports = prepareGqlIntrospectionRequest;
