@@ -109,7 +109,7 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
-      const allowScriptFilesystemAccess = get(brunoConfig, 'filesystemAccess.allow', false);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
 
       try {
         // make axios work in node using form data
@@ -162,7 +162,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionPath,
             onConsoleLog,
             processEnvVars,
-            allowScriptFilesystemAccess
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -296,7 +296,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionPath,
             onConsoleLog,
             processEnvVars,
-            allowScriptFilesystemAccess
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -342,7 +342,7 @@ const registerNetworkIpc = (mainWindow) => {
             collectionPath,
             onConsoleLog,
             processEnvVars,
-            allowScriptFilesystemAccess
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:run-request-event', {
@@ -421,7 +421,7 @@ const registerNetworkIpc = (mainWindow) => {
               collectionPath,
               onConsoleLog,
               processEnvVars,
-              allowScriptFilesystemAccess
+              scriptingConfig
             );
 
             mainWindow.webContents.send('main:run-request-event', {
@@ -514,7 +514,7 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
       const brunoConfig = getBrunoConfig(collectionUid);
-      const allowScriptFilesystemAccess = get(brunoConfig, 'filesystemAccess.allow', false);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
 
       const onConsoleLog = (type, args) => {
         console[type](...args);
@@ -621,7 +621,7 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                allowScriptFilesystemAccess
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -735,7 +735,7 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                allowScriptFilesystemAccess
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -779,7 +779,7 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                allowScriptFilesystemAccess
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -859,7 +859,7 @@ const registerNetworkIpc = (mainWindow) => {
                   collectionPath,
                   onConsoleLog,
                   processEnvVars,
-                  allowScriptFilesystemAccess
+                  scriptingConfig
                 );
 
                 mainWindow.webContents.send('main:run-folder-event', {
