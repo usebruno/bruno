@@ -4,12 +4,14 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
+import { usePreferences } from 'providers/Preferences';
 import StyledWrapper from './StyledWrapper';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
 
   const { storedTheme } = useTheme();
+  const { preferences } = usePreferences();
 
   const onEdit = (value) => {
     dispatch(
@@ -30,6 +32,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         collection={collection}
         value={variables || ''}
         theme={storedTheme}
+        font={preferences.codeFont}
         onEdit={onEdit}
         mode="javascript"
         onRun={onRun}

@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import React, { useState } from 'react';
 import Support from './Support';
 import General from './General';
+import Font from './Font';
 import Theme from './Theme';
 import StyledWrapper from './StyledWrapper';
 
@@ -28,6 +29,10 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+
+      case 'font': {
+        return <Font />;
+      }
     }
   };
 
@@ -40,6 +45,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
             Theme
+          </div>
+          <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
+            Font
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support
