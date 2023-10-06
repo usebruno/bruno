@@ -17,6 +17,7 @@ const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { makeAxiosInstance } = require('./axios-instance');
+const { addAwsV4Interceptor } = require('./awsv4auth-helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -245,6 +246,11 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         const axiosInstance = makeAxiosInstance();
+
+        if (request.awsv4config) {
+          addAwsV4Interceptor(axiosInstance, request);
+          delete request.awsv4config;
+        }
 
         /** @type {import('axios').AxiosResponse} */
         const response = await axiosInstance(request);

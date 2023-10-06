@@ -21,15 +21,26 @@ const prepareRequest = (request) => {
 
   // Authentication
   if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    switch (request.auth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+          secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+          sessionToken: get(request, 'auth.awsv4.sessionToken'),
+          service: get(request, 'auth.awsv4.service'),
+          region: get(request, 'auth.awsv4.region'),
+          profileName: get(request, 'auth.awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.auth = {
+          username: get(request, 'auth.basic.username'),
+          password: get(request, 'auth.basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        break;
     }
   }
 
