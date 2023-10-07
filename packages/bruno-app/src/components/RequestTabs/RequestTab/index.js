@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import { findItemInCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import RequestTabNotFound from './RequestTabNotFound';
+import ConfirmRequestClose from './ConfirmRequestClose';
 import SpecialTab from './SpecialTab';
 import { useTheme } from 'providers/Theme';
 import darkTheme from 'themes/dark';
@@ -13,6 +16,7 @@ import lightTheme from 'themes/light';
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -86,6 +90,39 @@ const RequestTab = ({ tab, collection }) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
+      {showConfirmClose && (
+        <ConfirmRequestClose
+          onCancel={() => setShowConfirmClose(false)}
+          onCloseWithoutSave={() => {
+            dispatch(
+              deleteRequestDraft({
+                itemUid: item.uid,
+                collectionUid: collection.uid
+              })
+            );
+            dispatch(
+              closeTabs({
+                tabUids: [tab.uid]
+              })
+            );
+            setShowConfirmClose(false);
+          }}
+          onSaveAndClose={() => {
+            dispatch(saveRequest(item.uid, collection.uid))
+              .then(() => {
+                dispatch(
+                  closeTabs({
+                    tabUids: [tab.uid]
+                  })
+                );
+                setShowConfirmClose(false);
+              })
+              .catch((err) => {
+                console.log('err', err);
+              });
+          }}
+        />
+      )}
       <div className="flex items-baseline tab-label pl-2">
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
@@ -94,7 +131,14 @@ const RequestTab = ({ tab, collection }) => {
           {item.name}
         </span>
       </div>
-      <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
+      <div
+        className="flex px-2 close-icon-container"
+        onClick={(e) => {
+          if (!item.draft) return handleCloseClick(e);
+
+          setShowConfirmClose(true);
+        }}
+      >
         {!item.draft ? (
           <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
             <path

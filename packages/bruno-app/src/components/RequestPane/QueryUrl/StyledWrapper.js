@@ -32,6 +32,50 @@ const Wrapper = styled.div`
     position: relative;
     top: 1px;
   }
+
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+  }
+
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .tooltiptext {
+    visibility: hidden;
+    width: auto;
+    background-color: ${(props) => props.theme.requestTabs.active.bg};
+    color: ${(props) => props.theme.text};
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+  }
+
+  .tooltiptext::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -4px;
+    border-width: 4px;
+    border-style: solid;
+    border-color: ${(props) => props.theme.requestTabs.active.bg} transparent transparent transparent;
+  }
+
+  .shortcut {
+    font-size: 0.625rem;
+  }
 `;
 
 export default Wrapper;

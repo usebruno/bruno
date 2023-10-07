@@ -258,6 +258,17 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    deleteRequestDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.draft) {
+          item.draft = null;
+        }
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1224,6 +1235,7 @@ export const {
   requestCancelled,
   responseReceived,
   saveRequest,
+  deleteRequestDraft,
   newEphemeralHttpRequest,
   collectionClicked,
   collectionFolderClicked,
