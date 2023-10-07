@@ -115,7 +115,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           </div>
         ) : null}
       </div>
-      <section className="flex flex-grow">{getTabPanel(focusedTab.responsePaneTab)}</section>
+      <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
+        {getTabPanel(focusedTab.responsePaneTab)}
+      </section>
     </StyledWrapper>
   );
 };
