@@ -13,17 +13,17 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="mt-4 px-3 w-full">
+    <StyledWrapper className="px-3 w-full">
       <div className="overlay">
         <div style={{ marginBottom: 15, fontSize: 26 }}>
-          <div style={{ display: 'inline-block', fontSize: 24, marginLeft: 5, marginRight: 5 }}>
+          <div style={{ display: 'inline-block', fontSize: 20, marginLeft: 5, marginRight: 5 }}>
             <StopWatch />
           </div>
         </div>
         <IconRefresh size={24} className="loading-icon" />
         <button
           onClick={handleCancelRequest}
-          className="mt-4 uppercase btn-md rounded btn-secondary ease-linear transition-all duration-150"
+          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150"
           type="button"
         >
           Cancel Request

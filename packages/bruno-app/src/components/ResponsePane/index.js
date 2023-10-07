@@ -61,15 +61,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !item.response) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <StyledWrapper className="flex flex-col h-full relative">
         <Overlay item={item} collection={collection} />
       </StyledWrapper>
     );
   }
 
-  if (response.state !== 'success') {
+  if (!item.response) {
     return (
       <StyledWrapper className="flex h-full relative">
         <Placeholder />
@@ -116,6 +116,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
+        {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {getTabPanel(focusedTab.responsePaneTab)}
       </section>
     </StyledWrapper>

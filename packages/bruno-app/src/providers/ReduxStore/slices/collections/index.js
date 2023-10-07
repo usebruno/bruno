@@ -1114,7 +1114,6 @@ export const collectionsSlice = createSlice({
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
             item.requestState = 'queued';
-            item.response = null;
             item.cancelTokenUid = cancelTokenUid;
           }
 
