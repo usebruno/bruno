@@ -9,7 +9,7 @@ import { findEnvironmentInCollection } from 'utils/collections';
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
-    return str;
+    return;
   }
 
   const template = handlebars.compile(url, { noEscape: true });
@@ -74,9 +74,8 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'request.url') || '';
+  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -92,7 +91,6 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     collectionVariables: collection.collectionVariables,
     processEnvVars: collection.processEnvVariables
   });
-
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -121,10 +119,16 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                 language={selectedLanguage}
                 item={{
                   ...item,
-                  request: {
-                    ...item.request,
-                    url: interpolatedUrl
-                  }
+                  request:
+                    item.request.url !== ''
+                      ? {
+                          ...item.request,
+                          url: interpolatedUrl
+                        }
+                      : {
+                          ...item.draft.request,
+                          url: interpolatedUrl
+                        }
                 }}
               />
             ) : (
