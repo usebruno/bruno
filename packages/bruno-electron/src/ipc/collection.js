@@ -20,7 +20,7 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
-const { getFileFormat } = require('../store/bruno-config');
+const { getLangFromBrunoConfig } = require('../store/bruno-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -138,9 +138,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const fileFormat = getFileFormat(collection.uid);
+      const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${fileFormat}`,
+        ext: `.${lang}`,
         name,
         dir: envDirPath
       });
@@ -151,7 +151,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const environment = {
         variables: []
       };
-      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
+      const content = lang === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -166,9 +166,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const fileFormat = getFileFormat(collection.uid);
+      const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${getFileFormat}`,
+        ext: `.${getLangFromBrunoConfig}`,
         name,
         dir: envDirPath
       });
@@ -179,7 +179,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const environment = {
         variables: baseVariables
       };
-      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
+      const content = lang === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -194,9 +194,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const fileFormat = getFileFormat(collection.uid);
+      const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${fileFormat}`,
+        ext: `.${lang}`,
         name: environment.name,
         dir: envDirPath
       });
@@ -208,7 +208,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collection.pathname, environment);
       }
 
-      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
+      const content = lang === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -219,9 +219,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-environment', async (event, collection, environmentName, newName) => {
     try {
       const envDirPath = path.join(collection.pathname, 'environments');
-      const fileFormat = getFileFormat(collection.uid);
+      const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${fileFormat}`,
+        ext: `.${lang}`,
         name: environmentName,
         dir: envDirPath
       });
@@ -230,7 +230,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.format({
-        ext: `.${fileFormat}`,
+        ext: `.${lang}`,
         name: newName,
         dir: envDirPath
       });
@@ -251,7 +251,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collection.pathname, 'environments');
       const envFilePath = path.format({
-        ext: `.${getFileFormat(collection.uid)}`,
+        ext: `.${getLangFromBrunoConfig(collection.uid)}`,
         name: environmentName,
         dir: envDirPath
       });

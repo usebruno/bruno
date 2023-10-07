@@ -10,7 +10,7 @@ const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
-const { setBrunoConfig, getBrunoConfig, getFileFormat } = require('../store/bruno-config');
+const { setBrunoConfig, getBrunoConfig, getLangFromBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -86,7 +86,7 @@ const envHasSecrets = (environment = {}) => {
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
     const { base, name } = path.parse(pathname);
-    const fileFormat = getFileFormat(collectionUid) || 'bru';
+    const lang = getLangFromBrunoConfig(collectionUid) || 'bru';
     const envFileContent = fs.readFileSync(pathname, 'utf8');
 
     const file = {
@@ -95,15 +95,15 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
         pathname: path.format({
           base,
           name,
-          // Overriding extension here to enforce fileFormat preference
-          ext: fileFormat
+          // Overriding extension here to enforce lang preference
+          ext: lang
         }),
         name: base
       },
       data: {
         // TODO: If we add other formats we should extract this functionality for reuse
-        ...(fileFormat === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
-        // format: fileFormat,
+        ...(lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
+        // format: lang,
         name,
         uid: getRequestUid(pathname)
       }
@@ -137,7 +137,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
     const { base, name } = path.parse(pathname);
-    const fileFormat = getFileFormat(collectionUid) || 'bru';
+    const lang = getLangFromBrunoConfig(collectionUid) || 'bru';
     const envFileContent = fs.readFileSync(pathname, 'utf8');
 
     const file = {
@@ -146,15 +146,15 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
         pathname: path.format({
           base,
           name,
-          // Overriding extension here to enforce fileFormat preference
-          ext: fileFormat
+          // Overriding extension here to enforce lang preference
+          ext: lang
         }),
         name: base
       },
       data: {
         // TODO: If we add other formats we should extract this functionality for reuse
-        ...(fileFormat === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
-        // format: fileFormat,
+        ...(lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
+        // format: lang,
         name,
         uid: getRequestUid(pathname)
       }

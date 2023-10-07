@@ -6,7 +6,7 @@ const config = {};
 
 /**
  * @param {string} collectionUid collectionUid is a hash based on the collection path
- * @returns {{ fileFormat: 'bru' | 'json' }}
+ * @returns {{ lang: 'bru' | 'json' }}
  */
 const getBrunoConfig = (collectionUid) => {
   return config[collectionUid] || {};
@@ -21,10 +21,10 @@ const setBrunoConfig = (collectionUid, brunoConfig) => {
  *
  * @param {string} collectionUid
  */
-const getFileFormat = (collectionUid) => getBrunoConfig(collectionUid).fileFormat;
+const getLangFromBrunoConfig = (collectionUid) => getBrunoConfig(collectionUid).lang;
 
 module.exports = {
   getBrunoConfig,
   setBrunoConfig,
-  getFileFormat
+  getLangFromBrunoConfig
 };
