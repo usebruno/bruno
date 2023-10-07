@@ -87,22 +87,23 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
   try {
     const { root, dir, name, base } = path.parse(pathname);
     const lang = getLangFromBrunoConfig(collectionUid);
-    const envFileContent = fs.readFileSync(pathname, 'utf8');
+    const targetFilePath = path.format({
+      root,
+      dir,
+      name,
+      // Overriding extension here to enforce lang preference
+      ext: `.${lang}`
+    });
 
     const file = {
       meta: {
         collectionUid,
-        pathname: path.format({
-          root,
-          dir,
-          name,
-          // Overriding extension here to enforce lang preference
-          ext: lang
-        }),
+        pathname: targetFilePath,
         name: base
       }
     };
 
+    const envFileContent = fs.readFileSync(targetFilePath, 'utf8');
     // TODO: If we add other formats we should extract this functionality for reuse
     file.data = lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent);
     file.name = name;
@@ -137,22 +138,23 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
   try {
     const { root, dir, name, base } = path.parse(pathname);
     const lang = getLangFromBrunoConfig(collectionUid);
-    const envFileContent = fs.readFileSync(pathname, 'utf8');
+    const targetFilePath = path.format({
+      root,
+      dir,
+      name,
+      // Overriding extension here to enforce lang preference
+      ext: `.${lang}`
+    });
 
     const file = {
       meta: {
         collectionUid,
-        pathname: path.format({
-          root,
-          dir,
-          name,
-          // Overriding extension here to enforce lang preference
-          ext: lang
-        }),
+        pathname: targetFilePath,
         name: base
       }
     };
 
+    const envFileContent = fs.readFileSync(targetFilePath, 'utf8');
     // TODO: If we add other formats we should extract this functionality for reuse
     file.data = lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent);
     file.name = name;
