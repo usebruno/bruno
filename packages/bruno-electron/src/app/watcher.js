@@ -39,14 +39,14 @@ const isBrunoConfigFile = (pathname, collectionPath) => {
 /**
  * @param {string} pathname
  * @param {string} collectionPath
+ * @param {string} collectionUid
  * @returns {boolean}
  */
-const isBruEnvironmentConfig = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
+const isBruEnvironmentConfig = (pathname, collectionPath, collectionUid) => {
+  const { dir, ext } = path.parse(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
-  const basename = path.basename(pathname);
 
-  return dirname === envDirectory && hasBruExtension(basename);
+  return dir === envDirectory && getLangFromBrunoConfig(collectionUid) === ext;
 };
 
 const hydrateRequestWithUuid = (request, pathname) => {
@@ -261,7 +261,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
-  if (isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath, collectionUid)) {
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
@@ -340,7 +340,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  if (isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath, collectionUid)) {
     return changeEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
@@ -365,7 +365,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
-  if (isBruEnvironmentConfig(pathname, collectionPath)) {
+  if (isBruEnvironmentConfig(pathname, collectionPath, collectionUid)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
 
