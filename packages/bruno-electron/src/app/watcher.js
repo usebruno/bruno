@@ -10,7 +10,7 @@ const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
-const { setBrunoConfig } = require('../store/bruno-config');
+const { setBrunoConfig, getBrunoConfig, getFileFormat } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -36,6 +36,11 @@ const isBrunoConfigFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'bruno.json';
 };
 
+/**
+ * @param {string} pathname
+ * @param {string} collectionPath
+ * @returns {boolean}
+ */
 const isBruEnvironmentConfig = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const envDirectory = path.join(collectionPath, 'environments');
@@ -72,22 +77,37 @@ const envHasSecrets = (environment = {}) => {
   return secrets && secrets.length > 0;
 };
 
+/**
+ * @param {*} win
+ * @param {string} pathname
+ * @param {string} collectionUid
+ * @param {string} collectionPath
+ */
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
-    const basename = path.basename(pathname);
+    const { base, name } = path.parse(pathname);
+    const fileFormat = getFileFormat(collectionUid) || 'bru';
+    const envFileContent = fs.readFileSync(pathname, 'utf8');
+
     const file = {
       meta: {
         collectionUid,
-        pathname,
-        name: basename
+        pathname: path.format({
+          base,
+          name,
+          // Overriding extension here to enforce fileFormat preference
+          ext: fileFormat
+        }),
+        name: base
+      },
+      data: {
+        // TODO: If we add other formats we should extract this functionality for reuse
+        ...(fileFormat === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
+        // format: fileFormat,
+        name,
+        uid: getRequestUid(pathname)
       }
     };
-
-    let bruContent = fs.readFileSync(pathname, 'utf8');
-
-    file.data = bruToEnvJson(bruContent);
-    file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = getRequestUid(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
@@ -108,21 +128,38 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
   }
 };
 
+/**
+ * @param {*} win
+ * @param {string} pathname
+ * @param {string} collectionUid
+ * @param {string} collectionPath
+ */
 const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
-    const basename = path.basename(pathname);
+    const { base, name } = path.parse(pathname);
+    const fileFormat = getFileFormat(collectionUid) || 'bru';
+    const envFileContent = fs.readFileSync(pathname, 'utf8');
+
     const file = {
       meta: {
         collectionUid,
-        pathname,
-        name: basename
+        pathname: path.format({
+          base,
+          name,
+          // Overriding extension here to enforce fileFormat preference
+          ext: fileFormat
+        }),
+        name: base
+      },
+      data: {
+        // TODO: If we add other formats we should extract this functionality for reuse
+        ...(fileFormat === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
+        // format: fileFormat,
+        name,
+        uid: getRequestUid(pathname)
       }
     };
 
-    const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = bruToEnvJson(bruContent);
-    file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
     // hydrate environment variables with secrets

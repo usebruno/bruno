@@ -20,6 +20,7 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const { getFileFormat } = require('../store/bruno-config');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -130,21 +131,27 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
+  ipcMain.handle('renderer:create-environment', async (event, collection, name) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
+      const envDirPath = path.join(collection.pathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const fileFormat = getFileFormat(collection.uid);
+      const envFilePath = path.format({
+        ext: `.${fileFormat}`,
+        name,
+        dir: envDirPath
+      });
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
-      const content = envJsonToBru({
+      const environment = {
         variables: []
-      });
+      };
+      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -152,21 +159,27 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // copy environment
-  ipcMain.handle('renderer:copy-environment', async (event, collectionPathname, name, baseVariables) => {
+  ipcMain.handle('renderer:copy-environment', async (event, collection, name, baseVariables) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
+      const envDirPath = path.join(collection.pathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const fileFormat = getFileFormat(collection.uid);
+      const envFilePath = path.format({
+        ext: `.${getFileFormat}`,
+        name,
+        dir: envDirPath
+      });
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
-      const content = envJsonToBru({
+      const environment = {
         variables: baseVariables
-      });
+      };
+      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -174,23 +187,28 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // save environment
-  ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
+  ipcMain.handle('renderer:save-environment', async (event, collection, environment) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
+      const envDirPath = path.join(collection.pathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${environment.name}.bru`);
+      const fileFormat = getFileFormat(collection.uid);
+      const envFilePath = path.format({
+        ext: `.${fileFormat}`,
+        name: environment.name,
+        dir: envDirPath
+      });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
       if (envHasSecrets(environment)) {
-        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
+        environmentSecretsStore.storeEnvSecrets(collection.pathname, environment);
       }
 
-      const content = envJsonToBru(environment);
+      const content = fileFormat === 'json' ? JSON.stringify(environment, null, 2) : envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -198,39 +216,52 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // rename environment
-  ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
+  ipcMain.handle('renderer:rename-environment', async (event, collection, environmentName, newName) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      const envDirPath = path.join(collection.pathname, 'environments');
+      const fileFormat = getFileFormat(collection.uid);
+      const envFilePath = path.format({
+        ext: `.${fileFormat}`,
+        name: environmentName,
+        dir: envDirPath
+      });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
-      const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
+      const newEnvFilePath = path.format({
+        ext: `.${fileFormat}`,
+        name: newName,
+        dir: envDirPath
+      });
       if (fs.existsSync(newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
       fs.renameSync(envFilePath, newEnvFilePath);
 
-      environmentSecretsStore.renameEnvironment(collectionPathname, environmentName, newName);
+      environmentSecretsStore.renameEnvironment(collection.pathname, environmentName, newName);
     } catch (error) {
       return Promise.reject(error);
     }
   });
 
   // delete environment
-  ipcMain.handle('renderer:delete-environment', async (event, collectionPathname, environmentName) => {
+  ipcMain.handle('renderer:delete-environment', async (event, collection, environmentName) => {
     try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
+      const envDirPath = path.join(collection.pathname, 'environments');
+      const envFilePath = path.format({
+        ext: `.${getFileFormat(collection.uid)}`,
+        name: environmentName,
+        dir: envDirPath
+      });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
       fs.unlinkSync(envFilePath);
 
-      environmentSecretsStore.deleteEnvironment(collectionPathname, environmentName);
+      environmentSecretsStore.deleteEnvironment(collection.pathname, environmentName);
     } catch (error) {
       return Promise.reject(error);
     }
