@@ -475,6 +475,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:set-preferences', async (event, preferences) => {
     setPreferences(preferences);
+    mainWindow.autoHideMenuBar = preferences.display.autoHideMenu;
+    // doesn't happen automatically when setting autoHideMenuBar to true
+    mainWindow.setMenuBarVisibility(!preferences.display.autoHideMenu);
   });
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {

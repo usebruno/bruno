@@ -6,6 +6,9 @@
  * {
  *   request: {
  *     sslVerification: boolean
+ *   },
+ *   display: {
+ *     autoHideMenu: boolean
  *   }
  * }
  */
