@@ -9,7 +9,8 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const configSchema = Yup.object({
   name: Yup.string().max(256, 'name must be 256 characters or less').required('name is required'),
   type: Yup.string().oneOf(['collection']).required('type is required'),
-  version: Yup.string().oneOf(['1']).required('type is required')
+  version: Yup.string().oneOf(['1']).required('type is required'),
+  lang: Yup.string().oneOf(['bru', 'json']).default('bru')
 });
 
 const readConfigFile = async (pathname) => {
