@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ModalHeader = ({ title, handleCancel }) => (
@@ -63,6 +63,7 @@ const Modal = ({
   hideCancel,
   hideFooter
 }) => {
+  const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
   const escFunction = (event) => {
     const escKeyCode = 27;
@@ -77,10 +78,33 @@ const Modal = ({
   };
 
   useEffect(() => {
-    document.addEventListener('keydown', escFunction, false);
+    const modalElement = modalRef.current;
+    const focusableElements = modalElement.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    console.log(focusableElements);
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Tab') {
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modalElement.addEventListener('keydown', handleKeyDown);
+    // document.addEventListener('keydown', handleEscapeKeyPress);
 
     return () => {
-      document.removeEventListener('keydown', escFunction, false);
+      modalElement.removeEventListener('keydown', handleKeyDown);
+      // document.removeEventListener('keydown', handleEscapeKeyPress);
     };
   }, []);
 
@@ -93,7 +117,7 @@ const Modal = ({
   }
   return (
     <StyledWrapper className={classes}>
-      <div className={`bruno-modal-card modal-${size}`}>
+      <div className={`bruno-modal-card modal-${size}`} ref={modalRef}>
         <ModalHeader title={title} handleCancel={() => closeModal()} />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
