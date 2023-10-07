@@ -486,6 +486,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:open-devtools', async () => {
+    mainWindow.webContents.openDevTools();
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {

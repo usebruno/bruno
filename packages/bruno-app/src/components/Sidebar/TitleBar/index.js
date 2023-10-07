@@ -18,6 +18,7 @@ const TitleBar = () => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
+  const { ipcRenderer } = window;
 
   const handleImportCollection = (collection) => {
     setImportedCollection(collection);
@@ -48,6 +49,10 @@ const TitleBar = () => {
     dispatch(openCollection()).catch(
       (err) => console.log(err) && toast.error('An error occurred while opening the collection')
     );
+  };
+
+  const openDevTools = () => {
+    ipcRenderer.invoke('renderer:open-devtools');
   };
 
   return (
@@ -103,6 +108,15 @@ const TitleBar = () => {
               }}
             >
               Import Collection
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                openDevTools();
+              }}
+            >
+              Devtools
             </div>
           </Dropdown>
         </div>
