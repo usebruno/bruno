@@ -61,20 +61,21 @@ const Modal = ({
   children,
   confirmDisabled,
   hideCancel,
-  hideFooter
+  hideFooter,
+  closeModalFadeTimeout = 500
 }) => {
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
   const escFunction = (event) => {
     const escKeyCode = 27;
     if (event.keyCode === escKeyCode) {
-      closeModal();
+      closeModal({ type: 'esc' });
     }
   };
 
-  const closeModal = () => {
+  const closeModal = (args) => {
     setIsClosing(true);
-    setTimeout(() => handleCancel(), 500);
+    setTimeout(() => handleCancel(args), closeModalFadeTimeout);
   };
 
   useEffect(() => {
@@ -115,12 +116,12 @@ const Modal = ({
   return (
     <StyledWrapper className={classes}>
       <div className={`bruno-modal-card modal-${size}`} ref={modalRef}>
-        <ModalHeader title={title} handleCancel={() => closeModal()} />
+        <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}
           cancelText={cancelText}
-          handleCancel={() => closeModal()}
+          handleCancel={() => closeModal({ type: 'button' })}
           handleSubmit={handleConfirm}
           confirmDisabled={confirmDisabled}
           hideCancel={hideCancel}
@@ -129,7 +130,12 @@ const Modal = ({
       </div>
 
       {/* Clicking on backdrop closes the modal */}
-      <div className="bruno-modal-backdrop" onClick={() => closeModal()} />
+      <div
+        className="bruno-modal-backdrop"
+        onClick={() => {
+          closeModal({ type: 'backdrop' });
+        }}
+      />
     </StyledWrapper>
   );
 };

@@ -26,6 +26,7 @@ import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
   updateLastAction,
+  updateNextAction,
   resetRunResults,
   requestCancelled,
   responseReceived,
@@ -81,8 +82,12 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
+      .then(() => toast.success('Request saved successfully'))
       .then(resolve)
-      .catch(reject);
+      .catch((err) => {
+        toast.error('Failed to save request!');
+        reject(err);
+      });
   });
 };
 
@@ -595,6 +600,19 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        // the useCollectionNextAction() will track this and open the new request in a new tab
+        // once the request is created
+        dispatch(
+          updateNextAction({
+            nextAction: {
+              type: 'OPEN_REQUEST',
+              payload: {
+                pathname: fullName
+              }
+            },
+            collectionUid
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -612,6 +630,20 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+
+          // the useCollectionNextAction() will track this and open the new request in a new tab
+          // once the request is created
+          dispatch(
+            updateNextAction({
+              nextAction: {
+                type: 'OPEN_REQUEST',
+                payload: {
+                  pathname: fullName
+                }
+              },
+              collectionUid
+            })
+          );
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }

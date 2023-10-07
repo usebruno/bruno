@@ -12,16 +12,55 @@ const { dotenvToJson } = require('@usebruno/lang');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
-const printRunSummary = (assertionResults, testResults) => {
-  // display assertion results and test results summary
-  const totalAssertions = assertionResults.length;
-  const passedAssertions = assertionResults.filter((result) => result.status === 'pass').length;
-  const failedAssertions = totalAssertions - passedAssertions;
+const printRunSummary = (results) => {
+  let totalRequests = 0;
+  let passedRequests = 0;
+  let failedRequests = 0;
+  let totalAssertions = 0;
+  let passedAssertions = 0;
+  let failedAssertions = 0;
+  let totalTests = 0;
+  let passedTests = 0;
+  let failedTests = 0;
 
-  const totalTests = testResults.length;
-  const passedTests = testResults.filter((result) => result.status === 'pass').length;
-  const failedTests = totalTests - passedTests;
+  for (const result of results) {
+    totalRequests += 1;
+    totalTests += result.testResults.length;
+    totalAssertions += result.assertionResults.length;
+    let anyFailed = false;
+    let hasAnyTestsOrAssertions = false;
+    for (const testResult of result.testResults) {
+      hasAnyTestsOrAssertions = true;
+      if (testResult.status === 'pass') {
+        passedTests += 1;
+      } else {
+        anyFailed = true;
+        failedTests += 1;
+      }
+    }
+    for (const assertionResult of result.assertionResults) {
+      hasAnyTestsOrAssertions = true;
+      if (assertionResult.status === 'pass') {
+        passedAssertions += 1;
+      } else {
+        anyFailed = true;
+        failedAssertions += 1;
+      }
+    }
+    if (!hasAnyTestsOrAssertions && result.error) {
+      failedRequests += 1;
+    } else {
+      passedRequests += 1;
+    }
+  }
+
   const maxLength = 12;
+
+  let requestSummary = `${rpad('Requests:', maxLength)} ${chalk.green(`${passedRequests} passed`)}`;
+  if (failedRequests > 0) {
+    requestSummary += `, ${chalk.red(`${failedRequests} failed`)}`;
+  }
+  requestSummary += `, ${totalRequests} total`;
 
   let assertSummary = `${rpad('Tests:', maxLength)} ${chalk.green(`${passedTests} passed`)}`;
   if (failedTests > 0) {
@@ -35,10 +74,14 @@ const printRunSummary = (assertionResults, testResults) => {
   }
   testSummary += `, ${totalAssertions} total`;
 
-  console.log('\n' + chalk.bold(assertSummary));
+  console.log('\n' + chalk.bold(requestSummary));
+  console.log(chalk.bold(assertSummary));
   console.log(chalk.bold(testSummary));
 
   return {
+    totalRequests,
+    passedRequests,
+    failedRequests,
     totalAssertions,
     passedAssertions,
     failedAssertions,
@@ -255,9 +298,7 @@ const handler = async function (argv) {
     }
 
     const _isFile = await isFile(filename);
-    let assertionResults = [];
-    let testResults = [];
-    let testrunResults = [];
+    let results = [];
 
     let bruJsons = [];
 
@@ -311,17 +352,12 @@ const handler = async function (argv) {
         brunoConfig
       );
 
-      if (result) {
-        testrunResults.push(result);
-        const { assertionResults: _assertionResults, testResults: _testResults } = result;
-
-        assertionResults = assertionResults.concat(_assertionResults);
-        testResults = testResults.concat(_testResults);
-      }
+      results.push(result);
     }
 
-    const summary = printRunSummary(assertionResults, testResults);
-    console.log(chalk.dim(chalk.grey('Ran all requests.')));
+    const summary = printRunSummary(results);
+    const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
+    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
     if (outputPath && outputPath.length) {
       const outputDir = path.dirname(outputPath);
@@ -333,14 +369,14 @@ const handler = async function (argv) {
 
       const outputJson = {
         summary,
-        results: testrunResults
+        results
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 
-    if (summary.failedAssertions > 0 || summary.failedTests > 0) {
+    if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
       process.exit(1);
     }
   } catch (err) {
@@ -354,5 +390,6 @@ module.exports = {
   command,
   desc,
   builder,
-  handler
+  handler,
+  printRunSummary
 };

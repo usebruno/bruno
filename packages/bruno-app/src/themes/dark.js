@@ -86,7 +86,11 @@ const darkTheme = {
       get: '#8cd656',
       post: '#cd56d6',
       put: '#d69956',
-      delete: '#f06f57'
+      delete: '#f06f57',
+      // customize these colors if needed
+      patch: '#d69956',
+      options: '#d69956',
+      head: '#d69956'
     }
   },
 

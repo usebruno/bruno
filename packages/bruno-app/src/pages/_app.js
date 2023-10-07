@@ -15,6 +15,7 @@ import 'tailwindcss/dist/tailwind.min.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 import 'react-tooltip/dist/react-tooltip.css';
+import '@usebruno/graphql-docs/dist/esm/index.css';
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;

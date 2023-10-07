@@ -14,6 +14,11 @@ const StyledWrapper = styled.div`
     padding-top: 20%;
     overflow: hidden;
     text-align: center;
+
+    .loading-icon {
+      transform: scaleY(-1);
+      animation: rotateCounterClockwise 1s linear infinite;
+    }
   }
 `;
 

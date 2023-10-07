@@ -21,7 +21,7 @@ import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
-
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionItem = ({ item, collection, searchText }) => {
@@ -148,7 +148,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const sortFolderItems = (items = []) => {
     return items.sort((a, b) => a.name.localeCompare(b.name));
   };
-
+  const handleGenerateCode = (e) => {
+    e.stopPropagation();
+    dropdownTippyRef.current.hide();
+    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+      setGenerateCodeItemModalOpen(true);
+    } else {
+      toast.error('URL is required');
+    }
+  };
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -279,9 +287,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    dropdownTippyRef.current.hide();
-                    setGenerateCodeItemModalOpen(true);
+                    handleGenerateCode(e);
                   }}
                 >
                   Generate Code
