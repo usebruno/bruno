@@ -20,7 +20,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
             <StopWatch />
           </div>
         </div>
-        <IconRefresh size={24} className="animate-spin" />
+        <IconRefresh size={24} className="loading-icon" />
         <button
           onClick={handleCancelRequest}
           className="mt-4 uppercase btn-md rounded btn-secondary ease-linear transition-all duration-150"
