@@ -100,11 +100,8 @@ const Modal = ({
     };
 
     modalElement.addEventListener('keydown', handleKeyDown);
-    // document.addEventListener('keydown', handleEscapeKeyPress);
-
     return () => {
       modalElement.removeEventListener('keydown', handleKeyDown);
-      // document.removeEventListener('keydown', handleEscapeKeyPress);
     };
   }, []);
 
