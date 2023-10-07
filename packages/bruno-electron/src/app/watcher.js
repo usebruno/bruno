@@ -2,8 +2,8 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension, writeFile } = require('../utils/filesystem');
-const { bruToEnvJson, envJsonToBru, bruToJson, jsonToBru } = require('../bru');
+const { hasBruExtension } = require('../utils/filesystem');
+const { bruToEnvJson, bruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -14,13 +14,6 @@ const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
-
-const isJsonEnvironmentConfig = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-
-  return dirname === collectionPath && basename === 'environments.json';
-};
 
 const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -196,32 +189,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     } catch (err) {
       console.error(err);
     }
-  }
-
-  if (isJsonEnvironmentConfig(pathname, collectionPath)) {
-    try {
-      const dirname = path.dirname(pathname);
-      const bruContent = fs.readFileSync(pathname, 'utf8');
-
-      const jsonData = JSON.parse(bruContent);
-
-      const envDirectory = path.join(dirname, 'environments');
-      if (!fs.existsSync(envDirectory)) {
-        fs.mkdirSync(envDirectory);
-      }
-
-      for (const env of jsonData) {
-        const bruEnvFilename = path.join(envDirectory, `${env.name}.bru`);
-        const bruContent = envJsonToBru(env);
-        await writeFile(bruEnvFilename, bruContent);
-      }
-
-      await fs.unlinkSync(pathname);
-    } catch (err) {
-      // do nothing
-    }
-
-    return;
   }
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
