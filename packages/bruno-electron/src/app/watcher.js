@@ -85,29 +85,28 @@ const envHasSecrets = (environment = {}) => {
  */
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
-    const { base, name } = path.parse(pathname);
-    const lang = getLangFromBrunoConfig(collectionUid) || 'bru';
+    const { root, dir, name, base } = path.parse(pathname);
+    const lang = getLangFromBrunoConfig(collectionUid);
     const envFileContent = fs.readFileSync(pathname, 'utf8');
 
     const file = {
       meta: {
         collectionUid,
         pathname: path.format({
-          base,
+          root,
+          dir,
           name,
           // Overriding extension here to enforce lang preference
           ext: lang
         }),
         name: base
-      },
-      data: {
-        // TODO: If we add other formats we should extract this functionality for reuse
-        ...(lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
-        // format: lang,
-        name,
-        uid: getRequestUid(pathname)
       }
     };
+
+    // TODO: If we add other formats we should extract this functionality for reuse
+    file.data = lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent);
+    file.name = name;
+    file.uid = getRequestUid(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
@@ -136,29 +135,28 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
  */
 const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
   try {
-    const { base, name } = path.parse(pathname);
-    const lang = getLangFromBrunoConfig(collectionUid) || 'bru';
+    const { root, dir, name, base } = path.parse(pathname);
+    const lang = getLangFromBrunoConfig(collectionUid);
     const envFileContent = fs.readFileSync(pathname, 'utf8');
 
     const file = {
       meta: {
         collectionUid,
         pathname: path.format({
-          base,
+          root,
+          dir,
           name,
           // Overriding extension here to enforce lang preference
           ext: lang
         }),
         name: base
-      },
-      data: {
-        // TODO: If we add other formats we should extract this functionality for reuse
-        ...(lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent)),
-        // format: lang,
-        name,
-        uid: getRequestUid(pathname)
       }
     };
+
+    // TODO: If we add other formats we should extract this functionality for reuse
+    file.data = lang === 'json' ? JSON.parse(envFileContent) : bruToEnvJson(envFileContent);
+    file.name = name;
+    file.uid = getRequestUid(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
