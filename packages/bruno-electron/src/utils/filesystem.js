@@ -70,12 +70,9 @@ const hasJsonExtension = (filename) => {
  * @returns {boolean}
  */
 const hasBruExtension = (filename) => {
-  if (!filename || typeof filename !== 'string') {
-    return false;
-  }
+  if (!filename || typeof filename !== 'string') return false;
 
-  // TODO: Ask @helloanoop if this is safe
-  return ['bru', 'json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
+  return ['bru'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
 };
 
 const createDirectory = async (dir) => {
