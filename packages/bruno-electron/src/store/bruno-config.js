@@ -17,11 +17,11 @@ const setBrunoConfig = (collectionUid, brunoConfig) => {
 };
 
 /**
- * Get default file format from Bruno config.
+ * Get lang from Bruno config.
  *
  * @param {string} collectionUid
  */
-const getLangFromBrunoConfig = (collectionUid) => getBrunoConfig(collectionUid).lang;
+const getLangFromBrunoConfig = (collectionUid) => getBrunoConfig(collectionUid).lang || 'bru';
 
 module.exports = {
   getBrunoConfig,
