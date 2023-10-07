@@ -123,7 +123,7 @@ const itemSchema = Yup.object({
   uid: uidSchema,
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder']).required('type is required'),
   seq: Yup.number().min(1),
-  name: Yup.string().min(1, 'name must be atleast 1 characters').required('name is required'),
+  name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   request: requestSchema.when('type', {
     is: (type) => ['http-request', 'graphql-request'].includes(type),
     then: (schema) => schema.required('request is required when item-type is request')
@@ -138,7 +138,7 @@ const itemSchema = Yup.object({
 const collectionSchema = Yup.object({
   version: Yup.string().oneOf(['1']).required('version is required'),
   uid: uidSchema,
-  name: Yup.string().min(1, 'name must be atleast 1 characters').required('name is required'),
+  name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   items: Yup.array().of(itemSchema),
   activeEnvironmentUid: Yup.string()
     .length(21, 'activeEnvironmentUid must be 21 characters in length')
