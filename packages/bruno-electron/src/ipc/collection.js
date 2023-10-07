@@ -140,9 +140,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${lang}`,
+        dir: envDirPath,
         name,
-        dir: envDirPath
+        ext: `.${lang}`
       });
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
@@ -168,9 +168,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${getLangFromBrunoConfig}`,
+        dir: envDirPath,
         name,
-        dir: envDirPath
+        ext: `.${getLangFromBrunoConfig}`
       });
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
@@ -196,9 +196,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${lang}`,
+        dir: envDirPath,
         name: environment.name,
-        dir: envDirPath
+        ext: `.${lang}`
       });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
@@ -221,18 +221,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const envDirPath = path.join(collection.pathname, 'environments');
       const lang = getLangFromBrunoConfig(collection.uid);
       const envFilePath = path.format({
-        ext: `.${lang}`,
+        dir: envDirPath,
         name: environmentName,
-        dir: envDirPath
+        ext: `.${lang}`
       });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
       const newEnvFilePath = path.format({
-        ext: `.${lang}`,
+        dir: envDirPath,
         name: newName,
-        dir: envDirPath
+        ext: `.${lang}`
       });
       if (fs.existsSync(newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
@@ -251,9 +251,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collection.pathname, 'environments');
       const envFilePath = path.format({
-        ext: `.${getLangFromBrunoConfig(collection.uid)}`,
+        dir: envDirPath,
         name: environmentName,
-        dir: envDirPath
+        ext: `.${getLangFromBrunoConfig(collection.uid)}`
       });
       if (!fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
