@@ -22,6 +22,7 @@ const Wrapper = styled.div`
     justify-content: center;
     overflow-y: auto;
     z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
   }
 
   .bruno-modal-card {
