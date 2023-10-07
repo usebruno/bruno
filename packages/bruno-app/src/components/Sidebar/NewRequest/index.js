@@ -30,7 +30,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         .test({
           name: 'requestName',
           message: 'The request name "index" is reserved in bruno',
-          test: (value) => value && !value.trim().toLowerCase().includes('index')
+          test: (value) => {
+              const regex = /(\s|^)\W*index\W*(\s|$)/i;
+              return value && !regex.test(value);
+          }
         })
     }),
     onSubmit: (values) => {
