@@ -1,4 +1,3 @@
-import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import map from 'lodash/map';
@@ -24,8 +23,9 @@ import {
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
 import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platform';
+import os from 'os';
 
-const PATH_SEPARATOR = path.sep;
+const PATH_SEPARATOR = /Windows/i.test(os.release()) ? '\\' : '/';
 
 const initialState = {
   collections: []
