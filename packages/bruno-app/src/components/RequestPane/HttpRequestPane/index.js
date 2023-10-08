@@ -14,6 +14,7 @@ import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
+import { get } from 'lodash';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -76,17 +77,23 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
+  // get the length of active params and headers
+  const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
+  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const activeParamsLength = params.filter((param) => param.enabled).length;
+  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
-          Query
+          Query {activeParamsLength > 0 && <span>({activeParamsLength})</span>}
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Headers
+          Headers {activeHeadersLength > 0 && <span>({activeHeadersLength})</span>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
