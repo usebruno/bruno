@@ -94,3 +94,7 @@ export const getContentType = (headers) => {
 
   return '';
 };
+
+export const sanitizeFilenme = (name) => {
+  return name.replace(/[^\w-_.]/g, '_');
+};

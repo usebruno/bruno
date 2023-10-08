@@ -142,8 +142,6 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
       });
     }
 
-    console.log(file);
-
     // we are reusing the addEnvironmentFile event itself
     // this is because the uid of the pathname remains the same
     // and the collection tree will be able to update the existing environment

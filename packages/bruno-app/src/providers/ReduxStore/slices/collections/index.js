@@ -979,7 +979,6 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionAddDirectoryEvent: (state, action) => {
-      console.log('ADD DIR', action.payload);
       const { dir } = action.payload;
       const collection = findCollectionByUid(state.collections, dir.meta.collectionUid);
 

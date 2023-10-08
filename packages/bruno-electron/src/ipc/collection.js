@@ -285,6 +285,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newSantitizedPath = path.join(newPath, sanitizeFilenme(newName) + '.bru');
+      console.log(oldPathFull, newSantitizedPath);
+      if (fs.existsSync(newSantitizedPath) && newSantitizedPath !== oldPathFull) {
+        throw new Error(`path: ${newSantitizedPath} already exists`);
+      }
 
       // update name in file and save new copy, then delete old copy
       const data = fs.readFileSync(oldPathFull, 'utf8');
@@ -323,7 +327,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
       if (type === 'folder') {
-        console.log(pathname);
         if (!fs.existsSync(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
         }

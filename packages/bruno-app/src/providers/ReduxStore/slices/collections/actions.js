@@ -1,4 +1,3 @@
-import path from 'path';
 import toast from 'react-hot-toast';
 import trim from 'lodash/trim';
 import find from 'lodash/find';
@@ -45,8 +44,10 @@ import {
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
+import { sanitizeFilenme } from 'utils/common/index';
+import os from 'os';
 
-const PATH_SEPARATOR = path.sep;
+const PATH_SEPARATOR = /Windows/i.test(os.release()) ? '\\' : '/';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -250,7 +251,6 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
-    console.log(collection);
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
     if (!item) {
@@ -584,7 +584,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       if (!reqWithSameNameExists) {
         const { ipcRenderer } = window;
 
-        ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+        ipcRenderer.invoke('renderer:new-request', collection.pathname, item).then(resolve).catch(reject);
         // the useCollectionNextAction() will track this and open the new request in a new tab
         // once the request is created
         dispatch(
@@ -592,7 +592,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
             nextAction: {
               type: 'OPEN_REQUEST',
               payload: {
-                pathname: fullName
+                pathname: collection.pathname + PATH_SEPARATOR + sanitizeFilenme(item.name) + '.bru'
               }
             },
             collectionUid
@@ -622,7 +622,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
               nextAction: {
                 type: 'OPEN_REQUEST',
                 payload: {
-                  pathname: fullName
+                  pathname: collection.pathname + PATH_SEPARATOR + sanitizeFilenme(item.name) + '.bru'
                 }
               },
               collectionUid
