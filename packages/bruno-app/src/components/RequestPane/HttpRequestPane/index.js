@@ -80,8 +80,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   // get the length of active params and headers
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
+
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
+  const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -105,7 +108,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           Script
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
-          Assert
+          Assert {activeAssertionsLength > 0 && <span>({activeAssertionsLength})</span>}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
