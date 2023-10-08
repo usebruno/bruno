@@ -14,7 +14,7 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { getPreferences } = require('../../store/preferences');
+const { preferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
@@ -197,19 +197,16 @@ const registerNetworkIpc = (mainWindow) => {
           cancelTokenUid
         });
 
-        const preferences = getPreferences();
-        const sslVerification = get(preferences, 'request.sslVerification', true);
         const httpsAgentRequestFields = {};
-        if (!sslVerification) {
+        if (!preferences.isTlsVerification()) {
           httpsAgentRequestFields['rejectUnauthorized'] = false;
         } else {
-          const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-          cacertFile = cacertArray.find((el) => el);
+          const cacertArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+          const cacertFile = cacertArray.find((el) => el);
           if (cacertFile && cacertFile.length > 1) {
             try {
               const fs = require('fs');
-              caCrt = fs.readFileSync(cacertFile);
-              httpsAgentRequestFields['ca'] = caCrt;
+              httpsAgentRequestFields['ca'] = fs.readFileSync(cacertFile);
             } catch (err) {
               console.log('Error reading CA cert file:' + cacertFile, err);
             }
@@ -474,10 +471,7 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request);
 
-      const preferences = getPreferences();
-      const sslVerification = get(preferences, 'request.sslVerification', true);
-
-      if (!sslVerification) {
+      if (!preferences.isTlsVerification()) {
         request.httpsAgent = new https.Agent({
           rejectUnauthorized: false
         });
@@ -649,9 +643,6 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
-            const preferences = getPreferences();
-            const sslVerification = get(preferences, 'request.sslVerification', true);
-
             // proxy configuration
             const brunoConfig = getBrunoConfig(collectionUid);
             const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
@@ -685,11 +676,11 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               request.httpsAgent = new HttpsProxyAgent(proxy, {
-                rejectUnauthorized: sslVerification
+                rejectUnauthorized: preferences.isTlsVerification()
               });
 
               request.httpAgent = new HttpProxyAgent(proxy);
-            } else if (!sslVerification) {
+            } else if (!preferences.isTlsVerification()) {
               request.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
               });

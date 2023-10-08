@@ -7,32 +7,64 @@
  * On start, an IPC event is published to the main process to set the preferences in the electron process.
  */
 
-import { useEffect, createContext, useContext } from 'react';
+import { useEffect, createContext, useContext, useMemo } from 'react';
 import * as Yup from 'yup';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import toast from 'react-hot-toast';
 
-const defaultPreferences = {
-  request: {
-    sslVerification: true
-  }
-};
-
-const preferencesSchema = Yup.object().shape({
-  request: Yup.object().shape({
-    sslVerification: Yup.boolean()
+const preferencesSchema = Yup.object({
+  request: Yup.object({
+    sslVerification: Yup.boolean(),
+    caCert: Yup.string().max(1024)
+  }),
+  proxy: Yup.object({
+    enabled: Yup.boolean(),
+    protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
+    hostname: Yup.string().max(1024),
+    port: Yup.number().min(0).max(65535),
+    auth: Yup.object({
+      enabled: Yup.boolean(),
+      username: Yup.string().max(1024),
+      password: Yup.string().max(1024)
+    }),
+    noProxy: Yup.string().max(1024)
   })
 });
 
 export const PreferencesContext = createContext();
 export const PreferencesProvider = (props) => {
-  const [preferences, setPreferences] = useLocalStorage('bruno.preferences', defaultPreferences);
+  // TODO: Remove migration later
+  const [localStorePreferences] = useLocalStorage('bruno.preferences');
+
+  const preferences = {};
   const { ipcRenderer } = window;
 
   useEffect(() => {
-    ipcRenderer.invoke('renderer:set-preferences', preferences).catch((err) => {
-      toast.error(err.message || 'Preferences sync error');
+    // TODO: Remove migration later
+    if (localStorePreferences?.request) {
+      console.log('migrate prefs from localStorage ' + JSON.stringify(localStorePreferences));
+      ipcRenderer
+        .invoke('renderer:migrate-preferences', localStorePreferences.request.sslVerification)
+        .then(() => {
+          localStorage.removeItem('bruno.preferences');
+        })
+        .catch((err) => {
+          toast.error(err.message || 'Preferences sync error');
+        });
+    }
+
+    const removeListener = ipcRenderer.on('main:preferences-read', (currentPreferences) => {
+      if (currentPreferences.request) {
+        preferences.request = currentPreferences.request;
+      }
+      if (currentPreferences.proxy) {
+        preferences.proxy = currentPreferences.proxy;
+      }
     });
+
+    return () => {
+      removeListener();
+    };
   }, [preferences, toast]);
 
   const validatedSetPreferences = (newPreferences) => {
@@ -40,7 +72,15 @@ export const PreferencesProvider = (props) => {
       preferencesSchema
         .validate(newPreferences, { abortEarly: true })
         .then((validatedPreferences) => {
-          setPreferences(validatedPreferences);
+          ipcRenderer
+            .invoke('renderer:set-preferences', validatedPreferences)
+            .then(() => {
+              preferences.request = validatedPreferences.request;
+              preferences.proxy = validatedPreferences.proxy;
+            })
+            .catch((err) => {
+              toast.error(err.message || 'Preferences sync error');
+            });
           resolve(validatedPreferences);
         })
         .catch((error) => {
@@ -51,11 +91,13 @@ export const PreferencesProvider = (props) => {
     });
   };
 
-  // todo: setPreferences must validate the preferences object against a schema
-  const value = {
-    preferences,
-    setPreferences: validatedSetPreferences
-  };
+  const value = useMemo(
+    () => ({
+      preferences,
+      setPreferences: validatedSetPreferences
+    }),
+    [preferences, validatedSetPreferences]
+  );
 
   return (
     <PreferencesContext.Provider value={value}>

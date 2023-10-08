@@ -8,8 +8,10 @@ const menuTemplate = require('./app/menu-template');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerApplicationIpc = require('./ipc/application');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveWindowState } = require('./utils/window');
+const preferences = require('./store/preferences');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -68,8 +70,9 @@ app.on('ready', async () => {
   });
 
   // register all ipc handlers
-  registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
+  registerApplicationIpc(mainWindow, preferences);
 });
 
 // Quit the app once all windows are closed

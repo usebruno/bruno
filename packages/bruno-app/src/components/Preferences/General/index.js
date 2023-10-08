@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { usePreferences } from 'providers/Preferences';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
 
 const General = () => {
   const { preferences, setPreferences } = usePreferences();
 
-  const [sslVerification, setSslVerification] = useState(preferences.request.sslVerification);
+  const [tlsVerification, setTlsVerification] = useState(preferences.request.tlsVerification);
 
   const handleCheckboxChange = () => {
     const updatedPreferences = {
       ...preferences,
       request: {
         ...preferences.request,
-        sslVerification: !sslVerification
+        tlsVerification: !tlsVerification
       }
     };
 
     setPreferences(updatedPreferences)
       .then(() => {
-        setSslVerification(!sslVerification);
+        setTlsVerification(!tlsVerification);
+        toast.success('Request settings saved successful.');
       })
       .catch((err) => {
         console.error(err);
@@ -28,8 +30,8 @@ const General = () => {
   return (
     <StyledWrapper>
       <div className="flex items-center mt-2">
-        <input type="checkbox" checked={sslVerification} onChange={handleCheckboxChange} className="mr-3 mousetrap" />
-        SSL Certificate Verification
+        <input type="checkbox" checked={tlsVerification} onChange={handleCheckboxChange} className="mr-3 mousetrap" />
+        TLS Certificate Verification
       </div>
     </StyledWrapper>
   );

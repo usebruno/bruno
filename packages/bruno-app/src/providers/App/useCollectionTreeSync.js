@@ -82,7 +82,7 @@ const useCollectionTreeSync = () => {
       }
     };
 
-    const _collectionAlreadyOpened = (pathname) => {
+    const _collectionAlreadyOpened = () => {
       toast.success('Collection is already opened');
     };
 
@@ -115,7 +115,8 @@ const useCollectionTreeSync = () => {
       dispatch(runRequestEvent(val));
     };
 
-    ipcRenderer.invoke('renderer:ready');
+    ipcRenderer.invoke('renderer:ready-application');
+    ipcRenderer.invoke('renderer:ready-collection');
 
     const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
     const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);

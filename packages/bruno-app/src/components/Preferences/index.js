@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Support from './Support';
 import General from './General';
 import Theme from './Theme';
+import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
 
 const Preferences = ({ onClose }) => {
@@ -19,6 +20,10 @@ const Preferences = ({ onClose }) => {
     switch (tab) {
       case 'general': {
         return <General />;
+      }
+
+      case 'proxy': {
+        return <Proxy />;
       }
 
       case 'theme': {
@@ -40,6 +45,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
             Theme
+          </div>
+          <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+            Proxy
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support

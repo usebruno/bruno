@@ -1,25 +1,29 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import toast from 'react-hot-toast';
 
 import StyledWrapper from './StyledWrapper';
+import { usePreferences } from 'providers/Preferences';
 
-const ProxySettings = ({ proxyConfig, onUpdate }) => {
+const ProxySettings = () => {
+  const { preferences, setPreferences } = usePreferences();
+
   const formik = useFormik({
     initialValues: {
-      enabled: proxyConfig.enabled || 'global',
-      protocol: proxyConfig.protocol || 'http',
-      hostname: proxyConfig.hostname || '',
-      port: proxyConfig.port || '',
+      enabled: preferences.proxy.enabled || false,
+      protocol: preferences.proxy.protocol || 'http',
+      hostname: preferences.proxy.hostname || '',
+      port: preferences.proxy.port || 0,
       auth: {
-        enabled: proxyConfig.auth ? proxyConfig.auth.enabled || false : false,
-        username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
-        password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
+        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
+        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
+        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      noProxy: proxyConfig.noProxy || ''
+      noProxy: preferences.proxy.noProxy || ''
     },
     validationSchema: Yup.object({
-      enabled: Yup.string().oneOf(['global', 'enabled', 'disabled']),
+      enabled: Yup.boolean(),
       protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(0).max(65535),
@@ -35,20 +39,35 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
     }
   });
 
+  const onUpdate = (values) => {
+    const updatedPreferences = {
+      ...preferences,
+      proxy: values
+    };
+
+    setPreferences(updatedPreferences)
+      .then(() => {
+        toast.success('Proxy settings updated successfully.');
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  };
+
   useEffect(() => {
     formik.setValues({
-      enabled: proxyConfig.enabled || 'global',
-      protocol: proxyConfig.protocol || 'http',
-      hostname: proxyConfig.hostname || '',
-      port: proxyConfig.port || '',
+      enabled: preferences.proxy.enabled || false,
+      protocol: preferences.proxy.protocol || 'http',
+      hostname: preferences.proxy.hostname || '',
+      port: preferences.proxy.port || '',
       auth: {
-        enabled: proxyConfig.auth ? proxyConfig.auth.enabled || false : false,
-        username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
-        password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
+        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
+        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
+        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      noProxy: proxyConfig.noProxy || ''
+      noProxy: preferences.proxy.noProxy || ''
     });
-  }, [proxyConfig]);
+  }, [preferences]);
 
   return (
     <StyledWrapper>
@@ -56,43 +75,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="ml-4 mb-3 flex items-center">
           <label className="settings-label" htmlFor="enabled">
-            Usage
+            Enabled
           </label>
-          <div className="flex items-center">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="enabled"
-                value="global"
-                checked={formik.values.enabled === 'global'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              use global settings
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="enabled"
-                value="enabled"
-                checked={formik.values.enabled === 'enabled'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              enabled
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="enabled"
-                value="disabled"
-                checked={formik.values.enabled === 'disabled'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              disabled
-            </label>
-          </div>
+          <input type="checkbox" name="enabled" checked={formik.values.enabled} onChange={formik.handleChange} />
         </div>
         <div className="ml-4 mb-3 flex items-center">
           <label className="settings-label" htmlFor="protocol">
