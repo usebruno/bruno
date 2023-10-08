@@ -14,8 +14,30 @@ vars {
     expect(output).toEqual(expected);
   });
 
+  it('should parse empty vars with meta', () => {
+    const input = `
+meta {
+  name: This is a test
+}
+
+vars {
+}`;
+
+    const output = parser(input);
+    const expected = {
+      variables: [],
+      name: 'This is a test'
+    };
+
+    expect(output).toEqual(expected);
+  });
+
   it('should parse single var line', () => {
     const input = `
+meta {
+  name: This is a test
+}
+
 vars {
   url: http://localhost:3000
 }`;
@@ -29,7 +51,8 @@ vars {
           enabled: true,
           secret: false
         }
-      ]
+      ],
+      name: 'This is a test'
     };
 
     expect(output).toEqual(expected);
@@ -37,6 +60,10 @@ vars {
 
   it('should parse multiple var lines', () => {
     const input = `
+meta {
+  name: This is a test
+}
+
 vars {
   url: http://localhost:3000
   port: 3000
@@ -45,6 +72,7 @@ vars {
 
     const output = parser(input);
     const expected = {
+      name: 'This is a test',
       variables: [
         {
           name: 'url',
@@ -73,6 +101,11 @@ vars {
   it('should gracefully handle empty lines and spaces', () => {
     const input = `
 
+meta {
+    name: Yet another test
+    other-thing: ignore me
+}
+
 vars {
       url:     http://localhost:3000   
   port: 3000
@@ -82,6 +115,7 @@ vars {
 
     const output = parser(input);
     const expected = {
+      name: 'Yet another test',
       variables: [
         {
           name: 'url',

@@ -3,11 +3,16 @@ const parser = require('../src/jsonToEnv');
 describe('env parser', () => {
   it('should parse empty vars', () => {
     const input = {
-      variables: []
+      variables: [],
+      name: 'test'
     };
 
     const output = parser(input);
-    const expected = `vars {
+    const expected = `meta {
+  name: test
+}
+
+vars {
 }
 `;
 
@@ -22,11 +27,16 @@ describe('env parser', () => {
           value: 'http://localhost:3000',
           enabled: true
         }
-      ]
+      ],
+      name: 'test'
     };
 
     const output = parser(input);
-    const expected = `vars {
+    const expected = `meta {
+  name: test
+}
+
+vars {
   url: http://localhost:3000
 }
 `;
@@ -46,10 +56,15 @@ describe('env parser', () => {
           value: '3000',
           enabled: false
         }
-      ]
+      ],
+      name: 'test'
     };
 
-    const expected = `vars {
+    const expected = `meta {
+  name: test
+}
+
+vars {
   url: http://localhost:3000
   ~port: 3000
 }
@@ -72,11 +87,16 @@ describe('env parser', () => {
           enabled: true,
           secret: true
         }
-      ]
+      ],
+      name: 'test'
     };
 
     const output = parser(input);
-    const expected = `vars {
+    const expected = `meta {
+  name: test
+}
+
+vars {
   url: http://localhost:3000
 }
 vars:secret [
@@ -106,11 +126,16 @@ vars:secret [
           enabled: false,
           secret: true
         }
-      ]
+      ],
+      name: 'test'
     };
 
     const output = parser(input);
-    const expected = `vars {
+    const expected = `meta {
+  name: test
+}
+
+vars {
   url: http://localhost:3000
 }
 vars:secret [
@@ -130,11 +155,16 @@ vars:secret [
           enabled: true,
           secret: true
         }
-      ]
+      ],
+      name: 'test'
     };
 
     const output = parser(input);
-    const expected = `vars:secret [
+    const expected = `meta {
+  name: test
+}
+
+vars:secret [
   token
 ]
 `;
