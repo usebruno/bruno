@@ -16,11 +16,12 @@ import RenameCollectionItem from './RenameCollectionItem';
 import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
+import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
-
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionItem = ({ item, collection, searchText }) => {
@@ -32,6 +33,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
@@ -113,6 +115,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
+  const handleDoubleClick = (event) => {
+    setRenameItemModalOpen(true);
+  };
+
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const isFolder = isItemAFolder(item);
@@ -142,7 +148,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const sortFolderItems = (items = []) => {
     return items.sort((a, b) => a.name.localeCompare(b.name));
   };
-
+  const handleGenerateCode = (e) => {
+    e.stopPropagation();
+    dropdownTippyRef.current.hide();
+    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+      setGenerateCodeItemModalOpen(true);
+    } else {
+      toast.error('URL is required');
+    }
+  };
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -166,6 +180,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {runCollectionModalOpen && (
         <RunCollectionItem collection={collection} item={item} onClose={() => setRunCollectionModalOpen(false)} />
       )}
+      {generateCodeItemModalOpen && (
+        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+      )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -173,6 +190,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 return (
                   <div
                     onClick={handleClick}
+                    onDoubleClick={handleDoubleClick}
                     className="indent-block"
                     key={i}
                     style={{
@@ -188,6 +206,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             : null}
           <div
             onClick={handleClick}
+            onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
               paddingLeft: 8
@@ -262,6 +281,16 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   }}
                 >
                   Clone
+                </div>
+              )}
+              {!isFolder && item.type === 'http-request' && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    handleGenerateCode(e);
+                  }}
+                >
+                  Generate Code
                 </div>
               )}
               <div

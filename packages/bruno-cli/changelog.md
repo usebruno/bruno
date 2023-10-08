@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+- feat(#306) Module whitelisting and filesystem access support
+
+## 0.12.0
+
+- show response time in milliseconds per request and total
+
+## 0.11.0
+
+- fix(#119) Support for Basic and Bearer Auth
+
 ## 0.10.1
 
 - fix(#233) Fixed Issue related to content header parsing

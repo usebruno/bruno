@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  color: ${(props) => props.theme.text};
+
   &.modal--animate-out {
     animation: fade-out 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
 
@@ -20,6 +22,7 @@ const Wrapper = styled.div`
     justify-content: center;
     overflow-y: auto;
     z-index: 10;
+    background-color: rgba(0, 0, 0, 0.5);
   }
 
   .bruno-modal-card {

@@ -6,7 +6,7 @@ import { simpleHash } from 'utils/common';
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
-const useGraphqlSchema = (endpoint, environment) => {
+const useGraphqlSchema = (endpoint, environment, request, collection) => {
   const localStorageKey = `${schemaHashPrefix}.${simpleHash(endpoint)}`;
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,7 @@ const useGraphqlSchema = (endpoint, environment) => {
 
   const loadSchema = () => {
     setIsLoading(true);
-    fetchGqlSchema(endpoint, environment)
+    fetchGqlSchema(endpoint, environment, request, collection)
       .then((res) => res.data)
       .then((s) => {
         if (s && s.data) {

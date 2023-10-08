@@ -2,7 +2,6 @@ import React from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
-import { getContentType, formatResponse } from 'utils/common';
 import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
@@ -41,8 +40,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             item={item}
             collection={collection}
             width={rightPaneWidth}
-            value={response.data ? formatResponse(response) : ''}
-            mode={getContentType(response.headers)}
+            data={response.data}
+            headers={response.headers}
           />
         );
       }
@@ -62,15 +61,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !item.response) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <StyledWrapper className="flex flex-col h-full relative">
         <Overlay item={item} collection={collection} />
       </StyledWrapper>
     );
   }
 
-  if (response.state !== 'success') {
+  if (!item.response) {
     return (
       <StyledWrapper className="flex h-full relative">
         <Placeholder />
@@ -116,7 +115,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           </div>
         ) : null}
       </div>
-      <section className="flex flex-grow mt-5">{getTabPanel(focusedTab.responsePaneTab)}</section>
+      <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
+        {isLoading ? <Overlay item={item} collection={collection} /> : null}
+        {getTabPanel(focusedTab.responsePaneTab)}
+      </section>
     </StyledWrapper>
   );
 };

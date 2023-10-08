@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const { bruToJsonV2, jsonToBruV2, bruToEnvJsonV2, envJsonToBruV2 } = require('@usebruno/lang');
-const { each } = require('lodash');
 
 const bruToEnvJson = (bru) => {
   try {
@@ -10,7 +9,7 @@ const bruToEnvJson = (bru) => {
     // this need to be evaluated and safely removed
     // i don't see it being used in schema validation
     if (json && json.variables && json.variables.length) {
-      each(json.variables, (v) => (v.type = 'text'));
+      _.each(json.variables, (v) => (v.type = 'text'));
     }
 
     return json;
@@ -61,6 +60,7 @@ const bruToJson = (bru) => {
         url: _.get(json, 'http.url'),
         params: _.get(json, 'query', []),
         headers: _.get(json, 'headers', []),
+        auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
@@ -69,6 +69,7 @@ const bruToJson = (bru) => {
       }
     };
 
+    transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
     transformedJson.request.body.mode = _.get(json, 'http.body', 'none');
 
     return transformedJson;
@@ -104,10 +105,12 @@ const jsonToBru = (json) => {
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),
       url: _.get(json, 'request.url'),
+      auth: _.get(json, 'request.auth.mode', 'none'),
       body: _.get(json, 'request.body.mode', 'none')
     },
     query: _.get(json, 'request.params', []),
     headers: _.get(json, 'request.headers', []),
+    auth: _.get(json, 'request.auth', {}),
     body: _.get(json, 'request.body', {}),
     script: _.get(json, 'request.script', {}),
     vars: {

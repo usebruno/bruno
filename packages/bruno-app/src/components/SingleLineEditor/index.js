@@ -66,6 +66,7 @@ class SingleLineEditor extends Component {
         variables: getAllVariables(this.props.collection)
       },
       scrollbarStyle: null,
+      tabindex: 0,
       extraKeys: {
         Enter: () => {
           if (this.props.onRun) {
@@ -104,7 +105,9 @@ class SingleLineEditor extends Component {
         },
         'Cmd-F': () => {},
         'Ctrl-F': () => {},
-        Tab: () => {}
+        // Tabbing disabled to make tabindex work
+        Tab: false,
+        'Shift-Tab': false
       }
     });
     if (this.props.autocomplete) {

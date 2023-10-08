@@ -25,7 +25,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     },
     validationSchema: Yup.object({
       requestName: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .required('name is required')
         .test({
           name: 'requestName',

@@ -16,7 +16,7 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import CollectionProperties from './CollectionProperties';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToIdb } from 'utils/collections';
+import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
@@ -69,7 +69,7 @@ const Collection = ({ collection, searchText }) => {
 
   const handleExportClick = () => {
     const collectionCopy = cloneDeep(collection);
-    exportCollection(transformCollectionToSaveToIdb(collectionCopy));
+    exportCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
   };
 
   const [{ isOver }, drop] = useDrop({

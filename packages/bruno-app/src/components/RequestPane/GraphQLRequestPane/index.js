@@ -6,6 +6,7 @@ import { IconRefresh, IconLoader2, IconBook, IconDownload } from '@tabler/icons'
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
+import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import Vars from 'components/RequestPane/Vars';
@@ -32,7 +33,14 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
 
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
 
-  let { schema, loadSchema, isLoading: isSchemaLoading, error: schemaError } = useGraphqlSchema(url, environment);
+  const request = item.draft ? item.draft.request : item.request;
+
+  let {
+    schema,
+    loadSchema,
+    isLoading: isSchemaLoading,
+    error: schemaError
+  } = useGraphqlSchema(url, environment, request, collection);
 
   const loadGqlSchema = () => {
     if (!isSchemaLoading) {
@@ -90,6 +98,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       case 'headers': {
         return <RequestHeaders item={item} collection={collection} />;
       }
+      case 'auth': {
+        return <Auth item={item} collection={collection} />;
+      }
       case 'vars': {
         return <Vars item={item} collection={collection} />;
       }
@@ -134,6 +145,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+        </div>
+        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
+          Auth
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars

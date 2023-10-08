@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.10.1",
+  "version": "0.13.0",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -13,6 +13,9 @@
     "type": "git",
     "url": "git+https://github.com/usebruno/bruno.git"
   },
+  "scripts": {
+    "test": "jest"
+  },
   "files": [
     "src",
     "bin",
@@ -21,14 +24,17 @@
     "package.json"
   ],
   "dependencies": {
-    "@usebruno/js": "0.6.0",
-    "@usebruno/lang": "0.4.0",
+    "@usebruno/js": "0.8.0",
+    "@usebruno/lang": "0.5.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
+    "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "handlebars": "^4.7.8",
+    "http-proxy-agent": "^7.0.0",
+    "https-proxy-agent": "^7.0.2",
     "inquirer": "^9.1.4",
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",

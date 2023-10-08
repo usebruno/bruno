@@ -1,15 +1,19 @@
 const qs = require('qs');
 const chalk = require('chalk');
+const decomment = require('decomment');
 const fs = require('fs');
 const { forOwn, each, extend, get } = require('lodash');
 const FormData = require('form-data');
-const axios = require('axios');
-const https = require('https');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
+const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
+const https = require('https');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+const { makeAxiosInstance } = require('../utils/axios-instance');
 
 const runSingleRequest = async function (
   filename,
@@ -20,10 +24,12 @@ const runSingleRequest = async function (
   processEnvVars,
   brunoConfig
 ) {
-  let request;
-
   try {
+    let request;
+
     request = prepareRequest(bruJson.request);
+
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -55,39 +61,15 @@ const runSingleRequest = async function (
     if (requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runRequestScript(
-        requestScriptFile,
+        decomment(requestScriptFile),
         request,
         envVariables,
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
-    }
-
-    // set proxy if enabled
-    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    if (proxyEnabled) {
-      const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-      const proxyHostname = get(brunoConfig, 'proxy.hostname');
-      const proxyPort = get(brunoConfig, 'proxy.port');
-      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-      const proxyConfig = {
-        protocol: proxyProtocol,
-        hostname: proxyHostname,
-        port: proxyPort
-      };
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-        const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-        proxyConfig.auth = {
-          username: proxyAuthUsername,
-          password: proxyAuthPassword
-        };
-      }
-
-      request.proxy = proxyConfig;
     }
 
     // interpolate variables inside request
@@ -111,7 +93,39 @@ const runSingleRequest = async function (
       }
     }
 
-    if (Object.keys(httpsAgentRequestFields).length > 0) {
+    // set proxy if enabled
+    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+    if (proxyEnabled) {
+      let proxy;
+      const interpolationOptions = {
+        envVars: envVariables,
+        collectionVariables,
+        processEnvVars
+      };
+
+      const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
+      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+      interpolateString;
+
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
+
+        proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      } else {
+        proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      }
+
+      request.httpsAgent = new HttpsProxyAgent(
+        proxy,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+
+      request.httpAgent = new HttpProxyAgent(proxy);
+    } else if (Object.keys(httpsAgentRequestFields).length > 0) {
       request.httpsAgent = new https.Agent({
         ...httpsAgentRequestFields
       });
@@ -122,10 +136,51 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
-    // run request
-    const response = await axios(request);
+    let response, responseTime;
+    try {
+      // run request
+      const axiosInstance = makeAxiosInstance();
 
-    console.log(chalk.green(stripExtension(filename)) + chalk.dim(` (${response.status} ${response.statusText})`));
+      /** @type {import('axios').AxiosResponse} */
+      response = await axiosInstance(request);
+
+      // Prevents the duration on leaking to the actual result
+      responseTime = response.headers.get('request-duration');
+      response.headers.delete('request-duration');
+    } catch (err) {
+      if (err && err.response) {
+        response = err.response;
+
+        // Prevents the duration on leaking to the actual result
+        responseTime = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
+      } else {
+        console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
+        return {
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data
+          },
+          response: {
+            status: null,
+            statusText: null,
+            headers: null,
+            data: null,
+            responseTime: 0
+          },
+          error: err.message,
+          assertionResults: [],
+          testResults: []
+        };
+      }
+    }
+
+    console.log(
+      chalk.green(stripExtension(filename)) +
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+    );
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
@@ -147,21 +202,22 @@ const runSingleRequest = async function (
     if (responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runResponseScript(
-        responseScriptFile,
+        decomment(responseScriptFile),
         request,
         response,
         envVariables,
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
     }
 
     // run assertions
     let assertionResults = [];
     const assertions = get(bruJson, 'request.assertions');
-    if (assertions && assertions.length) {
+    if (assertions) {
       const assertRuntime = new AssertRuntime();
       assertionResults = assertRuntime.runAssertions(
         assertions,
@@ -185,17 +241,18 @@ const runSingleRequest = async function (
     // run tests
     let testResults = [];
     const testFile = get(bruJson, 'request.tests');
-    if (testFile && testFile.length) {
+    if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime();
       const result = await testRuntime.runTests(
-        testFile,
+        decomment(testFile),
         request,
         response,
         envVariables,
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
       testResults = get(result, 'results', []);
     }
@@ -221,102 +278,32 @@ const runSingleRequest = async function (
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data
+        data: response.data,
+        responseTime
       },
+      error: null,
       assertionResults,
       testResults
     };
   } catch (err) {
-    if (err && err.response) {
-      console.log(
-        chalk.green(stripExtension(filename)) + chalk.dim(` (${err.response.status} ${err.response.statusText})`)
-      );
-
-      // run post-response vars
-      const postResponseVars = get(bruJson, 'request.vars.res');
-      if (postResponseVars && postResponseVars.length) {
-        const varsRuntime = new VarsRuntime();
-        varsRuntime.runPostResponseVars(
-          postResponseVars,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
-      }
-
-      // run post response script
-      const responseScriptFile = get(bruJson, 'request.script.res');
-      if (responseScriptFile && responseScriptFile.length) {
-        const scriptRuntime = new ScriptRuntime();
-        await scriptRuntime.runResponseScript(
-          responseScriptFile,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars
-        );
-      }
-
-      // run assertions
-      let assertionResults = [];
-      const assertions = get(bruJson, 'request.assertions');
-      if (assertions && assertions.length) {
-        const assertRuntime = new AssertRuntime();
-        assertionResults = assertRuntime.runAssertions(
-          assertions,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath
-        );
-
-        each(assertionResults, (r) => {
-          if (r.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(`assert: ${r.lhsExpr}: ${r.rhsExpr}`));
-            console.log(chalk.red(`      ${r.error}`));
-          }
-        });
-      }
-
-      // run tests
-      let testResults = [];
-      const testFile = get(bruJson, 'request.tests');
-      if (testFile && testFile.length) {
-        const testRuntime = new TestRuntime();
-        const result = await testRuntime.runTests(
-          testFile,
-          request,
-          err.response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars
-        );
-        testResults = get(result, 'results', []);
-      }
-
-      if (testResults && testResults.length) {
-        each(testResults, (testResult) => {
-          if (testResult.status === 'pass') {
-            console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));
-          } else {
-            console.log(chalk.red(`   ✕ `) + chalk.red(testResult.description));
-          }
-        });
-      }
-    } else {
-      console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
-    }
+    return {
+      request: {
+        method: null,
+        url: null,
+        headers: null,
+        data: null
+      },
+      response: {
+        status: null,
+        statusText: null,
+        headers: null,
+        data: null,
+        responseTime: 0
+      },
+      error: err.message,
+      assertionResults: [],
+      testResults: []
+    };
   }
 };
 

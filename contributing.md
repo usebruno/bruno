@@ -1,3 +1,5 @@
+**English** | [Русский](/contributing_ru.md)
+
 ## Lets make bruno better, together !!
 
 I am happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
@@ -19,7 +21,7 @@ Libraries we use
 
 ### Dependencies
 
-You would need [Node v14.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ### Lets start coding
 

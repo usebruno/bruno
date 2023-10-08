@@ -51,6 +51,17 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
+export const safeParseXML = (str, options) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+  try {
+    return xmlFormat(str, options);
+  } catch (e) {
+    return str;
+  }
+};
+
 // Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
 export const normalizeFileName = (name) => {
   if (!name) {
@@ -80,16 +91,6 @@ export const getContentType = (headers) => {
       return contentType[0];
     }
   }
-  return '';
-};
 
-export const formatResponse = (response) => {
-  let type = getContentType(response.headers);
-  if (type.includes('json')) {
-    return safeStringifyJSON(response.data, true);
-  }
-  if (type.includes('xml')) {
-    return xmlFormat(response.data, { collapseContent: true });
-  }
-  return response.data;
+  return '';
 };

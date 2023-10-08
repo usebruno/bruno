@@ -7,7 +7,8 @@
   "http": {
     "method": "get",
     "url": "https://api.textlocal.in/send",
-    "body": "json"
+    "body": "json",
+    "auth": "bearer"
   },
   "query": [
     {
@@ -43,6 +44,15 @@
       "enabled": false
     }
   ],
+  "auth": {
+    "basic": {
+      "username": "john",
+      "password": "secret"
+    },
+    "bearer": {
+      "token": "123"
+    }
+  },
   "body": {
     "json": "{\n  \"hello\": \"world\"\n}",
     "text": "This is a text body",

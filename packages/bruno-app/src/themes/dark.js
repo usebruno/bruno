@@ -9,11 +9,18 @@ const darkTheme = {
       green: 'rgb(11 178 126)',
       danger: '#f06f57',
       muted: '#9d9d9d',
-      purple: '#cd56d6'
+      purple: '#cd56d6',
+      yellow: '#f59e0b'
     },
     bg: {
       danger: '#d03544'
     }
+  },
+
+  input: {
+    bg: 'rgb(65, 65, 65)',
+    border: 'rgb(65, 65, 65)',
+    focusBorder: 'rgb(65, 65, 65)'
   },
 
   variables: {
@@ -79,7 +86,11 @@ const darkTheme = {
       get: '#8cd656',
       post: '#cd56d6',
       put: '#d69956',
-      delete: '#f06f57'
+      delete: '#f06f57',
+      // customize these colors if needed
+      patch: '#d69956',
+      options: '#d69956',
+      head: '#d69956'
     }
   },
 
@@ -98,7 +109,8 @@ const darkTheme = {
     responseSendIcon: '#555',
     responseStatus: '#ccc',
     responseOk: '#8cd656',
-    responseError: '#f06f57'
+    responseError: '#f06f57',
+    responseOverlayBg: 'rgba(30, 30, 30, 0.6)'
   },
 
   collection: {

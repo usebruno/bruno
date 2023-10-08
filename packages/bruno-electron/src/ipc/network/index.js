@@ -1,6 +1,7 @@
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
+const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
@@ -11,10 +12,14 @@ const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-requ
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
+const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+const { HttpProxyAgent } = require('http-proxy-agent');
+const { makeAxiosInstance } = require('./axios-instance');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -103,6 +108,8 @@ const registerNetworkIpc = (mainWindow) => {
       const request = prepareRequest(_request);
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
 
       try {
         // make axios work in node using form data
@@ -148,13 +155,14 @@ const registerNetworkIpc = (mainWindow) => {
         if (requestScript && requestScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runRequestScript(
-            requestScript,
+            decomment(requestScript),
             request,
             envVars,
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -163,32 +171,6 @@ const registerNetworkIpc = (mainWindow) => {
             requestUid,
             collectionUid
           });
-        }
-
-        // proxy configuration
-        const brunoConfig = getBrunoConfig(collectionUid);
-        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-        if (proxyEnabled) {
-          const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-          const proxyHostname = get(brunoConfig, 'proxy.hostname');
-          const proxyPort = get(brunoConfig, 'proxy.port');
-          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-          const proxyConfig = {
-            protocol: proxyProtocol,
-            hostname: proxyHostname,
-            port: proxyPort
-          };
-          if (proxyAuthEnabled) {
-            const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-            const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-            proxyConfig.auth = {
-              username: proxyAuthUsername,
-              password: proxyAuthPassword
-            };
-          }
-
-          request.proxy = proxyConfig;
         }
 
         interpolateVars(request, envVars, collectionVariables, processEnvVars);
@@ -234,13 +216,48 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        if (Object.keys(httpsAgentRequestFields).length > 0) {
+        // proxy configuration
+        const brunoConfig = getBrunoConfig(collectionUid);
+        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+        if (proxyEnabled) {
+          let proxy;
+
+          const interpolationOptions = {
+            envVars,
+            collectionVariables,
+            processEnvVars
+          };
+
+          const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+          const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+          const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
+          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+          if (proxyAuthEnabled) {
+            const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
+            const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
+
+            proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+          } else {
+            proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+          }
+
+          request.httpsAgent = new HttpsProxyAgent(
+            proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+
+          request.httpAgent = new HttpProxyAgent(proxy);
+        } else if (Object.keys(httpsAgentRequestFields).length > 0) {
           request.httpsAgent = new https.Agent({
             ...httpsAgentRequestFields
           });
         }
 
-        const response = await axios(request);
+        const axiosInstance = makeAxiosInstance();
+
+        /** @type {import('axios').AxiosResponse} */
+        const response = await axiosInstance(request);
 
         // run post-response vars
         const postResponseVars = get(request, 'vars.res', []);
@@ -271,14 +288,15 @@ const registerNetworkIpc = (mainWindow) => {
         if (responseScript && responseScript.length) {
           const scriptRuntime = new ScriptRuntime();
           const result = await scriptRuntime.runResponseScript(
-            responseScript,
+            decomment(responseScript),
             request,
             response,
             envVars,
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:script-environment-update', {
@@ -291,7 +309,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run assertions
         const assertions = get(request, 'assertions');
-        if (assertions && assertions.length) {
+        if (assertions) {
           const assertRuntime = new AssertRuntime();
           const results = assertRuntime.runAssertions(
             assertions,
@@ -313,17 +331,18 @@ const registerNetworkIpc = (mainWindow) => {
 
         // run tests
         const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-        if (testFile && testFile.length) {
+        if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime();
           const testResults = await testRuntime.runTests(
-            testFile,
+            decomment(testFile),
             request,
             response,
             envVars,
             collectionVariables,
             collectionPath,
             onConsoleLog,
-            processEnvVars
+            processEnvVars,
+            scriptingConfig
           );
 
           mainWindow.webContents.send('main:run-request-event', {
@@ -343,12 +362,16 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         deleteCancelToken(cancelTokenUid);
+        // Prevents the duration on leaking to the actual result
+        const requestDuration = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
 
         return {
           status: response.status,
           statusText: response.statusText,
           headers: response.headers,
-          data: response.data
+          data: response.data,
+          duration: requestDuration
         };
       } catch (error) {
         // todo: better error handling
@@ -365,7 +388,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (error && error.response) {
           // run assertions
           const assertions = get(request, 'assertions');
-          if (assertions && assertions.length) {
+          if (assertions) {
             const assertRuntime = new AssertRuntime();
             const results = assertRuntime.runAssertions(
               assertions,
@@ -387,17 +410,18 @@ const registerNetworkIpc = (mainWindow) => {
 
           // run tests
           const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-          if (testFile && testFile.length) {
+          if (typeof testFile === 'string') {
             const testRuntime = new TestRuntime();
             const testResults = await testRuntime.runTests(
-              testFile,
+              decomment(testFile),
               request,
               error.response,
               envVars,
               collectionVariables,
               collectionPath,
               onConsoleLog,
-              processEnvVars
+              processEnvVars,
+              scriptingConfig
             );
 
             mainWindow.webContents.send('main:run-request-event', {
@@ -416,11 +440,15 @@ const registerNetworkIpc = (mainWindow) => {
             });
           }
 
+          // Prevents the duration from leaking to the actual result
+          const requestDuration = error.response.headers.get('request-duration');
+          error.response.headers.delete('request-duration');
           return {
             status: error.response.status,
             statusText: error.response.statusText,
             headers: error.response.headers,
-            data: error.response.data
+            data: error.response.data,
+            duration: requestDuration ?? 0
           };
         }
 
@@ -441,10 +469,10 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment) => {
+  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collection) => {
     try {
       const envVars = getEnvVars(environment);
-      const request = prepareGqlIntrospectionRequest(endpoint, envVars);
+      const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request);
 
       const preferences = getPreferences();
       const sslVerification = get(preferences, 'request.sslVerification', true);
@@ -455,7 +483,10 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      const response = await axios(request);
+      const processEnvVars = getProcessEnvVars(collection.uid);
+      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+
+      const response = await axios(preparedRequest);
 
       return {
         status: response.status,
@@ -483,6 +514,8 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
 
       const onConsoleLog = (type, args) => {
         console[type](...args);
@@ -582,13 +615,14 @@ const registerNetworkIpc = (mainWindow) => {
             if (requestScript && requestScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runRequestScript(
-                requestScript,
+                decomment(requestScript),
                 request,
                 envVars,
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -596,32 +630,6 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables: result.collectionVariables,
                 collectionUid
               });
-            }
-
-            // proxy configuration
-            const brunoConfig = getBrunoConfig(collectionUid);
-            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-            if (proxyEnabled) {
-              const proxyProtocol = get(brunoConfig, 'proxy.protocol');
-              const proxyHostname = get(brunoConfig, 'proxy.hostname');
-              const proxyPort = get(brunoConfig, 'proxy.port');
-              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-              const proxyConfig = {
-                protocol: proxyProtocol,
-                hostname: proxyHostname,
-                port: proxyPort
-              };
-              if (proxyAuthEnabled) {
-                const proxyAuthUsername = get(brunoConfig, 'proxy.auth.username');
-                const proxyAuthPassword = get(brunoConfig, 'proxy.auth.password');
-                proxyConfig.auth = {
-                  username: proxyAuthUsername,
-                  password: proxyAuthPassword
-                };
-              }
-
-              request.proxy = proxyConfig;
             }
 
             // interpolate variables inside request
@@ -644,7 +652,44 @@ const registerNetworkIpc = (mainWindow) => {
             const preferences = getPreferences();
             const sslVerification = get(preferences, 'request.sslVerification', true);
 
-            if (!sslVerification) {
+            // proxy configuration
+            const brunoConfig = getBrunoConfig(collectionUid);
+            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+            if (proxyEnabled) {
+              let proxy;
+              const interpolationOptions = {
+                envVars,
+                collectionVariables,
+                processEnvVars
+              };
+
+              const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+              const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+              const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
+              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+
+              if (proxyAuthEnabled) {
+                const proxyAuthUsername = interpolateString(
+                  get(brunoConfig, 'proxy.auth.username'),
+                  interpolationOptions
+                );
+
+                const proxyAuthPassword = interpolateString(
+                  get(brunoConfig, 'proxy.auth.password'),
+                  interpolationOptions
+                );
+
+                proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+              } else {
+                proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+              }
+
+              request.httpsAgent = new HttpsProxyAgent(proxy, {
+                rejectUnauthorized: sslVerification
+              });
+
+              request.httpAgent = new HttpProxyAgent(proxy);
+            } else if (!sslVerification) {
               request.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
               });
@@ -683,14 +728,15 @@ const registerNetworkIpc = (mainWindow) => {
             if (responseScript && responseScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runResponseScript(
-                responseScript,
+                decomment(responseScript),
                 request,
                 response,
                 envVars,
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:script-environment-update', {
@@ -702,7 +748,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run assertions
             const assertions = get(item, 'request.assertions');
-            if (assertions && assertions.length) {
+            if (assertions) {
               const assertRuntime = new AssertRuntime();
               const results = assertRuntime.runAssertions(
                 assertions,
@@ -723,17 +769,18 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            if (testFile && testFile.length) {
+            if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
-                testFile,
+                decomment(testFile),
                 request,
                 response,
                 envVars,
                 collectionVariables,
                 collectionPath,
                 onConsoleLog,
-                processEnvVars
+                processEnvVars,
+                scriptingConfig
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -781,7 +828,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run assertions
               const assertions = get(item, 'request.assertions');
-              if (assertions && assertions.length) {
+              if (assertions) {
                 const assertRuntime = new AssertRuntime();
                 const results = assertRuntime.runAssertions(
                   assertions,
@@ -802,17 +849,18 @@ const registerNetworkIpc = (mainWindow) => {
 
               // run tests
               const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-              if (testFile && testFile.length) {
+              if (typeof testFile === 'string') {
                 const testRuntime = new TestRuntime();
                 const testResults = await testRuntime.runTests(
-                  testFile,
+                  decomment(testFile),
                   request,
                   error.response,
                   envVars,
                   collectionVariables,
                   collectionPath,
                   onConsoleLog,
-                  processEnvVars
+                  processEnvVars,
+                  scriptingConfig
                 );
 
                 mainWindow.webContents.send('main:run-folder-event', {

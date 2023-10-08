@@ -7,6 +7,8 @@ const util = require('util');
 const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
+const fs = require('fs');
+const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -27,6 +29,8 @@ const CryptoJS = require('crypto-js');
 class ScriptRuntime {
   constructor() {}
 
+  // This approach is getting out of hand
+  // Need to refactor this to use a single arg (object) instead of 7
   async runRequestScript(
     script,
     request,
@@ -34,10 +38,24 @@ class ScriptRuntime {
     collectionVariables,
     collectionPath,
     onConsoleLog,
-    processEnvVars
+    processEnvVars,
+    scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const context = {
       bru,
@@ -84,7 +102,9 @@ class ScriptRuntime {
           axios,
           chai,
           'node-fetch': fetch,
-          'crypto-js': CryptoJS
+          'crypto-js': CryptoJS,
+          ...whitelistedModules,
+          fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
     });
@@ -105,11 +125,25 @@ class ScriptRuntime {
     collectionVariables,
     collectionPath,
     onConsoleLog,
-    processEnvVars
+    processEnvVars,
+    scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const context = {
       bru,
@@ -138,6 +172,16 @@ class ScriptRuntime {
         external: true,
         root: [collectionPath],
         mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
           atob,
           btoa,
           lodash,
@@ -146,7 +190,9 @@ class ScriptRuntime {
           nanoid,
           axios,
           'node-fetch': fetch,
-          'crypto-js': CryptoJS
+          'crypto-js': CryptoJS,
+          ...whitelistedModules,
+          fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
     });

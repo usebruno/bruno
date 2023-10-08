@@ -1,10 +1,8 @@
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
-      const timeStart = Date.now();
       sendHttpRequest(item, collection, environment, collectionVariables)
         .then((response) => {
-          const timeEnd = Date.now();
           resolve({
             state: 'success',
             data: response.data,
@@ -12,7 +10,7 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             size: response.headers['content-length'] || 0,
             status: response.status,
             statusText: response.statusText,
-            duration: timeEnd - timeStart
+            duration: response.duration
           });
         })
         .catch((err) => reject(err));
@@ -31,11 +29,11 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
   });
 };
 
-export const fetchGqlSchema = async (endpoint, environment) => {
+export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment).then(resolve).catch(reject);
+    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment, request, collection).then(resolve).catch(reject);
   });
 };
 
