@@ -18,7 +18,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(250, 'must be 250 characters or less')
         .trim()
         .matches(isFolder ? dirnameRegex : /.*/g, `${isFolder ? 'folder' : 'request'} name contains invalid characters`)

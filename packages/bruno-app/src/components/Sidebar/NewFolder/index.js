@@ -17,8 +17,8 @@ const NewFolder = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       folderName: Yup.string()
+        .min(1, 'must be at least 1 character')
         .required('name is required')
-        .min(1, 'must be atleast 1 characters')
         .max(250, 'must be 250 characters or less')
         .trim()
         .matches(dirnameRegex, 'Folder name contains invalid characters')

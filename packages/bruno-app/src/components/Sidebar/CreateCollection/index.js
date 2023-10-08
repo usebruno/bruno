@@ -22,14 +22,14 @@ const CreateCollection = ({ onClose }) => {
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(50, 'must be 50 characters or less')
         .required('collection name is required'),
       collectionFolderName: Yup.string()
-        .min(1, 'must be atleast 1 characters')
         .max(250, 'must be 250 characters or less')
         .trim()
         .matches(dirnameRegex, 'Folder name contains invalid characters')
+        .min(1, 'must be at least 1 character')
         .required('folder name is required'),
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),

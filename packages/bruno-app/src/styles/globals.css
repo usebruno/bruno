@@ -53,3 +53,9 @@ body::-webkit-scrollbar-thumb,
   background-color: #cdcdcd;
   border-radius: 5rem;
 }
+
+/* making all the checkboxes and radios bigger */
+input[type='checkbox'],
+input[type='radio'] {
+  transform: scale(1.25);
+}

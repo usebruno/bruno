@@ -16,7 +16,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
     },
     validationSchema: Yup.object({
       collectionLocation: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(500, 'must be 500 characters or less')
         .required('name is required')
     }),

@@ -109,7 +109,8 @@ const lightTheme = {
     responseSendIcon: 'rgb(209, 213, 219)',
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
-    responseError: 'rgb(185, 28, 28)'
+    responseError: 'rgb(185, 28, 28)',
+    responseOverlayBg: 'rgba(255, 255, 255, 0.6)'
   },
 
   collection: {

@@ -8,6 +8,7 @@ const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
 const fs = require('fs');
+const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -38,10 +39,23 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    allowScriptFilesystemAccess
+    scriptingConfig
   ) {
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const context = {
       bru,
@@ -89,6 +103,7 @@ class ScriptRuntime {
           chai,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }
@@ -111,11 +126,24 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    allowScriptFilesystemAccess
+    scriptingConfig
   ) {
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const context = {
       bru,
@@ -163,6 +191,7 @@ class ScriptRuntime {
           axios,
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }

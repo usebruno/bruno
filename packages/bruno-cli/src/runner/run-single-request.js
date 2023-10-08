@@ -29,6 +29,8 @@ const runSingleRequest = async function (
 
     request = prepareRequest(bruJson.request);
 
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
@@ -65,7 +67,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
     }
 
@@ -206,7 +209,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
     }
 
@@ -247,7 +251,8 @@ const runSingleRequest = async function (
         collectionVariables,
         collectionPath,
         null,
-        processEnvVars
+        processEnvVars,
+        scriptingConfig
       );
       testResults = get(result, 'results', []);
     }

@@ -9,6 +9,7 @@ const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const Watcher = require('./app/watcher');
+const { loadWindowState, saveWindowState } = require('./utils/window');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -27,9 +28,13 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  const { x, y, width, height } = loadWindowState();
+
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 768,
+    x,
+    y,
+    width,
+    height,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -37,8 +42,10 @@ app.on('ready', async () => {
       webviewTag: true
     },
     title: 'Bruno',
-    icon: path.join(__dirname, 'about/256x256.png'),
-    autoHideMenuBar: true
+    icon: path.join(__dirname, 'about/256x256.png')
+    // we will bring this back
+    // see https://github.com/usebruno/bruno/issues/440
+    // autoHideMenuBar: true
   });
 
   const url = isDev
@@ -51,6 +58,9 @@ app.on('ready', async () => {
 
   mainWindow.loadURL(url);
   watcher = new Watcher();
+
+  mainWindow.on('resize', () => saveWindowState(mainWindow));
+  mainWindow.on('move', () => saveWindowState(mainWindow));
 
   mainWindow.webContents.on('new-window', function (e, url) {
     e.preventDefault();

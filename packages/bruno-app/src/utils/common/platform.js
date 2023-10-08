@@ -41,3 +41,10 @@ export const isWindowsOS = () => {
 
   return osFamily.includes('windows');
 };
+
+export const isMacOS = () => {
+  const os = platform.os;
+  const osFamily = os.family.toLowerCase();
+
+  return osFamily.includes('os x');
+};

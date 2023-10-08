@@ -261,6 +261,17 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    deleteRequestDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.draft) {
+          item.draft = null;
+        }
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1107,7 +1118,6 @@ export const collectionsSlice = createSlice({
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
             item.requestState = 'queued';
-            item.response = null;
             item.cancelTokenUid = cancelTokenUid;
           }
 
@@ -1228,6 +1238,7 @@ export const {
   requestCancelled,
   responseReceived,
   saveRequest,
+  deleteRequestDraft,
   newEphemeralHttpRequest,
   collectionClicked,
   collectionFolderClicked,

@@ -83,8 +83,12 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
+      .then(() => toast.success('Request saved successfully'))
       .then(resolve)
-      .catch(reject);
+      .catch((err) => {
+        toast.error('Failed to save request!');
+        reject(err);
+      });
   });
 };
 
