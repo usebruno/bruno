@@ -1,6 +1,5 @@
 const _ = require('lodash');
 const { bruToJsonV2, jsonToBruV2, bruToEnvJsonV2, envJsonToBruV2 } = require('@usebruno/lang');
-const { each } = require('lodash');
 
 const bruToEnvJson = (bru) => {
   try {
@@ -10,7 +9,7 @@ const bruToEnvJson = (bru) => {
     // this need to be evaluated and safely removed
     // i don't see it being used in schema validation
     if (json && json.variables && json.variables.length) {
-      each(json.variables, (v) => (v.type = 'text'));
+      _.each(json.variables, (v) => (v.type = 'text'));
     }
 
     return json;

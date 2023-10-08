@@ -129,6 +129,24 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  @keyframes rotateClockwise {
+    0% {
+      transform: scaleY(-1) rotate(0deg);
+    }
+    100% {
+      transform: scaleY(-1) rotate(360deg);
+    }
+  }
+
+  @keyframes rotateCounterClockwise {
+    0% {
+      transform: scaleY(-1) rotate(360deg);
+    }
+    100% {
+      transform: scaleY(-1) rotate(0deg);
+    }
+  }
+
   // codemirror
   .CodeMirror {
     .cm-variable-valid {

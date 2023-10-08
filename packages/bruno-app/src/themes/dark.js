@@ -109,7 +109,8 @@ const darkTheme = {
     responseSendIcon: '#555',
     responseStatus: '#ccc',
     responseOk: '#8cd656',
-    responseError: '#f06f57'
+    responseError: '#f06f57',
+    responseOverlayBg: 'rgba(30, 30, 30, 0.6)'
   },
 
   collection: {

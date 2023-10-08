@@ -1,6 +1,11 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  position: absolute;
+  z-index: 1;
+  height: 100vh;
+  background-color: ${(props) => props.theme.requestTabPanel.responseOverlayBg};
+
   div.overlay {
     position: absolute;
     top: 0;
@@ -14,6 +19,11 @@ const StyledWrapper = styled.div`
     padding-top: 20%;
     overflow: hidden;
     text-align: center;
+
+    .loading-icon {
+      transform: scaleY(-1);
+      animation: rotateCounterClockwise 1s linear infinite;
+    }
   }
 `;
 

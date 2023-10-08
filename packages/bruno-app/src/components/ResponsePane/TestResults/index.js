@@ -16,7 +16,7 @@ const TestResults = ({ results, assertionResults }) => {
 
   return (
     <StyledWrapper className="flex flex-col px-3">
-      <div className="py-2 font-medium test-summary">
+      <div className="pb-2 font-medium test-summary">
         Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
       </div>
       <ul className="">

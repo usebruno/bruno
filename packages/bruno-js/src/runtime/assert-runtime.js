@@ -268,7 +268,7 @@ class AssertRuntime {
             expect(lhs).to.endWith(rhs);
             break;
           case 'between':
-            const [min, max] = value.split(',');
+            const [min, max] = rhs;
             expect(lhs).to.be.within(min, max);
             break;
           case 'isEmpty':
