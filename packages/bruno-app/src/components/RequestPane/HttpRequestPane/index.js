@@ -90,13 +90,19 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
-          Query {activeParamsLength > 0 && <span>({activeParamsLength})</span>}
+          Query
+          {activeParamsLength > 0 && (
+            <sup className="sups some-tests-failed ml-1 font-medium">{activeParamsLength}</sup>
+          )}
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
-          Headers {activeHeadersLength > 0 && <span>({activeHeadersLength})</span>}
+          Headers
+          {activeHeadersLength > 0 && (
+            <sup className="sups some-tests-failed ml-1 font-medium">{activeHeadersLength}</sup>
+          )}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
@@ -108,7 +114,10 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
           Script
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
-          Assert {activeAssertionsLength > 0 && <span>({activeAssertionsLength})</span>}
+          Assert
+          {activeAssertionsLength > 0 && (
+            <sup className="sups some-tests-failed ml-1 font-medium">{activeAssertionsLength}</sup>
+          )}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
