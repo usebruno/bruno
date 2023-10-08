@@ -25,7 +25,9 @@ const Font = () => {
   return (   
     <StyledWrapper>
       <h2>Font in code area</h2>
-      <input type="text" id="first_name" onChange={handleInputChange} placeholder="Local font" defaultValue={codeFont} className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-1.5" />
+      <div className='input-container'>
+        <input type="text" onChange={handleInputChange} placeholder="Local font" defaultValue={codeFont} className="w-full px-3 py-1.5" />
+      </div>
     </StyledWrapper>
   );
 };
