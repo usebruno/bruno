@@ -38,7 +38,7 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full h-1/2 flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
         <CodeEditor

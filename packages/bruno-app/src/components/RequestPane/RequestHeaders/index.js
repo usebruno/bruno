@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -13,8 +13,18 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { storedTheme, theme } = useTheme();
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+
+  const [countItems, setCountItems] = useState(headers.length);
+  const ref = useRef();
+
+  useEffect(() => {
+    setCountItems(headers.length);
+    if (headers.length > countItems) {
+      ref.current.scrollIntoView();
+    }
+  }, [headers]);
 
   const addHeader = () => {
     dispatch(
@@ -64,80 +74,83 @@ const RequestHeaders = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {headers && headers.length
-            ? headers.map((header) => {
-                return (
-                  <tr key={header.uid}>
-                    <td>
-                      <SingleLineEditor
-                        value={header.name}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'name'
-                          )
-                        }
-                        autocomplete={headerAutoCompleteList}
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={header.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={header.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+      <div class="scroll" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
+        <table>
+          <thead style={{ backgroundColor: theme.table.thead.bg, position: 'sticky', top: -1, zIndex: 2 }}>
+            <tr>
+              <td>Name</td>
+              <td>Value</td>
+              <td></td>
+            </tr>
+          </thead>
+          <tbody>
+            {headers && headers.length
+              ? headers.map((header) => {
+                  return (
+                    <tr key={header.uid}>
+                      <td>
+                        <SingleLineEditor
+                          value={header.name}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleHeaderValueChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              header,
+                              'name'
+                            )
+                          }
+                          autocomplete={headerAutoCompleteList}
+                          onRun={handleRun}
+                          collection={collection}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </tbody>
-      </table>
+                      </td>
+                      <td>
+                        <SingleLineEditor
+                          value={header.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleHeaderValueChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              header,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          collection={collection}
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={header.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
+          </tbody>
+          <div ref={ref} />
+        </table>
+      </div>
       <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
         + Add Header
       </button>

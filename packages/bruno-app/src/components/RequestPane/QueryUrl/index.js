@@ -9,6 +9,8 @@ import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import { showDocs } from 'providers/ReduxStore/slices/docs';
+import { IconFileDescription } from '@tabler/icons';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -47,6 +49,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         collectionUid: collection.uid
       })
     );
+  };
+
+  const onDocsClick = () => {
+    dispatch(showDocs());
   };
 
   return (
@@ -92,6 +98,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
         </div>
       </div>
+      <button className="m-2" onClick={onDocsClick}>
+        <div className="flex items-center">
+          <IconFileDescription /> Docs
+        </div>
+      </button>
     </StyledWrapper>
   );
 };
