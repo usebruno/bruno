@@ -14,7 +14,6 @@ const useCollectionNextAction = () => {
   useEffect(() => {
     each(collections, (collection) => {
       if (collection.nextAction && collection.nextAction.type === 'OPEN_REQUEST') {
-        console.log(collection.nextAction.payload.pathname, JSON.stringify(collection));
         const item = findItemInCollectionByPathname(collection, get(collection, 'nextAction.payload.pathname'));
 
         if (item) {

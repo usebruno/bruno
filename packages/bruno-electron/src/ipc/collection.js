@@ -285,7 +285,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newSantitizedPath = path.join(newPath, sanitizeFilenme(newName) + '.bru');
-      console.log(oldPathFull, newSantitizedPath);
       if (fs.existsSync(newSantitizedPath) && newSantitizedPath !== oldPathFull) {
         throw new Error(`path: ${newSantitizedPath} already exists`);
       }

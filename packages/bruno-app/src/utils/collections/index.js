@@ -98,8 +98,6 @@ export const findItemByPathname = (items = [], pathname) => {
 export const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
-  console.log(flattenItems);
-  each(flattenItems, (item) => console.log(item.pathname, pathname, item.pathname === pathname));
   return findItemByPathname(flattenedItems, pathname);
 };
 

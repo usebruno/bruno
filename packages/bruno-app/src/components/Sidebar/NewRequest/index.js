@@ -11,7 +11,6 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { filenameRegex } from 'utils/common/regex';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
