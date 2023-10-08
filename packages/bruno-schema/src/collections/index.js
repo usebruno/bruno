@@ -115,7 +115,8 @@ const requestSchema = Yup.object({
     .strict()
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
-  tests: Yup.string().nullable()
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();

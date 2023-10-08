@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import Documentation from 'components/Documentation';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
@@ -43,6 +44,7 @@ export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
+  const showDocs = useSelector((state) => state.docs.isShow);
 
   // Todo: write a better logging flow that can be used to log by turning on debug flag
   // Enable for debugging.
@@ -56,7 +58,7 @@ export default function Main() {
     <div>
       <StyledWrapper className={className}>
         <Sidebar />
-        <section className="flex flex-grow flex-col overflow-auto">
+        <section className="flex flex-grow flex-col overflow-hidden">
           {showHomePage ? (
             <Welcome />
           ) : (
@@ -66,6 +68,11 @@ export default function Main() {
             </>
           )}
         </section>
+        {showDocs && (
+          <section className="flex flex-col w-1/4">
+            <Documentation />
+          </section>
+        )}
       </StyledWrapper>
     </div>
   );

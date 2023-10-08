@@ -384,7 +384,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       script: _item.request.script,
       vars: _item.request.vars,
       assertions: _item.request.assertions,
-      tests: _item.request.tests
+      tests: _item.request.tests,
+      docs: _item.request.docs
     }
   };
 

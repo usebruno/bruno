@@ -223,6 +223,7 @@ const darkTheme = {
   table: {
     border: '#333',
     thead: {
+      bg: '#4d4d4d',
       color: 'rgb(204, 204, 204)'
     },
     striped: '#2A2D2F',
@@ -233,6 +234,11 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
+  },
+
+  rightPane: {
+    bg: '#1e1e1e',
+    border: '#4f4f4f'
   }
 };
 
