@@ -14,13 +14,15 @@ import toast from 'react-hot-toast';
 
 const defaultPreferences = {
   request: {
-    sslVerification: true
+    sslVerification: true,
+    autoSave: true
   }
 };
 
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
-    sslVerification: Yup.boolean()
+    sslVerification: Yup.boolean(),
+    autoSave: Yup.boolean()
   })
 });
 
