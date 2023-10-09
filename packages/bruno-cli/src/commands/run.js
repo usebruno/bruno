@@ -6,7 +6,7 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const { rpad } = require('../utils/common');
-const { bruToJson, getOptions } = require('../utils/bru');
+const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const command = 'run [filename]';
@@ -121,6 +121,9 @@ const getBruFilesRecursively = (dir) => {
 
       const currentDirBruJsons = [];
       for (const file of filesInCurrentDir) {
+        if (['collection.bru', 'folder.bru'].includes(file)) {
+          continue;
+        }
         const filePath = path.join(currentPath, file);
         const stats = fs.lstatSync(filePath);
 
@@ -149,6 +152,19 @@ const getBruFilesRecursively = (dir) => {
   };
 
   return getFilesInOrder(dir);
+};
+
+const getCollectionRoot = (dir) => {
+  const collectionRootPath = path.join(dir, 'collection.bru');
+  const exists = fs.existsSync(collectionRootPath);
+  if (!exists) {
+    return {};
+  }
+
+  const content = fs.readFileSync(collectionRootPath, 'utf8');
+  const json = collectionBruToJson(content);
+
+  return json;
 };
 
 const builder = async (yargs) => {
@@ -210,6 +226,7 @@ const handler = async function (argv) {
 
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
+    const collectionRoot = getCollectionRoot(collectionPath);
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -349,7 +366,8 @@ const handler = async function (argv) {
         collectionVariables,
         envVars,
         processEnvVars,
-        brunoConfig
+        brunoConfig,
+        collectionRoot
       );
 
       results.push(result);

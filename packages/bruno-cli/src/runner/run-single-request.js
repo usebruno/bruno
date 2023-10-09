@@ -1,8 +1,9 @@
+const os = require('os');
 const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, each, extend, get } = require('lodash');
+const { forOwn, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -23,7 +24,8 @@ const runSingleRequest = async function (
   collectionVariables,
   envVariables,
   processEnvVars,
-  brunoConfig
+  brunoConfig,
+  collectionRoot
 ) {
   try {
     let request;
@@ -58,7 +60,10 @@ const runSingleRequest = async function (
     }
 
     // run pre request script
-    const requestScriptFile = get(bruJson, 'request.script.req');
+    const requestScriptFile = compact([
+      get(collectionRoot, 'request.script.req'),
+      get(bruJson, 'request.script.req')
+    ]).join(os.EOL);
     if (requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runRequestScript(
@@ -208,7 +213,10 @@ const runSingleRequest = async function (
     }
 
     // run post response script
-    const responseScriptFile = get(bruJson, 'request.script.res');
+    const responseScriptFile = compact([
+      get(collectionRoot, 'request.script.res'),
+      get(bruJson, 'request.script.res')
+    ]).join(os.EOL);
     if (responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runResponseScript(
@@ -250,7 +258,7 @@ const runSingleRequest = async function (
 
     // run tests
     let testResults = [];
-    const testFile = get(bruJson, 'request.tests');
+    const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime();
       const result = await testRuntime.runTests(
@@ -296,6 +304,7 @@ const runSingleRequest = async function (
       testResults
     };
   } catch (err) {
+    console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
     return {
       request: {
         method: null,
