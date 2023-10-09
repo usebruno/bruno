@@ -116,8 +116,13 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
-        {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {getTabPanel(focusedTab.responsePaneTab)}
+        {isLoading && <Overlay item={item} collection={collection} />}
+
+        {response.isError ? (
+          <span className="mt-5 px-5 text-red-500">{response.error}</span>
+        ) : (
+          getTabPanel(focusedTab.responsePaneTab)
+        )}
       </section>
     </StyledWrapper>
   );
