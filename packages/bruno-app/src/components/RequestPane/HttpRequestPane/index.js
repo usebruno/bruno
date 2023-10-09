@@ -76,11 +76,13 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
+  const isMultipleContentTab = ['params', 'script', 'vars', 'auth'].includes(focusedTab.requestPaneTab);
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
-          Query
+          Params
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
@@ -110,7 +112,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${['script', 'vars', 'auth'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}
+        className={classnames('flex w-full', {
+          'mt-5': !isMultipleContentTab
+        })}
       >
         {getTabPanel(focusedTab.requestPaneTab)}
       </section>

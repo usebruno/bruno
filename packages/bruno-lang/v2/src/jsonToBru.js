@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, query, path, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -62,6 +62,14 @@ const jsonToBru = (json) => {
           .join('\n')
       )}`;
     }
+
+    bru += '\n}\n\n';
+  }
+
+  if (path && path.length) {
+    bru += 'path {';
+
+    bru += `\n${indentString(path.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
 
     bru += '\n}\n\n';
   }
