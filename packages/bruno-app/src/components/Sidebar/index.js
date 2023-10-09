@@ -16,10 +16,13 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState('Loading...');
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
   const { storedTheme } = useTheme();
+
+  ipcRenderer.invoke('renderer:current-version').then((val) => setAppVersion(val));
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -105,7 +108,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2"> test{ ipcRenderer.invoke('renderer:current-version') }</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">{appVersion}</div>
             </div>
           </div>
         </div>
