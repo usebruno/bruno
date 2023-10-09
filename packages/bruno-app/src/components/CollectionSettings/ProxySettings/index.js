@@ -54,7 +54,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
     <StyledWrapper>
       <h1 className="font-medium mb-3">Proxy Settings</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="enabled">
             Usage
           </label>
@@ -94,7 +94,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             </label>
           </div>
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="protocol">
             Protocol
           </label>
@@ -134,7 +134,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             </label>
           </div>
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="hostname">
             Hostname
           </label>
@@ -154,7 +154,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <div className="text-red-500">{formik.errors.hostname}</div>
           ) : null}
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="port">
             Port
           </label>
@@ -172,7 +172,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
           />
           {formik.touched.port && formik.errors.port ? <div className="text-red-500">{formik.errors.port}</div> : null}
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="auth.enabled">
             Auth
           </label>
@@ -184,7 +184,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
           />
         </div>
         <div>
-          <div className="ml-4 mb-3 flex items-center">
+          <div className="mb-3 flex items-center">
             <label className="settings-label" htmlFor="auth.username">
               Username
             </label>
@@ -204,7 +204,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
               <div className="text-red-500">{formik.errors.auth.username}</div>
             ) : null}
           </div>
-          <div className="ml-4 mb-3 flex items-center">
+          <div className="mb-3 flex items-center">
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
@@ -246,7 +246,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
           ) : null}
         </div>
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-md btn-secondary">
+          <button type="submit" className="submit btn btn-sm btn-secondary">
             Save
           </button>
         </div>

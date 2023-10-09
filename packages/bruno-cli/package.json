@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -25,7 +25,7 @@
   ],
   "dependencies": {
     "@usebruno/js": "0.8.0",
-    "@usebruno/lang": "0.5.0",
+    "@usebruno/lang": "0.6.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
@@ -39,6 +39,7 @@
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
+    "socks-proxy-agent": "^8.0.2",
     "yargs": "^17.6.2"
   }
 }

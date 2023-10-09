@@ -29,8 +29,11 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         .required('name is required')
         .test({
           name: 'requestName',
-          message: 'The request name "index" is reserved in bruno',
-          test: (value) => value && !value.trim().toLowerCase().includes('index')
+          message: `The request names - collection and folder is reserved in bruno`,
+          test: (value) => {
+            const trimmedValue = value.trim().toLowerCase();
+            return !['collection', 'folder'].includes(trimmedValue);
+          }
         })
     }),
     onSubmit: (values) => {

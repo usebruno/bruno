@@ -5,7 +5,7 @@ const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each, get } = require('lodash');
+const { forOwn, extend, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -19,6 +19,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 
 // override the default escape function to prevent escaping
@@ -81,221 +82,211 @@ const getSize = (data) => {
 
 const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
-  ipcMain.handle(
-    'send-http-request',
-    async (event, item, collectionUid, collectionPath, environment, collectionVariables) => {
-      const cancelTokenUid = uuid();
-      const requestUid = uuid();
+  ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
+    const collectionUid = collection.uid;
+    const collectionPath = collection.pathname;
+    const cancelTokenUid = uuid();
+    const requestUid = uuid();
 
-      const onConsoleLog = (type, args) => {
-        console[type](...args);
+    const onConsoleLog = (type, args) => {
+      console[type](...args);
 
-        mainWindow.webContents.send('main:console-log', {
-          type,
-          args
+      mainWindow.webContents.send('main:console-log', {
+        type,
+        args
+      });
+    };
+
+    mainWindow.webContents.send('main:run-request-event', {
+      type: 'request-queued',
+      requestUid,
+      collectionUid,
+      itemUid: item.uid,
+      cancelTokenUid
+    });
+
+    const collectionRoot = get(collection, 'root', {});
+    const _request = item.draft ? item.draft.request : item.request;
+    const request = prepareRequest(_request, collectionRoot);
+    const envVars = getEnvVars(environment);
+    const processEnvVars = getProcessEnvVars(collectionUid);
+    const brunoConfig = getBrunoConfig(collectionUid);
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+    try {
+      // make axios work in node using form data
+      // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+      if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
+        const form = new FormData();
+        forOwn(request.data, (value, key) => {
+          form.append(key, value);
         });
-      };
+        extend(request.headers, form.getHeaders());
+        request.data = form;
+      }
 
+      const cancelToken = axios.CancelToken.source();
+      request.cancelToken = cancelToken.token;
+      saveCancelToken(cancelTokenUid, cancelToken);
+
+      // run pre-request vars
+      const preRequestVars = get(request, 'vars.req', []);
+      if (preRequestVars && preRequestVars.length) {
+        const varsRuntime = new VarsRuntime();
+        const result = varsRuntime.runPreRequestVars(
+          preRequestVars,
+          request,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          processEnvVars
+        );
+
+        if (result) {
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: result.envVariables,
+            collectionVariables: result.collectionVariables,
+            requestUid,
+            collectionUid
+          });
+        }
+      }
+
+      // run pre-request script
+      const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
+        os.EOL
+      );
+      if (requestScript && requestScript.length) {
+        const scriptRuntime = new ScriptRuntime();
+        const result = await scriptRuntime.runRequestScript(
+          decomment(requestScript),
+          request,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      interpolateVars(request, envVars, collectionVariables, processEnvVars);
+
+      // stringify the request url encoded params
+      if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+        request.data = qs.stringify(request.data);
+      }
+
+      // todo:
+      // i have no clue why electron can't send the request object
+      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-queued',
-        requestUid,
+        type: 'request-sent',
+        requestSent: {
+          url: request.url,
+          method: request.method,
+          headers: request.headers,
+          data: safeParseJSON(safeStringifyJSON(request.data))
+        },
         collectionUid,
         itemUid: item.uid,
+        requestUid,
         cancelTokenUid
       });
 
-      const _request = item.draft ? item.draft.request : item.request;
-      const request = prepareRequest(_request);
-      const envVars = getEnvVars(environment);
-      const processEnvVars = getProcessEnvVars(collectionUid);
+      const preferences = getPreferences();
+      const sslVerification = get(preferences, 'request.sslVerification', true);
+      const httpsAgentRequestFields = {};
+      if (!sslVerification) {
+        httpsAgentRequestFields['rejectUnauthorized'] = false;
+      } else {
+        const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+        cacertFile = cacertArray.find((el) => el);
+        if (cacertFile && cacertFile.length > 1) {
+          try {
+            const fs = require('fs');
+            caCrt = fs.readFileSync(cacertFile);
+            httpsAgentRequestFields['ca'] = caCrt;
+          } catch (err) {
+            console.log('Error reading CA cert file:' + cacertFile, err);
+          }
+        }
+      }
+
+      // proxy configuration
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
+      if (proxyEnabled) {
+        let proxyUri;
 
-      try {
-        // make axios work in node using form data
-        // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-        if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-          const form = new FormData();
-          forOwn(request.data, (value, key) => {
-            form.append(key, value);
-          });
-          extend(request.headers, form.getHeaders());
-          request.data = form;
-        }
+        const interpolationOptions = {
+          envVars,
+          collectionVariables,
+          processEnvVars
+        };
 
-        const cancelToken = axios.CancelToken.source();
-        request.cancelToken = cancelToken.token;
-        saveCancelToken(cancelTokenUid, cancelToken);
+        const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
+        const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
+        const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
+        const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+        const socksEnabled = proxyProtocol.includes('socks');
 
-        // run pre-request vars
-        const preRequestVars = get(request, 'vars.req', []);
-        if (preRequestVars && preRequestVars.length) {
-          const varsRuntime = new VarsRuntime();
-          const result = varsRuntime.runPreRequestVars(
-            preRequestVars,
-            request,
-            envVars,
-            collectionVariables,
-            collectionPath,
-            processEnvVars
-          );
+        if (proxyAuthEnabled) {
+          const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
+          const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
-          if (result) {
-            mainWindow.webContents.send('main:script-environment-update', {
-              envVariables: result.envVariables,
-              collectionVariables: result.collectionVariables,
-              requestUid,
-              collectionUid
-            });
-          }
-        }
-
-        // run pre-request script
-        const requestScript = get(request, 'script.req');
-        if (requestScript && requestScript.length) {
-          const scriptRuntime = new ScriptRuntime();
-          const result = await scriptRuntime.runRequestScript(
-            decomment(requestScript),
-            request,
-            envVars,
-            collectionVariables,
-            collectionPath,
-            onConsoleLog,
-            processEnvVars,
-            scriptingConfig
-          );
-
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-
-        interpolateVars(request, envVars, collectionVariables, processEnvVars);
-
-        // stringify the request url encoded params
-        if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-          request.data = qs.stringify(request.data);
-        }
-
-        // todo:
-        // i have no clue why electron can't send the request object
-        // without safeParseJSON(safeStringifyJSON(request.data))
-        mainWindow.webContents.send('main:run-request-event', {
-          type: 'request-sent',
-          requestSent: {
-            url: request.url,
-            method: request.method,
-            headers: request.headers,
-            data: safeParseJSON(safeStringifyJSON(request.data))
-          },
-          collectionUid,
-          itemUid: item.uid,
-          requestUid,
-          cancelTokenUid
-        });
-
-        const httpsAgentRequestFields = {};
-        if (!preferences.isTlsVerification()) {
-          httpsAgentRequestFields['rejectUnauthorized'] = false;
+          proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
         } else {
-          const cacertArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-          const cacertFile = cacertArray.find((el) => el);
-          if (cacertFile && cacertFile.length > 1) {
-            try {
-              const fs = require('fs');
-              httpsAgentRequestFields['ca'] = fs.readFileSync(cacertFile);
-            } catch (err) {
-              console.log('Error reading CA cert file:' + cacertFile, err);
-            }
-          }
+          proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
         }
 
-        // proxy configuration
-        const brunoConfig = getBrunoConfig(collectionUid);
-        const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-        if (proxyEnabled) {
-          let proxy;
+        if (socksEnabled) {
+          const socksProxyAgent = new SocksProxyAgent(proxyUri);
 
-          const interpolationOptions = {
-            envVars,
-            collectionVariables,
-            processEnvVars
-          };
+          request.httpsAgent = socksProxyAgent;
 
-          const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
-          const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
-          const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
-          const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-
-          if (proxyAuthEnabled) {
-            const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
-            const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
-
-            proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
-          } else {
-            proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
-          }
-
+          request.httpAgent = socksProxyAgent;
+        } else {
           request.httpsAgent = new HttpsProxyAgent(
-            proxy,
+            proxyUri,
             Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
           );
 
-          request.httpAgent = new HttpProxyAgent(proxy);
-        } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-          request.httpsAgent = new https.Agent({
-            ...httpsAgentRequestFields
-          });
+          request.httpAgent = new HttpProxyAgent(proxyUri);
         }
+      } else if (Object.keys(httpsAgentRequestFields).length > 0) {
+        request.httpsAgent = new https.Agent({
+          ...httpsAgentRequestFields
+        });
+      }
 
-        const axiosInstance = makeAxiosInstance();
+      const axiosInstance = makeAxiosInstance();
 
-        /** @type {import('axios').AxiosResponse} */
-        const response = await axiosInstance(request);
+      /** @type {import('axios').AxiosResponse} */
+      const response = await axiosInstance(request);
 
-        // run post-response vars
-        const postResponseVars = get(request, 'vars.res', []);
-        if (postResponseVars && postResponseVars.length) {
-          const varsRuntime = new VarsRuntime();
-          const result = varsRuntime.runPostResponseVars(
-            postResponseVars,
-            request,
-            response,
-            envVars,
-            collectionVariables,
-            collectionPath,
-            processEnvVars
-          );
+      // run post-response vars
+      const postResponseVars = get(request, 'vars.res', []);
+      if (postResponseVars && postResponseVars.length) {
+        const varsRuntime = new VarsRuntime();
+        const result = varsRuntime.runPostResponseVars(
+          postResponseVars,
+          request,
+          response,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          processEnvVars
+        );
 
-          if (result) {
-            mainWindow.webContents.send('main:script-environment-update', {
-              envVariables: result.envVariables,
-              collectionVariables: result.collectionVariables,
-              requestUid,
-              collectionUid
-            });
-          }
-        }
-
-        // run post-response script
-        const responseScript = get(request, 'script.res');
-        if (responseScript && responseScript.length) {
-          const scriptRuntime = new ScriptRuntime();
-          const result = await scriptRuntime.runResponseScript(
-            decomment(responseScript),
-            request,
-            response,
-            envVars,
-            collectionVariables,
-            collectionPath,
-            onConsoleLog,
-            processEnvVars,
-            scriptingConfig
-          );
-
+        if (result) {
           mainWindow.webContents.send('main:script-environment-update', {
             envVariables: result.envVariables,
             collectionVariables: result.collectionVariables,
@@ -303,7 +294,116 @@ const registerNetworkIpc = (mainWindow) => {
             collectionUid
           });
         }
+      }
 
+      // run post-response script
+      const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
+        os.EOL
+      );
+      if (responseScript && responseScript.length) {
+        const scriptRuntime = new ScriptRuntime();
+        const result = await scriptRuntime.runResponseScript(
+          decomment(responseScript),
+          request,
+          response,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      // run assertions
+      const assertions = get(request, 'assertions');
+      if (assertions) {
+        const assertRuntime = new AssertRuntime();
+        const results = assertRuntime.runAssertions(
+          assertions,
+          request,
+          response,
+          envVars,
+          collectionVariables,
+          collectionPath
+        );
+
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'assertion-results',
+          results: results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      // run tests
+      const testFile = compact([
+        get(collectionRoot, 'request.tests'),
+        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+      ]).join(os.EOL);
+      if (typeof testFile === 'string') {
+        const testRuntime = new TestRuntime();
+        const testResults = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'test-results',
+          results: testResults.results,
+          itemUid: item.uid,
+          requestUid,
+          collectionUid
+        });
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: testResults.envVariables,
+          collectionVariables: testResults.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+
+      deleteCancelToken(cancelTokenUid);
+      // Prevents the duration on leaking to the actual result
+      const requestDuration = response.headers.get('request-duration');
+      response.headers.delete('request-duration');
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data,
+        duration: requestDuration
+      };
+    } catch (error) {
+      // todo: better error handling
+      // need to convey the error to the UI
+      // and need not be always a network error
+      deleteCancelToken(cancelTokenUid);
+
+      if (axios.isCancel(error)) {
+        let error = new Error('Request cancelled');
+        error.isCancel = true;
+        return Promise.reject(error);
+      }
+
+      if (error && error.response) {
         // run assertions
         const assertions = get(request, 'assertions');
         if (assertions) {
@@ -311,7 +411,7 @@ const registerNetworkIpc = (mainWindow) => {
           const results = assertRuntime.runAssertions(
             assertions,
             request,
-            response,
+            error.response,
             envVars,
             collectionVariables,
             collectionPath
@@ -327,13 +427,16 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         // run tests
-        const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+        const testFile = compact([
+          get(collectionRoot, 'request.tests'),
+          item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+        ]).join(os.EOL);
         if (typeof testFile === 'string') {
           const testRuntime = new TestRuntime();
           const testResults = await testRuntime.runTests(
             decomment(testFile),
             request,
-            response,
+            error.response,
             envVars,
             collectionVariables,
             collectionPath,
@@ -358,101 +461,21 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        deleteCancelToken(cancelTokenUid);
-        // Prevents the duration on leaking to the actual result
-        const requestDuration = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
-
+        // Prevents the duration from leaking to the actual result
+        const requestDuration = error.response.headers.get('request-duration');
+        error.response.headers.delete('request-duration');
         return {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-          data: response.data,
-          duration: requestDuration
+          status: error.response.status,
+          statusText: error.response.statusText,
+          headers: error.response.headers,
+          data: error.response.data,
+          duration: requestDuration ?? 0
         };
-      } catch (error) {
-        // todo: better error handling
-        // need to convey the error to the UI
-        // and need not be always a network error
-        deleteCancelToken(cancelTokenUid);
-
-        if (axios.isCancel(error)) {
-          let error = new Error('Request cancelled');
-          error.isCancel = true;
-          return Promise.reject(error);
-        }
-
-        if (error && error.response) {
-          // run assertions
-          const assertions = get(request, 'assertions');
-          if (assertions) {
-            const assertRuntime = new AssertRuntime();
-            const results = assertRuntime.runAssertions(
-              assertions,
-              request,
-              error.response,
-              envVars,
-              collectionVariables,
-              collectionPath
-            );
-
-            mainWindow.webContents.send('main:run-request-event', {
-              type: 'assertion-results',
-              results: results,
-              itemUid: item.uid,
-              requestUid,
-              collectionUid
-            });
-          }
-
-          // run tests
-          const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-          if (typeof testFile === 'string') {
-            const testRuntime = new TestRuntime();
-            const testResults = await testRuntime.runTests(
-              decomment(testFile),
-              request,
-              error.response,
-              envVars,
-              collectionVariables,
-              collectionPath,
-              onConsoleLog,
-              processEnvVars,
-              scriptingConfig
-            );
-
-            mainWindow.webContents.send('main:run-request-event', {
-              type: 'test-results',
-              results: testResults.results,
-              itemUid: item.uid,
-              requestUid,
-              collectionUid
-            });
-
-            mainWindow.webContents.send('main:script-environment-update', {
-              envVariables: testResults.envVariables,
-              collectionVariables: testResults.collectionVariables,
-              requestUid,
-              collectionUid
-            });
-          }
-
-          // Prevents the duration from leaking to the actual result
-          const requestDuration = error.response.headers.get('request-duration');
-          error.response.headers.delete('request-duration');
-          return {
-            status: error.response.status,
-            statusText: error.response.statusText,
-            headers: error.response.headers,
-            data: error.response.data,
-            duration: requestDuration ?? 0
-          };
-        }
-
-        return Promise.reject(error);
       }
+
+      return Promise.reject(error);
     }
-  );
+  });
 
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
@@ -510,6 +533,7 @@ const registerNetworkIpc = (mainWindow) => {
       const folderUid = folder ? folder.uid : null;
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      const collectionRoot = get(collection, 'root', {});
 
       const onConsoleLog = (type, args) => {
         console[type](...args);
@@ -568,7 +592,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request);
+          const request = prepareRequest(_request, collectionRoot);
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
@@ -605,7 +629,9 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run pre-request script
-            const requestScript = get(request, 'script.req');
+            const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
+              os.EOL
+            );
             if (requestScript && requestScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runRequestScript(
@@ -647,7 +673,7 @@ const registerNetworkIpc = (mainWindow) => {
             const brunoConfig = getBrunoConfig(collectionUid);
             const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
             if (proxyEnabled) {
-              let proxy;
+              let proxyUri;
               const interpolationOptions = {
                 envVars,
                 collectionVariables,
@@ -658,6 +684,7 @@ const registerNetworkIpc = (mainWindow) => {
               const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
               const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
               const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+              const socksEnabled = proxyProtocol.includes('socks');
 
               if (proxyAuthEnabled) {
                 const proxyAuthUsername = interpolateString(
@@ -670,16 +697,23 @@ const registerNetworkIpc = (mainWindow) => {
                   interpolationOptions
                 );
 
-                proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+                proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
               } else {
-                proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+                proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
               }
 
-              request.httpsAgent = new HttpsProxyAgent(proxy, {
-                rejectUnauthorized: preferences.isTlsVerification()
-              });
+              if (socksEnabled) {
+                const socksProxyAgent = new SocksProxyAgent(proxyUri);
 
-              request.httpAgent = new HttpProxyAgent(proxy);
+                request.httpsAgent = socksProxyAgent;
+                request.httpAgent = socksProxyAgent;
+              } else {
+                request.httpsAgent = new HttpsProxyAgent(proxyUri, {
+                  rejectUnauthorized: preferences.isTlsVerification()
+                });
+
+                request.httpAgent = new HttpProxyAgent(proxyUri);
+              }
             } else if (!preferences.isTlsVerification()) {
               request.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
@@ -715,7 +749,10 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run response script
-            const responseScript = get(request, 'script.res');
+            const responseScript = compact([
+              get(collectionRoot, 'request.script.res'),
+              get(request, 'script.res')
+            ]).join(os.EOL);
             if (responseScript && responseScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runResponseScript(
@@ -759,7 +796,10 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run tests
-            const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+            const testFile = compact([
+              get(collectionRoot, 'request.tests'),
+              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+            ]).join(os.EOL);
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
@@ -839,7 +879,10 @@ const registerNetworkIpc = (mainWindow) => {
               }
 
               // run tests
-              const testFile = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+              const testFile = compact([
+                get(collectionRoot, 'request.tests'),
+                item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+              ]).join(os.EOL);
               if (typeof testFile === 'string') {
                 const testRuntime = new TestRuntime();
                 const testResults = await testRuntime.runTests(
