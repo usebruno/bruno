@@ -14,6 +14,7 @@ const collectionBruToJson = (bru) => {
     const transformedJson = {
       request: {
         params: _.get(json, 'query', []),
+        paths: _.get(json, 'path', []),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
@@ -61,6 +62,7 @@ const bruToJson = (bru) => {
         url: _.get(json, 'http.url'),
         auth: _.get(json, 'auth', {}),
         params: _.get(json, 'query', []),
+        paths: _.get(json, 'path', []),
         headers: _.get(json, 'headers', []),
         body: _.get(json, 'body', {}),
         vars: _.get(json, 'vars', []),
