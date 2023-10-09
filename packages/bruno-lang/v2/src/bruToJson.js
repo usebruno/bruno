@@ -24,7 +24,7 @@ const { outdentString } = require('../../v1/src/utils');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authbasic | authbearer 
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  bodies = bodyjson | bodytext | bodyxml | bodyfile | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
   nl = "\\r"? "\\n"
@@ -365,6 +365,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         xml: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  bodyfile(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        file: outdentString(textblock.sourceString)
       }
     };
   },

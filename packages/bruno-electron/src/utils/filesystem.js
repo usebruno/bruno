@@ -132,6 +132,10 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
+const readFileBinary = (pathname) => {
+  return fs.readFileSync(pathname);
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -147,5 +151,6 @@ module.exports = {
   browseFile,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  readFileBinary
 };

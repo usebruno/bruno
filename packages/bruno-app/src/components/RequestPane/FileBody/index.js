@@ -1,7 +1,5 @@
 import React from 'react';
 import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { setRequestFile } from 'providers/ReduxStore/slices/collections';
@@ -10,7 +8,6 @@ import StyledWrapper from './StyledWrapper';
 
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
   const file = item.draft ? get(item, 'draft.request.body.file') : get(item, 'request.body.file');
 
   const setFile = (filePath) => {

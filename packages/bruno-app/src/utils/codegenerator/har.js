@@ -4,8 +4,8 @@ const createContentType = (mode) => {
       return 'application/json';
     case 'xml':
       return 'application/xml';
-    case 'formUrlEncoded':
-      return 'application/x-www-form-urlencoded';
+    case 'file':
+      return 'application/octet-stream';
     case 'multipartForm':
       return 'multipart/form-data';
     default:

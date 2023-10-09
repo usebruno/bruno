@@ -194,7 +194,7 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data))
+          data: request.data instanceof Buffer ? request.data : safeParseJSON(safeStringifyJSON(request.data))
         },
         collectionUid,
         itemUid: item.uid,

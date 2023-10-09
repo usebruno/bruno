@@ -1,5 +1,6 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
+const { exists, isFile, readFileBinary } = require('../../utils/filesystem');
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -91,6 +92,15 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'text/xml';
     }
     axiosRequest.data = request.body.xml;
+  }
+
+  if (request.body.mode === 'file') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/octet-stream';
+    }
+    const filePath = request.body.file.trim();
+    if (!isFile(filePath)) throw new Error(`The file at [${filePath}] does not exist!`);
+    axiosRequest.data = readFileBinary(filePath);
   }
 
   if (request.body.mode === 'sparql') {
