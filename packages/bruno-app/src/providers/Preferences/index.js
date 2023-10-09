@@ -15,12 +15,18 @@ import toast from 'react-hot-toast';
 const defaultPreferences = {
   request: {
     sslVerification: true
+  },
+  display: {
+    autoHideMenu: true
   }
 };
 
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean()
+  }),
+  display: Yup.object().shape({
+    autoHideMenu: Yup.boolean()
   })
 });
 
@@ -28,6 +34,11 @@ export const PreferencesContext = createContext();
 export const PreferencesProvider = (props) => {
   const [preferences, setPreferences] = useLocalStorage('bruno.preferences', defaultPreferences);
   const { ipcRenderer } = window;
+
+  // after we've added new keys, users of previous versions of Bruno might not yet have them in local storage
+  if (!preferences.display) {
+    preferences.display = defaultPreferences.display;
+  }
 
   useEffect(() => {
     ipcRenderer.invoke('renderer:set-preferences', preferences).catch((err) => {
