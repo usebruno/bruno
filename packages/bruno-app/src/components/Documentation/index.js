@@ -7,7 +7,7 @@ import { useTheme } from 'providers/Theme/index';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections/index';
-import Editor from './DocumentEditor';
+import DocumentationEditor from './DocumentationEditor';
 import MarkdownBody from './MarkdownBody';
 import StyledContentWrapper from './StyledContentWrapper';
 import StyledWrapper from './StyledWrapper';
@@ -90,7 +90,7 @@ const Documentation = () => {
 
       <StyledContentWrapper theme={themeContext.theme}>
         {isEditing ? (
-          <Editor className="w-full h-full" onChange={handleChange} value={docs} />
+          <DocumentationEditor className="w-full h-full" onChange={handleChange} value={docs} />
         ) : (
           <MarkdownBody OnDoubleClick={toggleViewMode} theme={themeContext.theme}>
             {htmlFromMarkdown}
