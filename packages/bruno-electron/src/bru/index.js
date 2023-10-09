@@ -1,5 +1,56 @@
 const _ = require('lodash');
-const { bruToJsonV2, jsonToBruV2, bruToEnvJsonV2, envJsonToBruV2 } = require('@usebruno/lang');
+const {
+  bruToJsonV2,
+  jsonToBruV2,
+  bruToEnvJsonV2,
+  envJsonToBruV2,
+  collectionBruToJson: _collectionBruToJson,
+  jsonToCollectionBru: _jsonToCollectionBru
+} = require('@usebruno/lang');
+
+const collectionBruToJson = (bru) => {
+  try {
+    const json = _collectionBruToJson(bru);
+
+    const transformedJson = {
+      request: {
+        params: _.get(json, 'query', []),
+        headers: _.get(json, 'headers', []),
+        auth: _.get(json, 'auth', {}),
+        script: _.get(json, 'script', {}),
+        vars: _.get(json, 'vars', {}),
+        tests: _.get(json, 'tests', '')
+      }
+    };
+
+    return transformedJson;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
+const jsonToCollectionBru = (json) => {
+  try {
+    const collectionBruJson = {
+      query: _.get(json, 'request.params', []),
+      headers: _.get(json, 'request.headers', []),
+      auth: _.get(json, 'request.auth', {}),
+      script: {
+        req: _.get(json, 'request.script.req', ''),
+        res: _.get(json, 'request.script.res', '')
+      },
+      vars: {
+        req: _.get(json, 'request.vars.req', []),
+        res: _.get(json, 'request.vars.req', [])
+      },
+      tests: _.get(json, 'request.tests', '')
+    };
+
+    return _jsonToCollectionBru(collectionBruJson);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
 
 const bruToEnvJson = (bru) => {
   try {
@@ -128,5 +179,7 @@ module.exports = {
   bruToJson,
   jsonToBru,
   bruToEnvJson,
-  envJsonToBru
+  envJsonToBru,
+  collectionBruToJson,
+  jsonToCollectionBru
 };
