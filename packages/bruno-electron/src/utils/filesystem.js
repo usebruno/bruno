@@ -95,6 +95,20 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseFile = async (win, filters) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters
+  });
+
+  if (!filePaths || !filePaths[0]) {
+    return false;
+  }
+
+  const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+  return isFile(resolvedPath) ? resolvedPath : false;
+};
+
 const searchForFiles = (dir, extension) => {
   let results = [];
   const files = fs.readdirSync(dir);
@@ -130,6 +144,7 @@ module.exports = {
   hasBruExtension,
   createDirectory,
   browseDirectory,
+  browseFile,
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName

@@ -136,6 +136,22 @@ ${indentString(body.sparql)}
 `;
   }
 
+  if (body && body.sparql && body.sparql.length) {
+    bru += `body:sparql {
+${indentString(body.sparql)}
+}
+
+`;
+  }
+
+  if (body && body.file && body.file.length) {
+    bru += `body:file {
+${indentString(body.file)}
+}
+
+`;
+  }
+
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `body:form-urlencoded {`;
     if (enabled(body.formUrlEncoded).length) {

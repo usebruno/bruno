@@ -589,6 +589,20 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.file = action.payload.file;
+        }
+      }
+    },
     addMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1405,7 +1419,8 @@ export const {
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
-  resetCollectionRunner
+  resetCollectionRunner,
+  setRequestFile
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

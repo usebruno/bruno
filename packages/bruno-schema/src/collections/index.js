@@ -57,11 +57,12 @@ const graphqlBodySchema = Yup.object({
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'file', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
   xml: Yup.string().nullable(),
+  file: Yup.string().nullable(),
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(keyValueSchema).nullable(),
