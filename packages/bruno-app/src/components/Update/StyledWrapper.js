@@ -2,12 +2,18 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   height: inherit;
+  .head {
+    font-weight: var(--base-text-weight-semibold, 600);
+    padding-bottom: 0.3em;
+    font-size: 1.5em;
+  }
   .markdown-body {
     overflow-y: auto;
     color: ${(props) => props.theme.text};
     box-sizing: border-box;
     height: 100%;
     margin: 0 auto;
+    margin-top: -15px;
     padding: 1em;
     font-size: 0.875rem;
   }

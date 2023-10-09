@@ -2,6 +2,11 @@ const _ = require('lodash');
 const path = require('path');
 const { ipcMain, shell, app } = require('electron');
 const axios = require('axios');
+const { createWriteStream } = require('fs');
+const { join } = require('path');
+const stream = require('stream');
+const util = require('util');
+const pipeline = util.promisify(stream.pipeline);
 
 const cache = {
   version: undefined,
@@ -46,7 +51,12 @@ async function getLatestVersion() {
       url: 'https://api.github.com/repos/usebruno/bruno/releases/latest'
     });
   } catch {
-    return false;
+    return {
+      version: 'v0.0.0',
+      url: undefined,
+      body: 'Error while parsing github.',
+      assets: []
+    };
   }
 
   let data = response.data;
@@ -58,6 +68,7 @@ async function getLatestVersion() {
     assets: data.assets.map((val) => {
       return {
         ...parseName(val.name),
+        name: val.name,
         download: val.browser_download_url
       };
     })
@@ -66,7 +77,7 @@ async function getLatestVersion() {
   return cache.latest;
 }
 
-const registerUpdaterIpc = () => {
+const registerUpdaterIpc = (mainWindow) => {
   // Get current version of electron app ( for sidebar )
   ipcMain.handle('renderer:current-version', (event) => {
     return getCurrentVersion();
@@ -78,6 +89,54 @@ const registerUpdaterIpc = () => {
 
   ipcMain.handle('renderer:get-latest-version', async (event) => {
     return await getLatestVersion();
+  });
+
+  ipcMain.handle('renderer:get-builds', async (event) => {
+    await getLatestVersion();
+    switch (process.platform) {
+      case 'darwin': {
+        return cache.latest.assets.filter((val) => {
+          return val.os == 'mac';
+        });
+      }
+
+      case 'win32': {
+        return cache.latest.assets.filter((val) => {
+          return val.os == 'win';
+        });
+      }
+
+      case 'linux': {
+        return cache.latest.assets.filter((val) => {
+          return val.os == 'linux';
+        });
+      }
+
+      default: {
+        return [];
+      }
+    }
+  });
+
+  ipcMain.handle('renderer:download-update', async (event, name, url) => {
+    console.log('Test:', url);
+    const response = await axios({
+      url,
+      timeout: 20000,
+      method: 'GET',
+      headers: {
+        Accept: 'application/octet-stream'
+      },
+      responseType: 'stream', // Set responseType to 'stream' for binary data
+      onDownloadProgress: (progressEvent) => {
+        mainWindow.webContents.send('main:update-download-progress', progressEvent.progress, progressEvent.estimated);
+      }
+    });
+
+    await pipeline(response.data, createWriteStream(join(app.getAppPath(), name)));
+    await shell.openPath(join(app.getAppPath(), name));
+
+    setTimeout(() => process.exit(0), 1000);
   });
 
   ipcMain.handle('renderer:open-latest-release', (event) => {

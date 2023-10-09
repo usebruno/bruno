@@ -71,7 +71,7 @@ app.on('ready', async () => {
   mainWindow.webContents.openDevTools();
 
   // register all ipc handlers
-  registerUpdaterIpc();
+  registerUpdaterIpc(mainWindow);
   registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
 });
