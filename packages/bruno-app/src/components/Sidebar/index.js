@@ -3,6 +3,7 @@ import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
 import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
+import Update from 'components/Update';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -16,6 +17,7 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [appVersion, setAppVersion] = useState('Loading...');
   const [isLatestVersion, setLatestVersion] = useState(true);
 
@@ -24,7 +26,6 @@ const Sidebar = () => {
   const { storedTheme } = useTheme();
 
   ipcRenderer.invoke('renderer:current-version').then((val) => setAppVersion(val));
-  ipcRenderer.invoke('renderer:get-latest-version');
   ipcRenderer.invoke('renderer:check-version').then((val) => setLatestVersion(val));
 
   const dispatch = useDispatch();
@@ -85,6 +86,7 @@ const Sidebar = () => {
       <aside>
         <div className="flex flex-row h-screen w-full">
           {preferencesOpen && <Preferences onClose={() => setPreferencesOpen(false)} />}
+          {updateOpen && <Update onClose={() => setUpdateOpen(false)} />}
 
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -112,7 +114,7 @@ const Sidebar = () => {
                 </GitHubButton>
               </div>
               <div
-                onClick={() => ipcRenderer.invoke('renderer:open-latest-release')}
+                onClick={() => setUpdateOpen(true)} //{() => ipcRenderer.invoke('renderer:open-latest-release')}
                 className={
                   'flex flex-grow items-center justify-end text-xs mr-2 ' +
                   (isLatestVersion ? 'version-latest' : 'version-need-update')
