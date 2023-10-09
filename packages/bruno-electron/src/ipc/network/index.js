@@ -1,3 +1,4 @@
+const os = require('os');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
@@ -201,22 +202,19 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      const preferences = getPreferences();
-      const sslVerification = get(preferences, 'request.sslVerification', true);
       const httpsAgentRequestFields = {};
-      if (!sslVerification) {
+      if (!preferences.isTlsVerification()) {
         httpsAgentRequestFields['rejectUnauthorized'] = false;
-      } else {
-        const cacertArray = [preferences['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-        cacertFile = cacertArray.find((el) => el);
-        if (cacertFile && cacertFile.length > 1) {
-          try {
-            const fs = require('fs');
-            caCrt = fs.readFileSync(cacertFile);
-            httpsAgentRequestFields['ca'] = caCrt;
-          } catch (err) {
-            console.log('Error reading CA cert file:' + cacertFile, err);
-          }
+      }
+
+      const cacertArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+      let cacertFile = cacertArray.find((el) => el);
+      if (cacertFile && cacertFile.length > 1) {
+        try {
+          const sslRootCas = require('ssl-root-cas').inject();
+          sslRootCas.addFile(cacertFile);
+        } catch (err) {
+          console.log('Error reading CA cert file:' + cacertFile, err);
         }
       }
 
@@ -249,16 +247,13 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (socksEnabled) {
           const socksProxyAgent = new SocksProxyAgent(proxyUri);
-
           request.httpsAgent = socksProxyAgent;
-
           request.httpAgent = socksProxyAgent;
         } else {
           request.httpsAgent = new HttpsProxyAgent(
             proxyUri,
             Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
           );
-
           request.httpAgent = new HttpProxyAgent(proxyUri);
         }
       } else if (Object.keys(httpsAgentRequestFields).length > 0) {
