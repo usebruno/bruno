@@ -88,30 +88,44 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const handleClick = (event) => {
-    if (isItemARequest(item)) {
-      if (itemIsOpenedInTabs(item, tabs)) {
+    switch (event.button) {
+      case 0: // left click
+        if (isItemARequest(item)) {
+          dispatch(hideHomePage());
+          if (itemIsOpenedInTabs(item, tabs)) {
+            dispatch(
+              focusTab({
+                uid: item.uid
+              })
+            );
+            return;
+          }
+          dispatch(
+            addTab({
+              uid: item.uid,
+              collectionUid: collection.uid,
+              requestPaneTab: getDefaultRequestPaneTab(item)
+            })
+          );
+          return;
+        }
         dispatch(
-          focusTab({
-            uid: item.uid
+          collectionFolderClicked({
+            itemUid: item.uid,
+            collectionUid: collection.uid
           })
         );
-      } else {
-        dispatch(
-          addTab({
-            uid: item.uid,
-            collectionUid: collection.uid,
-            requestPaneTab: getDefaultRequestPaneTab(item)
-          })
-        );
-      }
-      dispatch(hideHomePage());
-    } else {
-      dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        })
-      );
+        return;
+      case 2: // right click
+        const _menuDropdown = dropdownTippyRef.current;
+        if (_menuDropdown) {
+          let menuDropdownBehavior = 'show';
+          if (_menuDropdown.state.isShown) {
+            menuDropdownBehavior = 'hide';
+          }
+          _menuDropdown[menuDropdownBehavior]();
+        }
+        return;
     }
   };
 
@@ -189,7 +203,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             ? indents.map((i) => {
                 return (
                   <div
-                    onClick={handleClick}
+                    onMouseUp={handleClick}
                     onDoubleClick={handleDoubleClick}
                     className="indent-block"
                     key={i}
@@ -205,7 +219,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
               })
             : null}
           <div
-            onClick={handleClick}
+            onMouseUp={handleClick}
             onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
