@@ -3,6 +3,14 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   color: ${(props) => props.theme.sidebar.color};
 
+  div.version-latest {
+    color: ${(props) => props.theme.colors.text.green};
+  }
+
+  div.version-need-update {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
+
   aside {
     background-color: ${(props) => props.theme.sidebar.bg};
 

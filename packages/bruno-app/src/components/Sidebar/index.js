@@ -17,12 +17,15 @@ const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [appVersion, setAppVersion] = useState('Loading...');
+  const [isLatestVersion, setLatestVersion] = useState(true);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
   const { storedTheme } = useTheme();
 
   ipcRenderer.invoke('renderer:current-version').then((val) => setAppVersion(val));
+  ipcRenderer.invoke('renderer:get-latest-version');
+  ipcRenderer.invoke('renderer:check-version').then((val) => setLatestVersion(val));
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -108,7 +111,15 @@ const Sidebar = () => {
                   Star
                 </GitHubButton>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">{appVersion}</div>
+              <div
+                onClick={() => ipcRenderer.invoke('renderer:open-latest-release')}
+                className={
+                  'flex flex-grow items-center justify-end text-xs mr-2 ' +
+                  (isLatestVersion ? 'version-latest' : 'version-need-update')
+                }
+              >
+                {appVersion}
+              </div>
             </div>
           </div>
         </div>
