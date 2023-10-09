@@ -39,6 +39,7 @@
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
+    "socks-proxy-agent": "^8.0.2",
     "yargs": "^17.6.2"
   }
 }

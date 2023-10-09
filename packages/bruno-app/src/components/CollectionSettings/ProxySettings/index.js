@@ -19,7 +19,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
     },
     validationSchema: Yup.object({
       enabled: Yup.boolean(),
-      protocol: Yup.string().oneOf(['http', 'https']),
+      protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(0).max(65535),
       auth: Yup.object({
@@ -61,7 +61,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             Protocol
           </label>
           <div className="flex items-center">
-            <label className="flex items-center mr-4">
+            <label className="flex items-center">
               <input
                 type="radio"
                 name="protocol"
@@ -72,7 +72,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
               />
               http
             </label>
-            <label className="flex items-center">
+            <label className="flex items-center ml-4">
               <input
                 type="radio"
                 name="protocol"
@@ -82,6 +82,17 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 className="mr-1"
               />
               https
+            </label>
+            <label className="flex items-center ml-4">
+              <input
+                type="radio"
+                name="protocol"
+                value="socks5"
+                checked={formik.values.protocol === 'socks5'}
+                onChange={formik.handleChange}
+                className="mr-1"
+              />
+              socks5
             </label>
           </div>
         </div>

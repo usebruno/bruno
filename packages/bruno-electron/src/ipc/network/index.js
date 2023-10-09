@@ -20,6 +20,7 @@ const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
+const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 
 // override the default escape function to prevent escaping
@@ -224,7 +225,7 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
       if (proxyEnabled) {
-        let proxy;
+        let proxyUri;
 
         const interpolationOptions = {
           envVars,
@@ -236,22 +237,31 @@ const registerNetworkIpc = (mainWindow) => {
         const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
         const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
         const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+        const socksEnabled = proxyProtocol.includes('socks');
 
         if (proxyAuthEnabled) {
           const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
           const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
-          proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+          proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
         } else {
-          proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+          proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
         }
 
-        request.httpsAgent = new HttpsProxyAgent(
-          proxy,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
+        if (socksEnabled) {
+          const socksProxyAgent = new SocksProxyAgent(proxyUri);
 
-        request.httpAgent = new HttpProxyAgent(proxy);
+          request.httpsAgent = socksProxyAgent;
+
+          request.httpAgent = socksProxyAgent;
+        } else {
+          request.httpsAgent = new HttpsProxyAgent(
+            proxyUri,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+
+          request.httpAgent = new HttpProxyAgent(proxyUri);
+        }
       } else if (Object.keys(httpsAgentRequestFields).length > 0) {
         request.httpsAgent = new https.Agent({
           ...httpsAgentRequestFields
@@ -670,7 +680,7 @@ const registerNetworkIpc = (mainWindow) => {
             const brunoConfig = getBrunoConfig(collectionUid);
             const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
             if (proxyEnabled) {
-              let proxy;
+              let proxyUri;
               const interpolationOptions = {
                 envVars,
                 collectionVariables,
@@ -681,6 +691,7 @@ const registerNetworkIpc = (mainWindow) => {
               const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
               const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
               const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+              const socksEnabled = proxyProtocol.includes('socks');
 
               if (proxyAuthEnabled) {
                 const proxyAuthUsername = interpolateString(
@@ -693,16 +704,23 @@ const registerNetworkIpc = (mainWindow) => {
                   interpolationOptions
                 );
 
-                proxy = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+                proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
               } else {
-                proxy = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+                proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
               }
 
-              request.httpsAgent = new HttpsProxyAgent(proxy, {
-                rejectUnauthorized: sslVerification
-              });
-
-              request.httpAgent = new HttpProxyAgent(proxy);
+              if (socksEnabled) {
+                const socksProxyAgent = new SocksProxyAgent(proxyUri);
+      
+                request.httpsAgent = socksProxyAgent;
+                request.httpAgent = socksProxyAgent;
+              } else {
+                request.httpsAgent = new HttpsProxyAgent(proxyUri, {
+                  rejectUnauthorized: sslVerification
+                });
+  
+                request.httpAgent = new HttpProxyAgent(proxyUri);
+              }
             } else if (!sslVerification) {
               request.httpsAgent = new https.Agent({
                 rejectUnauthorized: false
