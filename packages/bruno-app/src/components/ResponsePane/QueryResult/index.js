@@ -87,7 +87,13 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
   };
 
   const activeResult = useMemo(() => {
-    if (tab === 'preview' && mode.includes('html') && item.requestSent && item.requestSent.url) {
+    if (
+      tab === 'preview' &&
+      mode.includes('html') &&
+      item.requestSent &&
+      item.requestSent.url &&
+      typeof data === 'string'
+    ) {
       // Add the Base tag to the head so content loads properly. This also needs the correct CSP settings
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent.url}">`);
       return (
