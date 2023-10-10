@@ -13,20 +13,20 @@ import { useTheme } from 'providers/Theme';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 
+export const handleCloseClick = (event, tab, dispatch) => {
+  event.stopPropagation();
+  event.preventDefault();
+  dispatch(
+    closeTabs({
+      tabUids: [tab.uid]
+    })
+  );
+};
+
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-
-  const handleCloseClick = (event) => {
-    event.stopPropagation();
-    event.preventDefault();
-    dispatch(
-      closeTabs({
-        tabUids: [tab.uid]
-      })
-    );
-  };
 
   const getMethodColor = (method = '') => {
     const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
@@ -134,7 +134,7 @@ const RequestTab = ({ tab, collection }) => {
       <div
         className="flex px-2 close-icon-container"
         onClick={(e) => {
-          if (!item.draft) return handleCloseClick(e);
+          if (!item.draft) return handleCloseClick(e, tab, dispatch);
 
           setShowConfirmClose(true);
         }}

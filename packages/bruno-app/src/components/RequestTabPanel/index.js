@@ -16,7 +16,7 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
-
+import { handleCloseClick } from 'components/RequestTabs/RequestTab/index';
 import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -92,6 +92,11 @@ const RequestTabPanel = () => {
       );
     }
   };
+  const MiddleClickClose = (e) => {
+    if (e.button === 1) {
+      handleCloseClick(e, focusedTab, dispatch);
+    } else return;
+  };
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
@@ -150,7 +155,7 @@ const RequestTabPanel = () => {
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative">
+      <section className="main flex flex-grow pb-4 relative" onMouseDown={(e) => MiddleClickClose(e)}>
         <section className="request-pane">
           <div
             className="px-4"
