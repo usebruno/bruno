@@ -1,6 +1,41 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 
+// Authentication
+// A request can override the collection auth with another auth
+// But it cannot override the collection auth with no auth
+// We will provide support for disabling the auth via scripting in the future
+const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+  const collectionAuth = get(collectionRoot, 'request.auth');
+  if (collectionAuth) {
+    if (collectionAuth.mode === 'basic') {
+      axiosRequest.auth = {
+        username: get(collectionAuth, 'basic.username'),
+        password: get(collectionAuth, 'basic.password')
+      };
+    }
+
+    if (collectionAuth.mode === 'bearer') {
+      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+    }
+  }
+
+  if (request.auth) {
+    if (request.auth.mode === 'basic') {
+      axiosRequest.auth = {
+        username: get(request, 'auth.basic.username'),
+        password: get(request, 'auth.basic.password')
+      };
+    }
+
+    if (request.auth.mode === 'bearer') {
+      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+  }
+
+  return axiosRequest;
+};
+
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
@@ -30,36 +65,7 @@ const prepareRequest = (request, collectionRoot) => {
     headers: headers
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
-    if (collectionAuth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-    }
-  }
-
-  if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-  }
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
@@ -125,3 +131,4 @@ const prepareRequest = (request, collectionRoot) => {
 };
 
 module.exports = prepareRequest;
+module.exports.setAuthHeaders = setAuthHeaders;
