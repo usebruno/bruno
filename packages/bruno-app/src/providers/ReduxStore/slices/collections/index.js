@@ -286,6 +286,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection && collection.items && collection.items.length) {
+        const parts = splitOnFirst(action.payload.requestUrl, '?');
+        const params = parseQueryParams(parts[1]);
+        each(params, (urlParam) => {
+          urlParam.enabled = true;
+        });
+
         const item = {
           uid: action.payload.uid,
           name: action.payload.requestName,
@@ -293,7 +299,7 @@ export const collectionsSlice = createSlice({
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
-            params: [],
+            params,
             headers: [],
             body: {
               mode: null,
