@@ -53,6 +53,13 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
   return (
     <StyledWrapper>
       <h1 className="font-medium mb-3">Proxy Settings</h1>
+      <label className="settings-label">
+        <ul className="mb-3">
+          <li>To use the global proxy configuration, choose 'use global setting'</li>
+          <li>To use collection level configuration, choose 'enabled'</li>
+          <li>To disable the proxy for this collection, choose 'disabled'</li>
+        </ul>
+      </label>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="enabled">
@@ -225,7 +232,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             ) : null}
           </div>
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="noProxy">
             Proxy Bypass
           </label>

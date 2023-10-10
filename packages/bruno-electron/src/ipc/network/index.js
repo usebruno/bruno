@@ -15,7 +15,7 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { preferences } = require('../../store/preferences');
+const preferences = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
@@ -220,8 +220,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       // proxy configuration
       const brunoConfig = getBrunoConfig(collectionUid);
-      const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-      if (proxyEnabled) {
+      const proxyEnabled = get(brunoConfig, 'proxy.enabled', 'disabled');
+      if (proxyEnabled === 'enabled') {
         let proxyUri;
 
         const interpolationOptions = {
