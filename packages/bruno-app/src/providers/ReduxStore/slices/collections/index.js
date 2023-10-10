@@ -22,10 +22,9 @@ import {
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platform';
-import os from 'os';
+import { getSubdirectoriesFromRoot, getDirectoryName, isWindowsOS } from 'utils/common/platform';
 
-const PATH_SEPARATOR = /Windows/i.test(os.release()) ? '\\' : '/';
+const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
 
 const initialState = {
   collections: [],
