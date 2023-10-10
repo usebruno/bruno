@@ -75,7 +75,7 @@ const getSize = (data) => {
   }
 
   if (typeof data === 'object') {
-    return Buffer.byteLength(JSON.stringify(data), 'utf8');
+    return Buffer.byteLength(safeStringifyJSON(data), 'utf8');
   }
 
   return 0;

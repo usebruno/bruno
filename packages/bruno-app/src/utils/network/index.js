@@ -1,3 +1,5 @@
+import { safeStringifyJSON } from 'utils/common';
+
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
@@ -30,7 +32,7 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
 };
 
 const getResponseSize = (response) => {
-  return response.headers['content-length'] || Buffer.byteLength(JSON.stringify(response.data)) || 0;
+  return response.headers['content-length'] || Buffer.byteLength(safeStringifyJSON(response.data)) || 0;
 };
 
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
