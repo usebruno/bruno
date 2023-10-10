@@ -18,13 +18,15 @@ const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
+const ajv = require('ajv');
 const atob = require('atob');
-const axios = require('axios');
 const btoa = require('btoa');
 const lodash = require('lodash');
 const moment = require('moment');
 const uuid = require('uuid');
 const nanoid = require('nanoid');
+const axios = require('axios');
+const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 
 class TestRuntime {
@@ -111,14 +113,16 @@ class TestRuntime {
           punycode,
           zlib,
           // 3rd party libs
-          atob,
-          axios,
+          ajv,
           btoa,
+          atob,
           lodash,
           moment,
           uuid,
           nanoid,
+          axios,
           chai,
+          'node-fetch': fetch,
           'crypto-js': CryptoJS,
           ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined

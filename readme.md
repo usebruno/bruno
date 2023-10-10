@@ -73,6 +73,7 @@ Even if you are not able to make contributions via code, please don't hesitate t
 [Twitter](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq)
+[LinkedIn](https://www.linkedin.com/company/usebruno)
 
 ### License 📄
 

@@ -12,7 +12,7 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
-const jsonToBru = (json) => {
+const jsonToCollectionBru = (json) => {
   const { meta, query, headers, auth, script, tests, vars, docs } = json;
 
   let bru = '';
@@ -182,4 +182,4 @@ ${indentString(docs)}
   return stripLastLine(bru);
 };
 
-module.exports = jsonToBru;
+module.exports = jsonToCollectionBru;
