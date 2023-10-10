@@ -692,6 +692,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.xml = action.payload.content;
               break;
             }
+            case 'sparql': {
+              item.draft.request.body.sparql = action.payload.content;
+              break;
+            }
             case 'formUrlEncoded': {
               item.draft.request.body.formUrlEncoded = action.payload.content;
               break;

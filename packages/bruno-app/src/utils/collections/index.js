@@ -284,6 +284,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
               graphql: si.draft.request.body.graphql,
+              sparql: si.draft.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
@@ -316,6 +317,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.request.body.text,
               xml: si.request.body.xml,
               graphql: si.request.body.graphql,
+              sparql: si.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             },
@@ -457,6 +459,10 @@ export const humanizeRequestBodyMode = (mode) => {
     }
     case 'xml': {
       label = 'XML';
+      break;
+    }
+    case 'sparql': {
+      label = 'SPARQL';
       break;
     }
     case 'formUrlEncoded': {

@@ -14,6 +14,7 @@ const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODE
 if (!SERVER_RENDERED) {
   require('codemirror/mode/javascript/javascript');
   require('codemirror/mode/xml/xml');
+  require('codemirror/mode/sparql/sparql');
   require('codemirror/addon/comment/comment');
   require('codemirror/addon/dialog/dialog');
   require('codemirror/addon/edit/closebrackets');
