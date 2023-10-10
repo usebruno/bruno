@@ -7,7 +7,7 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             state: 'success',
             data: response.data,
             headers: Object.entries(response.headers),
-            size: response.headers['content-length'] || 0,
+            size: getResponseSize(response),
             status: response.status,
             statusText: response.statusText,
             duration: response.duration
@@ -27,6 +27,10 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
       .then(resolve)
       .catch(reject);
   });
+};
+
+const getResponseSize = (response) => {
+  return response.headers['content-length'] || Buffer.byteLength(JSON.stringify(response.data)) || 0;
 };
 
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
