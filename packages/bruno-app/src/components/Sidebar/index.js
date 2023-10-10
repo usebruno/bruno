@@ -19,7 +19,7 @@ const Sidebar = () => {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [appVersion, setAppVersion] = useState('Loading...');
-  const [isLatestVersion, setLatestVersion] = useState(true);
+  const [isLatestVersion, setLatestVersion] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
@@ -114,7 +114,7 @@ const Sidebar = () => {
                 </GitHubButton>
               </div>
               <div
-                onClick={() => setUpdateOpen(true)} //{() => ipcRenderer.invoke('renderer:open-latest-release')}
+                onClick={() => setUpdateOpen(true)}
                 className={
                   'flex flex-grow items-center justify-end text-xs mr-2 ' +
                   (isLatestVersion ? 'version-latest' : 'version-need-update')
