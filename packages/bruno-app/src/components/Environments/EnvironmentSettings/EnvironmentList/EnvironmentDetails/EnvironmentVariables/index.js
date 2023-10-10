@@ -17,7 +17,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
   const [validationErrors, setValidationErrors] = useState({});
 
   const saveChanges = () => {
-    // Check if there are validation errors
     if (Object.keys(validationErrors).length > 0) {
       toast.error('Invalid environment name. Please fix the errors.');
       return;
@@ -46,8 +45,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
     switch (type) {
       case 'name': {
         const newName = e.target.value;
-
-        // Perform validation for the name (e.g., check if it's not empty)
         if (!newName.trim()) {
           newValidationErrors = {
             ...newValidationErrors,
@@ -62,7 +59,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
       }
       case 'value': {
         // Additional validation for the 'value' case if needed
-        // For example, check if the value meets certain criteria
         break;
       }
       case 'enabled': {
