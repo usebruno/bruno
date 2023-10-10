@@ -91,6 +91,29 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  console.log(collection.root);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
+      .then(() => toast.success('Collection Settings saved successfully'))
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
+        reject(err);
+      });
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);

@@ -178,7 +178,7 @@ const AssertionRow = ({
               handleAssertionChange(
                 {
                   target: {
-                    value: newValue
+                    value: `${operator} ${newValue}`
                   }
                 },
                 assertion,
