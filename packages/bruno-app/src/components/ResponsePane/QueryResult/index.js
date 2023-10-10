@@ -45,6 +45,10 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       return safeStringifyJSON(data);
     }
 
+    if (mode.includes('image')) {
+      return item.requestSent.url;
+    }
+
     // final fallback
     if (typeof data === 'string') {
       return data;
@@ -103,6 +107,8 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
           className="h-full bg-white"
         />
       );
+    } else if (mode.includes('image')) {
+      return <img src={item.requestSent.url} alt="image" />;
     }
 
     return <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value} mode={mode} readOnly />;
