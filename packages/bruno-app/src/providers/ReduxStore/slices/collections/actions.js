@@ -140,6 +140,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       })
       .then(resolve)
       .catch((err) => {
+        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+          console.log('>> request cancelled');
+          return;
+        }
+
         const errorMessage = err.message ?? 'Something went wrong';
 
         const errorResponse = {
