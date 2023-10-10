@@ -611,6 +611,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           json: null,
           text: null,
           xml: null,
+          sparql: null,
           multipartForm: null,
           formUrlEncoded: null
         }
