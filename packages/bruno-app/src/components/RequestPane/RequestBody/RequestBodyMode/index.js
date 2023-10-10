@@ -77,19 +77,19 @@ const RequestBodyMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              onModeChange('sparql');
+              onModeChange('text');
             }}
           >
-            SPARQL
+            TEXT
           </div>
           <div
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              onModeChange('text');
+              onModeChange('sparql');
             }}
           >
-            TEXT
+            SPARQL
           </div>
           <div className="label-item font-medium">Other</div>
           <div
