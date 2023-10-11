@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson } = require('../bru');
+const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -37,6 +37,13 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   return dirname === envDirectory && hasBruExtension(basename);
 };
 
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
+};
+
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
@@ -57,6 +64,20 @@ const hydrateRequestWithUuid = (request, pathname) => {
   bodyMultipartForm.forEach((param) => (param.uid = uuid()));
 
   return request;
+};
+
+const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
+  const params = _.get(collectionRoot, 'request.params', []);
+  const headers = _.get(collectionRoot, 'request.headers', []);
+  const requestVars = _.get(collectionRoot, 'request.vars.req', []);
+  const responseVars = _.get(collectionRoot, 'request.vars.res', []);
+
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+
+  return collectionRoot;
 };
 
 const envHasSecrets = (environment = {}) => {
@@ -201,6 +222,30 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
+  if (isCollectionRootBruFile(pathname, collectionPath)) {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        collectionRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   if (hasBruExtension(pathname)) {
     const file = {
       meta: {
@@ -214,6 +259,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = bruToJson(bruContent);
+
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {
@@ -278,6 +324,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return changeEnvironmentFile(win, pathname, collectionUid, collectionPath);
+  }
+
+  if (isCollectionRootBruFile(pathname, collectionPath)) {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        collectionRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
   }
 
   if (hasBruExtension(pathname)) {

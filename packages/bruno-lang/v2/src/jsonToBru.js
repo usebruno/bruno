@@ -128,6 +128,14 @@ ${indentString(body.xml)}
 `;
   }
 
+  if (body && body.sparql && body.sparql.length) {
+    bru += `body:sparql {
+${indentString(body.sparql)}
+}
+
+`;
+  }
+
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `body:form-urlencoded {`;
     if (enabled(body.formUrlEncoded).length) {

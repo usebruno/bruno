@@ -115,7 +115,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           </div>
         ) : null}
       </div>
-      <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
+      <section className={`flex flex-grow relative ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {getTabPanel(focusedTab.responsePaneTab)}
       </section>

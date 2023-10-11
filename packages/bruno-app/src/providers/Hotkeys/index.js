@@ -51,7 +51,8 @@ export const HotkeysProvider = (props) => {
           if (item && item.uid) {
             dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
           } else {
-            setShowSaveRequestModal(true);
+            // todo: when ephermal requests go live
+            // setShowSaveRequestModal(true);
           }
         }
       }

@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const { ipcMain, shell } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, bruToEnvJson } = require('../bru');
+const { envJsonToBru, bruToEnvJson, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
   writeFile,
@@ -92,6 +92,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       });
 
       return;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
+    try {
+      const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
+
+      const content = jsonToCollectionBru(collectionRoot);
+      await writeFile(collectionBruFilePath, content);
     } catch (error) {
       return Promise.reject(error);
     }
