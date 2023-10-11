@@ -84,7 +84,6 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const handleExportClick = () => {
-    //EXPORT KOLEKCIE
     const collectionCopy = cloneDeep(collection);
     exportCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
   };

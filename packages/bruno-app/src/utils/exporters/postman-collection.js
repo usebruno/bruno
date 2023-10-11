@@ -209,7 +209,6 @@ export const exportCollection = (collection) => {
   const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
 
   FileSaver.saveAs(fileBlob, fileName);
-  // console.log(collectionToExport);
 };
 
 export default exportCollection;
