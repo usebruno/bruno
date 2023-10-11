@@ -75,7 +75,7 @@ const getSize = (data) => {
   }
 
   if (typeof data === 'object') {
-    return Buffer.byteLength(JSON.stringify(data), 'utf8');
+    return Buffer.byteLength(safeStringifyJSON(data), 'utf8');
   }
 
   return 0;
@@ -487,7 +487,8 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collection) => {
     try {
       const envVars = getEnvVars(environment);
-      const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request);
+      const collectionRoot = get(collection, 'root', {});
+      const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
 
       if (!preferences.isTlsVerification()) {
         request.httpsAgent = new https.Agent({

@@ -3,12 +3,12 @@ import { IconSend } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { isMacOS } from 'utils/common/platform';
 
-const isMac = isMacOS();
-const sendShortcut = isMac ? 'Cmd + Enter' : 'Ctrl + Enter';
-const newShortcut = isMac ? 'Cmd + B' : 'Ctrl + B';
-const editEnvShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
-
 const Placeholder = () => {
+  const isMac = isMacOS();
+  const sendRequestShortcut = isMac ? 'Cmd + Enter' : 'Ctrl + Enter';
+  const newRequestShortcut = isMac ? 'Cmd + B' : 'Ctrl + B';
+  const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
+
   return (
     <StyledWrapper>
       <div className="send-icon flex justify-center" style={{ fontSize: 200 }}>
@@ -21,9 +21,9 @@ const Placeholder = () => {
           <div className="px-1 py-2">Edit Environments</div>
         </div>
         <div className="flex flex-1 flex-col px-1">
-          <div className="px-1 py-2">{sendShortcut}</div>
-          <div className="px-1 py-2">{newShortcut}</div>
-          <div className="px-1 py-2">{editEnvShortcut}</div>
+          <div className="px-1 py-2">{sendRequestShortcut}</div>
+          <div className="px-1 py-2">{newRequestShortcut}</div>
+          <div className="px-1 py-2">{editEnvironmentShortcut}</div>
         </div>
       </div>
     </StyledWrapper>
