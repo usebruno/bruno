@@ -19,6 +19,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { findEnvironmentInCollection } from 'utils/collections';
 import useGraphqlSchema from './useGraphqlSchema';
 import StyledWrapper from './StyledWrapper';
+import Documentation from 'components/Documentation/index';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -113,6 +114,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       case 'tests': {
         return <Tests item={item} collection={collection} />;
       }
+      case 'docs': {
+        return <Documentation item={item} collection={collection} />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -160,6 +164,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
+        </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
+          Docs
         </div>
         <div className="flex flex-grow justify-end items-center" style={{ fontSize: 13 }}>
           <div className="flex items-center cursor-pointer hover:underline" onClick={loadGqlSchema}>

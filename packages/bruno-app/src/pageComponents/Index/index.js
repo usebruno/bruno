@@ -44,7 +44,6 @@ export default function Main() {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isDragging = useSelector((state) => state.app.isDragging);
   const showHomePage = useSelector((state) => state.app.showHomePage);
-  const showDocs = useSelector((state) => state.docs.isShow);
 
   // Todo: write a better logging flow that can be used to log by turning on debug flag
   // Enable for debugging.
@@ -68,11 +67,6 @@ export default function Main() {
             </>
           )}
         </section>
-        {showDocs && (
-          <section className="flex flex-col w-1/4">
-            <Documentation />
-          </section>
-        )}
       </StyledWrapper>
     </div>
   );

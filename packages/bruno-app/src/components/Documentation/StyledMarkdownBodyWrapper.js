@@ -14,40 +14,40 @@ const StyledMarkdownBodyWrapper = styled.div`
     font-size: 0.875rem;
   }
 
+  .markdown-body h1 {
+    margin: 0.67em 0;
+    font-weight: var(--base-text-weight-semibold, 600);
+    padding-bottom: 0.3em;
+    font-size: 1.3;
+    border-bottom: 1px solid var(--color-border-muted);
+  }
+
   .markdown-body h2 {
     font-weight: var(--base-text-weight-semibold, 600);
     padding-bottom: 0.3em;
-    font-size: 1.125em;
+    font-size: 1.2;
     border-bottom: 1px solid var(--color-border-muted);
   }
 
   .markdown-body h3 {
     font-weight: var(--base-text-weight-semibold, 600);
-    font-size: 1em;
+    font-size: 1.1em;
   }
 
   .markdown-body h4 {
     font-weight: var(--base-text-weight-semibold, 600);
-    font-size: 0.875em;
+    font-size: 1em;
   }
 
   .markdown-body h5 {
     font-weight: var(--base-text-weight-semibold, 600);
-    font-size: 0.85em;
+    font-size: 0.95em;
   }
 
   .markdown-body h6 {
     font-weight: var(--base-text-weight-semibold, 600);
-    font-size: 0.8em;
+    font-size: 0.9em;
     color: var(--color-fg-muted);
-  }
-
-  .markdown-body h1 {
-    margin: 0.67em 0;
-    font-weight: var(--base-text-weight-semibold, 600);
-    padding-bottom: 0.3em;
-    font-size: 1.375em;
-    border-bottom: 1px solid var(--color-border-muted);
   }
 
   .markdown-body hr {

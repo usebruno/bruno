@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-const StyledEditor = styled.textarea`
+const StyledTextarea = styled.textarea`
   height: inherit;
   background: ${(props) => props.theme.bg};
   color: ${(props) => props.theme.text};
@@ -26,8 +26,4 @@ const StyledEditor = styled.textarea`
   }
 `;
 
-const DocumentationEditor = (props) => {
-  return <StyledEditor {...props} />;
-};
-
-export default DocumentationEditor;
+export default StyledTextarea;
