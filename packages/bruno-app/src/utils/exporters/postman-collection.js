@@ -1,5 +1,5 @@
-import { BrunoError } from 'utils/common/error';
 import map from 'lodash/map';
+import * as FileSaver from 'file-saver';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
 
 export const exportCollection = (collection) => {
@@ -13,6 +13,37 @@ export const exportCollection = (collection) => {
       name: collection.name,
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
     };
+  };
+
+  const generateCollectionVars = (collection) => {
+    const pattern = /{{[^{}]+}}/g;
+    let listOfVars = [];
+
+    const findOccurrences = (obj, results) => {
+      if (typeof obj === 'object') {
+        if (Array.isArray(obj)) {
+          obj.forEach((item) => findOccurrences(item, results));
+        } else {
+          for (const key in obj) {
+            findOccurrences(obj[key], results);
+          }
+        }
+      } else if (typeof obj === 'string') {
+        obj.replace(pattern, (match) => {
+          results.push(match.replace(/{{|}}/g, ''));
+        });
+      }
+    };
+
+    findOccurrences(collection, listOfVars);
+
+    const finalArrayOfVars = [...new Set(listOfVars)];
+
+    return finalArrayOfVars.map((variable) => ({
+      key: variable,
+      value: '',
+      type: 'default'
+    }));
   };
 
   const generateEventSection = (item) => {
@@ -108,16 +139,43 @@ export const exportCollection = (collection) => {
     }
   };
 
+  const generateAuth = (itemAuth) => {
+    switch (itemAuth) {
+      case 'bearer':
+        return {
+          type: 'bearer',
+          bearer: {
+            key: 'token',
+            value: itemAuth.bearer.token,
+            type: 'string'
+          }
+        };
+      case 'basic': {
+        return {
+          type: 'basic',
+          basic: [
+            {
+              key: 'password',
+              value: itemAuth.basic.password,
+              type: 'string'
+            },
+            {
+              key: 'username',
+              value: itemAuth.basic.username,
+              type: 'string'
+            }
+          ]
+        };
+      }
+    }
+  };
+
   const generateRequestSection = (itemRequest) => {
     const requestObject = {
       method: itemRequest.method,
       header: generateHeaders(itemRequest.headers),
-      url: {
-        raw: itemRequest.url,
-        protocol: itemRequest.url.split('://')[0]
-      }
-      // host: TODO
-      // path: TODO
+      url: itemRequest.url,
+      auth: generateAuth(itemRequest.auth)
     };
 
     if (itemRequest.body.mode != 'none') {
@@ -145,7 +203,13 @@ export const exportCollection = (collection) => {
   const collectionToExport = {};
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
-  console.log(collectionToExport);
+  collectionToExport.variable = generateCollectionVars(collection);
+
+  const fileName = `${collection.name}.json`;
+  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+
+  FileSaver.saveAs(fileBlob, fileName);
+  // console.log(collectionToExport);
 };
 
 export default exportCollection;
