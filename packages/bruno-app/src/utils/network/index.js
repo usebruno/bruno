@@ -23,7 +23,7 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('send-http-request', item, collection.uid, collection.pathname, environment, collectionVariables)
+      .invoke('send-http-request', item, collection, environment, collectionVariables)
       .then(resolve)
       .catch(reject);
   });
