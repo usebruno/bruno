@@ -77,14 +77,19 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
-  // get the length of active params, headers and asserts
+  // get the length of active params, headers, asserts and vars
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
+  const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
+  const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
   const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
+  const activeVarsLength =
+    requestVars.filter((request) => request.enabled).length +
+    responseVars.filter((response) => response.enabled).length;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -105,6 +110,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
+          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
