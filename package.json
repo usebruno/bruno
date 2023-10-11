@@ -34,6 +34,7 @@
     "build:electron": "./scripts/build-electron.sh",
     "test:e2e": "npx playwright test",
     "test:report": "npx playwright show-report",
+    "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install"
   },
   "overrides": {
