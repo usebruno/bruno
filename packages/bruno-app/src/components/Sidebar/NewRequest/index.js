@@ -25,12 +25,16 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     },
     validationSchema: Yup.object({
       requestName: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .trim()
+        .min(1, 'must be at least 1 character')
         .required('name is required')
         .test({
           name: 'requestName',
-          message: 'The request name "index" is reserved in bruno',
-          test: (value) => value && !value.trim().toLowerCase().includes('index')
+          message: `The request names - collection and folder is reserved in bruno`,
+          test: (value) => {
+            const trimmedValue = value ? value.trim().toLowerCase() : '';
+            return !['collection', 'folder'].includes(trimmedValue);
+          }
         })
     }),
     onSubmit: (values) => {

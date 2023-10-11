@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.13.0
+
+- feat(#306) Module whitelisting and filesystem access support
+
 ## 0.12.0
 
 - show response time in milliseconds per request and total

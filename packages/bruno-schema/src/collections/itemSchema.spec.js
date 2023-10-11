@@ -34,7 +34,7 @@ describe('Item Schema Validation', () => {
 
     return Promise.all([
       expect(itemSchema.validate(item)).rejects.toEqual(
-        validationErrorWithMessages('name must be atleast 1 characters')
+        validationErrorWithMessages('name must be at least 1 character')
       )
     ]);
   });

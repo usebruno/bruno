@@ -24,7 +24,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full mt-1">
       <div className="flex flex-grow justify-start items-center">
         <AuthMode item={item} collection={collection} />
       </div>

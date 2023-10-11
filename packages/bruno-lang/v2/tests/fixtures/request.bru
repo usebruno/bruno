@@ -57,6 +57,13 @@ body:xml {
   </xml>
 }
 
+body:sparql {
+  SELECT * WHERE {
+    ?subject ?predicate ?object .
+  }
+  LIMIT 10
+}
+
 body:form-urlencoded {
   apikey: secret
   numbers: +91998877665

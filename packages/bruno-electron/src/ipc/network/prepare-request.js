@@ -1,25 +1,25 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 
-const prepareRequest = (request) => {
-  const headers = {};
-  let contentTypeDefined = false;
-  each(request.headers, (h) => {
-    if (h.enabled) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
+// Authentication
+// A request can override the collection auth with another auth
+// But it cannot override the collection auth with no auth
+// We will provide support for disabling the auth via scripting in the future
+const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+  const collectionAuth = get(collectionRoot, 'request.auth');
+  if (collectionAuth) {
+    if (collectionAuth.mode === 'basic') {
+      axiosRequest.auth = {
+        username: get(collectionAuth, 'basic.username'),
+        password: get(collectionAuth, 'basic.password')
+      };
     }
-  });
 
-  let axiosRequest = {
-    method: request.method,
-    url: request.url,
-    headers: headers
-  };
+    if (collectionAuth.mode === 'bearer') {
+      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+    }
+  }
 
-  // Authentication
   if (request.auth) {
     switch (request.auth.mode) {
       case 'awsv4':
@@ -43,6 +43,40 @@ const prepareRequest = (request) => {
         break;
     }
   }
+
+  return axiosRequest;
+};
+
+const prepareRequest = (request, collectionRoot) => {
+  const headers = {};
+  let contentTypeDefined = false;
+
+  // collection headers
+  each(get(collectionRoot, 'request.headers', []), (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+      if (h.name.toLowerCase() === 'content-type') {
+        contentTypeDefined = true;
+      }
+    }
+  });
+
+  each(request.headers, (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+      if (h.name.toLowerCase() === 'content-type') {
+        contentTypeDefined = true;
+      }
+    }
+  });
+
+  let axiosRequest = {
+    method: request.method,
+    url: request.url,
+    headers: headers
+  };
+
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
@@ -68,6 +102,13 @@ const prepareRequest = (request) => {
       axiosRequest.headers['content-type'] = 'text/xml';
     }
     axiosRequest.data = request.body.xml;
+  }
+
+  if (request.body.mode === 'sparql') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/sparql-query';
+    }
+    axiosRequest.data = request.body.sparql;
   }
 
   if (request.body.mode === 'formUrlEncoded') {
@@ -108,3 +149,4 @@ const prepareRequest = (request) => {
 };
 
 module.exports = prepareRequest;
+module.exports.setAuthHeaders = setAuthHeaders;

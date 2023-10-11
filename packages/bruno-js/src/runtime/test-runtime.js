@@ -9,6 +9,7 @@ const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
 const fs = require('fs');
+const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
@@ -17,13 +18,15 @@ const TestResults = require('../test-results');
 const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
+const ajv = require('ajv');
 const atob = require('atob');
-const axios = require('axios');
 const btoa = require('btoa');
 const lodash = require('lodash');
 const moment = require('moment');
 const uuid = require('uuid');
 const nanoid = require('nanoid');
+const axios = require('axios');
+const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 
 class TestRuntime {
@@ -38,11 +41,24 @@ class TestRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    allowScriptFilesystemAccess
+    scriptingConfig
   ) {
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
+    const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
+    const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+
+    const whitelistedModules = {};
+
+    for (let module of moduleWhitelist) {
+      try {
+        whitelistedModules[module] = require(module);
+      } catch (e) {
+        // Ignore
+        console.warn(e);
+      }
+    }
 
     const __brunoTestResults = new TestResults();
     const test = Test(__brunoTestResults, chai);
@@ -97,15 +113,18 @@ class TestRuntime {
           punycode,
           zlib,
           // 3rd party libs
-          atob,
-          axios,
+          ajv,
           btoa,
+          atob,
           lodash,
           moment,
           uuid,
           nanoid,
+          axios,
           chai,
+          'node-fetch': fetch,
           'crypto-js': CryptoJS,
+          ...whitelistedModules,
           fs: allowScriptFilesystemAccess ? fs : undefined
         }
       }

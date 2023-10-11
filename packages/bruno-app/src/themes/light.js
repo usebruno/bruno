@@ -86,7 +86,11 @@ const lightTheme = {
       get: 'rgb(5, 150, 105)',
       post: '#8e44ad',
       put: '#ca7811',
-      delete: 'rgb(185, 28, 28)'
+      delete: 'rgb(185, 28, 28)',
+      // customize these colors if needed
+      patch: '#ca7811',
+      options: '#ca7811',
+      head: '#ca7811'
     }
   },
 
@@ -105,7 +109,8 @@ const lightTheme = {
     responseSendIcon: 'rgb(209, 213, 219)',
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
-    responseError: 'rgb(185, 28, 28)'
+    responseError: 'rgb(185, 28, 28)',
+    responseOverlayBg: 'rgba(255, 255, 255, 0.6)'
   },
 
   collection: {

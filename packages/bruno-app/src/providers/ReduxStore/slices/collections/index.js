@@ -7,6 +7,8 @@ import concat from 'lodash/concat';
 import filter from 'lodash/filter';
 import each from 'lodash/each';
 import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
+import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
 import { splitOnFirst } from 'utils/url';
 import {
@@ -39,6 +41,8 @@ export const collectionsSlice = createSlice({
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
+
+      collection.settingsSelectedTab = 'headers';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -105,6 +109,15 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.nextAction = nextAction;
+      }
+    },
+    updateSettingsSelectedTab: (state, action) => {
+      const { collectionUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.settingsSelectedTab = tab;
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -258,10 +271,27 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    deleteRequestDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && item.draft) {
+          item.draft = null;
+        }
+      }
+    },
     newEphemeralHttpRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection && collection.items && collection.items.length) {
+        const parts = splitOnFirst(action.payload.requestUrl, '?');
+        const params = parseQueryParams(parts[1]);
+        each(params, (urlParam) => {
+          urlParam.enabled = true;
+        });
+
         const item = {
           uid: action.payload.uid,
           name: action.payload.requestName,
@@ -269,7 +299,7 @@ export const collectionsSlice = createSlice({
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
-            params: [],
+            params,
             headers: [],
             body: {
               mode: null,
@@ -672,6 +702,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.xml = action.payload.content;
               break;
             }
+            case 'sparql': {
+              item.draft.request.body.sparql = action.payload.content;
+              break;
+            }
             case 'formUrlEncoded': {
               item.draft.request.body.formUrlEncoded = action.payload.content;
               break;
@@ -923,9 +957,99 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateCollectionAuthMode: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.request.auth.mode', action.payload.mode);
+      }
+    },
+    updateCollectionAuth: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        switch (action.payload.mode) {
+          case 'bearer':
+            set(collection, 'root.request.auth.bearer', action.payload.content);
+            break;
+          case 'basic':
+            set(collection, 'root.request.auth.basic', action.payload.content);
+            break;
+        }
+      }
+    },
+    updateCollectionRequestScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.request.script.req', action.payload.script);
+      }
+    },
+    updateCollectionResponseScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.request.script.res', action.payload.script);
+      }
+    },
+
+    updateCollectionTests: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.request.tests', action.payload.tests);
+      }
+    },
+    addCollectionHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const headers = get(collection, 'root.request.headers', []);
+        headers.push({
+          uid: uuid(),
+          name: '',
+          value: '',
+          description: '',
+          enabled: true
+        });
+        set(collection, 'root.request.headers', headers);
+      }
+    },
+    updateCollectionHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const headers = get(collection, 'root.request.headers', []);
+        const header = find(headers, (h) => h.uid === action.payload.header.uid);
+        if (header) {
+          header.name = action.payload.header.name;
+          header.value = action.payload.header.value;
+          header.description = action.payload.header.description;
+          header.enabled = action.payload.header.enabled;
+        }
+      }
+    },
+    deleteCollectionHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        let headers = get(collection, 'root.request.headers', []);
+        headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
+        set(collection, 'root.request.headers', headers);
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
+      const isCollectionRoot = file.meta.collectionRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+      if (isCollectionRoot) {
+        if (collection) {
+          collection.root = file.data;
+        }
+        console.log('collectionAddFileEvent', file);
+        return;
+      }
 
       if (collection) {
         const dirname = getDirectoryName(file.meta.pathname);
@@ -1010,6 +1134,12 @@ export const collectionsSlice = createSlice({
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+
+      // check and update collection root
+      if (collection && file.meta.collectionRoot) {
+        collection.root = file.data;
+        return;
+      }
 
       if (collection) {
         const item = findItemInCollection(collection, file.data.uid);
@@ -1107,7 +1237,6 @@ export const collectionsSlice = createSlice({
             const { cancelTokenUid } = action.payload;
             item.requestUid = requestUid;
             item.requestState = 'queued';
-            item.response = null;
             item.cancelTokenUid = cancelTokenUid;
           }
 
@@ -1216,6 +1345,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateNextAction,
+  updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
@@ -1228,6 +1358,7 @@ export const {
   requestCancelled,
   responseReceived,
   saveRequest,
+  deleteRequestDraft,
   newEphemeralHttpRequest,
   collectionClicked,
   collectionFolderClicked,
@@ -1260,6 +1391,14 @@ export const {
   addVar,
   updateVar,
   deleteVar,
+  addCollectionHeader,
+  updateCollectionHeader,
+  deleteCollectionHeader,
+  updateCollectionAuthMode,
+  updateCollectionAuth,
+  updateCollectionRequestScript,
+  updateCollectionResponseScript,
+  updateCollectionTests,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,

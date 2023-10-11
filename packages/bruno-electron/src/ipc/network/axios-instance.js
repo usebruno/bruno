@@ -23,9 +23,11 @@ function makeAxiosInstance() {
       return response;
     },
     (error) => {
-      const end = Date.now();
-      const start = error.config.headers['request-start-time'];
-      error.response.headers['request-duration'] = end - start;
+      if (error.response) {
+        const end = Date.now();
+        const start = error.config.headers['request-start-time'];
+        error.response.headers['request-duration'] = end - start;
+      }
       return Promise.reject(error);
     }
   );

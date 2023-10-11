@@ -6,6 +6,7 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
+chai.use(require('chai-string'));
 chai.use(function (chai, utils) {
   // Custom assertion for checking if a variable is JSON
   chai.Assertion.addProperty('json', function () {
@@ -268,7 +269,7 @@ class AssertRuntime {
             expect(lhs).to.endWith(rhs);
             break;
           case 'between':
-            const [min, max] = value.split(',');
+            const [min, max] = rhs;
             expect(lhs).to.be.within(min, max);
             break;
           case 'isEmpty':

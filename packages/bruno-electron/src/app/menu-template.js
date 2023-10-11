@@ -24,7 +24,10 @@ const template = [
       { role: 'cut' },
       { role: 'copy' },
       { role: 'paste' },
-      { role: 'selectAll' }
+      { role: 'selectAll' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' }
     ]
   },
   {

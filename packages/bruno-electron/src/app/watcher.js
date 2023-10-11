@@ -2,12 +2,10 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasJsonExtension, hasBruExtension, writeFile } = require('../utils/filesystem');
-const { bruToEnvJson, envJsonToBru, bruToJson, jsonToBru } = require('../bru');
+const { hasBruExtension } = require('../utils/filesystem');
+const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
-const { isLegacyEnvFile, migrateLegacyEnvFile, isLegacyBruFile, migrateLegacyBruFile } = require('../bru/migrate');
-const { itemSchema } = require('@usebruno/schema');
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
@@ -16,13 +14,6 @@ const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
-
-const isJsonEnvironmentConfig = (pathname, collectionPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-
-  return dirname === collectionPath && basename === 'environments.json';
-};
 
 const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
@@ -44,6 +35,13 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
 
   return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isCollectionRootBruFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const basename = path.basename(pathname);
+
+  return dirname === collectionPath && basename === 'collection.bru';
 };
 
 const hydrateRequestWithUuid = (request, pathname) => {
@@ -68,6 +66,20 @@ const hydrateRequestWithUuid = (request, pathname) => {
   return request;
 };
 
+const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
+  const params = _.get(collectionRoot, 'request.params', []);
+  const headers = _.get(collectionRoot, 'request.headers', []);
+  const requestVars = _.get(collectionRoot, 'request.vars.req', []);
+  const responseVars = _.get(collectionRoot, 'request.vars.res', []);
+
+  params.forEach((param) => (param.uid = uuid()));
+  headers.forEach((header) => (header.uid = uuid()));
+  requestVars.forEach((variable) => (variable.uid = uuid()));
+  responseVars.forEach((variable) => (variable.uid = uuid()));
+
+  return collectionRoot;
+};
+
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
 
@@ -86,11 +98,6 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
     };
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
-
-    // migrate old env json to bru file
-    if (isLegacyEnvFile(bruContent)) {
-      bruContent = await migrateLegacyEnvFile(bruContent, pathname);
-    }
 
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
@@ -205,54 +212,31 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
-  if (isJsonEnvironmentConfig(pathname, collectionPath)) {
-    try {
-      const dirname = path.dirname(pathname);
-      const bruContent = fs.readFileSync(pathname, 'utf8');
-
-      const jsonData = JSON.parse(bruContent);
-
-      const envDirectory = path.join(dirname, 'environments');
-      if (!fs.existsSync(envDirectory)) {
-        fs.mkdirSync(envDirectory);
-      }
-
-      for (const env of jsonData) {
-        const bruEnvFilename = path.join(envDirectory, `${env.name}.bru`);
-        const bruContent = envJsonToBru(env);
-        await writeFile(bruEnvFilename, bruContent);
-      }
-
-      await fs.unlinkSync(pathname);
-    } catch (err) {
-      // do nothing
-    }
-
-    return;
-  }
-
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return addEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
-  // migrate old json files to bru
-  if (hasJsonExtension(pathname)) {
+  if (isCollectionRootBruFile(pathname, collectionPath)) {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        collectionRoot: true
+      }
+    };
+
     try {
-      const json = fs.readFileSync(pathname, 'utf8');
-      const jsonData = JSON.parse(json);
+      let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      await itemSchema.validate(jsonData);
+      file.data = collectionBruToJson(bruContent);
 
-      const content = jsonToBru(jsonData);
-
-      const re = /(.*)\.json$/;
-      const subst = `$1.bru`;
-      const bruFilename = pathname.replace(re, subst);
-
-      await writeFile(bruFilename, content);
-      await fs.unlinkSync(pathname);
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      return;
     } catch (err) {
-      // do nothing
+      console.error(err);
+      return;
     }
   }
 
@@ -268,12 +252,8 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      // migrate old bru format to new bru format
-      if (isLegacyBruFile(bruContent)) {
-        bruContent = await migrateLegacyBruFile(bruContent, pathname);
-      }
-
       file.data = bruToJson(bruContent);
+
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
     } catch (err) {
@@ -340,6 +320,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     return changeEnvironmentFile(win, pathname, collectionUid, collectionPath);
   }
 
+  if (isCollectionRootBruFile(pathname, collectionPath)) {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        collectionRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   if (hasBruExtension(pathname)) {
     try {
       const file = {
@@ -403,11 +407,6 @@ class Watcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
-
-    // todo
-    // enable this in a future release
-    // once we can confirm all older json based files have been auto migrated to .bru format
-    // watchPath = path.join(watchPath, '**/*.bru');
 
     const self = this;
     setTimeout(() => {

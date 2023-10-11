@@ -138,7 +138,7 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   }
 
   if (targetItem.type === 'folder') {
-    targetItem.items = targetItem.items || [];
+    targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
     targetItem.items.push(draggedItem);
     draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
   } else {
@@ -166,7 +166,9 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
     return;
   }
 
+  draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+  collection.items = sortBy(collection.items, (item) => item.seq);
   collection.items.push(draggedItem);
   if (draggedItem.type == 'folder') {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
@@ -282,6 +284,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
               graphql: si.draft.request.body.graphql,
+              sparql: si.draft.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
@@ -314,6 +317,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.request.body.text,
               xml: si.request.body.xml,
               graphql: si.request.body.graphql,
+              sparql: si.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             },
@@ -455,6 +459,10 @@ export const humanizeRequestBodyMode = (mode) => {
     }
     case 'xml': {
       label = 'XML';
+      break;
+    }
+    case 'sparql': {
+      label = 'SPARQL';
       break;
     }
     case 'formUrlEncoded': {

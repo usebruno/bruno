@@ -65,6 +65,7 @@
     "json": "{\n  \"hello\": \"world\"\n}",
     "text": "This is a text body",
     "xml": "<xml>\n  <name>John</name>\n  <age>30</age>\n</xml>",
+    "sparql": "SELECT * WHERE {\n  ?subject ?predicate ?object .\n}\nLIMIT 10",
     "graphql": {
       "query": "{\n  launchesPast {\n    launch_site {\n      site_name\n    }\n    launch_success\n  }\n}",
       "variables": "{\n  \"limit\": 5\n}"
