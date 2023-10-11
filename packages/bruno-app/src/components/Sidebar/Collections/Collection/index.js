@@ -133,7 +133,7 @@ const Collection = ({ collection, searchText }) => {
         <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
-        <div className="flex flex-grow items-center overflow-hidden" onMouseUp={handleClick}>
+        <div className="flex flex-grow items-center overflow-hidden" onClick={handleClick}>
           <IconChevronRight
             size={16}
             strokeWidth={2}

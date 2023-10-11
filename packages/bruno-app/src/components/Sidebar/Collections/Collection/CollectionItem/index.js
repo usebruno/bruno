@@ -219,7 +219,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
               })
             : null}
           <div
-            onMouseUp={handleClick}
+            onClick={handleClick}
             onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
