@@ -6,6 +6,7 @@ const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { expect } = chai;
+chai.use(require('chai-string'));
 chai.use(function (chai, utils) {
   // Custom assertion for checking if a variable is JSON
   chai.Assertion.addProperty('json', function () {
