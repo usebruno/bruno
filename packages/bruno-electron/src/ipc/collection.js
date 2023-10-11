@@ -250,10 +250,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
-      if (!fs.existsSync(oldPath)) {
+      // the file existing is checked with case insensitive file name. I want to check with case sensitive
+      if (!fileExistsWithCase(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
+      if (fileExistsWithCase(newPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
@@ -282,8 +283,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -525,5 +526,16 @@ const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
   registerRendererEventHandlers(mainWindow, watcher, lastOpenedCollections);
   registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
 };
+
+function fileExistsWithCase(filePath) {
+  try {
+    const folderPath = path.dirname(filePath);
+    const fileName = path.basename(filePath);
+    const files = fs.readdirSync(folderPath);
+    return files.includes(fileName);
+  } catch (error) {
+    return false;
+  }
+}
 
 module.exports = registerCollectionsIpc;
