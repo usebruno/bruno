@@ -1,6 +1,6 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
-const { exists, isFile, readFileBinary } = require('../../utils/filesystem');
+const { isFile, readFileBinary } = require('../../utils/filesystem');
 
 // Authentication
 // A request can override the collection auth with another auth
