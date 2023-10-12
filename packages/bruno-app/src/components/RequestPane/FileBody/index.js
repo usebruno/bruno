@@ -1,10 +1,8 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
 import { setRequestFile } from 'providers/ReduxStore/slices/collections';
 import { browseFile } from 'providers/ReduxStore/slices/collections/actions';
-import StyledWrapper from './StyledWrapper';
 
 const FileBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -34,11 +32,9 @@ const FileBody = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
-      <button className="btn btn-secondary" onClick={browse}>
-        {file || 'Set File'}
-      </button>
-    </StyledWrapper>
+    <button className="btn btn-secondary" onClick={browse}>
+      {file || 'Set File'}
+    </button>
   );
 };
 export default FileBody;
