@@ -42,3 +42,5 @@ jobs:
       - name: Publish to Snapcraft
         run: |
           snapcraft upload --release=stable packages/bruno-electron/out/*.snap
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_API_KEY }}
