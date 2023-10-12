@@ -32,7 +32,7 @@ const config = {
   linux: {
     artifactName: '${name}_${version}_${arch}_linux.${ext}',
     icon: 'resources/icons/png',
-    target: ['AppImage', 'deb', 'rpm']
+    target: ['AppImage', 'deb', 'snap', 'rpm']
   },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
