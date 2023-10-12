@@ -133,7 +133,7 @@ const sanitizeDirectoryName = (name) => {
 };
 
 const readFileBinary = (pathname) => {
-  return fs.readFileSync(pathname).buffer;
+  return fs.readFileSync(pathname);
 };
 
 module.exports = {
