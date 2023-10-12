@@ -16,6 +16,10 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose/index';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections/index';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -46,6 +50,7 @@ const RequestTabPanel = () => {
   const docExplorerRef = useRef(null);
   const [schema, setSchema] = useState(null);
   const [showGqlDocs, setShowGqlDocs] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const onSchemaLoad = (schema) => setSchema(schema);
   const toggleDocs = () => setShowGqlDocs((showGqlDocs) => !showGqlDocs);
   const handleGqlClickReference = (reference) => {
@@ -92,6 +97,21 @@ const RequestTabPanel = () => {
       );
     }
   };
+
+  const handleMouseDown = (e) => {
+    //mouse middle click close
+    if (e.button === 1) {
+      if (item.draft) return setShowConfirmClose(true);
+      e.stopPropagation();
+      e.preventDefault();
+      dispatch(
+        closeTabs({
+          tabUids: [focusedTab.uid]
+        })
+      );
+    }
+  };
+
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
@@ -147,10 +167,43 @@ const RequestTabPanel = () => {
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+      {showConfirmClose && (
+        <ConfirmRequestClose
+          onCancel={() => setShowConfirmClose(false)}
+          onCloseWithoutSave={() => {
+            dispatch(
+              deleteRequestDraft({
+                itemUid: item.uid,
+                collectionUid: collection.uid
+              })
+            );
+            dispatch(
+              closeTabs({
+                tabUids: [focusedTab.uid]
+              })
+            );
+            setShowConfirmClose(false);
+          }}
+          onSaveAndClose={() => {
+            dispatch(saveRequest(item.uid, collection.uid))
+              .then(() => {
+                dispatch(
+                  closeTabs({
+                    tabUids: [focusedTab.uid]
+                  })
+                );
+                setShowConfirmClose(false);
+              })
+              .catch((err) => {
+                console.log('err', err);
+              });
+          }}
+        />
+      )}
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative">
+      <section className="main flex flex-grow pb-4 relative" onMouseDown={(e) => handleMouseDown(e)}>
         <section className="request-pane">
           <div
             className="px-4"
