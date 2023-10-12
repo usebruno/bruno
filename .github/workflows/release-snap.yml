@@ -36,7 +36,8 @@ jobs:
 
       - name: Configure Snapcraft
         run: snapcraft login
-        env: SNAPCRAFT_STORE_CREDENTIALS:${{ secrets.SNAPCRAFT_API_KEY }}
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_API_KEY }}
 
       - name: Publish to Snapcraft
         run: |
