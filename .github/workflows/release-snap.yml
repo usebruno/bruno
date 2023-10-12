@@ -40,4 +40,4 @@ jobs:
 
       - name: Publish to Snapcraft
         run: |
-          snapcraft push packages/bruno-electron/out/*.snap --release stable
+          snapcraft upload --release=stable packages/bruno-electron/out/*.snap
