@@ -227,6 +227,7 @@ const lightTheme = {
   table: {
     border: '#efefef',
     thead: {
+      bg: '#f4f4f4',
       color: '#616161'
     },
     striped: '#f3f3f3',
@@ -237,6 +238,11 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  rightPane: {
+    bg: '#fff',
+    border: '#e1e1e1'
   }
 };
 

@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  height: 80vh;
+  overflow-y: auto;
   div.tabs {
     div.tab {
       padding: 6px 0px;

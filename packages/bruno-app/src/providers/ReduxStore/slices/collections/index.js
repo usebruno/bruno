@@ -1337,6 +1337,20 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.runnerResult = null;
       }
+    },
+    updateRequestDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.docs = action.payload.docs;
+        }
+      }
     }
   }
 });
@@ -1413,7 +1427,8 @@ export const {
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
-  resetCollectionRunner
+  resetCollectionRunner,
+  updateRequestDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

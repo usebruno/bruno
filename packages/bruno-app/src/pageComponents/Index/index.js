@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import Documentation from 'components/Documentation';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
@@ -56,7 +57,7 @@ export default function Main() {
     <div>
       <StyledWrapper className={className}>
         <Sidebar />
-        <section className="flex flex-grow flex-col overflow-auto">
+        <section className="flex flex-grow flex-col overflow-hidden">
           {showHomePage ? (
             <Welcome />
           ) : (
