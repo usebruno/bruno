@@ -35,8 +35,8 @@ jobs:
         continue-on-error: true
 
       - name: Configure Snapcraft
-        run: |
-          echo ${{ secrets.SNAPCRAFT_API_KEY }} | snapcraft login --with -
+        run: snapcraft login
+        env: SNAPCRAFT_STORE_CREDENTIALS:${{ secrets.SNAPCRAFT_API_KEY }}
 
       - name: Publish to Snapcraft
         run: |
