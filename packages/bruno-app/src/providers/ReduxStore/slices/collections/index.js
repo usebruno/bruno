@@ -969,6 +969,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         switch (action.payload.mode) {
+          case 'awsv4':
+            set(collection, 'root.request.auth.awsv4', action.payload.content);
+            console.log('set auth awsv4', action.payload.content);
+            break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
             break;
