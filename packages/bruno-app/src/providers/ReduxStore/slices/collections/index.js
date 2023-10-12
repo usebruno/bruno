@@ -379,6 +379,10 @@ export const collectionsSlice = createSlice({
 
           item.draft.request.auth = item.draft.request.auth || {};
           switch (action.payload.mode) {
+            case 'awsv4':
+              item.draft.request.auth.mode = 'awsv4';
+              item.draft.request.auth.awsv4 = action.payload.content;
+              break;
             case 'bearer':
               item.draft.request.auth.mode = 'bearer';
               item.draft.request.auth.bearer = action.payload.content;
@@ -965,6 +969,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         switch (action.payload.mode) {
+          case 'awsv4':
+            set(collection, 'root.request.auth.awsv4', action.payload.content);
+            console.log('set auth awsv4', action.payload.content);
+            break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
             break;
