@@ -16,9 +16,11 @@ import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
-import { handleCloseClick } from 'components/RequestTabs/RequestTab/index';
 import StyledWrapper from './StyledWrapper';
-
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose/index';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections/index';
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
 const DEFAULT_PADDING = 5;
@@ -32,7 +34,6 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
@@ -46,6 +47,7 @@ const RequestTabPanel = () => {
   const docExplorerRef = useRef(null);
   const [schema, setSchema] = useState(null);
   const [showGqlDocs, setShowGqlDocs] = useState(false);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
   const onSchemaLoad = (schema) => setSchema(schema);
   const toggleDocs = () => setShowGqlDocs((showGqlDocs) => !showGqlDocs);
   const handleGqlClickReference = (reference) => {
@@ -92,10 +94,18 @@ const RequestTabPanel = () => {
       );
     }
   };
-  const MiddleClickClose = (e) => {
+  const handleMouseDown = (e) => {
+    //mouse middle click close
+    if (item.draft) return setShowConfirmClose(true);
     if (e.button === 1) {
-      handleCloseClick(e, focusedTab, dispatch);
-    } else return;
+      e.stopPropagation();
+      e.preventDefault();
+      dispatch(
+        closeTabs({
+          tabUids: [focusedTab.uid]
+        })
+      );
+    }
   };
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
@@ -121,6 +131,7 @@ const RequestTabPanel = () => {
   }
 
   let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
+
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
@@ -152,10 +163,43 @@ const RequestTabPanel = () => {
 
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+      {showConfirmClose && (
+        <ConfirmRequestClose
+          onCancel={() => setShowConfirmClose(false)}
+          onCloseWithoutSave={() => {
+            dispatch(
+              deleteRequestDraft({
+                itemUid: item.uid,
+                collectionUid: collection.uid
+              })
+            );
+            dispatch(
+              closeTabs({
+                tabUids: [focusedTab.uid]
+              })
+            );
+            setShowConfirmClose(false);
+          }}
+          onSaveAndClose={() => {
+            dispatch(saveRequest(item.uid, collection.uid))
+              .then(() => {
+                dispatch(
+                  closeTabs({
+                    tabUids: [focusedTab.uid]
+                  })
+                );
+                setShowConfirmClose(false);
+              })
+              .catch((err) => {
+                console.log('err', err);
+              });
+          }}
+        />
+      )}
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative" onMouseDown={(e) => MiddleClickClose(e)}>
+      <section className="main flex flex-grow pb-4 relative" onMouseDown={(e) => handleMouseDown(e)}>
         <section className="request-pane">
           <div
             className="px-4"
