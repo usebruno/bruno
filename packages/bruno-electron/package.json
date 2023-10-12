@@ -10,6 +10,7 @@
     "clean": "rimraf dist",
     "dev": "electron .",
     "dist": "electron-builder --mac --config electron-builder-config.js",
+    "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
     "test": "jest"
   },
