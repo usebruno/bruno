@@ -98,7 +98,7 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/octet-stream';
     }
-    const filePath = request.body.file.trim();
+    const filePath = request.body.file;
     if (!isFile(filePath)) throw new Error(`The file at [${filePath}] does not exist!`);
     axiosRequest.data = readFileBinary(filePath);
   }

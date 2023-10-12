@@ -371,7 +371,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   bodyfile(_1, _2, _3, _4, textblock, _5) {
     return {
       body: {
-        file: outdentString(textblock.sourceString)
+        file: outdentString(textblock.sourceString).trim()
       }
     };
   },
