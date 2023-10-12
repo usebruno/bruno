@@ -150,7 +150,7 @@ const RequestTabPanel = () => {
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow relative">
+      <section className="main flex flex-grow pb-4 relative">
         <section className="request-pane">
           <div
             className="px-4"

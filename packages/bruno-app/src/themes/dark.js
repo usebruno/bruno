@@ -223,7 +223,6 @@ const darkTheme = {
   table: {
     border: '#333',
     thead: {
-      bg: '#4d4d4d',
       color: 'rgb(204, 204, 204)'
     },
     striped: '#2A2D2F',

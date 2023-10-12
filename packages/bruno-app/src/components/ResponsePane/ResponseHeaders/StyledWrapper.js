@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   table {
+    width: 100%;
     border-collapse: collapse;
 
     thead {

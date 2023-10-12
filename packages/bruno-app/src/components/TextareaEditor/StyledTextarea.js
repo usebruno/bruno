@@ -16,14 +16,6 @@ const StyledTextarea = styled.textarea`
     border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
     outline: ${(props) => props.theme.modal.input.focusBorder} !important;
   }
-
-  ::-webkit-scrollbar {
-    width: 0px;
-  }
-
-  ::-webkit-scrollbar-button {
-    display: none;
-  }
 `;
 
 export default StyledTextarea;

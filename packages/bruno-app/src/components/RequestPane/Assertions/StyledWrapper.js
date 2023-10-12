@@ -1,16 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .scroll {
-    ::-webkit-scrollbar {
-      width: 0px;
-    }
-
-    ::-webkit-scrollbar-button {
-      display: none;
-    }
-  }
-
   table {
     width: 100%;
     border-collapse: collapse;

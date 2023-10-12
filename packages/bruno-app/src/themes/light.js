@@ -227,7 +227,6 @@ const lightTheme = {
   table: {
     border: '#efefef',
     thead: {
-      bg: '#f4f4f4',
       color: '#616161'
     },
     striped: '#f3f3f3',
