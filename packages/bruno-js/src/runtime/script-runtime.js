@@ -71,6 +71,7 @@ class ScriptRuntime {
       };
       context.console = {
         log: customLogger('log'),
+        debug: customLogger('debug'),
         info: customLogger('info'),
         warn: customLogger('warn'),
         error: customLogger('error')
