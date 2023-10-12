@@ -35,7 +35,7 @@ const FileBody = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={browse}>
+      <button className="btn btn-secondary" onClick={browse}>
         {file || 'Set File'}
       </button>
     </StyledWrapper>
