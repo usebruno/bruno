@@ -23,9 +23,7 @@ const RequestMethod = ({ item }) => {
   return (
     <StyledWrapper>
       <div className={getClassname(item.request.method)}>
-        <span className="uppercase">
-          {item.request.method}
-        </span>
+        <span className="uppercase">{item.request.method}</span>
       </div>
     </StyledWrapper>
   );
