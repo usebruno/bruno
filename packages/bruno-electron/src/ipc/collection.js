@@ -47,7 +47,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
         const dirPath = path.join(collectionLocation, collectionFolderName);
-        if (fs.existsSync(dirPath)) {
+        if (fileExists(dirPath)) {
           throw new Error(`collection: ${dirPath} already exists`);
         }
 
@@ -115,7 +115,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new request
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
-      if (fs.existsSync(pathname)) {
+      if (fileExists(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
 
@@ -129,7 +129,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
     try {
-      if (!fs.existsSync(pathname)) {
+      if (!fileExists(pathname)) {
         throw new Error(`path: ${pathname} does not exist`);
       }
 
@@ -144,12 +144,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
+      if (!fileExists(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
       const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
+      if (fileExists(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
@@ -166,12 +166,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:copy-environment', async (event, collectionPathname, name, baseVariables) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
+      if (!fileExists(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
       const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
+      if (fileExists(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
@@ -188,12 +188,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
+      if (!fileExists(envDirPath)) {
         await createDirectory(envDirPath);
       }
 
       const envFilePath = path.join(envDirPath, `${environment.name}.bru`);
-      if (!fs.existsSync(envFilePath)) {
+      if (!fileExists(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
@@ -213,12 +213,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
-      if (!fs.existsSync(envFilePath)) {
+      if (!fileExists(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
       const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)) {
+      if (fileExists(newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -235,7 +235,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       const envFilePath = path.join(envDirPath, `${environmentName}.bru`);
-      if (!fs.existsSync(envFilePath)) {
+      if (!fileExists(envFilePath)) {
         throw new Error(`environment: ${envFilePath} does not exist`);
       }
 
@@ -251,10 +251,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
       // the file existing is checked with case insensitive file name. I want to check with case sensitive
-      if (!fileExistsWithCase(oldPath)) {
+      if (!fileExists(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fileExistsWithCase(newPath)) {
+      if (fileExists(newPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
@@ -293,7 +293,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, pathname) => {
     try {
-      if (!fs.existsSync(pathname)) {
+      if (!fileExists(pathname)) {
         fs.mkdirSync(pathname);
       } else {
         return Promise.reject(new Error('The directory already exists'));
@@ -307,7 +307,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:delete-item', async (event, pathname, type) => {
     try {
       if (type === 'folder') {
-        if (!fs.existsSync(pathname)) {
+        if (!fileExists(pathname)) {
           return Promise.reject(new Error('The directory does not exist'));
         }
 
@@ -319,7 +319,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         fs.rmSync(pathname, { recursive: true, force: true });
       } else if (['http-request', 'graphql-request'].includes(type)) {
-        if (!fs.existsSync(pathname)) {
+        if (!fileExists(pathname)) {
           return Promise.reject(new Error('The file does not exist'));
         }
 
@@ -353,7 +353,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
-      if (fs.existsSync(collectionPath)) {
+      if (fileExists(collectionPath)) {
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
@@ -378,7 +378,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const parseEnvironments = (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
-        if (!fs.existsSync(envDirPath)) {
+        if (!fileExists(envDirPath)) {
           fs.mkdirSync(envDirPath);
         }
 
@@ -449,11 +449,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const folderName = path.basename(folderPath);
       const newFolderPath = path.join(destinationPath, folderName);
 
-      if (!fs.existsSync(folderPath)) {
+      if (!fileExists(folderPath)) {
         throw new Error(`folder: ${folderPath} does not exist`);
       }
 
-      if (fs.existsSync(newFolderPath)) {
+      if (fileExists(newFolderPath)) {
         throw new Error(`folder: ${newFolderPath} already exists`);
       }
 
@@ -527,7 +527,7 @@ const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {
   registerMainEventHandlers(mainWindow, watcher, lastOpenedCollections);
 };
 
-function fileExistsWithCase(filePath) {
+function fileExists(filePath) {
   try {
     const folderPath = path.dirname(filePath);
     const fileName = path.basename(filePath);
