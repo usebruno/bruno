@@ -12,7 +12,7 @@ const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
-const { cleanJson } = require('../utils');
+const { cleanJson, createResponseParser } = require('../utils');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -133,7 +133,7 @@ class ScriptRuntime {
   ) {
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
-    const res = new BrunoResponse(response);
+    const res = createResponseParser(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
 
