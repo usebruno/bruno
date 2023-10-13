@@ -15,6 +15,7 @@ const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
+const ajv = require('ajv');
 const atob = require('atob');
 const btoa = require('btoa');
 const lodash = require('lodash');
@@ -70,6 +71,7 @@ class ScriptRuntime {
       };
       context.console = {
         log: customLogger('log'),
+        debug: customLogger('debug'),
         info: customLogger('info'),
         warn: customLogger('warn'),
         error: customLogger('error')
@@ -93,6 +95,7 @@ class ScriptRuntime {
           punycode,
           zlib,
           // 3rd party libs
+          ajv,
           atob,
           btoa,
           lodash,
@@ -182,6 +185,7 @@ class ScriptRuntime {
           punycode,
           zlib,
           // 3rd party libs
+          ajv,
           atob,
           btoa,
           lodash,
