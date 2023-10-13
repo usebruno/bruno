@@ -21,7 +21,6 @@ const ensureUrl = (url) => {
 };
 
 const transformOpenapiRequestItem = (request) => {
-  console.log(request);
   let _operationObject = request.operationObject;
   const brunoRequestItem = {
     uid: uuid(),
@@ -337,7 +336,7 @@ const importCollection = () => {
       .then(validateSchema)
       .then((collection) => resolve(collection))
       .catch((err) => {
-        console.log(err);
+        console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));
       });
   });
