@@ -142,22 +142,28 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       })
       .then(resolve)
       .catch((err) => {
-        dispatch(
-          responseReceived({
-            itemUid: item.uid,
-            collectionUid: collectionUid,
-            response: null
-          })
-        );
-
         if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
           console.log('>> request cancelled');
           return;
         }
 
-        console.log('>> sending request failed');
-        console.log(err);
-        toast.error(err ? err.message : 'Something went wrong!');
+        const errorMessage = err.message ?? 'Something went wrong';
+
+        const errorResponse = {
+          status: 'Error',
+          isError: true,
+          error: errorMessage,
+          size: '0',
+          duration: '0'
+        };
+
+        dispatch(
+          responseReceived({
+            itemUid: item.uid,
+            collectionUid: collectionUid,
+            response: errorResponse
+          })
+        );
       });
   });
 };

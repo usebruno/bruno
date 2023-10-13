@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import { useState } from 'react';
 import { useMemo } from 'react';
 
-const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers }) => {
+const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers, error }) => {
   const { storedTheme } = useTheme();
   const [tab, setTab] = useState('preview');
   const dispatch = useDispatch();
@@ -119,7 +119,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       <div className="flex justify-end gap-2 text-xs" role="tablist">
         {getTabs()}
       </div>
-      {activeResult}
+      {error ? <span className="text-red-500">{error}</span> : activeResult}
     </StyledWrapper>
   );
 };
