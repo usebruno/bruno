@@ -11,7 +11,6 @@ const fs = require('fs');
 const { get } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const BrunoResponse = require('../bruno-response');
 const { cleanJson, createResponseParser } = require('../utils');
 
 // Inbuilt Library Support

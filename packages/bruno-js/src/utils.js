@@ -110,6 +110,22 @@ const createResponseParser = (response = {}) => {
   res.headers = response.headers;
   res.body = response.data;
 
+  res.getStatus = () => {
+    return response ? response.status : null;
+  };
+
+  res.getHeader = (name) => {
+    return response && response.headers ? response.headers[name] : null;
+  };
+
+  res.getHeaders = () => {
+    return response ? response.headers : null;
+  };
+
+  res.getBody = () => {
+    return response ? response.data : null;
+  };
+
   res.jq = (expr) => {
     const output = jsonQuery(expr, { data: response.data });
     return output ? output.value : null;
