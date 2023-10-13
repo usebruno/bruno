@@ -9,10 +9,12 @@ import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import { usePreferences } from 'providers/Preferences/index';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
+  const autoSavePreference = usePreferences().preferences.request.autoSave;
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
   const isMac = isMacOS();
@@ -25,8 +27,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = () => {
-    dispatch(saveRequest(item.uid, collection.uid));
+  const onSave = (notify = 1) => {
+    dispatch(saveRequest(item.uid, collection.uid, notify));
   };
 
   const onUrlChange = (value) => {
@@ -69,9 +71,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}
+          autoSave={autoSavePreference}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
-          <div
+          {/* <div
             className="tooltip mr-3"
             onClick={(e) => {
               e.stopPropagation();
@@ -88,7 +91,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <span className="tooltiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
-          </div>
+          </div> */}
           <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
         </div>
       </div>

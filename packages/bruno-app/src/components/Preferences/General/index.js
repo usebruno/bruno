@@ -6,19 +6,21 @@ const General = () => {
   const { preferences, setPreferences } = usePreferences();
 
   const [sslVerification, setSslVerification] = useState(preferences.request.sslVerification);
+  const [autoSave, setAutoSave] = useState(preferences.request.autoSave);
 
-  const handleCheckboxChange = () => {
-    const updatedPreferences = {
-      ...preferences,
-      request: {
-        ...preferences.request,
-        sslVerification: !sslVerification
-      }
-    };
+  const handleCheckboxChange = (preferenceName) => {
+    const updatedPreferences = { ...preferences };
+    if (preferenceName === 'sslVerification') {
+      updatedPreferences.request.sslVerification = !sslVerification;
+    }
 
+    if (preferenceName === 'autoSave') {
+      updatedPreferences.request.autoSave = !autoSave;
+    }
     setPreferences(updatedPreferences)
       .then(() => {
-        setSslVerification(!sslVerification);
+        setSslVerification(updatedPreferences.request.sslVerification);
+        setAutoSave(updatedPreferences.request.autoSave);
       })
       .catch((err) => {
         console.error(err);
@@ -27,9 +29,25 @@ const General = () => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center mt-2">
-        <input type="checkbox" checked={sslVerification} onChange={handleCheckboxChange} className="mr-3 mousetrap" />
-        SSL Certificate Verification
+      <div className="rows">
+        <div className="mt-2">
+          <input
+            type="checkbox"
+            checked={sslVerification}
+            onChange={() => handleCheckboxChange('sslVerification')}
+            className="mr-3 mousetrap"
+          />
+          SSL Certificate Verification
+        </div>
+        <div className="mt-2">
+          <input
+            type="checkbox"
+            checked={autoSave}
+            onChange={() => handleCheckboxChange('autoSave')}
+            className="mr-3 mousetrap"
+          />
+          Auto Save
+        </div>
       </div>
     </StyledWrapper>
   );
