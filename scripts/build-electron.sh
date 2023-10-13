@@ -19,4 +19,9 @@ sed -i'' -e 's@/_next/@_next/@g' packages/bruno-electron/web/**.html
 # Remove sourcemaps
 find packages/bruno-electron/web -name '*.map' -type f -delete
 
-npm run dist --workspace=packages/bruno-electron 
+if [ "$1" == "snap" ]; then
+  echo "Building snap distribution"
+  npm run dist:snap --workspace=packages/bruno-electron 
+else
+  echo "Please pass a build distribution type"
+fi

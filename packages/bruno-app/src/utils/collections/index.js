@@ -284,6 +284,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.draft.request.body.text,
               xml: si.draft.request.body.xml,
               graphql: si.draft.request.body.graphql,
+              sparql: si.draft.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
             },
@@ -316,6 +317,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               text: si.request.body.text,
               xml: si.request.body.xml,
               graphql: si.request.body.graphql,
+              sparql: si.request.body.sparql,
               formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
               multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
             },
@@ -382,7 +384,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       script: _item.request.script,
       vars: _item.request.vars,
       assertions: _item.request.assertions,
-      tests: _item.request.tests
+      tests: _item.request.tests,
+      docs: _item.request.docs
     }
   };
 
@@ -459,6 +462,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'XML';
       break;
     }
+    case 'sparql': {
+      label = 'SPARQL';
+      break;
+    }
     case 'formUrlEncoded': {
       label = 'Form URL Encoded';
       break;
@@ -475,6 +482,10 @@ export const humanizeRequestBodyMode = (mode) => {
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
+    case 'awsv4': {
+      label = 'AWS Sig V4';
+      break;
+    }
     case 'basic': {
       label = 'Basic Auth';
       break;

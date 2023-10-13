@@ -16,6 +16,7 @@ const NewFolder = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       folderName: Yup.string()
+        .trim()
         .min(1, 'must be at least 1 character')
         .required('name is required')
         .test({
@@ -32,7 +33,7 @@ const NewFolder = ({ collection, item, onClose }) => {
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, collection.uid, item ? item.uid : null))
         .then(() => onClose())
-        .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
+        .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the folder'));
     }
   });
 

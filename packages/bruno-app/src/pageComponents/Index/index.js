@@ -9,11 +9,13 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import Documentation from 'components/Documentation';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
   require('codemirror/mode/javascript/javascript');
   require('codemirror/mode/xml/xml');
+  require('codemirror/mode/sparql/sparql');
   require('codemirror/addon/comment/comment');
   require('codemirror/addon/dialog/dialog');
   require('codemirror/addon/edit/closebrackets');
