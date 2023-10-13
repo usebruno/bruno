@@ -2,7 +2,7 @@ import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
 
-const deleteUidsInItems = (items) => {
+export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
 
@@ -26,7 +26,7 @@ const deleteUidsInItems = (items) => {
  * Some of the models in the app are not consistent with the Collection Json format
  * This function is used to transform the models to the Collection Json format
  */
-const transformItem = (items = []) => {
+export const transformItem = (items = []) => {
   each(items, (item) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
       item.request.query = item.request.params;
@@ -47,14 +47,14 @@ const transformItem = (items = []) => {
   });
 };
 
-const deleteUidsInEnvs = (envs) => {
+export const deleteUidsInEnvs = (envs) => {
   each(envs, (env) => {
     delete env.uid;
     each(env.variables, (variable) => delete variable.uid);
   });
 };
 
-const deleteSecretsInEnvs = (envs) => {
+export const deleteSecretsInEnvs = (envs) => {
   each(envs, (env) => {
     each(env.variables, (variable) => {
       if (variable.secret) {
@@ -64,9 +64,13 @@ const deleteSecretsInEnvs = (envs) => {
   });
 };
 
-const exportCollection = (collection) => {
+export const exportCollection = (collection) => {
   // delete uids
   delete collection.uid;
+
+  // delete process variables
+  delete collection.processEnvVariables;
+
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);

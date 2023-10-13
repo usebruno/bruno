@@ -14,6 +14,8 @@ import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
+import { get } from 'lodash';
+import Documentation from 'components/Documentation/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -55,6 +57,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       case 'tests': {
         return <Tests item={item} collection={collection} />;
       }
+      case 'docs': {
+        return <Documentation item={item} collection={collection} />;
+      }
       default: {
         return <div className="mt-4">404 | Not found</div>;
       }
@@ -76,32 +81,53 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
+  // get the length of active params, headers, asserts and vars
+  const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
+  const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
+  const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
+  const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+  const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
+
+  const activeParamsLength = params.filter((param) => param.enabled).length;
+  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+  const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
+  const activeVarsLength =
+    requestVars.filter((request) => request.enabled).length +
+    responseVars.filter((response) => response.enabled).length;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
           Query
+          {activeParamsLength > 0 && <sup className="ml-1 font-medium">{activeParamsLength}</sup>}
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
+          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert
+          {activeAssertionsLength > 0 && <sup className="ml-1 font-medium">{activeAssertionsLength}</sup>}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
+        </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
+          Docs
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
@@ -110,7 +136,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${['script', 'vars', 'auth'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}
+        className={`flex w-full ${
+          ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
+        }`}
       >
         {getTabPanel(focusedTab.requestPaneTab)}
       </section>

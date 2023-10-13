@@ -70,6 +70,17 @@ const requestBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authAwsV4Schema = Yup.object({
+  accessKeyId: Yup.string().nullable(),
+  secretAccessKey: Yup.string().nullable(),
+  sessionToken: Yup.string().nullable(),
+  service: Yup.string().nullable(),
+  region: Yup.string().nullable(),
+  profileName: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authBasicSchema = Yup.object({
   username: Yup.string().nullable(),
   password: Yup.string().nullable()
@@ -84,7 +95,8 @@ const authBearerSchema = Yup.object({
   .strict();
 
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'basic', 'bearer']).required('mode is required'),
+  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer']).required('mode is required'),
+  awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable()
 })
@@ -115,7 +127,8 @@ const requestSchema = Yup.object({
     .strict()
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
-  tests: Yup.string().nullable()
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();

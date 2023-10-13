@@ -384,7 +384,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
       script: _item.request.script,
       vars: _item.request.vars,
       assertions: _item.request.assertions,
-      tests: _item.request.tests
+      tests: _item.request.tests,
+      docs: _item.request.docs
     }
   };
 
@@ -481,6 +482,10 @@ export const humanizeRequestBodyMode = (mode) => {
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
+    case 'awsv4': {
+      label = 'AWS Sig V4';
+      break;
+    }
     case 'basic': {
       label = 'Basic Auth';
       break;
