@@ -20,7 +20,8 @@ const collectionBruToJson = (bru) => {
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
-      }
+      },
+      docs: _.get(json, 'docs', '')
     };
 
     return transformedJson;
@@ -43,7 +44,8 @@ const jsonToCollectionBru = (json) => {
         req: _.get(json, 'request.vars.req', []),
         res: _.get(json, 'request.vars.req', [])
       },
-      tests: _.get(json, 'request.tests', '')
+      tests: _.get(json, 'request.tests', ''),
+      docs: _.get(json, 'docs', '')
     };
 
     return _jsonToCollectionBru(collectionBruJson);
