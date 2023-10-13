@@ -24,7 +24,7 @@ const RequestMethod = ({ item }) => {
     <StyledWrapper>
       <div className={getClassname(item.request.method)}>
         <span className="uppercase">
-          {item.request.method.length > 4 ? item.request.method.substring(0, 3) : item.request.method}
+          {item.request.method}
         </span>
       </div>
     </StyledWrapper>
