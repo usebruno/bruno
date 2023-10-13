@@ -16,7 +16,6 @@ const ExportCollection = ({ onClose, collection }) => {
   const handleExportPostmanCollection = () => {
     const collectionCopy = cloneDeep(collection);
     exportPostmanCollection(collectionCopy);
-    // exportPostmanCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
     onClose();
   };
 

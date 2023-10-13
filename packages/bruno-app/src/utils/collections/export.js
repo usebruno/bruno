@@ -67,6 +67,10 @@ export const deleteSecretsInEnvs = (envs) => {
 export const exportCollection = (collection) => {
   // delete uids
   delete collection.uid;
+
+  // delete process variables
+  delete collection.processEnvVariables;
+
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);

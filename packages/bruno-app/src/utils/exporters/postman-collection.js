@@ -4,6 +4,7 @@ import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/
 
 export const exportCollection = (collection) => {
   delete collection.uid;
+  delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
   deleteUidsInEnvs(collection.environments);
   deleteSecretsInEnvs(collection.environments);
@@ -206,7 +207,7 @@ export const exportCollection = (collection) => {
   collectionToExport.variable = generateCollectionVars(collection);
 
   const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+  const fileBlob = new Blob([JSON.stringify(collectionToExport, null, 2)], { type: 'application/json' });
 
   FileSaver.saveAs(fileBlob, fileName);
 };
