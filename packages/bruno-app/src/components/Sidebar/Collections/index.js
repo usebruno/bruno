@@ -104,11 +104,12 @@ const Collections = () => {
         {searchText !== '' && (
           <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
             <span
+              className="close-icon"
               onClick={() => {
                 setSearchText('');
               }}
             >
-              <IconX size={16} strokeWidth={1.5} />
+              <IconX size={16} strokeWidth={1.5} className="cursor-pointer" />
             </span>
           </div>
         )}
