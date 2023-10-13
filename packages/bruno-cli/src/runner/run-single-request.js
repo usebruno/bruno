@@ -30,7 +30,7 @@ const runSingleRequest = async function (
   try {
     let request;
 
-    request = prepareRequest(bruJson.request);
+    request = prepareRequest(bruJson.request, collectionRoot);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 

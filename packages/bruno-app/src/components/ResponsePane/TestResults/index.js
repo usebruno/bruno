@@ -15,7 +15,7 @@ const TestResults = ({ results, assertionResults }) => {
   const failedAssertions = assertionResults.filter((result) => result.status === 'fail');
 
   return (
-    <StyledWrapper className="flex flex-col px-3">
+    <StyledWrapper className="flex flex-col">
       <div className="pb-2 font-medium test-summary">
         Tests ({results.length}/{results.length}), Passed: {passedTests.length}, Failed: {failedTests.length}
       </div>

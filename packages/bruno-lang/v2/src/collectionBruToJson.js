@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authbasic | authbearer 
+  auths = authawsv4 | authbasic | authbearer 
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -38,6 +38,7 @@ const grammar = ohm.grammar(`Bru {
   varsreq = "vars:pre-request" dictionary
   varsres = "vars:post-response" dictionary
 
+  authawsv4 = "auth:awsv4" dictionary
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
 
@@ -169,6 +170,33 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   headers(_1, dictionary) {
     return {
       headers: mapPairListToKeyValPairs(dictionary.ast)
+    };
+  },
+  authawsv4(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const accessKeyIdKey = _.find(auth, { name: 'accessKeyId' });
+    const secretAccessKeyKey = _.find(auth, { name: 'secretAccessKey' });
+    const sessionTokenKey = _.find(auth, { name: 'sessionToken' });
+    const serviceKey = _.find(auth, { name: 'service' });
+    const regionKey = _.find(auth, { name: 'region' });
+    const profileNameKey = _.find(auth, { name: 'profileName' });
+    const accessKeyId = accessKeyIdKey ? accessKeyIdKey.value : '';
+    const secretAccessKey = secretAccessKeyKey ? secretAccessKeyKey.value : '';
+    const sessionToken = sessionTokenKey ? sessionTokenKey.value : '';
+    const service = serviceKey ? serviceKey.value : '';
+    const region = regionKey ? regionKey.value : '';
+    const profileName = profileNameKey ? profileNameKey.value : '';
+    return {
+      auth: {
+        awsv4: {
+          accessKeyId,
+          secretAccessKey,
+          sessionToken,
+          service,
+          region,
+          profileName
+        }
+      }
     };
   },
   authbasic(_1, dictionary) {

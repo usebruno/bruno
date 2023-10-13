@@ -9,28 +9,50 @@ const { isFile, readFileBinary } = require('../../utils/filesystem');
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth) {
-    if (collectionAuth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+    switch (collectionAuth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+          secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+          sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+          service: get(collectionAuth, 'awsv4.service'),
+          region: get(collectionAuth, 'awsv4.region'),
+          profileName: get(collectionAuth, 'awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.auth = {
+          username: get(collectionAuth, 'basic.username'),
+          password: get(collectionAuth, 'basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        break;
     }
   }
 
   if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    switch (request.auth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+          secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+          sessionToken: get(request, 'auth.awsv4.sessionToken'),
+          service: get(request, 'auth.awsv4.service'),
+          region: get(request, 'auth.awsv4.region'),
+          profileName: get(request, 'auth.awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.auth = {
+          username: get(request, 'auth.basic.username'),
+          password: get(request, 'auth.basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        break;
     }
   }
 

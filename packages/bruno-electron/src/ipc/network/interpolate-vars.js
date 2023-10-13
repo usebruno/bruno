@@ -121,6 +121,16 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     delete request.auth;
   }
 
+  // interpolate vars for aws sigv4 auth
+  if (request.awsv4config) {
+    request.awsv4config.accessKeyId = interpolate(request.awsv4config.accessKeyId) || '';
+    request.awsv4config.secretAccessKey = interpolate(request.awsv4config.secretAccessKey) || '';
+    request.awsv4config.sessionToken = interpolate(request.awsv4config.sessionToken) || '';
+    request.awsv4config.service = interpolate(request.awsv4config.service) || '';
+    request.awsv4config.region = interpolate(request.awsv4config.region) || '';
+    request.awsv4config.profileName = interpolate(request.awsv4config.profileName) || '';
+  }
+
   return request;
 };
 
