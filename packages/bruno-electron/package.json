@@ -1,5 +1,5 @@
 {
-  "version": "v0.23.0",
+  "version": "v0.24.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -15,10 +15,12 @@
     "test": "jest"
   },
   "dependencies": {
+    "@aws-sdk/credential-providers": "^3.425.0",
     "@usebruno/js": "0.8.0",
     "@usebruno/lang": "0.8.0",
     "@usebruno/schema": "0.5.0",
     "about-window": "^1.15.2",
+    "aws4-axios": "^3.3.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
