@@ -26,16 +26,25 @@ BEEP=false
 `;
     const expected = {
       FOO: 'bar',
-      BAZ: 2,
-      BEEP: false
+      BAZ: '2',
+      BEEP: 'false'
     };
     const output = parser(input);
     expect(output).toEqual(expected);
   });
 
-  test('it should handle leading and trailing whitespace', () => {
+  test('it should not strip leading and trailing whitespace when using quotes', () => {
     const input = `
-  SPACE  =  value
+SPACE="  value  "
+`;
+    const expected = { SPACE: '  value  ' };
+    const output = parser(input);
+    expect(output).toEqual(expected);
+  });
+
+  test('it should strip leading and trailing whitespace when NOT using quotes', () => {
+    const input = `
+SPACE=  value  
 `;
     const expected = { SPACE: 'value' };
     const output = parser(input);

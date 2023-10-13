@@ -286,6 +286,12 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection && collection.items && collection.items.length) {
+        const parts = splitOnFirst(action.payload.requestUrl, '?');
+        const params = parseQueryParams(parts[1]);
+        each(params, (urlParam) => {
+          urlParam.enabled = true;
+        });
+
         const item = {
           uid: action.payload.uid,
           name: action.payload.requestName,
@@ -293,7 +299,7 @@ export const collectionsSlice = createSlice({
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
-            params: [],
+            params,
             paths: [],
             headers: [],
             body: {
@@ -396,6 +402,10 @@ export const collectionsSlice = createSlice({
 
           item.draft.request.auth = item.draft.request.auth || {};
           switch (action.payload.mode) {
+            case 'awsv4':
+              item.draft.request.auth.mode = 'awsv4';
+              item.draft.request.auth.awsv4 = action.payload.content;
+              break;
             case 'bearer':
               item.draft.request.auth.mode = 'bearer';
               item.draft.request.auth.bearer = action.payload.content;
@@ -733,6 +743,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.xml = action.payload.content;
               break;
             }
+            case 'sparql': {
+              item.draft.request.body.sparql = action.payload.content;
+              break;
+            }
             case 'formUrlEncoded': {
               item.draft.request.body.formUrlEncoded = action.payload.content;
               break;
@@ -996,6 +1010,10 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         switch (action.payload.mode) {
+          case 'awsv4':
+            set(collection, 'root.request.auth.awsv4', action.payload.content);
+            console.log('set auth awsv4', action.payload.content);
+            break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
             break;
@@ -1360,6 +1378,20 @@ export const collectionsSlice = createSlice({
       if (collection) {
         collection.runnerResult = null;
       }
+    },
+    updateRequestDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.docs = action.payload.docs;
+        }
+      }
     }
   }
 });
@@ -1437,7 +1469,8 @@ export const {
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
-  resetCollectionRunner
+  resetCollectionRunner,
+  updateRequestDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

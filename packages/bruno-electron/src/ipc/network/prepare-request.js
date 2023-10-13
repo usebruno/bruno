@@ -1,6 +1,63 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 
+// Authentication
+// A request can override the collection auth with another auth
+// But it cannot override the collection auth with no auth
+// We will provide support for disabling the auth via scripting in the future
+const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+  const collectionAuth = get(collectionRoot, 'request.auth');
+  if (collectionAuth) {
+    switch (collectionAuth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+          secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+          sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+          service: get(collectionAuth, 'awsv4.service'),
+          region: get(collectionAuth, 'awsv4.region'),
+          profileName: get(collectionAuth, 'awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.auth = {
+          username: get(collectionAuth, 'basic.username'),
+          password: get(collectionAuth, 'basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        break;
+    }
+  }
+
+  if (request.auth) {
+    switch (request.auth.mode) {
+      case 'awsv4':
+        axiosRequest.awsv4config = {
+          accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+          secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+          sessionToken: get(request, 'auth.awsv4.sessionToken'),
+          service: get(request, 'auth.awsv4.service'),
+          region: get(request, 'auth.awsv4.region'),
+          profileName: get(request, 'auth.awsv4.profileName')
+        };
+        break;
+      case 'basic':
+        axiosRequest.auth = {
+          username: get(request, 'auth.basic.username'),
+          password: get(request, 'auth.basic.password')
+        };
+        break;
+      case 'bearer':
+        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        break;
+    }
+  }
+
+  return axiosRequest;
+};
+
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
@@ -31,36 +88,7 @@ const prepareRequest = (request, collectionRoot) => {
     paths: request.paths
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
-    if (collectionAuth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(collectionAuth, 'basic.username'),
-        password: get(collectionAuth, 'basic.password')
-      };
-    }
-
-    if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-    }
-  }
-
-  if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-  }
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
@@ -86,6 +114,13 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'text/xml';
     }
     axiosRequest.data = request.body.xml;
+  }
+
+  if (request.body.mode === 'sparql') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/sparql-query';
+    }
+    axiosRequest.data = request.body.sparql;
   }
 
   if (request.body.mode === 'formUrlEncoded') {
@@ -126,3 +161,4 @@ const prepareRequest = (request, collectionRoot) => {
 };
 
 module.exports = prepareRequest;
+module.exports.setAuthHeaders = setAuthHeaders;

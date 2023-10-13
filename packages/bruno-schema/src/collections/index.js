@@ -57,14 +57,26 @@ const graphqlBodySchema = Yup.object({
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
   xml: Yup.string().nullable(),
+  sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
   multipartForm: Yup.array().of(keyValueSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
+})
+  .noUnknown(true)
+  .strict();
+
+const authAwsV4Schema = Yup.object({
+  accessKeyId: Yup.string().nullable(),
+  secretAccessKey: Yup.string().nullable(),
+  sessionToken: Yup.string().nullable(),
+  service: Yup.string().nullable(),
+  region: Yup.string().nullable(),
+  profileName: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();
@@ -83,7 +95,8 @@ const authBearerSchema = Yup.object({
   .strict();
 
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'basic', 'bearer']).required('mode is required'),
+  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer']).required('mode is required'),
+  awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable()
 })
@@ -115,7 +128,8 @@ const requestSchema = Yup.object({
     .strict()
     .nullable(),
   assertions: Yup.array().of(keyValueSchema).nullable(),
-  tests: Yup.string().nullable()
+  tests: Yup.string().nullable(),
+  docs: Yup.string().nullable()
 })
   .noUnknown(true)
   .strict();

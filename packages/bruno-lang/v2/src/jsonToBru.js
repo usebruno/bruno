@@ -95,6 +95,19 @@ const jsonToBru = (json) => {
     bru += '\n}\n\n';
   }
 
+  if (auth && auth.awsv4) {
+    bru += `auth:awsv4 {
+${indentString(`accessKeyId: ${auth.awsv4.accessKeyId}`)}
+${indentString(`secretAccessKey: ${auth.awsv4.secretAccessKey}`)}
+${indentString(`sessionToken: ${auth.awsv4.sessionToken}`)}
+${indentString(`service: ${auth.awsv4.service}`)}
+${indentString(`region: ${auth.awsv4.region}`)}
+${indentString(`profileName: ${auth.awsv4.profileName}`)}
+}
+
+`;
+  }
+
   if (auth && auth.basic) {
     bru += `auth:basic {
 ${indentString(`username: ${auth.basic.username}`)}
@@ -131,6 +144,14 @@ ${indentString(body.text)}
   if (body && body.xml && body.xml.length) {
     bru += `body:xml {
 ${indentString(body.xml)}
+}
+
+`;
+  }
+
+  if (body && body.sparql && body.sparql.length) {
+    bru += `body:sparql {
+${indentString(body.sparql)}
 }
 
 `;

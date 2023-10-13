@@ -22,6 +22,15 @@ headers {
   ~transaction-id: {{transactionId}}
 }
 
+auth:awsv4 {
+  accessKeyId: A12345678
+  secretAccessKey: thisisasecret
+  sessionToken: thisisafakesessiontoken
+  service: execute-api
+  region: us-east-1
+  profileName: test_profile
+}
+
 auth:basic {
   username: john
   password: secret
@@ -46,6 +55,13 @@ body:xml {
     <name>John</name>
     <age>30</age>
   </xml>
+}
+
+body:sparql {
+  SELECT * WHERE {
+    ?subject ?predicate ?object .
+  }
+  LIMIT 10
 }
 
 body:form-urlencoded {
