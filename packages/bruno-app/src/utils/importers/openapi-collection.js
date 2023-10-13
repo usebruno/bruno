@@ -20,6 +20,21 @@ const ensureUrl = (url) => {
   return protUrl.replace(/([^:]\/)\/+/g, '$1');
 };
 
+const buildEmptyJsonBody = (bodySchema) => {
+  let _jsonBody = {};
+  each(bodySchema.properties || {}, (prop, name) => {
+    if (prop.type === 'object') {
+      _jsonBody[name] = buildEmptyJsonBody(prop);
+      // handle arrays
+    } else if (prop.type === 'array') {
+      _jsonBody[name] = [];
+    } else {
+      _jsonBody[name] = '';
+    }
+  });
+  return _jsonBody;
+};
+
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
   const brunoRequestItem = {
@@ -102,50 +117,48 @@ const transformOpenapiRequestItem = (request) => {
   // TODO: handle allOf/anyOf/oneOf
   if (_operationObject.requestBody) {
     let content = get(_operationObject, 'requestBody.content', {});
-    Object.entries(content).forEach(([mimeType, body]) => {
-      if (mimeType === 'application/json') {
-        brunoRequestItem.request.body.mode = 'json';
-        if (body.schema && body.schema.type === 'object') {
-          let _jsonBody = {};
-          each(body.schema.properties || {}, (prop, name) => {
-            _jsonBody[name] = '';
-          });
-          brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
-        }
-      } else if (mimeType === 'application/x-www-form-urlencoded') {
-        brunoRequestItem.request.body.mode = 'formUrlEncoded';
-        if (body.schema && body.schema.type === 'object') {
-          each(body.schema.properties || {}, (prop, name) => {
-            brunoRequestItem.request.body.formUrlEncoded.push({
-              uid: uuid(),
-              name: name,
-              value: '',
-              description: prop.description || '',
-              enabled: true
-            });
-          });
-        }
-      } else if (mimeType === 'multipart/form-data') {
-        brunoRequestItem.request.body.mode = 'multipartForm';
-        if (body.schema && body.schema.type === 'object') {
-          each(body.schema.properties || {}, (prop, name) => {
-            brunoRequestItem.request.body.multipartForm.push({
-              uid: uuid(),
-              name: name,
-              value: '',
-              description: prop.description || '',
-              enabled: true
-            });
-          });
-        }
-      } else if (mimeType === 'text/plain') {
-        brunoRequestItem.request.body.mode = 'text';
-        brunoRequestItem.request.body.text = '';
-      } else if (mimeType === 'text/xml') {
-        brunoRequestItem.request.body.mode = 'xml';
-        brunoRequestItem.request.body.xml = '';
+    let mimeType = Object.keys(content)[0];
+    let body = content[mimeType] || {};
+    let bodySchema = body.schema;
+    if (mimeType === 'application/json') {
+      brunoRequestItem.request.body.mode = 'json';
+      if (bodySchema && bodySchema.type === 'object') {
+        let _jsonBody = buildEmptyJsonBody(bodySchema);
+        brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
-    });
+    } else if (mimeType === 'application/x-www-form-urlencoded') {
+      brunoRequestItem.request.body.mode = 'formUrlEncoded';
+      if (bodySchema && bodySchema.type === 'object') {
+        each(bodySchema.properties || {}, (prop, name) => {
+          brunoRequestItem.request.body.formUrlEncoded.push({
+            uid: uuid(),
+            name: name,
+            value: '',
+            description: prop.description || '',
+            enabled: true
+          });
+        });
+      }
+    } else if (mimeType === 'multipart/form-data') {
+      brunoRequestItem.request.body.mode = 'multipartForm';
+      if (bodySchema && bodySchema.type === 'object') {
+        each(bodySchema.properties || {}, (prop, name) => {
+          brunoRequestItem.request.body.multipartForm.push({
+            uid: uuid(),
+            name: name,
+            value: '',
+            description: prop.description || '',
+            enabled: true
+          });
+        });
+      }
+    } else if (mimeType === 'text/plain') {
+      brunoRequestItem.request.body.mode = 'text';
+      brunoRequestItem.request.body.text = '';
+    } else if (mimeType === 'text/xml') {
+      brunoRequestItem.request.body.mode = 'xml';
+      brunoRequestItem.request.body.xml = '';
+    }
   }
 
   return brunoRequestItem;
