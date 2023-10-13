@@ -82,11 +82,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   };
 
   // get the length of active params, headers, asserts and vars
-  const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
-  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
-  const assertions = item.draft ? get(item, 'draft.request.assertions') : get(item, 'request.assertions');
-  const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
-  const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
+  const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
+  const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
+  const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
+  const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
+  const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
