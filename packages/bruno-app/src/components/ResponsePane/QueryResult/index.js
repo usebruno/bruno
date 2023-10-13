@@ -45,6 +45,10 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       return safeStringifyJSON(data);
     }
 
+    if (mode.includes('image')) {
+      return item.requestSent.url;
+    }
+
     // final fallback
     if (typeof data === 'string') {
       return data;
@@ -87,7 +91,13 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
   };
 
   const activeResult = useMemo(() => {
-    if (tab === 'preview' && mode.includes('html') && item.requestSent && item.requestSent.url) {
+    if (
+      tab === 'preview' &&
+      mode.includes('html') &&
+      item.requestSent &&
+      item.requestSent.url &&
+      typeof data === 'string'
+    ) {
       // Add the Base tag to the head so content loads properly. This also needs the correct CSP settings
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent.url}">`);
       return (
@@ -97,13 +107,15 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
           className="h-full bg-white"
         />
       );
+    } else if (mode.includes('image')) {
+      return <img src={item.requestSent.url} alt="image" />;
     }
 
     return <CodeEditor collection={collection} theme={storedTheme} onRun={onRun} value={value} mode={mode} readOnly />;
   }, [tab, collection, storedTheme, onRun, value, mode]);
 
   return (
-    <StyledWrapper className="px-3 w-full h-full" style={{ maxWidth: width }}>
+    <StyledWrapper className="w-full h-full" style={{ maxWidth: width }}>
       <div className="flex justify-end gap-2 text-xs" role="tablist">
         {getTabs()}
       </div>

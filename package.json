@@ -31,7 +31,7 @@
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
-    "build:electron": "./scripts/build-electron.sh",
+    "build:electron:snap": "./scripts/build-electron.sh snap",
     "test:e2e": "npx playwright test",
     "test:report": "npx playwright show-report",
     "prepare": "husky install"

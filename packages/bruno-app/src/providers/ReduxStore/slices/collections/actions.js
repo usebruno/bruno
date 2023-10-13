@@ -45,6 +45,8 @@ import {
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
+import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { each } from 'lodash';
 
 const PATH_SEPARATOR = path.sep;
 
@@ -86,6 +88,29 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
+        reject(err);
+      });
+  });
+};
+
+export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  console.log(collection.root);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
+      .then(() => toast.success('Collection Settings saved successfully'))
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save collection settings!');
         reject(err);
       });
   });
@@ -565,6 +590,12 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
+    const parts = splitOnFirst(requestUrl, '?');
+    const params = parseQueryParams(parts[1]);
+    each(params, (urlParam) => {
+      urlParam.enabled = true;
+    });
+
     const collectionCopy = cloneDeep(collection);
     const item = {
       uid: uuid(),
@@ -574,11 +605,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         method: requestMethod,
         url: requestUrl,
         headers: [],
+        params,
         body: {
           mode: 'none',
           json: null,
           text: null,
           xml: null,
+          sparql: null,
           multipartForm: null,
           formUrlEncoded: null
         }

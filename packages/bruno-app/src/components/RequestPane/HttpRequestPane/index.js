@@ -15,6 +15,7 @@ import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { get } from 'lodash';
+import Documentation from 'components/Documentation/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -55,6 +56,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'tests': {
         return <Tests item={item} collection={collection} />;
+      }
+      case 'docs': {
+        return <Documentation item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -122,6 +126,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
+          Docs
+        </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
             <RequestBodyMode item={item} collection={collection} />
@@ -129,7 +136,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${['script', 'vars', 'auth'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'}`}
+        className={`flex w-full ${
+          ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
+        }`}
       >
         {getTabPanel(focusedTab.requestPaneTab)}
       </section>

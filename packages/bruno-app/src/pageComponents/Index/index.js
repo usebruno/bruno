@@ -9,29 +9,32 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import Documentation from 'components/Documentation';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
   require('codemirror/mode/javascript/javascript');
   require('codemirror/mode/xml/xml');
-  require('codemirror/addon/scroll/simplescrollbars');
+  require('codemirror/mode/sparql/sparql');
+  require('codemirror/addon/comment/comment');
+  require('codemirror/addon/dialog/dialog');
+  require('codemirror/addon/edit/closebrackets');
   require('codemirror/addon/edit/matchbrackets');
   require('codemirror/addon/fold/brace-fold');
   require('codemirror/addon/fold/foldgutter');
-  require('codemirror/addon/mode/overlay');
   require('codemirror/addon/hint/show-hint');
-  require('codemirror/keymap/sublime');
-  require('codemirror/addon/comment/comment');
-  require('codemirror/addon/edit/closebrackets');
+  require('codemirror/addon/lint/lint');
+  require('codemirror/addon/mode/overlay');
+  require('codemirror/addon/scroll/simplescrollbars');
+  require('codemirror/addon/search/jump-to-line');
   require('codemirror/addon/search/search');
   require('codemirror/addon/search/searchcursor');
-  require('codemirror/addon/search/jump-to-line');
-  require('codemirror/addon/dialog/dialog');
+  require('codemirror/keymap/sublime');
 
   require('codemirror-graphql/hint');
-  require('codemirror-graphql/lint');
   require('codemirror-graphql/info');
   require('codemirror-graphql/jump');
+  require('codemirror-graphql/lint');
   require('codemirror-graphql/mode');
 
   require('utils/codemirror/brunoVarInfo');
