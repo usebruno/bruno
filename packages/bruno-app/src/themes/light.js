@@ -237,11 +237,6 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
-  },
-
-  rightPane: {
-    bg: '#fff',
-    border: '#e1e1e1'
   }
 };
 

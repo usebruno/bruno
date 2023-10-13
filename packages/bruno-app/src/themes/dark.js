@@ -233,11 +233,6 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
-  },
-
-  rightPane: {
-    bg: '#1e1e1e',
-    border: '#4f4f4f'
   }
 };
 

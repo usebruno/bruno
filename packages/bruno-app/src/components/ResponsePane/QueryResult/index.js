@@ -115,7 +115,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
   }, [tab, collection, storedTheme, onRun, value, mode]);
 
   return (
-    <StyledWrapper className="px-3 w-full h-full" style={{ maxWidth: width }}>
+    <StyledWrapper className="w-full h-full" style={{ maxWidth: width }}>
       <div className="flex justify-end gap-2 text-xs" role="tablist">
         {getTabs()}
       </div>
