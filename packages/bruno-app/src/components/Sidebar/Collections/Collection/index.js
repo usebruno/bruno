@@ -14,6 +14,7 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
+import ExportCollection from './ExportCollection';
 import CollectionProperties from './CollectionProperties';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
@@ -26,6 +27,7 @@ const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
+  const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionPropertiesModal, setCollectionPropertiesModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
@@ -129,6 +131,9 @@ const Collection = ({ collection, searchText }) => {
       {showRemoveCollectionModal && (
         <RemoveCollection collection={collection} onClose={() => setShowRemoveCollectionModal(false)} />
       )}
+      {showExportCollectionModal && (
+        <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
+      )}
       {collectionPropertiesModal && (
         <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
       )}
@@ -186,7 +191,7 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                handleExportClick(true);
+                setShowExportCollectionModal(true);
               }}
             >
               Export
