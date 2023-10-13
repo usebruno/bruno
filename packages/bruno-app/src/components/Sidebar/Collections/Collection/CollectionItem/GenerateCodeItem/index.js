@@ -3,7 +3,7 @@ import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url/index';
-import get from 'lodash/get';
+import { get, find } from 'lodash';
 import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
 
@@ -23,6 +23,53 @@ const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) =
       }
     }
   });
+};
+
+const joinPathUrl = (url, paths) => {
+  let uri = url.slice();
+  if (uri.indexOf('http') === -1 || uri.indexOf('https') === -1) {
+    let [base, query = ''] = uri.split('?');
+
+    let URL_SEPARATOR;
+
+    uri = base.split('/').reduce((acc, path, index) => {
+      if (index !== 0) {
+        URL_SEPARATOR = '/';
+      }
+      if (path.charAt(0) !== ':') {
+        acc += URL_SEPARATOR + path;
+      } else {
+        path = path.slice(1, path.length);
+        const data = find(paths, (v) => v.name === path);
+        if (data) {
+          acc += URL_SEPARATOR + data.value;
+        }
+      }
+      return acc;
+    }, '');
+
+    return uri + query;
+  }
+  uri = new URL(uri);
+  let uriPaths = url.pathname.split('/');
+  uriPaths = uriPaths.reduce((acc, path) => {
+    if (path !== '') {
+      if (path[0] !== ':') {
+        acc += '/' + path;
+      } else {
+        let name = path.slice(1, path.length);
+        if (name) {
+          let existingPath = find(paths, (path) => path.name === name);
+          if (existingPath) {
+            acc += '/' + existingPath.value;
+          }
+        }
+      }
+    }
+    return acc;
+  }, '');
+
+  return uri.origin + uriPaths + uri.search;
 };
 
 const languages = [
@@ -74,7 +121,10 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = joinPathUrl(
+    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url'),
+    get(item, 'draft.request.paths') !== undefined ? get(item, 'draft.request.paths') : get(item, 'request.paths')
+  );
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
