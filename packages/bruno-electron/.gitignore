@@ -1,6 +1,7 @@
 node_modules
 web
 out
+dist
 .env
 
 // certs

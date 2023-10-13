@@ -1,15 +1,14 @@
 const Handlebars = require('handlebars');
 const { getIntrospectionQuery } = require('graphql');
-const { get } = require('lodash');
+const { setAuthHeaders } = require('./prepare-request');
 
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
+const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
     endpoint = Handlebars.compile(endpoint, { noEscape: true })(envVars);
   }
 
-  const introspectionQuery = getIntrospectionQuery();
   const queryParams = {
-    query: introspectionQuery
+    query: getIntrospectionQuery()
   };
 
   let axiosRequest = {
@@ -23,20 +22,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
     data: JSON.stringify(queryParams)
   };
 
-  if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
-
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers.authorization = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-  }
-
-  return axiosRequest;
+  return setAuthHeaders(axiosRequest, request, collectionRoot);
 };
 
 const mapHeaders = (headers) => {

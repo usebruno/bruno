@@ -6,6 +6,7 @@ const Wrapper = styled.div`
   align-self: stretch;
   align-items: center;
   min-width: 34px;
+  flex-shrink: 0;
 
   span {
     position: relative;

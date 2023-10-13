@@ -12,7 +12,7 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
-const jsonToBru = (json) => {
+const jsonToCollectionBru = (json) => {
   const { meta, query, headers, auth, script, tests, vars, docs } = json;
 
   let bru = '';
@@ -70,6 +70,19 @@ const jsonToBru = (json) => {
   if (auth && auth.mode) {
     bru += `auth {
 ${indentString(`mode: ${auth.mode}`)}
+}
+
+`;
+  }
+
+  if (auth && auth.awsv4) {
+    bru += `auth:awsv4 {
+${indentString(`accessKeyId: ${auth.awsv4.accessKeyId}`)}
+${indentString(`secretAccessKey: ${auth.awsv4.secretAccessKey}`)}
+${indentString(`sessionToken: ${auth.awsv4.sessionToken}`)}
+${indentString(`service: ${auth.awsv4.service}`)}
+${indentString(`region: ${auth.awsv4.region}`)}
+${indentString(`profileName: ${auth.awsv4.profileName}`)}
 }
 
 `;
@@ -182,4 +195,4 @@ ${indentString(docs)}
   return stripLastLine(bru);
 };
 
-module.exports = jsonToBru;
+module.exports = jsonToCollectionBru;
