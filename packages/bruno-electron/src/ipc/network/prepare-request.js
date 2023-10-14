@@ -1,6 +1,8 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const { isFile, readFileBinary } = require('../../utils/filesystem');
+const mime = require('mime-types');
+const path = require('path');
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -117,11 +119,11 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'file') {
-    if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'application/octet-stream';
-    }
     const filePath = request.body.file;
     if (!isFile(filePath)) throw new Error(`The file at [${filePath}] does not exist!`);
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = mime.contentType(path.extname(filePath)) || 'application/octet-stream';
+    }
     axiosRequest.data = readFileBinary(filePath);
   }
 
