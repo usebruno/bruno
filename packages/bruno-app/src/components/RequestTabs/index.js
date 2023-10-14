@@ -25,7 +25,7 @@ const RequestTabs = () => {
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [item, setItem] = useState(null);
-
+  const [tab, setTab] = useState(null);
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       active: tab.uid === activeTabUid,
@@ -44,6 +44,7 @@ const RequestTabs = () => {
   const handleMouseUp = (e, tab) => {
     const item = findItemInCollection(activeCollection, tab.uid);
     setItem(item);
+    setTab(tab);
     e.stopPropagation();
     e.preventDefault();
 
@@ -113,7 +114,7 @@ const RequestTabs = () => {
             );
             dispatch(
               closeTabs({
-                tabUids: [activeTabUid]
+                tabUids: [tab.uid]
               })
             );
             setShowConfirmClose(false);
@@ -123,7 +124,7 @@ const RequestTabs = () => {
               .then(() => {
                 dispatch(
                   closeTabs({
-                    tabUids: [activeTabUid]
+                    tabUids: [tab.uid]
                   })
                 );
                 setShowConfirmClose(false);
