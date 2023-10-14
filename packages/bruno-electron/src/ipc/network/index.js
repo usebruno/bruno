@@ -22,6 +22,7 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
+const { addAwsV4Interceptor, resolveCredentials } = require('./awsv4auth-helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -194,7 +195,8 @@ const registerNetworkIpc = (mainWindow) => {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data))
+          data: safeParseJSON(safeStringifyJSON(request.data)),
+          timestamp: Date.now()
         },
         collectionUid,
         itemUid: item.uid,
@@ -269,6 +271,12 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       const axiosInstance = makeAxiosInstance();
+
+      if (request.awsv4config) {
+        request.awsv4config = await resolveCredentials(request);
+        addAwsV4Interceptor(axiosInstance, request);
+        delete request.awsv4config;
+      }
 
       /** @type {import('axios').AxiosResponse} */
       const response = await axiosInstance(request);

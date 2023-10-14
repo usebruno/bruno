@@ -1,5 +1,5 @@
 {
-  "version": "v0.23.0",
+  "version": "v0.24.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -9,15 +9,22 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder --mac --config electron-builder-config.js",
+    "dist:mac": "electron-builder --mac --config electron-builder-config.js",
+    "dist:win": "electron-builder --win --config electron-builder-config.js",
+    "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
+    "dist:deb": "electron-builder --linux deb --config electron-builder-config.js",
+    "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
+    "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
     "test": "jest"
   },
   "dependencies": {
+    "@aws-sdk/credential-providers": "^3.425.0",
     "@usebruno/js": "0.8.0",
     "@usebruno/lang": "0.8.0",
     "@usebruno/schema": "0.5.0",
     "about-window": "^1.15.2",
+    "aws4-axios": "^3.3.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",

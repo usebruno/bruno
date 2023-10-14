@@ -20,7 +20,7 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS } from 'utils/common/platform';
+import { getDirectoryName } from 'utils/common/platform';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -143,22 +143,33 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       })
       .then(resolve)
       .catch((err) => {
+        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
+          console.log('>> request cancelled');
+          dispatch(
+            responseReceived({
+              itemUid: item.uid,
+              collectionUid: collectionUid,
+              response: null
+            })
+          );
+          return;
+        }
+
+        const errorResponse = {
+          status: 'Error',
+          isError: true,
+          error: err.message ?? 'Something went wrong',
+          size: 0,
+          duration: 0
+        };
+
         dispatch(
           responseReceived({
             itemUid: item.uid,
             collectionUid: collectionUid,
-            response: null
+            response: errorResponse
           })
         );
-
-        if (err && err.message === "Error invoking remote method 'send-http-request': Error: Request cancelled") {
-          console.log('>> request cancelled');
-          return;
-        }
-
-        console.log('>> sending request failed');
-        console.log(err);
-        toast.error(err ? err.message : 'Something went wrong!');
       });
   });
 };
@@ -292,13 +303,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     ipcRenderer
       .invoke('renderer:rename-item', item.pathname, dirname, newName)
       .then(() => {
-        // In case of Mac and Linux, we get the unlinkDir and addDir IPC events from electron which takes care of updating the state
-        // But in windows we don't get those events, so we need to update the state manually
-        // This looks like an issue in our watcher library chokidar
-        // GH: https://github.com/usebruno/bruno/issues/251
-        if (isWindowsOS()) {
-          dispatch(_renameItem({ newName, itemUid, collectionUid }));
-        }
+        dispatch(_renameItem({ newName, itemUid, collectionUid }));
         resolve();
       })
       .catch(reject);
@@ -384,13 +389,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          // In case of Mac and Linux, we get the unlinkDir IPC event from electron which takes care of updating the state
-          // But in windows we don't get those events, so we need to update the state manually
-          // This looks like an issue in our watcher library chokidar
-          // GH: https://github.com/usebruno/bruno/issues/265
-          if (isWindowsOS()) {
-            dispatch(_deleteItem({ itemUid, collectionUid }));
-          }
+          dispatch(_deleteItem({ itemUid, collectionUid }));
           resolve();
         })
         .catch((error) => reject(error));
