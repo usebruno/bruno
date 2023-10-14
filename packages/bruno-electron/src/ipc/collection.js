@@ -119,6 +119,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const content = jsonToBru(request);
       await writeFile(sanitizedPathname, content);
+
+      return sanitizedPathname;
     } catch (error) {
       return Promise.reject(error);
     }

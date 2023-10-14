@@ -572,7 +572,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 export const newHttpRequest = (params) => (dispatch, getState) => {
   const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid } = params;
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -620,7 +620,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       if (!reqWithSameNameExists) {
         const { ipcRenderer } = window;
 
-        ipcRenderer.invoke('renderer:new-request', collection.pathname, item).then(resolve).catch(reject);
+        const newPath = await ipcRenderer.invoke('renderer:new-request', collection.pathname, item);
         // the useCollectionNextAction() will track this and open the new request in a new tab
         // once the request is created
         dispatch(
@@ -628,12 +628,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
             nextAction: {
               type: 'OPEN_REQUEST',
               payload: {
-                pathname: collection.pathname + PATH_SEPARATOR + sanitizeFilenme(item.name) + '.bru'
+                pathname: newPath
               }
             },
             collectionUid
           })
         );
+
+        resolve();
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -649,7 +651,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         if (!reqWithSameNameExists) {
           const { ipcRenderer } = window;
 
-          ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
+          const newPath = await ipcRenderer.invoke('renderer:new-request', fullName, item);
 
           // the useCollectionNextAction() will track this and open the new request in a new tab
           // once the request is created
@@ -658,12 +660,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
               nextAction: {
                 type: 'OPEN_REQUEST',
                 payload: {
-                  pathname: collection.pathname + PATH_SEPARATOR + sanitizeFilenme(item.name) + '.bru'
+                  pathname: newPath
                 }
               },
               collectionUid
             })
           );
+
+          resolve();
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));
         }

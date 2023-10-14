@@ -119,7 +119,7 @@ const sanitizeDirectoryName = (name) => {
 };
 
 const sanitizeFilenme = (name) => {
-  return name.replace(/[^\w-_.]/g, '_');
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
 module.exports = {
