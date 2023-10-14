@@ -1,6 +1,7 @@
 import trim from 'lodash/trim';
 import path from 'path';
 import slash from './slash';
+import platform from 'platform';
 
 export const isElectron = () => {
   if (!window) {
