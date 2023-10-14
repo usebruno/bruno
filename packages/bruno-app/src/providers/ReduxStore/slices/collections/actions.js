@@ -171,11 +171,7 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
-// todo: this can be directly put inside the collections/index.js file
-// the coding convention is to put only actions that need ipc in this file
-export const sortCollections = (order) => (dispatch) => {
-  dispatch(_sortCollections(order));
-};
+
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -293,19 +289,10 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:rename-item', item.pathname, newPathname, newName)
-      .then(() => {
-        // In case of Mac and Linux, we get the unlinkDir and addDir IPC events from electron which takes care of updating the state
-        // But in windows we don't get those events, so we need to update the state manually
-        // This looks like an issue in our watcher library chokidar
-        // GH: https://github.com/usebruno/bruno/issues/251
-        if (isWindowsOS()) {
-          dispatch(_renameItem({ newName, itemUid, collectionUid }));
-        }
-        resolve();
-      })
-      .catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(() => {
+      dispatch(_renameItem({ newName, itemUid, collectionUid }))
+      resolve()
+    }).catch(reject);
   });
 };
 
@@ -390,14 +377,8 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          // In case of Mac and Linux, we get the unlinkDir IPC event from electron which takes care of updating the state
-          // But in windows we don't get those events, so we need to update the state manually
-          // This looks like an issue in our watcher library chokidar
-          // GH: https://github.com/usebruno/bruno/issues/265
-          if (isWindowsOS()) {
-            dispatch(_deleteItem({ itemUid, collectionUid }));
-          }
-          resolve();
+          dispatch(_deleteItem({ itemUid, collectionUid }))
+          resolve()
         })
         .catch((error) => reject(error));
     }
@@ -405,6 +386,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const sortCollections = () => (dispatch) => {
+  dispatch(_sortCollections())
+}
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
