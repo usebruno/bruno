@@ -9,7 +9,11 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
-    "dist": "electron-builder --mac --config electron-builder-config.js",
+    "dist:mac": "electron-builder --mac --config electron-builder-config.js",
+    "dist:win": "electron-builder --win --config electron-builder-config.js",
+    "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
+    "dist:deb": "electron-builder --linux deb --config electron-builder-config.js",
+    "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
     "test": "jest"

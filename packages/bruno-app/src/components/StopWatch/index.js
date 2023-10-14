@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const StopWatch = () => {
+const StopWatch = ({ requestTimestamp }) => {
   const [milliseconds, setMilliseconds] = useState(0);
 
   const tickInterval = 200;
@@ -14,6 +14,10 @@ const StopWatch = () => {
       clearInterval(timerID);
     };
   });
+
+  useEffect(() => {
+    setMilliseconds(Date.now() - requestTimestamp);
+  }, [requestTimestamp]);
 
   if (milliseconds < 1000) {
     return 'Loading...';

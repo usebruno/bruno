@@ -12,6 +12,10 @@ const Wrapper = styled.div`
       fill: rgb(140, 140, 140);
     }
   }
+
+  span.close-icon {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default Wrapper;

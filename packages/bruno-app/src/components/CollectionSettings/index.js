@@ -11,6 +11,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
+import Docs from './Docs';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSettings = ({ collection }) => {
@@ -54,6 +55,9 @@ const CollectionSettings = ({ collection }) => {
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
       }
+      case 'docs': {
+        return <Docs collection={collection} />;
+      }
     }
   };
 
@@ -81,8 +85,11 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
         </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+          Docs
+        </div>
       </div>
-      <section className={`flex ${['auth', 'script'].includes(tab) ? '' : 'mt-4'}`}>{getTabPanel(tab)}</section>
+      <section className={`flex ${['auth', 'script', 'docs'].includes(tab) ? '' : 'mt-4'}`}>{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };
