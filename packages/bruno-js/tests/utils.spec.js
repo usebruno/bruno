@@ -115,16 +115,24 @@ describe('utils', () => {
   });
 
   describe('response parser', () => {
+    const data = {
+      order: {
+        items: [
+          { id: 1, amount: 10 },
+          { id: 2, amount: 20 }
+        ]
+      }
+    };
+    const headers = {
+      header1: 'value1',
+      header2: 'value2'
+    };
+
     const res = createResponseParser({
       status: 200,
-      data: {
-        order: {
-          items: [
-            { id: 1, amount: 10 },
-            { id: 2, amount: 20 }
-          ]
-        }
-      }
+      statusText: 'OK',
+      data,
+      headers
     });
 
     it('should default to bruno query', () => {
@@ -135,6 +143,29 @@ describe('utils', () => {
     it('should allow json-query', () => {
       const value = res.jq('order.items[amount > 10].amount');
       expect(value).toBe(20);
+    });
+
+    it('should return status', () => {
+      expect(res.status).toBe(200);
+      expect(res.getStatus()).toBe(200);
+    });
+
+    it('should return statusText', () => {
+      expect(res.statusText).toBe('OK');
+    });
+
+    it('should return header(s)', () => {
+      expect(res.headers).toStrictEqual(headers);
+      expect(res.getHeaders()).toStrictEqual(headers);
+      expect(res.headers['header1']).toBe('value1');
+      expect(res.getHeader('header1')).toBe('value1');
+    });
+
+    it('should return body (value)', () => {
+      expect(res.body).toBe(data);
+      expect(res.getBody()).toBe(data);
+      expect(res.body.order.items[0].id).toBe(1);
+      expect(res.getBody().order.items[0].id).toBe(1);
     });
   });
 });
