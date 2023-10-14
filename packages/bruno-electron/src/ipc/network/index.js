@@ -435,6 +435,56 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
+        // run post-response vars
+        const postResponseVars = get(request, 'vars.res', []);
+        if (postResponseVars && postResponseVars.length) {
+          const varsRuntime = new VarsRuntime();
+          const result = varsRuntime.runPostResponseVars(
+            postResponseVars,
+            request,
+            error.response,
+            envVars,
+            collectionVariables,
+            collectionPath,
+            processEnvVars
+          );
+
+          if (result) {
+            mainWindow.webContents.send('main:script-environment-update', {
+              envVariables: result.envVariables,
+              collectionVariables: result.collectionVariables,
+              requestUid,
+              collectionUid
+            });
+          }
+        }
+
+        // run post-response script
+        const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
+          os.EOL
+        );
+        if (responseScript && responseScript.length) {
+          const scriptRuntime = new ScriptRuntime();
+          const result = await scriptRuntime.runResponseScript(
+            decomment(responseScript),
+            request,
+            error.response,
+            envVars,
+            collectionVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig
+          );
+
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: result.envVariables,
+            collectionVariables: result.collectionVariables,
+            requestUid,
+            collectionUid
+          });
+        }
+
         // run tests
         const testFile = compact([
           get(collectionRoot, 'request.tests'),
