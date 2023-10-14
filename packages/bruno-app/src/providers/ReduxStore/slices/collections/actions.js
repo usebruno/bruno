@@ -21,7 +21,7 @@ import {
 } from 'utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS } from 'utils/common/platform';
+import { getDirectoryName, isWindowsOS, PATH_SEPARATOR } from 'utils/common/platform';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -45,8 +45,6 @@ import {
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-
-const PATH_SEPARATOR = path.sep;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();

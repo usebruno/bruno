@@ -24,9 +24,7 @@ import {
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, isWindowsOS } from 'utils/common/platform';
-
-const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
+import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
 
 const initialState = {
   collections: [],
