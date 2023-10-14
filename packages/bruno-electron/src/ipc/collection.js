@@ -184,6 +184,28 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // copy environment
+  ipcMain.handle('renderer:import-environment', async (event, collectionPathname, name, variables) => {
+    try {
+      const envDirPath = path.join(collectionPathname, 'environments');
+      if (!fs.existsSync(envDirPath)) {
+        await createDirectory(envDirPath);
+      }
+
+      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      if (fs.existsSync(envFilePath)) {
+        throw new Error(`environment: ${envFilePath} already exists`);
+      }
+
+      const content = envJsonToBru({
+        variables: variables
+      });
+      await writeFile(envFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // save environment
   ipcMain.handle('renderer:save-environment', async (event, collectionPathname, environment) => {
     try {

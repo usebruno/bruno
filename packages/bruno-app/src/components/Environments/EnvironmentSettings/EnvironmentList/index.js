@@ -4,6 +4,7 @@ import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment/index';
 import StyledWrapper from './StyledWrapper';
+import ImportEnvironment from "components/Environments/EnvironmentSettings/ImportEnvironment";
 
 const EnvironmentList = ({ collection }) => {
   const { environments } = collection;
@@ -65,6 +66,7 @@ const EnvironmentList = ({ collection }) => {
             <div className="btn-create-environment" onClick={() => setOpenCreateModal(true)}>
               + <span>Create</span>
             </div>
+            <ImportEnvironment title={"Import"} collectionUid={collection.uid}/>
           </div>
         </div>
         <EnvironmentDetails environment={selectedEnvironment} collection={collection} />
