@@ -15,10 +15,9 @@ const {
   sanitizeDirectoryName
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
-const { openCollectionDialog, openCollection } = require('../app/collections');
+const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -467,25 +466,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       return Promise.reject(error);
     }
-  });
-
-  ipcMain.handle('renderer:ready', async (event) => {
-    // reload last opened collections
-    const lastOpened = lastOpenedCollections.getAll();
-
-    if (lastOpened && lastOpened.length) {
-      for (let collectionPath of lastOpened) {
-        if (isDirectory(collectionPath)) {
-          openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true
-          });
-        }
-      }
-    }
-  });
-
-  ipcMain.handle('renderer:set-preferences', async (event, preferences) => {
-    setPreferences(preferences);
   });
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {

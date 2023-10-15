@@ -8,6 +8,7 @@ const menuTemplate = require('./app/menu-template');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveWindowState } = require('./utils/window');
 
@@ -39,8 +40,8 @@ app.on('ready', async () => {
     y,
     width,
     height,
-    minWidth:1000,
-    minHeight:640,
+    minWidth: 1000,
+    minHeight: 640,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -76,6 +77,7 @@ app.on('ready', async () => {
   // register all ipc handlers
   registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
+  registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
 });
 
 // Quit the app once all windows are closed

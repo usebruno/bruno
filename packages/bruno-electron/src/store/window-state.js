@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const Store = require('electron-store');
 
 const DEFAULT_WINDOW_WIDTH = 1280;

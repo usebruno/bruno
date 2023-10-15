@@ -3,9 +3,8 @@ import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { usePreferences } from 'providers/Preferences';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -15,7 +14,7 @@ const RequestBody = ({ item, collection }) => {
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { storedTheme } = useTheme();
-  const { preferences } = usePreferences();
+  const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
     dispatch(
@@ -50,7 +49,7 @@ const RequestBody = ({ item, collection }) => {
         <CodeEditor
           collection={collection}
           theme={storedTheme}
-          font={preferences.codeFont}
+          font={get(preferences, 'font.codeFont', 'default')}
           value={bodyContent[bodyMode] || ''}
           onEdit={onEdit}
           onRun={onRun}

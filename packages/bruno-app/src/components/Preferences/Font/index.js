@@ -1,32 +1,52 @@
 import React, { useState } from 'react';
-import { usePreferences } from 'providers/Preferences';
+import get from 'lodash/get';
+import { useSelector, useDispatch } from 'react-redux';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 
-const Font = () => {
-  const { preferences, setPreferences } = usePreferences();
+const Font = ({ close }) => {
+  const dispatch = useDispatch();
+  const preferences = useSelector((state) => state.app.preferences);
 
-  const [codeFont, setCodeFont] = useState(preferences.codeFont);
+  const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
 
   const handleInputChange = (event) => {
-    const updatedPreferences = {
-      ...preferences,
-      codeFont: event.target.value
-    };
-
-    setPreferences(updatedPreferences)
-      .then(() => {
-        setCodeFont(event.target.value);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    setCodeFont(event.target.value);
   };
 
-  return (   
+  const handleSave = () => {
+    dispatch(
+      savePreferences({
+        ...preferences,
+        font: {
+          codeFont
+        }
+      })
+    ).then(() => {
+      close();
+    });
+  };
+
+  return (
     <StyledWrapper>
-      <h2>Font in code area</h2>
-      <div className='input-container'>
-        <input type="text" onChange={handleInputChange} placeholder="Local font" defaultValue={codeFont} className="w-full px-3 py-1.5" />
+      <label className="block font-medium">Code Editor Font</label>
+      <div className="input-container">
+        <input
+          type="text"
+          className="block textbox mt-2 w-full"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          onChange={handleInputChange}
+          defaultValue={codeFont}
+        />
+      </div>
+
+      <div className="mt-10">
+        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          Save
+        </button>
       </div>
     </StyledWrapper>
   );

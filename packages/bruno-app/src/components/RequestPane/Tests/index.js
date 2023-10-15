@@ -1,11 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import { usePreferences } from 'providers/Preferences';
 import StyledWrapper from './StyledWrapper';
 
 const Tests = ({ item, collection }) => {
@@ -13,7 +12,7 @@ const Tests = ({ item, collection }) => {
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
 
   const { storedTheme } = useTheme();
-  const { preferences } = usePreferences();
+  const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
     dispatch(
@@ -34,7 +33,7 @@ const Tests = ({ item, collection }) => {
         collection={collection}
         value={tests || ''}
         theme={storedTheme}
-        font={preferences.codeFont}
+        font={get(preferences, 'font.codeFont', 'default')}
         onEdit={onEdit}
         mode="javascript"
         onRun={onRun}

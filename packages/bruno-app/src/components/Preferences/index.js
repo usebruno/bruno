@@ -19,11 +19,11 @@ const Preferences = ({ onClose }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'general': {
-        return <General />;
+        return <General close={onClose} />;
       }
 
       case 'theme': {
-        return <Theme />;
+        return <Theme close={onClose} />;
       }
 
       case 'support': {
@@ -31,7 +31,7 @@ const Preferences = ({ onClose }) => {
       }
 
       case 'font': {
-        return <Font />;
+        return <Font close={onClose} />;
       }
     }
   };

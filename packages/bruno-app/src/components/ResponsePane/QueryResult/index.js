@@ -1,8 +1,8 @@
 import React from 'react';
+import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import { useTheme } from 'providers/Theme';
-import { usePreferences } from 'providers/Preferences';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 
 const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers, error }) => {
   const { storedTheme } = useTheme();
-  const { preferences } = usePreferences();
+  const preferences = useSelector((state) => state.app.preferences);
   const [tab, setTab] = useState('preview');
   const dispatch = useDispatch();
   const contentType = getContentType(headers);
@@ -113,7 +113,17 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       return <img src={item.requestSent.url} alt="image" />;
     }
 
-    return <CodeEditor collection={collection} font={preferences.codeFont} theme={storedTheme} onRun={onRun} value={value} mode={mode} readOnly />;
+    return (
+      <CodeEditor
+        collection={collection}
+        font={get(preferences, 'font.codeFont', 'default')}
+        theme={storedTheme}
+        onRun={onRun}
+        value={value}
+        mode={mode}
+        readOnly
+      />
+    );
   }, [tab, collection, storedTheme, onRun, value, mode]);
 
   return (
