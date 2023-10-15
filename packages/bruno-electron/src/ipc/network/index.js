@@ -206,6 +206,8 @@ const registerNetworkIpc = (mainWindow) => {
       });
 
       const preferences = getPreferences();
+      const timeout = get(preferences, 'request.timeout', 0);
+      request.timeout = timeout;
       const sslVerification = get(preferences, 'request.sslVerification', true);
       const httpsAgentRequestFields = {};
       if (!sslVerification) {
@@ -517,6 +519,8 @@ const registerNetworkIpc = (mainWindow) => {
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
 
       const preferences = getPreferences();
+      const timeout = get(preferences, 'request.timeout', 0);
+      request.timeout = timeout;
       const sslVerification = get(preferences, 'request.sslVerification', true);
 
       if (!sslVerification) {
@@ -695,6 +699,8 @@ const registerNetworkIpc = (mainWindow) => {
             });
 
             const preferences = getPreferences();
+            const timeout = get(preferences, 'request.timeout', 0);
+            request.timeout = timeout;
             const sslVerification = get(preferences, 'request.sslVerification', true);
 
             // proxy configuration
