@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import useTelemetry from './useTelemetry';
-import useCollectionTreeSync from './useCollectionTreeSync';
+import useIpcEvents from './useIpcEvents';
 import useCollectionNextAction from './useCollectionNextAction';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
@@ -10,7 +10,7 @@ export const AppContext = React.createContext();
 
 export const AppProvider = (props) => {
   useTelemetry();
-  useCollectionTreeSync();
+  useIpcEvents();
   useCollectionNextAction();
 
   const dispatch = useDispatch();

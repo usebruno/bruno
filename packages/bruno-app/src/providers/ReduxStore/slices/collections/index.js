@@ -1057,7 +1057,6 @@ export const collectionsSlice = createSlice({
         if (collection) {
           collection.root = file.data;
         }
-        console.log('collectionAddFileEvent', file);
         return;
       }
 
