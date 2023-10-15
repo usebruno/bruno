@@ -155,6 +155,10 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
+      const preferences = getPreferences();
+      const timeout = get(preferences, 'request.timeout', 0);
+      request.timeout = timeout;
+
       // run pre-request script
       const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
         os.EOL
@@ -205,9 +209,6 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      const preferences = getPreferences();
-      const timeout = get(preferences, 'request.timeout', 0);
-      request.timeout = timeout;
       const sslVerification = get(preferences, 'request.sslVerification', true);
       const httpsAgentRequestFields = {};
       if (!sslVerification) {
@@ -222,7 +223,7 @@ const registerNetworkIpc = (mainWindow) => {
       };
 
       // client certificate config
-      const clientCertConfig = get(brunoConfig, 'clientCertificates', []);
+      const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
 
       for (clientCert of clientCertConfig) {
         const domain = interpolateString(clientCert.domain, interpolationOptions);
@@ -657,6 +658,11 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
+            const preferences = getPreferences();
+            const timeout = get(preferences, 'request.timeout', 0);
+            request.timeout = timeout;
+            const sslVerification = get(preferences, 'request.sslVerification', true);
+
             // run pre-request script
             const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
               os.EOL
@@ -697,11 +703,6 @@ const registerNetworkIpc = (mainWindow) => {
               },
               ...eventData
             });
-
-            const preferences = getPreferences();
-            const timeout = get(preferences, 'request.timeout', 0);
-            request.timeout = timeout;
-            const sslVerification = get(preferences, 'request.sslVerification', true);
 
             // proxy configuration
             const brunoConfig = getBrunoConfig(collectionUid);

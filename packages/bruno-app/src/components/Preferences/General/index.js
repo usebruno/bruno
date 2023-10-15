@@ -32,7 +32,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center mt-2">
-        <label className="mr-2" style={{ minWidth: 200 }} htmlFor="ssl-cert-verification">
+        <label className="mr-2 select-none" style={{ minWidth: 200 }} htmlFor="ssl-cert-verification">
           SSL Certificate Verification
         </label>
         <input
@@ -40,18 +40,20 @@ const General = ({ close }) => {
           type="checkbox"
           checked={sslVerification}
           onChange={() => setSslVerification(!sslVerification)}
-          className="mousetrap h-4 w-4 mr-0"
+          className="mousetrap mr-0"
         />
       </div>
-      <div className="flex items-center mt-2">
-        <label className="mr-2" style={{ minWidth: 200 }}>
-          Request Timeout (in ms)
-        </label>
+      <div className="flex flex-col mt-6">
+        <label className="block font-medium select-none">Request Timeout (in ms)</label>
         <input
-          value={timeout === 0 ? '' : timeout}
-          onChange={(e) => handleTimeoutChange(e.target.value)}
           type="text"
-          className="block textbox w-1/6"
+          className="block textbox mt-2 w-1/4"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          onChange={(e) => handleTimeoutChange(e.target.value)}
+          defaultValue={timeout === 0 ? '' : timeout}
         />
       </div>
 
