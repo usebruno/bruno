@@ -2,11 +2,23 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .settings-label {
-    width: 80px;
+    width: 90px;
+  }
+
+  .certificate-icon {
+    color: ${(props) => props.theme.colors.text.yellow};
   }
 
   input {
     width: 300px;
+  }
+
+  .available-certificates {
+    background-color: ${(props) => props.theme.requestTabPanel.url.bg};
+
+    button.remove-certificate {
+      color: ${(props) => props.theme.colors.text.danger};
+    }
   }
 
   .textbox {

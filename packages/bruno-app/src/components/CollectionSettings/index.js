@@ -29,7 +29,7 @@ const CollectionSettings = ({ collection }) => {
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
 
-  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates', []);
+  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
 
   const onProxySettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -43,9 +43,14 @@ const CollectionSettings = ({ collection }) => {
 
   const onClientCertSettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.clientCertificates
-      ? brunoConfig.clientCertificates.push(config)
-      : (brunoConfig.clientCertificates = [config]);
+    if (!brunoConfig.clientCertificates) {
+      brunoConfig.clientCertificates = {
+        enabled: true,
+        certs: [config]
+      };
+    } else {
+      brunoConfig.clientCertificates.certs.push(config);
+    }
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
         toast.success('Collection settings updated successfully');
@@ -120,13 +125,15 @@ const CollectionSettings = ({ collection }) => {
           Proxy
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
-          Client certificate
+          Client Certificates
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
         </div>
       </div>
-      <section className={`flex ${['auth', 'script', 'docs'].includes(tab) ? '' : 'mt-4'}`}>{getTabPanel(tab)}</section>
+      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
+        {getTabPanel(tab)}
+      </section>
     </StyledWrapper>
   );
 };

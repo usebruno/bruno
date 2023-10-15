@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
+import { uuid } from 'utils/common';
 import * as Yup from 'yup';
 
 import StyledWrapper from './StyledWrapper';
@@ -29,20 +31,28 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
 
   return (
     <StyledWrapper>
-      <h1 className="font-semibold mt-4 mb-2">Current client certificates</h1>
-      <ul>
+      <div className="flex items-center font-semibold mt-4 mb-2">
+        <IconCertificate className="mr-1 certificate-icon" size={24} strokeWidth={1.5} /> Client Certificates
+      </div>
+      <ul className="mt-4">
         {!clientCertConfig.length
           ? 'None'
           : clientCertConfig.map((clientCert) => (
-              <li>
-                Domain: {clientCert.domain}
-                <button onClick={() => onRemove(clientCert)} className="submit btn btn-sm btn-secondary ml-2">
-                  Delete
-                </button>
+              <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+                <div className="flex items-center w-full justify-between">
+                  <div className="flex items-center">
+                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                    {clientCert.domain}
+                  </div>
+                  <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
+                    <IconTrash size={18} strokeWidth={1.5} />
+                  </button>
+                </div>
               </li>
             ))}
       </ul>
-      <h1 className="font-semibold mt-4 mb-2">New client certicate</h1>
+
+      <h1 className="font-semibold mt-8 mb-2">Add Client Certicate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
