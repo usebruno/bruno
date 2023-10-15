@@ -29,7 +29,7 @@ class PreferencesStore {
 
   getPreferences() {
     return {
-      defaultPreferences,
+      ...defaultPreferences,
       ...this.store.get('preferences')
     };
   }
