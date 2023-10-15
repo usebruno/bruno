@@ -731,20 +731,20 @@ export const importEnvironment = (name, variables, collectionUid) => (dispatch, 
     }
 
     ipcRenderer
-        .invoke('renderer:import-environment', collection.pathname, name, variables)
-        .then(
-            dispatch(
-                updateLastAction({
-                  collectionUid,
-                  lastAction: {
-                    type: 'ADD_ENVIRONMENT',
-                    payload: name
-                  }
-                })
-            )
+      .invoke('renderer:create-environment', collection.pathname, name, variables)
+      .then(
+        dispatch(
+          updateLastAction({
+            collectionUid,
+            lastAction: {
+              type: 'ADD_ENVIRONMENT',
+              payload: name
+            }
+          })
         )
-        .then(resolve)
-        .catch(reject);
+      )
+      .then(resolve)
+      .catch(reject);
   });
 };
 
@@ -762,7 +762,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     }
 
     ipcRenderer
-      .invoke('renderer:copy-environment', collection.pathname, name, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, name, baseEnv.variables)
       .then(
         dispatch(
           updateLastAction({

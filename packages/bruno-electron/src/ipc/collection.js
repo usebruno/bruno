@@ -140,7 +140,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -152,53 +152,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
-      const content = envJsonToBru({
-        variables: []
-      });
-      await writeFile(envFilePath, content);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
+      const environment = {
+        name: name,
+        variables: variables || []
+      };
 
-  // copy environment
-  ipcMain.handle('renderer:copy-environment', async (event, collectionPathname, name, baseVariables) => {
-    try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
+      if (envHasSecrets(environment)) {
+        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
+      const content = envJsonToBru(environment);
 
-      const content = envJsonToBru({
-        variables: baseVariables
-      });
-      await writeFile(envFilePath, content);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
-  // copy environment
-  ipcMain.handle('renderer:import-environment', async (event, collectionPathname, name, variables) => {
-    try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
-      }
-
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
-
-      const content = envJsonToBru({
-        variables: variables
-      });
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
