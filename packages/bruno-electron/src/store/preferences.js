@@ -1,3 +1,4 @@
+const Yup = require('yup');
 const Store = require('electron-store');
 const { get } = require('lodash');
 
@@ -20,8 +21,11 @@ const { get } = require('lodash');
 
 const defaultPreferences = {
   request: {
-    tlsVerification: true,
+    sslVerification: true,
     caCert: ''
+  },
+  font: {
+    codeFont: 'default'
   },
   proxy: {
     enabled: false,
@@ -37,6 +41,15 @@ const defaultPreferences = {
   }
 };
 
+const preferencesSchema = Yup.object().shape({
+  request: Yup.object().shape({
+    sslVerification: Yup.boolean()
+  }),
+  font: Yup.object().shape({
+    codeFont: Yup.string().nullable()
+  })
+});
+
 class PreferencesStore {
   constructor() {
     this.store = new Store({
@@ -45,25 +58,36 @@ class PreferencesStore {
     });
   }
 
-  get(key) {
-    return this.store.get(key);
+  getPreferences() {
+    return {
+      defaultPreferences,
+      ...this.store.get('preferences')
+    };
   }
 
-  set(key, value) {
-    this.store.set(key, value);
-  }
-
-  getPath() {
-    return this.store.path;
+  savePreferences(newPreferences) {
+    return this.store.set('preferences', newPreferences);
   }
 }
+
 const preferencesStore = new PreferencesStore();
 
 const getPreferences = () => {
-  return {
-    ...defaultPreferences,
-    ...(preferencesStore.get('preferences') || {})
-  };
+  return preferencesStore.getPreferences();
+};
+
+const savePreferences = async (newPreferences) => {
+  return new Promise((resolve, reject) => {
+    preferencesSchema
+      .validate(newPreferences, { abortEarly: true })
+      .then((validatedPreferences) => {
+        preferencesStore.savePreferences(validatedPreferences);
+        resolve();
+      })
+      .catch((error) => {
+        reject(error);
+      });
+  });
 };
 
 const preferences = {
@@ -85,28 +109,11 @@ const preferences = {
 
   getProxyConfig: () => {
     return get(getPreferences(), 'proxy', {});
-  },
-
-  setPreferences: (validatedPreferences) => {
-    const updatedPreferences = {
-      ...getPreferences(),
-      ...validatedPreferences
-    };
-    preferencesStore.set('preferences', updatedPreferences);
-  },
-
-  migrateSslVerification: (sslVerification) => {
-    let preferences = getPreferences();
-    if (!preferences.request) {
-      const updatedPreferences = {
-        ...preferences,
-        request: {
-          tlsVerification: sslVerification
-        }
-      };
-      preferencesStore.set('preferences', updatedPreferences);
-    }
   }
 };
 
-module.exports = preferences;
+module.exports = {
+  getPreferences,
+  savePreferences,
+  preferences
+};

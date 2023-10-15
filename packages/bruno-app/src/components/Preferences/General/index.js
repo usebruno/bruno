@@ -1,37 +1,46 @@
 import React, { useState } from 'react';
-import { usePreferences } from 'providers/Preferences';
+import { useSelector, useDispatch } from 'react-redux';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
-import toast from 'react-hot-toast';
 
-const General = () => {
-  const { preferences, setPreferences } = usePreferences();
+const General = ({ close }) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  const dispatch = useDispatch();
 
-  const [tlsVerification, setTlsVerification] = useState(preferences.request.tlsVerification);
+  const [sslVerification, setSslVerification] = useState(preferences.request.sslVerification);
 
-  const handleCheckboxChange = () => {
-    const updatedPreferences = {
-      ...preferences,
-      request: {
-        ...preferences.request,
-        tlsVerification: !tlsVerification
-      }
-    };
-
-    setPreferences(updatedPreferences)
-      .then(() => {
-        setTlsVerification(!tlsVerification);
-        toast.success('Request settings saved successful.');
+  const handleSave = () => {
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          sslVerification
+        }
       })
-      .catch((err) => {
-        console.error(err);
-      });
+    ).then(() => {
+      close();
+    });
   };
 
   return (
     <StyledWrapper>
       <div className="flex items-center mt-2">
-        <input type="checkbox" checked={tlsVerification} onChange={handleCheckboxChange} className="mr-3 mousetrap" />
-        TLS Certificate Verification
+        <input
+          id="ssl-verification"
+          type="checkbox"
+          checked={sslVerification}
+          onChange={() => setSslVerification(!sslVerification)}
+          className="mr-3 mousetrap"
+        />
+        <label htmlFor="ssl-verification" className="select-none">
+          TLS Certificate Verification
+        </label>
+      </div>
+
+      <div className="mt-10">
+        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          Save
+        </button>
       </div>
     </StyledWrapper>
   );

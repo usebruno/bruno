@@ -3,6 +3,7 @@ import classnames from 'classnames';
 import React, { useState } from 'react';
 import Support from './Support';
 import General from './General';
+import Font from './Font';
 import Theme from './Theme';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
@@ -19,19 +20,23 @@ const Preferences = ({ onClose }) => {
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'general': {
-        return <General />;
+        return <General close={onClose} />;
       }
 
       case 'proxy': {
-        return <Proxy />;
+        return <Proxy close={onClose} />;
       }
 
       case 'theme': {
-        return <Theme />;
+        return <Theme close={onClose} />;
       }
 
       case 'support': {
         return <Support />;
+      }
+
+      case 'font': {
+        return <Font close={onClose} />;
       }
     }
   };
@@ -45,6 +50,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
             Theme
+          </div>
+          <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
+            Font
           </div>
           <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
             Proxy
