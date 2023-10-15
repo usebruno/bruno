@@ -6,17 +6,6 @@ const { get } = require('lodash');
  * The preferences are stored in the electron store 'preferences.json'.
  * The electron process uses this module to get the preferences.
  *
- * {
- *   preferences {
- *     request: {
- *       tlsVerification: boolean,
- *       cacert: String (yet not implemented in front end)
- *     }
- *     proxy: { (yet not implemented in front end)
- *       ...
- *     }
- *   }
- * }
  */
 
 const defaultPreferences = {
