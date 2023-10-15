@@ -68,7 +68,8 @@ app.on('ready', async () => {
     require('electron').shell.openExternal(url);
   });
 
-  mainWindow.webContents.openDevTools();
+  // Debug only
+  // mainWindow.webContents.openDevTools();
 
   // register all ipc handlers
   registerUpdaterIpc(mainWindow);
