@@ -51,9 +51,13 @@ const Welcome = () => {
       ) : null}
 
       <div className="">
-        <Bruno width={50} />
+        <div className="text-xl font-semibold select-none">
+          <span>
+            <Bruno width={80} />
+          </span>
+          Bolt
+        </div>
       </div>
-      <div className="text-xl font-semibold select-none">bruno</div>
       <div className="mt-4">Opensource IDE for exploring and testing APIs</div>
 
       <div className="uppercase font-semibold heading mt-10">Collections</div>
@@ -76,7 +80,7 @@ const Welcome = () => {
         </div>
       </div>
 
-      <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
+      {/*<div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
           <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
@@ -96,7 +100,7 @@ const Welcome = () => {
             <span className="label ml-2">GitHub</span>
           </a>
         </div>
-      </div>
+      </div>*/}
     </StyledWrapper>
   );
 };

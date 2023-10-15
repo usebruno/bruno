@@ -78,7 +78,7 @@ const TitleBar = () => {
           className="flex items-center font-medium select-none cursor-pointer"
           style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
         >
-          bruno
+          Bolt
         </div>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">

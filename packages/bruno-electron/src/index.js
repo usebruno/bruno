@@ -1,7 +1,8 @@
 const path = require('path');
 const isDev = require('electron-is-dev');
 const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
+const { BrowserWindow } = require('electron');
+const { app, Menu } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -39,8 +40,8 @@ app.on('ready', async () => {
     y,
     width,
     height,
-    minWidth:1000,
-    minHeight:640,
+    minWidth: 1000,
+    minHeight: 640,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -80,3 +81,4 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit);
+app.setAsDefaultProtocolClient('open-bolt');

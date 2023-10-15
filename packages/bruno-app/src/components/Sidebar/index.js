@@ -95,15 +95,20 @@ const Sidebar = () => {
                   onClick={() => setPreferencesOpen(true)}
                 />
               </div>
-              <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
+              {/* <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 <GitHubButton
-                  href="https://github.com/usebruno/bruno"
-                  data-color-scheme={storedTheme}
-                  data-show-count="true"
-                  aria-label="Star usebruno/bruno on GitHub"
-                >
-                  Star
+                    href="https://github.com/usebruno/bruno"
+                    data-color-scheme={storedTheme}
+                    data-show-count="true"
+                    aria-label="Star usebruno/bruno on GitHub"
+                  >
+                    Star
                 </GitHubButton>
+              </div>*/}
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">
+                <a href="https://github.com/usebruno/bruno/blob/main/license.md" _target="blank">
+                  copyright@bruno
+                </a>
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.24.0</div>
             </div>

@@ -45,6 +45,7 @@
     "lodash": "^4.17.21",
     "mustache": "^4.2.0",
     "nanoid": "3.3.4",
+    "next": "13.5.4",
     "node-machine-id": "^1.1.12",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
@@ -56,8 +57,8 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
-    "electron-builder": "23.0.2",
+    "electron": "^21.4.4",
+    "electron-builder": "^24.6.4",
     "electron-icon-maker": "^0.0.5"
   }
 }
