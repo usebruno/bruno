@@ -31,7 +31,6 @@ import {
   requestCancelled,
   responseReceived,
   newItem as _newItem,
-  renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
   saveRequest as _saveRequest,
@@ -290,7 +289,6 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(() => {
-      dispatch(_renameItem({ newName, itemUid, collectionUid }))
       resolve()
     }).catch(reject);
   });
