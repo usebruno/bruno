@@ -3,7 +3,6 @@ import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
-import { PreferencesProvider } from 'providers/Preferences';
 
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
@@ -50,11 +49,9 @@ function MyApp({ Component, pageProps }) {
             <ThemeProvider>
               <ToastProvider>
                 <AppProvider>
-                  <PreferencesProvider>
-                    <HotkeysProvider>
-                      <Component {...pageProps} />
-                    </HotkeysProvider>
-                  </PreferencesProvider>
+                  <HotkeysProvider>
+                    <Component {...pageProps} />
+                  </HotkeysProvider>
                 </AppProvider>
               </ToastProvider>
             </ThemeProvider>
