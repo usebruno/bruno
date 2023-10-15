@@ -1,10 +1,52 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-import * as Yup from 'yup';
 
 import StyledWrapper from './StyledWrapper';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {
+  const proxySchema = Yup.object({
+    enabled: Yup.string().oneOf(['global', 'enabled', 'disabled']),
+    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+    hostname: Yup.string()
+      .when('enabled', {
+        is: 'enabled',
+        then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
+        otherwise: (hostname) => hostname.nullable()
+      })
+      .max(1024),
+    port: Yup.number()
+      .when('enabled', {
+        is: 'enabled',
+        then: (port) => port.typeError('Specify port between 1 and 65535'),
+        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
+      })
+      .min(1)
+      .max(65535),
+    auth: Yup.object()
+      .when('enabled', {
+        is: 'enabled',
+        then: Yup.object({
+          enabled: Yup.boolean(),
+          username: Yup.string()
+            .when(['enabled'], {
+              is: true,
+              then: (username) => username.required('Specify username for proxy authentication.')
+            })
+            .max(1024),
+          password: Yup.string()
+            .when('enabled', {
+              is: true,
+              then: (password) => password.required('Specify password for proxy authentication.')
+            })
+            .max(1024)
+        })
+      })
+      .optional(),
+    noProxy: Yup.string().optional().max(1024)
+  });
+
   const formik = useFormik({
     initialValues: {
       enabled: proxyConfig.enabled || 'global',
@@ -18,20 +60,17 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
       },
       noProxy: proxyConfig.noProxy || ''
     },
-    validationSchema: Yup.object({
-      enabled: Yup.string().oneOf(['global', 'enabled', 'disabled']),
-      protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
-      hostname: Yup.string().max(1024),
-      port: Yup.number().min(0).max(65535),
-      auth: Yup.object({
-        enabled: Yup.boolean(),
-        username: Yup.string().max(1024),
-        password: Yup.string().max(1024)
-      }),
-      noProxy: Yup.string().max(1024)
-    }),
+    validationSchema: proxySchema,
     onSubmit: (values) => {
-      onUpdate(values);
+      proxySchema
+        .validate(values, { abortEarly: true })
+        .then((validatedProxy) => {
+          onUpdate(validatedProxy);
+        })
+        .catch((error) => {
+          let errMsg = error.message || 'Preferences validation error';
+          toast.error(errMsg);
+        });
     }
   });
 
@@ -55,15 +94,15 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
       <h1 className="font-medium mb-3">Proxy Settings</h1>
       <label className="settings-label">
         <ul className="mb-3">
-          <li>To use the global proxy configuration, choose 'use global setting'</li>
-          <li>To use collection level configuration, choose 'enabled'</li>
-          <li>To disable the proxy for this collection, choose 'disabled'</li>
+          <li>global - use global config</li>
+          <li>enabled - use collection config</li>
+          <li>disable - disable proxy</li>
         </ul>
       </label>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="enabled">
-            Usage
+            Config
           </label>
           <div className="flex items-center">
             <label className="flex items-center">
@@ -75,7 +114,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              use global settings
+              global
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -127,6 +166,17 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 className="mr-1"
               />
               https
+            </label>
+            <label className="flex items-center ml-4">
+              <input
+                type="radio"
+                name="protocol"
+                value="socks5"
+                checked={formik.values.protocol === 'socks4'}
+                onChange={formik.handleChange}
+                className="mr-1"
+              />
+              socks4
             </label>
             <label className="flex items-center ml-4">
               <input

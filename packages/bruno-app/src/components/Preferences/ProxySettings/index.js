@@ -24,7 +24,7 @@ const ProxySettings = () => {
     },
     validationSchema: Yup.object({
       enabled: Yup.boolean(),
-      protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
+      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
       hostname: Yup.string().max(1024),
       port: Yup.number().min(0).max(65535),
       auth: Yup.object({
@@ -105,6 +105,17 @@ const ProxySettings = () => {
                 className="mr-1"
               />
               https
+            </label>
+            <label className="flex items-center ml-4">
+              <input
+                type="radio"
+                name="protocol"
+                value="socks5"
+                checked={formik.values.protocol === 'socks4'}
+                onChange={formik.handleChange}
+                className="mr-1"
+              />
+              socks4
             </label>
             <label className="flex items-center ml-4">
               <input

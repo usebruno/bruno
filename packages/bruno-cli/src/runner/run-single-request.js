@@ -16,6 +16,7 @@ const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { shouldUseProxy } = require('../utils/proxy-util');
 
 const runSingleRequest = async function (
   filename,
@@ -86,22 +87,22 @@ const runSingleRequest = async function (
     const httpsAgentRequestFields = {};
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
-    } else {
-      const cacertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const cacert = cacertArray.find((el) => el);
-      if (cacert && cacert.length > 1) {
-        try {
-          caCrt = fs.readFileSync(cacert);
-          httpsAgentRequestFields['ca'] = caCrt;
-        } catch (err) {
-          console.log('Error reading CA cert file:' + cacert, err);
-        }
+    }
+
+    const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+    const caCert = caCertArray.find((el) => el);
+    if (caCert && caCert.length > 1) {
+      try {
+        httpsAgentRequestFields['ca'] = fs.readFileSync(caCert);
+      } catch (err) {
+        console.log('Error reading CA cert file:' + caCert, err);
       }
     }
 
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    if (proxyEnabled) {
+    const proxyByPass = shouldUseProxy(request.url, get(brunoConfig, 'proxy.noProxy', ''));
+    if (proxyEnabled && !proxyByPass) {
       let proxyUri;
       const interpolationOptions = {
         envVars: envVariables,
@@ -115,8 +116,6 @@ const runSingleRequest = async function (
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
-      interpolateString;
-
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
@@ -128,16 +127,13 @@ const runSingleRequest = async function (
 
       if (socksEnabled) {
         const socksProxyAgent = new SocksProxyAgent(proxyUri);
-
         request.httpsAgent = socksProxyAgent;
-
         request.httpAgent = socksProxyAgent;
       } else {
         request.httpsAgent = new HttpsProxyAgent(
           proxyUri,
           Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
         );
-
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
     } else if (Object.keys(httpsAgentRequestFields).length > 0) {

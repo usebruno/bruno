@@ -2,6 +2,7 @@ const os = require('os');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
+const fs = require('fs');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
@@ -23,6 +24,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveCredentials } = require('./awsv4auth-helper');
+const { shouldUseProxy } = require('../../utils/proxy-util');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -81,6 +83,24 @@ const getSize = (data) => {
 
   return 0;
 };
+
+function getHttpsAgentRequestFields() {
+  const httpsAgentRequestFields = {};
+  if (!preferences.isTlsVerification()) {
+    httpsAgentRequestFields['rejectUnauthorized'] = false;
+  }
+
+  const cacCrtArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+  let caCertFile = cacCrtArray.find((el) => el);
+  if (caCertFile && caCertFile.length > 1) {
+    try {
+      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFile);
+    } catch (err) {
+      console.log('Error reading CA cert file:' + caCertFile, err);
+    }
+  }
+  return httpsAgentRequestFields;
+}
 
 const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
@@ -204,43 +224,34 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      const httpsAgentRequestFields = {};
-      if (!preferences.isTlsVerification()) {
-        httpsAgentRequestFields['rejectUnauthorized'] = false;
-      }
-
-      const cacertArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      let cacertFile = cacertArray.find((el) => el);
-      if (cacertFile && cacertFile.length > 1) {
-        try {
-          const sslRootCas = require('ssl-root-cas').inject();
-          sslRootCas.addFile(cacertFile);
-        } catch (err) {
-          console.log('Error reading CA cert file:' + cacertFile, err);
-        }
-      }
+      const httpsAgentRequestFields = getHttpsAgentRequestFields();
 
       // proxy configuration
       const brunoConfig = getBrunoConfig(collectionUid);
-      const proxyEnabled = get(brunoConfig, 'proxy.enabled', 'disabled');
-      if (proxyEnabled === 'enabled') {
+      let proxyConfig = get(brunoConfig, 'proxy', {});
+      let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
+      if (proxyEnabled === 'global') {
+        proxyConfig = preferences.getProxyConfig();
+        proxyEnabled = get(proxyConfig, 'enabled', false);
+      }
+      const proxyByPass = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
+      if ((proxyEnabled === true || proxyEnabled === 'enabled') && !proxyByPass) {
         let proxyUri;
-
         const interpolationOptions = {
           envVars,
           collectionVariables,
           processEnvVars
         };
 
-        const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
-        const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
-        const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
-        const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+        const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+        const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+        const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+        const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
         const socksEnabled = proxyProtocol.includes('socks');
 
         if (proxyAuthEnabled) {
-          const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
-          const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
+          const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+          const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
           proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
         } else {
@@ -673,10 +684,18 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
+            const httpsAgentRequestFields = getHttpsAgentRequestFields();
+
             // proxy configuration
             const brunoConfig = getBrunoConfig(collectionUid);
-            const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-            if (proxyEnabled) {
+            let proxyConfig = get(brunoConfig, 'proxy', {});
+            let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
+            if (proxyEnabled === 'global') {
+              proxyConfig = preferences.getProxyConfig();
+              proxyEnabled = get(proxyConfig, 'enabled', false);
+            }
+            const proxyByPass = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
+            if ((proxyEnabled === true || proxyEnabled === 'enabled') && !proxyByPass) {
               let proxyUri;
               const interpolationOptions = {
                 envVars,
@@ -684,22 +703,15 @@ const registerNetworkIpc = (mainWindow) => {
                 processEnvVars
               };
 
-              const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
-              const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
-              const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
-              const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
+              const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+              const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+              const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+              const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
               const socksEnabled = proxyProtocol.includes('socks');
 
               if (proxyAuthEnabled) {
-                const proxyAuthUsername = interpolateString(
-                  get(brunoConfig, 'proxy.auth.username'),
-                  interpolationOptions
-                );
-
-                const proxyAuthPassword = interpolateString(
-                  get(brunoConfig, 'proxy.auth.password'),
-                  interpolationOptions
-                );
+                const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+                const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
                 proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
               } else {
@@ -708,19 +720,18 @@ const registerNetworkIpc = (mainWindow) => {
 
               if (socksEnabled) {
                 const socksProxyAgent = new SocksProxyAgent(proxyUri);
-
                 request.httpsAgent = socksProxyAgent;
                 request.httpAgent = socksProxyAgent;
               } else {
-                request.httpsAgent = new HttpsProxyAgent(proxyUri, {
-                  rejectUnauthorized: preferences.isTlsVerification()
-                });
-
+                request.httpsAgent = new HttpsProxyAgent(
+                  proxyUri,
+                  Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+                );
                 request.httpAgent = new HttpProxyAgent(proxyUri);
               }
-            } else if (!preferences.isTlsVerification()) {
+            } else if (Object.keys(httpsAgentRequestFields).length > 0) {
               request.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
+                ...httpsAgentRequestFields
               });
             }
 

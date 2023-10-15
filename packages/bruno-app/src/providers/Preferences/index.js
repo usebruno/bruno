@@ -12,23 +12,54 @@ import * as Yup from 'yup';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 import toast from 'react-hot-toast';
 
+const requestSchema = Yup.object({
+  sslVerification: Yup.boolean(),
+  caCert: Yup.string().max(1024)
+});
+const proxySchema = Yup.object({
+  enabled: Yup.boolean(),
+  protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
+  hostname: Yup.string()
+    .when('enabled', {
+      is: true,
+      then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
+      otherwise: (hostname) => hostname.nullable()
+    })
+    .max(1024),
+  port: Yup.number()
+    .when('enabled', {
+      is: true,
+      then: (port) => port.typeError('Specify port between 1 and 65535'),
+      otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
+    })
+    .min(1)
+    .max(65535),
+  auth: Yup.object()
+    .when('enabled', {
+      is: true,
+      then: Yup.object({
+        enabled: Yup.boolean(),
+        username: Yup.string()
+          .when(['enabled'], {
+            is: true,
+            then: (username) => username.required('Specify username for proxy authentication.')
+          })
+          .max(1024),
+        password: Yup.string()
+          .when('enabled', {
+            is: true,
+            then: (password) => password.required('Specify password for proxy authentication.')
+          })
+          .max(1024)
+      })
+    })
+    .optional(),
+  noProxy: Yup.string().optional().max(1024)
+});
+
 const preferencesSchema = Yup.object({
-  request: Yup.object({
-    sslVerification: Yup.boolean(),
-    caCert: Yup.string().max(1024)
-  }),
-  proxy: Yup.object({
-    enabled: Yup.boolean(),
-    protocol: Yup.string().oneOf(['http', 'https', 'socks5']),
-    hostname: Yup.string().max(1024),
-    port: Yup.number().min(0).max(65535),
-    auth: Yup.object({
-      enabled: Yup.boolean(),
-      username: Yup.string().max(1024),
-      password: Yup.string().max(1024)
-    }),
-    noProxy: Yup.string().max(1024)
-  })
+  request: requestSchema,
+  proxy: proxySchema
 });
 
 export const PreferencesContext = createContext();

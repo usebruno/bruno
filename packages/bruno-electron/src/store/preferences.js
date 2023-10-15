@@ -76,10 +76,15 @@ const preferences = {
   },
 
   isTlsVerification: () => {
-    return get(getPreferences(), ['request.tlsVerification'], true);
+    return get(getPreferences(), 'request.tlsVerification', true);
   },
+
   getCaCert: () => {
     return get(getPreferences(), 'request.cacert');
+  },
+
+  getProxyConfig: () => {
+    return get(getPreferences(), 'proxy', {});
   },
 
   setPreferences: (validatedPreferences) => {
