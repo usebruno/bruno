@@ -1,10 +1,12 @@
 import CodeEditor from 'components/CodeEditor/index';
 import { HTTPSnippet } from 'httpsnippet';
 import { useTheme } from 'providers/Theme/index';
+import { usePreferences } from 'providers/Preferences/index';
 import { buildHarRequest } from 'utils/codegenerator/har';
 
 const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
+  const { preferences } = usePreferences();
   const { target, client, language: lang } = language;
   let snippet = '';
 
@@ -15,7 +17,7 @@ const CodeView = ({ language, item }) => {
     snippet = 'Error generating code snippet';
   }
 
-  return <CodeEditor readOnly value={snippet} theme={storedTheme} mode={lang} />;
+  return <CodeEditor readOnly value={snippet} font={preferences.codeFont} theme={storedTheme} mode={lang} />;
 };
 
 export default CodeView;
