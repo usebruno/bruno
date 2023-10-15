@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
+import ImportEnvironment from "components/Environments/EnvironmentSettings/ImportEnvironment";
 
 const EnvironmentSettings = ({ collection, onClose }) => {
   const { environments } = collection;
@@ -28,6 +29,7 @@ const EnvironmentSettings = ({ collection, onClose }) => {
             >
               + <span>Create Environment</span>
             </button>
+            <ImportEnvironment title={"Import Postman Environment"} collectionUid={collection.uid}/>
           </div>
         </Modal>
       </StyledWrapper>
