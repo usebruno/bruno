@@ -2,12 +2,55 @@ import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
-import { usePreferences } from 'providers/Preferences';
+import { useDispatch, useSelector } from 'react-redux';
 
-const ProxySettings = () => {
-  const { preferences, setPreferences } = usePreferences();
+const ProxySettings = ({ close }) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  const dispatch = useDispatch();
+
+  const proxySchema = Yup.object({
+    enabled: Yup.boolean(),
+    protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
+    hostname: Yup.string()
+      .when('enabled', {
+        is: true,
+        then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
+        otherwise: (hostname) => hostname.nullable()
+      })
+      .max(1024),
+    port: Yup.number()
+      .when('enabled', {
+        is: true,
+        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
+        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
+      })
+      .min(1)
+      .max(65535),
+    auth: Yup.object()
+      .when('enabled', {
+        is: true,
+        then: Yup.object({
+          enabled: Yup.boolean(),
+          username: Yup.string()
+            .when(['enabled'], {
+              is: true,
+              then: (username) => username.required('Specify username for proxy authentication.')
+            })
+            .max(1024),
+          password: Yup.string()
+            .when('enabled', {
+              is: true,
+              then: (password) => password.required('Specify password for proxy authentication.')
+            })
+            .max(1024)
+        })
+      })
+      .optional(),
+    noProxy: Yup.string().optional().max(1024)
+  });
 
   const formik = useFormik({
     initialValues: {
@@ -22,35 +65,28 @@ const ProxySettings = () => {
       },
       noProxy: preferences.proxy.noProxy || ''
     },
-    validationSchema: Yup.object({
-      enabled: Yup.boolean(),
-      protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
-      hostname: Yup.string().max(1024),
-      port: Yup.number().min(0).max(65535),
-      auth: Yup.object({
-        enabled: Yup.boolean(),
-        username: Yup.string().max(1024),
-        password: Yup.string().max(1024)
-      }),
-      noProxy: Yup.string().max(1024)
-    }),
+    validationSchema: proxySchema,
     onSubmit: (values) => {
       onUpdate(values);
     }
   });
 
   const onUpdate = (values) => {
-    const updatedPreferences = {
-      ...preferences,
-      proxy: values
-    };
-
-    setPreferences(updatedPreferences)
-      .then(() => {
-        toast.success('Proxy settings updated successfully.');
+    proxySchema
+      .validate(values, { abortEarly: true })
+      .then((validatedProxy) => {
+        dispatch(
+          savePreferences({
+            ...preferences,
+            proxy: validatedProxy
+          })
+        ).then(() => {
+          close();
+        });
       })
-      .catch((err) => {
-        console.error(err);
+      .catch((error) => {
+        let errMsg = error.message || 'Preferences validation error';
+        toast.error(errMsg);
       });
   };
 
@@ -147,7 +183,7 @@ const ProxySettings = () => {
             value={formik.values.hostname || ''}
           />
           {formik.touched.hostname && formik.errors.hostname ? (
-            <div className="text-red-500">{formik.errors.hostname}</div>
+            <div className="ml-3 text-red-500">{formik.errors.hostname}</div>
           ) : null}
         </div>
         <div className="ml-4 mb-3 flex items-center">
@@ -166,7 +202,9 @@ const ProxySettings = () => {
             onChange={formik.handleChange}
             value={formik.values.port}
           />
-          {formik.touched.port && formik.errors.port ? <div className="text-red-500">{formik.errors.port}</div> : null}
+          {formik.touched.port && formik.errors.port ? (
+            <div className="ml-3 text-red-500">{formik.errors.port}</div>
+          ) : null}
         </div>
         <div className="ml-4 mb-3 flex items-center">
           <label className="settings-label" htmlFor="auth.enabled">
@@ -197,7 +235,7 @@ const ProxySettings = () => {
               onChange={formik.handleChange}
             />
             {formik.touched.auth?.username && formik.errors.auth?.username ? (
-              <div className="text-red-500">{formik.errors.auth.username}</div>
+              <div className="ml-3 text-red-500">{formik.errors.auth.username}</div>
             ) : null}
           </div>
           <div className="ml-4 mb-3 flex items-center">
@@ -217,7 +255,7 @@ const ProxySettings = () => {
               onChange={formik.handleChange}
             />
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
-              <div className="text-red-500">{formik.errors.auth.password}</div>
+              <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}
           </div>
         </div>
@@ -238,7 +276,7 @@ const ProxySettings = () => {
             value={formik.values.noProxy || ''}
           />
           {formik.touched.noProxy && formik.errors.noProxy ? (
-            <div className="text-red-500">{formik.errors.noProxy}</div>
+            <div className="ml-3 text-red-500">{formik.errors.noProxy}</div>
           ) : null}
         </div>
         <div className="mt-6">

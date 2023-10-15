@@ -19,7 +19,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
     port: Yup.number()
       .when('enabled', {
         is: 'enabled',
-        then: (port) => port.typeError('Specify port between 1 and 65535'),
+        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
         otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
       })
       .min(1)
@@ -208,7 +208,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             value={formik.values.hostname || ''}
           />
           {formik.touched.hostname && formik.errors.hostname ? (
-            <div className="text-red-500">{formik.errors.hostname}</div>
+            <div className="ml-3 text-red-500">{formik.errors.hostname}</div>
           ) : null}
         </div>
         <div className="mb-3 flex items-center">
@@ -227,7 +227,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             onChange={formik.handleChange}
             value={formik.values.port}
           />
-          {formik.touched.port && formik.errors.port ? <div className="text-red-500">{formik.errors.port}</div> : null}
+          {formik.touched.port && formik.errors.port ? (
+            <div className="ml-3 text-red-500">{formik.errors.port}</div>
+          ) : null}
         </div>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="auth.enabled">
@@ -258,7 +260,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
               onChange={formik.handleChange}
             />
             {formik.touched.auth?.username && formik.errors.auth?.username ? (
-              <div className="text-red-500">{formik.errors.auth.username}</div>
+              <div className="ml-3 text-red-500">{formik.errors.auth.username}</div>
             ) : null}
           </div>
           <div className="mb-3 flex items-center">
@@ -278,7 +280,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
               onChange={formik.handleChange}
             />
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
-              <div className="text-red-500">{formik.errors.auth.password}</div>
+              <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}
           </div>
         </div>
@@ -299,7 +301,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             value={formik.values.noProxy || ''}
           />
           {formik.touched.noProxy && formik.errors.noProxy ? (
-            <div className="text-red-500">{formik.errors.noProxy}</div>
+            <div className="ml-3 text-red-500">{formik.errors.noProxy}</div>
           ) : null}
         </div>
         <div className="mt-6">

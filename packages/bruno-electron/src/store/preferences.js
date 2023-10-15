@@ -47,6 +47,18 @@ const preferencesSchema = Yup.object().shape({
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable()
+  }),
+  proxy: Yup.object({
+    enabled: Yup.boolean(),
+    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+    hostname: Yup.string().max(1024),
+    port: Yup.number().min(1).max(65535),
+    auth: Yup.object({
+      enabled: Yup.boolean(),
+      username: Yup.string().max(1024),
+      password: Yup.string().max(1024)
+    }).optional(),
+    noProxy: Yup.string().optional().max(1024)
   })
 });
 
@@ -58,9 +70,13 @@ class PreferencesStore {
     });
   }
 
+  getPath() {
+    return this.store.path;
+  }
+
   getPreferences() {
     return {
-      defaultPreferences,
+      ...defaultPreferences,
       ...this.store.get('preferences')
     };
   }
@@ -90,17 +106,13 @@ const savePreferences = async (newPreferences) => {
   });
 };
 
+const getPath = () => {
+  return preferencesStore.getPath();
+};
+
 const preferences = {
-  getAll() {
-    return getPreferences();
-  },
-
-  getPath() {
-    return preferencesStore.getPath();
-  },
-
   isTlsVerification: () => {
-    return get(getPreferences(), 'request.tlsVerification', true);
+    return get(getPreferences(), 'request.sslVerification', true);
   },
 
   getCaCert: () => {
@@ -115,5 +127,6 @@ const preferences = {
 module.exports = {
   getPreferences,
   savePreferences,
+  getPath,
   preferences
 };

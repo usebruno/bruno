@@ -16,7 +16,7 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const preferences = require('../../store/preferences');
+const { preferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
@@ -84,23 +84,81 @@ const getSize = (data) => {
   return 0;
 };
 
-function getHttpsAgentRequestFields() {
+const configureRequest = async (collectionUid, request, envVars, collectionVariables, processEnvVars) => {
   const httpsAgentRequestFields = {};
   if (!preferences.isTlsVerification()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
-  }
-
-  const cacCrtArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-  let caCertFile = cacCrtArray.find((el) => el);
-  if (caCertFile && caCertFile.length > 1) {
-    try {
-      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFile);
-    } catch (err) {
-      console.log('Error reading CA cert file:' + caCertFile, err);
+  } else {
+    const cacCrtArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+    let caCertFile = cacCrtArray.find((el) => el);
+    if (caCertFile && caCertFile.length > 1) {
+      try {
+        httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFile);
+      } catch (err) {
+        console.log('Error reading CA cert file:' + caCertFile, err);
+      }
     }
   }
-  return httpsAgentRequestFields;
-}
+
+  // proxy configuration
+  const brunoConfig = getBrunoConfig(collectionUid);
+  let proxyConfig = get(brunoConfig, 'proxy', {});
+  let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
+  if (proxyEnabled === 'global') {
+    proxyConfig = preferences.getProxyConfig();
+    proxyEnabled = get(proxyConfig, 'enabled', false);
+  }
+  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
+  if ((proxyEnabled === true || proxyEnabled === 'enabled') && shouldProxy) {
+    let proxyUri;
+    const interpolationOptions = {
+      envVars,
+      collectionVariables,
+      processEnvVars
+    };
+
+    const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+    const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+    const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+    const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+    const socksEnabled = proxyProtocol.includes('socks');
+
+    if (proxyAuthEnabled) {
+      const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+      const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+
+      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+    } else {
+      proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+    }
+
+    if (socksEnabled) {
+      const socksProxyAgent = new SocksProxyAgent(proxyUri);
+      request.httpsAgent = socksProxyAgent;
+      request.httpAgent = socksProxyAgent;
+    } else {
+      request.httpsAgent = new HttpsProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new HttpProxyAgent(proxyUri);
+    }
+  } else if (Object.keys(httpsAgentRequestFields).length > 0) {
+    request.httpsAgent = new https.Agent({
+      ...httpsAgentRequestFields
+    });
+  }
+
+  const axiosInstance = makeAxiosInstance();
+
+  if (request.awsv4config) {
+    request.awsv4config = await resolveCredentials(request);
+    addAwsV4Interceptor(axiosInstance, request);
+    delete request.awsv4config;
+  }
+
+  return axiosInstance;
+};
 
 const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
@@ -224,64 +282,13 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      const httpsAgentRequestFields = getHttpsAgentRequestFields();
-
-      // proxy configuration
-      const brunoConfig = getBrunoConfig(collectionUid);
-      let proxyConfig = get(brunoConfig, 'proxy', {});
-      let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
-      if (proxyEnabled === 'global') {
-        proxyConfig = preferences.getProxyConfig();
-        proxyEnabled = get(proxyConfig, 'enabled', false);
-      }
-      const proxyByPass = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
-      if ((proxyEnabled === true || proxyEnabled === 'enabled') && !proxyByPass) {
-        let proxyUri;
-        const interpolationOptions = {
-          envVars,
-          collectionVariables,
-          processEnvVars
-        };
-
-        const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-        const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-        const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-        const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-        const socksEnabled = proxyProtocol.includes('socks');
-
-        if (proxyAuthEnabled) {
-          const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-          const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
-
-          proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
-        } else {
-          proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
-        }
-
-        if (socksEnabled) {
-          const socksProxyAgent = new SocksProxyAgent(proxyUri);
-          request.httpsAgent = socksProxyAgent;
-          request.httpAgent = socksProxyAgent;
-        } else {
-          request.httpsAgent = new HttpsProxyAgent(
-            proxyUri,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-          request.httpAgent = new HttpProxyAgent(proxyUri);
-        }
-      } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-        request.httpsAgent = new https.Agent({
-          ...httpsAgentRequestFields
-        });
-      }
-
-      const axiosInstance = makeAxiosInstance();
-
-      if (request.awsv4config) {
-        request.awsv4config = await resolveCredentials(request);
-        addAwsV4Interceptor(axiosInstance, request);
-        delete request.awsv4config;
-      }
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars
+      );
 
       /** @type {import('axios').AxiosResponse} */
       const response = await axiosInstance(request);
@@ -684,60 +691,17 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
-            const httpsAgentRequestFields = getHttpsAgentRequestFields();
+            const axiosInstance = await configureRequest(
+              collectionUid,
+              request,
+              envVars,
+              collectionVariables,
+              processEnvVars
+            );
 
-            // proxy configuration
-            const brunoConfig = getBrunoConfig(collectionUid);
-            let proxyConfig = get(brunoConfig, 'proxy', {});
-            let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
-            if (proxyEnabled === 'global') {
-              proxyConfig = preferences.getProxyConfig();
-              proxyEnabled = get(proxyConfig, 'enabled', false);
-            }
-            const proxyByPass = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
-            if ((proxyEnabled === true || proxyEnabled === 'enabled') && !proxyByPass) {
-              let proxyUri;
-              const interpolationOptions = {
-                envVars,
-                collectionVariables,
-                processEnvVars
-              };
-
-              const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-              const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-              const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-              const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-              const socksEnabled = proxyProtocol.includes('socks');
-
-              if (proxyAuthEnabled) {
-                const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-                const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
-
-                proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
-              } else {
-                proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
-              }
-
-              if (socksEnabled) {
-                const socksProxyAgent = new SocksProxyAgent(proxyUri);
-                request.httpsAgent = socksProxyAgent;
-                request.httpAgent = socksProxyAgent;
-              } else {
-                request.httpsAgent = new HttpsProxyAgent(
-                  proxyUri,
-                  Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-                );
-                request.httpAgent = new HttpProxyAgent(proxyUri);
-              }
-            } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-              request.httpsAgent = new https.Agent({
-                ...httpsAgentRequestFields
-              });
-            }
-
-            // send request
             timeStart = Date.now();
-            const response = await axios(request);
+            /** @type {import('axios').AxiosResponse} */
+            const response = await axiosInstance(request);
             timeEnd = Date.now();
 
             // run post-response vars

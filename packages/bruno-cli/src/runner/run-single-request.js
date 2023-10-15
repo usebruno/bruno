@@ -87,22 +87,22 @@ const runSingleRequest = async function (
     const httpsAgentRequestFields = {};
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
-    }
-
-    const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-    const caCert = caCertArray.find((el) => el);
-    if (caCert && caCert.length > 1) {
-      try {
-        httpsAgentRequestFields['ca'] = fs.readFileSync(caCert);
-      } catch (err) {
-        console.log('Error reading CA cert file:' + caCert, err);
+    } else {
+      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+      const caCert = caCertArray.find((el) => el);
+      if (caCert && caCert.length > 1) {
+        try {
+          httpsAgentRequestFields['ca'] = fs.readFileSync(caCert);
+        } catch (err) {
+          console.log('Error reading CA cert file:' + caCert, err);
+        }
       }
     }
 
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    const proxyByPass = shouldUseProxy(request.url, get(brunoConfig, 'proxy.noProxy', ''));
-    if (proxyEnabled && !proxyByPass) {
+    const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.noProxy', ''));
+    if (proxyEnabled && shouldProxy) {
       let proxyUri;
       const interpolationOptions = {
         envVars: envVariables,
