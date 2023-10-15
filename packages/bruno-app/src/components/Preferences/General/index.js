@@ -15,7 +15,8 @@ const General = ({ close }) => {
       savePreferences({
         ...preferences,
         request: {
-          sslVerification
+          sslVerification,
+          timeout
         }
       })
     ).then(() => {
@@ -24,37 +25,34 @@ const General = ({ close }) => {
   };
 
   const handleTimeoutChange = (value) => {
-    const timeout = value === '' ? 0 : value;
-    const updatedPreferences = {
-      ...preferences,
-      request: {
-        ...preferences.request,
-        timeout
-      }
-    };
-
-    setPreferences(updatedPreferences)
-      .then(() => {
-        setTimeout(timeout);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
+    const validTimeout = isNaN(Number(value)) ? timeout : Number(value);
+    setTimeout(validTimeout);
   };
 
   return (
     <StyledWrapper>
       <div className="flex items-center mt-2">
+        <label className="mr-2" style={{ minWidth: 200 }} htmlFor="ssl-cert-verification">
+          SSL Certificate Verification
+        </label>
         <input
-          id="ssl-verification"
+          id="ssl-cert-verification"
           type="checkbox"
           checked={sslVerification}
           onChange={() => setSslVerification(!sslVerification)}
-          className="mr-3 mousetrap"
+          className="mousetrap h-4 w-4 mr-0"
         />
-        <label htmlFor="ssl-verification" className="select-none">
-          SSL Certificate Verification
+      </div>
+      <div className="flex items-center mt-2">
+        <label className="mr-2" style={{ minWidth: 200 }}>
+          Request Timeout (in ms)
         </label>
+        <input
+          value={timeout === 0 ? '' : timeout}
+          onChange={(e) => handleTimeoutChange(e.target.value)}
+          type="text"
+          className="block textbox w-1/6"
+        />
       </div>
 
       <div className="mt-10">
