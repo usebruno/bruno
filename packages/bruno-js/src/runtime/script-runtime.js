@@ -116,7 +116,8 @@ class ScriptRuntime {
     return {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables)
+      collectionVariables: cleanJson(collectionVariables),
+      nextRequestName: bru.nextRequest
     };
   }
 
@@ -207,7 +208,8 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables)
+      collectionVariables: cleanJson(collectionVariables),
+      nextRequestName: bru.nextRequest
     };
   }
 }

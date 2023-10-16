@@ -605,7 +605,10 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        for (let item of folderRequests) {
+        let currentRequestIndex = 0;
+        while (currentRequestIndex < folderRequests.length) {
+          item = folderRequests[currentRequestIndex];
+          let nextRequestName = undefined;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -685,6 +688,10 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables: result.collectionVariables,
                 collectionUid
               });
+
+              if (result?.nextRequestName) {
+                nextRequestName = result.nextRequestName;
+              }
             }
 
             // interpolate variables inside request
@@ -807,6 +814,10 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionVariables: result.collectionVariables,
                 collectionUid
               });
+
+              if (result?.nextRequestName) {
+                nextRequestName = result.nextRequestName;
+              }
             }
 
             // run assertions
@@ -962,6 +973,17 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: responseReceived,
               ...eventData
             });
+          }
+          if (nextRequestName) {
+            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            if (nextRequestIdx > 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              console.error("Could not find request with name '" + nextRequestName + "'");
+              currentRequestIndex++;
+            }
+          } else {
+            currentRequestIndex++;
           }
         }
 

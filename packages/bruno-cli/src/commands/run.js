@@ -357,7 +357,9 @@ const handler = async function (argv) {
       }
     }
 
-    for (const iter of bruJsons) {
+    let currentRequestIndex = 0;
+    while (currentRequestIndex < bruJsons.length) {
+      const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
       const result = await runSingleRequest(
         bruFilepath,
@@ -369,6 +371,19 @@ const handler = async function (argv) {
         brunoConfig,
         collectionRoot
       );
+
+      const nextRequestName = result?.nextRequestName;
+      if (nextRequestName) {
+        const nextRequestIdx = bruJsons.findIndex((iter) => iter.bruJson.name === nextRequestName);
+        if (nextRequestIdx > 0) {
+          currentRequestIndex = nextRequestIdx;
+        } else {
+          console.error("Could not find request with name '" + nextRequestName + "'");
+          currentRequestIndex++;
+        }
+      } else {
+        currentRequestIndex++;
+      }
 
       results.push(result);
     }

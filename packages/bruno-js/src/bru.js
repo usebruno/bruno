@@ -65,6 +65,10 @@ class Bru {
   getVar(key) {
     return this.collectionVariables[key];
   }
+
+  setNextRequest(nextRequest) {
+    this.nextRequest = nextRequest;
+  }
 }
 
 module.exports = Bru;

@@ -29,6 +29,7 @@ const runSingleRequest = async function (
 ) {
   try {
     let request;
+    let nextRequestName;
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
@@ -66,7 +67,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (requestScriptFile && requestScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runRequestScript(
+      const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
         envVariables,
@@ -76,6 +77,9 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // interpolate variables inside request
@@ -187,7 +191,8 @@ const runSingleRequest = async function (
           },
           error: err.message,
           assertionResults: [],
-          testResults: []
+          testResults: [],
+          nextRequestName: nextRequestName
         };
       }
     }
@@ -219,7 +224,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (responseScriptFile && responseScriptFile.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runResponseScript(
+      const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
         response,
@@ -230,6 +235,9 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // run assertions
@@ -301,7 +309,8 @@ const runSingleRequest = async function (
       },
       error: null,
       assertionResults,
-      testResults
+      testResults,
+      nextRequestName: nextRequestName
     };
   } catch (err) {
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
