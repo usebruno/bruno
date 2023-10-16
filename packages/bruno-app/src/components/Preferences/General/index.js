@@ -25,8 +25,9 @@ const General = ({ close }) => {
   };
 
   const handleTimeoutChange = (value) => {
-    const validTimeout = isNaN(Number(value)) ? timeout : Number(value);
-    setTimeout(validTimeout);
+    if (/^[0-9]\d*$/.test(value) || value === '') {
+      setTimeout(value);
+    }
   };
 
   return (
@@ -47,13 +48,14 @@ const General = ({ close }) => {
         <label className="block font-medium select-none">Request Timeout (in ms)</label>
         <input
           type="text"
-          className="block textbox mt-2 w-1/4"
+          className="block textbox mt-2 w-1/3"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
           onChange={(e) => handleTimeoutChange(e.target.value)}
           defaultValue={timeout === 0 ? '' : timeout}
+          value={timeout}
         />
       </div>
 
