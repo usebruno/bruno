@@ -8,6 +8,8 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
           resolve({
             state: 'success',
             data: response.data,
+            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
+            dataBuffer: response.dataBuffer,
             headers: Object.entries(response.headers),
             size: getResponseSize(response),
             status: response.status,
