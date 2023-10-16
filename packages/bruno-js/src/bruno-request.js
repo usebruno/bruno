@@ -5,6 +5,7 @@ class BrunoRequest {
     this.method = req.method;
     this.headers = req.headers;
     this.body = req.data;
+    this.timeout = req.timeout;
   }
 
   getUrl() {
@@ -49,6 +50,14 @@ class BrunoRequest {
 
   setMaxRedirects(maxRedirects) {
     this.req.maxRedirects = maxRedirects;
+  }
+
+  getTimeout() {
+    return this.req.timeout;
+  }
+
+  setTimeout(timeout) {
+    this.req.timeout = timeout;
   }
 }
 

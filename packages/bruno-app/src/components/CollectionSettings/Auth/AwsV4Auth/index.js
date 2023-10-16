@@ -12,7 +12,6 @@ const AwsV4Auth = ({ collection }) => {
   const { storedTheme } = useTheme();
 
   const awsv4Auth = get(collection, 'root.request.auth.awsv4', {});
-  console.log('saved auth', awsv4Auth);
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 

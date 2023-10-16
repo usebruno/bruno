@@ -11,7 +11,7 @@ const { get } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
-    caCert: ''
+    timeout: 0
   },
   font: {
     codeFont: 'default'
@@ -32,7 +32,8 @@ const defaultPreferences = {
 
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
-    sslVerification: Yup.boolean()
+    sslVerification: Yup.boolean(),
+    timeout: Yup.number()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable()
@@ -104,8 +105,8 @@ const preferences = {
     return get(getPreferences(), 'request.sslVerification', true);
   },
 
-  getCaCert: () => {
-    return get(getPreferences(), 'request.cacert');
+  getTimeout: () => {
+    return get(getPreferences(), 'request.timeout');
   },
 
   getProxyConfig: () => {

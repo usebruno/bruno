@@ -1,8 +1,8 @@
 const os = require('os');
+const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
-const fs = require('fs');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
@@ -100,8 +100,37 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
     }
   }
 
-  // proxy configuration
   const brunoConfig = getBrunoConfig(collectionUid);
+  const interpolationOptions = {
+    envVars,
+    collectionVariables,
+    processEnvVars
+  };
+
+  // client certificate config
+  const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+
+  for (clientCert of clientCertConfig) {
+    const domain = interpolateString(clientCert.domain, interpolationOptions);
+    const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+    const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+    if (domain && certFilePath && keyFilePath) {
+      const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+
+      if (request.url.match(hostRegex)) {
+        try {
+          httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+          httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+        } catch (err) {
+          console.log('Error reading cert/key file', err);
+        }
+        httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
+        break;
+      }
+    }
+  }
+
+  // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
   let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
   if (proxyEnabled === 'global') {
@@ -156,6 +185,10 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
     addAwsV4Interceptor(axiosInstance, request);
     delete request.awsv4config;
   }
+
+  const preferences = getPreferences();
+  const timeout = get(preferences, 'request.timeout', 0);
+  request.timeout = timeout;
 
   return axiosInstance;
 };
@@ -515,6 +548,11 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const collectionRoot = get(collection, 'root', {});
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
+
+      const preferences = getPreferences();
+      const timeout = get(preferences, 'request.timeout', 0);
+      request.timeout = timeout;
+      const sslVerification = get(preferences, 'request.sslVerification', true);
 
       if (!preferences.isTlsVerification()) {
         request.httpsAgent = new https.Agent({

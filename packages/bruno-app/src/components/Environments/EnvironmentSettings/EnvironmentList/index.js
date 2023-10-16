@@ -1,14 +1,19 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
+import toast from 'react-hot-toast';
+import { toastError } from 'utils/common/error';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
-import CreateEnvironment from '../CreateEnvironment/index';
+import CreateEnvironment from '../CreateEnvironment';
+import { IconUpload } from '@tabler/icons';
+import ImportEnvironment from '../ImportEnvironment';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentList = ({ collection }) => {
   const { environments } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
@@ -48,9 +53,10 @@ const EnvironmentList = ({ collection }) => {
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
+      {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
       <div className="flex">
         <div>
-          <div className="environments-sidebar">
+          <div className="environments-sidebar flex flex-col">
             {environments &&
               environments.length &&
               environments.map((env) => (
@@ -64,6 +70,11 @@ const EnvironmentList = ({ collection }) => {
               ))}
             <div className="btn-create-environment" onClick={() => setOpenCreateModal(true)}>
               + <span>Create</span>
+            </div>
+
+            <div className="mt-auto flex items-center btn-import-environment" onClick={() => setOpenImportModal(true)}>
+              <IconUpload size={12} strokeWidth={2} />
+              <span className="label ml-1 text-xs">Import</span>
             </div>
           </div>
         </div>
