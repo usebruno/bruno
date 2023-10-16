@@ -106,7 +106,7 @@ const preferences = {
   },
 
   getTimeout: () => {
-    return get(getPreferences(), 'request.timeout');
+    return get(getPreferences(), 'request.timeout', 0);
   },
 
   getProxyConfig: () => {

@@ -88,16 +88,6 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   const httpsAgentRequestFields = {};
   if (!preferences.isTlsVerification()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
-  } else {
-    const cacCrtArray = [preferences.getCaCert(), process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-    let caCertFile = cacCrtArray.find((el) => el);
-    if (caCertFile && caCertFile.length > 1) {
-      try {
-        httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFile);
-      } catch (err) {
-        console.log('Error reading CA cert file:' + caCertFile, err);
-      }
-    }
   }
 
   const brunoConfig = getBrunoConfig(collectionUid);
@@ -109,8 +99,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
-
-  for (clientCert of clientCertConfig) {
+  for (let clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert.domain, interpolationOptions);
     const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
     const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
@@ -139,19 +128,13 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   }
   const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
   if ((proxyEnabled === true || proxyEnabled === 'enabled') && shouldProxy) {
-    let proxyUri;
-    const interpolationOptions = {
-      envVars,
-      collectionVariables,
-      processEnvVars
-    };
-
     const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
     const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
     const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
     const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
     const socksEnabled = proxyProtocol.includes('socks');
 
+    let proxyUri;
     if (proxyAuthEnabled) {
       const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
       const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
@@ -186,9 +169,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
     delete request.awsv4config;
   }
 
-  const preferences = getPreferences();
-  const timeout = get(preferences, 'request.timeout', 0);
-  request.timeout = timeout;
+  request.timeout = preferences.getTimeout();
 
   return axiosInstance;
 };
@@ -744,7 +725,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run post-response vars
             const postResponseVars = get(request, 'vars.res', []);
-            if (postResponseVars && postResponseVars.length) {
+            if (postResponseVars?.length) {
               const varsRuntime = new VarsRuntime();
               const result = varsRuntime.runPostResponseVars(
                 postResponseVars,
