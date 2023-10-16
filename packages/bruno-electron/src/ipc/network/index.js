@@ -662,6 +662,10 @@ const registerNetworkIpc = (mainWindow) => {
             const timeout = get(preferences, 'request.timeout', 0);
             request.timeout = timeout;
             const sslVerification = get(preferences, 'request.sslVerification', true);
+            const httpsAgentRequestFields = {};
+            if (!sslVerification) {
+              httpsAgentRequestFields['rejectUnauthorized'] = false;
+            }
 
             // run pre-request script
             const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
@@ -704,17 +708,43 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
-            // proxy configuration
+            const interpolationOptions = {
+              envVars,
+              collectionVariables,
+              processEnvVars
+            };
             const brunoConfig = getBrunoConfig(collectionUid);
+
+            // client certificate config
+            const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+
+            for (clientCert of clientCertConfig) {
+              const domain = interpolateString(clientCert.domain, interpolationOptions);
+              const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+              const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+              if (domain && certFilePath && keyFilePath) {
+                const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+
+                if (request.url.match(hostRegex)) {
+                  try {
+                    httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+                    httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+                  } catch (err) {
+                    console.log('Error reading cert/key file', err);
+                  }
+                  httpsAgentRequestFields['passphrase'] = interpolateString(
+                    clientCert.passphrase,
+                    interpolationOptions
+                  );
+                  break;
+                }
+              }
+            }
+
+            // proxy configuration
             const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
             if (proxyEnabled) {
               let proxyUri;
-              const interpolationOptions = {
-                envVars,
-                collectionVariables,
-                processEnvVars
-              };
-
               const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
               const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
               const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
@@ -743,15 +773,16 @@ const registerNetworkIpc = (mainWindow) => {
                 request.httpsAgent = socksProxyAgent;
                 request.httpAgent = socksProxyAgent;
               } else {
-                request.httpsAgent = new HttpsProxyAgent(proxyUri, {
-                  rejectUnauthorized: sslVerification
-                });
+                request.httpsAgent = new HttpsProxyAgent(
+                  proxyUri,
+                  Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+                );
 
                 request.httpAgent = new HttpProxyAgent(proxyUri);
               }
-            } else if (!sslVerification) {
+            } else if (Object.keys(httpsAgentRequestFields).length > 0) {
               request.httpsAgent = new https.Agent({
-                rejectUnauthorized: false
+                ...httpsAgentRequestFields
               });
             }
 
