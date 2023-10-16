@@ -38,22 +38,6 @@ body {
   font-size: 0.875rem;
 }
 
-body::-webkit-scrollbar,
-.CodeMirror-vscrollbar::-webkit-scrollbar {
-  width: 0.6rem;
-}
-
-body::-webkit-scrollbar-track,
-.CodeMirror-vscrollbar::-webkit-scrollbar-track {
-  background-color: #f1f1f1;
-}
-
-body::-webkit-scrollbar-thumb,
-.CodeMirror-vscrollbar::-webkit-scrollbar-thumb {
-  background-color: #cdcdcd;
-  border-radius: 5rem;
-}
-
 /* 
  * todo: this will be supported in the future to be changed via applying a theme
  * making all the checkboxes and radios bigger

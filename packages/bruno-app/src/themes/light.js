@@ -237,6 +237,11 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    bg: '#d3d3d3',
+    hoverBg: '#c2c2c2'
   }
 };
 

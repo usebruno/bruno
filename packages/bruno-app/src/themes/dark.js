@@ -233,6 +233,11 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
+  },
+
+  scrollbar: {
+    bg: '#4b4b4b',
+    hoverBg: '#424242'
   }
 };
 

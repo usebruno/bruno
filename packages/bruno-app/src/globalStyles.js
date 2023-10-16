@@ -185,6 +185,23 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo p {
     margin: 1em 0;
   }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: ${(props) => props.theme.scrollbar.hoverBg};
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 20px;
+    background: ${(props) => props.theme.scrollbar.bg};
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
 `;
 
 export default GlobalStyle;
