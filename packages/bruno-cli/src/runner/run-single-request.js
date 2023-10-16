@@ -48,7 +48,7 @@ const runSingleRequest = async function (
 
     // run pre-request vars
     const preRequestVars = get(bruJson, 'request.vars.req');
-    if (preRequestVars && preRequestVars.length) {
+    if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
       varsRuntime.runPreRequestVars(
         preRequestVars,
@@ -65,7 +65,7 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
-    if (requestScriptFile && requestScriptFile.length) {
+    if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
@@ -99,23 +99,45 @@ const runSingleRequest = async function (
       }
     }
 
+    const interpolationOptions = {
+      envVars: envVariables,
+      collectionVariables,
+      processEnvVars
+    };
+
+    // client certificate config
+    const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+    for (let clientCert of clientCertConfig) {
+      const domain = interpolateString(clientCert.domain, interpolationOptions);
+      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+      if (domain && certFilePath && keyFilePath) {
+        const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+
+        if (request.url.match(hostRegex)) {
+          try {
+            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+          } catch (err) {
+            console.log('Error reading cert/key file', err);
+          }
+          httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
+          break;
+        }
+      }
+    }
+
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
     const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.noProxy', ''));
     if (proxyEnabled && shouldProxy) {
-      let proxyUri;
-      const interpolationOptions = {
-        envVars: envVariables,
-        collectionVariables,
-        processEnvVars
-      };
-
       const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
       const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
+      let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
@@ -159,7 +181,7 @@ const runSingleRequest = async function (
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
     } catch (err) {
-      if (err && err.response) {
+      if (err?.response) {
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
@@ -195,7 +217,7 @@ const runSingleRequest = async function (
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
-    if (postResponseVars && postResponseVars.length) {
+    if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime();
       varsRuntime.runPostResponseVars(
         postResponseVars,
@@ -213,7 +235,7 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.res'),
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
-    if (responseScriptFile && responseScriptFile.length) {
+    if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
       await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
@@ -271,7 +293,7 @@ const runSingleRequest = async function (
       testResults = get(result, 'results', []);
     }
 
-    if (testResults && testResults.length) {
+    if (testResults?.length) {
       each(testResults, (testResult) => {
         if (testResult.status === 'pass') {
           console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));

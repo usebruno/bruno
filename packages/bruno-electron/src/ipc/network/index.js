@@ -225,7 +225,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // run pre-request vars
       const preRequestVars = get(request, 'vars.req', []);
-      if (preRequestVars && preRequestVars.length) {
+      if (preRequestVars?.length) {
         const varsRuntime = new VarsRuntime();
         const result = varsRuntime.runPreRequestVars(
           preRequestVars,
@@ -250,7 +250,7 @@ const registerNetworkIpc = (mainWindow) => {
       const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
         os.EOL
       );
-      if (requestScript && requestScript.length) {
+      if (requestScript?.length) {
         const scriptRuntime = new ScriptRuntime();
         const result = await scriptRuntime.runRequestScript(
           decomment(requestScript),
@@ -309,7 +309,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // run post-response vars
       const postResponseVars = get(request, 'vars.res', []);
-      if (postResponseVars && postResponseVars.length) {
+      if (postResponseVars?.length) {
         const varsRuntime = new VarsRuntime();
         const result = varsRuntime.runPostResponseVars(
           postResponseVars,
@@ -335,7 +335,7 @@ const registerNetworkIpc = (mainWindow) => {
       const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
         os.EOL
       );
-      if (responseScript && responseScript.length) {
+      if (responseScript?.length) {
         const scriptRuntime = new ScriptRuntime();
         const result = await scriptRuntime.runResponseScript(
           decomment(responseScript),
@@ -438,7 +438,7 @@ const registerNetworkIpc = (mainWindow) => {
         return Promise.reject(error);
       }
 
-      if (error && error.response) {
+      if (error?.response) {
         // run assertions
         const assertions = get(request, 'assertions');
         if (assertions) {
@@ -530,10 +530,7 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionRoot = get(collection, 'root', {});
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
 
-      const preferences = getPreferences();
-      const timeout = get(preferences, 'request.timeout', 0);
-      request.timeout = timeout;
-      const sslVerification = get(preferences, 'request.sslVerification', true);
+      request.timeout = preferences.getTimeout();
 
       if (!preferences.isTlsVerification()) {
         request.httpsAgent = new https.Agent({
@@ -673,7 +670,7 @@ const registerNetworkIpc = (mainWindow) => {
             const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
               os.EOL
             );
-            if (requestScript && requestScript.length) {
+            if (requestScript?.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runRequestScript(
                 decomment(requestScript),
@@ -751,7 +748,7 @@ const registerNetworkIpc = (mainWindow) => {
               get(collectionRoot, 'request.script.res'),
               get(request, 'script.res')
             ]).join(os.EOL);
-            if (responseScript && responseScript.length) {
+            if (responseScript?.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runResponseScript(
                 decomment(responseScript),
@@ -845,7 +842,7 @@ const registerNetworkIpc = (mainWindow) => {
               duration = timeEnd - timeStart;
             }
 
-            if (error && error.response) {
+            if (error?.response) {
               responseReceived = {
                 status: error.response.status,
                 statusText: error.response.statusText,
