@@ -12,7 +12,8 @@ const {
   browseDirectory,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  fileExistsWithCase
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog, openCollection } = require('../app/collections');
@@ -20,7 +21,6 @@ const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
-const { fileExistsWithCase } = require('@usebruno/app/src/utils/system/fileSystem');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
