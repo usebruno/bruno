@@ -85,7 +85,7 @@ async function main() {
     for (const file of files) {
       if (file.endsWith('.html')) {
         let content = await fs.readFile(`packages/bruno-electron/web/${file}`, 'utf8');
-        content = content.replace(/\/_next\//g, '/_next/');
+        content = content.replace(/\/_next\//g, '_next/');
         await fs.writeFile(`packages/bruno-electron/web/${file}`, content);
       }
     }
