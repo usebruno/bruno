@@ -72,6 +72,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
         className={classnames('select-none capitalize', previewMode === previewTab ? 'active' : 'cursor-pointer')}
         role="tab"
         onClick={() => setPreviewTab(previewMode)}
+        key={previewMode}
       >
         {previewMode.replace(/-(.*)/, ' ')}
       </div>

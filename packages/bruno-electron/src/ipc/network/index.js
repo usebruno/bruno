@@ -174,6 +174,20 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   return axiosInstance;
 };
 
+const parseDataFromResponse = (response) => {
+  const dataBuffer = Buffer.from(response.data);
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  // Overwrite the original data for backwards compatability
+  let data = dataBuffer.toString(charset || 'utf-8');
+  // Try to parse response to JSON, this can quitly fail
+  try {
+    data = JSON.parse(response.data);
+  } catch {}
+
+  return { data, dataBuffer };
+};
+
 const registerNetworkIpc = (mainWindow) => {
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
@@ -307,13 +321,8 @@ const registerNetworkIpc = (mainWindow) => {
       /** @type {import('axios').AxiosResponse} */
       const response = await axiosInstance(request);
 
-      const dataBuffer = Buffer.from(response.data);
-      // Overwrite the original data for backwards compatability
-      response.data = dataBuffer.toString('utf-8');
-      // Try to parse response to JSON, this can quitly fail
-      try {
-        response.data = JSON.parse(response.data);
-      } catch {}
+      const { data, dataBuffer } = parseDataFromResponse(response);
+      response.data = data;
 
       // run post-response vars
       const postResponseVars = get(request, 'vars.res', []);
@@ -433,6 +442,7 @@ const registerNetworkIpc = (mainWindow) => {
         headers: response.headers,
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
+        size: Buffer.byteLength(dataBuffer),
         duration: requestDuration
       };
     } catch (error) {
@@ -448,6 +458,8 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       if (error?.response) {
+        const { data, dataBuffer } = parseDataFromResponse(error.response);
+        error.response.data = data;
         // run assertions
         const assertions = get(request, 'assertions');
         if (assertions) {
@@ -513,6 +525,8 @@ const registerNetworkIpc = (mainWindow) => {
           statusText: error.response.statusText,
           headers: error.response.headers,
           data: error.response.data,
+          dataBuffer: dataBuffer.toString('base64'),
+          size: Buffer.byteLength(dataBuffer),
           duration: requestDuration ?? 0
         };
       }
@@ -729,6 +743,9 @@ const registerNetworkIpc = (mainWindow) => {
             const response = await axiosInstance(request);
             timeEnd = Date.now();
 
+            const { data, dataBuffer } = parseDataFromResponse(response);
+            response.data = data;
+
             // run post-response vars
             const postResponseVars = get(request, 'vars.res', []);
             if (postResponseVars?.length) {
@@ -839,7 +856,7 @@ const registerNetworkIpc = (mainWindow) => {
                 statusText: response.statusText,
                 headers: Object.entries(response.headers),
                 duration: timeEnd - timeStart,
-                size: response.headers['content-length'] || getSize(response.data),
+                size: Buffer.byteLength(dataBuffer),
                 data: response.data
               }
             });
@@ -852,12 +869,15 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (error?.response) {
+              const { data, dataBuffer } = parseDataFromResponse(error.response);
+              error.response.data = data;
+
               responseReceived = {
                 status: error.response.status,
                 statusText: error.response.statusText,
                 headers: Object.entries(error.response.headers),
                 duration: duration,
-                size: error.response.headers['content-length'] || getSize(error.response.data),
+                size: Buffer.byteLength(dataBuffer),
                 data: error.response.data
               };
 

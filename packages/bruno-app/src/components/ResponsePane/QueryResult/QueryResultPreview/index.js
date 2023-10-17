@@ -43,11 +43,10 @@ const QueryResultPreview = ({
       );
     }
     case 'preview-image': {
-      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} />;
+      return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />;
     }
     default:
     case 'raw': {
-      console.log(mode, storedTheme);
       return (
         <CodeEditor
           collection={collection}
