@@ -1,7 +1,6 @@
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 
 import { useState, useEffect } from 'react';
@@ -96,14 +95,6 @@ const Sidebar = () => {
                 />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
-                <GitHubButton
-                  href="https://github.com/usebruno/bruno"
-                  data-color-scheme={storedTheme}
-                  data-show-count="true"
-                  aria-label="Star usebruno/bruno on GitHub"
-                >
-                  Star
-                </GitHubButton>
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.25.0</div>
             </div>
