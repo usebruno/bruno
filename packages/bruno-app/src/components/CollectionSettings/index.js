@@ -36,7 +36,7 @@ const CollectionSettings = ({ collection }) => {
     brunoConfig.proxy = config;
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
-        toast.success('Collection settings updated successfully');
+        toast.success('Collection settings updated successfully.');
       })
       .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
   };

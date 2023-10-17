@@ -18,6 +18,7 @@ const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -32,9 +33,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // browse directory
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
-      const dirPath = await browseDirectory(mainWindow);
-
-      return dirPath;
+      return await browseDirectory(mainWindow);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -67,8 +66,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
-
-        return;
       } catch (error) {
         return Promise.reject(error);
       }
@@ -93,8 +90,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         collectionPathname,
         newName
       });
-
-      return;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -311,7 +306,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         fs.unlinkSync(pathname);
       } else {
-        return Promise.reject(error);
+        return Promise.reject();
       }
     } catch (error) {
       return Promise.reject(error);

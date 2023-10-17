@@ -45,6 +45,8 @@ export const fetchGqlSchema = async (endpoint, environment, request, collection)
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
   });
 };
