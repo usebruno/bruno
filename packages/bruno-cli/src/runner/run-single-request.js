@@ -99,15 +99,39 @@ const runSingleRequest = async function (
       }
     }
 
+    const interpolationOptions = {
+      envVars: envVariables,
+      collectionVariables,
+      processEnvVars
+    };
+
+    // client certificate config
+    const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+
+    for (clientCert of clientCertConfig) {
+      const domain = interpolateString(clientCert.domain, interpolationOptions);
+      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+      if (domain && certFilePath && keyFilePath) {
+        const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+
+        if (request.url.match(hostRegex)) {
+          try {
+            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+          } catch (err) {
+            console.log('Error reading cert/key file', err);
+          }
+          httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
+          break;
+        }
+      }
+    }
+
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
     if (proxyEnabled) {
       let proxyUri;
-      const interpolationOptions = {
-        envVars: envVariables,
-        collectionVariables,
-        processEnvVars
-      };
 
       const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
