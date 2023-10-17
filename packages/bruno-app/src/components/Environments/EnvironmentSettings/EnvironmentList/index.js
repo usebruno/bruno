@@ -5,7 +5,7 @@ import { toastError } from 'utils/common/error';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconUpload } from '@tabler/icons';
+import { IconDownload } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import StyledWrapper from './StyledWrapper';
 
@@ -73,7 +73,7 @@ const EnvironmentList = ({ collection }) => {
             </div>
 
             <div className="mt-auto flex items-center btn-import-environment" onClick={() => setOpenImportModal(true)}>
-              <IconUpload size={12} strokeWidth={2} />
+              <IconDownload size={12} strokeWidth={2} />
               <span className="label ml-1 text-xs">Import</span>
             </div>
           </div>
