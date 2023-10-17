@@ -3,7 +3,6 @@ const fs = require('fs-extra');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
-
 async function deleteFileIfExists(filePath) {
   try {
     const exists = await fs.pathExists(filePath);
@@ -73,7 +72,7 @@ async function main() {
     }
 
     // Remove sourcemaps
-    await removeSourceMapFiles('packages/bruno-electron/web')
+    await removeSourceMapFiles('packages/bruno-electron/web');
 
     // Run npm dist command
     console.log('Building the Electron distribution');
@@ -88,8 +87,7 @@ async function main() {
       osArg = 'linux';
     }
 
-    await exec(`npm run dist-${osArg} --workspace=packages/bruno-electron`);
-
+    await exec(`npm run dist:${osArg} --workspace=packages/bruno-electron`);
   } catch (error) {
     console.error('An error occurred:', error);
   }
