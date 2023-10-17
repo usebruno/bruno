@@ -748,7 +748,7 @@ const registerNetworkIpc = (mainWindow) => {
               get(collectionRoot, 'request.script.res'),
               get(request, 'script.res')
             ]).join(os.EOL);
-            if (responseScript?.length) {
+            if (responseScript && responseScript.length) {
               const scriptRuntime = new ScriptRuntime();
               const result = await scriptRuntime.runResponseScript(
                 decomment(responseScript),
