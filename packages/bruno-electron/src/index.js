@@ -67,8 +67,14 @@ app.on('ready', async () => {
   mainWindow.loadURL(url);
   watcher = new Watcher();
 
-  mainWindow.on('resize', () => saveBounds(mainWindow));
-  mainWindow.on('move', () => saveBounds(mainWindow));
+  const handleBoundsChange = () => {
+    if (!mainWindow.isMaximized()) {
+      saveBounds(mainWindow);
+    }
+  };
+
+  mainWindow.on('resize', handleBoundsChange);
+  mainWindow.on('move', handleBoundsChange);
 
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
