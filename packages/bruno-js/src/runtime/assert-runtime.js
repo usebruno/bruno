@@ -4,6 +4,7 @@ const { nanoid } = require('nanoid');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
+const { interpolateString } = require('../interpolate-string');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -167,11 +168,15 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
     }
 
-    return rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
+    return rhsOperand
+      .split(',')
+      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), context.bru), context));
   }
 
   if (operator === 'between') {
-    const [lhs, rhs] = rhsOperand.split(',').map((v) => evaluateJsTemplateLiteral(v.trim(), context));
+    const [lhs, rhs] = rhsOperand
+      .split(',')
+      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), context.bru), context));
     return [lhs, rhs];
   }
 
@@ -181,10 +186,10 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
     }
 
-    return rhsOperand;
+    return interpolateString(rhsOperand, context.bru);
   }
 
-  return evaluateJsTemplateLiteral(rhsOperand, context);
+  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, context.bru), context);
 };
 
 class AssertRuntime {
