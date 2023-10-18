@@ -141,7 +141,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const filename = name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const envFilePath = path.join(envDirPath, `${filename}.bru`);
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
