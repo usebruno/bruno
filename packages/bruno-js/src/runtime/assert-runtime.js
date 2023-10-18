@@ -162,6 +162,12 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return;
   }
 
+  const interpolationContext = {
+    collectionVariables: context.bru.collectionVariables,
+    envVariables: context.bru.envVariables,
+    processEnvVars: context.bu.processEnvVars
+  };
+
   // gracefully allow both a,b as well as [a, b]
   if (operator === 'in' || operator === 'notIn') {
     if (rhsOperand.startsWith('[') && rhsOperand.endsWith(']')) {
@@ -170,13 +176,13 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 
     return rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), context.bru), context));
+      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
   }
 
   if (operator === 'between') {
     const [lhs, rhs] = rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), context.bru), context));
+      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
     return [lhs, rhs];
   }
 
@@ -186,10 +192,10 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
       rhsOperand = rhsOperand.substring(1, rhsOperand.length - 1);
     }
 
-    return interpolateString(rhsOperand, context.bru);
+    return interpolateString(rhsOperand, interpolationContext);
   }
 
-  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, context.bru), context);
+  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, interpolationContext), context);
 };
 
 class AssertRuntime {

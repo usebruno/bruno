@@ -17,7 +17,7 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
-const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {
+const interpolateString = (str, { envVariables, collectionVariables, processEnvVars }) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
@@ -25,20 +25,20 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
   processEnvVars = processEnvVars || {};
   collectionVariables = collectionVariables || {};
 
-  // we clone envVars because we don't want to modify the original object
-  envVars = envVars ? cloneDeep(envVars) : {};
+  // we clone envVariables because we don't want to modify the original object
+  envVariables = envVariables ? cloneDeep(envVariables) : {};
 
-  // envVars can inturn have values as {{process.env.VAR_NAME}}
-  // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
+  // envVariables can inturn have values as {{process.env.VAR_NAME}}
+  // so we need to interpolate envVariables first with processEnvVars
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolateEnvVars(value, processEnvVars);
   });
 
   const template = Handlebars.compile(str, { noEscape: true });
 
-  // collectionVariables take precedence over envVars
+  // collectionVariables take precedence over envVariables
   const combinedVars = {
-    ...envVars,
+    ...envVariables,
     ...collectionVariables,
     process: {
       env: {
