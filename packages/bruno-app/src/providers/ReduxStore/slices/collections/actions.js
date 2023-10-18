@@ -183,7 +183,6 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
-
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -386,8 +385,7 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          dispatch(_deleteItem({ itemUid, collectionUid }))
-          resolve()
+          resolve();
         })
         .catch((error) => reject(error));
     }
@@ -396,8 +394,8 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 };
 
 export const sortCollections = () => (dispatch) => {
-  dispatch(_sortCollections())
-}
+  dispatch(_sortCollections());
+};
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
