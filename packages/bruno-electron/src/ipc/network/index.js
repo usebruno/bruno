@@ -127,7 +127,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
     proxyEnabled = get(proxyConfig, 'enabled', false);
   }
   const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-  if ((proxyEnabled === true || proxyEnabled === 'enabled') && shouldProxy) {
+  if (proxyEnabled === true && shouldProxy) {
     const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
     const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
     const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
