@@ -486,7 +486,14 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collection.uid);
       interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
 
-      const response = await axios(preparedRequest);
+      const axiosInstance = await configureRequest(
+        collection.uid,
+        preparedRequest,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars
+      );
+      const response = await axiosInstance(preparedRequest);
 
       return {
         status: response.status,
