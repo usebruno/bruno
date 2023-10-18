@@ -52,11 +52,11 @@ Woof! If you like project, hit that ⭐ button !!
 
 ### Share Testimonials 📣
 
-If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our github discussion](https://github.com/usebruno/bruno/discussions/343)
+If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
 
 ### Contribute 👩‍💻🧑‍💻
 
-I am happy that you are looking to improve bruno. Please checkout the [contributing guide](contributing.md)
+I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
 
@@ -72,7 +72,7 @@ Even if you are not able to make contributions via code, please don't hesitate t
 
 [Twitter](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com) <br />
-[Discord](https://discord.com/invite/KgcZUncpjq)
+[Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
 
 ### License 📄

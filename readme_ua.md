@@ -72,7 +72,7 @@ Bruno є повністю автономним. Немає жодних план
 
 [Twitter](https://twitter.com/use_bruno) <br />
 [Сайт](https://www.usebruno.com) <br />
-[Discord](https://discord.com/invite/KgcZUncpjq)
+[Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
 
 ### Ліцензія 📄
