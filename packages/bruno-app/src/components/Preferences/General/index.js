@@ -12,10 +12,17 @@ const General = ({ close }) => {
 
   const preferencesSchema = Yup.object().shape({
     sslVerification: Yup.boolean(),
-    timeout: Yup.number('Request Timeout must be a number')
-      .positive('Request Timeout must be a positive number')
-      .typeError('Request Timeout must be a number')
-      .optional()
+    timeout: Yup.mixed()
+      .transform((value, originalValue) => {
+        return originalValue === '' ? undefined : value;
+      })
+      .nullable()
+      .test('isNumber', 'Request Timeout must be a number', (value) => {
+        return value === undefined || !isNaN(value);
+      })
+      .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
+        return value === undefined || Number(value) >= 0;
+      })
   });
 
   const formik = useFormik({
@@ -26,7 +33,7 @@ const General = ({ close }) => {
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
       try {
-        const newPreferences = await proxySchema.validate(values, { abortEarly: true });
+        const newPreferences = await preferencesSchema.validate(values, { abortEarly: true });
         handleSave(newPreferences);
       } catch (error) {
         console.error('Preferences validation error:', error.message);
