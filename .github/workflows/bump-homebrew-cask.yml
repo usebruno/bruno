@@ -2,7 +2,7 @@ name: Bump Homebrew Cask
 
 on:
   release:
-    types: [published]
+    types: [ published ]
 
 jobs:
   bump:

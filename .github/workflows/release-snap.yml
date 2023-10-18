@@ -14,31 +14,24 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
-
+          node-version-file: '.nvmrc'
       - name: Check package-lock.json
         run: npm ci
-
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-
       - name: Build Electron app
         run: npm run build:electron:snap
-
       - name: Install Snapcraft
         run: |
           sudo snap install snapcraft --classic
         continue-on-error: true
-
       - name: Configure Snapcraft
         run: snapcraft whoami
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_API_KEY }}
-
       - name: Publish to Snapcraft
         run: |
           snapcraft upload --release=stable packages/bruno-electron/out/*.snap
