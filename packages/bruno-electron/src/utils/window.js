@@ -7,12 +7,14 @@ const DEFAULT_WINDOW_WIDTH = 1280;
 const DEFAULT_WINDOW_HEIGHT = 768;
 
 const loadWindowState = () => {
+  const maximized = windowStateStore.getMaximized();
   const bounds = windowStateStore.getBounds();
 
   const positionValid = isPositionValid(bounds);
   const sizeValid = isSizeValid(bounds);
 
   return {
+    maximized,
     x: bounds.x && positionValid ? bounds.x : undefined,
     y: bounds.y && positionValid ? bounds.y : undefined,
     width: bounds.width && sizeValid ? bounds.width : DEFAULT_WINDOW_WIDTH,
@@ -20,10 +22,14 @@ const loadWindowState = () => {
   };
 };
 
-const saveWindowState = (window) => {
+const saveBounds = (window) => {
   const bounds = window.getBounds();
 
   windowStateStore.setBounds(bounds);
+};
+
+const saveMaximized = (isMaximized) => {
+  windowStateStore.setMaximized(isMaximized);
 };
 
 const isPositionValid = (bounds) => {
@@ -49,5 +55,6 @@ const getArea = (bounds) => {
 
 module.exports = {
   loadWindowState,
-  saveWindowState
+  saveBounds,
+  saveMaximized
 };
