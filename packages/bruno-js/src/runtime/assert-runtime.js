@@ -165,7 +165,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
   const interpolationContext = {
     collectionVariables: context.bru.collectionVariables,
     envVariables: context.bru.envVariables,
-    processEnvVars: context.bu.processEnvVars
+    processEnvVars: context.bru.processEnvVars
   };
 
   // gracefully allow both a,b as well as [a, b]
