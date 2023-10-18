@@ -4,7 +4,7 @@ const Wrapper = styled.div`
   font-size: 0.8125rem;
 
   .body-mode-selector {
-    background: ${(props) => props.theme.requestTabPanel.bodyModeSelect.color};
+    background: transparent;
     border-radius: 3px;
 
     .dropdown-item {
@@ -14,6 +14,10 @@ const Wrapper = styled.div`
 
     .label-item {
       padding: 0.2rem 0.6rem !important;
+    }
+
+    .selected-body-mode {
+      color: ${(props) => props.theme.colors.text.yellow};
     }
   }
 

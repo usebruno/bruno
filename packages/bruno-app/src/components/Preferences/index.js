@@ -5,6 +5,7 @@ import Support from './Support';
 import General from './General';
 import Font from './Font';
 import Theme from './Theme';
+import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
 
 const Preferences = ({ onClose }) => {
@@ -20,6 +21,10 @@ const Preferences = ({ onClose }) => {
     switch (tab) {
       case 'general': {
         return <General close={onClose} />;
+      }
+
+      case 'proxy': {
+        return <Proxy close={onClose} />;
       }
 
       case 'theme': {
@@ -48,6 +53,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
             Font
+          </div>
+          <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+            Proxy
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support

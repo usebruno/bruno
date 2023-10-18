@@ -1,5 +1,12 @@
 const Yup = require('yup');
 const Store = require('electron-store');
+const { get } = require('lodash');
+
+/**
+ * The preferences are stored in the electron store 'preferences.json'.
+ * The electron process uses this module to get the preferences.
+ *
+ */
 
 const defaultPreferences = {
   request: {
@@ -8,6 +15,18 @@ const defaultPreferences = {
   },
   font: {
     codeFont: 'default'
+  },
+  proxy: {
+    enabled: false,
+    protocol: 'http',
+    hostname: '',
+    port: '',
+    auth: {
+      enabled: false,
+      username: '',
+      password: ''
+    },
+    bypassProxy: ''
   }
 };
 
@@ -18,6 +37,18 @@ const preferencesSchema = Yup.object().shape({
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable()
+  }),
+  proxy: Yup.object({
+    enabled: Yup.boolean(),
+    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+    hostname: Yup.string().max(1024),
+    port: Yup.number().min(1).max(65535).nullable(),
+    auth: Yup.object({
+      enabled: Yup.boolean(),
+      username: Yup.string().max(1024),
+      password: Yup.string().max(1024)
+    }).optional(),
+    bypassProxy: Yup.string().optional().max(1024)
   })
 });
 
@@ -61,7 +92,20 @@ const savePreferences = async (newPreferences) => {
   });
 };
 
+const preferencesUtil = {
+  shouldVerifyTls: () => {
+    return get(getPreferences(), 'request.sslVerification', true);
+  },
+  getRequestTimeout: () => {
+    return get(getPreferences(), 'request.timeout', 0);
+  },
+  getGlobalProxyConfig: () => {
+    return get(getPreferences(), 'proxy', {});
+  }
+};
+
 module.exports = {
   getPreferences,
-  savePreferences
+  savePreferences,
+  preferencesUtil
 };

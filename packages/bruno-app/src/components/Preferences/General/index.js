@@ -55,7 +55,7 @@ const General = ({ close }) => {
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="flex items-center mt-2">
           <label className="block font-medium mr-2 select-none" style={{ minWidth: 200 }} htmlFor="sslVerification">
-            SSL Certificate Verification
+            SSL/TLS Certificate Verification
           </label>
           <input
             id="ssl-cert-verification"

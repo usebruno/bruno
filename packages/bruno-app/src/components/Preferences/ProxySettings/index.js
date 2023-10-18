@@ -1,23 +1,28 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-import Tooltip from 'components/Tooltip';
-import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 
-const ProxySettings = ({ proxyConfig, onUpdate }) => {
+import StyledWrapper from './StyledWrapper';
+import { useDispatch, useSelector } from 'react-redux';
+
+const ProxySettings = ({ close }) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  const dispatch = useDispatch();
+
   const proxySchema = Yup.object({
-    use: Yup.string().oneOf(['global', 'true', 'false']),
-    protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
+    enabled: Yup.boolean(),
+    protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
-      .when('use', {
+      .when('enabled', {
         is: true,
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
       .max(1024),
     port: Yup.number()
-      .when('use', {
+      .when('enabled', {
         is: true,
         then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
         otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
@@ -30,7 +35,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         then: Yup.object({
           enabled: Yup.boolean(),
           username: Yup.string()
-            .when('enabled', {
+            .when(['enabled'], {
               is: true,
               then: (username) => username.required('Specify username for proxy authentication.')
             })
@@ -49,108 +54,66 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   const formik = useFormik({
     initialValues: {
-      use: proxyConfig.use || 'global',
-      protocol: proxyConfig.protocol || 'http',
-      hostname: proxyConfig.hostname || '',
-      port: proxyConfig.port || '',
+      enabled: preferences.proxy.enabled || false,
+      protocol: preferences.proxy.protocol || 'http',
+      hostname: preferences.proxy.hostname || '',
+      port: preferences.proxy.port || 0,
       auth: {
-        enabled: proxyConfig.auth ? proxyConfig.auth.enabled || false : false,
-        username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
-        password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
+        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
+        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
+        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      bypassProxy: proxyConfig.bypassProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || ''
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
-      proxySchema
-        .validate(values, { abortEarly: true })
-        .then((validatedProxy) => {
-          // serialize 'use' to boolean
-          if (validatedProxy.use === 'true') {
-            validatedProxy.use = true;
-          } else if (validatedProxy.use === 'false') {
-            validatedProxy.use = false;
-          }
-
-          onUpdate(validatedProxy);
-        })
-        .catch((error) => {
-          let errMsg = error.message || 'Preferences validation error';
-          toast.error(errMsg);
-        });
+      onUpdate(values);
     }
   });
 
+  const onUpdate = (values) => {
+    proxySchema
+      .validate(values, { abortEarly: true })
+      .then((validatedProxy) => {
+        dispatch(
+          savePreferences({
+            ...preferences,
+            proxy: validatedProxy
+          })
+        ).then(() => {
+          close();
+        });
+      })
+      .catch((error) => {
+        let errMsg = error.message || 'Preferences validation error';
+        toast.error(errMsg);
+      });
+  };
+
   useEffect(() => {
     formik.setValues({
-      use: proxyConfig.use === true ? 'true' : proxyConfig.use === false ? 'false' : 'global',
-      protocol: proxyConfig.protocol || 'http',
-      hostname: proxyConfig.hostname || '',
-      port: proxyConfig.port || '',
+      enabled: preferences.proxy.enabled || false,
+      protocol: preferences.proxy.protocol || 'http',
+      hostname: preferences.proxy.hostname || '',
+      port: preferences.proxy.port || '',
       auth: {
-        enabled: proxyConfig.auth ? proxyConfig.auth.enabled || false : false,
-        username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
-        password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
+        enabled: preferences.proxy.auth ? preferences.proxy.auth.enabled || false : false,
+        username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
+        password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      bypassProxy: proxyConfig.bypassProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || ''
     });
-  }, [proxyConfig]);
+  }, [preferences]);
 
   return (
     <StyledWrapper>
-      <h1 className="font-medium mb-3">Proxy Settings</h1>
+      <h1 className="font-medium mb-3">Global Proxy Settings</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
-          <label className="settings-label flex items-center" htmlFor="enabled">
-            Config
-            <Tooltip
-              text={`
-              <div>
-                <ul>
-                  <li><span style="width: 50px;display:inline-block;">global</span> - use global proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">enabled</span> - use collection proxy config</li>
-                  <li><span style="width: 50px;display:inline-block;">disable</span> - disable proxy</li>
-                </ul>
-              </div>
-            `}
-              tooltipId="request-var"
-            />
+          <label className="settings-label" htmlFor="enabled">
+            Enabled
           </label>
-          <div className="flex items-center">
-            <label className="flex items-center">
-              <input
-                type="radio"
-                name="use"
-                value="global"
-                checked={formik.values.use === 'global'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              global
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="use"
-                value={'true'}
-                checked={formik.values.use === 'true'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              enabled
-            </label>
-            <label className="flex items-center ml-4">
-              <input
-                type="radio"
-                name="use"
-                value={'false'}
-                checked={formik.values.use === 'false'}
-                onChange={formik.handleChange}
-                className="mr-1"
-              />
-              disabled
-            </label>
-          </div>
+          <input type="checkbox" name="enabled" checked={formik.values.enabled} onChange={formik.handleChange} />
         </div>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="protocol">
@@ -317,7 +280,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
           ) : null}
         </div>
         <div className="mt-6">
-          <button type="submit" className="submit btn btn-sm btn-secondary">
+          <button type="submit" className="submit btn btn-md btn-secondary">
             Save
           </button>
         </div>

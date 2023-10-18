@@ -75,7 +75,7 @@ app.on('ready', async () => {
   });
 
   // register all ipc handlers
-  registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
 });

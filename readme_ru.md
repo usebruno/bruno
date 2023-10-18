@@ -10,7 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | **Русский**
+[English](/readme.md) | [Українська](/readme_ua.md) | **Русский**
 
 Bruno - новый и инновационный клиент API, направленный на революцию в установившейся ситуации, представленной Postman и подобными инструментами.
 
