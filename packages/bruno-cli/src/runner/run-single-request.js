@@ -129,7 +129,7 @@ const runSingleRequest = async function (
 
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.noProxy', ''));
+    const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.bypassProxy', ''));
     if (proxyEnabled && shouldProxy) {
       const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);

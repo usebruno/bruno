@@ -16,14 +16,14 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { preferences } = require('../../store/preferences');
+const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
-const { addAwsV4Interceptor, resolveCredentials } = require('./awsv4auth-helper');
+const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy } = require('../../utils/proxy-util');
 
 // override the default escape function to prevent escaping
@@ -86,7 +86,7 @@ const getSize = (data) => {
 
 const configureRequest = async (collectionUid, request, envVars, collectionVariables, processEnvVars) => {
   const httpsAgentRequestFields = {};
-  if (!preferences.isTlsVerification()) {
+  if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
@@ -123,10 +123,10 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   let proxyConfig = get(brunoConfig, 'proxy', {});
   let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
   if (proxyEnabled === 'global') {
-    proxyConfig = preferences.getProxyConfig();
+    proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
   }
-  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
+  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
   if ((proxyEnabled === true || proxyEnabled === 'enabled') && shouldProxy) {
     const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
     const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
@@ -164,12 +164,12 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   const axiosInstance = makeAxiosInstance();
 
   if (request.awsv4config) {
-    request.awsv4config = await resolveCredentials(request);
+    request.awsv4config = await resolveAwsV4Credentials(request);
     addAwsV4Interceptor(axiosInstance, request);
     delete request.awsv4config;
   }
 
-  request.timeout = preferences.getTimeout();
+  request.timeout = preferencesUtil.getRequestTimeout();
 
   return axiosInstance;
 };
@@ -530,9 +530,9 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionRoot = get(collection, 'root', {});
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
 
-      request.timeout = preferences.getTimeout();
+      request.timeout = preferencesUtil.getRequestTimeout();
 
-      if (!preferences.isTlsVerification()) {
+      if (!preferencesUtil.shouldVerifyTls()) {
         request.httpsAgent = new https.Agent({
           rejectUnauthorized: false
         });

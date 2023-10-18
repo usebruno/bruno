@@ -33,7 +33,7 @@ const General = ({ close }) => {
     <StyledWrapper>
       <div className="flex items-center mt-2">
         <label className="mr-2 select-none" style={{ minWidth: 200 }} htmlFor="ssl-cert-verification">
-          TLS Certificate Verification
+          SSL/TLS Certificate Verification
         </label>
         <input
           id="ssl-cert-verification"
