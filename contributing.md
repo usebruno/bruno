@@ -33,5 +33,5 @@ Please reference [development.md](docs/development.md) for instructions on runni
 - Please follow the format of creating branches
   - feature/[feature name]: This branch should contain changes for a specific feature
     - Example: feature/dark-mode
-  - bugfix/[bug name]: This branch should container only bug fixes for a specific bug
+  - bugfix/[bug name]: This branch should contain only bug fixes for a specific bug
     - Example bugfix/bug-1
