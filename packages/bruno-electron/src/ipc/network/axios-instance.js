@@ -4,10 +4,10 @@ const axios = require('axios');
  * Function that configures axios with timing interceptors
  * Important to note here that the timings are not completely accurate.
  * @see https://github.com/axios/axios/issues/695
- * @returns {import('axios').AxiosStatic}
+ * @returns {axios.AxiosInstance}
  */
 function makeAxiosInstance() {
-  /** @type {import('axios').AxiosStatic} */
+  /** @type {axios.AxiosInstance} */
   const instance = axios.create();
 
   instance.interceptors.request.use((config) => {

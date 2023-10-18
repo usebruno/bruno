@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import Portal from 'components/Portal/index';
-import Modal from 'components/Modal/index';
+import Portal from 'components/Portal';
+import Modal from 'components/Modal';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import { addEnvironment } from 'providers/ReduxStore/slices/collections/actions';

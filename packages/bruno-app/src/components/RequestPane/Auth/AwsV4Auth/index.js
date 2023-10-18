@@ -13,7 +13,6 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
   const { storedTheme } = useTheme();
 
   const awsv4Auth = item.draft ? get(item, 'draft.request.auth.awsv4', {}) : get(item, 'request.auth.awsv4', {});
-  console.log('saved auth', awsv4Auth);
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));

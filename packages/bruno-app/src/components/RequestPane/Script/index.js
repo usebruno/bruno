@@ -1,6 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,6 +13,7 @@ const Script = ({ item, collection }) => {
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
 
   const { storedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -45,6 +46,7 @@ const Script = ({ item, collection }) => {
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onRequestScriptEdit}
           mode="javascript"
           onRun={onRun}
@@ -57,6 +59,7 @@ const Script = ({ item, collection }) => {
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onResponseScriptEdit}
           mode="javascript"
           onRun={onRun}

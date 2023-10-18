@@ -15,10 +15,9 @@ const {
   sanitizeFilenme
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
-const { openCollectionDialog, openCollection } = require('../app/collections');
+const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -33,9 +32,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // browse directory
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
-      const dirPath = await browseDirectory(mainWindow);
-
-      return dirPath;
+      return await browseDirectory(mainWindow);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -64,8 +61,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
-
-        return;
       } catch (error) {
         return Promise.reject(error);
       }
@@ -90,8 +85,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         collectionPathname,
         newName
       });
-
-      return;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -141,31 +134,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
-    try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
-      }
-
-      const filenameSanatized = `${sanitizeFilenme(name)}.bru`;
-      const envFilePath = path.join(envDirPath, filenameSanatized);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
-
-      const content = envJsonToBru({
-        variables: [],
-        name: name
-      });
-      await writeFile(envFilePath, content);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
-
-  // copy environment
-  ipcMain.handle('renderer:copy-environment', async (event, collectionPathname, name, baseVariables) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -178,10 +147,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
-      const content = envJsonToBru({
-        variables: baseVariables,
-        name: name
-      });
+      const environment = {
+        name: name,
+        variables: variables || []
+      };
+
+      if (envHasSecrets(environment)) {
+        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
+      }
+
+      const content = envJsonToBru(environment);
+
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -359,7 +335,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         fs.unlinkSync(pathname);
       } else {
-        return Promise.reject(error);
+        return Promise.reject();
       }
     } catch (error) {
       return Promise.reject(error);
@@ -500,25 +476,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       return Promise.reject(error);
     }
-  });
-
-  ipcMain.handle('renderer:ready', async (event) => {
-    // reload last opened collections
-    const lastOpened = lastOpenedCollections.getAll();
-
-    if (lastOpened && lastOpened.length) {
-      for (let collectionPath of lastOpened) {
-        if (isDirectory(collectionPath)) {
-          openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true
-          });
-        }
-      }
-    }
-  });
-
-  ipcMain.handle('renderer:set-preferences', async (event, preferences) => {
-    setPreferences(preferences);
   });
 
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {

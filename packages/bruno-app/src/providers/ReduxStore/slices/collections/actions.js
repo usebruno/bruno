@@ -18,9 +18,9 @@ import {
   isItemAFolder,
   refreshUidsInItem
 } from 'utils/collections';
-import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
+import { collectionSchema, itemSchema, environmentSchema } from '@usebruno/schema';
 import { waitForNextTick } from 'utils/common';
-import { getDirectoryName } from 'utils/common/platform';
+import { getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
 import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
 
 import {
@@ -30,7 +30,6 @@ import {
   requestCancelled,
   responseReceived,
   newItem as _newItem,
-  renameItem as _renameItem,
   cloneItem as _cloneItem,
   deleteItem as _deleteItem,
   saveRequest as _saveRequest,
@@ -44,12 +43,8 @@ import {
 
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { sanitizeFilenme } from 'utils/common/index';
-import os from 'os';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { each } from 'lodash';
-
-const PATH_SEPARATOR = /Windows/i.test(os.release()) ? '\\' : '/';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -97,7 +92,6 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  console.log(collection.root);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -187,11 +181,6 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
-// todo: this can be directly put inside the collections/index.js file
-// the coding convention is to put only actions that need ipc in this file
-export const sortCollections = (order) => (dispatch) => {
-  dispatch(_sortCollections(order));
-};
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -300,13 +289,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     const dirname = getDirectoryName(item.pathname);
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:rename-item', item.pathname, dirname, newName)
-      .then(() => {
-        dispatch(_renameItem({ newName, itemUid, collectionUid }));
-        resolve();
-      })
-      .catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, dirname, newName).then(resolve).catch(reject);
   });
 };
 
@@ -386,18 +369,15 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
     if (item) {
       const { ipcRenderer } = window;
 
-      ipcRenderer
-        .invoke('renderer:delete-item', item.pathname, item.type)
-        .then(() => {
-          dispatch(_deleteItem({ itemUid, collectionUid }));
-          resolve();
-        })
-        .catch((error) => reject(error));
+      ipcRenderer.invoke('renderer:delete-item', item.pathname, item.type).then(resolve).catch(reject);
     }
     return;
   });
 };
 
+export const sortCollections = () => (dispatch) => {
+  dispatch(_sortCollections());
+};
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -702,6 +682,32 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const importEnvironment = (name, variables, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    ipcRenderer
+      .invoke('renderer:create-environment', collection.pathname, name, variables)
+      .then(
+        dispatch(
+          updateLastAction({
+            collectionUid,
+            lastAction: {
+              type: 'ADD_ENVIRONMENT',
+              payload: name
+            }
+          })
+        )
+      )
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -716,7 +722,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
     }
 
     ipcRenderer
-      .invoke('renderer:copy-environment', collection.pathname, name, baseEnv.variables)
+      .invoke('renderer:create-environment', collection.pathname, name, baseEnv.variables)
       .then(
         dispatch(
           updateLastAction({

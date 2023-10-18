@@ -1,11 +1,21 @@
 import { createSlice } from '@reduxjs/toolkit';
+import toast from 'react-hot-toast';
 
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
   screenWidth: 500,
-  showHomePage: false
+  showHomePage: false,
+  preferences: {
+    request: {
+      sslVerification: true,
+      timeout: 0
+    },
+    font: {
+      codeFont: 'default'
+    }
+  }
 };
 
 export const appSlice = createSlice({
@@ -29,6 +39,9 @@ export const appSlice = createSlice({
     },
     hideHomePage: (state) => {
       state.showHomePage = false;
+    },
+    updatePreferences: (state, action) => {
+      state.preferences = action.payload;
     }
   }
 });
@@ -39,7 +52,25 @@ export const {
   updateLeftSidebarWidth,
   updateIsDragging,
   showHomePage,
-  hideHomePage
+  hideHomePage,
+  updatePreferences
 } = appSlice.actions;
+
+export const savePreferences = (preferences) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-preferences', preferences)
+      .then(() => toast.success('Preferences saved successfully'))
+      .then(() => dispatch(updatePreferences(preferences)))
+      .then(resolve)
+      .catch((err) => {
+        toast.error('An error occurred while saving preferences');
+        console.error(err);
+        reject(err);
+      });
+  });
+};
 
 export default appSlice.reducer;

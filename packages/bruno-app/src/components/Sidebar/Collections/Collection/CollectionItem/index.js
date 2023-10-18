@@ -88,44 +88,41 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const handleClick = (event) => {
-    switch (event.button) {
-      case 0: // left click
-        if (isItemARequest(item)) {
-          dispatch(hideHomePage());
-          if (itemIsOpenedInTabs(item, tabs)) {
-            dispatch(
-              focusTab({
-                uid: item.uid
-              })
-            );
-            return;
-          }
-          dispatch(
-            addTab({
-              uid: item.uid,
-              collectionUid: collection.uid,
-              requestPaneTab: getDefaultRequestPaneTab(item)
-            })
-          );
-          return;
-        }
+    if (isItemARequest(item)) {
+      dispatch(hideHomePage());
+      if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
-          collectionFolderClicked({
-            itemUid: item.uid,
-            collectionUid: collection.uid
+          focusTab({
+            uid: item.uid
           })
         );
         return;
-      case 2: // right click
-        const _menuDropdown = dropdownTippyRef.current;
-        if (_menuDropdown) {
-          let menuDropdownBehavior = 'show';
-          if (_menuDropdown.state.isShown) {
-            menuDropdownBehavior = 'hide';
-          }
-          _menuDropdown[menuDropdownBehavior]();
-        }
-        return;
+      }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          requestPaneTab: getDefaultRequestPaneTab(item)
+        })
+      );
+      return;
+    }
+    dispatch(
+      collectionFolderClicked({
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  const handleRightClick = (event) => {
+    const _menuDropdown = dropdownTippyRef.current;
+    if (_menuDropdown) {
+      let menuDropdownBehavior = 'show';
+      if (_menuDropdown.state.isShown) {
+        menuDropdownBehavior = 'hide';
+      }
+      _menuDropdown[menuDropdownBehavior]();
     }
   };
 
@@ -203,7 +200,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
             ? indents.map((i) => {
                 return (
                   <div
-                    onMouseUp={handleClick}
+                    onClick={handleClick}
+                    onContextMenu={handleRightClick}
                     onDoubleClick={handleDoubleClick}
                     className="indent-block"
                     key={i}
@@ -219,7 +217,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
               })
             : null}
           <div
-            onMouseUp={handleClick}
+            onClick={handleClick}
+            onContextMenu={handleRightClick}
             onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{

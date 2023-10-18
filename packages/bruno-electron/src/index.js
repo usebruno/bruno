@@ -8,8 +8,9 @@ const menuTemplate = require('./app/menu-template');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
+const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
-const { loadWindowState, saveWindowState } = require('./utils/window');
+const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -32,15 +33,15 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  const { x, y, width, height } = loadWindowState();
+  const { maximized, x, y, width, height } = loadWindowState();
 
   mainWindow = new BrowserWindow({
     x,
     y,
     width,
     height,
-    minWidth:1000,
-    minHeight:640,
+    minWidth: 1000,
+    minHeight: 640,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -54,6 +55,10 @@ app.on('ready', async () => {
     // autoHideMenuBar: true
   });
 
+  if (maximized) {
+    mainWindow.maximize();
+  }
+
   const url = isDev
     ? 'http://localhost:3000'
     : format({
@@ -65,8 +70,17 @@ app.on('ready', async () => {
   mainWindow.loadURL(url);
   watcher = new Watcher();
 
-  mainWindow.on('resize', () => saveWindowState(mainWindow));
-  mainWindow.on('move', () => saveWindowState(mainWindow));
+  const handleBoundsChange = () => {
+    if (!mainWindow.isMaximized()) {
+      saveBounds(mainWindow);
+    }
+  };
+
+  mainWindow.on('resize', handleBoundsChange);
+  mainWindow.on('move', handleBoundsChange);
+
+  mainWindow.on('maximize', () => saveMaximized(true));
+  mainWindow.on('unmaximize', () => saveMaximized(false));
 
   mainWindow.webContents.on('new-window', function (e, url) {
     e.preventDefault();
@@ -74,8 +88,9 @@ app.on('ready', async () => {
   });
 
   // register all ipc handlers
-  registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
+  registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
 });
 
 // Quit the app once all windows are closed
