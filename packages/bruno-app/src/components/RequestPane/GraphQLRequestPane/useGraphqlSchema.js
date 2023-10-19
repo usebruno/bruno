@@ -26,7 +26,12 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
   const loadSchema = () => {
     setIsLoading(true);
     fetchGqlSchema(endpoint, environment, request, collection)
-      .then((res) => res.data)
+      .then((res) => {
+        if (!res || res.status !== 200) {
+          return Promise.reject(new Error(res.statusText));
+        }
+        return res.data;
+      })
       .then((s) => {
         if (s && s.data) {
           setSchema(buildClientSchema(s.data));
@@ -40,7 +45,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       .catch((err) => {
         setIsLoading(false);
         setError(err);
-        toast.error('Error occurred while loading GraphQL Schema');
+        toast.error(`Error occurred while loading GraphQL Schema: ${err.message}`);
       });
   };
 

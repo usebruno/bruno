@@ -44,7 +44,7 @@ const template = [
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close' }]
+    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
   },
   {
     role: 'help',

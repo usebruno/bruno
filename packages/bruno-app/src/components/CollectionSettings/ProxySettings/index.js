@@ -1,24 +1,24 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-
+import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {
   const proxySchema = Yup.object({
-    enabled: Yup.string().oneOf(['global', 'enabled', 'disabled']),
+    use: Yup.string().oneOf(['global', 'true', 'false']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
-      .when('enabled', {
-        is: 'enabled',
+      .when('use', {
+        is: true,
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
       .max(1024),
     port: Yup.number()
-      .when('enabled', {
-        is: 'enabled',
+      .when('use', {
+        is: true,
         then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
         otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
       })
@@ -26,11 +26,11 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
       .max(65535),
     auth: Yup.object()
       .when('enabled', {
-        is: 'enabled',
+        is: true,
         then: Yup.object({
           enabled: Yup.boolean(),
           username: Yup.string()
-            .when(['enabled'], {
+            .when('enabled', {
               is: true,
               then: (username) => username.required('Specify username for proxy authentication.')
             })
@@ -44,12 +44,12 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         })
       })
       .optional(),
-    noProxy: Yup.string().optional().max(1024)
+    bypassProxy: Yup.string().optional().max(1024)
   });
 
   const formik = useFormik({
     initialValues: {
-      enabled: proxyConfig.enabled || 'global',
+      use: proxyConfig.use || 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -58,13 +58,20 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
         password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
       },
-      noProxy: proxyConfig.noProxy || ''
+      bypassProxy: proxyConfig.bypassProxy || ''
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
       proxySchema
         .validate(values, { abortEarly: true })
         .then((validatedProxy) => {
+          // serialize 'use' to boolean
+          if (validatedProxy.use === 'true') {
+            validatedProxy.use = true;
+          } else if (validatedProxy.use === 'false') {
+            validatedProxy.use = false;
+          }
+
           onUpdate(validatedProxy);
         })
         .catch((error) => {
@@ -76,7 +83,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   useEffect(() => {
     formik.setValues({
-      enabled: proxyConfig.enabled || 'global',
+      use: proxyConfig.use === true ? 'true' : proxyConfig.use === false ? 'false' : 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -85,32 +92,37 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         username: proxyConfig.auth ? proxyConfig.auth.username || '' : '',
         password: proxyConfig.auth ? proxyConfig.auth.password || '' : ''
       },
-      noProxy: proxyConfig.noProxy || ''
+      bypassProxy: proxyConfig.bypassProxy || ''
     });
   }, [proxyConfig]);
 
   return (
     <StyledWrapper>
       <h1 className="font-medium mb-3">Proxy Settings</h1>
-      <label className="settings-label">
-        <ul className="mb-3">
-          <li>global - use global config</li>
-          <li>enabled - use collection config</li>
-          <li>disable - disable proxy</li>
-        </ul>
-      </label>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="enabled">
+          <label className="settings-label flex items-center" htmlFor="enabled">
             Config
+            <Tooltip
+              text={`
+              <div>
+                <ul>
+                  <li><span style="width: 50px;display:inline-block;">global</span> - use global proxy config</li>
+                  <li><span style="width: 50px;display:inline-block;">enabled</span> - use collection proxy config</li>
+                  <li><span style="width: 50px;display:inline-block;">disable</span> - disable proxy</li>
+                </ul>
+              </div>
+            `}
+              tooltipId="request-var"
+            />
           </label>
           <div className="flex items-center">
             <label className="flex items-center">
               <input
                 type="radio"
-                name="enabled"
+                name="use"
                 value="global"
-                checked={formik.values.enabled === 'global'}
+                checked={formik.values.use === 'global'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -119,9 +131,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
-                value="enabled"
-                checked={formik.values.enabled === 'enabled'}
+                name="use"
+                value={'true'}
+                checked={formik.values.use === 'true'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -130,9 +142,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
-                value="disabled"
-                checked={formik.values.enabled === 'disabled'}
+                name="use"
+                value={'false'}
+                checked={formik.values.use === 'false'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -285,23 +297,23 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
           </div>
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="noProxy">
+          <label className="settings-label" htmlFor="bypassProxy">
             Proxy Bypass
           </label>
           <input
-            id="noProxy"
+            id="bypassProxy"
             type="text"
-            name="noProxy"
+            name="bypassProxy"
             className="block textbox"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
             onChange={formik.handleChange}
-            value={formik.values.noProxy || ''}
+            value={formik.values.bypassProxy || ''}
           />
-          {formik.touched.noProxy && formik.errors.noProxy ? (
-            <div className="ml-3 text-red-500">{formik.errors.noProxy}</div>
+          {formik.touched.bypassProxy && formik.errors.bypassProxy ? (
+            <div className="ml-3 text-red-500">{formik.errors.bypassProxy}</div>
           ) : null}
         </div>
         <div className="mt-6">

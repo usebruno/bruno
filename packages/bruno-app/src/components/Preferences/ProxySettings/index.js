@@ -49,7 +49,7 @@ const ProxySettings = ({ close }) => {
         })
       })
       .optional(),
-    noProxy: Yup.string().optional().max(1024)
+    bypassProxy: Yup.string().optional().max(1024)
   });
 
   const formik = useFormik({
@@ -63,7 +63,7 @@ const ProxySettings = ({ close }) => {
         username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
         password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      noProxy: preferences.proxy.noProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || ''
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
@@ -101,21 +101,21 @@ const ProxySettings = ({ close }) => {
         username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
         password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      noProxy: preferences.proxy.noProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || ''
     });
   }, [preferences]);
 
   return (
     <StyledWrapper>
-      <h1 className="font-medium mb-3">Proxy Settings</h1>
+      <h1 className="font-medium mb-3">Global Proxy Settings</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="enabled">
             Enabled
           </label>
           <input type="checkbox" name="enabled" checked={formik.values.enabled} onChange={formik.handleChange} />
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="protocol">
             Protocol
           </label>
@@ -166,7 +166,7 @@ const ProxySettings = ({ close }) => {
             </label>
           </div>
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="hostname">
             Hostname
           </label>
@@ -186,7 +186,7 @@ const ProxySettings = ({ close }) => {
             <div className="ml-3 text-red-500">{formik.errors.hostname}</div>
           ) : null}
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="port">
             Port
           </label>
@@ -206,7 +206,7 @@ const ProxySettings = ({ close }) => {
             <div className="ml-3 text-red-500">{formik.errors.port}</div>
           ) : null}
         </div>
-        <div className="ml-4 mb-3 flex items-center">
+        <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="auth.enabled">
             Auth
           </label>
@@ -218,7 +218,7 @@ const ProxySettings = ({ close }) => {
           />
         </div>
         <div>
-          <div className="ml-4 mb-3 flex items-center">
+          <div className="mb-3 flex items-center">
             <label className="settings-label" htmlFor="auth.username">
               Username
             </label>
@@ -238,7 +238,7 @@ const ProxySettings = ({ close }) => {
               <div className="ml-3 text-red-500">{formik.errors.auth.username}</div>
             ) : null}
           </div>
-          <div className="ml-4 mb-3 flex items-center">
+          <div className="mb-3 flex items-center">
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
@@ -259,24 +259,24 @@ const ProxySettings = ({ close }) => {
             ) : null}
           </div>
         </div>
-        <div className="ml-4 mb-3 flex items-center">
-          <label className="settings-label" htmlFor="noProxy">
+        <div className="mb-3 flex items-center">
+          <label className="settings-label" htmlFor="bypassProxy">
             Proxy Bypass
           </label>
           <input
-            id="noProxy"
+            id="bypassProxy"
             type="text"
-            name="noProxy"
+            name="bypassProxy"
             className="block textbox"
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
             spellCheck="false"
             onChange={formik.handleChange}
-            value={formik.values.noProxy || ''}
+            value={formik.values.bypassProxy || ''}
           />
-          {formik.touched.noProxy && formik.errors.noProxy ? (
-            <div className="ml-3 text-red-500">{formik.errors.noProxy}</div>
+          {formik.touched.bypassProxy && formik.errors.bypassProxy ? (
+            <div className="ml-3 text-red-500">{formik.errors.bypassProxy}</div>
           ) : null}
         </div>
         <div className="mt-6">

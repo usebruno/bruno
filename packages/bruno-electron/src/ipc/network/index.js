@@ -16,14 +16,14 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { preferences } = require('../../store/preferences');
+const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
-const { addAwsV4Interceptor, resolveCredentials } = require('./awsv4auth-helper');
+const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy } = require('../../utils/proxy-util');
 
 // override the default escape function to prevent escaping
@@ -86,7 +86,7 @@ const getSize = (data) => {
 
 const configureRequest = async (collectionUid, request, envVars, collectionVariables, processEnvVars) => {
   const httpsAgentRequestFields = {};
-  if (!preferences.isTlsVerification()) {
+  if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
   }
 
@@ -123,11 +123,11 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   let proxyConfig = get(brunoConfig, 'proxy', {});
   let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
   if (proxyEnabled === 'global') {
-    proxyConfig = preferences.getProxyConfig();
+    proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
   }
-  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'noProxy', ''));
-  if ((proxyEnabled === true || proxyEnabled === 'enabled') && shouldProxy) {
+  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
+  if (proxyEnabled === true && shouldProxy) {
     const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
     const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
     const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
@@ -164,12 +164,12 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   const axiosInstance = makeAxiosInstance();
 
   if (request.awsv4config) {
-    request.awsv4config = await resolveCredentials(request);
+    request.awsv4config = await resolveAwsV4Credentials(request);
     addAwsV4Interceptor(axiosInstance, request);
     delete request.awsv4config;
   }
 
-  request.timeout = preferences.getTimeout();
+  request.timeout = preferencesUtil.getRequestTimeout();
 
   return axiosInstance;
 };
@@ -318,8 +318,37 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars
       );
 
-      /** @type {import('axios').AxiosResponse} */
-      const response = await axiosInstance(request);
+      let response, responseTime;
+      try {
+        /** @type {import('axios').AxiosResponse} */
+        response = await axiosInstance(request);
+
+        // Prevents the duration on leaking to the actual result
+        responseTime = response.headers.get('request-duration');
+        response.headers.delete('request-duration');
+      } catch (error) {
+        deleteCancelToken(cancelTokenUid);
+
+        // if it's a cancel request, don't continue
+        if (axios.isCancel(error)) {
+          let error = new Error('Request cancelled');
+          error.isCancel = true;
+          return Promise.reject(error);
+        }
+
+        if (error?.response) {
+          response = error.response;
+
+          // Prevents the duration on leaking to the actual result
+          responseTime = response.headers.get('request-duration');
+          response.headers.delete('request-duration');
+        } else {
+          // if it's not a network error, don't continue
+          return Promise.reject(error);
+        }
+      }
+
+      // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
@@ -431,11 +460,6 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      deleteCancelToken(cancelTokenUid);
-      // Prevents the duration on leaking to the actual result
-      const requestDuration = response.headers.get('request-duration');
-      response.headers.delete('request-duration');
-
       return {
         status: response.status,
         statusText: response.statusText,
@@ -443,93 +467,10 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: requestDuration
+        duration: responseTime ?? 0
       };
     } catch (error) {
-      // todo: better error handling
-      // need to convey the error to the UI
-      // and need not be always a network error
       deleteCancelToken(cancelTokenUid);
-
-      if (axios.isCancel(error)) {
-        let error = new Error('Request cancelled');
-        error.isCancel = true;
-        return Promise.reject(error);
-      }
-
-      if (error?.response) {
-        const { data, dataBuffer } = parseDataFromResponse(error.response);
-        error.response.data = data;
-        // run assertions
-        const assertions = get(request, 'assertions');
-        if (assertions) {
-          const assertRuntime = new AssertRuntime();
-          const results = assertRuntime.runAssertions(
-            assertions,
-            request,
-            error.response,
-            envVars,
-            collectionVariables,
-            collectionPath
-          );
-
-          mainWindow.webContents.send('main:run-request-event', {
-            type: 'assertion-results',
-            results: results,
-            itemUid: item.uid,
-            requestUid,
-            collectionUid
-          });
-        }
-
-        // run tests
-        const testFile = compact([
-          get(collectionRoot, 'request.tests'),
-          item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
-        ]).join(os.EOL);
-        if (typeof testFile === 'string') {
-          const testRuntime = new TestRuntime();
-          const testResults = await testRuntime.runTests(
-            decomment(testFile),
-            request,
-            error.response,
-            envVars,
-            collectionVariables,
-            collectionPath,
-            onConsoleLog,
-            processEnvVars,
-            scriptingConfig
-          );
-
-          mainWindow.webContents.send('main:run-request-event', {
-            type: 'test-results',
-            results: testResults.results,
-            itemUid: item.uid,
-            requestUid,
-            collectionUid
-          });
-
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: testResults.envVariables,
-            collectionVariables: testResults.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-
-        // Prevents the duration from leaking to the actual result
-        const requestDuration = error.response.headers.get('request-duration');
-        error.response.headers.delete('request-duration');
-        return {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          headers: error.response.headers,
-          data: error.response.data,
-          dataBuffer: dataBuffer.toString('base64'),
-          size: Buffer.byteLength(dataBuffer),
-          duration: requestDuration ?? 0
-        };
-      }
 
       return Promise.reject(error);
     }
@@ -553,9 +494,9 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionRoot = get(collection, 'root', {});
       const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
 
-      request.timeout = preferences.getTimeout();
+      request.timeout = preferencesUtil.getRequestTimeout();
 
-      if (!preferences.isTlsVerification()) {
+      if (!preferencesUtil.shouldVerifyTls()) {
         request.httpsAgent = new https.Agent({
           rejectUnauthorized: false
         });
@@ -564,7 +505,14 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collection.uid);
       interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
 
-      const response = await axios(preparedRequest);
+      const axiosInstance = await configureRequest(
+        collection.uid,
+        preparedRequest,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars
+      );
+      const response = await axiosInstance(preparedRequest);
 
       return {
         status: response.status,
@@ -739,12 +687,56 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            /** @type {import('axios').AxiosResponse} */
-            const response = await axiosInstance(request);
-            timeEnd = Date.now();
+            let response;
+            try {
+              /** @type {import('axios').AxiosResponse} */
+              response = await axiosInstance(request);
+              timeEnd = Date.now();
 
-            const { data, dataBuffer } = parseDataFromResponse(response);
-            response.data = data;
+              const { data, dataBuffer } = parseDataFromResponse(response);
+              response.data = data;
+
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'response-received',
+                responseReceived: {
+                  status: response.status,
+                  statusText: response.statusText,
+                  headers: Object.entries(response.headers),
+                  duration: timeEnd - timeStart,
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
+                  data: response.data
+                },
+                ...eventData
+              });
+            } catch (error) {
+              if (error?.response) {
+                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                error.response.data = data;
+
+                timeEnd = Date.now();
+                response = {
+                  status: error.response.status,
+                  statusText: error.response.statusText,
+                  headers: Object.entries(error.response.headers),
+                  duration: timeEnd - timeStart,
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
+                  data: error.response.data
+                };
+
+                // if we get a response from the server, we consider it as a success
+                mainWindow.webContents.send('main:run-folder-event', {
+                  type: 'response-received',
+                  error: error ? error.message : 'An error occurred while running the request',
+                  responseReceived: response,
+                  ...eventData
+                });
+              } else {
+                // if it's not a network error, don't continue
+                throw Promise.reject(error);
+              }
+            }
 
             // run post-response vars
             const postResponseVars = get(request, 'vars.res', []);
@@ -847,108 +839,11 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionUid
               });
             }
-
-            mainWindow.webContents.send('main:run-folder-event', {
-              type: 'response-received',
-              ...eventData,
-              responseReceived: {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.entries(response.headers),
-                duration: timeEnd - timeStart,
-                size: Buffer.byteLength(dataBuffer),
-                data: response.data
-              }
-            });
           } catch (error) {
-            let responseReceived = {};
-            let duration = 0;
-
-            if (timeStart && timeEnd) {
-              duration = timeEnd - timeStart;
-            }
-
-            if (error?.response) {
-              const { data, dataBuffer } = parseDataFromResponse(error.response);
-              error.response.data = data;
-
-              responseReceived = {
-                status: error.response.status,
-                statusText: error.response.statusText,
-                headers: Object.entries(error.response.headers),
-                duration: duration,
-                size: Buffer.byteLength(dataBuffer),
-                data: error.response.data
-              };
-
-              // run assertions
-              const assertions = get(item, 'request.assertions');
-              if (assertions) {
-                const assertRuntime = new AssertRuntime();
-                const results = assertRuntime.runAssertions(
-                  assertions,
-                  request,
-                  error.response,
-                  envVars,
-                  collectionVariables,
-                  collectionPath
-                );
-
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'assertion-results',
-                  assertionResults: results,
-                  itemUid: item.uid,
-                  collectionUid
-                });
-              }
-
-              // run tests
-              const testFile = compact([
-                get(collectionRoot, 'request.tests'),
-                item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
-              ]).join(os.EOL);
-              if (typeof testFile === 'string') {
-                const testRuntime = new TestRuntime();
-                const testResults = await testRuntime.runTests(
-                  decomment(testFile),
-                  request,
-                  error.response,
-                  envVars,
-                  collectionVariables,
-                  collectionPath,
-                  onConsoleLog,
-                  processEnvVars,
-                  scriptingConfig
-                );
-
-                mainWindow.webContents.send('main:run-folder-event', {
-                  type: 'test-results',
-                  testResults: testResults.results,
-                  ...eventData
-                });
-
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: testResults.envVariables,
-                  collectionVariables: testResults.collectionVariables,
-                  collectionUid
-                });
-              }
-
-              // if we get a response from the server, we consider it as a success
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
-                error: error ? error.message : 'An error occurred while running the request',
-                responseReceived: responseReceived,
-                ...eventData
-              });
-
-              continue;
-            }
-
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
               error: error ? error.message : 'An error occurred while running the request',
-              responseReceived: responseReceived,
+              responseReceived: {},
               ...eventData
             });
           }

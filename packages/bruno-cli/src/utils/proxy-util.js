@@ -11,13 +11,14 @@ const DEFAULT_PORTS = {
 /**
  * check for proxy bypass, Copied form 'proxy-from-env'
  */
-const shouldUseProxy = (url, proxyByPass) => {
-  if (proxyByPass === '*') {
+const shouldUseProxy = (url, proxyBypass) => {
+  if (proxyBypass === '*') {
     return false; // Never proxy if wildcard is set.
   }
 
-  if (!proxyByPass) {
-    return true; // use proxy if enabled
+  // use proxy if no proxyBypass is set
+  if (!proxyBypass || typeof proxyBypass !== 'string' || isEmpty(proxyBypass.trim())) {
+    return true;
   }
 
   const parsedUrl = typeof url === 'string' ? parseUrl(url) : url || {};
@@ -34,7 +35,7 @@ const shouldUseProxy = (url, proxyByPass) => {
   hostname = hostname.replace(/:\d*$/, '');
   port = parseInt(port) || DEFAULT_PORTS[proto] || 0;
 
-  return proxyByPass.split(/[,;\s]/).every(function (dontProxyFor) {
+  return proxyBypass.split(/[,;\s]/).every(function (dontProxyFor) {
     if (!dontProxyFor) {
       return true; // Skip zero-length hosts.
     }

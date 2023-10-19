@@ -19,14 +19,14 @@ const defaultPreferences = {
   proxy: {
     enabled: false,
     protocol: 'http',
-    hostnameHttp: '',
-    portHttp: '',
+    hostname: '',
+    port: '',
     auth: {
       enabled: false,
       username: '',
       password: ''
     },
-    noProxy: ''
+    bypassProxy: ''
   }
 };
 
@@ -42,13 +42,13 @@ const preferencesSchema = Yup.object().shape({
     enabled: Yup.boolean(),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string().max(1024),
-    port: Yup.number().min(1).max(65535),
+    port: Yup.number().min(1).max(65535).nullable(),
     auth: Yup.object({
       enabled: Yup.boolean(),
       username: Yup.string().max(1024),
       password: Yup.string().max(1024)
     }).optional(),
-    noProxy: Yup.string().optional().max(1024)
+    bypassProxy: Yup.string().optional().max(1024)
   })
 });
 
@@ -58,10 +58,6 @@ class PreferencesStore {
       name: 'preferences',
       clearInvalidConfig: true
     });
-  }
-
-  getPath() {
-    return this.store.path;
   }
 
   getPreferences() {
@@ -96,20 +92,14 @@ const savePreferences = async (newPreferences) => {
   });
 };
 
-const getPath = () => {
-  return preferencesStore.getPath();
-};
-
-const preferences = {
-  isTlsVerification: () => {
+const preferencesUtil = {
+  shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
   },
-
-  getTimeout: () => {
+  getRequestTimeout: () => {
     return get(getPreferences(), 'request.timeout', 0);
   },
-
-  getProxyConfig: () => {
+  getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', {});
   }
 };
@@ -117,6 +107,5 @@ const preferences = {
 module.exports = {
   getPreferences,
   savePreferences,
-  getPath,
-  preferences
+  preferencesUtil
 };
