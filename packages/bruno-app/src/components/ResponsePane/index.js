@@ -43,6 +43,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             data={response.data}
             headers={response.headers}
             error={response.error}
+            key={item.filename}
           />
         );
       }

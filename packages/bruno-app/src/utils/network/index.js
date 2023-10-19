@@ -8,8 +8,10 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
           resolve({
             state: 'success',
             data: response.data,
+            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
+            dataBuffer: response.dataBuffer,
             headers: Object.entries(response.headers),
-            size: getResponseSize(response),
+            size: response.size,
             status: response.status,
             statusText: response.statusText,
             duration: response.duration
@@ -29,10 +31,6 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
       .then(resolve)
       .catch(reject);
   });
-};
-
-const getResponseSize = (response) => {
-  return response.headers['content-length'] || Buffer.byteLength(safeStringifyJSON(response.data)) || 0;
 };
 
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
