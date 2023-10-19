@@ -45,7 +45,6 @@
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
-    "mustache": "^4.2.0",
     "nanoid": "3.3.4",
     "node-machine-id": "^1.1.12",
     "qs": "^6.11.0",
