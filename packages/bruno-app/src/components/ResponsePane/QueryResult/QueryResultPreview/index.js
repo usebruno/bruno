@@ -1,7 +1,7 @@
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
-import { useTheme } from 'providers/theme';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 const QueryResultPreview = ({
   previewTab,
