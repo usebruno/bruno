@@ -87,7 +87,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'item-focused-in-tab': item.uid == activeTabUid
   });
 
+  const scrollToTheActiveTab = () => {
+    const activeTab = document.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const handleClick = (event) => {
+    //scroll to the active tab
+    setTimeout(scrollToTheActiveTab, 50);
+
     if (isItemARequest(item)) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
