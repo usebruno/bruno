@@ -29,6 +29,7 @@ jobs:
       - name: Build Electron app
         run: |
           npm run build:bruno-query
+          npm run build:graphql-docs
           npm run build:electron:snap
 
       - name: Install Snapcraft
