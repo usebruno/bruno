@@ -118,7 +118,7 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
-const sanitizeFilenme = (name) => {
+const sanitizeFilename = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
@@ -137,5 +137,5 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  sanitizeFilenme
+  sanitizeFilename
 };

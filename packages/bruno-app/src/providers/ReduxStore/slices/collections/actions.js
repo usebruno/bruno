@@ -280,6 +280,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
+
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
     if (!item) {

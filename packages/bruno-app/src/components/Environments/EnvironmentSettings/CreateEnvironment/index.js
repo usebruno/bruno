@@ -17,7 +17,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(250, 'must be 250 characters or less')
         .required('name is required')
     }),

@@ -21,12 +21,12 @@ const NewFolder = ({ collection, item, onClose }) => {
         .min(1, 'must be at least 1 character')
         .required('name is required')
         .max(250, 'must be 250 characters or less')
-        .trim()
         .matches(dirnameRegex, 'Folder name contains invalid characters')
         .test({
           name: 'folderName',
           message: 'The folder name "environments" at the root of the collection is reserved in bruno',
           test: (value) => {
+            // If the the item has a uid, it is inside a sub folder
             if (item && item.uid) {
               return true;
             }
