@@ -3,19 +3,13 @@ import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { Inspector } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
 const KeyValueExplorer = ({ data, theme }) => {
   data = data || {};
-
   const [showSecret, setShowSecret] = useState(false);
-  const maskValue = (value) =>
-    value
-      .split('')
-      .map(() => '*')
-      .join('');
 
   return (
     <div>
@@ -26,7 +20,10 @@ const KeyValueExplorer = ({ data, theme }) => {
             <tr key={envVar.name}>
               <td className="px-2 py-1">{envVar.name}</td>
               <td className="px-2 py-1">
-                <Inspector data={!showSecret && envVar.secret ? maskValue(envVar.value) : envVar.value} theme={theme} />
+                <Inspector
+                  data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
+                  theme={theme}
+                />
               </td>
             </tr>
           ))}

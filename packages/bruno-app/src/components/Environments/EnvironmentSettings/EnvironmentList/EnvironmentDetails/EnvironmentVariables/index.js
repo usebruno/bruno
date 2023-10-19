@@ -8,6 +8,7 @@ import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions
 import reducer from './reducer';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { maskInputValue } from 'utils/collections';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -103,12 +104,16 @@ const EnvironmentVariables = ({ environment, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
-                        value={variable.value}
-                        theme={storedTheme}
-                        onChange={(newValue) => handleVarChange({ target: { value: newValue } }, variable, 'value')}
-                        collection={collection}
-                      />
+                      {variable.secret ? (
+                        <div>{maskInputValue(variable.value)}</div>
+                      ) : (
+                        <SingleLineEditor
+                          value={variable.value}
+                          theme={storedTheme}
+                          onChange={(newValue) => handleVarChange({ target: { value: newValue } }, variable, 'value')}
+                          collection={collection}
+                        />
+                      )}
                     </td>
                     <td>
                       <input
