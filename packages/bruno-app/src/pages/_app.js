@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
+import { Inter } from 'next/font/google';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
@@ -15,6 +16,12 @@ import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 import 'react-tooltip/dist/react-tooltip.css';
 import '@usebruno/graphql-docs/dist/esm/index.css';
+
+const inter = Inter({
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+  subsets: ['cyrillic', 'cyrillic-ext', 'greek', 'greek-ext', 'latin', 'latin-ext', 'vietnamese']
+});
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -43,21 +50,23 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <SafeHydrate>
-        <NoSsr>
-          <Provider store={ReduxStore}>
-            <ThemeProvider>
-              <ToastProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </AppProvider>
-              </ToastProvider>
-            </ThemeProvider>
-          </Provider>
-        </NoSsr>
-      </SafeHydrate>
+      <main className={inter.className}>
+        <SafeHydrate>
+          <NoSsr>
+            <Provider store={ReduxStore}>
+              <ThemeProvider>
+                <ToastProvider>
+                  <AppProvider>
+                    <HotkeysProvider>
+                      <Component {...pageProps} />
+                    </HotkeysProvider>
+                  </AppProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            </Provider>
+          </NoSsr>
+        </SafeHydrate>
+      </main>
     </ErrorBoundary>
   );
 }

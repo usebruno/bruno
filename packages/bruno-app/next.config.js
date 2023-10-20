@@ -1,4 +1,9 @@
 module.exports = {
+  compiler: {
+    styledComponents: {
+      ssr: true
+    }
+  },
   reactStrictMode: false,
   publicRuntimeConfig: {
     CI: process.env.CI,
@@ -11,5 +16,5 @@ module.exports = {
       config.resolve.fallback.fs = false;
     }
     return config;
-  },
+  }
 };
