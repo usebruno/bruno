@@ -34,11 +34,17 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-      # - name: Upload x64 mac dmg
-      #   uses: shogo82148/actions-upload-release-asset@v1
-      #   with:
-      #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg
+      - name: Debug artifact
+        run: echo "packages/bruno-electron/out/bruno_$VERSION_x64_mac.dmg"
+
+      - name: Debug artifact
+        run: echo "packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg"
+
+      - name: Upload x64 mac dmg
+        uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg
 
       # - name: Upload x64 mac zip
       #   uses: shogo82148/actions-upload-release-asset@v1
@@ -82,11 +88,17 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-  #     - name: Upload the package to the release
-  #       uses: shogo82148/actions-upload-release-asset@v1
-  #       with:
-  #         upload_url: ${{ github.event.release.upload_url }}
-  #         asset_path:
+      # - name: Upload win zip
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_win.zip
+
+      # - name: Upload win exe
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_win.exe
 
   linux-package:
     runs-on: ubuntu-latest
@@ -112,11 +124,11 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-  #     - name: Upload the package to the release
-  #       uses: shogo82148/actions-upload-release-asset@v1
-  #       with:
-  #         upload_url: ${{ github.event.release.upload_url }}
-  #         asset_path:
+      # - name: Upload linux AppImage
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x86_64_linux.AppImage
 
   deb-package:
     runs-on: ubuntu-latest
@@ -142,11 +154,11 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-  #     - name: Upload the package to the release
-  #       uses: shogo82148/actions-upload-release-asset@v1
-  #       with:
-  #         upload_url: ${{ github.event.release.upload_url }}
-  #         asset_path:
+      # - name: Upload linux deb
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_amd64_linux.deb
 
   rpm-package:
     runs-on: ubuntu-latest
@@ -172,8 +184,8 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-  #     - name: Upload the package to the release
-  #       uses: shogo82148/actions-upload-release-asset@v1
-  #       with:
-  #         upload_url: ${{ github.event.release.upload_url }}
-  #         asset_path:
+      # - name: Upload linux rpm
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x86_64_linux.rpm
