@@ -569,6 +569,19 @@ const registerNetworkIpc = (mainWindow) => {
       );
       const response = await axiosInstance(preparedRequest);
 
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
       return {
         status: response.status,
         statusText: response.statusText,
