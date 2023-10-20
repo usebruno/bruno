@@ -84,7 +84,8 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    responseType: 'arraybuffer'
   };
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);

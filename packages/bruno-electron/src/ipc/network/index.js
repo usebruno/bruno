@@ -121,7 +121,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
+  let proxyEnabled = get(proxyConfig, 'use', false);
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
@@ -172,6 +172,20 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   request.timeout = preferencesUtil.getRequestTimeout();
 
   return axiosInstance;
+};
+
+const parseDataFromResponse = (response) => {
+  const dataBuffer = Buffer.from(response.data);
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  // Overwrite the original data for backwards compatability
+  let data = dataBuffer.toString(charset || 'utf-8');
+  // Try to parse response to JSON, this can quitly fail
+  try {
+    data = JSON.parse(response.data);
+  } catch {}
+
+  return { data, dataBuffer };
 };
 
 const registerNetworkIpc = (mainWindow) => {
@@ -336,6 +350,9 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
+      const { data, dataBuffer } = parseDataFromResponse(response);
+      response.data = data;
+
       // run post-response vars
       const postResponseVars = get(request, 'vars.res', []);
       if (postResponseVars?.length) {
@@ -448,6 +465,8 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
+        dataBuffer: dataBuffer.toString('base64'),
+        size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0
       };
     } catch (error) {
@@ -674,6 +693,9 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
+              const { data, dataBuffer } = parseDataFromResponse(response);
+              response.data = data;
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
@@ -681,20 +703,25 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: response.statusText,
                   headers: Object.entries(response.headers),
                   duration: timeEnd - timeStart,
-                  size: response.headers['content-length'] || getSize(response.data),
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
                   data: response.data
                 },
                 ...eventData
               });
             } catch (error) {
               if (error?.response) {
+                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                error.response.data = data;
+
                 timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: Object.entries(error.response.headers),
                   duration: timeEnd - timeStart,
-                  size: error.response.headers['content-length'] || getSize(error.response.data),
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
                   data: error.response.data
                 };
 
