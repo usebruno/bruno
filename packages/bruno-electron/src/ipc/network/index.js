@@ -866,7 +866,7 @@ const registerNetworkIpc = (mainWindow) => {
           }
           if (nextRequestName) {
             const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
-            if (nextRequestIdx > 0) {
+            if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;
             } else {
               console.error("Could not find request with name '" + nextRequestName + "'");

@@ -373,7 +373,7 @@ const handler = async function (argv) {
       const nextRequestName = result?.nextRequestName;
       if (nextRequestName) {
         const nextRequestIdx = bruJsons.findIndex((iter) => iter.bruJson.name === nextRequestName);
-        if (nextRequestIdx > 0) {
+        if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
         } else {
           console.error("Could not find request with name '" + nextRequestName + "'");
