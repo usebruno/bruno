@@ -14,7 +14,7 @@ jobs:
     runs-on: macos-latest
 
     steps:
-      - name: Check out Git repository
+      - name: Check out
         uses: actions/checkout@v4
 
       - name: Install Node.js
@@ -34,65 +34,53 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-      # - name: Upload the package to the release
+      # - name: Upload x64 mac dmg
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
       #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg
 
-  # win-package:
-  #   runs-on: windows-latest
+      # - name: Upload x64 mac zip
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.zip
 
-  #   steps:
-  #     - name: Check out Git repository
-  #       uses: actions/checkout@v4
+      # - name: Upload arm64 mac dmg
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_arm64_mac.dmg
 
-  #     - name: Install Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version-file: '.nvmrc'
+      # - name: Upload arm64 mac zip
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_arm64_mac.zip
 
-  #     - name: Install dependencies
-  #       run: npm ci --legacy-peer-deps
+  win-package:
+    runs-on: windows-latest
 
-  #     - name: Build Electron app
-  #       run: npm run build:electron:win
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
 
-  #     - name: List build
-  #       run: ls -la packages/bruno-electron/out
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
 
-  #     - name: Extract version
-  #       run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
-  #     - name: Upload the package to the release
-  #       uses: shogo82148/actions-upload-release-asset@v1
-  #       with:
-  #         upload_url: ${{ github.event.release.upload_url }}
-  #         asset_path:
+      - name: Build Electron app
+        run: npm run build:electron:win
 
-  # linux-package:
-  #   runs-on: ubuntu-latest
+      - name: List build
+        run: ls -la packages/bruno-electron/out
 
-  #   steps:
-  #     - name: Check out Git repository
-  #       uses: actions/checkout@v4
-
-  #     - name: Install Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version-file: '.nvmrc'
-
-  #     - name: Install dependencies
-  #       run: npm ci --legacy-peer-deps
-
-  #     - name: Build Electron app
-  #       run: npm run build:electron:linux
-
-  #     - name: List build
-  #       run: ls -la packages/bruno-electron/out
-
-  #     - name: Extract version
-  #       run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+      - name: Extract version
+        run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
   #     - name: Upload the package to the release
   #       uses: shogo82148/actions-upload-release-asset@v1
@@ -100,29 +88,29 @@ jobs:
   #         upload_url: ${{ github.event.release.upload_url }}
   #         asset_path:
 
-  # deb-package:
-  #   runs-on: ubuntu-latest
+  linux-package:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Check out Git repository
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
 
-  #     - name: Install Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version-file: '.nvmrc'
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
 
-  #     - name: Install dependencies
-  #       run: npm ci --legacy-peer-deps
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
 
-  #     - name: Build Electron app
-  #       run: npm run build:electron:deb
+      - name: Build Electron app
+        run: npm run build:electron:linux
 
-  #     - name: List build
-  #       run: ls -la packages/bruno-electron/out
+      - name: List build
+        run: ls -la packages/bruno-electron/out
 
-  #     - name: Extract version
-  #       run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+      - name: Extract version
+        run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
   #     - name: Upload the package to the release
   #       uses: shogo82148/actions-upload-release-asset@v1
@@ -130,29 +118,59 @@ jobs:
   #         upload_url: ${{ github.event.release.upload_url }}
   #         asset_path:
 
-  # rpm-package:
-  #   runs-on: ubuntu-latest
+  deb-package:
+    runs-on: ubuntu-latest
 
-  #   steps:
-  #     - name: Check out Git repository
-  #       uses: actions/checkout@v4
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
 
-  #     - name: Install Node.js
-  #       uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build Electron app
+        run: npm run build:electron:deb
+
+      - name: List build
+        run: ls -la packages/bruno-electron/out
+
+      - name: Extract version
+        run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+
+  #     - name: Upload the package to the release
+  #       uses: shogo82148/actions-upload-release-asset@v1
   #       with:
-  #         node-version-file: '.nvmrc'
+  #         upload_url: ${{ github.event.release.upload_url }}
+  #         asset_path:
 
-  #     - name: Install dependencies
-  #       run: npm ci --legacy-peer-deps
+  rpm-package:
+    runs-on: ubuntu-latest
 
-  #     - name: Build Electron app
-  #       run: npm run build:electron:rpm
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
 
-  #     - name: List build
-  #       run: ls -la packages/bruno-electron/out
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
 
-  #     - name: Extract version
-  #       run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build Electron app
+        run: npm run build:electron:rpm
+
+      - name: List build
+        run: ls -la packages/bruno-electron/out
+
+      - name: Extract version
+        run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
   #     - name: Upload the package to the release
   #       uses: shogo82148/actions-upload-release-asset@v1
