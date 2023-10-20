@@ -35,6 +35,7 @@ const CreateCollection = ({ onClose }) => {
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
         .then(() => {
           toast.success('Collection created');
+          localStorage.setItem('collection_path', values.collectionLocation);
           onClose();
         })
         .catch(() => toast.error('An error occurred while creating the collection'));
@@ -60,6 +61,13 @@ const CreateCollection = ({ onClose }) => {
       inputRef.current.focus();
     }
   }, [inputRef]);
+
+  useEffect(() => {
+    const collectionPath = localStorage.getItem('collection_path');
+    if (collectionPath) {
+      formik.setFieldValue('collectionLocation', collectionPath);
+    }
+  }, []);
 
   const onSubmit = () => formik.handleSubmit();
 
