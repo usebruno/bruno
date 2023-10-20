@@ -264,6 +264,69 @@ const registerNetworkIpc = (mainWindow) => {
     }
   };
 
+  const runPostResponse = async (
+    request,
+    response,
+    requestUid,
+    envVars,
+    collectionPath,
+    collectionRoot,
+    collectionUid,
+    collectionVariables,
+    processEnvVars,
+    scriptingConfig
+  ) => {
+    // run post-response vars
+    const postResponseVars = get(request, 'vars.res', []);
+    if (postResponseVars?.length) {
+      const varsRuntime = new VarsRuntime();
+      const result = varsRuntime.runPostResponseVars(
+        postResponseVars,
+        request,
+        response,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        processEnvVars
+      );
+
+      if (result) {
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+    }
+
+    // run post-response script
+    const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
+      os.EOL
+    );
+    if (responseScript?.length) {
+      const scriptRuntime = new ScriptRuntime();
+      const result = await scriptRuntime.runResponseScript(
+        decomment(responseScript),
+        request,
+        response,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        collectionVariables: result.collectionVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+  };
+
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
     const collectionUid = collection.uid;
@@ -365,55 +428,18 @@ const registerNetworkIpc = (mainWindow) => {
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
 
-      // run post-response vars
-      const postResponseVars = get(request, 'vars.res', []);
-      if (postResponseVars?.length) {
-        const varsRuntime = new VarsRuntime();
-        const result = varsRuntime.runPostResponseVars(
-          postResponseVars,
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
-
-        if (result) {
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-      }
-
-      // run post-response script
-      const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
-        os.EOL
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
       );
-      if (responseScript?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runResponseScript(
-          decomment(responseScript),
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
-
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -712,54 +738,18 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // run post-response vars
-            const postResponseVars = get(request, 'vars.res', []);
-            if (postResponseVars?.length) {
-              const varsRuntime = new VarsRuntime();
-              const result = varsRuntime.runPostResponseVars(
-                postResponseVars,
-                request,
-                response,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                processEnvVars
-              );
-
-              if (result) {
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: result.envVariables,
-                  collectionVariables: result.collectionVariables,
-                  collectionUid
-                });
-              }
-            }
-
-            // run response script
-            const responseScript = compact([
-              get(collectionRoot, 'request.script.res'),
-              get(request, 'script.res')
-            ]).join(os.EOL);
-            if (responseScript && responseScript.length) {
-              const scriptRuntime = new ScriptRuntime();
-              const result = await scriptRuntime.runResponseScript(
-                decomment(responseScript),
-                request,
-                response,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig
-              );
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: result.envVariables,
-                collectionVariables: result.collectionVariables,
-                collectionUid
-              });
-            }
+            await runPostResponse(
+              request,
+              response,
+              requestUid,
+              envVars,
+              collectionPath,
+              collectionRoot,
+              collectionUid,
+              collectionVariables,
+              processEnvVars,
+              scriptingConfig
+            );
 
             // run assertions
             const assertions = get(item, 'request.assertions');
