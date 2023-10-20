@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader, moveRequestHeader } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';

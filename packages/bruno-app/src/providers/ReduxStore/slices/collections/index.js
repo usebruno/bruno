@@ -785,6 +785,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    setRequestHeaders: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.headers = map(action.payload.headers, (header) => ({
+            uid: uuid(),
+            name: header.name,
+            value: header.value,
+            description: '',
+            enabled: true
+          }));
+        }
+      }
+    },
     addFormUrlEncodedParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -2281,6 +2301,7 @@ export const {
   updateRequestHeader,
   deleteRequestHeader,
   moveRequestHeader,
+  setRequestHeaders,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,

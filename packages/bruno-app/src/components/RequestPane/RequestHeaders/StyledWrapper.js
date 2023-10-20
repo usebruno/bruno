@@ -22,8 +22,18 @@ const Wrapper = styled.div`
       }
   }
 
-  .btn-add-header {
+  .top-controls {
+    display: flex;
+    justify-content: right;
     font-size: 0.8125rem;
+  }
+
+  .bottom-controls {
+    font-size: 0.8125rem;
+  }
+
+  div.CodeMirror {
+    height: 100%;
   }
 
   input[type='text'] {
