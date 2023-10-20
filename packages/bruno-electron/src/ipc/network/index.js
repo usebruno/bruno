@@ -121,7 +121,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', false);
+  let proxyEnabled = get(proxyConfig, 'use', false);
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);

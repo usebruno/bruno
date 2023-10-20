@@ -7,17 +7,17 @@ import toast from 'react-hot-toast';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {
   const proxySchema = Yup.object({
-    enabled: Yup.string().oneOf(['global', 'true', 'false']),
+    use: Yup.string().oneOf(['global', 'true', 'false']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
-      .when('enabled', {
+      .when('use', {
         is: true,
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
       .max(1024),
     port: Yup.number()
-      .when('enabled', {
+      .when('use', {
         is: true,
         then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
         otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
@@ -49,7 +49,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   const formik = useFormik({
     initialValues: {
-      enabled: proxyConfig.enabled || 'global',
+      use: proxyConfig.use || 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -66,10 +66,10 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         .validate(values, { abortEarly: true })
         .then((validatedProxy) => {
           // serialize 'use' to boolean
-          if (validatedProxy.enabled === 'true') {
-            validatedProxy.enabled = true;
-          } else if (validatedProxy.enabled === 'false') {
-            validatedProxy.enabled = false;
+          if (validatedProxy.use === 'true') {
+            validatedProxy.use = true;
+          } else if (validatedProxy.use === 'false') {
+            validatedProxy.use = false;
           }
 
           onUpdate(validatedProxy);
@@ -83,7 +83,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   useEffect(() => {
     formik.setValues({
-      enabled: proxyConfig.enabled === true ? 'true' : proxyConfig.enabled === false ? 'false' : 'global',
+      use: proxyConfig.use === true ? 'true' : proxyConfig.use === false ? 'false' : 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -120,9 +120,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center">
               <input
                 type="radio"
-                name="enabled"
+                name="use"
                 value="global"
-                checked={formik.values.enabled === 'global'}
+                checked={formik.values.use === 'global'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -131,9 +131,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
+                name="use"
                 value={'true'}
-                checked={formik.values.enabled === 'true'}
+                checked={formik.values.use === 'true'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -142,9 +142,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="enabled"
+                name="use"
                 value={'false'}
-                checked={formik.values.enabled === 'false'}
+                checked={formik.values.use === 'false'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
