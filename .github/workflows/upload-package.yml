@@ -35,9 +35,6 @@ jobs:
       - name: Extract version
         run: jq -r '"VERSION=\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
-      - name: Debug artifact
-        run: echo "packages/bruno-electron/out/bruno_${VERSION/v/}_x64_mac.dmg"
-
       # - name: Upload x64 mac dmg
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
