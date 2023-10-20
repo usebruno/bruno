@@ -189,21 +189,87 @@ const parseDataFromResponse = (response) => {
 };
 
 const registerNetworkIpc = (mainWindow) => {
+  const onConsoleLog = (type, args) => {
+    console[type](...args);
+
+    mainWindow.webContents.send('main:console-log', {
+      type,
+      args
+    });
+  };
+
+  const runPreRequest = async (
+    request,
+    requestUid,
+    envVars,
+    collectionPath,
+    collectionRoot,
+    collectionUid,
+    collectionVariables,
+    processEnvVars,
+    scriptingConfig
+  ) => {
+    // run pre-request vars
+    const preRequestVars = get(request, 'vars.req', []);
+    if (preRequestVars?.length) {
+      const varsRuntime = new VarsRuntime();
+      const result = varsRuntime.runPreRequestVars(
+        preRequestVars,
+        request,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        processEnvVars
+      );
+
+      if (result) {
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+    }
+
+    // run pre-request script
+    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    if (requestScript?.length) {
+      const scriptRuntime = new ScriptRuntime();
+      const result = await scriptRuntime.runRequestScript(
+        decomment(requestScript),
+        request,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        collectionVariables: result.collectionVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+
+    // interpolate variables inside request
+    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+
+    // stringify the request url encoded params
+    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data);
+    }
+  };
+
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
-
-    const onConsoleLog = (type, args) => {
-      console[type](...args);
-
-      mainWindow.webContents.send('main:console-log', {
-        type,
-        args
-      });
-    };
 
     mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
@@ -222,75 +288,21 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     try {
-      // make axios work in node using form data
-      // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-      if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-        const form = new FormData();
-        forOwn(request.data, (value, key) => {
-          form.append(key, value);
-        });
-        extend(request.headers, form.getHeaders());
-        request.data = form;
-      }
-
       const cancelToken = axios.CancelToken.source();
       request.cancelToken = cancelToken.token;
       saveCancelToken(cancelTokenUid, cancelToken);
 
-      // run pre-request vars
-      const preRequestVars = get(request, 'vars.req', []);
-      if (preRequestVars?.length) {
-        const varsRuntime = new VarsRuntime();
-        const result = varsRuntime.runPreRequestVars(
-          preRequestVars,
-          request,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
-
-        if (result) {
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-      }
-
-      // run pre-request script
-      const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
-        os.EOL
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
       );
-      if (requestScript?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runRequestScript(
-          decomment(requestScript),
-          request,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
-
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
-
-      interpolateVars(request, envVars, collectionVariables, processEnvVars);
-
-      // stringify the request url encoded params
-      if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-        request.data = qs.stringify(request.data);
-      }
 
       // todo:
       // i have no clue why electron can't send the request object
@@ -544,15 +556,6 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
 
-      const onConsoleLog = (type, args) => {
-        console[type](...args);
-
-        mainWindow.webContents.send('main:console-log', {
-          type,
-          args
-        });
-      };
-
       if (!folder) {
         folder = collection;
       }
@@ -602,67 +605,21 @@ const registerNetworkIpc = (mainWindow) => {
 
           const _request = item.draft ? item.draft.request : item.request;
           const request = prepareRequest(_request, collectionRoot);
+          const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            // make axios work in node using form data
-            // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-            if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-              const form = new FormData();
-              forOwn(request.data, (value, key) => {
-                form.append(key, value);
-              });
-              extend(request.headers, form.getHeaders());
-              request.data = form;
-            }
-
-            // run pre-request vars
-            const preRequestVars = get(request, 'vars.req', []);
-            if (preRequestVars && preRequestVars.length) {
-              const varsRuntime = new VarsRuntime();
-              const result = varsRuntime.runPreRequestVars(
-                preRequestVars,
-                request,
-                envVars,
-                collectionVariables,
-                collectionPath
-              );
-
-              if (result) {
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: result.envVariables,
-                  collectionVariables: result.collectionVariables,
-                  collectionUid
-                });
-              }
-            }
-
-            // run pre-request script
-            const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
-              os.EOL
+            await runPreRequest(
+              request,
+              requestUid,
+              envVars,
+              collectionPath,
+              collectionRoot,
+              collectionUid,
+              collectionVariables,
+              processEnvVars,
+              scriptingConfig
             );
-            if (requestScript?.length) {
-              const scriptRuntime = new ScriptRuntime();
-              const result = await scriptRuntime.runRequestScript(
-                decomment(requestScript),
-                request,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig
-              );
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: result.envVariables,
-                collectionVariables: result.collectionVariables,
-                collectionUid
-              });
-            }
-
-            // interpolate variables inside request
-            interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
             // todo:
             // i have no clue why electron can't send the request object
