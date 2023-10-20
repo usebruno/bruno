@@ -8,6 +8,14 @@ import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
 import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
+import head from 'lodash/head';
+import flow from 'lodash/flow';
+import countBy from 'lodash/countBy';
+import maxBy from 'lodash/maxBy';
+import last from 'lodash/last';
+import partialRight from 'lodash/partialRight';
+import entries from 'lodash/entries';
+
 import { uuid } from 'utils/common';
 import path from 'path';
 
@@ -603,4 +611,25 @@ export const getAllVariables = (collection) => {
       }
     }
   };
+};
+
+export const getRequestsUrlsFromItems = (items) => {
+  const urls = [];
+  each(items, (item) => {
+    if (isItemARequest(item) && item['request']?.url) {
+      urls.push(item['request']?.url);
+    } else if (isItemAFolder(item)) {
+      urls.push(...(getRequestsUrlsFromItems(item.items) || []));
+    }
+  });
+
+  return urls;
+};
+
+export const getMostCommonUrlFromCollection = (collection) => {
+  const urls = getRequestsUrlsFromItems(collection.items);
+
+  if (urls && urls.length) {
+    return flow(countBy, entries, partialRight(maxBy, last), head)(urls);
+  } else return '';
 };

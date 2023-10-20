@@ -11,16 +11,18 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import { getMostCommonUrlFromCollection } from 'utils/collections/index';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const commonUrl = getMostCommonUrlFromCollection(collection);
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
       requestType: 'http-request',
-      requestUrl: '',
+      requestUrl: commonUrl,
       requestMethod: 'GET'
     },
     validationSchema: Yup.object({
