@@ -1,16 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,
   moveQueryParam,
-  updatePathParam
+  updatePathParam,
+  setQueryParams
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -18,13 +19,22 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
+import CodeEditor from 'components/CodeEditor';
+import { parseBulkKeyValue, serializeBulkKeyValue } from '../../../utils/common/editor';
+
+const parseBulkQueryParams = (value) =>
+  parseBulkKeyValue(value).map((item) => ({ ...item, type: 'query' }));
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
+  
+  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   const handleAddQueryParam = () => {
     dispatch(
@@ -113,6 +123,40 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const handleBulkEdit = (value) => {
+    setBulkText(value);
+    const parsed = parseBulkQueryParams(value);
+    dispatch(setQueryParams({ collectionUid: collection.uid, itemUid: item.uid, params: parsed }));
+  };
+
+  const toggleBulkEdit = () => {
+    if (!bulkEdit) {
+      setBulkText(serializeBulkKeyValue(queryParams));
+    }
+    setBulkEdit(!bulkEdit);
+  };
+
+  if (bulkEdit) {
+    return (
+      <StyledWrapper className="w-full mt-3">
+        <div className="h-[200px]">
+          <CodeEditor
+            mode="text/plain"
+            theme={displayedTheme}
+            font={preferences.codeFont || 'default'}
+            value={bulkText}
+            onEdit={handleBulkEdit}
+          />
+        </div>
+        <div className="flex btn-action justify-between items-center mt-3">
+          <button className="text-link select-none ml-auto" onClick={toggleBulkEdit}>
+            Key/Value Edit
+          </button>
+        </div>
+      </StyledWrapper>
+    );
+  }
+
   return (
     <StyledWrapper className="w-full flex flex-col absolute">
       <div className="flex-1 mt-2">
@@ -143,7 +187,7 @@ const QueryParams = ({ item, collection }) => {
                     <td>
                       <SingleLineEditor
                         value={param.value}
-                        theme={storedTheme}
+                        theme={displayedTheme}
                         onSave={onSave}
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
@@ -171,9 +215,14 @@ const QueryParams = ({ item, collection }) => {
           </ReorderTable>
         </Table>
 
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
-          +&nbsp;<span>Add Param</span>
-        </button>
+        <div className="flex justify-between mt-2">
+          <button className="btn-action text-link pr-2 py-3 select-none" onClick={handleAddQueryParam}>
+            +&nbsp;<span>Add Param</span>
+          </button>
+          <button className="btn-action text-link select-none" onClick={toggleBulkEdit}>
+            Bulk Edit
+          </button>
+        </div>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
           <InfoTip infotipId="path-param-InfoTip">
@@ -214,7 +263,7 @@ const QueryParams = ({ item, collection }) => {
                       <td>
                         <SingleLineEditor
                           value={path.value}
-                          theme={storedTheme}
+                          theme={displayedTheme}
                           onSave={onSave}
                           onChange={(newValue) =>
                             handlePathParamChange(
@@ -242,4 +291,5 @@ const QueryParams = ({ item, collection }) => {
     </StyledWrapper>
   );
 };
+
 export default QueryParams;
