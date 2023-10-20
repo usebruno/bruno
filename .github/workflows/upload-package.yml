@@ -21,6 +21,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -32,37 +33,34 @@ jobs:
         run: ls -la packages/bruno-electron/out
 
       - name: Extract version
-        run: jq -r '"VERSION=v\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
+        run: jq -r '"VERSION=\(.version)"' packages/bruno-electron/package.json >> "$GITHUB_ENV"
 
       - name: Debug artifact
-        run: echo "packages/bruno-electron/out/bruno_$VERSION_x64_mac.dmg"
+        run: echo "packages/bruno-electron/out/bruno_${VERSION/v/}_x64_mac.dmg"
 
-      - name: Debug artifact
-        run: echo "packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg"
-
-      - name: Upload x64 mac dmg
-        uses: shogo82148/actions-upload-release-asset@v1
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.dmg
+      # - name: Upload x64 mac dmg
+      #   uses: shogo82148/actions-upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ github.event.release.upload_url }}
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x64_mac.dmg
 
       # - name: Upload x64 mac zip
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_mac.zip
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x64_mac.zip
 
       # - name: Upload arm64 mac dmg
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_arm64_mac.dmg
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_arm64_mac.dmg
 
       # - name: Upload arm64 mac zip
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_arm64_mac.zip
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_arm64_mac.zip
 
   win-package:
     runs-on: windows-latest
@@ -75,6 +73,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -92,13 +91,13 @@ jobs:
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_win.zip
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x64_win.zip
 
       # - name: Upload win exe
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x64_win.exe
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x64_win.exe
 
   linux-package:
     runs-on: ubuntu-latest
@@ -111,6 +110,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -128,7 +128,7 @@ jobs:
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x86_64_linux.AppImage
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x86_64_linux.AppImage
 
   deb-package:
     runs-on: ubuntu-latest
@@ -141,6 +141,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -158,7 +159,7 @@ jobs:
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_amd64_linux.deb
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_amd64_linux.deb
 
   rpm-package:
     runs-on: ubuntu-latest
@@ -171,6 +172,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          cache: npm
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -188,4 +190,4 @@ jobs:
       #   uses: shogo82148/actions-upload-release-asset@v1
       #   with:
       #     upload_url: ${{ github.event.release.upload_url }}
-      #     asset_path: packages/bruno-electron/out/bruno_${VERSION}_x86_64_linux.rpm
+      #     asset_path: packages/bruno-electron/out/bruno_${VERSION/v/}_x86_64_linux.rpm
