@@ -514,8 +514,25 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      const processEnvVars = getProcessEnvVars(collection.uid);
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      const requestUid = uuid();
+      const collectionPath = collection.pathname;
+      const collectionUid = collection.uid;
+      const collectionVariables = collection.collectionVariables;
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collection.uid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
 
       const axiosInstance = await configureRequest(
         collection.uid,
