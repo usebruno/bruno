@@ -17,10 +17,8 @@ const lastOpenedCollections = new LastOpenedCollections();
 const contentSecurityPolicy = [
   isDev ? "default-src 'self' 'unsafe-inline' 'unsafe-eval'" : "default-src 'self'",
   "connect-src 'self' https://api.github.com/repos/usebruno/bruno",
-  "font-src 'self' https://fonts.gstatic.com",
   "form-action 'none'",
-  "img-src 'self' blob: data:",
-  "style-src 'self' https://fonts.googleapis.com"
+  "img-src 'self' blob: data:"
 ];
 
 setContentSecurityPolicy(contentSecurityPolicy.join(';'));
