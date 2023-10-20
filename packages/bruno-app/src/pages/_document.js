@@ -30,6 +30,7 @@ export default class MyDocument extends Document {
   render() {
     return (
       <Html>
+        <Head />
         <body id="bruno-app-body">
           <Main />
           <NextScript />
