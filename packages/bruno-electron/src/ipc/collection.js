@@ -94,6 +94,28 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // update collection properties
+  ipcMain.handle('renderer:update-collection-properties', async (event, newProperties, collectionPathname) => {
+    try {
+      const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
+      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+      const json = JSON.parse(content);
+
+      json.properties = newProperties;
+
+      const newContent = await stringifyJson(json);
+      await writeFile(brunoJsonFilePath, newContent);
+
+      // fire an event in renderer to change the collection properties
+      mainWindow.webContents.send('main:collection-properties-updated', {
+        collectionPathname,
+        newProperties
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');

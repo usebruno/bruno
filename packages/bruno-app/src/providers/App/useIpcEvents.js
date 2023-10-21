@@ -18,6 +18,7 @@ import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
+import { collectionPropertiesUpdatedEvent } from 'providers/ReduxStore/slices/collections/index';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -107,6 +108,10 @@ const useIpcEvents = () => {
       dispatch(collectionRenamedEvent(val));
     });
 
+    const removeCollectionPropertiesUpdatedListener = ipcRenderer.on('main:collection-properties-updated', (val) => {
+      dispatch(collectionPropertiesUpdatedEvent(val));
+    });
+
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
       dispatch(runFolderEvent(val));
     });
@@ -138,6 +143,7 @@ const useIpcEvents = () => {
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeCollectionRenamedListener();
+      removeCollectionPropertiesUpdatedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();

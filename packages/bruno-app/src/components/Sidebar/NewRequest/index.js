@@ -15,12 +15,15 @@ import StyledWrapper from './StyledWrapper';
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const {
+    brunoConfig: { properties: collectionProperties = {} }
+  } = collection;
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: 'http-request',
-      requestUrl: '',
+      requestType: collectionProperties.defaultType || 'http-request',
+      requestUrl: collectionProperties.defaultUrl || '',
       requestMethod: 'GET'
     },
     validationSchema: Yup.object({

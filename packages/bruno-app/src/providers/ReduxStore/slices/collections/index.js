@@ -1224,6 +1224,14 @@ export const collectionsSlice = createSlice({
         collection.name = newName;
       }
     },
+    collectionPropertiesUpdatedEvent: (state, action) => {
+      const { collectionPathname, newProperties } = action.payload;
+      const collection = findCollectionByPathname(state.collections, collectionPathname);
+
+      if (collection) {
+        collection.properties = newProperties;
+      }
+    },
     resetRunResults: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1427,6 +1435,7 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
+  collectionPropertiesUpdatedEvent,
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
