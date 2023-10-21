@@ -1,4 +1,5 @@
 const parseUrl = require('url').parse;
+const { isEmpty } = require('lodash');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -9,7 +10,7 @@ const DEFAULT_PORTS = {
   wss: 443
 };
 /**
- * check for proxy bypass, Copied form 'proxy-from-env'
+ * check for proxy bypass, copied form 'proxy-from-env'
  */
 const shouldUseProxy = (url, proxyBypass) => {
   if (proxyBypass === '*') {
@@ -39,7 +40,6 @@ const shouldUseProxy = (url, proxyBypass) => {
     if (!dontProxyFor) {
       return true; // Skip zero-length hosts.
     }
-
     const parsedProxy = dontProxyFor.match(/^(.+):(\d+)$/);
     let parsedProxyHostname = parsedProxy ? parsedProxy[1] : dontProxyFor;
     const parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2]) : 0;
