@@ -7,17 +7,19 @@ import { createCollection } from 'providers/ReduxStore/slices/collections/action
 import toast from 'react-hot-toast';
 import Tooltip from 'components/Tooltip';
 import Modal from 'components/Modal';
+import useLocalStorage from 'hooks/useLocalStorage/index';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();
   const dispatch = useDispatch();
+  const [defaultCollectionPath, setDefaultCollectionPath] = useLocalStorage('bruno.default.collection.path', '');
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       collectionName: '',
       collectionFolderName: '',
-      collectionLocation: ''
+      collectionLocation: defaultCollectionPath
     },
     validationSchema: Yup.object({
       collectionName: Yup.string()
@@ -32,10 +34,10 @@ const CreateCollection = ({ onClose }) => {
       collectionLocation: Yup.string().min(1, 'location is required').required('location is required')
     }),
     onSubmit: (values) => {
+      setDefaultCollectionPath(values.collectionLocation);
       dispatch(createCollection(values.collectionName, values.collectionFolderName, values.collectionLocation))
         .then(() => {
           toast.success('Collection created');
-          localStorage.setItem('collection_path', values.collectionLocation);
           onClose();
         })
         .catch(() => toast.error('An error occurred while creating the collection'));
@@ -45,7 +47,7 @@ const CreateCollection = ({ onClose }) => {
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
+        // When the user closes the dialog without selecting anything dirPath will be false
         if (typeof dirPath === 'string') {
           formik.setFieldValue('collectionLocation', dirPath);
         }
@@ -61,13 +63,6 @@ const CreateCollection = ({ onClose }) => {
       inputRef.current.focus();
     }
   }, [inputRef]);
-
-  useEffect(() => {
-    const collectionPath = localStorage.getItem('collection_path');
-    if (collectionPath) {
-      formik.setFieldValue('collectionLocation', collectionPath);
-    }
-  }, []);
 
   const onSubmit = () => formik.handleSubmit();
 
