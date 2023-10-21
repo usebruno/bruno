@@ -20,7 +20,7 @@ const defaultPreferences = {
     enabled: false,
     protocol: 'http',
     hostname: '',
-    port: '',
+    port: null,
     auth: {
       enabled: false,
       username: '',
