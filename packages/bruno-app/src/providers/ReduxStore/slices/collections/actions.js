@@ -47,7 +47,7 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { each } from 'lodash';
 
-export const updateCollectionProperties = (newProperties, collectionUid) => (dispatch, getState) => {
+export const updateCollectionPresets = (newPresets, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -57,7 +57,7 @@ export const updateCollectionProperties = (newProperties, collectionUid) => (dis
     }
 
     ipcRenderer
-      .invoke('renderer:update-collection-properties', newProperties, collection.pathname)
+      .invoke('renderer:update-collection-presets', newPresets, collection.pathname)
       .then(resolve)
       .catch(reject);
   });

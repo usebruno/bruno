@@ -95,21 +95,21 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // update collection properties
-  ipcMain.handle('renderer:update-collection-properties', async (event, newProperties, collectionPathname) => {
+  ipcMain.handle('renderer:update-collection-presets', async (event, newPresets, collectionPathname) => {
     try {
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
       const json = JSON.parse(content);
 
-      json.properties = newProperties;
+      json.presets = newPresets;
 
       const newContent = await stringifyJson(json);
       await writeFile(brunoJsonFilePath, newContent);
 
       // fire an event in renderer to change the collection properties
-      mainWindow.webContents.send('main:collection-properties-updated', {
+      mainWindow.webContents.send('main:collection-presets-updated', {
         collectionPathname,
-        newProperties
+        newPresets
       });
     } catch (error) {
       return Promise.reject(error);

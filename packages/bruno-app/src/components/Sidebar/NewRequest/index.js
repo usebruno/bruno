@@ -16,14 +16,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
   const {
-    brunoConfig: { properties: collectionProperties = {} }
+    brunoConfig: { presets: collectionPresets = {} }
   } = collection;
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: collectionProperties.defaultType || 'http-request',
-      requestUrl: collectionProperties.defaultUrl || '',
+      requestType: collectionPresets.defaultType || 'http-request',
+      requestUrl: collectionPresets.defaultRequestUrl || '',
       requestMethod: 'GET'
     },
     validationSchema: Yup.object({
