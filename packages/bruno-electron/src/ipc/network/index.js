@@ -19,12 +19,11 @@ const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy } = require('../../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -149,7 +148,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
       request.httpsAgent = socksProxyAgent;
       request.httpAgent = socksProxyAgent;
     } else {
-      request.httpsAgent = new HttpsProxyAgent(
+      request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
         Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
       );
