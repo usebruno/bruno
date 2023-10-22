@@ -1,0 +1,17 @@
+{
+  "name": "bruno",
+  "dockerFile": "Dockerfile",
+  "build": {
+    "args": { "NODE_MAJOR_VERSION": "18" }
+  },
+  "capAdd": ["SYS_ADMIN"], // needed for electron SUID (https://github.com/electron/electron/issues/17972)
+  "postCreateCommand": [".devcontainer/post-create.sh"],
+  "portsAttributes": {
+    "3000": { "label": "Bruno Web" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["bradlc.vscode-tailwindcss", "dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+    }
+  }
+}
