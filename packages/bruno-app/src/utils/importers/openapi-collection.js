@@ -1,3 +1,4 @@
+import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
@@ -8,7 +9,22 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } fr
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
+    fileReader.onload = (e) => {
+      try {
+        // try to load JSON
+        const parsedData = JSON.parse(e.target.result);
+        resolve(parsedData);
+      } catch (jsonError) {
+        // not a valid JSOn, try yaml
+        try {
+          const parsedData = jsyaml.load(e.target.result);
+          resolve(parsedData);
+        } catch (yamlError) {
+          console.error('Erreur de parsing du fichier :', jsonError, yamlError);
+          reject(new BrunoError('Import collection failed'));
+        }
+      }
+    };
     fileReader.onerror = (err) => reject(err);
     fileReader.readAsText(files[0]);
   });
@@ -270,7 +286,7 @@ const getSecurity = (apiSpec) => {
   };
 };
 
-const parseOpenapiCollection = (data) => {
+const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
@@ -281,7 +297,7 @@ const parseOpenapiCollection = (data) => {
 
   return new Promise((resolve, reject) => {
     try {
-      const collectionData = resolveRefs(JSON.parse(data));
+      const collectionData = resolveRefs(data);
       if (!collectionData) {
         reject(new BrunoError('Invalid OpenAPI collection. Failed to resolve refs.'));
         return;
@@ -341,9 +357,9 @@ const parseOpenapiCollection = (data) => {
 
 const importCollection = () => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
+    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
       .then(readFile)
-      .then(parseOpenapiCollection)
+      .then(parseOpenApiCollection)
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
