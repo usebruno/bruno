@@ -13,9 +13,11 @@ const Wrapper = styled.div`
       padding: 4px 10px;
 
       &:nth-child(1),
-      &:nth-child(4),
-      &:nth-child(5) {
+      &:nth-child(4) {
         width: 70px;
+      }
+      &:nth-child(5) {
+        width: 40px;
       }
 
       &:nth-child(2) {
