@@ -54,6 +54,10 @@ Woof! If you like project, hit that ⭐ button !!
 
 If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
 
+### Publishing to New Package Managers
+
+Please see [here](publishing.md) for more information.
+
 ### Contribute 👩‍💻🧑‍💻
 
 I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
