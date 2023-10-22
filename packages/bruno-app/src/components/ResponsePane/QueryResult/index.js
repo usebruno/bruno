@@ -35,7 +35,7 @@ const formatResponse = (data, mode) => {
   return safeStringifyJSON(data);
 };
 
-const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType);
   const formattedData = formatResponse(data, mode);
@@ -90,7 +90,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
         <QueryResultPreview
           previewTab={previewTab}
           data={data}
-          dataBuffer={item.response.dataBuffer}
+          dataBuffer={dataBuffer}
           formattedData={formattedData}
           item={item}
           contentType={contentType}

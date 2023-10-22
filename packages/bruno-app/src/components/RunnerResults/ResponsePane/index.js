@@ -34,6 +34,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             width={rightPaneWidth}
             disableRunEventListener={true}
             data={responseReceived.data}
+            dataBuffer={responseReceived.dataBuffer}
             headers={responseReceived.headers}
             key={item.filename}
           />
