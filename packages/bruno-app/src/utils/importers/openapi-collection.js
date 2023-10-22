@@ -20,7 +20,7 @@ const readFile = (files) => {
           const parsedData = jsyaml.load(e.target.result);
           resolve(parsedData);
         } catch (yamlError) {
-          console.error('Erreur de parsing du fichier :', jsonError, yamlError);
+          console.error('Error parsing the file :', jsonError, yamlError);
           reject(new BrunoError('Import collection failed'));
         }
       }
