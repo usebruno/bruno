@@ -38,6 +38,7 @@ Or any version control system of your choice
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
 - [Documentation](https://docs.usebruno.com)
 - [Website](https://www.usebruno.com)
+- [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
 
 ### Showcase 🎥
@@ -78,6 +79,16 @@ Even if you are not able to make contributions via code, please don't hesitate t
 [Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
+
+### Trademark
+
+**Name**
+
+`Bruno` is a trademark held by [Anoop M D](https://www.helloanoop.com/)
+
+**Logo**
+
+The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### License 📄
 
