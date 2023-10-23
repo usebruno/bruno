@@ -53,9 +53,15 @@ const buildEmptyJsonBody = (bodySchema) => {
 
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
+
+  let operationName = _operationObject.operationId || _operationObject.summary || _operationObject.description;
+  if (!operationName) {
+    operationName = `${request.method} ${request.path}`;
+  }
+
   const brunoRequestItem = {
     uid: uuid(),
-    name: _operationObject.operationId,
+    name: operationName,
     type: 'http-request',
     request: {
       url: ensureUrl(request.global.server + '/' + request.path),
@@ -100,7 +106,7 @@ const transformOpenapiRequestItem = (request) => {
 
   let auth;
   // allow operation override
-  if (_operationObject.security) {
+  if (_operationObject.security && _operationObject.security.length > 0) {
     let schemeName = Object.keys(_operationObject.security[0])[0];
     auth = request.global.security.getScheme(schemeName);
   } else if (request.global.security.supported.length > 0) {
@@ -320,17 +326,21 @@ const parseOpenApiCollection = (data) => {
 
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
-          return Object.entries(methods).map(([method, operationObject]) => {
-            return {
-              method: method,
-              path: path,
-              operationObject: operationObject,
-              global: {
-                server: baseUrl,
-                security: securityConfig
-              }
-            };
-          });
+          return Object.entries(methods)
+            .filter(([method, op]) => {
+              ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(method.toLowerCase());
+            })
+            .map(([method, operationObject]) => {
+              return {
+                method: method,
+                path: path,
+                operationObject: operationObject,
+                global: {
+                  server: baseUrl,
+                  security: securityConfig
+                }
+              };
+            });
         })
         .reduce((acc, val) => acc.concat(val), []); // flatten
 

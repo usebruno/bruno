@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Español](/contributing_es.md)
+[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Español](/contributing_es.md)
 
 ## Давайте вместе сделаем Бруно лучше!!!
 
