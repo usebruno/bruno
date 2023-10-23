@@ -2,7 +2,7 @@
 
 ## Lass uns Bruno noch besser machen, gemeinsam !!
 
-Ich freue mich, dass Du Bruno verbessern möchtest. Im Folgenden findest Du eine Anleitung, wie Du Dir Bruno auf Deinem Computer holst.
+Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
 
 ### Technologie Stack
 
@@ -12,7 +12,7 @@ Bibliotheken die wir benutzen
 
 - CSS - Tailwind
 - Code Editoren - Codemirror
-- Statusverwaltung - Redux
+- State Management - Redux
 - Icons - Tabler Icons
 - Formulare - formik
 - Schema Validierung - Yup
