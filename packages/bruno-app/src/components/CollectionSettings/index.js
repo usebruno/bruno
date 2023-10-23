@@ -76,9 +76,6 @@ const CollectionSettings = ({ collection }) => {
       case 'headers': {
         return <Headers collection={collection} />;
       }
-      case 'presets': {
-        return <Presets collection={collection} />;
-      }
       case 'auth': {
         return <Auth collection={collection} />;
       }
@@ -87,6 +84,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'tests': {
         return <Test collection={collection} />;
+      }
+      case 'presets': {
+        return <Presets collection={collection} />;
       }
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
@@ -118,9 +118,6 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
         </div>
-        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
-          Presets
-        </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
         </div>
@@ -129,6 +126,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
+        </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
