@@ -2,7 +2,7 @@
 
 ## Entwicklung
 
-Bruno wird als Desktop-Anwendung entwickelt. Um die App zu laden musst du zuerst die NextJs-App in einem Terminal ausführst und anschließend in einem anderen Terminal die Elektron-App.
+Bruno wird als Desktop-Anwendung entwickelt. Um die App zu laden musst du zuerst die NextJs-App in einem Terminal ausführen und anschließend in einem anderen Terminal die Elektron-App.
 
 ### Abhängigkeiten
 

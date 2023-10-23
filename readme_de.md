@@ -28,7 +28,7 @@ Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno eine Cloud-Synchr
 
 ### Zusammenarbeiten mit Git 👩‍💻🧑‍💻
 
-Oder eine Versionskontrolle Deiner Wahl
+oder eine Versionskontrolle Deiner Wahl
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
@@ -37,8 +37,8 @@ Oder eine Versionskontrolle Deiner Wahl
 - [Unsere Langzeit-Vision](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
 - [Dokumentation](https://docs.usebruno.com)
-- [Website](https://www.usebruno.com)
-- [Preisgestaltung](https://www.usebruno.com/pricing)
+- [Webseite](https://www.usebruno.com)
+- [Preise](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
 
 ### Showcase 🎥
@@ -47,7 +47,7 @@ Oder eine Versionskontrolle Deiner Wahl
 - [Wissenswertes](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
-### Support ❤️
+### Unterstützung ❤️
 
 Wuff! Wenn Du dieses Projekt magst, klick den ⭐ Button !!
 

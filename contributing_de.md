@@ -30,7 +30,7 @@ Eine Anleitung zum Ausführen einer lokalen Entwicklungsumgebung findest Du in [
 ### Pull Request erstellen
 
 - Bitte halte die PRs klein und begrenzt auf eine Sache
-- Bitte halte die beim Erstellen eines Branches an das folgende Format
+- Bitte halte Dich beim Erstellen eines Branches an das folgende Format
   - feature/[feature name]: Dieser Branch soll Änderungen für ein bestimmtes Feature enthalten
     - Beispiel: feature/dark-mode
   - bugfix/[bug name]: Dieser Branch soll ausschließlich Bugfixes für einen bestimmten Bug enthalten
