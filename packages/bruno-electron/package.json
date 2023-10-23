@@ -27,7 +27,6 @@
     "aws4-axios": "^3.3.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
-    "chai-string": "^1.5.0",
     "chokidar": "^3.5.3",
     "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
