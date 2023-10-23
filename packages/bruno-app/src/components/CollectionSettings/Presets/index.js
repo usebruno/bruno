@@ -3,7 +3,8 @@ import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
-import { updateCollectionPresets } from 'providers/ReduxStore/slices/collections/actions';
+import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import cloneDeep from 'lodash/cloneDeep';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -18,7 +19,9 @@ const PresetsSettings = ({ collection }) => {
       defaultRequestUrl: defaultPresets.defaultRequestUrl || ''
     },
     onSubmit: (newPresets) => {
-      dispatch(updateCollectionPresets(newPresets, collection.uid));
+      const brunoConfig = cloneDeep(collection.brunoConfig);
+      brunoConfig.presets = newPresets;
+      dispatch(updateBrunoConfig(brunoConfig, collection.uid));
       toast.success('Collection presets updated');
     }
   });

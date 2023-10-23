@@ -12,8 +12,7 @@ import {
   collectionRenamedEvent,
   runRequestEvent,
   runFolderEvent,
-  brunoConfigUpdateEvent,
-  collectionPresetsUpdatedEvent
+  brunoConfigUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
 import { updatePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -108,10 +107,6 @@ const useIpcEvents = () => {
       dispatch(collectionRenamedEvent(val));
     });
 
-    const removeCollectionPresetsUpdatedListener = ipcRenderer.on('main:collection-presets-updated', (val) => {
-      dispatch(collectionPresetsUpdatedEvent(val));
-    });
-
     const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
       dispatch(runFolderEvent(val));
     });
@@ -143,7 +138,6 @@ const useIpcEvents = () => {
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeCollectionRenamedListener();
-      removeCollectionPresetsUpdatedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();
       removeProcessEnvUpdatesListener();
