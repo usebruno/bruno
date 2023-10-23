@@ -10,7 +10,7 @@
 [![Web Sitesi](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![İndir](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | **Türkçe**
+[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | **Türkçe** | [Deutsch](/readme_de.md)
 
 Bruno, Postman ve benzeri araçlar tarafından temsil edilen statükoda devrim yaratmayı amaçlayan yeni ve yenilikçi bir API istemcisidir.
 
