@@ -1,4 +1,4 @@
-[English](/readme.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | **Türkçe**
+[English](/readme.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | **Türkçe** | [Español](/contributing_es.md)
 
 ## Bruno'yu birlikte daha iyi hale getirelim !!
 
