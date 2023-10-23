@@ -13,6 +13,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
+import PaneContent from '../PaneContent/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -189,13 +190,15 @@ export default class QueryEditor extends React.Component {
 
   render() {
     return (
-      <StyledWrapper
-        className="h-full w-full"
-        aria-label="Query Editor"
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+      <PaneContent codeMirrorFull>
+        <StyledWrapper
+          className="h-full w-full"
+          aria-label="Query Editor"
+          ref={(node) => {
+            this._node = node;
+          }}
+        />
+      </PaneContent>
     );
   }
 

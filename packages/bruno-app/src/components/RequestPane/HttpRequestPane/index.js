@@ -16,6 +16,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import PaneContent from '../PaneContent/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -61,7 +62,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         return <Documentation item={item} collection={collection} />;
       }
       default: {
-        return <div className="mt-4">404 | Not found</div>;
+        return (
+          <PaneContent>
+            <div className="mt-4">404 | Not found</div>
+          </PaneContent>
+        );
       }
     }
   };
@@ -97,7 +102,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
+      <div className="flex flex-wrap items-center tabs pr-3 pl-4" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
           Query
           {activeParamsLength > 0 && <sup className="ml-1 font-medium">{activeParamsLength}</sup>}
@@ -129,19 +134,8 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
         </div>
-        {focusedTab.requestPaneTab === 'body' ? (
-          <div className="flex flex-grow justify-end items-center">
-            <RequestBodyMode item={item} collection={collection} />
-          </div>
-        ) : null}
       </div>
-      <section
-        className={`flex w-full ${
-          ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
-        }`}
-      >
-        {getTabPanel(focusedTab.requestPaneTab)}
-      </section>
+      {getTabPanel(focusedTab.requestPaneTab)}
     </StyledWrapper>
   );
 };

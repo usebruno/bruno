@@ -6,6 +6,7 @@ import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -39,34 +40,36 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={storedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
-      </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={storedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
-      </div>
-    </StyledWrapper>
+    <PaneContent>
+      <StyledWrapper className="w-full flex flex-col">
+        <div className="flex-1">
+          <div className="mb-1 title text-xs">Pre Request</div>
+          <CodeEditor
+            collection={collection}
+            value={requestScript || ''}
+            theme={storedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
+        <div className="flex-1 mt-6">
+          <div className="mt-1 mb-1 title text-xs">Post Response</div>
+          <CodeEditor
+            collection={collection}
+            value={responseScript || ''}
+            theme={storedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 

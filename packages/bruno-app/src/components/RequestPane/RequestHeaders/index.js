@@ -9,6 +9,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import PaneContent from '../PaneContent/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
@@ -63,85 +64,87 @@ const RequestHeaders = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {headers && headers.length
-            ? headers.map((header) => {
-                return (
-                  <tr key={header.uid}>
-                    <td>
-                      <SingleLineEditor
-                        value={header.name}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'name'
-                          )
-                        }
-                        autocomplete={headerAutoCompleteList}
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={header.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleHeaderValueChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            header,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={header.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+    <PaneContent>
+      <StyledWrapper className="w-full">
+        <table>
+          <thead>
+            <tr>
+              <td>Name</td>
+              <td>Value</td>
+              <td></td>
+            </tr>
+          </thead>
+          <tbody>
+            {headers && headers.length
+              ? headers.map((header) => {
+                  return (
+                    <tr key={header.uid}>
+                      <td>
+                        <SingleLineEditor
+                          value={header.name}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleHeaderValueChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              header,
+                              'name'
+                            )
+                          }
+                          autocomplete={headerAutoCompleteList}
+                          onRun={handleRun}
+                          collection={collection}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </tbody>
-      </table>
-      <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
-        + Add Header
-      </button>
-    </StyledWrapper>
+                      </td>
+                      <td>
+                        <SingleLineEditor
+                          value={header.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleHeaderValueChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              header,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          collection={collection}
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={header.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
+          </tbody>
+        </table>
+        <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
+          + Add Header
+        </button>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 export default RequestHeaders;

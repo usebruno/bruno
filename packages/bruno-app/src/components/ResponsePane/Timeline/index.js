@@ -2,6 +2,7 @@ import React from 'react';
 import forOwn from 'lodash/forOwn';
 import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
+import PaneContent from 'components/RequestPane/PaneContent/index';
 
 const Timeline = ({ request, response }) => {
   const requestHeaders = [];
@@ -20,40 +21,42 @@ const Timeline = ({ request, response }) => {
   let requestData = safeStringifyJSON(request.data);
 
   return (
-    <StyledWrapper className="pb-4 w-full">
-      <div>
-        <pre className="line request font-bold">
-          <span className="arrow">{'>'}</span> {request.method} {request.url}
-        </pre>
-        {requestHeaders.map((h) => {
-          return (
-            <pre className="line request" key={h.name}>
-              <span className="arrow">{'>'}</span> {h.name}: {h.value}
-            </pre>
-          );
-        })}
-
-        {requestData ? (
-          <pre className="line request">
-            <span className="arrow">{'>'}</span> data {requestData}
+    <PaneContent inResponse>
+      <StyledWrapper className="pb-4 w-full">
+        <div>
+          <pre className="line request font-bold">
+            <span className="arrow">{'>'}</span> {request.method} {request.url}
           </pre>
-        ) : null}
-      </div>
+          {requestHeaders.map((h) => {
+            return (
+              <pre className="line request" key={h.name}>
+                <span className="arrow">{'>'}</span> {h.name}: {h.value}
+              </pre>
+            );
+          })}
 
-      <div className="mt-4">
-        <pre className="line response font-bold">
-          <span className="arrow">{'<'}</span> {response.status} {response.statusText}
-        </pre>
-
-        {responseHeaders.map((h) => {
-          return (
-            <pre className="line response" key={h[0]}>
-              <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
+          {requestData ? (
+            <pre className="line request">
+              <span className="arrow">{'>'}</span> data {requestData}
             </pre>
-          );
-        })}
-      </div>
-    </StyledWrapper>
+          ) : null}
+        </div>
+
+        <div className="mt-4">
+          <pre className="line response font-bold">
+            <span className="arrow">{'<'}</span> {response.status} {response.statusText}
+          </pre>
+
+          {responseHeaders.map((h) => {
+            return (
+              <pre className="line response" key={h[0]}>
+                <span className="arrow">{'<'}</span> {h[0]}: {h[1]}
+              </pre>
+            );
+          })}
+        </div>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 

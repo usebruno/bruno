@@ -118,12 +118,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           </div>
         ) : null}
       </div>
-      <section
-        className={`flex flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
-      >
-        {isLoading ? <Overlay item={item} collection={collection} /> : null}
-        {getTabPanel(focusedTab.responsePaneTab)}
-      </section>
+      {isLoading ? <Overlay item={item} collection={collection} /> : null}
+      {getTabPanel(focusedTab.responsePaneTab)}
     </StyledWrapper>
   );
 };

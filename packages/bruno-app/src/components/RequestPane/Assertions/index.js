@@ -6,6 +6,7 @@ import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxS
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import AssertionRow from './AssertionRow';
 import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const Assertions = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -58,39 +59,41 @@ const Assertions = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Expr</td>
-            <td>Operator</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {assertions && assertions.length
-            ? assertions.map((assertion) => {
-                return (
-                  <AssertionRow
-                    key={assertion.uid}
-                    assertion={assertion}
-                    item={item}
-                    collection={collection}
-                    handleAssertionChange={handleAssertionChange}
-                    handleRemoveAssertion={handleRemoveAssertion}
-                    onSave={onSave}
-                    handleRun={handleRun}
-                  />
-                );
-              })
-            : null}
-        </tbody>
-      </table>
-      <button className="btn-add-assertion text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
-        + Add Assertion
-      </button>
-    </StyledWrapper>
+    <PaneContent>
+      <StyledWrapper className="w-full">
+        <table>
+          <thead>
+            <tr>
+              <td>Expr</td>
+              <td>Operator</td>
+              <td>Value</td>
+              <td></td>
+            </tr>
+          </thead>
+          <tbody>
+            {assertions && assertions.length
+              ? assertions.map((assertion) => {
+                  return (
+                    <AssertionRow
+                      key={assertion.uid}
+                      assertion={assertion}
+                      item={item}
+                      collection={collection}
+                      handleAssertionChange={handleAssertionChange}
+                      handleRemoveAssertion={handleRemoveAssertion}
+                      onSave={onSave}
+                      handleRun={handleRun}
+                    />
+                  );
+                })
+              : null}
+          </tbody>
+        </table>
+        <button className="btn-add-assertion text-link pr-2 py-3 mt-2 select-none" onClick={handleAddAssertion}>
+          + Add Assertion
+        </button>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 export default Assertions;

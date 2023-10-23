@@ -3,12 +3,11 @@ import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
-
-import StyledWrapper from './StyledWrapper';
 import { useState } from 'react';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
+import PaneContent from 'components/RequestPane/PaneContent/index';
 
 const formatResponse = (data, mode) => {
   if (!data) {
@@ -80,10 +79,15 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   }, [allowedPreviewModes, previewTab]);
 
   return (
-    <StyledWrapper className="w-full h-full" style={{ maxWidth: width }}>
-      <div className="flex justify-end gap-2 text-xs" role="tablist">
-        {tabs}
-      </div>
+    <PaneContent
+      inResponse
+      codeMirrorFull
+      head={
+        <div className="flex justify-end gap-2 text-xs" role="tablist">
+          {tabs}
+        </div>
+      }
+    >
       {error ? (
         <span className="text-red-500">{error}</span>
       ) : (
@@ -101,7 +105,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
           storedTheme={storedTheme}
         />
       )}
-    </StyledWrapper>
+    </PaneContent>
   );
 };
 

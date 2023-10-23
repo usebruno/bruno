@@ -5,6 +5,7 @@ import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -23,13 +24,6 @@ const Auth = ({ item, collection }) => {
     }
   };
 
-  return (
-    <StyledWrapper className="w-full mt-1">
-      <div className="flex flex-grow justify-start items-center">
-        <AuthMode item={item} collection={collection} />
-      </div>
-      {getAuthView()}
-    </StyledWrapper>
-  );
+  return <PaneContent head={<AuthMode item={item} collection={collection} />}>{getAuthView()}</PaneContent>;
 };
 export default Auth;

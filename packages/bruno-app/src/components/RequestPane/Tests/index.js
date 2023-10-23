@@ -5,7 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -28,7 +28,7 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <PaneContent codeMirrorFull>
       <CodeEditor
         collection={collection}
         value={tests || ''}
@@ -39,7 +39,7 @@ const Tests = ({ item, collection }) => {
         onRun={onRun}
         onSave={onSave}
       />
-    </StyledWrapper>
+    </PaneContent>
   );
 };
 

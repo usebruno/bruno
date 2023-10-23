@@ -1,8 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  font-size: 0.8125rem;
-
   .body-mode-selector {
     background: transparent;
     border-radius: 3px;

@@ -1,10 +1,11 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
+import PaneContent from 'components/RequestPane/PaneContent/index';
 
 const ResponseHeaders = ({ headers }) => {
   return (
-    <StyledWrapper className="pb-4 w-full">
-      <table>
+    <PaneContent>
+      <StyledWrapper className="pb-4 w-full">
         <thead>
           <tr>
             <td>Name</td>
@@ -23,8 +24,8 @@ const ResponseHeaders = ({ headers }) => {
               })
             : null}
         </tbody>
-      </table>
-    </StyledWrapper>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 export default ResponseHeaders;

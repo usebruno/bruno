@@ -9,6 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -64,76 +65,78 @@ const QueryParams = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
-      <table>
-        <thead>
-          <tr>
-            <td>Name</td>
-            <td>Value</td>
-            <td></td>
-          </tr>
-        </thead>
-        <tbody>
-          {params && params.length
-            ? params.map((param, index) => {
-                return (
-                  <tr key={param.uid}>
-                    <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={param.name}
-                        className="mousetrap"
-                        onChange={(e) => handleParamChange(e, param, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={param.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleParamChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            param,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
+    <PaneContent>
+      <StyledWrapper className="w-full">
+        <table>
+          <thead>
+            <tr>
+              <td>Name</td>
+              <td>Value</td>
+              <td></td>
+            </tr>
+          </thead>
+          <tbody>
+            {params && params.length
+              ? params.map((param, index) => {
+                  return (
+                    <tr key={param.uid}>
+                      <td>
                         <input
-                          type="checkbox"
-                          checked={param.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleParamChange(e, param, 'enabled')}
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          value={param.name}
+                          className="mousetrap"
+                          onChange={(e) => handleParamChange(e, param, 'name')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveParam(param)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            : null}
-        </tbody>
-      </table>
-      <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddParam}>
-        +&nbsp;<span>Add Param</span>
-      </button>
-    </StyledWrapper>
+                      </td>
+                      <td>
+                        <SingleLineEditor
+                          value={param.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleParamChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              param,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          collection={collection}
+                        />
+                      </td>
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={param.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleParamChange(e, param, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveParam(param)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              : null}
+          </tbody>
+        </table>
+        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddParam}>
+          +&nbsp;<span>Add Param</span>
+        </button>
+      </StyledWrapper>
+    </PaneContent>
   );
 };
 export default QueryParams;

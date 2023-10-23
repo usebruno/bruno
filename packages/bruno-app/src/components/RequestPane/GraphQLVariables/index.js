@@ -5,7 +5,7 @@ import CodeEditor from 'components/CodeEditor';
 import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
@@ -27,7 +27,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <PaneContent codeMirrorFull>
       <CodeEditor
         collection={collection}
         value={variables || ''}
@@ -38,7 +38,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         onRun={onRun}
         onSave={onSave}
       />
-    </StyledWrapper>
+    </PaneContent>
   );
 };
 

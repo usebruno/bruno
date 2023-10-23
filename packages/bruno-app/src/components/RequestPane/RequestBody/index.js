@@ -7,7 +7,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import StyledWrapper from './StyledWrapper';
+import PaneContent from '../PaneContent/index';
+import RequestBodyMode from './RequestBodyMode/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -15,6 +16,8 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  const selectBody = <RequestBodyMode item={item} collection={collection} />;
 
   const onEdit = (value) => {
     dispatch(
@@ -45,7 +48,7 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper className="w-full">
+      <PaneContent codeMirrorFull head={selectBody}>
         <CodeEditor
           collection={collection}
           theme={storedTheme}
@@ -56,18 +59,30 @@ const RequestBody = ({ item, collection }) => {
           onSave={onSave}
           mode={codeMirrorMode[bodyMode]}
         />
-      </StyledWrapper>
+      </PaneContent>
     );
   }
 
   if (bodyMode === 'formUrlEncoded') {
-    return <FormUrlEncodedParams item={item} collection={collection} />;
+    return (
+      <PaneContent head={selectBody}>
+        <FormUrlEncodedParams item={item} collection={collection} />
+      </PaneContent>
+    );
   }
 
   if (bodyMode === 'multipartForm') {
-    return <MultipartFormParams item={item} collection={collection} />;
+    return (
+      <PaneContent head={selectBody}>
+        <MultipartFormParams item={item} collection={collection} />
+      </PaneContent>
+    );
   }
 
-  return <StyledWrapper className="w-full">No Body</StyledWrapper>;
+  return (
+    <PaneContent head={selectBody}>
+      <div className="mt-2 text-center">No Body</div>
+    </PaneContent>
+  );
 };
 export default RequestBody;

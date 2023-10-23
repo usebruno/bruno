@@ -135,7 +135,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
+      <div className="flex flex-wrap items-center tabs pr-3 pl-4" role="tablist">
         <div className={getTabClassname('query')} role="tab" onClick={() => selectTab('query')}>
           Query
         </div>
@@ -176,7 +176,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
           </div>
         </div>
       </div>
-      <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      {getTabPanel(focusedTab.requestPaneTab)}
     </StyledWrapper>
   );
 };
