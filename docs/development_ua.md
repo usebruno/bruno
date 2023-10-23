@@ -1,4 +1,4 @@
-[English](/docs/development.md) | **Українська** | [Русский](/docs/development_ru.md)
+[English](/docs/development.md) | **Українська** | [Русский](/docs/development_ru.md) | [Español](/docs/development_es.md)
 
 ## Розробка
 
