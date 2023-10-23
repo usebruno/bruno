@@ -61,7 +61,7 @@ Por favor, consulta [aquí](publishing.md) para más información.
 
 ### Contribuye 👩‍💻🧑‍💻
 
-Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](contributing.md)
+Estamos encantados de que quieras ayudar a mejorar Bruno. Por favor, consulta la [guía de contribución](contributing_es.md) para más información.
 
 Incluso si no puedes contribuir con código, no dudes en reportar errores y solicitar nuevas funcionalidades que necesites para resolver tu caso de uso.
 
