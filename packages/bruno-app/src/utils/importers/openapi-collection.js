@@ -326,17 +326,21 @@ const parseOpenApiCollection = (data) => {
 
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
-          return Object.entries(methods).map(([method, operationObject]) => {
-            return {
-              method: method,
-              path: path,
-              operationObject: operationObject,
-              global: {
-                server: baseUrl,
-                security: securityConfig
-              }
-            };
-          });
+          return Object.entries(methods)
+            .filter(([method, op]) => {
+              ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(method.toLowerCase());
+            })
+            .map(([method, operationObject]) => {
+              return {
+                method: method,
+                path: path,
+                operationObject: operationObject,
+                global: {
+                  server: baseUrl,
+                  security: securityConfig
+                }
+              };
+            });
         })
         .reduce((acc, val) => acc.concat(val), []); // flatten
 
