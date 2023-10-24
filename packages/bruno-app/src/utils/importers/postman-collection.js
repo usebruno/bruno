@@ -62,6 +62,31 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           }
         };
 
+        if (i.event) {
+          i.event.forEach((event) => {
+            if (event.listen === 'prerequest' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request.script) {
+                brunoRequestItem.request.script = {};
+              }
+              if (Array.isArray(event.script.exec[0])) {
+                brunoRequestItem.request.script.req = event.script.exec[0].map((line) => `// ${line}`).join('\n');
+              } else {
+                brunoRequestItem.request.script.req = `// ${event.script.exec[0]} `;
+              }
+            }
+            if (event.listen === 'test' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request.tests) {
+                brunoRequestItem.request.tests = {};
+              }
+              if (Array.isArray(event.script.exec[0])) {
+                brunoRequestItem.request.tests = event.script.exec[0].map((line) => `// ${line}`).join('\n');
+              } else {
+                brunoRequestItem.request.tests = `// ${event.script.exec[0]} `;
+              }
+            }
+          });
+        }
+
         const bodyMode = get(i, 'request.body.mode');
         if (bodyMode) {
           if (bodyMode === 'formdata') {

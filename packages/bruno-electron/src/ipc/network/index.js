@@ -19,12 +19,11 @@ const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy } = require('../../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -121,7 +120,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', 'disabled');
+  let proxyEnabled = get(proxyConfig, 'enabled', false);
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
@@ -149,7 +148,7 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
       request.httpsAgent = socksProxyAgent;
       request.httpAgent = socksProxyAgent;
     } else {
-      request.httpsAgent = new HttpsProxyAgent(
+      request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
         Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
       );
@@ -174,22 +173,165 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   return axiosInstance;
 };
 
+const parseDataFromResponse = (response) => {
+  const dataBuffer = Buffer.from(response.data);
+  // Parse the charset from content type: https://stackoverflow.com/a/33192813
+  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  // Overwrite the original data for backwards compatability
+  let data = dataBuffer.toString(charset || 'utf-8');
+  // Try to parse response to JSON, this can quitly fail
+  try {
+    data = JSON.parse(response.data);
+  } catch {}
+
+  return { data, dataBuffer };
+};
+
 const registerNetworkIpc = (mainWindow) => {
+  const onConsoleLog = (type, args) => {
+    console[type](...args);
+
+    mainWindow.webContents.send('main:console-log', {
+      type,
+      args
+    });
+  };
+
+  const runPreRequest = async (
+    request,
+    requestUid,
+    envVars,
+    collectionPath,
+    collectionRoot,
+    collectionUid,
+    collectionVariables,
+    processEnvVars,
+    scriptingConfig
+  ) => {
+    // run pre-request vars
+    const preRequestVars = get(request, 'vars.req', []);
+    if (preRequestVars?.length) {
+      const varsRuntime = new VarsRuntime();
+      const result = varsRuntime.runPreRequestVars(
+        preRequestVars,
+        request,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        processEnvVars
+      );
+
+      if (result) {
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+    }
+
+    // run pre-request script
+    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    if (requestScript?.length) {
+      const scriptRuntime = new ScriptRuntime();
+      const result = await scriptRuntime.runRequestScript(
+        decomment(requestScript),
+        request,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        collectionVariables: result.collectionVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+
+    // interpolate variables inside request
+    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+
+    // stringify the request url encoded params
+    if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
+      request.data = qs.stringify(request.data);
+    }
+  };
+
+  const runPostResponse = async (
+    request,
+    response,
+    requestUid,
+    envVars,
+    collectionPath,
+    collectionRoot,
+    collectionUid,
+    collectionVariables,
+    processEnvVars,
+    scriptingConfig
+  ) => {
+    // run post-response vars
+    const postResponseVars = get(request, 'vars.res', []);
+    if (postResponseVars?.length) {
+      const varsRuntime = new VarsRuntime();
+      const result = varsRuntime.runPostResponseVars(
+        postResponseVars,
+        request,
+        response,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        processEnvVars
+      );
+
+      if (result) {
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: result.envVariables,
+          collectionVariables: result.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+      }
+    }
+
+    // run post-response script
+    const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
+      os.EOL
+    );
+    if (responseScript?.length) {
+      const scriptRuntime = new ScriptRuntime();
+      const result = await scriptRuntime.runResponseScript(
+        decomment(responseScript),
+        request,
+        response,
+        envVars,
+        collectionVariables,
+        collectionPath,
+        onConsoleLog,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      mainWindow.webContents.send('main:script-environment-update', {
+        envVariables: result.envVariables,
+        collectionVariables: result.collectionVariables,
+        requestUid,
+        collectionUid
+      });
+    }
+  };
+
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
-
-    const onConsoleLog = (type, args) => {
-      console[type](...args);
-
-      mainWindow.webContents.send('main:console-log', {
-        type,
-        args
-      });
-    };
 
     mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
@@ -208,75 +350,21 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     try {
-      // make axios work in node using form data
-      // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-      if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-        const form = new FormData();
-        forOwn(request.data, (value, key) => {
-          form.append(key, value);
-        });
-        extend(request.headers, form.getHeaders());
-        request.data = form;
-      }
-
       const cancelToken = axios.CancelToken.source();
       request.cancelToken = cancelToken.token;
       saveCancelToken(cancelTokenUid, cancelToken);
 
-      // run pre-request vars
-      const preRequestVars = get(request, 'vars.req', []);
-      if (preRequestVars?.length) {
-        const varsRuntime = new VarsRuntime();
-        const result = varsRuntime.runPreRequestVars(
-          preRequestVars,
-          request,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
-
-        if (result) {
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-      }
-
-      // run pre-request script
-      const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
-        os.EOL
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
       );
-      if (requestScript?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runRequestScript(
-          decomment(requestScript),
-          request,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
-
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
-
-      interpolateVars(request, envVars, collectionVariables, processEnvVars);
-
-      // stringify the request url encoded params
-      if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-        request.data = qs.stringify(request.data);
-      }
 
       // todo:
       // i have no clue why electron can't send the request object
@@ -336,55 +424,21 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      // run post-response vars
-      const postResponseVars = get(request, 'vars.res', []);
-      if (postResponseVars?.length) {
-        const varsRuntime = new VarsRuntime();
-        const result = varsRuntime.runPostResponseVars(
-          postResponseVars,
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          processEnvVars
-        );
+      const { data, dataBuffer } = parseDataFromResponse(response);
+      response.data = data;
 
-        if (result) {
-          mainWindow.webContents.send('main:script-environment-update', {
-            envVariables: result.envVariables,
-            collectionVariables: result.collectionVariables,
-            requestUid,
-            collectionUid
-          });
-        }
-      }
-
-      // run post-response script
-      const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
-        os.EOL
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
       );
-      if (responseScript?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runResponseScript(
-          decomment(responseScript),
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
-
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -448,6 +502,8 @@ const registerNetworkIpc = (mainWindow) => {
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
+        dataBuffer: dataBuffer.toString('base64'),
+        size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0
       };
     } catch (error) {
@@ -483,8 +539,25 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      const processEnvVars = getProcessEnvVars(collection.uid);
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      const requestUid = uuid();
+      const collectionPath = collection.pathname;
+      const collectionUid = collection.uid;
+      const collectionVariables = collection.collectionVariables;
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collection.uid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
 
       const axiosInstance = await configureRequest(
         collection.uid,
@@ -494,6 +567,19 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars
       );
       const response = await axiosInstance(preparedRequest);
+
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
 
       return {
         status: response.status,
@@ -524,15 +610,6 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
-
-      const onConsoleLog = (type, args) => {
-        console[type](...args);
-
-        mainWindow.webContents.send('main:console-log', {
-          type,
-          args
-        });
-      };
 
       if (!folder) {
         folder = collection;
@@ -583,67 +660,21 @@ const registerNetworkIpc = (mainWindow) => {
 
           const _request = item.draft ? item.draft.request : item.request;
           const request = prepareRequest(_request, collectionRoot);
+          const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            // make axios work in node using form data
-            // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-            if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-              const form = new FormData();
-              forOwn(request.data, (value, key) => {
-                form.append(key, value);
-              });
-              extend(request.headers, form.getHeaders());
-              request.data = form;
-            }
-
-            // run pre-request vars
-            const preRequestVars = get(request, 'vars.req', []);
-            if (preRequestVars && preRequestVars.length) {
-              const varsRuntime = new VarsRuntime();
-              const result = varsRuntime.runPreRequestVars(
-                preRequestVars,
-                request,
-                envVars,
-                collectionVariables,
-                collectionPath
-              );
-
-              if (result) {
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: result.envVariables,
-                  collectionVariables: result.collectionVariables,
-                  collectionUid
-                });
-              }
-            }
-
-            // run pre-request script
-            const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(
-              os.EOL
+            await runPreRequest(
+              request,
+              requestUid,
+              envVars,
+              collectionPath,
+              collectionRoot,
+              collectionUid,
+              collectionVariables,
+              processEnvVars,
+              scriptingConfig
             );
-            if (requestScript?.length) {
-              const scriptRuntime = new ScriptRuntime();
-              const result = await scriptRuntime.runRequestScript(
-                decomment(requestScript),
-                request,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig
-              );
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: result.envVariables,
-                collectionVariables: result.collectionVariables,
-                collectionUid
-              });
-            }
-
-            // interpolate variables inside request
-            interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -674,6 +705,9 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
+              const { data, dataBuffer } = parseDataFromResponse(response);
+              response.data = data;
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
@@ -681,20 +715,25 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: response.statusText,
                   headers: Object.entries(response.headers),
                   duration: timeEnd - timeStart,
-                  size: response.headers['content-length'] || getSize(response.data),
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
                   data: response.data
                 },
                 ...eventData
               });
             } catch (error) {
               if (error?.response) {
+                const { data, dataBuffer } = parseDataFromResponse(error.response);
+                error.response.data = data;
+
                 timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: Object.entries(error.response.headers),
                   duration: timeEnd - timeStart,
-                  size: error.response.headers['content-length'] || getSize(error.response.data),
+                  dataBuffer: dataBuffer.toString('base64'),
+                  size: Buffer.byteLength(dataBuffer),
                   data: error.response.data
                 };
 
@@ -711,54 +750,18 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            // run post-response vars
-            const postResponseVars = get(request, 'vars.res', []);
-            if (postResponseVars?.length) {
-              const varsRuntime = new VarsRuntime();
-              const result = varsRuntime.runPostResponseVars(
-                postResponseVars,
-                request,
-                response,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                processEnvVars
-              );
-
-              if (result) {
-                mainWindow.webContents.send('main:script-environment-update', {
-                  envVariables: result.envVariables,
-                  collectionVariables: result.collectionVariables,
-                  collectionUid
-                });
-              }
-            }
-
-            // run response script
-            const responseScript = compact([
-              get(collectionRoot, 'request.script.res'),
-              get(request, 'script.res')
-            ]).join(os.EOL);
-            if (responseScript && responseScript.length) {
-              const scriptRuntime = new ScriptRuntime();
-              const result = await scriptRuntime.runResponseScript(
-                decomment(responseScript),
-                request,
-                response,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig
-              );
-
-              mainWindow.webContents.send('main:script-environment-update', {
-                envVariables: result.envVariables,
-                collectionVariables: result.collectionVariables,
-                collectionUid
-              });
-            }
+            await runPostResponse(
+              request,
+              response,
+              requestUid,
+              envVars,
+              collectionPath,
+              collectionRoot,
+              collectionUid,
+              collectionVariables,
+              processEnvVars,
+              scriptingConfig
+            );
 
             // run assertions
             const assertions = get(item, 'request.assertions');
