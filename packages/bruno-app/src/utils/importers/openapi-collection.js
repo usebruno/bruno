@@ -328,7 +328,9 @@ const parseOpenApiCollection = (data) => {
         .map(([path, methods]) => {
           return Object.entries(methods)
             .filter(([method, op]) => {
-              return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(method.toLowerCase());
+              return ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'].includes(
+                method.toLowerCase()
+              );
             })
             .map(([method, operationObject]) => {
               return {
