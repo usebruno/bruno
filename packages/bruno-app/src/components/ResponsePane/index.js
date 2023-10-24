@@ -14,6 +14,7 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -115,6 +116,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             <StatusCode status={response.status} />
             <ResponseTime duration={response.duration} />
             <ResponseSize size={response.size} />
+            <ResponseSave item={item} />
           </div>
         ) : null}
       </div>
