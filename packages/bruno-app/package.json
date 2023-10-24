@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env ENV=dev next dev",
+    "dev": "cross-env ENV=dev next dev -p 3000",
     "build": "next build && next export",
     "start": "next start",
     "lint": "next lint",
