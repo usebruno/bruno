@@ -10,7 +10,7 @@
 [![Web Sitesi](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![İndir](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | **Türkçe** | [Deutsch](/readme_de.md)
+[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | **Türkçe** | [Deutsch](/readme_de.md) | [Français] (/readme_fr.md)
 
 Bruno, Postman ve benzeri araçlar tarafından temsil edilen statükoda devrim yaratmayı amaçlayan yeni ve yenilikçi bir API istemcisidir.
 
@@ -54,7 +54,7 @@ Woof! Projeyi beğendiyseniz, şu ⭐ düğmesine basın!
 
 Bruno işinizde ve ekiplerinizde size yardımcı olduysa, lütfen [github tartışmamızdaki referanslarınızı](https://github.com/usebruno/bruno/discussions/343) paylaşmayı unutmayın
 
-### Katkıda Bulunun  👩‍💻🧑‍💻
+### Katkıda Bulunun 👩‍💻🧑‍💻
 
 Bruno'yu geliştirmek istemenize sevindim. Lütfen [katkıda bulunma kılavuzu](contributing.md)'na göz atın
 
