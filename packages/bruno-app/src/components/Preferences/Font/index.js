@@ -58,6 +58,8 @@ const Font = ({ close }) => {
         </label>
         <input
           type="number"
+          min="6"
+          max="24"
           className="block textbox"
           autoComplete="off"
           autoCorrect="off"
