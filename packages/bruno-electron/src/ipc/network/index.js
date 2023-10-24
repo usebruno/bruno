@@ -3,6 +3,7 @@ const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
+const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
@@ -83,7 +84,14 @@ const getSize = (data) => {
   return 0;
 };
 
-const configureRequest = async (collectionUid, request, envVars, collectionVariables, processEnvVars) => {
+const configureRequest = async (
+  collectionUid,
+  request,
+  envVars,
+  collectionVariables,
+  processEnvVars,
+  collectionPath
+) => {
   const httpsAgentRequestFields = {};
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -100,18 +108,29 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert.domain, interpolationOptions);
-    const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-    const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+
+    let certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+    certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+
+    let keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+    keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+
     if (domain && certFilePath && keyFilePath) {
       const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 
       if (request.url.match(hostRegex)) {
         try {
           httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+        } catch (err) {
+          console.log('Error reading cert file', err);
+        }
+
+        try {
           httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
         } catch (err) {
-          console.log('Error reading cert/key file', err);
+          console.log('Error reading key file', err);
         }
+
         httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
         break;
       }
@@ -389,7 +408,8 @@ const registerNetworkIpc = (mainWindow) => {
         request,
         envVars,
         collectionVariables,
-        processEnvVars
+        processEnvVars,
+        collectionPath
       );
 
       let response, responseTime;
@@ -564,7 +584,8 @@ const registerNetworkIpc = (mainWindow) => {
         preparedRequest,
         envVars,
         collection.collectionVariables,
-        processEnvVars
+        processEnvVars,
+        collectionPath
       );
       const response = await axiosInstance(preparedRequest);
 
@@ -695,7 +716,8 @@ const registerNetworkIpc = (mainWindow) => {
               request,
               envVars,
               collectionVariables,
-              processEnvVars
+              processEnvVars,
+              collectionPath
             );
 
             timeStart = Date.now();
