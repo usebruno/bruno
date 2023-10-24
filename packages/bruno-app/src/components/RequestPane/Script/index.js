@@ -47,6 +47,7 @@ const Script = ({ item, collection }) => {
           value={requestScript || ''}
           theme={storedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
+          size={get(preferences, 'font.sizeFont', '12')}
           onEdit={onRequestScriptEdit}
           mode="javascript"
           onRun={onRun}
@@ -60,6 +61,7 @@ const Script = ({ item, collection }) => {
           value={responseScript || ''}
           theme={storedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
+          size={get(preferences, 'font.sizeFont', '12')}
           onEdit={onResponseScriptEdit}
           mode="javascript"
           onRun={onRun}
