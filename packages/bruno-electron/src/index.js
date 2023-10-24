@@ -67,7 +67,21 @@ app.on('ready', async () => {
         slashes: true
       });
 
-  mainWindow.loadURL(url);
+  mainWindow.loadURL(url).catch((reason) => {
+    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+    console.error('Original message:', reason);
+    if (isDev) {
+      console.error(
+        'Could not connect to Next.Js dev server, is it running?' +
+          ' Start the dev server using "npm run dev:web" and restart electron'
+      );
+    } else {
+      console.error(
+        'If you are using an official production build: the above error is most likely a bug! ' +
+          ' Please report this under: https://github.com/usebruno/bruno/issues'
+      );
+    }
+  });
   watcher = new Watcher();
 
   const handleBoundsChange = () => {
