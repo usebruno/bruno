@@ -18,6 +18,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version-file: '.nvmrc'
+          check-latest: true
       - name: Check package-lock.json
         run: npm ci
       - name: Install dependencies
