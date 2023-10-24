@@ -2,7 +2,7 @@
 
 ## Entwicklung
 
-Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zuerst die NextJs-App in einem Terminal ausführen und anschließend in einem anderen Terminal die Electron-App.
+Bruno wird als Desktop-Anwendung entwickelt. Um die App zu starten, musst Du zuerst die Next.js App in einem Terminal ausführen und anschließend in einem anderen Terminal die Electron-App.
 
 ### Abhängigkeiten
 
