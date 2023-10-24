@@ -122,6 +122,7 @@ export default class CodeEditor extends React.Component {
         className="h-full w-full"
         aria-label="Code Editor"
         font={this.props.font}
+        size={this.props.size}
         ref={(node) => {
           this._node = node;
         }}
