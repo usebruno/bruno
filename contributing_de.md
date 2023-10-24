@@ -25,7 +25,7 @@ Du benötigst [Node v18.x oder die neuste LTS Version](https://nodejs.org/en/) u
 
 ### Lass uns coden
 
-Eine Anleitung zum Ausführen einer lokalen Entwicklungsumgebung findest Du in [development.md](docs/development_de.md).
+Eine Anleitung zum Ausführen einer lokalen Entwicklungsumgebung findest Du in [development_de.md](docs/development_de.md).
 
 ### Pull Request erstellen
 

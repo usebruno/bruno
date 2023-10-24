@@ -25,7 +25,7 @@ Kullandığımız kütüphaneler
 
 ### Kodlamaya başlayalım
 
-Yerel geliştirme ortamının çalıştırılmasına ilişkin talimatlar için lütfen [development.md](docs/development.md) adresine başvurun.
+Yerel geliştirme ortamının çalıştırılmasına ilişkin talimatlar için lütfen [development_tr.md](docs/development_tr.md) adresine başvurun.
 
 ### Pull Request Oluşturma
 
