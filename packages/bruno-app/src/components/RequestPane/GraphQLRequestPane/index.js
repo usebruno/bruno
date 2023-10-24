@@ -36,12 +36,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
 
   const request = item.draft ? item.draft.request : item.request;
 
-  let {
-    schema,
-    loadSchema,
-    isLoading: isSchemaLoading,
-    error: schemaError
-  } = useGraphqlSchema(url, environment, request, collection);
+  let { schema, loadSchema, isLoading: isSchemaLoading } = useGraphqlSchema(url, environment, request, collection);
 
   const loadGqlSchema = () => {
     if (!isSchemaLoading) {

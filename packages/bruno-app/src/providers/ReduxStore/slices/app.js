@@ -9,7 +9,8 @@ const initialState = {
   showHomePage: false,
   preferences: {
     request: {
-      sslVerification: true
+      sslVerification: true,
+      timeout: 0
     },
     font: {
       codeFont: 'default'

@@ -12,10 +12,10 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
 const runSingleRequest = async function (
   filename,
@@ -48,7 +48,7 @@ const runSingleRequest = async function (
 
     // run pre-request vars
     const preRequestVars = get(bruJson, 'request.vars.req');
-    if (preRequestVars && preRequestVars.length) {
+    if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
       varsRuntime.runPreRequestVars(
         preRequestVars,
@@ -65,7 +65,7 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
-    if (requestScriptFile && requestScriptFile.length) {
+    if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
       const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
@@ -91,36 +91,56 @@ const runSingleRequest = async function (
     if (insecure) {
       httpsAgentRequestFields['rejectUnauthorized'] = false;
     } else {
-      const cacertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
-      const cacert = cacertArray.find((el) => el);
-      if (cacert && cacert.length > 1) {
+      const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
+      const caCert = caCertArray.find((el) => el);
+      if (caCert && caCert.length > 1) {
         try {
-          caCrt = fs.readFileSync(cacert);
-          httpsAgentRequestFields['ca'] = caCrt;
+          httpsAgentRequestFields['ca'] = fs.readFileSync(caCert);
         } catch (err) {
-          console.log('Error reading CA cert file:' + cacert, err);
+          console.log('Error reading CA cert file:' + caCert, err);
+        }
+      }
+    }
+
+    const interpolationOptions = {
+      envVars: envVariables,
+      collectionVariables,
+      processEnvVars
+    };
+
+    // client certificate config
+    const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+    for (let clientCert of clientCertConfig) {
+      const domain = interpolateString(clientCert.domain, interpolationOptions);
+      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+      if (domain && certFilePath && keyFilePath) {
+        const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+
+        if (request.url.match(hostRegex)) {
+          try {
+            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+          } catch (err) {
+            console.log('Error reading cert/key file', err);
+          }
+          httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
+          break;
         }
       }
     }
 
     // set proxy if enabled
     const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    if (proxyEnabled) {
-      let proxyUri;
-      const interpolationOptions = {
-        envVars: envVariables,
-        collectionVariables,
-        processEnvVars
-      };
-
+    const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.bypassProxy', ''));
+    if (proxyEnabled && shouldProxy) {
       const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
       const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
       const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
-      interpolateString;
-
+      let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
@@ -132,16 +152,13 @@ const runSingleRequest = async function (
 
       if (socksEnabled) {
         const socksProxyAgent = new SocksProxyAgent(proxyUri);
-
         request.httpsAgent = socksProxyAgent;
-
         request.httpAgent = socksProxyAgent;
       } else {
-        request.httpsAgent = new HttpsProxyAgent(
+        request.httpsAgent = new PatchedHttpsProxyAgent(
           proxyUri,
           Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
         );
-
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
     } else if (Object.keys(httpsAgentRequestFields).length > 0) {
@@ -167,7 +184,7 @@ const runSingleRequest = async function (
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
     } catch (err) {
-      if (err && err.response) {
+      if (err?.response) {
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
@@ -204,7 +221,7 @@ const runSingleRequest = async function (
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
-    if (postResponseVars && postResponseVars.length) {
+    if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime();
       varsRuntime.runPostResponseVars(
         postResponseVars,
@@ -222,7 +239,7 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.res'),
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
-    if (responseScriptFile && responseScriptFile.length) {
+    if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
       const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
@@ -283,7 +300,7 @@ const runSingleRequest = async function (
       testResults = get(result, 'results', []);
     }
 
-    if (testResults && testResults.length) {
+    if (testResults?.length) {
       each(testResults, (testResult) => {
         if (testResult.status === 'pass') {
           console.log(chalk.green(`   ✓ `) + chalk.dim(testResult.description));

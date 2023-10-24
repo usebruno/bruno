@@ -36,7 +36,7 @@ const CollectionSettings = ({ collection }) => {
     brunoConfig.proxy = config;
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
-        toast.success('Collection settings updated successfully');
+        toast.success('Collection settings updated successfully.');
       })
       .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
   };
@@ -60,7 +60,9 @@ const CollectionSettings = ({ collection }) => {
 
   const onClientCertSettingsRemove = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.clientCertificates = brunoConfig.clientCertificates.filter((item) => item.domain != config.domain);
+    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.filter(
+      (item) => item.domain != config.domain
+    );
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
         toast.success('Collection settings updated successfully');

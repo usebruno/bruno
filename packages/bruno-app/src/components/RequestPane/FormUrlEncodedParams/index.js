@@ -107,6 +107,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                             'value'
                           )
                         }
+                        allowNewlines={true}
                         onRun={handleRun}
                         collection={collection}
                       />

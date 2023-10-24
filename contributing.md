@@ -1,4 +1,4 @@
-**English** | [Русский](/contributing_ru.md)
+**English** | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md)
 
 ## Lets make bruno better, together !!
 
@@ -33,5 +33,5 @@ Please reference [development.md](docs/development.md) for instructions on runni
 - Please follow the format of creating branches
   - feature/[feature name]: This branch should contain changes for a specific feature
     - Example: feature/dark-mode
-  - bugfix/[bug name]: This branch should container only bug fixes for a specific bug
+  - bugfix/[bug name]: This branch should contain only bug fixes for a specific bug
     - Example bugfix/bug-1

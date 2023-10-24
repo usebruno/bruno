@@ -1,8 +1,7 @@
 const os = require('os');
 const fs = require('fs-extra');
 const util = require('util');
-const exec = util.promisify(require('child_process').exec);
-
+const spawn = util.promisify(require('child_process').spawn);
 
 async function deleteFileIfExists(filePath) {
   try {
@@ -47,6 +46,25 @@ async function removeSourceMapFiles(directory) {
   }
 }
 
+async function execCommandWithOutput(command) {
+  return new Promise(async (resolve, reject) => {
+    const childProcess = await spawn(command, {
+      stdio: 'inherit',
+      shell: true
+    });
+    childProcess.on('error', (error) => {
+      reject(error);
+    });
+    childProcess.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Command exited with code ${code}.`));
+      }
+    });
+  });
+}
+
 async function main() {
   try {
     // Remove out directory
@@ -67,13 +85,13 @@ async function main() {
     for (const file of files) {
       if (file.endsWith('.html')) {
         let content = await fs.readFile(`packages/bruno-electron/web/${file}`, 'utf8');
-        content = content.replace(/\/_next\//g, '/_next/');
+        content = content.replace(/\/_next\//g, '_next/');
         await fs.writeFile(`packages/bruno-electron/web/${file}`, content);
       }
     }
 
     // Remove sourcemaps
-    await removeSourceMapFiles('packages/bruno-electron/web')
+    await removeSourceMapFiles('packages/bruno-electron/web');
 
     // Run npm dist command
     console.log('Building the Electron distribution');
@@ -88,8 +106,7 @@ async function main() {
       osArg = 'linux';
     }
 
-    await exec(`npm run dist-${osArg} --workspace=packages/bruno-electron`);
-
+    await execCommandWithOutput(`npm run dist:${osArg} --workspace=packages/bruno-electron`);
   } catch (error) {
     console.error('An error occurred:', error);
   }

@@ -5,7 +5,7 @@ function isStrPresent(str) {
   return str && str !== '' && str !== 'undefined';
 }
 
-async function resolveCredentials(request) {
+async function resolveAwsV4Credentials(request) {
   const awsv4 = request.awsv4config;
   if (isStrPresent(awsv4.profileName)) {
     try {
@@ -52,5 +52,5 @@ function addAwsV4Interceptor(axiosInstance, request) {
 
 module.exports = {
   addAwsV4Interceptor,
-  resolveCredentials
+  resolveAwsV4Credentials
 };

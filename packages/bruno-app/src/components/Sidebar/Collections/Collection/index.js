@@ -66,20 +66,17 @@ const Collection = ({ collection, searchText }) => {
   });
 
   const handleClick = (event) => {
+    dispatch(collectionClicked(collection.uid));
+  };
+
+  const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
-    switch (event.button) {
-      case 0: // left click
-        dispatch(collectionClicked(collection.uid));
-        return;
-      case 2: // right click
-        if (_menuDropdown) {
-          let menuDropdownBehavior = 'show';
-          if (_menuDropdown.state.isShown) {
-            menuDropdownBehavior = 'hide';
-          }
-          _menuDropdown[menuDropdownBehavior]();
-        }
-        return;
+    if (_menuDropdown) {
+      let menuDropdownBehavior = 'show';
+      if (_menuDropdown.state.isShown) {
+        menuDropdownBehavior = 'hide';
+      }
+      _menuDropdown[menuDropdownBehavior]();
     }
   };
 
@@ -138,7 +135,11 @@ const Collection = ({ collection, searchText }) => {
         <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
-        <div className="flex flex-grow items-center overflow-hidden" onMouseUp={handleClick}>
+        <div
+          className="flex flex-grow items-center overflow-hidden"
+          onClick={handleClick}
+          onContextMenu={handleRightClick}
+        >
           <IconChevronRight
             size={16}
             strokeWidth={2}

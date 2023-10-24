@@ -1,4 +1,3 @@
-import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import map from 'lodash/map';
@@ -25,9 +24,7 @@ import {
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platform';
-
-const PATH_SEPARATOR = path.sep;
+import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
 
 const initialState = {
   collections: [],
