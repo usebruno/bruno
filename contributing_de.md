@@ -6,7 +6,7 @@ Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitu
 
 ### Technologie Stack
 
-Bruno ist mit NextJs und React erstellt. Außerdem benötigen wir electron für die Desktop Version (die lokale Sammlungen unterstützt).
+Bruno ist mit Next.js und React erstellt. Außerdem benötigen wir electron für die Desktop Version (die lokale Sammlungen unterstützt).
 
 Bibliotheken die wir benutzen
 
