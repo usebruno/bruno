@@ -9,9 +9,14 @@ const Font = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
+  const [sizeFont, setSizeFont] = useState(get(preferences, 'font.sizeFont', '12'));
 
-  const handleInputChange = (event) => {
+  const handleStyleInputChange = (event) => {
     setCodeFont(event.target.value);
+  };
+
+  const handleSizeInputChange = (event) => {
+    setSizeFont(event.target.value);
   };
 
   const handleSave = () => {
@@ -30,17 +35,37 @@ const Font = ({ close }) => {
   return (
     <StyledWrapper>
       <label className="block font-medium">Code Editor Font</label>
-      <input
-        type="text"
-        className="block textbox mt-2 w-full"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-        onChange={handleInputChange}
-        defaultValue={codeFont}
-      />
+      <div className="mb-3 flex items-center">
+        <label className="settings-label" htmlFor="fontstyle">
+          Style
+        </label>
+        <input
+          type="text"
+          className="block textbox"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          onChange={handleStyleInputChange}
+          defaultValue={codeFont}
+        />
+      </div>
 
+      <div className="mb-3 flex items-center">
+        <label className="settings-label" htmlFor="fontsize">
+          Size
+        </label>
+        <input
+          type="number"
+          className="block textbox"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
+          onChange={handleSizeInputChange}
+          defaultValue={sizeFont}
+        />
+      </div>
       <div className="mt-10">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
           Save
