@@ -9,7 +9,7 @@ const Font = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
-  const [sizeFont, setSizeFont] = useState(get(preferences, 'font.sizeFont', '12'));
+  const [sizeFont, setSizeFont] = useState(get(preferences, 'font.sizeFont', 12));
 
   const handleStyleInputChange = (event) => {
     setCodeFont(event.target.value);
@@ -24,7 +24,8 @@ const Font = ({ close }) => {
       savePreferences({
         ...preferences,
         font: {
-          codeFont
+          codeFont,
+          sizeFont
         }
       })
     ).then(() => {
@@ -34,10 +35,10 @@ const Font = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <label className="block font-medium">Code Editor Font</label>
+      <label className="block font-medium mb-3">Code Editor Font</label>
       <div className="mb-3 flex items-center">
         <label className="settings-label" htmlFor="fontstyle">
-          Style
+          Font
         </label>
         <input
           type="text"
