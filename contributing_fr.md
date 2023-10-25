@@ -35,5 +35,3 @@ Veuillez consulter [documentation de développement](docs/development_fr.md) pou
     - Exemple : feature/mode-sombre
   - bugfix/[nom du bug] : Cette branche doit contenir uniquement des corrections de bug pour un bug spécifique
     - Exemple : bugfix/bug-1
-
-J'espère que cela vous aide. Si vous avez d'autres questions ou besoin de plus d'informations, n'hésitez pas à nous le demander !

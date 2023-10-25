@@ -53,5 +53,3 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
-
-J'espère que cela vous aide. Si vous avez d'autres questions ou si vous avez besoin de plus d'informations, n'hésitez pas à nous le demander !
