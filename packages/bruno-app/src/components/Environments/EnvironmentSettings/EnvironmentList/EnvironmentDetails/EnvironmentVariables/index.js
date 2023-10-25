@@ -23,7 +23,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
         enabled: Yup.boolean(),
         name: Yup.string()
           .required('Name cannot be empty')
-          .matches(/^[^\d]\w*$/, 'Name contains invalid characters')
+          .matches(/^(?!\d)\w*$/, 'Name contains invalid characters')
           .trim(),
         secret: Yup.boolean(),
         type: Yup.string(),
