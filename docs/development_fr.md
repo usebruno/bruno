@@ -2,7 +2,7 @@
 
 ## Développement
 
-Bruno est développée comme une application de _lourde_. Vous devez charger l'application en démarrant nextjs dans un terminal, puis démarre l'application Electron dans un autre terminal.
+Bruno est développé comme une application de _lourde_. Vous devez charger l'application en démarrant nextjs dans un terminal, puis démarre l'application Electron dans un autre terminal.
 
 ### Dépendances
 
@@ -32,7 +32,7 @@ npm run dev:electron
 
 ### Dépannage
 
-Vous pourriez rencontrer une error  `Unsupported platform` pendant le lancement de `npm install`. Pour résoudre cela, vous avez besoin de supprimer le répertoire `node_modules`, le fichier `package-lock.json` et lancer à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
+Vous pourriez rencontrer une error  `Unsupported platform` pendant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules`, le fichier `package-lock.json` et lancer à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
 
 ```shell
 # Delete node_modules in sub-directories

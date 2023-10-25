@@ -14,7 +14,7 @@
 
 Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
 
-Brunos sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
+Bruno sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
 
 Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler de manière collaborative sur vos collections d'APIs.
 
@@ -34,7 +34,7 @@ Ou n'importe quel système de gestion de sources
 
 ### Liens importants 📌
 
-- [Notre vision à long termes (en anglais)](https://github.com/usebruno/bruno/discussions/269)
+- [Notre vision à long terme (en anglais)](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
 - [Documentation](https://docs.usebruno.com)
 - [Site web](https://www.usebruno.com)
