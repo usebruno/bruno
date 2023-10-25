@@ -255,7 +255,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+    await interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {

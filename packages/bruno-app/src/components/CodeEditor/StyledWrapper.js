@@ -46,6 +46,9 @@ const StyledWrapper = styled.div`
   .cm-variable-valid {
     color: green;
   }
+  .cm-variable-vault {
+    color: blue;
+  }
   .cm-variable-invalid {
     color: red;
   }

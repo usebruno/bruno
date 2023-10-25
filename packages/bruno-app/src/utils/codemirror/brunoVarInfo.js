@@ -9,9 +9,21 @@
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
+const { vaultVariableInnerRegex } = require('utils/vault');
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
+
+  const renderTextInfo = (text) => {
+    const into = document.createElement('div');
+    const descriptionDiv = document.createElement('div');
+    descriptionDiv.className = 'info-description';
+
+    descriptionDiv.appendChild(document.createTextNode(text));
+    into.appendChild(descriptionDiv);
+
+    return into;
+  };
 
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
@@ -66,7 +78,7 @@ if (!SERVER_RENDERED) {
     if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
-    if (!target.classList.contains('cm-variable-valid')) {
+    if (!target.classList.contains('cm-variable-valid') && !target.classList.contains('cm-variable-vault')) {
       return;
     }
 
@@ -98,7 +110,7 @@ if (!SERVER_RENDERED) {
     CodeMirror.on(cm.getWrapperElement(), 'mouseout', onMouseOut);
   }
 
-  function onMouseHover(cm, box) {
+  async function onMouseHover(cm, box) {
     const pos = cm.coordsChar({
       left: (box.left + box.right) / 2,
       top: (box.top + box.bottom) / 2
@@ -108,6 +120,66 @@ if (!SERVER_RENDERED) {
     const options = state.options;
     const token = cm.getTokenAt(pos, true);
     if (token) {
+      if (token.type.startsWith('variable-vault')) {
+        const match = token.string.match(vaultVariableInnerRegex);
+        if (!match) {
+          showPopup(
+            cm,
+            box,
+            renderTextInfo(`Invalid vault variable, must be in the format: {{vault "path" "jsonPath"}}`)
+          );
+
+          return;
+        } else {
+          const { path, jsonPath } = match.groups;
+
+          const { VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX } = cm.state.brunoVarInfo.options.variables;
+          const response = await fetch('/api/vault', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              VAULT_ADDR,
+              VAULT_TOKEN_FILE_PATH,
+              VAULT_PATH_PREFIX,
+              path,
+              jsonPath
+            })
+          });
+
+          if (response.status !== 200) {
+            if (response.status === 400) {
+              const responseData = await response.json();
+              const { error } = responseData;
+              showPopup(cm, box, renderTextInfo(error));
+              return;
+            }
+
+            showPopup(
+              cm,
+              box,
+              renderTextInfo(
+                `Could not get data from Vault. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.`
+              )
+            );
+            return;
+          }
+
+          const responseData = await response.json();
+          const { value } = responseData;
+
+          showPopup(
+            cm,
+            box,
+            renderTextInfo(
+              value ? value : `Could not find value at path: ${path} ${jsonPath ? `with jsonPath: ${jsonPath}` : ''}`
+            )
+          );
+          return;
+        }
+      }
+
       const brunoVarInfo = renderVarInfo(token, options, cm, pos);
       if (brunoVarInfo) {
         showPopup(cm, box, brunoVarInfo);

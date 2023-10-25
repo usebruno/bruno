@@ -211,6 +211,7 @@ const darkTheme = {
     },
     variable: {
       valid: 'rgb(11 178 126)',
+      vault: '#57a4f0',
       invalid: '#f06f57',
       info: {
         color: '#ce9178',

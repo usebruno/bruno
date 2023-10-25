@@ -59,7 +59,8 @@
     "styled-components": "^5.3.3",
     "tailwindcss": "^2.2.19",
     "xml-formatter": "^3.5.0",
-    "yup": "^0.32.11"
+    "yup": "^0.32.11",
+    "node-vault": "^0.10.2"
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",

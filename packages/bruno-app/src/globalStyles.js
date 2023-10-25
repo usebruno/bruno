@@ -152,6 +152,9 @@ const GlobalStyle = createGlobalStyle`
     .cm-variable-valid {
       color: ${(props) => props.theme.codemirror.variable.valid};
     }
+    .cm-variable-vault {
+      color: ${(props) => props.theme.codemirror.variable.vault};
+    }
     .cm-variable-invalid {
       color: ${(props) => props.theme.codemirror.variable.invalid};
     }
