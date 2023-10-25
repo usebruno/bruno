@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.14.0",
+  "version": "0.15.1",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -24,8 +24,8 @@
     "package.json"
   ],
   "dependencies": {
-    "@usebruno/js": "0.8.0",
-    "@usebruno/lang": "0.8.0",
+    "@usebruno/js": "0.9.1",
+    "@usebruno/lang": "0.9.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",

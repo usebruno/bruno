@@ -1,8 +1,8 @@
-[English](/docs/development.md) | **Українська** | [Русский](/docs/development_ru.md)
+[English](/docs/development.md) | **Українська** | [Русский](/docs/development_ru.md) | [Deutsch](/docs/development_de.md) | [Français](/docs/development_fr.md)
 
 ## Розробка
 
-Bruno розробляється як декстопний застосунок. Вам потрібно запустити nextjs в одній сесії терміналу, та запустити застосунок Electron в іншій сесії терміналу.
+Bruno розробляється як декстопний застосунок. Вам потрібно запустити Next.js в одній сесії терміналу, та запустити застосунок Electron в іншій сесії терміналу.
 
 ### Залежності
 

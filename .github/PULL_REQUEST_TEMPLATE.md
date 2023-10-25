@@ -11,3 +11,7 @@
 - [ ] **Create an issue and link to the pull request.**
 
 Note: Keeping the PR small and focused helps make it easier to review and merge. If you have multiple changes you want to make, please consider submitting them as separate pull requests.
+
+### Publishing to New Package Managers
+
+Please see [here](../publishing.md) for more information.

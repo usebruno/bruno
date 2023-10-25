@@ -4,7 +4,7 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
@@ -31,6 +31,14 @@ const RequestTabs = () => {
     dispatch(
       focusTab({
         uid: tab.uid
+      })
+    );
+  };
+
+  const handleCloseClick = (tab) => {
+    dispatch(
+      closeTabs({
+        tabUids: [tab.uid]
       })
     );
   };
@@ -110,6 +118,7 @@ const RequestTabs = () => {
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
+                        onAuxClick={() => handleCloseClick(tab)}
                       >
                         <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
                       </li>

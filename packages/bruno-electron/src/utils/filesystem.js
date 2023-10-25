@@ -60,6 +60,14 @@ const writeFile = async (pathname, content) => {
   }
 };
 
+const writeBinaryFile = async (pathname, content) => {
+  try {
+    fs.writeFileSync(pathname, content);
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
+
 const hasJsonExtension = (filename) => {
   if (!filename || typeof filename !== 'string') return false;
   return ['json'].some((ext) => filename.toLowerCase().endsWith(`.${ext}`));
@@ -95,6 +103,14 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const chooseFileToSave = async (win, preferredFileName = '') => {
+  const { filePath } = await dialog.showSaveDialog(win, {
+    defaultPath: preferredFileName
+  });
+
+  return filePath;
+};
+
 const searchForFiles = (dir, extension) => {
   let results = [];
   const files = fs.readdirSync(dir);
@@ -126,10 +142,12 @@ module.exports = {
   isDirectory,
   normalizeAndResolvePath,
   writeFile,
+  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
   browseDirectory,
+  chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName
