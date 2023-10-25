@@ -55,13 +55,13 @@ Ouaf! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
 
 Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de penser à partager votre témoignage sur la [page discussion Github dédiée](https://github.com/usebruno/bruno/discussions/343)
 
-### Publier Bruno sur un novueau gestionnaire de paquets
+### Publier Bruno sur un nouveau gestionnaire de paquets
 
 Veuillez regarder [ici](publishing.md) pour plus d'information.
 
 ### Contribuer 👩‍💻🧑‍💻
 
-Je suis heureux de voir que vous chercher à améliorer Bruno. Merci de consulter le [guide de contribution](contributing_fr.md)
+Je suis heureux de voir que vous cherchez à améliorer Bruno. Merci de consulter le [guide de contribution](contributing_fr.md)
 
 Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hésitez pas à consigner les bogues et les demandes de nouvelles fonctionnalités pour résoudre vos cas d'usage !
 
