@@ -4,7 +4,7 @@
 
 Je suis ravi que vous souhaitiez améliorer Bruno. Voici les directives pour commencer à faire fonctionner Bruno sur votre ordinateur.
 
-### Stack Technologique
+### Stack Technique
 
 Bruno est développé en utilisant Next.js et React. Nous utilisons également Electron pour proposer une version de bureau (qui prend en charge les collections locales).
 
