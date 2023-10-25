@@ -14,11 +14,11 @@
 
 Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
 
-Brunos sauvegarde vos collections directement sur votre système de fichier. Nous utilisons un langage de balise de type texte pour décrire les resquêtes API.
+Brunos sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
 
 Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler de manière collaborative sur vos collections d'APIs.
 
-Bruno est ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud vers Bruno, il n'y en aura jamais. Nous considérons la confidentialité de vos données et nous sommes convaincu qu'elles doivent rester sur vos appareils. Vous pouvez lire notr vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
+Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
@@ -28,7 +28,7 @@ Bruno est ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou
 
 ### Collaborer via Git 👩‍💻🧑‍💻
 
-Ou n'importe quel système de gestion de source, selon votre choix
+Ou n'importe quel système de gestion de sources
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
@@ -49,7 +49,7 @@ Ou n'importe quel système de gestion de source, selon votre choix
 
 ### Soutien ❤️
 
-Ouaf! Si vous aimez le project, cliquez sur le boutont ⭐ !!
+Ouaf! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
 
 ### Partage de témoignages 📣
 
@@ -63,7 +63,7 @@ Veuillez regarder [ici](publishing.md) pour plus d'information.
 
 Je suis heureux de voir que vous chercher à améliorer Bruno. Merci de consulter le [guide de contribution](contributing_fr.md)
 
-Même si vous n'êtes pas en mesure de contribuer via du code, n'hésitez pas à consigner les bogues et les demandes de nouvelles fonctionnalités pour résoudre vos cas d'usage !
+Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hésitez pas à consigner les bogues et les demandes de nouvelles fonctionnalités pour résoudre vos cas d'usage !
 
 ### Auteurs
 
@@ -82,14 +82,14 @@ Même si vous n'êtes pas en mesure de contribuer via du code, n'hésitez pas à
 
 ### Marque
 
-**Name**
+**Nom**
 
 `Bruno` est une marque appartenant à [Anoop M D](https://www.helloanoop.com/)
 
 **Logo**
 
 Le logo est issu de [OpenMoji](https://openmoji.org/library/emoji-1F436/).
- Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 
