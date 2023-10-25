@@ -52,7 +52,7 @@ Wouf ! Si vous aimez le projet, appuyez sur le bouton ⭐ !!
 
 ### Partagez vos témoignages 📣
 
-Si Bruno vous a aidé au travail et à vos équipes, n'oubliez pas de partager vos [témoignages sur notre discussion GitHub](https://github.com/usebruno/bruno/discussions/343)
+Si Bruno vous a aidé dans votre travail et/ou vos équipes, n'oubliez pas de partager vos [témoignages](https://github.com/usebruno/bruno/discussions/343)
 
 ### Publication dans de nouveaux gestionnaires de paquets
 
