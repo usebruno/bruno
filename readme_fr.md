@@ -11,7 +11,7 @@
 
 [English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | **Français**
 
-Bruno est un nouvel et innovant client API, conçu pour révolutionner le statu quo représenté par Postman et des outils similaires.
+Bruno est un nouveau et innovant client API, conçu pour révolutionner le statu quo représenté par Postman et outils similaires.
 
 Bruno stocke vos collections directement dans un dossier sur votre système de fichiers. Nous utilisons un langage de balisage en texte brut, le Bru, pour enregistrer des informations sur les requêtes API.
 
