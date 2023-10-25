@@ -2,6 +2,7 @@ import React from 'react';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
+import { IconDownload } from '@tabler/icons';
 
 const ResponseSave = ({ item }) => {
   const { ipcRenderer } = window;
@@ -21,9 +22,9 @@ const ResponseSave = ({ item }) => {
   };
 
   return (
-    <StyledWrapper className="ml-4">
-      <button onClick={saveResponseToFile} disabled={!response.dataBuffer}>
-        Save Response
+    <StyledWrapper className="ml-4 flex items-center">
+      <button onClick={saveResponseToFile} disabled={!response.dataBuffer} title="Save response to file">
+        <IconDownload size={16} strokeWidth={1.5} />
       </button>
     </StyledWrapper>
   );

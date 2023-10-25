@@ -113,10 +113,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
+            <ResponseSave item={item} />
             <StatusCode status={response.status} />
             <ResponseTime duration={response.duration} />
             <ResponseSize size={response.size} />
-            <ResponseSave item={item} />
           </div>
         ) : null}
       </div>
