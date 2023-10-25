@@ -25,7 +25,7 @@ Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org
 
 ### Commençons à coder
 
-Veuillez vous référez à la [documentation de développement](docs/development.md) pour les instructions pour démarrer l'environnement de développement local.
+Veuillez vous référez à la [documentation de développement](docs/development_fr.md) pour les instructions pour démarrer l'environnement de développement local.
 
 ### Ouvrir une Pull Request
 
