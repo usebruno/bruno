@@ -2,7 +2,7 @@
 
 ## Développement
 
-Bruno est en cours de développement en tant qu'application de bureau. Vous devez lancer l'application en exécutant l'application Next.js dans un terminal, puis exécuter l'application Electron dans un autre terminal.
+Bruno est développé en tant qu'application de bureau. Vous devez lancer l'application en exécutant l'application Next.js dans un terminal, puis exécuter l'application Electron dans un autre terminal.
 
 ### Dépendances
 
