@@ -48,21 +48,21 @@ Ou tout système de contrôle de version de votre choix
 
 ### Soutien ❤️
 
-Wouf ! Si vous aimez le projet, appuyez sur le bouton ⭐ !!
+Wouf ! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
 
 ### Partagez vos témoignages 📣
 
-Si Bruno vous a aidé dans votre travail et/ou vos équipes, n'oubliez pas de partager vos [témoignages](https://github.com/usebruno/bruno/discussions/343)
+Si Bruno vous a aidé dans votre travail et/ou vos équipes, n'oubliez pas de partager votre témoignage sur la [page discussion Github dédiée](https://github.com/usebruno/bruno/discussions/343)
 
-### Publication dans de nouveaux gestionnaires de paquets
+### Publier Bruno sur un nouveau gestionnaire de paquets
 
 Veuillez consulter [ceci](publishing.md) pour plus d'informations.
 
 ### Contribuer 👩‍💻🧑‍💻
 
-Je suis heureux que vous cherchiez à améliorer Bruno. Veuillez consulter le [guide de contribution](contributing.md)
+Je suis heureux de voir que vous cherchez à améliorer Bruno. Merci de consulter le [guide de contribution](contributing_fr.md)
 
-Même si vous n'êtes pas en mesure de contribuer par le code, n'hésitez pas à signaler des bogues et des demandes de fonctionnalités qui doivent être mises en œuvre pour résoudre votre cas d'utilisation.
+Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hésitez pas à consigner les bogues et les demandes de nouvelles fonctionnalités pour résoudre vos cas d'usage !
 
 ### Auteurs
 
@@ -72,7 +72,7 @@ Même si vous n'êtes pas en mesure de contribuer par le code, n'hésitez pas à
     </a>
 </div>
 
-### Restez en contact 🌐
+### Restons en contact 🌐
 
 [Twitter](https://twitter.com/use_bruno) <br />
 [Site Web](https://www.usebruno.com) <br />
@@ -87,7 +87,8 @@ Même si vous n'êtes pas en mesure de contribuer par le code, n'hésitez pas à
 
 **Logo**
 
-Le logo provient d'OpenMoji (https://openmoji.org/library/emoji-1F436/). Licence : CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+Le logo est issu de [OpenMoji](https://openmoji.org/library/emoji-1F436/).
+Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 

@@ -1,10 +1,10 @@
 [English](contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | **Français**
 
-## Améliorons Bruno ensemble !!
+## Ensemble, améliorons Bruno !
 
 Je suis ravi que vous souhaitiez améliorer Bruno. Voici les directives pour commencer à faire fonctionner Bruno sur votre ordinateur.
 
-### Stack Technique
+### Technologies utilisées
 
 Bruno est développé en utilisant Next.js et React. Nous utilisons également Electron pour proposer une version de bureau (qui prend en charge les collections locales).
 
@@ -25,7 +25,7 @@ Vous aurez besoin de [Node v18.x ou de la dernière version LTS](https://nodejs.
 
 ### Commençons à coder
 
-Veuillez consulter [development_fr.md](docs/development_fr.md) pour obtenir des instructions sur l'exécution de l'environnement de développement local.
+Veuillez consulter [documentation de développement](docs/development_fr.md) pour obtenir des instructions sur l'exécution de l'environnement de développement local.
 
 ### Soumettre une Pull Request
 

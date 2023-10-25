@@ -3,9 +3,12 @@ const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
+const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
+const contentDispositionParser = require('content-disposition');
+const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { forOwn, extend, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
@@ -24,6 +27,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
+const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -83,7 +87,14 @@ const getSize = (data) => {
   return 0;
 };
 
-const configureRequest = async (collectionUid, request, envVars, collectionVariables, processEnvVars) => {
+const configureRequest = async (
+  collectionUid,
+  request,
+  envVars,
+  collectionVariables,
+  processEnvVars,
+  collectionPath
+) => {
   const httpsAgentRequestFields = {};
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -100,18 +111,29 @@ const configureRequest = async (collectionUid, request, envVars, collectionVaria
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
   for (let clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert.domain, interpolationOptions);
-    const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-    const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+
+    let certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
+    certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+
+    let keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
+    keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+
     if (domain && certFilePath && keyFilePath) {
       const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 
       if (request.url.match(hostRegex)) {
         try {
           httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+        } catch (err) {
+          console.log('Error reading cert file', err);
+        }
+
+        try {
           httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
         } catch (err) {
-          console.log('Error reading cert/key file', err);
+          console.log('Error reading key file', err);
         }
+
         httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
         break;
       }
@@ -389,7 +411,8 @@ const registerNetworkIpc = (mainWindow) => {
         request,
         envVars,
         collectionVariables,
-        processEnvVars
+        processEnvVars,
+        collectionPath
       );
 
       let response, responseTime;
@@ -564,7 +587,8 @@ const registerNetworkIpc = (mainWindow) => {
         preparedRequest,
         envVars,
         collection.collectionVariables,
-        processEnvVars
+        processEnvVars,
+        collectionPath
       );
       const response = await axiosInstance(preparedRequest);
 
@@ -695,7 +719,8 @@ const registerNetworkIpc = (mainWindow) => {
               request,
               envVars,
               collectionVariables,
-              processEnvVars
+              processEnvVars,
+              collectionPath
             );
 
             timeStart = Date.now();
@@ -838,6 +863,51 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
   );
+
+  // save response to file
+  ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
+    try {
+      const getHeaderValue = (headerName) => {
+        if (response.headers) {
+          const header = response.headers.find((header) => header[0] === headerName);
+          if (header && header.length > 1) {
+            return header[1];
+          }
+        }
+      };
+
+      const getFileNameFromContentDispositionHeader = () => {
+        const contentDisposition = getHeaderValue('content-disposition');
+        try {
+          const disposition = contentDispositionParser.parse(contentDisposition);
+          return disposition && disposition.parameters['filename'];
+        } catch (error) {}
+      };
+
+      const getFileNameFromUrlPath = () => {
+        const lastPathLevel = new URL(url).pathname.split('/').pop();
+        if (lastPathLevel && /\..+/.exec(lastPathLevel)) {
+          return lastPathLevel;
+        }
+      };
+
+      const getFileNameBasedOnContentTypeHeader = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = (contentType && mime.extension(contentType)) || 'txt';
+        return `response.${extension}`;
+      };
+
+      const fileName =
+        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+
+      const filePath = await chooseFileToSave(mainWindow, fileName);
+      if (filePath) {
+        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 };
 
 module.exports = registerNetworkIpc;

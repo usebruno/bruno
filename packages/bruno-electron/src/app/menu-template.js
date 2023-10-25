@@ -12,6 +12,14 @@ const template = [
           ipcMain.emit('main:open-collection');
         }
       },
+      {
+        label: 'Preferences',
+        accelerator: 'CommandOrControl+,',
+        click() {
+          ipcMain.emit('main:open-preferences');
+        }
+      },
+      { type: 'separator' },
       { role: 'quit' }
     ]
   },

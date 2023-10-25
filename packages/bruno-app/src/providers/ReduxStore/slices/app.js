@@ -7,6 +7,7 @@ const initialState = {
   leftSidebarWidth: 222,
   screenWidth: 500,
   showHomePage: false,
+  showPreferences: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -40,6 +41,9 @@ export const appSlice = createSlice({
     hideHomePage: (state) => {
       state.showHomePage = false;
     },
+    showPreferences: (state, action) => {
+      state.showPreferences = action.payload;
+    },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
     }
@@ -53,6 +57,7 @@ export const {
   updateIsDragging,
   showHomePage,
   hideHomePage,
+  showPreferences,
   updatePreferences
 } = appSlice.actions;
 

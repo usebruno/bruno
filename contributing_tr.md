@@ -6,7 +6,7 @@ Bruno'yu geliştirmek istemenizden mutluluk duyuyorum. Aşağıda, bruno'yu bilg
 
 ### Kullanılan Teknolojiler
 
-Bruno, NextJs ve React kullanılarak oluşturulmuştur. Ayrıca bir masaüstü sürümü (yerel koleksiyonları destekleyen) göndermek için electron kullanıyoruz
+Bruno, Next.js ve React kullanılarak oluşturulmuştur. Ayrıca bir masaüstü sürümü (yerel koleksiyonları destekleyen) göndermek için electron kullanıyoruz
 
 Kullandığımız kütüphaneler
 
