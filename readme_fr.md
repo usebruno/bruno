@@ -17,7 +17,7 @@ Bruno stocke vos collections directement dans un dossier sur votre système de f
 
 Vous pouvez utiliser git ou tout système de contrôle de version de votre choix pour collaborer sur vos collections API.
 
-Bruno est hors ligne uniquement. Il n'y a aucun plan pour ajouter une synchronisation dans le cloud à Bruno, jamais. Nous accordons de l'importance à la confidentialité de vos données et pensons qu'elles devraient rester sur votre appareil. Lisez notre vision à long terme [ici](https://github.com/usebruno/bruno/discussions/269)
+Bruno fonctionne uniquement hors ligne uniquement. Il n'y a aucun plan pour ajouter une synchronisation dans le cloud à Bruno, jamais. Nous accordons de l'importance à la confidentialité de vos données et pensons qu'elles devraient rester sur votre appareil. Lisez notre vision à long terme [ici](https://github.com/usebruno/bruno/discussions/269)
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
