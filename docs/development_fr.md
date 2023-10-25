@@ -17,7 +17,7 @@ nvm use
 # Installer les dépendances
 npm i --legacy-peer-deps
 
-# Construire le module grapgql-docs
+# Construire le module graphql-docs
 npm run build:graphql-docs
 
 # Construire le module bruno-query
