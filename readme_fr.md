@@ -56,7 +56,7 @@ Si Bruno vous a aidé dans votre travail et/ou vos équipes, n'oubliez pas de pa
 
 ### Publication dans de nouveaux gestionnaires de paquets
 
-Veuillez consulter [ici](publishing.md) pour plus d'informations.
+Veuillez consulter [ceci](publishing.md) pour plus d'informations.
 
 ### Contribuer 👩‍💻🧑‍💻
 
