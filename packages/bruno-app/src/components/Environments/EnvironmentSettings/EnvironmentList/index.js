@@ -1,7 +1,5 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
-import toast from 'react-hot-toast';
-import { toastError } from 'utils/common/error';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
