@@ -7,6 +7,8 @@ const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
 const FormData = require('form-data');
+const contentDispositionParser = require('content-disposition');
+const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { forOwn, extend, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
@@ -25,6 +27,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
+const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -860,6 +863,51 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
   );
+
+  // save response to file
+  ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
+    try {
+      const getHeaderValue = (headerName) => {
+        if (response.headers) {
+          const header = response.headers.find((header) => header[0] === headerName);
+          if (header && header.length > 1) {
+            return header[1];
+          }
+        }
+      };
+
+      const getFileNameFromContentDispositionHeader = () => {
+        const contentDisposition = getHeaderValue('content-disposition');
+        try {
+          const disposition = contentDispositionParser.parse(contentDisposition);
+          return disposition && disposition.parameters['filename'];
+        } catch (error) {}
+      };
+
+      const getFileNameFromUrlPath = () => {
+        const lastPathLevel = new URL(url).pathname.split('/').pop();
+        if (lastPathLevel && /\..+/.exec(lastPathLevel)) {
+          return lastPathLevel;
+        }
+      };
+
+      const getFileNameBasedOnContentTypeHeader = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = (contentType && mime.extension(contentType)) || 'txt';
+        return `response.${extension}`;
+      };
+
+      const fileName =
+        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+
+      const filePath = await chooseFileToSave(mainWindow, fileName);
+      if (filePath) {
+        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 };
 
 module.exports = registerNetworkIpc;
