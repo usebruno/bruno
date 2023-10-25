@@ -41,6 +41,15 @@ function MyApp({ Component, pageProps }) {
     return null;
   }
 
+  if (!window.ipcRenderer) {
+    return (
+      <div style={{ color: 'red' }}>
+        Error: "ipcRenderer" not found in window object. You most likely opened Bruno inside your web browser. Bruno
+        only works within Electron, you can start Electron using "npm run dev:electron".
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <SafeHydrate>
