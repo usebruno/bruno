@@ -10,7 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | **Українська** | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français] (/readme_fr.md)
+[English](/readme.md) | **Українська** | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français](/readme_fr.md)
 
 Bruno це новий та іноваційний API клієнт, націлений на революційну зміну статус кво, запровадженого інструментами на кшталт Postman.
 
