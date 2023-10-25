@@ -1,4 +1,4 @@
-[English](/docs/development.md) | [Українська](/docs/development_ua.md) | [Русский](/docs/development_ru.md) | [Deutsch](/docs/development_de.md) | **Français**
+[English](/docs/development.md) | [Українська](/docs/development_ua.md) | [Русский](/docs/development_ru.md) | [Deutsch](/docs/development_de.md) | **Français** | [हिंदी](/docs/development_hi.md)
 
 ## Développement
 
