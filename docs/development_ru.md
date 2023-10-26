@@ -1,8 +1,8 @@
-[English](/docs/development.md) | [Українська](/docs/development_ua.md) | **Русский** | [Deutsch](/docs/development_de.md) | [Español](/docs/development_es.md)
+[English](/docs/development.md) | [Українська](/docs/development_ua.md) | **Русский** | [Deutsch](/docs/development_de.md) | [Français](/docs/development_fr.md) | [Español](/docs/development_es.md)
 
 ## Разработка
 
-Bruno разрабатывается как десктопное приложение. Необходимо загрузить приложение, запустив приложение nextjs в одном терминале, а затем запустить приложение electron в другом терминале.
+Bruno разрабатывается как десктопное приложение. Необходимо загрузить приложение, запустив приложение Next.js в одном терминале, а затем запустить приложение electron в другом терминале.
 
 ### Зависимости
 

@@ -1,8 +1,8 @@
-**English** | [Українська](/docs/development_ua.md) | [Русский](/docs/development_ru.md) | [Deutsch](/docs/development_de.md) | [Español](/docs/development_es.md)
+**English** | [Українська](/docs/development_ua.md) | [Русский](/docs/development_ru.md) | [Deutsch](/docs/development_de.md) | [Français](/docs/development_fr.md) | [Español](/docs/development_es.md)
 
 ## Development
 
-Bruno is being developed as a desktop app. You need to load the app by running the nextjs app in one terminal and then run the electron app in another terminal.
+Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
 ### Dependencies
 

@@ -10,7 +10,7 @@
 [![Sitio Web](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Descargas](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | **Español**
+[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français](/readme_fr.md) | **Español**
 
 Bruno un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 

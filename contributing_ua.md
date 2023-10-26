@@ -1,4 +1,4 @@
-[English](/contributing.md) | **Українська** | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Español](/contributing_es.md)
+[English](/contributing.md) | **Українська** | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [Español](/contributing_es.md)
 
 ## Давайте зробимо Bruno краще, разом !!
 
@@ -6,7 +6,7 @@
 
 ### Стек технологій
 
-Bruno побудований на NextJs та React. Також для десктопної версії (яка підтримує локальні колекції) використовується Electron
+Bruno побудований на Next.js та React. Також для десктопної версії (яка підтримує локальні колекції) використовується Electron
 
 Бібліотеки, які ми використовуємо
 

@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Español](/contributing_es.md)
+[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [Español](/contributing_es.md)
 
 ## Давайте вместе сделаем Бруно лучше!!!
 
@@ -6,7 +6,7 @@
 
 ### Стек
 
-Bruno построен с использованием NextJs и React. Мы также используем electron для поставки десктопной версии ( которая поддерживает локальные коллекции )
+Bruno построен с использованием Next.js и React. Мы также используем electron для поставки десктопной версии ( которая поддерживает локальные коллекции )
 
 Библиотеки, которые мы используем
 

@@ -1,12 +1,12 @@
-**English** | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Español](/contributing_es.md)
+**English** | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [Español](/contributing_es.md)
 
-## Lets make bruno better, together !!
+## Let's make bruno better, together !!
 
 I am happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
 
 ### Technology Stack
 
-Bruno is built using NextJs and React. We also use electron to ship a desktop version (that supports local collections)
+Bruno is built using Next.js and React. We also use electron to ship a desktop version (that supports local collections)
 
 Libraries we use
 
@@ -23,7 +23,7 @@ Libraries we use
 
 You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
-### Lets start coding
+### Let's start coding
 
 Please reference [development.md](docs/development.md) for instructions on running the local development environment.
 
