@@ -18,7 +18,14 @@ const isItemAFolder = (item) => {
   return !item.request;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item) => {
+const convertV21Auth = (array) => {
+  return array.reduce((accumulator, currentValue) => {
+    accumulator[currentValue.key] = currentValue.value;
+    return accumulator;
+  }, {});
+};
+
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
 
   each(item, (i) => {
@@ -31,7 +38,7 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
       };
       brunoParent.items.push(brunoFolderItem);
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
     } else {
       if (i.request) {
@@ -49,6 +56,12 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           request: {
             url: url,
             method: i.request.method,
+            auth: {
+              mode: 'none',
+              basic: null,
+              bearer: null,
+              awsv4: null
+            },
             headers: [],
             params: [],
             body: {
@@ -143,6 +156,36 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           });
         });
 
+        const auth = i.request.auth ?? parentAuth;
+        if (auth?.[auth.type] && auth.type !== 'noauth') {
+          let authValues = auth[auth.type];
+          if (Array.isArray(authValues)) {
+            authValues = convertV21Auth(authValues);
+          }
+          if (auth.type === 'basic') {
+            brunoRequestItem.request.auth.mode = 'basic';
+            brunoRequestItem.request.auth.basic = {
+              username: authValues.username,
+              password: authValues.password
+            };
+          } else if (auth.type === 'bearer') {
+            brunoRequestItem.request.auth.mode = 'bearer';
+            brunoRequestItem.request.auth.bearer = {
+              token: authValues.token
+            };
+          } else if (auth.type === 'awsv4') {
+            brunoRequestItem.request.auth.mode = 'awsv4';
+            brunoRequestItem.request.auth.awsv4 = {
+              accessKeyId: authValues.accessKey,
+              secretAccessKey: authValues.secretKey,
+              sessionToken: authValues.sessionToken,
+              service: authValues.service,
+              region: authValues.region,
+              profileName: ''
+            };
+          }
+        }
+
         each(get(i, 'request.url.query'), (param) => {
           brunoRequestItem.request.params.push({
             uid: uuid(),
@@ -183,7 +226,7 @@ const importPostmanV2Collection = (collection) => {
     environments: []
   };
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth);
 
   return brunoCollection;
 };
