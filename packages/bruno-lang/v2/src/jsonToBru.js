@@ -24,7 +24,10 @@ const stripLastLine = (text) => {
 function encodeKeyValueItems(items, disabled = false, prefix = '') {
   const _prefix = (disabled ? '~' : '') + prefix;
   return (
-    '\n' + indentString(items.map((item) => `${_prefix}${encodeURIComponent(item.name)}: ${item.value}`).join('\n'))
+    '\n' +
+    indentString(
+      items.map((item) => `${_prefix}${encodeURIComponent(item.name)}: ${encodeURIComponent(item.value)}`).join('\n')
+    )
   );
 }
 
