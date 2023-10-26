@@ -14,6 +14,56 @@ const readFile = (files) => {
   });
 };
 
+/**
+ *
+ * @param {string} query
+ * @returns {string}
+ */
+const parseGraphQLQuery = (query) => {
+  return query
+    .replace(/\s+/g, ' ')
+    .replace(/{ /g, '{')
+    .replace(/ {/g, '{')
+    .replace(/ }/g, '}')
+    .replace(/, /g, ',')
+    .replace(/ : /g, ': ')
+    .replace(/\n/g, '');
+};
+
+const parseGraphQLVariables = (string) => {
+  const cleanedString = string.replace(/[\n\t]/g, '').replace(/\\"/g, '"');
+  const variables = JSON.stringify(JSON.parse(cleanedString));
+  return typeof variables === 'string' ? variables : '';
+};
+
+const parseGraphQLRequest = (graphqlSource) => {
+  try {
+    let queryResultObject = {
+      query: '',
+      variables: ''
+    };
+
+    if (typeof graphqlSource === 'string') {
+      graphqlSource = JSON.parse(text);
+    }
+
+    if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
+      queryResultObject.variables = parseGraphQLVariables(graphqlSource.variables);
+    }
+
+    if (graphqlSource.hasOwnProperty('query') && graphqlSource.query !== '') {
+      queryResultObject.query = parseGraphQLQuery(graphqlSource.query);
+    }
+
+    return queryResultObject;
+  } catch (e) {
+    return {
+      query: '',
+      variables: ''
+    };
+  }
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
@@ -131,6 +181,12 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+        }
+
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
         }
 
         each(i.request.header, (header) => {
