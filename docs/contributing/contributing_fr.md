@@ -1,5 +1,3 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md)  | **Français**
-
 ## Ensemble, améliorons Bruno !
 
 Je suis content de voir que vous envisagez améliorer Bruno. Ci-dessous, vous trouverez les règles et guides pour récupérer Bruno sur votre ordinateur.
@@ -68,7 +66,7 @@ npm run dev:electron
 
 ### Dépannage
 
-Vous pourriez rencontrer une error  `Unsupported platform` pendant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules`, le fichier `package-lock.json` et lancer à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
+Vous pourriez rencontrer une error `Unsupported platform` pendant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules`, le fichier `package-lock.json` et lancer à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
 
 ```shell
 # Delete node_modules in sub-directories

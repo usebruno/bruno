@@ -1,8 +1,8 @@
-**English** | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md)
+**English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md)
 
 ## Let's make bruno better, together !!
 
-I am happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
+We are happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
 
 ### Technology Stack
 
@@ -22,19 +22,6 @@ Libraries we use
 ### Dependencies
 
 You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
-
-### Let's start coding
-
-Please reference [development.md](docs/development.md) for instructions on running the local development environment.
-
-### Raising Pull Request
-
-- Please keep the PR's small and focused on one thing
-- Please follow the format of creating branches
-  - feature/[feature name]: This branch should contain changes for a specific feature
-    - Example: feature/dark-mode
-  - bugfix/[bug name]: This branch should contain only bug fixes for a specific bug
-    - Example bugfix/bug-1
 
 ## Development
 
@@ -89,3 +76,12 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
+
+### Raising Pull Request
+
+- Please keep the PR's small and focused on one thing
+- Please follow the format of creating branches
+  - feature/[feature name]: This branch should contain changes for a specific feature
+    - Example: feature/dark-mode
+  - bugfix/[bug name]: This branch should contain only bug fixes for a specific bug
+    - Example bugfix/bug-1
