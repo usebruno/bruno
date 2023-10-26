@@ -10,6 +10,9 @@ const StyledWrapper = styled.div`
     background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
     border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
     min-height: 400px;
+    height: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
   }
 
   .environment-item {
@@ -35,17 +38,20 @@ const StyledWrapper = styled.div`
     }
   }
 
-  .btn-create-environment {
+  .btn-create-environment,
+  .btn-import-environment {
     padding: 8px 10px;
     cursor: pointer;
     border-bottom: none;
     color: ${(props) => props.theme.textLink};
 
-    &:hover {
-      span {
-        text-decoration: underline;
-      }
+    span:hover {
+      text-decoration: underline;
     }
+  }
+
+  .btn-import-environment {
+    color: ${(props) => props.theme.colors.text.muted};
   }
 `;
 

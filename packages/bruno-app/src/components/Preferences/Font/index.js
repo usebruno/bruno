@@ -30,18 +30,16 @@ const Font = ({ close }) => {
   return (
     <StyledWrapper>
       <label className="block font-medium">Code Editor Font</label>
-      <div className="input-container">
-        <input
-          type="text"
-          className="block textbox mt-2 w-full"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          onChange={handleInputChange}
-          defaultValue={codeFont}
-        />
-      </div>
+      <input
+        type="text"
+        className="block textbox mt-2 w-full"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
+        onChange={handleInputChange}
+        defaultValue={codeFont}
+      />
 
       <div className="mt-10">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>

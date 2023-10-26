@@ -170,7 +170,7 @@ ${indentString(body.file)}
     if (enabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${item.name}: ${encodeURIComponent(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -178,7 +178,7 @@ ${indentString(body.file)}
     if (disabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${item.name}: ${encodeURIComponent(item.value)}`)
           .join('\n')
       )}`;
     }

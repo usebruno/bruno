@@ -2,13 +2,18 @@ import React, { useEffect, useState, forwardRef, useRef } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
-import CreateEnvironment from '../CreateEnvironment/index';
+import CreateEnvironment from '../CreateEnvironment';
+import { IconDownload, IconShieldLock } from '@tabler/icons';
+import ImportEnvironment from '../ImportEnvironment';
+import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 
 const EnvironmentList = ({ collection }) => {
   const { environments } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
+  const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
@@ -48,9 +53,11 @@ const EnvironmentList = ({ collection }) => {
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
+      {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
+      {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
       <div className="flex">
         <div>
-          <div className="environments-sidebar">
+          <div className="environments-sidebar flex flex-col">
             {environments &&
               environments.length &&
               environments.map((env) => (
@@ -64,6 +71,17 @@ const EnvironmentList = ({ collection }) => {
               ))}
             <div className="btn-create-environment" onClick={() => setOpenCreateModal(true)}>
               + <span>Create</span>
+            </div>
+
+            <div className="mt-auto btn-import-environment">
+              <div className="flex items-center" onClick={() => setOpenImportModal(true)}>
+                <IconDownload size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Import</span>
+              </div>
+              <div className="flex items-center mt-2" onClick={() => setOpenManageSecretsModal(true)}>
+                <IconShieldLock size={12} strokeWidth={2} />
+                <span className="label ml-1 text-xs">Managing Secrets</span>
+              </div>
             </div>
           </div>
         </div>

@@ -76,7 +76,12 @@ const CreateCollection = ({ onClose }) => {
             name="collectionName"
             ref={inputRef}
             className="block textbox mt-2 w-full"
-            onChange={formik.handleChange}
+            onChange={(e) => {
+              formik.handleChange(e);
+              if (formik.values.collectionName === formik.values.collectionFolderName) {
+                formik.setFieldValue('collectionFolderName', e.target.value);
+              }
+            }}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"

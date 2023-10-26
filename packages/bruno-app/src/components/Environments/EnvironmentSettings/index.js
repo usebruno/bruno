@@ -3,10 +3,12 @@ import React, { useState } from 'react';
 import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
+import ImportEnvironment from './ImportEnvironment';
 
 const EnvironmentSettings = ({ collection, onClose }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
+  const [openImportModal, setOpenImportModal] = useState(false);
 
   if (!environments || !environments.length) {
     return (
@@ -20,13 +22,23 @@ const EnvironmentSettings = ({ collection, onClose }) => {
           hideCancel={true}
         >
           {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
-          <div className="text-center">
+          {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
+          <div className="text-center flex flex-col">
             <p>No environments found!</p>
             <button
               className="btn-create-environment text-link pr-2 py-3 mt-2 select-none"
               onClick={() => setOpenCreateModal(true)}
             >
-              + <span>Create Environment</span>
+              <span>Create Environment</span>
+            </button>
+
+            <span>Or</span>
+
+            <button
+              className="btn-import-environment text-link pl-2 pr-2 py-3 select-none"
+              onClick={() => setOpenImportModal(true)}
+            >
+              <span>Import Environment</span>
             </button>
           </div>
         </Modal>

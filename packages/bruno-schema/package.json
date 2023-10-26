@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/schema",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "MIT",
   "main": "src/index.js",
   "files": [

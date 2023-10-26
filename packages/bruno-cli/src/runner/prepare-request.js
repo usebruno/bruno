@@ -88,6 +88,13 @@ const prepareRequest = (request, collectionRoot) => {
     axiosRequest.data = request.body.xml;
   }
 
+  if (request.body.mode === 'sparql') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/sparql-query';
+    }
+    axiosRequest.data = request.body.sparql;
+  }
+
   if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     const params = {};
