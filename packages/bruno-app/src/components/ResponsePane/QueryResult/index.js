@@ -85,7 +85,16 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
         {tabs}
       </div>
       {error ? (
-        <span className="text-red-500">{error}</span>
+        <div>
+          <div className="text-red-500">{error}</div>
+
+          {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
+            <div className="mt-6 muted text-xs">
+              You can disable SSL verification in the Preferences. <br />
+              To open the Preferences, click on the gear icon in the bottom left corner.
+            </div>
+          ) : null}
+        </div>
       ) : (
         <QueryResultPreview
           previewTab={previewTab}

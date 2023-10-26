@@ -68,8 +68,8 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec[0])) {
-                brunoRequestItem.request.script.req = event.script.exec[0].map((line) => `// ${line}`).join('\n');
+              if (Array.isArray(event.script.exec)) {
+                brunoRequestItem.request.script.req = event.script.exec.map((line) => `// ${line}`).join('\n');
               } else {
                 brunoRequestItem.request.script.req = `// ${event.script.exec[0]} `;
               }
@@ -78,8 +78,8 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec[0])) {
-                brunoRequestItem.request.tests = event.script.exec[0].map((line) => `// ${line}`).join('\n');
+              if (Array.isArray(event.script.exec)) {
+                brunoRequestItem.request.tests = event.script.exec.map((line) => `// ${line}`).join('\n');
               } else {
                 brunoRequestItem.request.tests = `// ${event.script.exec[0]} `;
               }

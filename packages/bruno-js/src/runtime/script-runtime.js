@@ -46,6 +46,11 @@ class ScriptRuntime {
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
+    const additionalContextRoots = get(scriptingConfig, 'additionalContextRoots', []);
+    const additionalContextRootsAbsolute = lodash
+      .chain(additionalContextRoots)
+      .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
+      .value();
 
     const whitelistedModules = {};
 
@@ -83,7 +88,7 @@ class ScriptRuntime {
       require: {
         context: 'sandbox',
         external: true,
-        root: [collectionPath],
+        root: [collectionPath, ...additionalContextRootsAbsolute],
         mock: {
           // node libs
           path,
