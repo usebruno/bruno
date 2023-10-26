@@ -103,7 +103,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
     return [];
   }
   return _.map(pairList[0], (pair) => {
-    let name = _.keys(pair)[0];
+    let name = decodeURIComponent(_.keys(pair)[0]);
     let value = decodeURIComponent(pair[name]);
 
     if (!parseEnabled) {

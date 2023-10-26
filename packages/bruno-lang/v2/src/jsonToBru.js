@@ -2,6 +2,8 @@ const _ = require('lodash');
 
 const { indentString } = require('../../v1/src/utils');
 
+const END_OF_GROUP = '\n}\n\n';
+
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
 
@@ -11,6 +13,20 @@ const stripLastLine = (text) => {
 
   return text.replace(/(\r?\n)$/, '');
 };
+
+/**
+ * Encodes the given key value items so they do not break the bruno file grammar
+ * @param {{ name: string, value: string }[]} items The items to encode
+ * @param disabled If true, a tilde is put in front of the encoded strings
+ * @param prefix A custom string to put in front of the item name
+ * @returns The encoded lines joined by a newline and indent so it can be put in the bruno file
+ */
+function encodeKeyValueItems(items, disabled = false, prefix = '') {
+  const _prefix = (disabled ? '~' : '') + prefix;
+  return (
+    '\n' + indentString(items.map((item) => `${_prefix}${encodeURIComponent(item.name)}: ${item.value}`).join('\n'))
+  );
+}
 
 const jsonToBru = (json) => {
   const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
@@ -48,43 +64,27 @@ const jsonToBru = (json) => {
   if (query && query.length) {
     bru += 'query {';
     if (enabled(query).length) {
-      bru += `\n${indentString(
-        enabled(query)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(enabled(query));
     }
 
     if (disabled(query).length) {
-      bru += `\n${indentString(
-        disabled(query)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(disabled(query), true);
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (headers && headers.length) {
     bru += 'headers {';
     if (enabled(headers).length) {
-      bru += `\n${indentString(
-        enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(enabled(headers));
     }
 
     if (disabled(headers).length) {
-      bru += `\n${indentString(
-        disabled(headers)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(disabled(headers), true);
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (auth && auth.awsv4) {
@@ -152,55 +152,39 @@ ${indentString(body.sparql)}
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `body:form-urlencoded {`;
     if (enabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${encodeURIComponent(item.value)}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(enabled(body.formUrlEncoded));
     }
 
     if (disabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${encodeURIComponent(item.value)}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(disabled(body.formUrlEncoded), true);
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (body && body.multipartForm && body.multipartForm.length) {
     bru += `body:multipart-form {`;
     if (enabled(body.multipartForm).length) {
-      bru += `\n${indentString(
-        enabled(body.multipartForm)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(enabled(body.multipartForm));
     }
 
     if (disabled(body.multipartForm).length) {
-      bru += `\n${indentString(
-        disabled(body.multipartForm)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(disabled(body.multipartForm), true);
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (body && body.graphql && body.graphql.query) {
     bru += `body:graphql {\n`;
     bru += `${indentString(body.graphql.query)}`;
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (body && body.graphql && body.graphql.variables) {
     bru += `body:graphql:vars {\n`;
     bru += `${indentString(body.graphql.variables)}`;
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   let reqvars = _.get(vars, 'req');
@@ -214,22 +198,22 @@ ${indentString(body.sparql)}
     bru += `vars:pre-request {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsEnabled);
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsLocalEnabled, false, '@');
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsDisabled, true);
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsLocalDisabled, true, '@');
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
   if (resvars && resvars.length) {
     const varsEnabled = _.filter(resvars, (v) => v.enabled && !v.local);
@@ -240,44 +224,36 @@ ${indentString(body.sparql)}
     bru += `vars:post-response {`;
 
     if (varsEnabled.length) {
-      bru += `\n${indentString(varsEnabled.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsEnabled);
     }
 
     if (varsLocalEnabled.length) {
-      bru += `\n${indentString(varsLocalEnabled.map((item) => `@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsLocalEnabled, false, '@');
     }
 
     if (varsDisabled.length) {
-      bru += `\n${indentString(varsDisabled.map((item) => `~${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsDisabled, true);
     }
 
     if (varsLocalDisabled.length) {
-      bru += `\n${indentString(varsLocalDisabled.map((item) => `~@${item.name}: ${item.value}`).join('\n'))}`;
+      bru += encodeKeyValueItems(varsLocalDisabled, true, '@');
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (assertions && assertions.length) {
     bru += `assert {`;
 
     if (enabled(assertions).length) {
-      bru += `\n${indentString(
-        enabled(assertions)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(enabled(assertions));
     }
 
     if (disabled(assertions).length) {
-      bru += `\n${indentString(
-        disabled(assertions)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      bru += encodeKeyValueItems(disabled(assertions), true);
     }
 
-    bru += '\n}\n\n';
+    bru += END_OF_GROUP;
   }
 
   if (script && script.req && script.req.length) {
