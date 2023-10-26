@@ -1,5 +1,3 @@
-[English](/contributing.md) | **Українська** | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md)
-
 ## Давайте зробимо Bruno краще, разом !!
 
 Я дуже радий що Ви бажаєте покращити Bruno. Нижче наведені вказівки як розпочати розробку Bruno на Вашому комп'ютері.
