@@ -1,6 +1,7 @@
 const _ = require('lodash');
 
 const { indentString } = require('../../v1/src/utils');
+const { encodeString } = require('./encoder');
 
 const END_OF_GROUP = '\n}\n\n';
 
@@ -25,9 +26,7 @@ function encodeKeyValueItems(items, disabled = false, prefix = '') {
   const _prefix = (disabled ? '~' : '') + prefix;
   return (
     '\n' +
-    indentString(
-      items.map((item) => `${_prefix}${encodeURIComponent(item.name)}: ${encodeURIComponent(item.value)}`).join('\n')
-    )
+    indentString(items.map((item) => `${_prefix}${encodeString(item.name)}: ${encodeString(item.value)}`).join('\n'))
   );
 }
 

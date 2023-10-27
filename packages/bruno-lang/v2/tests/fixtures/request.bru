@@ -17,9 +17,9 @@ query {
 }
 
 headers {
-  content-type: application%2Fjson
-  Authorization: Bearer%20123
-  ~transaction-id: %7B%7BtransactionId%7D%7D
+  content-type: application/json
+  Authorization: Bearer 123
+  ~transaction-id: {{transactionId}}
 }
 
 auth:awsv4 {
@@ -72,7 +72,7 @@ body:form-urlencoded {
 
 body:multipart-form {
   apikey: secret
-  numbers: %2B91998877665
+  numbers: +91998877665
   ~message: hello
 }
 
@@ -99,15 +99,15 @@ vars:pre-request {
 }
 
 vars:post-response {
-  token: %24res.body.token
-  @orderNumber: %24res.body.orderNumber
-  ~petId: %24res.body.id
-  ~@transactionId: %24res.body.transactionId
+  token: $res.body.token
+  @orderNumber: $res.body.orderNumber
+  ~petId: $res.body.id
+  ~@transactionId: $res.body.transactionId
 }
 
 assert {
-  %24res.status: 200
-  ~%24res.body.message: success
+  $res.status: 200
+  ~$res.body.message: success
 }
 
 script:pre-request {

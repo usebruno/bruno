@@ -1,6 +1,7 @@
 const ohm = require('ohm-js');
 const _ = require('lodash');
 const { outdentString } = require('../../v1/src/utils');
+const { decodeString } = require('./encoder');
 
 /**
  * A Bru file is made up of blocks.
@@ -104,8 +105,8 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   }
   return _.map(pairList[0], (pair) => {
     const rawKey = _.keys(pair)[0];
-    const value = decodeURIComponent(pair[rawKey]);
-    let name = decodeURIComponent(rawKey);
+    const value = decodeString(pair[rawKey]);
+    let name = decodeString(rawKey);
 
     if (!parseEnabled) {
       return {
