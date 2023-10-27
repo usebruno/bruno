@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": true,
   "scripts": {
-    "dev": "cross-env ENV=dev next dev",
+    "dev": "cross-env ENV=dev next dev -p 3000",
     "build": "next build && next export",
     "start": "next start",
     "lint": "next lint",
@@ -19,7 +19,7 @@
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/graphql-docs": "0.1.0",
-    "@usebruno/schema": "0.5.0",
+    "@usebruno/schema": "0.6.0",
     "axios": "^0.26.0",
     "classnames": "^2.3.1",
     "codemirror": "^5.65.2",

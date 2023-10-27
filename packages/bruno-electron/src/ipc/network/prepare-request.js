@@ -84,7 +84,8 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    responseType: 'arraybuffer'
   };
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
@@ -136,6 +137,15 @@ const prepareRequest = (request, collectionRoot) => {
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
+
+    // make axios work in node using form data
+    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+    const form = new FormData();
+    forOwn(axiosRequest.data, (value, key) => {
+      form.append(key, value);
+    });
+    extend(axiosRequest.headers, form.getHeaders());
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {

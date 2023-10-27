@@ -27,7 +27,11 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build Electron app
-        run: npm run build:electron:snap
+        run: |
+          npm run build:bruno-query
+          npm run build:graphql-docs
+          npm run build:web
+          npm run build:electron:snap
 
       - name: Install Snapcraft
         run: |

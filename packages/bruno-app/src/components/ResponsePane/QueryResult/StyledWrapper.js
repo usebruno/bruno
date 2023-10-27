@@ -23,6 +23,10 @@ const StyledWrapper = styled.div`
       color: ${(props) => props.theme.colors.text.yellow};
     }
   }
+
+  .muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default StyledWrapper;

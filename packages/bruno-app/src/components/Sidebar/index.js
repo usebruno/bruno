@@ -7,7 +7,7 @@ import Preferences from 'components/Preferences';
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconSettings } from '@tabler/icons';
-import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
@@ -15,7 +15,7 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const preferencesOpen = useSelector((state) => state.app.showPreferences);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
 
@@ -78,7 +78,7 @@ const Sidebar = () => {
     <StyledWrapper className="flex relative h-screen">
       <aside>
         <div className="flex flex-row h-screen w-full">
-          {preferencesOpen && <Preferences onClose={() => setPreferencesOpen(false)} />}
+          {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
 
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -92,7 +92,7 @@ const Sidebar = () => {
                   size={18}
                   strokeWidth={1.5}
                   className="mr-2  hover:text-gray-700"
-                  onClick={() => setPreferencesOpen(true)}
+                  onClick={() => dispatch(showPreferences(true))}
                 />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
@@ -105,7 +105,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.25.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.27.2</div>
             </div>
           </div>
         </div>
