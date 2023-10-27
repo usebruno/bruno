@@ -14,28 +14,6 @@ const readFile = (files) => {
   });
 };
 
-/**
- *
- * @param {string} query
- * @returns {string}
- */
-const parseGraphQLQuery = (query) => {
-  return query
-    .replace(/\s+/g, ' ')
-    .replace(/{ /g, '{')
-    .replace(/ {/g, '{')
-    .replace(/ }/g, '}')
-    .replace(/, /g, ',')
-    .replace(/ : /g, ': ')
-    .replace(/\n/g, '');
-};
-
-const parseGraphQLVariables = (string) => {
-  const cleanedString = string.replace(/[\n\t]/g, '').replace(/\\"/g, '"');
-  const variables = JSON.stringify(JSON.parse(cleanedString));
-  return typeof variables === 'string' ? variables : '';
-};
-
 const parseGraphQLRequest = (graphqlSource) => {
   try {
     let queryResultObject = {
@@ -48,11 +26,11 @@ const parseGraphQLRequest = (graphqlSource) => {
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
-      queryResultObject.variables = parseGraphQLVariables(graphqlSource.variables);
+      queryResultObject.variables = graphqlSource.variables;
     }
 
     if (graphqlSource.hasOwnProperty('query') && graphqlSource.query !== '') {
-      queryResultObject.query = parseGraphQLQuery(graphqlSource.query);
+      queryResultObject.query = graphqlSource.query;
     }
 
     return queryResultObject;
