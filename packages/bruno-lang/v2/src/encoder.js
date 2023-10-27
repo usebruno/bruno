@@ -47,7 +47,6 @@ function decodeString(str) {
     if (str[i] === '\\') {
       const replacement = DECODING_MAP.get(str[i + 1]);
       str = spliceString(str, i, 2, replacement);
-      i++;
     }
   }
   return str;

@@ -82,6 +82,11 @@
         "enabled": true
       },
       {
+        "name": "speci@l",
+        "value": "char: ~\\",
+        "enabled": true
+      },
+      {
         "name": "message",
         "value": "hello",
         "enabled": false
