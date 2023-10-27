@@ -10,6 +10,15 @@ const initialState = {
   activeTabUid: null
 };
 
+let recentUsedTabsStack = [];
+
+Array.prototype.insertIfNotLast = function (tabUid) {
+  if (recentUsedTabsStack[recentUsedTabsStack.length - 1] === tabUid) {
+    return;
+  }
+  recentUsedTabsStack.push(tabUid);
+};
+
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
@@ -41,9 +50,52 @@ export const tabsSlice = createSlice({
         type: action.payload.type || 'request'
       });
       state.activeTabUid = action.payload.uid;
+      recentUsedTabsStack.insertIfNotLast(state.activeTabUid);
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
+      recentUsedTabsStack.insertIfNotLast(state.activeTabUid);
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+
+      const direction = action.payload.direction;
+
+      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+
+      let toBeActivatedTabIndex = 0;
+      let toBeActivatedTabUid;
+
+      if (direction === 'pageup') {
+        if (activeTabIndex == 0) {
+          toBeActivatedTabIndex = state.tabs.length - 1;
+        } else {
+          toBeActivatedTabIndex = activeTabIndex - 1;
+        }
+        toBeActivatedTabUid = state.tabs[toBeActivatedTabIndex].uid;
+        recentUsedTabsStack.insertIfNotLast(state.activeTabUid);
+      } else if (direction === 'pagedown') {
+        if (activeTabIndex == state.tabs.length - 1) {
+          toBeActivatedTabIndex = 0;
+        } else {
+          toBeActivatedTabIndex = activeTabIndex + 1;
+        }
+        toBeActivatedTabUid = state.tabs[toBeActivatedTabIndex].uid;
+        recentUsedTabsStack.insertIfNotLast(state.activeTabUid);
+      } else if (direction === 'tab') {
+        if (recentUsedTabsStack.length === 0) return;
+
+        toBeActivatedTabUid = recentUsedTabsStack.pop();
+
+        if (state.activeTabUid == toBeActivatedTabUid) {
+          toBeActivatedTabUid = recentUsedTabsStack.pop();
+        }
+      }
+
+      state.activeTabUid = toBeActivatedTabUid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -73,6 +125,8 @@ export const tabsSlice = createSlice({
       // remove the tabs from the state
       state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
+      recentUsedTabsStack = recentUsedTabsStack.filter((item) => item !== tabUids);
+
       if (activeTab && state.tabs.length) {
         const { collectionUid } = activeTab;
         const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
@@ -90,6 +144,8 @@ export const tabsSlice = createSlice({
           } else {
             state.activeTabUid = last(state.tabs).uid;
           }
+
+          recentUsedTabsStack.insertIfNotLast(state.activeTabUid);
         }
       }
 
@@ -108,6 +164,7 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,

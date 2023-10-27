@@ -9,7 +9,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -148,6 +148,56 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind(['command+w', 'ctrl+w']);
     };
   }, [activeTabUid]);
+
+  // switch to previous tab
+  useEffect(() => {
+    Mousetrap.bind(['command+pageup', 'ctrl+pageup'], (e) => {
+      dispatch(
+        switchTab({
+          direction: 'pageup'
+        })
+      );
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+pageup', 'ctrl+pageup']);
+    };
+  }, []);
+
+  useEffect(() => {
+    Mousetrap.bind(['command+pagedown', 'ctrl+pagedown'], (e) => {
+      dispatch(
+        switchTab({
+          direction: 'pagedown'
+        })
+      );
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+pagedown', 'ctrl+pagedown']);
+    };
+  }, []);
+
+  // switch to recent tab
+  useEffect(() => {
+    Mousetrap.bind(['command+tab', 'ctrl+tab'], (e) => {
+      dispatch(
+        switchTab({
+          direction: 'tab'
+        })
+      );
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+pgdn', 'ctrl+pgdn']);
+    };
+  }, []);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
