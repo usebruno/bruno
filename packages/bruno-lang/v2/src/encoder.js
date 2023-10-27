@@ -38,13 +38,13 @@ function encodeString(str) {
 }
 
 /**
- * Decodes a string, so it can be used in a bruno file
+ * Decodes an encoded string from a bruno file
  * @param {string} str The string to decode
  * @returns The decoded string
  */
 function decodeString(str) {
   for (let i = 0; i < str.length; i++) {
-    if (str[i] === '\\') {
+    if (str[i] === '\\' && i !== str.length - 1 && DECODING_MAP.has(str[i + 1])) {
       const replacement = DECODING_MAP.get(str[i + 1]);
       str = spliceString(str, i, 2, replacement);
     }
