@@ -48,7 +48,7 @@ const interpolateVars = async (request, envVars = {}, collectionVariables = {}, 
     }
 
     if (vault) {
-      str = await vault.replaceVariables(str);
+      str = await vault.replaceVariables(str, envVars);
     } else if (str.match(vaultVariableRegex)) {
       console.warn(
         'Using Vault variable but Vault is not initialized. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.'

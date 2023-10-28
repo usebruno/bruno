@@ -133,11 +133,8 @@ if (!SERVER_RENDERED) {
         } else {
           const { path, jsonPath } = match.groups;
 
-          const { VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX } = cm.state.brunoVarInfo.options.variables;
           const body = {
-            VAULT_ADDR,
-            VAULT_TOKEN_FILE_PATH,
-            VAULT_PATH_PREFIX,
+            env: cm.state.brunoVarInfo.options.variables,
             path,
             jsonPath
           };

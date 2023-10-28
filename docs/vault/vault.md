@@ -71,3 +71,11 @@ You can also set your `VAULT_PATH_PREFIX` to `/bruno/data/something` and write :
 ```
 {{vault|supersecret|config.word}}
 ```
+
+### Using environment variables in paths
+
+You can also use environment variables in your Vault path or Json path by using the `[env]` notation.
+
+```
+{{vault|bruno/data/[env.MY_PATH]|[env.MY_JSON_PATH]}}
+```

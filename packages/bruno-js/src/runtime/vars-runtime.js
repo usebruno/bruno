@@ -85,7 +85,7 @@ class VarsRuntime {
     const vault = getVault(context);
     for (let v of variables) {
       if (vault && v.value.match(vaultVariableRegex)) {
-        const value = await vault.replaceVariables(v.value);
+        const value = await vault.replaceVariables(v.value, context);
         bru.setVar(v.name, value);
       }
     }

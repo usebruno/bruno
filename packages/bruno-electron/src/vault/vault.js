@@ -92,11 +92,45 @@ class Vault {
     return path;
   };
 
-  read = async (path, jsonPath) => {
-    path = this.getFullPath(path);
+  replaceEnvVariables = (str, env = {}) => {
+    if (!str || !str.length || typeof str !== 'string' || !str.includes('[env.')) {
+      return str;
+    }
+
+    const regex = /\[env\.(?<variableName>[^\]]*)]/g;
+    const matches = str.matchAll(regex);
+    if (!matches) {
+      return str;
+    }
+
+    for (const match of matches) {
+      const { variableName } = match.groups;
+      if (!env.hasOwnProperty(variableName)) {
+        throw new Error(`Environment variable ${variableName} not found`);
+      }
+
+      const value = env[variableName];
+      str = str.replace(match[0], value);
+    }
+
+    return str;
+  };
+
+  read = async (path, jsonPath, env = {}) => {
     if (!this.getVault() || !path) {
       return null;
     }
+
+    path = this.getFullPath(path);
+
+    try {
+      path = this.replaceEnvVariables(path, env);
+      jsonPath = this.replaceEnvVariables(jsonPath, env);
+    } catch (e) {
+      return e.message;
+    }
+
+    console.log({ path, jsonPath });
 
     const cachedValue = this.getValueFromCache(path, jsonPath);
     if (cachedValue) {
@@ -133,7 +167,7 @@ class Vault {
     return value;
   };
 
-  replaceVariables = async (str) => {
+  replaceVariables = async (str, envVars = {}) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -145,7 +179,7 @@ class Vault {
 
     for (const match of matches) {
       const { path, jsonPath } = match.groups;
-      const value = await this.read(path, jsonPath);
+      const value = await this.read(path, jsonPath, envVars);
       str = str.replace(match[0], value);
     }
 
