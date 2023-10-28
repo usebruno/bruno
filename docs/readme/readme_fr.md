@@ -10,8 +10,6 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | **Français** | [Español](/readme_es.md)
-
 Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
 
 Bruno sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
@@ -61,7 +59,7 @@ Veuillez regarder [ici](publishing.md) pour plus d'information.
 
 ### Contribuer 👩‍💻🧑‍💻
 
-Je suis heureux de voir que vous cherchez à améliorer Bruno. Merci de consulter le [guide de contribution](contributing_fr.md)
+Je suis heureux de voir que vous cherchez à améliorer Bruno. Merci de consulter le [guide de contribution](../contributing/contributing_fr.md)
 
 Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hésitez pas à consigner les bogues et les demandes de nouvelles fonctionnalités pour résoudre vos cas d'usage !
 

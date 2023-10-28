@@ -1,5 +1,3 @@
-[English](/contributing.md) | **Українська** | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [Español](/contributing_es.md)
-
 ## Давайте зробимо Bruno краще, разом !!
 
 Я дуже радий що Ви бажаєте покращити Bruno. Нижче наведені вказівки як розпочати розробку Bruno на Вашому комп'ютері.
@@ -35,3 +33,57 @@ Bruno побудований на Next.js та React. Також для деск
     - Приклад: feature/dark-mode
   - bugfix/[назва баґу]: Така гілка має містити лише виправлення конкретного багу
     - Приклад: bugfix/bug-1
+
+## Розробка
+
+Bruno розробляється як декстопний застосунок. Вам потрібно запустити Next.js в одній сесії терміналу, та запустити застосунок Electron в іншій сесії терміналу.
+
+### Залежності
+
+- NodeJS v18
+
+### Локальна розробка
+
+```bash
+# Використовуйте nodejs 18-ї версії
+nvm use
+
+# встановіть залежності
+npm i --legacy-peer-deps
+
+# зберіть документацію graphql
+npm run build:graphql-docs
+
+# зберіть bruno query
+npm run build:bruno-query
+
+# запустіть додаток next (термінал 1)
+npm run dev:web
+
+# запустіть додаток електрон (термінал 2)
+npm run dev:electron
+```
+
+### Усунення несправностей
+
+Ви можете зтикнутись із помилкою `Unsupported platform` коли запускаєте `npm install`. Щоб усунути цю проблему, вам потрібно видалити `node_modules` та `package-lock.json`, і тоді запустити `npm install`. Це має встановити всі потрібні для запуску додатку пекеджі.
+
+```shell
+# Видаліть node_modules в піддиректоріях
+find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
+  rm -rf "$dir"
+done
+
+# Видаліть package-lock в піддиректоріях
+find . -type f -name "package-lock.json" -delete
+```
+
+### Тестування
+
+```bash
+# bruno-schema
+npm test --workspace=packages/bruno-schema
+
+# bruno-lang
+npm test --workspace=packages/bruno-lang
+```
