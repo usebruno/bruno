@@ -10,7 +10,7 @@ import { IconSettings } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 248;
+const MIN_LEFT_SIDEBAR_WIDTH = 380;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
