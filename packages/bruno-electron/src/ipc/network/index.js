@@ -234,7 +234,7 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPreRequestVars(
+      const result = await varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVars,
@@ -301,7 +301,7 @@ const registerNetworkIpc = (mainWindow) => {
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPostResponseVars(
+      const result = await varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
