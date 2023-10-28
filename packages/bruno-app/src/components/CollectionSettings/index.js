@@ -7,10 +7,12 @@ import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actio
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import ProxySettings from './ProxySettings';
+import ClientCertSettings from './ClientCertSettings';
 import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
+import Docs from './Docs';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSettings = ({ collection }) => {
@@ -27,9 +29,40 @@ const CollectionSettings = ({ collection }) => {
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
 
+  const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
+
   const onProxySettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
     brunoConfig.proxy = config;
+    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
+      .then(() => {
+        toast.success('Collection settings updated successfully.');
+      })
+      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
+  };
+
+  const onClientCertSettingsUpdate = (config) => {
+    const brunoConfig = cloneDeep(collection.brunoConfig);
+    if (!brunoConfig.clientCertificates) {
+      brunoConfig.clientCertificates = {
+        enabled: true,
+        certs: [config]
+      };
+    } else {
+      brunoConfig.clientCertificates.certs.push(config);
+    }
+    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
+      .then(() => {
+        toast.success('Collection settings updated successfully');
+      })
+      .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
+  };
+
+  const onClientCertSettingsRemove = (config) => {
+    const brunoConfig = cloneDeep(collection.brunoConfig);
+    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.filter(
+      (item) => item.domain != config.domain
+    );
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
         toast.success('Collection settings updated successfully');
@@ -53,6 +86,18 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
+      }
+      case 'clientCert': {
+        return (
+          <ClientCertSettings
+            clientCertConfig={clientCertConfig}
+            onUpdate={onClientCertSettingsUpdate}
+            onRemove={onClientCertSettingsRemove}
+          />
+        );
+      }
+      case 'docs': {
+        return <Docs collection={collection} />;
       }
     }
   };
@@ -81,8 +126,16 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
         </div>
+        <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+          Client Certificates
+        </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+          Docs
+        </div>
       </div>
-      <section className={`flex ${['auth', 'script'].includes(tab) ? '' : 'mt-4'}`}>{getTabPanel(tab)}</section>
+      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
+        {getTabPanel(tab)}
+      </section>
     </StyledWrapper>
   );
 };

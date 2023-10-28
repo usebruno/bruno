@@ -48,3 +48,5 @@ export const isMacOS = () => {
 
   return osFamily.includes('os x');
 };
+
+export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';

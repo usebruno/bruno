@@ -18,7 +18,7 @@ const RemoveCollection = ({ onClose, collection }) => {
 
   return (
     <Modal size="sm" title="Remove Collection" confirmText="Remove" handleConfirm={onConfirm} handleCancel={onClose}>
-      Are you sure you want to remove this collection?
+      Are you sure you want to remove collection <span className="font-semibold">{collection.name}</span> ?
     </Modal>
   );
 };

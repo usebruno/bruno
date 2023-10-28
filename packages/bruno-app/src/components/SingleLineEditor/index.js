@@ -57,6 +57,7 @@ class SingleLineEditor extends Component {
   }
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
+    /** @type {import("codemirror").Editor} */
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
@@ -84,7 +85,10 @@ class SingleLineEditor extends Component {
           }
         },
         'Alt-Enter': () => {
-          if (this.props.onRun) {
+          if (this.props.allowNewlines) {
+            this.editor.setValue(this.editor.getValue() + '\n');
+            this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
+          } else if (this.props.onRun) {
             this.props.onRun();
           }
         },

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell } = require('electron');
+const { ipcMain, shell, dialog } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -15,10 +15,9 @@ const {
   sanitizeDirectoryName
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
-const { openCollectionDialog, openCollection } = require('../app/collections');
+const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
-const { setPreferences } = require('../store/preferences');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -33,9 +32,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // browse directory
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
-      const dirPath = await browseDirectory(mainWindow);
-
-      return dirPath;
+      return await browseDirectory(mainWindow);
     } catch (error) {
       return Promise.reject(error);
     }
@@ -68,8 +65,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
-
-        return;
       } catch (error) {
         return Promise.reject(error);
       }
@@ -94,8 +89,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         collectionPathname,
         newName
       });
-
-      return;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -141,7 +134,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // create environment
-  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name) => {
+  ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
     try {
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
@@ -153,31 +146,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
-      const content = envJsonToBru({
-        variables: []
-      });
-      await writeFile(envFilePath, content);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  });
+      const environment = {
+        name: name,
+        variables: variables || []
+      };
 
-  // copy environment
-  ipcMain.handle('renderer:copy-environment', async (event, collectionPathname, name, baseVariables) => {
-    try {
-      const envDirPath = path.join(collectionPathname, 'environments');
-      if (!fs.existsSync(envDirPath)) {
-        await createDirectory(envDirPath);
+      if (envHasSecrets(environment)) {
+        environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
-      if (fs.existsSync(envFilePath)) {
-        throw new Error(`environment: ${envFilePath} already exists`);
-      }
+      const content = envJsonToBru(environment);
 
-      const content = envJsonToBru({
-        variables: baseVariables
-      });
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -326,7 +305,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         fs.unlinkSync(pathname);
       } else {
-        return Promise.reject(error);
+        return Promise.reject();
       }
     } catch (error) {
       return Promise.reject(error);
@@ -469,25 +448,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:ready', async (event) => {
-    // reload last opened collections
-    const lastOpened = lastOpenedCollections.getAll();
-
-    if (lastOpened && lastOpened.length) {
-      for (let collectionPath of lastOpened) {
-        if (isDirectory(collectionPath)) {
-          openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true
-          });
-        }
-      }
-    }
-  });
-
-  ipcMain.handle('renderer:set-preferences', async (event, preferences) => {
-    setPreferences(preferences);
-  });
-
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
@@ -500,6 +460,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:open-devtools', async () => {
     mainWindow.webContents.openDevTools();
+  });
+
+  ipcMain.handle('renderer:load-gql-schema-file', async () => {
+    try {
+      const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile']
+      });
+      if (filePaths.length === 0) {
+        return;
+      }
+
+      const jsonData = fs.readFileSync(filePaths[0], 'utf8');
+      return JSON.parse(jsonData);
+    } catch (err) {
+      return Promise.reject(new Error('Failed to load GraphQL schema file'));
+    }
   });
 };
 

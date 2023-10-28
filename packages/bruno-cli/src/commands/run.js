@@ -162,9 +162,7 @@ const getCollectionRoot = (dir) => {
   }
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
-  const json = collectionBruToJson(content);
-
-  return json;
+  return collectionBruToJson(content);
 };
 
 const builder = async (yargs) => {

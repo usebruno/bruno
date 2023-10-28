@@ -59,10 +59,24 @@ class Bru {
       throw new Error('Key is required');
     }
 
+    if (/^(?!\d)\w*$/.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters and cannot start with a digit.'
+      );
+    }
+
     this.collectionVariables[key] = value;
   }
 
   getVar(key) {
+    if (/^(?!\d)\w*$/.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters and cannot start with a digit.'
+      );
+    }
+
     return this.collectionVariables[key];
   }
 }

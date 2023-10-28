@@ -1,4 +1,3 @@
-import path from 'path';
 import { uuid } from 'utils/common';
 import find from 'lodash/find';
 import map from 'lodash/map';
@@ -25,9 +24,7 @@ import {
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams, parsePathParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName } from 'utils/common/platform';
-
-const PATH_SEPARATOR = path.sep;
+import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
 
 const initialState = {
   collections: [],
@@ -1037,12 +1034,18 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.script.res', action.payload.script);
       }
     },
-
     updateCollectionTests: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
         set(collection, 'root.request.tests', action.payload.tests);
+      }
+    },
+    updateCollectionDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.docs', action.payload.docs);
       }
     },
     addCollectionHeader: (state, action) => {
@@ -1092,7 +1095,6 @@ export const collectionsSlice = createSlice({
         if (collection) {
           collection.root = file.data;
         }
-        console.log('collectionAddFileEvent', file);
         return;
       }
 
@@ -1459,6 +1461,7 @@ export const {
   updateCollectionRequestScript,
   updateCollectionResponseScript,
   updateCollectionTests,
+  updateCollectionDocs,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,
