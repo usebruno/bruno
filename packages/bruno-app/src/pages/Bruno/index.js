@@ -1,6 +1,7 @@
 import React from 'react';
 import classnames from 'classnames';
 import Welcome from 'components/Welcome';
+import Actions from 'components/Actions';
 import RequestTabs from 'components/RequestTabs';
 import RequestTabPanel from 'components/RequestTabPanel';
 import Sidebar from 'components/Sidebar';
@@ -62,6 +63,7 @@ export default function Main() {
             <Welcome />
           ) : (
             <>
+              <Actions />
               <RequestTabs />
               <RequestTabPanel key={activeTabUid} />
             </>
