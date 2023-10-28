@@ -78,6 +78,12 @@ class Vault {
     };
   };
 
+  clearCache = (key) => {
+    if (key) {
+      delete this.cache[key];
+    }
+  };
+
   getFullPath = (path) => {
     if (this.pathPrefix) {
       return `${this.pathPrefix}${path}`;
@@ -150,12 +156,16 @@ class Vault {
 let vault = null;
 const getVault = (envVars = {}) => {
   const { VAULT_ADDR: vaultAddr, VAULT_TOKEN_FILE_PATH: vaultTokenFilePath, VAULT_PATH_PREFIX: pathPrefix } = envVars;
-
   if (!vaultAddr || !vaultTokenFilePath) {
     return null;
   }
 
-  if (vault) {
+  if (
+    vault &&
+    vaultAddr === vault.endpoint &&
+    vaultTokenFilePath === vault.tokenFilePath &&
+    pathPrefix === vault.pathPrefix
+  ) {
     return vault;
   }
 

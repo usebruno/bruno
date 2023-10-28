@@ -87,7 +87,3 @@ To get the value "my secret" from bruno/data/supersecret
 ```
 {{vault|bruno/data/supersecret|config.word}}
 ```
-
-## Known issues
-
-- Vault variables cannot be used in pre-request and post-request scripts

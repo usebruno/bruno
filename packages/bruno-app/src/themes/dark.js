@@ -216,6 +216,7 @@ const darkTheme = {
       info: {
         color: '#ce9178',
         bg: 'rgb(48,48,49)',
+        hoverBg: '#3D3D3D',
         boxShadow: 'rgb(0 0 0 / 36%) 0px 2px 8px'
       }
     }

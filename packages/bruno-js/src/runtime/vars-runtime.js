@@ -69,7 +69,7 @@ class VarsRuntime {
     };
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteral(v.value, context);
+      const value = evaluateJsExpression(v.value, context);
       bru.setVar(v.name, value);
     });
 

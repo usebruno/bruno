@@ -71,7 +71,3 @@ You can also set your `VAULT_PATH_PREFIX` to `/bruno/data/something` and write :
 ```
 {{vault|supersecret|config.word}}
 ```
-
-## Known issues
-
-- Vault variables cannot be used in pre-request and post-request scripts

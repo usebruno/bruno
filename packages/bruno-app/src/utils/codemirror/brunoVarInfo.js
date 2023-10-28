@@ -134,18 +134,19 @@ if (!SERVER_RENDERED) {
           const { path, jsonPath } = match.groups;
 
           const { VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX } = cm.state.brunoVarInfo.options.variables;
+          const body = {
+            VAULT_ADDR,
+            VAULT_TOKEN_FILE_PATH,
+            VAULT_PATH_PREFIX,
+            path,
+            jsonPath
+          };
           const response = await fetch('/api/vault', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-              VAULT_ADDR,
-              VAULT_TOKEN_FILE_PATH,
-              VAULT_PATH_PREFIX,
-              path,
-              jsonPath
-            })
+            body: JSON.stringify(body)
           });
 
           if (response.status !== 200) {
@@ -174,7 +175,34 @@ if (!SERVER_RENDERED) {
             box,
             renderTextInfo(
               value ? value : `Could not find value at path: ${path} ${jsonPath ? `with jsonPath: ${jsonPath}` : ''}`
-            )
+            ),
+            value
+              ? {
+                  html: '&#x21bb;',
+                  title: 'Refresh variable',
+                  handler: (element) => {
+                    fetch('/api/vault', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        ...body,
+                        action: 'clear'
+                      })
+                    }).finally(() => {
+                      // Simulate mouseout event to hide popup
+                      element.dispatchEvent(
+                        new MouseEvent('mouseout', {
+                          view: window,
+                          bubbles: true,
+                          cancelable: true
+                        })
+                      );
+                    });
+                  }
+                }
+              : null
           );
           return;
         }
@@ -187,10 +215,39 @@ if (!SERVER_RENDERED) {
     }
   }
 
-  function showPopup(cm, box, brunoVarInfo) {
+  function addButton(element, config) {
+    if (!config) {
+      return;
+    }
+
+    if ((!config.html && !config.text) || !config.handler) {
+      console.error('Invalid action passed to showPopup');
+      return;
+    }
+
+    const button = document.createElement('button');
+    button.className = 'refresh-button';
+
+    if (config.text) {
+      button.innerText = config.text;
+    } else {
+      button.innerHTML = config.html;
+    }
+
+    button.addEventListener('click', () => config.handler(element));
+    button.classList.add('btn', 'btn-VarInfo');
+    if (config.title) {
+      button.title = config.title;
+    }
+    element.classList.add('with-button');
+    element.appendChild(button);
+  }
+
+  function showPopup(cm, box, brunoVarInfo, buttonConfig) {
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
     popup.appendChild(brunoVarInfo);
+    addButton(popup, buttonConfig);
     document.body.appendChild(popup);
 
     const popupBox = popup.getBoundingClientRect();
