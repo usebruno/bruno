@@ -94,11 +94,19 @@ const authBearerSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authDigestSchema = Yup.object({
+  username: Yup.string().nullable(),
+  password: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer']).required('mode is required'),
+  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest']).required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
-  bearer: authBearerSchema.nullable()
+  bearer: authBearerSchema.nullable(),
+  digest: authDigestSchema.nullable()
 })
   .noUnknown(true)
   .strict();
