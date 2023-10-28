@@ -1,9 +1,12 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  border-bottom: solid 10px;
-  border-top: solid 5px;
-  border-color: ${(props) => props.theme.sidebar.bg};
+  .group {
+    border: solid 2px;
+    border-color: ${(props) => props.theme.dropdown.bg};
+    border-radius: 5px;
+    margin-right: 2px;
+  }
 `;
 
 export default StyledWrapper;

@@ -58,67 +58,70 @@ const Actions = () => {
         />
       ) : null}
       {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
-      <div className="px-1 py-2 flex-initial">
-        <button
-          type="button"
-          className="btn btn-secondary btn-xs"
-          onClick={(e) => {
-            setCreateCollectionModalOpen(true);
-          }}
-        >
-          <IconPlus strokeWidth={1.5} />
-          Create collection
-        </button>
-      </div>
-      <div className="px-1 py-2 flex-initial">
-        <button
-          type="button"
-          className="btn btn-secondary btn-xs"
-          onClick={(e) => {
-            handleOpenCollection();
-          }}
-        >
-          <IconFolders strokeWidth={1.5} />
-          Open collection
-        </button>
-      </div>
-      <div className="px-1 py-2 flex-initial">
-        <button
-          type="button"
-          className="btn  btn-secondary btn-xs"
-          onClick={(e) => {
-            setImportCollectionModalOpen(true);
-          }}
-        >
-          <IconDownload strokeWidth={1.5} />
-          Import collection
-        </button>
+      <div className="group flex flex-row">
+        <div className="px-1 py-2 flex-initial">
+          <button
+            type="button"
+            className="btn btn-secondary btn-xs"
+            title="Create collection"
+            onClick={(e) => {
+              setCreateCollectionModalOpen(true);
+            }}
+          >
+            <IconPlus strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="px-1 py-2 flex-initial">
+          <button
+            type="button"
+            className="btn btn-secondary btn-xs"
+            title="Open collection"
+            onClick={(e) => {
+              handleOpenCollection();
+            }}
+          >
+            <IconFolders strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="px-1 py-2 flex-initial">
+          <button
+            type="button"
+            className="btn btn-secondary btn-xs"
+            title="Import collection"
+            onClick={(e) => {
+              setImportCollectionModalOpen(true);
+            }}
+          >
+            <IconDownload strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
       <div class="flex-grow"></div>
-
-      <div className="px-1 py-2 flex-initial">
-        <button
-          type="button"
-          className="btn btn-secondary btn-xs "
-          onClick={(e) => {
-            dispatch(showPreferences(true));
-          }}
-        >
-          <IconSettings strokeWidth={1.5} />
-          Preferences
-        </button>
-      </div>
-      <div className="px-2 py-2 flex-initial">
-        <button
-          type="button"
-          className="btn btn-xs"
-          onClick={(e) => {
-            openDevTools();
-          }}
-        >
-          <IconActivity strokeWidth={1.5} />
-          Devtools
-        </button>
+      <div className="group flex flex-row">
+        <div className="px-1 py-2 flex-initial">
+          <button
+            type="button"
+            title="Preferences"
+            className="btn btn-secondary btn-xs "
+            onClick={(e) => {
+              dispatch(showPreferences(true));
+            }}
+          >
+            <IconSettings strokeWidth={1.5} />
+          </button>
+        </div>
+        <div className="py-2 flex-initial">
+          <button
+            type="button"
+            className="btn btn-xs"
+            title="Devtools"
+            onClick={(e) => {
+              openDevTools();
+            }}
+          >
+            <IconActivity strokeWidth={1.5} />
+          </button>
+        </div>
       </div>
     </StyledWrapper>
   );
