@@ -1,5 +1,5 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80"/>
 
 ### Bruno - IDE de código abierto para explorar y probar APIs.
 
@@ -18,17 +18,17 @@ Puedes usar git o cualquier otro sistema de control de versiones que prefieras p
 
 Bruno funciona sin conexión a internet. No tenemos intenciones de añadir sincronización en la nube a Bruno, en ningún momento. Valoramos tu privacidad y creemos que tus datos deben permanecer en tu dispositivo. Puedes leer nuestra visión a largo plazo [aquí](https://github.com/usebruno/bruno/discussions/269)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Ejecútalo en múltiples plataformas 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Colabora vía Git 👩‍💻🧑‍💻
 
 O cualquier otro sistema de control de versiones que prefieras
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Enlaces importantes 📌
 
