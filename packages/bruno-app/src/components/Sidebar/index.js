@@ -1,16 +1,15 @@
-import TitleBar from './TitleBar';
+import Actions from 'components/Actions';
+import GitHubButton from 'react-github-btn';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import GitHubButton from 'react-github-btn';
-import Actions from 'components/Actions';
+import TitleBar from './TitleBar';
 
-import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings } from '@tabler/icons';
-import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
+import { updateIsDragging, updateLeftSidebarWidth } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 380;
+const MIN_LEFT_SIDEBAR_WIDTH = 222;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
