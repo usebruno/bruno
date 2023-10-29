@@ -1,54 +1,103 @@
-import React, { useState } from 'react';
-import { usePreferences } from 'providers/Preferences';
+import React from 'react';
+import { useFormik } from 'formik';
+import { useSelector, useDispatch } from 'react-redux';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import * as Yup from 'yup';
+import toast from 'react-hot-toast';
 
-const General = () => {
-  const { preferences, setPreferences } = usePreferences();
+const General = ({ close }) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  const dispatch = useDispatch();
 
-  const [sslVerification, setSslVerification] = useState(preferences.request.sslVerification);
-  const [autoSave, setAutoSave] = useState(preferences.request.autoSave);
-
-  const handleCheckboxChange = (preferenceName) => {
-    const updatedPreferences = { ...preferences };
-    if (preferenceName === 'sslVerification') {
-      updatedPreferences.request.sslVerification = !sslVerification;
-    }
-
-    if (preferenceName === 'autoSave') {
-      updatedPreferences.request.autoSave = !autoSave;
-    }
-    setPreferences(updatedPreferences)
-      .then(() => {
-        setSslVerification(updatedPreferences.request.sslVerification);
-        setAutoSave(updatedPreferences.request.autoSave);
+  const preferencesSchema = Yup.object().shape({
+    sslVerification: Yup.boolean(),
+    timeout: Yup.mixed()
+      .transform((value, originalValue) => {
+        return originalValue === '' ? undefined : value;
       })
-      .catch((err) => {
-        console.error(err);
-      });
+      .nullable()
+      .test('isNumber', 'Request Timeout must be a number', (value) => {
+        return value === undefined || !isNaN(value);
+      })
+      .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
+        return value === undefined || Number(value) >= 0;
+      })
+  });
+
+  const formik = useFormik({
+    initialValues: {
+      sslVerification: preferences.request.sslVerification,
+      timeout: preferences.request.timeout
+    },
+    validationSchema: preferencesSchema,
+    onSubmit: async (values) => {
+      try {
+        const newPreferences = await preferencesSchema.validate(values, { abortEarly: true });
+        handleSave(newPreferences);
+      } catch (error) {
+        console.error('Preferences validation error:', error.message);
+      }
+    }
+  });
+
+  const handleSave = (newPreferences) => {
+    dispatch(
+      savePreferences({
+        ...preferences,
+        request: {
+          sslVerification: newPreferences.sslVerification,
+          timeout: newPreferences.timeout
+        }
+      })
+    )
+      .then(() => {
+        close();
+      })
+      .catch((err) => console.log(err) && toast.error('Failed to update preferences'));
   };
 
   return (
     <StyledWrapper>
-      <div className="rows">
-        <div className="mt-2">
+      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <div className="flex items-center mt-2">
+          <label className="block font-medium mr-2 select-none" style={{ minWidth: 200 }} htmlFor="sslVerification">
+            SSL/TLS Certificate Verification
+          </label>
           <input
+            id="ssl-cert-verification"
             type="checkbox"
-            checked={sslVerification}
-            onChange={() => handleCheckboxChange('sslVerification')}
-            className="mr-3 mousetrap"
+            name="sslVerification"
+            checked={formik.values.sslVerification}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
           />
-          SSL Certificate Verification
         </div>
-        <div className="mt-2">
+        <div className="flex flex-col mt-6">
+          <label className="block font-medium select-none" htmlFor="timeout">
+            Request Timeout (in ms)
+          </label>
           <input
-            type="checkbox"
-            checked={autoSave}
-            onChange={() => handleCheckboxChange('autoSave')}
-            className="mr-3 mousetrap"
+            type="text"
+            name="timeout"
+            className="block textbox mt-2 w-16"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.timeout}
           />
-          Auto Save
         </div>
-      </div>
+        {formik.touched.timeout && formik.errors.timeout ? (
+          <div className="text-red-500">{formik.errors.timeout}</div>
+        ) : null}
+        <div className="mt-10">
+          <button type="submit" className="submit btn btn-sm btn-secondary">
+            Save
+          </button>
+        </div>
+      </form>
     </StyledWrapper>
   );
 };

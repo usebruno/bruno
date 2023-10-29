@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/js",
-  "version": "0.8.0",
+  "version": "0.9.1",
   "license": "MIT",
   "main": "src/index.js",
   "files": [
@@ -20,6 +20,7 @@
     "axios": "^0.26.0",
     "btoa": "^1.2.1",
     "chai": "^4.3.7",
+    "chai-string": "^1.5.0",
     "crypto-js": "^4.1.1",
     "handlebars": "^4.7.8",
     "json-query": "^2.2.2",

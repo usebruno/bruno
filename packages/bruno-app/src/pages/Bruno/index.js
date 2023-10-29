@@ -9,7 +9,6 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
-import Documentation from 'components/Documentation';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
@@ -22,6 +21,7 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/edit/matchbrackets');
   require('codemirror/addon/fold/brace-fold');
   require('codemirror/addon/fold/foldgutter');
+  require('codemirror/addon/fold/xml-fold');
   require('codemirror/addon/hint/show-hint');
   require('codemirror/addon/lint/lint');
   require('codemirror/addon/mode/overlay');

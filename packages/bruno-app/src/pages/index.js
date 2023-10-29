@@ -1,5 +1,5 @@
 import Head from 'next/head';
-import IndexPage from 'pageComponents/Index';
+import Bruno from './Bruno';
 import GlobalStyle from '../globalStyles';
 
 export default function Home() {
@@ -13,7 +13,7 @@ export default function Home() {
       <GlobalStyle />
 
       <main>
-        <IndexPage />
+        <Bruno />
       </main>
     </div>
   );

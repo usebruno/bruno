@@ -14,11 +14,12 @@ import {
   runFolderEvent,
   brunoConfigUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
+import { showPreferences, updatePreferences } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
 
-const useCollectionTreeSync = () => {
+const useIpcEvents = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -27,10 +28,6 @@ const useCollectionTreeSync = () => {
     }
 
     const { ipcRenderer } = window;
-
-    const _openCollection = (pathname, uid, brunoConfig) => {
-      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
-    };
 
     const _collectionTreeUpdated = (type, val) => {
       if (window.__IS_DEV__) {
@@ -82,69 +79,78 @@ const useCollectionTreeSync = () => {
       }
     };
 
-    const _collectionAlreadyOpened = (pathname) => {
-      toast.success('Collection is already opened');
-    };
+    ipcRenderer.invoke('renderer:ready');
+    const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
-    const _displayError = (error) => {
+    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
+      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
+    });
+
+    const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
+      toast.success('Collection is already opened');
+    });
+
+    const removeDisplayErrorListener = ipcRenderer.on('main:display-error', (error) => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
       }
       if (typeof message === 'object') {
         return toast.error(error.message || 'Something went wrong!');
       }
-    };
+    });
 
-    const _scriptEnvironmentUpdate = (val) => {
+    const removeScriptEnvUpdateListener = ipcRenderer.on('main:script-environment-update', (val) => {
       dispatch(scriptEnvironmentUpdateEvent(val));
-    };
+    });
 
-    const _processEnvUpdate = (val) => {
-      dispatch(processEnvUpdateEvent(val));
-    };
-
-    const _collectionRenamed = (val) => {
+    const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
       dispatch(collectionRenamedEvent(val));
-    };
+    });
 
-    const _runFolderEvent = (val) => {
+    const removeRunFolderEventListener = ipcRenderer.on('main:run-folder-event', (val) => {
       dispatch(runFolderEvent(val));
-    };
+    });
 
-    const _runRequestEvent = (val) => {
+    const removeRunRequestEventListener = ipcRenderer.on('main:run-request-event', (val) => {
       dispatch(runRequestEvent(val));
-    };
+    });
 
-    ipcRenderer.invoke('renderer:ready');
+    const removeProcessEnvUpdatesListener = ipcRenderer.on('main:process-env-update', (val) => {
+      dispatch(processEnvUpdateEvent(val));
+    });
 
-    const removeListener1 = ipcRenderer.on('main:collection-opened', _openCollection);
-    const removeListener2 = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
-    const removeListener3 = ipcRenderer.on('main:collection-already-opened', _collectionAlreadyOpened);
-    const removeListener4 = ipcRenderer.on('main:display-error', _displayError);
-    const removeListener5 = ipcRenderer.on('main:script-environment-update', _scriptEnvironmentUpdate);
-    const removeListener6 = ipcRenderer.on('main:collection-renamed', _collectionRenamed);
-    const removeListener7 = ipcRenderer.on('main:run-folder-event', _runFolderEvent);
-    const removeListener8 = ipcRenderer.on('main:run-request-event', _runRequestEvent);
-    const removeListener9 = ipcRenderer.on('main:process-env-update', _processEnvUpdate);
-    const removeListener10 = ipcRenderer.on('main:console-log', (val) => {
+    const removeConsoleLogListener = ipcRenderer.on('main:console-log', (val) => {
       console[val.type](...val.args);
     });
-    const removeListener11 = ipcRenderer.on('main:bruno-config-update', (val) => dispatch(brunoConfigUpdateEvent(val)));
+
+    const removeConfigUpdatesListener = ipcRenderer.on('main:bruno-config-update', (val) =>
+      dispatch(brunoConfigUpdateEvent(val))
+    );
+
+    const showPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
+      dispatch(showPreferences(true));
+    });
+
+    const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
+      dispatch(updatePreferences(val));
+    });
 
     return () => {
-      removeListener1();
-      removeListener2();
-      removeListener3();
-      removeListener4();
-      removeListener5();
-      removeListener6();
-      removeListener7();
-      removeListener8();
-      removeListener9();
-      removeListener10();
-      removeListener11();
+      removeCollectionTreeUpdateListener();
+      removeOpenCollectionListener();
+      removeCollectionAlreadyOpenedListener();
+      removeDisplayErrorListener();
+      removeScriptEnvUpdateListener();
+      removeCollectionRenamedListener();
+      removeRunFolderEventListener();
+      removeRunRequestEventListener();
+      removeProcessEnvUpdatesListener();
+      removeConsoleLogListener();
+      removeConfigUpdatesListener();
+      showPreferencesListener();
+      removePreferencesUpdatesListener();
     };
   }, [isElectron]);
 };
 
-export default useCollectionTreeSync;
+export default useIpcEvents;

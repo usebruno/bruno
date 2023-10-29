@@ -2,7 +2,7 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { IconBrandGithub, IconPlus, IconUpload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
+import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -69,7 +69,7 @@ const Welcome = () => {
           <span className="label ml-2">Open Collection</span>
         </div>
         <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
-          <IconUpload size={18} strokeWidth={2} />
+          <IconDownload size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
             Import Collection
           </span>
