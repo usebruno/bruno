@@ -20,7 +20,7 @@ const Collections = () => {
 
   return (
     <StyledWrapper>
-      <div className="mt-4 flex flex-col overflow-y-auto top-32 bottom-10 left-0 right-0">
+      <div className="flex flex-col relative overflow-y-auto  bottom-0 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
               return (

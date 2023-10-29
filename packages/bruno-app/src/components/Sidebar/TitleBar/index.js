@@ -1,6 +1,7 @@
 import Bruno from 'components/Bruno/index';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
+import { showPreferences, updatePreferences } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 import { IconSettings, IconActivity } from '@tabler/icons';
 
@@ -22,7 +23,7 @@ const TitleBar = () => {
         <div className="group flex-initial">
           <span className="group-title">Settings</span>
           <div className="flex flex-row justify-center">
-            <div className="px-1 py-2 ">
+            <div className="px-1 ">
               <button
                 type="button"
                 title="Preferences"
@@ -34,7 +35,7 @@ const TitleBar = () => {
                 <IconSettings strokeWidth={1.5} />
               </button>
             </div>
-            <div className="py-2 ">
+            <div className="">
               <button
                 type="button"
                 className="btn btn-xs flex flex-row"

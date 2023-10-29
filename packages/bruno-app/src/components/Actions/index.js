@@ -122,17 +122,6 @@ const Actions = () => {
               Import
             </button>
           </div>
-          {collections.length >= 1 && (
-            <button onClick={() => sortCollectionOrder()}>
-              {collectionSortOrder == 'default' ? (
-                <IconArrowsSort size={18} strokeWidth={1.5} />
-              ) : collectionSortOrder == 'alphabetical' ? (
-                <IconSortAscendingLetters size={18} strokeWidth={1.5} />
-              ) : (
-                <IconSortDescendingLetters size={18} strokeWidth={1.5} />
-              )}
-            </button>
-          )}
           <div className=" relative collection-filter py-2 px-1 flex-grow">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <span className="text-gray-500 sm:text-sm">
@@ -165,6 +154,26 @@ const Actions = () => {
               </div>
             )}
           </div>
+          {collections.length >= 1 && (
+            <button type="button" className="btn btx-xs flex-grow" onClick={() => sortCollectionOrder()}>
+              {collectionSortOrder == 'default' ? (
+                <span className="flex flex-row w-40">
+                  <IconArrowsSort strokeWidth={1.5} />
+                  default
+                </span>
+              ) : collectionSortOrder == 'alphabetical' ? (
+                <span className="flex flex-row w-40">
+                  <IconSortAscendingLetters strokeWidth={1.5} />
+                  ascending
+                </span>
+              ) : (
+                <span className="flex flex-row w-40">
+                  <IconSortDescendingLetters strokeWidth={1.5} />
+                  descending
+                </span>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </StyledWrapper>

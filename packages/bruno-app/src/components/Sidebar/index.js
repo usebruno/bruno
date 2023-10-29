@@ -77,14 +77,14 @@ const Sidebar = () => {
       <aside>
         <div className="flex flex-row h-screen w-full">
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
-            <div className="flex flex-col flex-grow">
+            <div className="flex flex-col flex-grow overflow-hidden">
               <TitleBar />
               <Actions />
               <Collections />
             </div>
 
-            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center cursor-pointer select-none">
-              <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
+            <div className="footer flex px-1 py-2 items-center cursor-pointer select-none">
+              <div className="pl-1" style={{ position: 'relative' }}>
                 <GitHubButton
                   href="https://github.com/usebruno/bruno"
                   data-color-scheme={storedTheme}

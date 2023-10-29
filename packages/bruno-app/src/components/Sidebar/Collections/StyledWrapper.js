@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  overflow-y: auto;
   .collections-badge {
     margin-inline: 0.5rem;
     background-color: ${(props) => props.theme.sidebar.badge.bg};
