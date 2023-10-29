@@ -18,17 +18,17 @@ Du kannst Git oder eine andere Versionskontrolle deiner Wahl verwenden, um an de
 
 Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno eine Cloud-Synchronisation hinzuzufügen. Wir schätzen den Schutz Deiner Daten und glauben, dass sie auf Deinem Gerät bleiben sollten. Lies unsere Langzeit-Vision [hier](https://github.com/usebruno/bruno/discussions/269).
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Einsatz auf verschiedensten Plattformen 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Zusammenarbeiten mit Git 👩‍💻🧑‍💻
 
 oder eine Versionskontrolle Deiner Wahl
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Wichtige Links 📌
 
@@ -55,7 +55,7 @@ Wenn Bruno Dir bei Deiner Arbeit und in Deinen Teams geholfen hat, vergiss bitte
 
 ### Veröffentlichung in neuen Paketmanagern
 
-Bitte [hier](publishing.md) für mehr Informationen lesen.
+Bitte [hier](/publishing.md) für mehr Informationen lesen.
 
 ### Mitmachen 👩‍💻🧑‍💻
 
@@ -90,4 +90,4 @@ Das Logo stammt von [OpenMoji](https://openmoji.org/library/emoji-1F436/). Lizen
 
 ### Lizenz 📄
 
-[MIT](license.md)
+[MIT](/license.md)

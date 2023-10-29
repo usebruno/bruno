@@ -18,17 +18,17 @@ Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler d
 
 Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Fonctionne sur de multiples platformes 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Collaborer via Git 👩‍💻🧑‍💻
 
 Ou n'importe quel système de gestion de sources
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Liens importants 📌
 
@@ -55,7 +55,7 @@ Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de pen
 
 ### Publier Bruno sur un nouveau gestionnaire de paquets
 
-Veuillez regarder [ici](publishing.md) pour plus d'information.
+Veuillez regarder [ici](/publishing.md) pour plus d'information.
 
 ### Contribuer 👩‍💻🧑‍💻
 
@@ -91,4 +91,4 @@ Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 
-[MIT](license.md)
+[MIT](/license.md)

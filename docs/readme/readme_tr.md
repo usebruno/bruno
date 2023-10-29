@@ -18,17 +18,17 @@ API koleksiyonlarınız üzerinde işbirliği yapmak için git veya seçtiğiniz
 
 Bruno yalnızca çevrimdışıdır. Bruno'ya bulut senkronizasyonu eklemek gibi bir planımız yok. Veri gizliliğinize değer veriyoruz ve cihazınızda kalması gerektiğine inanıyoruz. Uzun vadeli vizyonumuzu okuyun [burada](https://github.com/usebruno/bruno/discussions/269)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Birden fazla platformda çalıştırın 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Git üzerinden işbirliği yapın 👩‍💻🧑‍💻
 
 Veya seçtiğiniz herhangi bir sürüm kontrol sistemi
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Önemli Bağlantılar 📌
 
@@ -75,4 +75,4 @@ Kod yoluyla katkıda bulunamasanız bile, lütfen kullanım durumunuzu çözmek 
 
 ### Lisans 📄
 
-[MIT](license.md)
+[MIT](/license.md)
