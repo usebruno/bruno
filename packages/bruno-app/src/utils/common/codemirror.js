@@ -9,7 +9,7 @@ if (!SERVER_RENDERED) {
 }
 
 const pathFoundInVariables = (path, obj) => {
-  const value = get(obj, path);
+  const value = get(obj, path.trim());
   return value !== undefined;
 };
 
