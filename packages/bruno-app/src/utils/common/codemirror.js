@@ -1,6 +1,5 @@
 import get from 'lodash/get';
 import isString from 'lodash/isString';
-import { vaultVariableInnerRegex } from 'utils/vault';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -23,7 +22,7 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
           let word = '';
           while ((ch = stream.next()) != null) {
             if (ch == '}' && stream.next() == '}') {
-              if (word.match(vaultVariableInnerRegex)) {
+              if (word.match(/vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?/)) {
                 return 'variable-vault random-' + (Math.random() + 1).toString(36).substring(9);
               }
 

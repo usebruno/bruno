@@ -2,8 +2,7 @@ const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
-const { getVault } = require('bruno/src/vault/vault');
-const { vaultVariableRegex } = require('@usebruno/app/src/utils/vault');
+const Vault = require('../vault');
 
 class VarsRuntime {
   async runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
@@ -82,9 +81,9 @@ class VarsRuntime {
   }
 
   async handleVaultVariables(variables, bru, context) {
-    const vault = getVault(context);
+    const vault = Vault.getVault(context);
     for (let v of variables) {
-      if (vault && v.value.match(vaultVariableRegex)) {
+      if (vault && v.value.match(Vault.getVariableRegex())) {
         const value = await vault.replaceVariables(v.value, context);
         bru.setVar(v.name, value);
       }

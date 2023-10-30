@@ -1,21 +1,22 @@
 const { get } = require('lodash');
 const NodeVault = require('node-vault');
 const fs = require('fs');
-const { vaultVariableRegex } = require('@usebruno/app/src/utils/vault');
 
 class Vault {
   endpoint = null;
   token = null;
-  vault = null;
+  nodeVault = null;
   cache = null;
   cacheTimeout = null;
   pathPrefix = null;
+
+  static vaultInstance = null;
 
   constructor(endpoint, tokenFilePath, pathPrefix) {
     this.tokenFilePath = tokenFilePath;
     this.endpoint = endpoint;
     this.pathPrefix = pathPrefix;
-    this.vault = null;
+    this.nodeVault = null;
     this.cache = {};
     this.cacheTimeout = 120;
   }
@@ -36,17 +37,37 @@ class Vault {
     return this.token;
   };
 
-  getVault = () => {
-    if (this.vault) {
-      return this.vault;
+  getNodeVault = () => {
+    if (this.nodeVault) {
+      return this.nodeVault;
     }
 
-    this.vault = NodeVault({
+    this.nodeVault = NodeVault({
       endpoint: this.endpoint,
       token: this.getToken()
     });
 
-    return this.vault;
+    return this.nodeVault;
+  };
+
+  static getVault = (envVars = {}) => {
+    const { VAULT_ADDR: vaultAddr, VAULT_TOKEN_FILE_PATH: vaultTokenFilePath, VAULT_PATH_PREFIX: pathPrefix } = envVars;
+    if (!vaultAddr || !vaultTokenFilePath) {
+      return null;
+    }
+
+    if (
+      this.vaultInstance &&
+      vaultAddr === this.vaultInstance.endpoint &&
+      vaultTokenFilePath === this.vaultInstance.tokenFilePath &&
+      pathPrefix === this.vaultInstance.pathPrefix
+    ) {
+      return this.vaultInstance;
+    }
+
+    this.vaultInstance = new Vault(vaultAddr, vaultTokenFilePath, pathPrefix);
+
+    return this.vaultInstance;
   };
 
   getValueFromCache = (key, jsonPath = '') => {
@@ -117,7 +138,7 @@ class Vault {
   };
 
   read = async (path, jsonPath, env = {}) => {
-    if (!this.getVault() || !path) {
+    if (!this.getNodeVault() || !path) {
       return null;
     }
 
@@ -130,8 +151,6 @@ class Vault {
       return e.message;
     }
 
-    console.log({ path, jsonPath });
-
     const cachedValue = this.getValueFromCache(path, jsonPath);
     if (cachedValue) {
       return cachedValue;
@@ -140,7 +159,7 @@ class Vault {
     let response;
     let value;
     try {
-      response = await this.getVault().read(path);
+      response = await this.getNodeVault().read(path);
       this.putValueInCache(path, response.data.data);
     } catch (e) {
       if (e.response && e.response.body.errors && e.response.body.errors.length > 0) {
@@ -172,7 +191,7 @@ class Vault {
       return str;
     }
 
-    const matches = str.matchAll(vaultVariableRegex);
+    const matches = str.matchAll(Vault.getVariableRegex());
     if (!matches) {
       return str;
     }
@@ -185,30 +204,9 @@ class Vault {
 
     return str;
   };
+
+  static getVariableRegex = () => /{{vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?}}/g;
+  static getVariableInnerRegex = () => /vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?/;
 }
 
-let vault = null;
-const getVault = (envVars = {}) => {
-  const { VAULT_ADDR: vaultAddr, VAULT_TOKEN_FILE_PATH: vaultTokenFilePath, VAULT_PATH_PREFIX: pathPrefix } = envVars;
-  if (!vaultAddr || !vaultTokenFilePath) {
-    return null;
-  }
-
-  if (
-    vault &&
-    vaultAddr === vault.endpoint &&
-    vaultTokenFilePath === vault.tokenFilePath &&
-    pathPrefix === vault.pathPrefix
-  ) {
-    return vault;
-  }
-
-  vault = new Vault(vaultAddr, vaultTokenFilePath, pathPrefix);
-
-  return vault;
-};
-
-module.exports = {
-  Vault,
-  getVault
-};
+module.exports = Vault;

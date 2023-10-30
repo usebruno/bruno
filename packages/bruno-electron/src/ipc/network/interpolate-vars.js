@@ -1,7 +1,6 @@
 const Handlebars = require('handlebars');
 const { each, forOwn, cloneDeep } = require('lodash');
-const { getVault } = require('../../vault/vault');
-const { vaultVariableRegex } = require('@usebruno/app/src/utils/vault');
+const { Vault } = require('@usebruno/js');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -40,7 +39,7 @@ const interpolateVars = async (request, envVars = {}, collectionVariables = {}, 
     envVars[key] = interpolateEnvVars(value, processEnvVars);
   });
 
-  const vault = getVault(envVars);
+  const vault = Vault.getVault(envVars);
 
   const interpolate = async (str) => {
     if (!str || !str.length || typeof str !== 'string') {
@@ -49,7 +48,7 @@ const interpolateVars = async (request, envVars = {}, collectionVariables = {}, 
 
     if (vault) {
       str = await vault.replaceVariables(str, envVars);
-    } else if (str.match(vaultVariableRegex)) {
+    } else if (str.match(Vault.getVariableRegex())) {
       console.warn(
         'Using Vault variable but Vault is not initialized. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.'
       );

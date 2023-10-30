@@ -9,7 +9,6 @@
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
-const { vaultVariableInnerRegex } = require('utils/vault');
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -121,13 +120,9 @@ if (!SERVER_RENDERED) {
     const token = cm.getTokenAt(pos, true);
     if (token) {
       if (token.type.startsWith('variable-vault')) {
-        const match = token.string.match(vaultVariableInnerRegex);
+        const match = token.string.match(/vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?/);
         if (!match) {
-          showPopup(
-            cm,
-            box,
-            renderTextInfo(`Invalid vault variable, must be in the format: {{vault "path" "jsonPath"}}`)
-          );
+          showPopup(cm, box, renderTextInfo(`Invalid vault variable, must be in the format: {{vault|path|jsonPath}}`));
 
           return;
         } else {

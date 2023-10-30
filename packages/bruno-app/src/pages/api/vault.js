@@ -1,4 +1,4 @@
-import { getVault } from 'bruno/src/vault/vault';
+import { Vault } from '@usebruno/js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
   const { env, path, jsonPath, action } = req.body;
   const { VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX } = env;
-  const vault = getVault({ VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX });
+  const vault = Vault.getVault({ VAULT_ADDR, VAULT_TOKEN_FILE_PATH, VAULT_PATH_PREFIX });
   if (!vault) {
     return res
       .status(400)
