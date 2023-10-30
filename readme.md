@@ -75,7 +75,7 @@ Even if you are not able to make contributions via code, please don't hesitate t
 
 ### Stay in touch 🌐
 
-[Twitter](https://twitter.com/use_bruno) <br />
+[𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
