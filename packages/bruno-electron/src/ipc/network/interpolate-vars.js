@@ -1,5 +1,6 @@
 const Handlebars = require('handlebars');
 const { each, forOwn, cloneDeep } = require('lodash');
+const { Vault } = require('@usebruno/js');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -28,7 +29,7 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = async (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -38,9 +39,19 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     envVars[key] = interpolateEnvVars(value, processEnvVars);
   });
 
-  const interpolate = (str) => {
+  const vault = Vault.getVault(envVars);
+
+  const interpolate = async (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
+    }
+
+    if (vault) {
+      str = await vault.replaceVariables(str, envVars);
+    } else if (str.match(Vault.getVariableRegex())) {
+      console.warn(
+        'Using Vault variable but Vault is not initialized. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.'
+      );
     }
 
     const template = Handlebars.compile(str, { noEscape: true });
@@ -59,12 +70,17 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     return template(combinedVars);
   };
 
-  request.url = interpolate(request.url);
+  request.url = await interpolate(request.url);
 
-  forOwn(request.headers, (value, key) => {
-    delete request.headers[key];
-    request.headers[interpolate(key)] = interpolate(value);
-  });
+  for (const key in request.headers) {
+    if (request.headers.hasOwnProperty(key)) {
+      const value = request.headers[key];
+      delete request.headers[key];
+
+      const headerKey = await interpolate(key);
+      request.headers[headerKey] = await interpolate(value);
+    }
+  }
 
   const contentType = getContentType(request.headers);
 
@@ -72,40 +88,40 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = interpolate(parsed);
+        parsed = await interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
 
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = interpolate(request.data);
+        request.data = await interpolate(request.data);
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = interpolate(parsed);
+        parsed = await interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
   } else {
-    request.data = interpolate(request.data);
+    request.data = await interpolate(request.data);
   }
 
-  each(request.params, (param) => {
-    param.value = interpolate(param.value);
+  each(request.params, async (param) => {
+    param.value = await interpolate(param.value);
   });
 
   if (request.proxy) {
-    request.proxy.protocol = interpolate(request.proxy.protocol);
-    request.proxy.hostname = interpolate(request.proxy.hostname);
-    request.proxy.port = interpolate(request.proxy.port);
+    request.proxy.protocol = await interpolate(request.proxy.protocol);
+    request.proxy.hostname = await interpolate(request.proxy.hostname);
+    request.proxy.port = await interpolate(request.proxy.port);
 
     if (request.proxy.auth) {
-      request.proxy.auth.username = interpolate(request.proxy.auth.username);
-      request.proxy.auth.password = interpolate(request.proxy.auth.password);
+      request.proxy.auth.username = await interpolate(request.proxy.auth.username);
+      request.proxy.auth.password = await interpolate(request.proxy.auth.password);
     }
   }
 
@@ -113,22 +129,22 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   //       need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
   if (request.auth) {
-    const username = interpolate(request.auth.username) || '';
-    const password = interpolate(request.auth.password) || '';
+    const username = (await interpolate(request.auth.username)) || '';
+    const password = (await interpolate(request.auth.password)) || '';
 
     // use auth header based approach and delete the request.auth object
     request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.auth;
   }
 
-  // interpolate vars for aws sigv4 auth
+  // await interpolate vars for aws sigv4 auth
   if (request.awsv4config) {
-    request.awsv4config.accessKeyId = interpolate(request.awsv4config.accessKeyId) || '';
-    request.awsv4config.secretAccessKey = interpolate(request.awsv4config.secretAccessKey) || '';
-    request.awsv4config.sessionToken = interpolate(request.awsv4config.sessionToken) || '';
-    request.awsv4config.service = interpolate(request.awsv4config.service) || '';
-    request.awsv4config.region = interpolate(request.awsv4config.region) || '';
-    request.awsv4config.profileName = interpolate(request.awsv4config.profileName) || '';
+    request.awsv4config.accessKeyId = (await interpolate(request.awsv4config.accessKeyId)) || '';
+    request.awsv4config.secretAccessKey = (await interpolate(request.awsv4config.secretAccessKey)) || '';
+    request.awsv4config.sessionToken = (await interpolate(request.awsv4config.sessionToken)) || '';
+    request.awsv4config.service = (await interpolate(request.awsv4config.service)) || '';
+    request.awsv4config.region = (await interpolate(request.awsv4config.region)) || '';
+    request.awsv4config.profileName = (await interpolate(request.awsv4config.profileName)) || '';
   }
 
   return request;

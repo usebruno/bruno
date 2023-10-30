@@ -49,7 +49,7 @@ const runSingleRequest = async function (
     const preRequestVars = get(bruJson, 'request.vars.req');
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      varsRuntime.runPreRequestVars(
+      await varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVariables,
@@ -218,7 +218,7 @@ const runSingleRequest = async function (
     const postResponseVars = get(bruJson, 'request.vars.res');
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime();
-      varsRuntime.runPostResponseVars(
+      await varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,

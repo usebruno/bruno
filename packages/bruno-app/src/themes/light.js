@@ -215,6 +215,7 @@ const lightTheme = {
     },
     variable: {
       valid: '#047857',
+      vault: '#045d78',
       invalid: 'rgb(185, 28, 28)',
       info: {
         color: 'rgb(52, 52, 52)',

@@ -22,7 +22,10 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
           let word = '';
           while ((ch = stream.next()) != null) {
             if (ch == '}' && stream.next() == '}') {
-              stream.eat('}');
+              if (word.match(/vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?/)) {
+                return 'variable-vault random-' + (Math.random() + 1).toString(36).substring(9);
+              }
+
               let found = pathFoundInVariables(word, variables);
               if (found) {
                 return 'variable-valid random-' + (Math.random() + 1).toString(36).substring(9);

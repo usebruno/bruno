@@ -234,7 +234,7 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPreRequestVars(
+      const result = await varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVars,
@@ -277,7 +277,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+    await interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
@@ -301,7 +301,7 @@ const registerNetworkIpc = (mainWindow) => {
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPostResponseVars(
+      const result = await varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,

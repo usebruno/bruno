@@ -2,9 +2,10 @@ const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
+const Vault = require('../vault');
 
 class VarsRuntime {
-  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
+  async runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
@@ -29,12 +30,22 @@ class VarsRuntime {
       bru.setVar(v.name, value);
     });
 
+    await this.handleVaultVariables(enabledVars, bru, context);
+
     return {
       collectionVariables
     };
   }
 
-  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
+  async runPostResponseVars(
+    vars,
+    request,
+    response,
+    envVariables,
+    collectionVariables,
+    collectionPath,
+    processEnvVars
+  ) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
@@ -61,10 +72,22 @@ class VarsRuntime {
       bru.setVar(v.name, value);
     });
 
+    await this.handleVaultVariables(enabledVars, bru, context);
+
     return {
       envVariables,
       collectionVariables
     };
+  }
+
+  async handleVaultVariables(variables, bru, context) {
+    const vault = Vault.getVault(context);
+    for (let v of variables) {
+      if (vault && v.value.match(Vault.getVariableRegex())) {
+        const value = await vault.replaceVariables(v.value, context);
+        bru.setVar(v.name, value);
+      }
+    }
   }
 }
 
