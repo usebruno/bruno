@@ -9,16 +9,17 @@ class Vault {
   cache = null;
   cacheTimeout = null;
   pathPrefix = null;
+  proxy = null;
+  static instance = null;
 
-  static vaultInstance = null;
-
-  constructor(endpoint, tokenFilePath, pathPrefix) {
+  constructor(endpoint, tokenFilePath, pathPrefix, proxy) {
     this.tokenFilePath = tokenFilePath;
     this.endpoint = endpoint;
     this.pathPrefix = pathPrefix;
     this.nodeVault = null;
     this.cache = {};
     this.cacheTimeout = 120;
+    this.proxy = proxy;
   }
 
   getToken = () => {
@@ -44,30 +45,39 @@ class Vault {
 
     this.nodeVault = NodeVault({
       endpoint: this.endpoint,
-      token: this.getToken()
+      token: this.getToken(),
+      requestOptions: {
+        proxy: this.proxy
+      }
     });
 
     return this.nodeVault;
   };
 
   static getVault = (envVars = {}) => {
-    const { VAULT_ADDR: vaultAddr, VAULT_TOKEN_FILE_PATH: vaultTokenFilePath, VAULT_PATH_PREFIX: pathPrefix } = envVars;
+    const {
+      VAULT_ADDR: vaultAddr,
+      VAULT_TOKEN_FILE_PATH: vaultTokenFilePath,
+      VAULT_PATH_PREFIX: pathPrefix,
+      VAULT_PROXY: proxy
+    } = envVars;
     if (!vaultAddr || !vaultTokenFilePath) {
       return null;
     }
 
     if (
-      this.vaultInstance &&
-      vaultAddr === this.vaultInstance.endpoint &&
-      vaultTokenFilePath === this.vaultInstance.tokenFilePath &&
-      pathPrefix === this.vaultInstance.pathPrefix
+      this.instance &&
+      vaultAddr === this.instance.endpoint &&
+      vaultTokenFilePath === this.instance.tokenFilePath &&
+      pathPrefix === this.instance.pathPrefix &&
+      proxy === this.instance.proxy
     ) {
-      return this.vaultInstance;
+      return this.instance;
     }
 
-    this.vaultInstance = new Vault(vaultAddr, vaultTokenFilePath, pathPrefix);
+    this.instance = new Vault(vaultAddr, vaultTokenFilePath, pathPrefix, proxy);
 
-    return this.vaultInstance;
+    return this.instance;
   };
 
   getValueFromCache = (key, jsonPath = '') => {
