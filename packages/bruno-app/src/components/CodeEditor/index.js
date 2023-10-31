@@ -147,7 +147,7 @@ export default class CodeEditor extends React.Component {
 
   render() {
     if (this.editor) {
-      this.editor.refresh()
+      this.editor.refresh();
     }
     return (
       <StyledWrapper
