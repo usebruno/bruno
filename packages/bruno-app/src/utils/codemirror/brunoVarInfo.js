@@ -120,84 +120,8 @@ if (!SERVER_RENDERED) {
     const token = cm.getTokenAt(pos, true);
     if (token) {
       if (token.type.startsWith('variable-vault')) {
-        const match = token.string.match(/vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?/);
-        if (!match) {
-          showPopup(cm, box, renderTextInfo(`Invalid vault variable, must be in the format: {{vault|path|jsonPath}}`));
-
-          return;
-        } else {
-          const { path, jsonPath } = match.groups;
-
-          const body = {
-            env: cm.state.brunoVarInfo.options.variables,
-            path,
-            jsonPath
-          };
-          const response = await fetch('/api/vault', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(body)
-          });
-
-          if (response.status !== 200) {
-            if (response.status === 400) {
-              const responseData = await response.json();
-              const { error } = responseData;
-              showPopup(cm, box, renderTextInfo(error));
-              return;
-            }
-
-            showPopup(
-              cm,
-              box,
-              renderTextInfo(
-                `Could not get data from Vault. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.`
-              )
-            );
-            return;
-          }
-
-          const responseData = await response.json();
-          const { value } = responseData;
-
-          showPopup(
-            cm,
-            box,
-            renderTextInfo(
-              value ? value : `Could not find value at path: ${path} ${jsonPath ? `with jsonPath: ${jsonPath}` : ''}`
-            ),
-            value
-              ? {
-                  html: '&#x21bb;',
-                  title: 'Refresh variable',
-                  handler: (element) => {
-                    fetch('/api/vault', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json'
-                      },
-                      body: JSON.stringify({
-                        ...body,
-                        action: 'clear'
-                      })
-                    }).finally(() => {
-                      // Simulate mouseout event to hide popup
-                      element.dispatchEvent(
-                        new MouseEvent('mouseout', {
-                          view: window,
-                          bubbles: true,
-                          cancelable: true
-                        })
-                      );
-                    });
-                  }
-                }
-              : null
-          );
-          return;
-        }
+        showPopup(cm, box, renderTextInfo(`Vault variable. Will be replaced at runtime.`));
+        return;
       }
 
       const brunoVarInfo = renderVarInfo(token, options, cm, pos);
@@ -207,39 +131,10 @@ if (!SERVER_RENDERED) {
     }
   }
 
-  function addButton(element, config) {
-    if (!config) {
-      return;
-    }
-
-    if ((!config.html && !config.text) || !config.handler) {
-      console.error('Invalid action passed to showPopup');
-      return;
-    }
-
-    const button = document.createElement('button');
-    button.className = 'refresh-button';
-
-    if (config.text) {
-      button.innerText = config.text;
-    } else {
-      button.innerHTML = config.html;
-    }
-
-    button.addEventListener('click', () => config.handler(element));
-    button.classList.add('btn', 'btn-VarInfo');
-    if (config.title) {
-      button.title = config.title;
-    }
-    element.classList.add('with-button');
-    element.appendChild(button);
-  }
-
-  function showPopup(cm, box, brunoVarInfo, buttonConfig) {
+  function showPopup(cm, box, brunoVarInfo) {
     const popup = document.createElement('div');
     popup.className = 'CodeMirror-brunoVarInfo';
     popup.appendChild(brunoVarInfo);
-    addButton(popup, buttonConfig);
     document.body.appendChild(popup);
 
     const popupBox = popup.getBoundingClientRect();

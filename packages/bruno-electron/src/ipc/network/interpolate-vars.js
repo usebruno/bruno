@@ -39,7 +39,7 @@ const interpolateVars = async (request, envVars = {}, collectionVariables = {}, 
     envVars[key] = interpolateEnvVars(value, processEnvVars);
   });
 
-  const vault = Vault.getVault(envVars);
+  const vault = Vault.getVault(envVars, processEnvVars);
 
   const interpolate = async (str) => {
     if (!str || !str.length || typeof str !== 'string') {
@@ -47,9 +47,9 @@ const interpolateVars = async (request, envVars = {}, collectionVariables = {}, 
     }
 
     if (vault) {
-      str = await vault.replaceVariables(str, envVars);
+      str = await vault.replaceVariables(str, envVars, processEnvVars);
     } else if (str.match(Vault.getVariableRegex())) {
-      console.warn(
+      throw new Error(
         'Using Vault variable but Vault is not initialized. Check your VAULT_ADDR and VAULT_TOKEN_FILE_PATH environment variables.'
       );
     }

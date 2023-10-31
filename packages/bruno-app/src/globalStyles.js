@@ -188,26 +188,6 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo p {
     margin: 1em 0;
   }
-  
-  .CodeMirror-brunoVarInfo.with-button {
-    display: flex;
-    gap: 8px;
-    padding: 0;
-  }
-
-  .CodeMirror-brunoVarInfo.with-button :first-child {
-    padding: 4px 6px;
-  }
-
-  .CodeMirror-brunoVarInfo .btn-VarInfo {
-    padding: 4px 8px;
-    border-radius: 2px;
-    border-left: 1px solid ${(props) => props.theme.codemirror.border};
-  }
-
-  .CodeMirror-brunoVarInfo .btn-VarInfo:hover {
-    background: ${(props) => props.theme.codemirror.variable.info.hoverBg};
-  }
 `;
 
 export default GlobalStyle;

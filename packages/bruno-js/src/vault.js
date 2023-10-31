@@ -1,6 +1,7 @@
-const { get } = require('lodash');
+const { get, cloneDeep, forOwn } = require('lodash');
 const NodeVault = require('node-vault');
 const fs = require('fs');
+const Handlebars = require('handlebars');
 
 class Vault {
   endpoint = null;
@@ -54,13 +55,16 @@ class Vault {
     return this.nodeVault;
   };
 
-  static getVault = (envVars = {}) => {
+  static getVault = (envVars = {}, processEnvVars = {}) => {
+    envVars = Vault.getEnvVars(envVars, processEnvVars);
+
     const {
       VAULT_ADDR: vaultAddr,
       VAULT_TOKEN_FILE_PATH: vaultTokenFilePath,
       VAULT_PATH_PREFIX: pathPrefix,
       VAULT_PROXY: proxy
     } = envVars;
+
     if (!vaultAddr || !vaultTokenFilePath) {
       return null;
     }
@@ -173,10 +177,10 @@ class Vault {
       this.putValueInCache(path, response.data.data);
     } catch (e) {
       if (e.response && e.response.body.errors && e.response.body.errors.length > 0) {
-        return `Vault error ${e.response?.statusCode ?? ''} : ${e.response.body.errors.join('\n')}`;
+        throw new Error(`Vault error ${e.response?.statusCode ?? ''} : ${e.response.body.errors.join('\n')}`);
       }
 
-      return 'Error reading vault path';
+      throw new Error(e.message);
     }
 
     if (!jsonPath) {
@@ -185,7 +189,7 @@ class Vault {
       value = get(response.data.data, jsonPath, null);
 
       if (!value) {
-        return 'Undefined key';
+        throw new Error('Undefined key');
       }
     }
 
@@ -213,6 +217,34 @@ class Vault {
     }
 
     return str;
+  };
+
+  static interpolateEnvVars = (str, processEnvVars) => {
+    if (!str || !str.length || typeof str !== 'string') {
+      return str;
+    }
+
+    const template = Handlebars.compile(str, { noEscape: true });
+
+    return template({
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
+  };
+
+  static getEnvVars = (envVars, processEnvVars) => {
+    envVars = envVars ? cloneDeep(envVars) : {};
+
+    // envVars can inturn have values as {{process.env.VAR_NAME}}
+    // so we need to interpolate envVars first with processEnvVars
+    forOwn(envVars, (value, key) => {
+      envVars[key] = Vault.interpolateEnvVars(value, processEnvVars);
+    });
+
+    return envVars;
   };
 
   static getVariableRegex = () => /{{vault\s?\|(?<path>[^|]*)(\s?\|(?<jsonPath>[^|}]*))?}}/g;

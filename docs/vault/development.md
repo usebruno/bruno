@@ -68,6 +68,7 @@ Configure your environment variables :
 - `VAULT_ADDR`: http://localhost:8200
 - `VAULT_TOKEN_FILE_PATH`: /home/username/.vault-token
 - `VAULT_PATH_PREFIX`: /bruno/data/
+- `VAULT_PROXY`:
 
 ### Use Vault variables in Bruno
 

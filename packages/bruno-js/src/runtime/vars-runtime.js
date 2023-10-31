@@ -30,7 +30,7 @@ class VarsRuntime {
       bru.setVar(v.name, value);
     });
 
-    await this.handleVaultVariables(enabledVars, bru, context);
+    await this.handleVaultVariables(enabledVars, bru, context, processEnvVars);
 
     return {
       collectionVariables
@@ -72,7 +72,7 @@ class VarsRuntime {
       bru.setVar(v.name, value);
     });
 
-    await this.handleVaultVariables(enabledVars, bru, context);
+    await this.handleVaultVariables(enabledVars, bru, context, processEnvVars);
 
     return {
       envVariables,
@@ -80,8 +80,8 @@ class VarsRuntime {
     };
   }
 
-  async handleVaultVariables(variables, bru, context) {
-    const vault = Vault.getVault(context);
+  async handleVaultVariables(variables, bru, context, processEnvVars) {
+    const vault = Vault.getVault(context, processEnvVars);
     for (let v of variables) {
       if (vault && v.value.match(Vault.getVariableRegex())) {
         const value = await vault.replaceVariables(v.value, context);

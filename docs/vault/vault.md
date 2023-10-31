@@ -36,6 +36,7 @@ Available environment variables :
 - `VAULT_ADDR` **[Required]** The URL where your Vault is located. Example: https://vault.domain
 - `VAULT_TOKEN_FILE_PATH` **[Required]** The path to your .vault-token file on your system. Example: /home/j.doe/.vault-token
 - `VAULT_PATH_PREFIX` [Optional] A path that will prefix all Vault paths. Example: /bruno/data/customers
+- `VAULT_PROXY` [Optional] A proxy to use when fetching data from Vault. Example: https://proxy.domain:3128
 
 ### Use Vault variables in Bruno
 
