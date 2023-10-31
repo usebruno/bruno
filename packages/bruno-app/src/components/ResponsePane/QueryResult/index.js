@@ -32,7 +32,7 @@ const formatResponse = (data, mode) => {
     return data;
   }
 
-  return safeStringifyJSON(data);
+  return safeStringifyJSON(data, true);
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
