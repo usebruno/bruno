@@ -28,7 +28,7 @@ const formatResponse = (data, mode) => {
     return safeStringifyJSON(parsed, true);
   }
 
-  if (['text', 'html'].includes(mode) || typeof data === 'string') {
+  if (typeof data === 'string') {
     return data;
   }
 
