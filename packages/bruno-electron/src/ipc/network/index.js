@@ -673,9 +673,10 @@ const registerNetworkIpc = (mainWindow) => {
         }
 
         let currentRequestIndex = 0;
+        let nJumps = 0; // count the number of jumps to avoid infinite loops
         while (currentRequestIndex < folderRequests.length) {
-          item = folderRequests[currentRequestIndex];
-          let nextRequestName = undefined;
+          const item = folderRequests[currentRequestIndex];
+          let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -866,6 +867,10 @@ const registerNetworkIpc = (mainWindow) => {
             });
           }
           if (nextRequestName) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
             const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
             if (nextRequestIdx >= 0) {
               currentRequestIndex = nextRequestIdx;

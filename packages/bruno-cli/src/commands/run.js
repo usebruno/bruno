@@ -356,6 +356,7 @@ const handler = async function (argv) {
     }
 
     let currentRequestIndex = 0;
+    let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
@@ -372,6 +373,11 @@ const handler = async function (argv) {
 
       const nextRequestName = result?.nextRequestName;
       if (nextRequestName) {
+        nJumps++;
+        if (nJumps > 10000) {
+          console.error(chalk.red(`Too many jumps, possible infinite loop`));
+          process.exit(1);
+        }
         const nextRequestIdx = bruJsons.findIndex((iter) => iter.bruJson.name === nextRequestName);
         if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
