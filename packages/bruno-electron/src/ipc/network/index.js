@@ -587,6 +587,7 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
         preparedRequest,
