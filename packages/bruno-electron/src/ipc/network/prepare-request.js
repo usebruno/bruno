@@ -1,5 +1,6 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
+const FormData = require('form-data');
 
 // Authentication
 // A request can override the collection auth with another auth
