@@ -37,7 +37,7 @@ const formatResponse = (data, mode) => {
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType);
+  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const formattedData = formatResponse(data, mode);
   const { storedTheme } = useTheme();
 
