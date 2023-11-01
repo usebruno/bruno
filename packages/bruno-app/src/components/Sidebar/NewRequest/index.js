@@ -37,6 +37,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             const trimmedValue = value ? value.trim().toLowerCase() : '';
             return !['collection', 'folder'].includes(trimmedValue);
           }
+        }),
+      curlCommand: Yup.string()
+        .min(1, 'must be at least 1 character')
+        .required('curlCommand is required')
+        .test({
+          name: 'curlCommand',
+          message: `Invalid cURL Command`,
+          test: (value) => getRequestFromCurlCommand(value) !== null
         })
     }),
     onSubmit: (values) => {
@@ -64,22 +72,21 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
-        getRequestFromCurlCommand(values.curlCommand).then((request) =>
-          dispatch(
-            newHttpRequest({
-              requestName: values.requestName,
-              requestType: 'http-request',
-              requestUrl: request.url,
-              requestMethod: request.method,
-              collectionUid: collection.uid,
-              itemUid: item ? item.uid : null,
-              headers: request.headers,
-              body: request.body
-            })
-          )
-            .then(() => onClose())
-            .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'))
-        );
+        const request = getRequestFromCurlCommand(values.curlCommand);
+        dispatch(
+          newHttpRequest({
+            requestName: values.requestName,
+            requestType: 'http-request',
+            requestUrl: request.url,
+            requestMethod: request.method,
+            collectionUid: collection.uid,
+            itemUid: item ? item.uid : null,
+            headers: request.headers,
+            body: request.body
+          })
+        )
+          .then(() => onClose())
+          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
           newHttpRequest({
@@ -227,6 +234,9 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 value={formik.values.curlCommand}
                 onChange={formik.handleChange}
               ></textarea>
+              {formik.touched.curlCommand && formik.errors.curlCommand ? (
+                <div className="text-red-500">{formik.errors.curlCommand}</div>
+              ) : null}
             </div>
           )}
         </form>
