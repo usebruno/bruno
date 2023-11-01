@@ -38,14 +38,17 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             return !['collection', 'folder'].includes(trimmedValue);
           }
         }),
-      curlCommand: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .required('curlCommand is required')
-        .test({
-          name: 'curlCommand',
-          message: `Invalid cURL Command`,
-          test: (value) => getRequestFromCurlCommand(value) !== null
-        })
+      curlCommand: Yup.string().when('requestType', {
+        is: (requestType) => requestType === 'from-curl',
+        then: Yup.string()
+          .min(1, 'must be at least 1 character')
+          .required('curlCommand is required')
+          .test({
+            name: 'curlCommand',
+            message: `Invalid cURL Command`,
+            test: (value) => getRequestFromCurlCommand(value) !== null
+          })
+      })
     }),
     onSubmit: (values) => {
       if (isEphemeral) {
