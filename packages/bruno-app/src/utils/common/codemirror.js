@@ -10,7 +10,7 @@ if (!SERVER_RENDERED) {
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);
-  return isString(value);
+  return value !== undefined;
 };
 
 export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
