@@ -710,7 +710,7 @@ const registerNetworkIpc = (mainWindow) => {
               scriptingConfig
             );
 
-            if (preRequestScriptResult?.nextRequestName) {
+            if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
             }
 
@@ -802,7 +802,7 @@ const registerNetworkIpc = (mainWindow) => {
               scriptingConfig
             );
 
-            if (postRequestScriptResult?.nextRequestName) {
+            if (postRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postRequestScriptResult.nextRequestName;
             }
 
@@ -866,10 +866,13 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
-          if (nextRequestName) {
+          if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
               throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
+              break;
             }
             const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
             if (nextRequestIdx >= 0) {

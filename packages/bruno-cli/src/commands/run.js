@@ -371,12 +371,18 @@ const handler = async function (argv) {
         collectionRoot
       );
 
+      results.push(result);
+
+      // determine next request
       const nextRequestName = result?.nextRequestName;
-      if (nextRequestName) {
+      if (nextRequestName !== undefined) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
           process.exit(1);
+        }
+        if (nextRequestName === null) {
+          break;
         }
         const nextRequestIdx = bruJsons.findIndex((iter) => iter.bruJson.name === nextRequestName);
         if (nextRequestIdx >= 0) {
@@ -388,8 +394,6 @@ const handler = async function (argv) {
       } else {
         currentRequestIndex++;
       }
-
-      results.push(result);
     }
 
     const summary = printRunSummary(results);

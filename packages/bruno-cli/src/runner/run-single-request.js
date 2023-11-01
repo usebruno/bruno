@@ -77,7 +77,7 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
-      if (result?.nextRequestName) {
+      if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
       }
     }
@@ -252,7 +252,7 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
-      if (result?.nextRequestName) {
+      if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
       }
     }
