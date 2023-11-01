@@ -22,6 +22,14 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
+### Installation
+
+Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) or via homebrew
+
+```sh
+brew install bruno
+```
+
 ### Run across multiple platforms 🖥️
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
