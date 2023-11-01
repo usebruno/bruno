@@ -20,6 +20,8 @@ You can use Git or any version control of your choice to collaborate over your A
 
 Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We value your data privacy and believe it should stay on your device. Read our long-term vision [here](https://github.com/usebruno/bruno/discussions/269)
 
+📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
+
 ![bruno](assets/images/landing-2.png) <br /><br />
 
 ### Installation
