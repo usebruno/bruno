@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -14,6 +14,7 @@ import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
+  const [curlError, setCurlError] = useState('');
   const dispatch = useDispatch();
   const inputRef = useRef();
   const formik = useFormik({
@@ -37,14 +38,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             const trimmedValue = value ? value.trim().toLowerCase() : '';
             return !['collection', 'folder'].includes(trimmedValue);
           }
-        }),
-      curlCommand: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .required('curlCommand is required')
-        .test({
-          name: 'curlCommand',
-          message: `Invalid cURL Command`,
-          test: (value) => getRequestFromCurlCommand(value) !== null
         })
     }),
     onSubmit: (values) => {
@@ -73,6 +66,9 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else if (values.requestType === 'from-curl') {
         const request = getRequestFromCurlCommand(values.curlCommand);
+        if (request === null) {
+          setCurlError('Invalid cURL Command');
+        }
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
@@ -234,9 +230,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 value={formik.values.curlCommand}
                 onChange={formik.handleChange}
               ></textarea>
-              {formik.touched.curlCommand && formik.errors.curlCommand ? (
-                <div className="text-red-500">{formik.errors.curlCommand}</div>
-              ) : null}
+              {curlError !== '' && <div className="text-red-500">{curlError}</div>}
             </div>
           )}
         </form>
