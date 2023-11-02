@@ -37,6 +37,16 @@ const StyledWrapper = styled.section`
     height: 100%;
     width: 100%;
   }
+
+  div[role='tablist'] {
+    .active {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+  }
+
+  .muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 `;
 
 export default StyledWrapper;

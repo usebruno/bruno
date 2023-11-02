@@ -52,7 +52,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
           Insomnia Collection
         </div>
         <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportOpenapiCollection}>
-          OpenAPI Collection
+          OpenAPI V3 Spec
         </div>
       </div>
     </Modal>
