@@ -1,8 +1,9 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
 const { isFile, readFileBinary } = require('../../utils/filesystem');
 const mime = require('mime-types');
 const path = require('path');
+const FormData = require('form-data');
 
 // Authentication
 // A request can override the collection auth with another auth
