@@ -56,7 +56,6 @@ export const tabsSlice = createSlice({
       const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
 
       let toBeActivatedTabIndex = 0;
-      let toBeActivatedTabUid;
 
       if (direction === 'pageup') {
         if (activeTabIndex == 0) {
@@ -64,17 +63,15 @@ export const tabsSlice = createSlice({
         } else {
           toBeActivatedTabIndex = activeTabIndex - 1;
         }
-        toBeActivatedTabUid = state.tabs[toBeActivatedTabIndex].uid;
       } else if (direction === 'pagedown') {
         if (activeTabIndex == state.tabs.length - 1) {
           toBeActivatedTabIndex = 0;
         } else {
           toBeActivatedTabIndex = activeTabIndex + 1;
         }
-        toBeActivatedTabUid = state.tabs[toBeActivatedTabIndex].uid;
       }
 
-      state.activeTabUid = toBeActivatedTabUid;
+      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
