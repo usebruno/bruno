@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.15.1",
+  "version": "1.0.0",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {

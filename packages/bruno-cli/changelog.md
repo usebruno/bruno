@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0
+
+- Announcing Stable Release
+
 ## 0.13.0
 
 - feat(#306) Module whitelisting and filesystem access support
