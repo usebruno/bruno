@@ -1,7 +1,7 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - Opensource IDE for exploring and testing APIs.
+### Bruno - API 탐색 및 테스트를 위한 오픈소스 IDE.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
@@ -10,25 +10,23 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [한국어](docs/readme/readme_kr.md)
+Bruno는 새롭고 혁신적인 API 클라이언트로, Postman과 유사한 툴들을 혁신하는 것을 목표로 합니다.
 
-Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
+Bruno는 사용자의 컬렉션을 파일 시스템의 폴더에 직접 저장합니다. 일반 텍스트 마크업 언어인 Bru를 사용해 API 요청에 대한 정보를 저장합니다.
 
-Bruno stores your collections directly in a folder on your filesystem. We use a plain text markup language, Bru, to save information about API requests.
+Git 또는 원하는 버전 관리 도구를 사용하여 API 컬렉션을 연동할 수 있습니다.
 
-You can use Git or any version control of your choice to collaborate over your API collections.
-
-Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We value your data privacy and believe it should stay on your device. Read our long-term vision [here](https://github.com/usebruno/bruno/discussions/269)
+브루는 오프라인 전용입니다. 브루노에 클라우드 동기화 기능을 추가할 계획은 없습니다. 저희는 사용자의 데이터 프라이버시를 소중히 여기며, 데이터는 사용자의 기기에 남아 있어야 한다고 믿습니다. 장기 비전 읽기 [링크](https://github.com/usebruno/bruno/discussions/269)
 
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
-### Installation
+### 설치
 
-Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
+Bruno 는 여기에서 다운로드 받을 수 있습니다.[링크](https://www.usebruno.com/downloads) (맥, 윈도우, 리눅스)
 
-You can also install Bruno via package managers like Homebrew, Chocolatey, Snap and Apt.
+Homebrew, Chocolatey, Snap, Apt 같은 패키지 관리자를 통해서도 Bruno를 설치할 수 있습니다.
 
 ```sh
 # On Mac via Homebrew
@@ -50,17 +48,17 @@ sudo apt update
 sudo apt install bruno
 ```
 
-### Run across multiple platforms 🖥️
+### 여러 플랫폼에서 실행하세요. 🖥️
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
 
-### Collaborate via Git 👩‍💻🧑‍💻
+### Git과 연동하세요.  👩‍💻🧑‍💻
 
-Or any version control system of your choice
+또는 원하는 버전 관리 시스템을 선택하세요.
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-### Important Links 📌
+### 중요 링크 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
@@ -69,29 +67,29 @@ Or any version control system of your choice
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
 
-### Showcase 🎥
+### 쇼케이스 🎥
 
 - [Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
-### Support ❤️
+### 지원 ❤️
 
-Woof! If you like project, hit that ⭐ button !!
+프로젝트가 마음에 들면 ⭐ 버튼을 눌러 주세요.
 
-### Share Testimonials 📣
+### 후기 공유 📣
 
-If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
+Bruno가 여러분과 여러분의 팀에 도움이 되었다면, 잊지 말고 공유해 주세요. [Github discussion 공유 링크](https://github.com/usebruno/bruno/discussions/343)
 
-### Publishing to New Package Managers
+### 새 패키지 관리자에게 게시
 
-Please see [here](publishing.md) for more information.
+더 많은 정보를 확인하시려명 링크를 클릭해 주세요.[배포 가이드](publishing.md)
 
-### Contribute 👩‍💻🧑‍💻
+### 컨트리뷰트 👩‍💻🧑‍💻
 
-I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
+컨트리뷰트에 관심이 있으시면 링크를 참고해 주세요. [컨트리뷰트 가이드](contributing.md)
 
-Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
+코드를 통해 기여할 수 없더라도 사용 사례를 해결하기 위해 구현이 필요한 버그나 기능 요청을 주저하지 마시고 제출해 주세요.
 
 ### Authors
 
