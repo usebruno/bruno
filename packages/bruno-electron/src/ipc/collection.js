@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell } = require('electron');
+const { ipcMain, shell, dialog } = require('electron');
 const { envJsonToBru, bruToEnvJson, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -490,6 +490,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:open-devtools', async () => {
     mainWindow.webContents.openDevTools();
+  });
+
+  ipcMain.handle('renderer:load-gql-schema-file', async () => {
+    try {
+      const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile']
+      });
+      if (filePaths.length === 0) {
+        return;
+      }
+
+      const jsonData = fs.readFileSync(filePaths[0], 'utf8');
+      return JSON.parse(jsonData);
+    } catch (err) {
+      return Promise.reject(new Error('Failed to load GraphQL schema file'));
+    }
   });
 };
 

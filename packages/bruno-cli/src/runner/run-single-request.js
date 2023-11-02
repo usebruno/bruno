@@ -12,11 +12,10 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
-const { shouldUseProxy } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
 const runSingleRequest = async function (
   filename,
@@ -152,7 +151,7 @@ const runSingleRequest = async function (
         request.httpsAgent = socksProxyAgent;
         request.httpAgent = socksProxyAgent;
       } else {
-        request.httpsAgent = new HttpsProxyAgent(
+        request.httpsAgent = new PatchedHttpsProxyAgent(
           proxyUri,
           Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
         );

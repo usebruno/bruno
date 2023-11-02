@@ -23,6 +23,10 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
     }
   });
 
+  ipcMain.on('main:open-preferences', () => {
+    mainWindow.webContents.send('main:open-preferences');
+  });
+
   ipcMain.handle('renderer:save-preferences', async (event, preferences) => {
     try {
       await savePreferences(preferences);

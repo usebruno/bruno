@@ -14,11 +14,46 @@ const readFile = (files) => {
   });
 };
 
+const parseGraphQLRequest = (graphqlSource) => {
+  try {
+    let queryResultObject = {
+      query: '',
+      variables: ''
+    };
+
+    if (typeof graphqlSource === 'string') {
+      graphqlSource = JSON.parse(text);
+    }
+
+    if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
+      queryResultObject.variables = graphqlSource.variables;
+    }
+
+    if (graphqlSource.hasOwnProperty('query') && graphqlSource.query !== '') {
+      queryResultObject.query = graphqlSource.query;
+    }
+
+    return queryResultObject;
+  } catch (e) {
+    return {
+      query: '',
+      variables: ''
+    };
+  }
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item) => {
+const convertV21Auth = (array) => {
+  return array.reduce((accumulator, currentValue) => {
+    accumulator[currentValue.key] = currentValue.value;
+    return accumulator;
+  }, {});
+};
+
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
 
   each(item, (i) => {
@@ -31,7 +66,7 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
       };
       brunoParent.items.push(brunoFolderItem);
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
     } else {
       if (i.request) {
@@ -49,6 +84,12 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           request: {
             url: url,
             method: i.request.method,
+            auth: {
+              mode: 'none',
+              basic: null,
+              bearer: null,
+              awsv4: null
+            },
             headers: [],
             params: [],
             body: {
@@ -61,6 +102,31 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
             }
           }
         };
+
+        if (i.event) {
+          i.event.forEach((event) => {
+            if (event.listen === 'prerequest' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request.script) {
+                brunoRequestItem.request.script = {};
+              }
+              if (Array.isArray(event.script.exec)) {
+                brunoRequestItem.request.script.req = event.script.exec.map((line) => `// ${line}`).join('\n');
+              } else {
+                brunoRequestItem.request.script.req = `// ${event.script.exec[0]} `;
+              }
+            }
+            if (event.listen === 'test' && event.script && event.script.exec) {
+              if (!brunoRequestItem.request.tests) {
+                brunoRequestItem.request.tests = {};
+              }
+              if (Array.isArray(event.script.exec)) {
+                brunoRequestItem.request.tests = event.script.exec.map((line) => `// ${line}`).join('\n');
+              } else {
+                brunoRequestItem.request.tests = `// ${event.script.exec[0]} `;
+              }
+            }
+          });
+        }
 
         const bodyMode = get(i, 'request.body.mode');
         if (bodyMode) {
@@ -108,6 +174,12 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
           }
         }
 
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
+        }
+
         each(i.request.header, (header) => {
           brunoRequestItem.request.headers.push({
             uid: uuid(),
@@ -117,6 +189,36 @@ const importPostmanV2CollectionItem = (brunoParent, item) => {
             enabled: !header.disabled
           });
         });
+
+        const auth = i.request.auth ?? parentAuth;
+        if (auth?.[auth.type] && auth.type !== 'noauth') {
+          let authValues = auth[auth.type];
+          if (Array.isArray(authValues)) {
+            authValues = convertV21Auth(authValues);
+          }
+          if (auth.type === 'basic') {
+            brunoRequestItem.request.auth.mode = 'basic';
+            brunoRequestItem.request.auth.basic = {
+              username: authValues.username,
+              password: authValues.password
+            };
+          } else if (auth.type === 'bearer') {
+            brunoRequestItem.request.auth.mode = 'bearer';
+            brunoRequestItem.request.auth.bearer = {
+              token: authValues.token
+            };
+          } else if (auth.type === 'awsv4') {
+            brunoRequestItem.request.auth.mode = 'awsv4';
+            brunoRequestItem.request.auth.awsv4 = {
+              accessKeyId: authValues.accessKey,
+              secretAccessKey: authValues.secretKey,
+              sessionToken: authValues.sessionToken,
+              service: authValues.service,
+              region: authValues.region,
+              profileName: ''
+            };
+          }
+        }
 
         each(get(i, 'request.url.query'), (param) => {
           brunoRequestItem.request.params.push({
@@ -158,7 +260,7 @@ const importPostmanV2Collection = (collection) => {
     environments: []
   };
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth);
 
   return brunoCollection;
 };

@@ -7,7 +7,7 @@ const devServer = async (dir, port) => {
   // Build the renderer code and watch the files
   await next.prepare();
 
-  // NextJS Server
+  // Next.js Server
   const server = createServer(requestHandler);
 
   server.listen(port || 8000, () => {

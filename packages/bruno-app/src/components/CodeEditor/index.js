@@ -70,6 +70,35 @@ export default class CodeEditor extends React.Component {
         'Ctrl-F': 'findPersistent',
         Tab: function (cm) {
           cm.replaceSelection('  ', 'end');
+        },
+        'Ctrl-Y': 'foldAll',
+        'Cmd-Y': 'foldAll',
+        'Ctrl-I': 'unfoldAll',
+        'Cmd-I': 'unfoldAll'
+      },
+      foldOptions: {
+        widget: (from, to) => {
+          var count = undefined;
+          var internal = this.editor.getRange(from, to);
+          if (this.props.mode == 'application/ld+json') {
+            if (this.editor.getLine(from.line).endsWith('[')) {
+              var toParse = '[' + internal + ']';
+            } else var toParse = '{' + internal + '}';
+            try {
+              count = Object.keys(JSON.parse(toParse)).length;
+            } catch (e) {}
+          } else if (this.props.mode == 'application/xml') {
+            var doc = new DOMParser();
+            try {
+              //add header element and remove prefix namespaces for DOMParser
+              var dcm = doc.parseFromString(
+                '<a> ' + internal.replace(/(?<=\<|<\/)\w+:/g, '') + '</a>',
+                'application/xml'
+              );
+              count = dcm.documentElement.children.length;
+            } catch (e) {}
+          }
+          return count ? `\u21A4${count}\u21A6` : '\u2194';
         }
       }
     }));
@@ -117,6 +146,9 @@ export default class CodeEditor extends React.Component {
   }
 
   render() {
+    if (this.editor) {
+      this.editor.refresh();
+    }
     return (
       <StyledWrapper
         className="h-full w-full"
