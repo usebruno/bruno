@@ -182,23 +182,6 @@ export const HotkeysProvider = (props) => {
     };
   }, []);
 
-  // switch to recent tab
-  useEffect(() => {
-    Mousetrap.bind(['command+tab', 'ctrl+tab'], (e) => {
-      dispatch(
-        switchTab({
-          direction: 'tab'
-        })
-      );
-
-      return false; // this stops the event bubbling
-    });
-
-    return () => {
-      Mousetrap.unbind(['command+pgdn', 'ctrl+pgdn']);
-    };
-  }, []);
-
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showSaveRequestModal && (
