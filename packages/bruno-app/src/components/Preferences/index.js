@@ -5,6 +5,7 @@ import Support from './Support';
 import General from './General';
 import Font from './Font';
 import Theme from './Theme';
+import KeyboardShortcuts from './KeyboardShortcuts';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
 
@@ -38,6 +39,10 @@ const Preferences = ({ onClose }) => {
       case 'font': {
         return <Font close={onClose} />;
       }
+
+      case 'shortcuts': {
+        return <KeyboardShortcuts close={onClose} />;
+      }
     }
   };
 
@@ -59,6 +64,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support
+          </div>
+          <div className={getTabClassname('shortcuts')} role="tab" onClick={() => setTab('shortcuts')}>
+            Keyboard Shortcuts
           </div>
         </div>
         <section className="flex flex-grow px-2 mt-4 tab-panel">{getTabPanel(tab)}</section>
