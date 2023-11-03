@@ -11,6 +11,11 @@ import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
 
+import CollectionAwsV4Auth from '../../components/CollectionSettings/Auth/AwsV4Auth';
+import CollectionBearerAuth from '../../components/CollectionSettings/Auth/BearerAuth';
+import CollectionBasicAuth from '../../components/CollectionSettings/Auth/BasicAuth';
+import CollectionDigestAuth from '../../components/CollectionSettings/Auth/DigestAuth';
+
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
     return '';
@@ -505,6 +510,25 @@ export const humanizeRequestAuthMode = (mode) => {
   }
 
   return label;
+};
+
+export const getAuthViewFromCollection = (collection) => {
+  const collectionAuthMode = get(collection, 'root.request.auth.mode');
+
+  switch (collectionAuthMode) {
+    case 'awsv4': {
+      return <CollectionAwsV4Auth collection={collection} />;
+    }
+    case 'basic': {
+      return <CollectionBasicAuth collection={collection} />;
+    }
+    case 'bearer': {
+      return <CollectionBearerAuth collection={collection} />;
+    }
+    case 'digest': {
+      return <CollectionDigestAuth collection={collection} />;
+    }
+  }
 };
 
 export const refreshUidsInItem = (item) => {
