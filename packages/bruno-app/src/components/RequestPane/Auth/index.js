@@ -6,12 +6,16 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import StyledWrapper from './StyledWrapper';
+import { getAuthViewFromCollection } from 'utils/collections';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
   const getAuthView = () => {
     switch (authMode) {
+      case 'parent': {
+        return getAuthViewFromCollection(collection);
+      }
       case 'awsv4': {
         return <AwsV4Auth collection={collection} item={item} />;
       }
