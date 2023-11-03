@@ -131,6 +131,12 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.awsv4config.profileName = interpolate(request.awsv4config.profileName) || '';
   }
 
+  // interpolate vars for digest auth
+  if (request.digestConfig) {
+    request.digestConfig.username = interpolate(request.digestConfig.username) || '';
+    request.digestConfig.password = interpolate(request.digestConfig.password) || '';
+  }
+
   return request;
 };
 

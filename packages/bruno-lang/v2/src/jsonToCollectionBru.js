@@ -105,6 +105,15 @@ ${indentString(`token: ${auth.bearer.token}`)}
 `;
   }
 
+  if (auth && auth.digest) {
+    bru += `auth:digest {
+${indentString(`username: ${auth.digest.username}`)}
+${indentString(`password: ${auth.digest.password}`)}
+}
+
+`;
+  }
+
   let reqvars = _.get(vars, 'req');
   let resvars = _.get(vars, 'res');
   if (reqvars && reqvars.length) {

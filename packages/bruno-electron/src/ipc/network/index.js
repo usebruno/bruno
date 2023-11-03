@@ -26,6 +26,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
+const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 
@@ -188,6 +189,10 @@ const configureRequest = async (
     request.awsv4config = await resolveAwsV4Credentials(request);
     addAwsV4Interceptor(axiosInstance, request);
     delete request.awsv4config;
+  }
+
+  if (request.digestConfig) {
+    addDigestInterceptor(axiosInstance, request);
   }
 
   request.timeout = preferencesUtil.getRequestTimeout();
