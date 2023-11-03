@@ -1,6 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
+const { cosmiconfig } = require('cosmiconfig');
 const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -210,32 +211,28 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath } = argv;
-    const collectionPath = process.cwd();
 
-    // todo
-    // right now, bru must be run from the root of the collection
-    // will add support in the future to run it from anywhere inside the collection
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    const brunoJsonExists = await exists(brunoJsonPath);
-    if (!brunoJsonExists) {
-      console.error(chalk.red(`You can run only at the root of a collection`));
-      return;
-    }
-
-    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-    const brunoConfig = JSON.parse(brunoConfigFile);
-    const collectionRoot = getCollectionRoot(collectionPath);
-
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        return;
-      }
-    } else {
+    if (!filename?.length) {
       filename = './';
       recursive = true;
     }
+
+    const absFilePath = path.resolve(process.cwd(), filename);
+    const pathExists = await exists(absFilePath);
+    if (!pathExists) {
+      console.error(chalk.red(`File or directory ${filename} does not exist`));
+      return;
+    }
+
+    const brunoJson = await cosmiconfig('bruno', { searchPlaces: [`bruno.json`] }).search(absFilePath);
+
+    if (!brunoJson) {
+      console.error(chalk.red(`File or directory ${filename} not within a bruno collection.`));
+      return;
+    }
+    const { config: brunoConfig, filepath: brunoJsonFilepath } = brunoJson;
+    const collectionPath = path.dirname(brunoJsonFilepath);
+    const collectionRoot = getCollectionRoot(collectionPath);
 
     const collectionVariables = {};
     let envVars = {};
@@ -312,14 +309,14 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = await isFile(filename);
+    const _isFile = await isFile(absFilePath);
     let results = [];
 
     let bruJsons = [];
 
     if (_isFile) {
       console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
+      const bruContent = fs.readFileSync(absFilePath, 'utf8');
       const bruJson = bruToJson(bruContent);
       bruJsons.push({
         bruFilepath: filename,
@@ -327,15 +324,15 @@ const handler = async function (argv) {
       });
     }
 
-    const _isDirectory = await isDirectory(filename);
+    const _isDirectory = await isDirectory(absFilePath);
     if (_isDirectory) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
-        const files = fs.readdirSync(filename);
+        const files = fs.readdirSync(absFilePath);
         const bruFiles = files.filter((file) => file.endsWith('.bru'));
 
         for (const bruFile of bruFiles) {
-          const bruFilepath = path.join(filename, bruFile);
+          const bruFilepath = path.join(absFilePath, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
           const bruJson = bruToJson(bruContent);
           bruJsons.push({
@@ -351,7 +348,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename);
+        bruJsons = getBruFilesRecursively(absFilePath);
       }
     }
 
