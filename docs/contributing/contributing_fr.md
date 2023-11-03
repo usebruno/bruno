@@ -1,3 +1,5 @@
+[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | **Français** | [বাংলা](docs/contributing/contributing_bn.md)
+
 ## Ensemble, améliorons Bruno !
 
 Je suis content de voir que vous envisagez améliorer Bruno. Ci-dessous, vous trouverez les règles et guides pour récupérer Bruno sur votre ordinateur.
