@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
+import { envVariableNameRegex } from 'utils/common/regex';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -23,7 +24,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
         enabled: Yup.boolean(),
         name: Yup.string()
           .required('Name cannot be empty')
-          .matches(/^(?!\d)\w*$/, 'Name contains invalid characters')
+          .matches(
+            envVariableNameRegex,
+            'Name contains invalid characters. Must only contain alphanumeric characters, "-" and "_"'
+          )
           .trim(),
         secret: Yup.boolean(),
         type: Yup.string(),
