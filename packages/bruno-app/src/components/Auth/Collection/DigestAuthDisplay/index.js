@@ -11,12 +11,12 @@ const DigestAuth = ({ collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Username</label>
-      <div className="single-line-editor-wrapper mb-2">
+      <div className="single-line-display-wrapper mb-2">
         <SingleLineDisplay value={digestAuth.username || ''} theme={storedTheme} collection={collection} />
       </div>
 
       <label className="block font-medium mb-2">Password</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-display-wrapper">
         <SingleLineDisplay value={digestAuth.password || ''} theme={storedTheme} collection={collection} />
       </div>
     </StyledWrapper>

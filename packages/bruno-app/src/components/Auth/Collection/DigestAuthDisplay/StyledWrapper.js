@@ -5,7 +5,7 @@ const Wrapper = styled.div`
     font-size: 0.8125rem;
   }
 
-  .single-line-editor-wrapper {
+  .single-line-display-wrapper {
     padding: 0.15rem 0.4rem;
     border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};

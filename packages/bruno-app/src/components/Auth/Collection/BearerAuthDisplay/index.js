@@ -11,7 +11,7 @@ const BearerAuth = ({ collection }) => {
   return (
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
-      <div className="single-line-editor-wrapper">
+      <div className="single-line-display-wrapper">
         <SingleLineDisplay value={bearerToken} theme={storedTheme} collection={collection} />
       </div>
     </StyledWrapper>
