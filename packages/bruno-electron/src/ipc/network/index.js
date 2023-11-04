@@ -285,7 +285,6 @@ const registerNetworkIpc = (mainWindow) => {
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
     // only json parse the variables if the request type is graphql
-    console.log(request.mode);
     if (request.mode === 'graphql') {
       request.data.variables = JSON.parse(request.data.variables);
     } else {
