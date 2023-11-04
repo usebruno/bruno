@@ -11,10 +11,10 @@ import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
 
-import CollectionAwsV4Auth from '../../components/CollectionSettings/Auth/AwsV4Auth';
-import CollectionBearerAuth from '../../components/CollectionSettings/Auth/BearerAuth';
-import CollectionBasicAuth from '../../components/CollectionSettings/Auth/BasicAuth';
-import CollectionDigestAuth from '../../components/CollectionSettings/Auth/DigestAuth';
+import CollectionAwsV4AuthDisplay from '../../components/Auth/Collection/AwsV4AuthDisplay';
+import CollectionBearerAuthDisplay from '../../components/Auth/Collection/BearerAuthDisplay';
+import CollectionBasicAuthDisplay from '../../components/Auth/Collection/BasicAuthDisplay';
+import CollectionDigestAuthDisplay from '../../components/Auth/Collection/DigestAuthDisplay';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -512,21 +512,21 @@ export const humanizeRequestAuthMode = (mode) => {
   return label;
 };
 
-export const getAuthViewFromCollection = (collection) => {
+export const getAuthDisplayFromCollection = (collection) => {
   const collectionAuthMode = get(collection, 'root.request.auth.mode');
 
   switch (collectionAuthMode) {
     case 'awsv4': {
-      return <CollectionAwsV4Auth collection={collection} />;
+      return <CollectionAwsV4AuthDisplay collection={collection} />;
     }
     case 'basic': {
-      return <CollectionBasicAuth collection={collection} />;
+      return <CollectionBasicAuthDisplay collection={collection} />;
     }
     case 'bearer': {
-      return <CollectionBearerAuth collection={collection} />;
+      return <CollectionBearerAuthDisplay collection={collection} />;
     }
     case 'digest': {
-      return <CollectionDigestAuth collection={collection} />;
+      return <CollectionDigestAuthDisplay collection={collection} />;
     }
   }
 };
