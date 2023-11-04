@@ -1,6 +1,7 @@
 const darkTheme = {
   brand: '#546de5',
   text: '#d4d4d4',
+  readonlyText: '#8a8a8a',
   textLink: '#569cd6',
   bg: '#1e1e1e',
 

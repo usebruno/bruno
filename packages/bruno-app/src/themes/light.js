@@ -1,6 +1,7 @@
 const lightTheme = {
   brand: '#546de5',
   text: 'rgb(52, 52, 52)',
+  readonlyText: '#8a8a8a',
   textLink: '#1663bb',
   bg: '#fff',
 
