@@ -284,6 +284,13 @@ const registerNetworkIpc = (mainWindow) => {
     // interpolate variables inside request
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
+    // only json parse the variables if the request type is graphql
+    console.log(request.mode);
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    } else {
+      JSON.parse(request.data);
+    }
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
