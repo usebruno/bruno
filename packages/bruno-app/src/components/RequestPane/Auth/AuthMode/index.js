@@ -12,13 +12,23 @@ const AuthMode = ({ item, collection }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+  const collectionAuthMode = get(collection, 'root.request.auth.mode');
 
   const Icon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="flex items-center justify-center auth-mode-label select-none">
-        {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
-      </div>
-    );
+    if (authMode === 'parent') {
+      return (
+        <div ref={ref} className="flex items-center justify-center auth-mode-label select-none">
+          From Collection ({humanizeRequestAuthMode(collectionAuthMode)}){' '}
+          <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+        </div>
+      );
+    } else {
+      return (
+        <div ref={ref} className="flex items-center justify-center auth-mode-label select-none">
+          {humanizeRequestAuthMode(authMode)} <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
+        </div>
+      );
+    }
   });
 
   const onModeChange = (value) => {
@@ -42,7 +52,7 @@ const AuthMode = ({ item, collection }) => {
               onModeChange('parent');
             }}
           >
-            From Collection
+            From Collection ({humanizeRequestAuthMode(collectionAuthMode)})
           </div>
           <div
             className="dropdown-item"
