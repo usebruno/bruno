@@ -36,7 +36,7 @@ const StyledWrapper = styled.div`
     .CodeMirror-cursor {
       height: 20px !important;
       margin-top: 5px !important;
-      border-left: 1px solid ${(props) => props.theme.text} !important;
+      border-left: 1px solid ${(props) => props.theme.readonlyText} !important;
     }
 
     pre {
@@ -45,7 +45,7 @@ const StyledWrapper = styled.div`
     }
 
     .CodeMirror-line {
-      color: ${(props) => props.theme.text};
+      color: ${(props) => props.theme.readonlyText};
       padding-left: 0;
       padding-right: 0;
     }
