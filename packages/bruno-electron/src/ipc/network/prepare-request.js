@@ -7,63 +7,66 @@ const FormData = require('form-data');
 // But it cannot override the collection auth with no auth
 // We will provide support for disabling the auth via scripting in the future
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
-    switch (collectionAuth.mode) {
-      case 'awsv4':
-        axiosRequest.awsv4config = {
-          accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
-          secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
-          sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
-          service: get(collectionAuth, 'awsv4.service'),
-          region: get(collectionAuth, 'awsv4.region'),
-          profileName: get(collectionAuth, 'awsv4.profileName')
-        };
-        break;
-      case 'basic':
-        axiosRequest.auth = {
-          username: get(collectionAuth, 'basic.username'),
-          password: get(collectionAuth, 'basic.password')
-        };
-        break;
-      case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
-        break;
-      case 'digest':
-        axiosRequest.digestConfig = {
-          username: get(collectionAuth, 'digest.username'),
-          password: get(collectionAuth, 'digest.password')
-        };
-        break;
-    }
-  }
-
   if (request.auth) {
-    switch (request.auth.mode) {
-      case 'awsv4':
-        axiosRequest.awsv4config = {
-          accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
-          secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
-          sessionToken: get(request, 'auth.awsv4.sessionToken'),
-          service: get(request, 'auth.awsv4.service'),
-          region: get(request, 'auth.awsv4.region'),
-          profileName: get(request, 'auth.awsv4.profileName')
-        };
-        break;
-      case 'basic':
-        axiosRequest.auth = {
-          username: get(request, 'auth.basic.username'),
-          password: get(request, 'auth.basic.password')
-        };
-        break;
-      case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
-        break;
-      case 'digest':
-        axiosRequest.digestConfig = {
-          username: get(request, 'auth.digest.username'),
-          password: get(request, 'auth.digest.password')
-        };
+    if (request.auth.mode === 'parent') {
+      const collectionAuth = get(collectionRoot, 'request.auth');
+
+      if (collectionAuth) {
+        switch (collectionAuth.mode) {
+          case 'awsv4':
+            axiosRequest.awsv4config = {
+              accessKeyId: get(collectionAuth, 'awsv4.accessKeyId'),
+              secretAccessKey: get(collectionAuth, 'awsv4.secretAccessKey'),
+              sessionToken: get(collectionAuth, 'awsv4.sessionToken'),
+              service: get(collectionAuth, 'awsv4.service'),
+              region: get(collectionAuth, 'awsv4.region'),
+              profileName: get(collectionAuth, 'awsv4.profileName')
+            };
+            break;
+          case 'basic':
+            axiosRequest.auth = {
+              username: get(collectionAuth, 'basic.username'),
+              password: get(collectionAuth, 'basic.password')
+            };
+            break;
+          case 'bearer':
+            axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+            break;
+          case 'digest':
+            axiosRequest.digestConfig = {
+              username: get(collectionAuth, 'digest.username'),
+              password: get(collectionAuth, 'digest.password')
+            };
+            break;
+        }
+      }
+    } else {
+      switch (request.auth.mode) {
+        case 'awsv4':
+          axiosRequest.awsv4config = {
+            accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+            secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+            sessionToken: get(request, 'auth.awsv4.sessionToken'),
+            service: get(request, 'auth.awsv4.service'),
+            region: get(request, 'auth.awsv4.region'),
+            profileName: get(request, 'auth.awsv4.profileName')
+          };
+          break;
+        case 'basic':
+          axiosRequest.auth = {
+            username: get(request, 'auth.basic.username'),
+            password: get(request, 'auth.basic.password')
+          };
+          break;
+        case 'bearer':
+          axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+          break;
+        case 'digest':
+          axiosRequest.digestConfig = {
+            username: get(request, 'auth.digest.username'),
+            password: get(request, 'auth.digest.password')
+          };
+      }
     }
   }
 
