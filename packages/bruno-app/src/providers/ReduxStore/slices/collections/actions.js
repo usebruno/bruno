@@ -589,6 +589,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       type: requestType,
       name: requestName,
       request: {
+        auth: {
+          mode: 'parent'
+        },
         method: requestMethod,
         url: requestUrl,
         headers: headers ?? [],

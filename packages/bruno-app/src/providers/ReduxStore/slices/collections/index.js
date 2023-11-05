@@ -294,6 +294,9 @@ export const collectionsSlice = createSlice({
           name: action.payload.requestName,
           type: action.payload.requestType,
           request: {
+            auth: {
+              mode: 'parent'
+            },
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
             params,
