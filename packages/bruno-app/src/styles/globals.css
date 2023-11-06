@@ -18,13 +18,14 @@
   --color-method-patch: rgb(52 52 52);
   --color-method-options: rgb(52 52 52);
   --color-method-head: rgb(52 52 52);
+  --font-size: 16px;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  font-size: 1rem;
+  /* font-size: 1rem; */
   color: rgb(52 52 52);
 
   font-kerning: none;
@@ -32,6 +33,7 @@ body {
   letter-spacing: normal;
   font-family: Inter, sans-serif !important;
   overflow-x: hidden;
+  font-size: var(--font-size);
 }
 
 body {

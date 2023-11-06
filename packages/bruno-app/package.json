@@ -55,6 +55,7 @@
     "react-hot-toast": "^2.4.0",
     "react-inspector": "^6.0.2",
     "react-redux": "^7.2.6",
+    "react-select": "^5.7.7",
     "react-tooltip": "^5.5.2",
     "sass": "^1.46.0",
     "styled-components": "^5.3.3",
