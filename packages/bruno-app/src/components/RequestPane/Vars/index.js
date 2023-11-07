@@ -8,12 +8,12 @@ const Vars = ({ item, collection }) => {
   const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
+    <StyledWrapper className="w-full flex flex-col h-full overflow-y-auto">
+      <div className="h-fit mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
         <VarsTable item={item} collection={collection} vars={requestVars} varType="request" />
       </div>
-      <div className="flex-1">
+      <div className="h-fit">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
         <VarsTable item={item} collection={collection} vars={responseVars} varType="response" />
       </div>

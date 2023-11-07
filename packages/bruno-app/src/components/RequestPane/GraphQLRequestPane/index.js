@@ -149,7 +149,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full h-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>
   );
 };

@@ -5,7 +5,7 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
     /* todo: find a better way */
-    height: calc(100vh - 220px);
+    height: 100%;
   }
 
   textarea.cm-editor {
