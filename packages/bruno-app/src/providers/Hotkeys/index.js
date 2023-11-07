@@ -7,7 +7,7 @@ import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveAllRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
@@ -64,6 +64,26 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind(['command+s', 'ctrl+s']);
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
+
+  // save-all hotkey
+  useEffect(() => {
+    Mousetrap.bind(['command+shift+s', 'ctrl+shift+s'], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const activeCollection = findCollectionByUid(collections, activeTab.collectionUid);
+
+        if (activeCollection) {
+          dispatch(saveAllRequests(activeCollection.uid));
+        }
+      }
+
+      return false; // This stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+shift+s', 'ctrl+shift+s']);
+    };
+  }, [activeTabUid, tabs, collections, dispatch]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
