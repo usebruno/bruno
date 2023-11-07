@@ -115,6 +115,7 @@ const browseFile = async (win, filters) => {
 
   const resolvedPath = normalizeAndResolvePath(filePaths[0]);
   return isFile(resolvedPath) ? resolvedPath : false;
+};
 
 const chooseFileToSave = async (win, preferredFileName = '') => {
   const { filePath } = await dialog.showSaveDialog(win, {
