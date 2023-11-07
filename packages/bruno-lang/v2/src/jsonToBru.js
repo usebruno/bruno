@@ -158,14 +158,6 @@ ${indentString(body.sparql)}
 `;
   }
 
-  if (body && body.sparql && body.sparql.length) {
-    bru += `body:sparql {
-${indentString(body.sparql)}
-}
-
-`;
-  }
-
   if (body && body.file && body.file.length) {
     bru += `body:file {
 ${indentString(body.file)}
