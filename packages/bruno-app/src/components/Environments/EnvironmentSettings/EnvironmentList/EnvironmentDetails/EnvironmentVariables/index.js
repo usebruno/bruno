@@ -32,7 +32,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim()
+        value: Yup.string().trim().nullable()
       })
     ),
     onSubmit: (values) => {
@@ -114,7 +114,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   className="mousetrap"
                   id={`${index}.name`}
                   name={`${index}.name`}
-                  value={formik.values[index].name}
+                  value={variable.name}
                   onChange={formik.handleChange}
                 />
                 <ErrorMessage name={`${index}.name`} />
