@@ -32,7 +32,13 @@ const EnvironmentVariables = ({ environment, collection }) => {
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim()
+        value: Yup.string()
+          .when('secret', {
+            is: true,
+            then: Yup.string().required('Value cannot be empty when secret'),
+            otherwise: Yup.string()
+          })
+          .trim()
       })
     ),
     onSubmit: (values) => {
@@ -52,7 +58,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
-    console.log(name, meta);
+
     if (!meta.error) {
       return null;
     }
@@ -127,6 +133,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   value={variable.value}
                   onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                 />
+                <ErrorMessage name={`${index}.value`} />
               </td>
               <td>
                 <input
@@ -161,4 +168,5 @@ const EnvironmentVariables = ({ environment, collection }) => {
     </StyledWrapper>
   );
 };
+
 export default EnvironmentVariables;
