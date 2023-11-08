@@ -10,12 +10,83 @@ import isEqual from 'lodash/isEqual';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import jsonlint from 'jsonlint';
+import { JSHINT } from 'jshint';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
+  window.jsonlint = jsonlint;
+  window.JSHINT = JSHINT;
+  //This should be done dynamically if possible
+  const hintWords = [
+    'res',
+    'res.status',
+    'res.statusText',
+    'res.headers',
+    'res.body',
+    'res.getStatus()',
+    'res.getHeader(name)',
+    'res.getHeaders()',
+    'res.getBody()',
+    'req',
+    'req.url',
+    'req.method',
+    'req.headers',
+    'req.body',
+    'req.timeout',
+    'req.getUrl()',
+    'req.setUrl(url)',
+    'req.getMethod()',
+    'req.setMethod(method)',
+    'req.getHeader(name)',
+    'req.getHeaders()',
+    'req.setHeader(name, value)',
+    'req.setHeaders(data)',
+    'req.getBody()',
+    'req.setBody(data)',
+    'req.setMaxRedirects(maxRedirects)',
+    'req.getTimeout()',
+    'req.setTimeout(timeout)',
+    'bru',
+    'bru.cwd()',
+    'bru.getEnvName(key)',
+    'bru.getProcessEnv(key)',
+    'bru.getEnvVar(key)',
+    'bru.setEnvVar(key,value)',
+    'bru.getVar(key)',
+    'bru.setVar(key,value)'
+  ];
+  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
+    const cursor = editor.getCursor();
+    const currentLine = editor.getLine(cursor.line);
+    let startBru = cursor.ch;
+    let endBru = startBru;
+    while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
+    while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
+    let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
+
+    let start = cursor.ch;
+    let end = start;
+    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
+    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
+    const jsHinter = CodeMirror.hint.javascript;
+    let result = jsHinter(editor) || { list: [] };
+    result.to = CodeMirror.Pos(cursor.line, end);
+    result.from = CodeMirror.Pos(cursor.line, start);
+    hintWords.forEach((h) => {
+      if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
+        result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+      }
+    });
+    result.list = result.list?.sort();
+    return result;
+  });
+  CodeMirror.commands.autocomplete = (cm, hint, options) => {
+    cm.showHint({ hint, ...options });
+  };
 }
 
 export default class CodeEditor extends React.Component {
@@ -41,7 +112,10 @@ export default class CodeEditor extends React.Component {
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
+      lint: {
+        esversion: 11
+      },
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -68,9 +142,10 @@ export default class CodeEditor extends React.Component {
         },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
-        Tab: function (cm) {
-          cm.replaceSelection('  ', 'end');
-        },
+        'Cmd-H': 'replace',
+        'Ctrl-H': 'replace',
+        Tab: 'indentMore',
+        'Shift-Tab': 'indentLess',
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -105,6 +180,25 @@ export default class CodeEditor extends React.Component {
     if (editor) {
       editor.on('change', this._onEdit);
       this.addOverlay();
+    }
+    if (this.props.mode == 'javascript') {
+      editor.on('keyup', function (cm, event) {
+        const cursor = editor.getCursor();
+        const currentLine = editor.getLine(cursor.line);
+        let start = cursor.ch;
+        let end = start;
+        while (end < currentLine.length && /[\w\."'\/`]/.test(currentLine.charAt(end))) ++end;
+        while (start && /[\w\."'\/`]/.test(currentLine.charAt(start - 1))) --start;
+        let curWord = start != end && currentLine.slice(start, end);
+        //Qualify if autocomplete will be shown
+        if (
+          /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          curWord.length > 1 &&
+          /^(?!"'\d`)[a-zA-Z\.]/.test(curWord)
+        ) {
+          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
+        }
+      });
     }
   }
 
