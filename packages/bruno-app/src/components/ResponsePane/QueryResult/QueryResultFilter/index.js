@@ -23,9 +23,7 @@ const QueryResultFilter = ({ onChange, mode }) => {
         </div>
       </div>
 
-      {tooltipText && typeof tooltipText === 'string' && (
-        <ReactTooltip anchorId={'request-filter-icon'} html={tooltipText} />
-      )}
+      {tooltipText && <ReactTooltip anchorId={'request-filter-icon'} html={tooltipText} />}
 
       <input
         type="text"
