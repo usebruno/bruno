@@ -46,8 +46,8 @@ describe('curlToJson', () => {
     const result = curlToJson(curlCommand);
 
     expect(result).toEqual({
-      url: '%27https://www.usebruno.com%27',
-      raw_url: "'https://www.usebruno.com'",
+      url: 'https://www.usebruno.com',
+      raw_url: 'https://www.usebruno.com',
       method: 'post',
       headers: {
         Accept: 'application/json, text/plain, */*',
