@@ -8,8 +8,6 @@ O Bruno é construído usando Next.js e React. Também usamos o Electron para di
 
 Bibliotecas que utilizamos:
 
-Libraries we use
-
 - CSS - Tailwind
 - Editor de Código - Codemirror
 - Gerenciador de Estado - Redux
@@ -25,7 +23,7 @@ Você precisará do [Node v18.x (ou da versão LTS mais recente)](https://nodejs
 
 ## Desenvolvimento
 
-Bruno está sendo desenvolvido como um aplicativo de desktop. Você precisa carregar o aplicativo executando o aplicativo Next.js em um terminal e, em seguida, executar o aplicativo Electron em outro terminal.
+Bruno está sendo desenvolvido como um aplicativo de desktop. Você precisa carregar o programa executando o aplicativo Next.js em um terminal e, em seguida, executar o aplicativo Electron em outro terminal.
 
 ### Dependências
 
