@@ -76,12 +76,14 @@ if (!SERVER_RENDERED) {
     let result = jsHinter(editor) || { list: [] };
     result.to = CodeMirror.Pos(cursor.line, end);
     result.from = CodeMirror.Pos(cursor.line, start);
-    hintWords.forEach((h) => {
-      if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-        result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
-      }
-    });
-    result.list = result.list?.sort();
+    if (curWordBru) {
+      hintWords.forEach((h) => {
+        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
+          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+        }
+      });
+      result.list?.sort();
+    }
     return result;
   });
   CodeMirror.commands.autocomplete = (cm, hint, options) => {
@@ -113,9 +115,7 @@ export default class CodeEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-      lint: {
-        esversion: 11
-      },
+      lint: { esversion: 11 },
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -144,8 +144,14 @@ export default class CodeEditor extends React.Component {
         'Ctrl-F': 'findPersistent',
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
-        Tab: 'indentMore',
+        Tab: function (cm) {
+          cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
+            ? cm.execCommand('indentMore')
+            : cm.replaceSelection('  ', 'end');
+        },
         'Shift-Tab': 'indentLess',
+        'Ctrl-Space': 'autocomplete',
+        'Cmd-Space': 'autocomplete',
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -178,6 +184,7 @@ export default class CodeEditor extends React.Component {
       }
     }));
     if (editor) {
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -187,14 +194,15 @@ export default class CodeEditor extends React.Component {
         const currentLine = editor.getLine(cursor.line);
         let start = cursor.ch;
         let end = start;
-        while (end < currentLine.length && /[\w\."'\/`]/.test(currentLine.charAt(end))) ++end;
-        while (start && /[\w\."'\/`]/.test(currentLine.charAt(start - 1))) --start;
+        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
+        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
         //Qualify if autocomplete will be shown
         if (
           /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
-          curWord.length > 1 &&
-          /^(?!"'\d`)[a-zA-Z\.]/.test(curWord)
+          curWord.length > 0 &&
+          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
+          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
         ) {
           CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
         }
@@ -266,6 +274,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
