@@ -1,15 +1,21 @@
 import themes from 'themes/index';
 import useLocalStorage from 'hooks/useLocalStorage/index';
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { ThemeProvider as SCThemeProvider } from 'styled-components';
 
 export const ThemeContext = createContext();
 export const ThemeProvider = (props) => {
   const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', isBrowserThemeLight ? 'light' : 'dark');
+  const [displayedTheme, setDisplayedTheme] = useState(isBrowserThemeLight ? 'light' : 'dark');
+  const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
 
-  const theme = themes[storedTheme];
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
+    if (storedTheme !== 'system') return;
+    setDisplayedTheme(e.matches ? 'light' : 'dark');
+  });
+
+  const theme = storedTheme === 'system' ? themes[displayedTheme] : themes[storedTheme];
   const themeOptions = Object.keys(themes);
   const value = {
     theme,
