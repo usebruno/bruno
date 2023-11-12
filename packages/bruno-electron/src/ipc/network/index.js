@@ -9,7 +9,7 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isEmpty, isUndefined, isNull, each, get, compact } = require('lodash');
+const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -126,7 +126,7 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = isEmpty(proxyConfig) ? 'global' : get(proxyConfig, 'enabled', false);
+  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
