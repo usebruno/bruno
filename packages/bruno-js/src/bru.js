@@ -58,7 +58,7 @@ class Bru {
 
   setVar(key, value) {
     if (!key) {
-      throw new Error('Key is required');
+      throw new Error('A variable with an empty name has been created but name is required.');
     }
 
     if (envVariableNameRegex.test(key) === false) {
