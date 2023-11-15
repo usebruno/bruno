@@ -139,6 +139,9 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
         </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => console.debug('Yeet all cookies')}>
+          Yeet all cookies
+        </div>
       </div>
       <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
         {getTabPanel(tab)}
