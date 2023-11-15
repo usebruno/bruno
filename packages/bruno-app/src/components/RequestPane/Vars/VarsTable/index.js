@@ -33,14 +33,9 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       case 'name': {
         const value = e.target.value;
 
-        if (/^(?!\d).*$/.test(value) === false) {
-          toast.error('Variable names must not start with a number!');
-          return;
-        }
-
         if (envVariableNameRegex.test(value) === false) {
           toast.error(
-            'Variable contains invalid character! Variables must only contain alpha-numeric characters, "-" and "_".'
+            'Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "." and cannot start with a digit.'
           );
           return;
         }
