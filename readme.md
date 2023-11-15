@@ -65,7 +65,7 @@ Or any version control system of your choice
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
 - [Documentation](https://docs.usebruno.com)
-- [stackoverflow](https://stackoverflow.com/questions/tagged/bruno)
+- [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
