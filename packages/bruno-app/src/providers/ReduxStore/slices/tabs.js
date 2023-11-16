@@ -57,18 +57,10 @@ export const tabsSlice = createSlice({
 
       let toBeActivatedTabIndex = 0;
 
-      if (direction === 'pageup') {
-        if (activeTabIndex == 0) {
-          toBeActivatedTabIndex = state.tabs.length - 1;
-        } else {
-          toBeActivatedTabIndex = activeTabIndex - 1;
-        }
-      } else if (direction === 'pagedown') {
-        if (activeTabIndex == state.tabs.length - 1) {
-          toBeActivatedTabIndex = 0;
-        } else {
-          toBeActivatedTabIndex = activeTabIndex + 1;
-        }
+      if (direction == 'pageup') {
+        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
+      } else if (direction == 'pagedown') {
+        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
       }
 
       state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
