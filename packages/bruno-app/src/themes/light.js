@@ -174,7 +174,11 @@ const lightTheme = {
       opacity: 0.4
     }
   },
-
+  ctrlTabPopup: {
+    bg: '#fff8f7',
+    text: 'rgb(52, 52, 52)',
+    highlightBg: '#ffb63154'
+  },
   button: {
     secondary: {
       color: '#212529',
