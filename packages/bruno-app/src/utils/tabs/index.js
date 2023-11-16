@@ -12,6 +12,13 @@ export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.uid === item.uid);
 };
 
+export const isSpecialTab = ({ type }) => {
+  if (!type) {
+    return false;
+  }
+  return ['variables', 'collection-settings', 'collection-runner'].includes(type);
+};
+
 export const getSpecialTabName = (type) => {
   switch (type) {
     case 'variables':
