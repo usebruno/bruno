@@ -20,7 +20,7 @@ const StyledWrapper = styled.div`
 
   .react-pdf__Page {
     margin-top: 10px;
-    background-color:transparent !important;
+    background-color: transparent !important;
   }
   .react-pdf__Page__textContent {
     border: 1px solid darkgrey;

@@ -49,7 +49,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift('preview-web');
     } else if (mode.includes('image')) {
       allowedPreviewModes.unshift('preview-image');
-    } else if (contentType.includes("pdf")) {
+    } else if (contentType.includes('pdf')) {
       allowedPreviewModes.unshift('preview-pdf');
     }
 

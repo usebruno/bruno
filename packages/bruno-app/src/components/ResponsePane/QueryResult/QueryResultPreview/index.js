@@ -2,8 +2,8 @@ import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { Document, Page } from "react-pdf";
-import { useState } from "react";
+import { Document, Page } from 'react-pdf';
+import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
@@ -55,16 +55,13 @@ const QueryResultPreview = ({
       return <img src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />;
     }
     case 'preview-pdf': {
-      return(
-        <div className="preview-pdf" style={{height: "100%", overflow: "auto", maxHeight:"calc(100vh - 220px)"}}>
-          <Document
-            file ={`data:application/pdf;base64,${dataBuffer}`}
-            onLoadSuccess={onDocumentLoadSuccess}
-          >
-          {Array.from(new Array(numPages), (el, index) => (
-        <Page key={`page_${index + 1}`} pageNumber={index + 1} renderAnnotationLayer={false}/>
-          ))}
-        </Document>
+      return (
+        <div className="preview-pdf" style={{ height: '100%', overflow: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
+          <Document file={`data:application/pdf;base64,${dataBuffer}`} onLoadSuccess={onDocumentLoadSuccess}>
+            {Array.from(new Array(numPages), (el, index) => (
+              <Page key={`page_${index + 1}`} pageNumber={index + 1} renderAnnotationLayer={false} />
+            ))}
+          </Document>
         </div>
       );
     }
