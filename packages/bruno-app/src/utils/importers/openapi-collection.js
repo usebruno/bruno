@@ -267,12 +267,7 @@ const getDefaultUrl = (serverObject) => {
 };
 
 const getSecurity = (apiSpec) => {
-  let supportedSchemes = apiSpec.security || [];
-  if (supportedSchemes.length === 0) {
-    return {
-      supported: []
-    };
-  }
+  let defaultSchemes = apiSpec.security || [];
 
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
   if (Object.keys(securitySchemes) === 0) {
@@ -282,7 +277,7 @@ const getSecurity = (apiSpec) => {
   }
 
   return {
-    supported: supportedSchemes.map((scheme) => {
+    supported: defaultSchemes.map((scheme) => {
       var schemeName = Object.keys(scheme)[0];
       return securitySchemes[schemeName];
     }),
