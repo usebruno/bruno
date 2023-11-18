@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Upgraded axios to 1.5.1
+
 ## 1.0.0
 
 - Announcing Stable Release

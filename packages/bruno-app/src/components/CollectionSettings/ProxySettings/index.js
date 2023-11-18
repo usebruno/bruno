@@ -11,22 +11,20 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
       .when('enabled', {
-        is: true,
+        is: 'true',
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
       .max(1024),
     port: Yup.number()
-      .when('enabled', {
-        is: true,
-        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
-        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
-      })
       .min(1)
-      .max(65535),
+      .max(65535)
+      .typeError('Specify port between 1 and 65535')
+      .nullable()
+      .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
       .when('enabled', {
-        is: true,
+        is: 'true',
         then: Yup.object({
           enabled: Yup.boolean(),
           username: Yup.string()

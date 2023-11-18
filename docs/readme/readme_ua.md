@@ -10,6 +10,8 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
+[English](/readme.md) | **Українська** | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français](/readme_fr.md) | [বাংলা](docs/readme/readme_bn.md)
+
 Bruno це новий та іноваційний API клієнт, націлений на революційну зміну статус кво, запровадженого інструментами на кшталт Postman.
 
 Bruno зберігає ваші колекції напряму у теці на вашому диску. Він використовує текстову мову розмітки Bru для збереження інформації про ваші API запити.
