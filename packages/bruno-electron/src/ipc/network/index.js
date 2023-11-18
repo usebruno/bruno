@@ -6,11 +6,10 @@ const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
-const FormData = require('form-data');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each, get, compact } = require('lodash');
+const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -72,22 +71,6 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
-const getSize = (data) => {
-  if (!data) {
-    return 0;
-  }
-
-  if (typeof data === 'string') {
-    return Buffer.byteLength(data, 'utf8');
-  }
-
-  if (typeof data === 'object') {
-    return Buffer.byteLength(safeStringifyJSON(data), 'utf8');
-  }
-
-  return 0;
-};
-
 const configureRequest = async (
   collectionUid,
   request,
@@ -143,7 +126,7 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', false);
+  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
@@ -156,14 +139,15 @@ const configureRequest = async (
     const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
     const socksEnabled = proxyProtocol.includes('socks');
 
+    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
     let proxyUri;
     if (proxyAuthEnabled) {
       const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
       const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
     } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
     }
 
     if (socksEnabled) {
@@ -203,10 +187,10 @@ const configureRequest = async (
 const parseDataFromResponse = (response) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
   // Overwrite the original data for backwards compatability
   let data = dataBuffer.toString(charset || 'utf-8');
-  // Try to parse response to JSON, this can quitly fail
+  // Try to parse response to JSON, this can quietly fail
   try {
     data = JSON.parse(response.data);
   } catch {}
