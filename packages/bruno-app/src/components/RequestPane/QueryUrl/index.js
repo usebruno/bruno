@@ -34,7 +34,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       requestUrlChanged({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        url: value
+        url: value.trim()
       })
     );
   };
@@ -80,7 +80,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             }}
           >
             <IconDeviceFloppy
-              color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
+              color={item.draft ? theme.colors.text.purple : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={22}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
