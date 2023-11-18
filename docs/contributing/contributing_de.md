@@ -1,3 +1,5 @@
+[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | **Deutsch** | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md)
+
 ## Lass uns Bruno noch besser machen, gemeinsam !!
 
 Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
