@@ -132,6 +132,11 @@ const RequestTabPanel = () => {
     return <CollectionSettings collection={collection} />;
   }
 
+  if (focusedTab.type === 'cookies') {
+    return <span>Hello world (cookie view)</span>;
+    // TODO @Tanja-4732 implement a cookie tab
+  }
+
   const item = findItemInCollection(collection, activeTabUid);
   if (!item || !item.uid) {
     return <RequestNotFound itemUid={activeTabUid} />;

@@ -45,7 +45,7 @@ const CollectionToolBar = ({ collection }) => {
         // TODO @Tanja-4732 implement a cookie tab
         uid: uuid(),
         collectionUid: collection.uid,
-        type: 'collection-settings'
+        type: 'cookies'
       })
     );
   };
