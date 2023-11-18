@@ -39,6 +39,17 @@ const CollectionToolBar = ({ collection }) => {
     );
   };
 
+  const viewCookies = () => {
+    dispatch(
+      addTab({
+        // TODO @Tanja-4732 implement a cookie tab
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+  };
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -47,6 +58,12 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
+          <span className="mr-2">
+            <span className="cursor-pointer" onClick={viewCookies}>
+              Cookies
+            </span>
+            {/* <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} /> */}
+          </span>
           <span className="mr-2">
             <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>
