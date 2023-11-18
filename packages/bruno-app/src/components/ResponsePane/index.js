@@ -49,6 +49,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           />
         );
       }
+      // TODO @Tanja-4732 consider implementing a cookie tab here too
       case 'headers': {
         return <ResponseHeaders headers={response.headers} />;
       }

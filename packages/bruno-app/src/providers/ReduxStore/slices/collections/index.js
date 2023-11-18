@@ -25,6 +25,8 @@ import {
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
 import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { useDispatch } from 'react-redux';
+import { parseCookiesFromHeaders } from 'utils/cookies/cookies';
 
 const initialState = {
   collections: [],
@@ -35,6 +37,15 @@ export const collectionsSlice = createSlice({
   name: 'collections',
   initialState,
   reducers: {
+    // FIXME @Tanja-4732 remove/refactor this code before #969 is merged
+    // updateCookies: (state, action) => {
+    //   const { collectionUid, cookies } = action.payload;
+    //   const collection = findCollectionByUid(state.collections, collectionUid);
+    //
+    //   if (collection) {
+    //     collection.cookies = cookies;
+    //   }
+    // },
     createCollection: (state, action) => {
       const collectionUids = map(state.collections, (c) => c.uid);
       const collection = action.payload;
@@ -253,6 +264,17 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+
+          const cookies = parseCookiesFromHeaders(item.response.headers);
+
+          // The new cookies overwrite the old ones
+          item.cookies = {
+            ...item.cookies,
+            ...cookies
+          };
+
+          // Set the new cookies on the item
+          item.response.cookies = cookies;
         }
       }
     },
