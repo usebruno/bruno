@@ -1,5 +1,7 @@
 import React from 'react';
-import { IconVariable, IconSettings, IconRun } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconCookie } from '@tabler/icons';
+
+export const specialTabList = ['collection-settings', 'variables', 'collection-runner', 'cookies'];
 
 const SpecialTab = ({ handleCloseClick, type }) => {
   const getTabInfo = (type) => {
@@ -25,6 +27,14 @@ const SpecialTab = ({ handleCloseClick, type }) => {
           <>
             <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
             <span className="ml-1">Runner</span>
+          </>
+        );
+      }
+      case 'cookies': {
+        return (
+          <>
+            <IconCookie size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1">Cookies</span>
           </>
         );
       }

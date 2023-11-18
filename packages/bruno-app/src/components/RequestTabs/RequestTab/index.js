@@ -8,7 +8,7 @@ import { findItemInCollection } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import RequestTabNotFound from './RequestTabNotFound';
 import ConfirmRequestClose from './ConfirmRequestClose';
-import SpecialTab from './SpecialTab';
+import SpecialTab, { specialTabList } from './SpecialTab';
 import { useTheme } from 'providers/Theme';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
@@ -68,7 +68,8 @@ const RequestTab = ({ tab, collection }) => {
     return color;
   };
 
-  if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  // HACK this list of special tabs should be in a config file
+  if (specialTabList.includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
         <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />

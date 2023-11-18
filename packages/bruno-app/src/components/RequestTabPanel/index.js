@@ -15,6 +15,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import RunnerResults from 'components/RunnerResults';
 import VariablesEditor from 'components/VariablesEditor';
 import CollectionSettings from 'components/CollectionSettings';
+import CookieEditor from 'components/CookieEditor';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
@@ -133,7 +134,7 @@ const RequestTabPanel = () => {
   }
 
   if (focusedTab.type === 'cookies') {
-    return <span>Hello world (cookie view)</span>;
+    return <CookieEditor collection={collection} />;
     // TODO @Tanja-4732 implement a cookie tab
   }
 
