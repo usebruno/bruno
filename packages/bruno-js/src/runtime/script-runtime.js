@@ -26,6 +26,7 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
+const NodeVault = require('node-vault');
 
 class ScriptRuntime {
   constructor() {}
@@ -112,7 +113,8 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
         }
       }
     });
@@ -201,7 +203,8 @@ class ScriptRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
         }
       }
     });
