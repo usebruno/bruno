@@ -1,5 +1,5 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+<img src="../../assets/images/logo-transparent.png" width="80"/>
 
 ### Bruno - Opensource IDE zum Erkunden und Testen von APIs.
 
@@ -10,6 +10,8 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
+[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | **Deutsch** | [Français](/readme_fr.md) | [বাংলা](docs/readme/readme_bn.md)
+
 Bruno ist ein neuer und innovativer API-Client, der den Status Quo von Postman und ähnlichen Tools revolutionieren soll.
 
 Bruno speichert Deine Sammlungen direkt in einem Ordner in Deinem Dateisystem. Wir verwenden eine einfache Textauszeichnungssprache - Bru - um Informationen über API-Anfragen zu speichern.
@@ -18,17 +20,17 @@ Du kannst Git oder eine andere Versionskontrolle deiner Wahl verwenden, um an de
 
 Bruno ist ein reines Offline-Tool. Es gibt keine Pläne, Bruno eine Cloud-Synchronisation hinzuzufügen. Wir schätzen den Schutz Deiner Daten und glauben, dass sie auf Deinem Gerät bleiben sollten. Lies unsere Langzeit-Vision [hier](https://github.com/usebruno/bruno/discussions/269).
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Einsatz auf verschiedensten Plattformen 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Zusammenarbeiten mit Git 👩‍💻🧑‍💻
 
 oder eine Versionskontrolle Deiner Wahl
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Wichtige Links 📌
 
@@ -55,7 +57,7 @@ Wenn Bruno Dir bei Deiner Arbeit und in Deinen Teams geholfen hat, vergiss bitte
 
 ### Veröffentlichung in neuen Paketmanagern
 
-Bitte [hier](publishing.md) für mehr Informationen lesen.
+Bitte [hier](/publishing.md) für mehr Informationen lesen.
 
 ### Mitmachen 👩‍💻🧑‍💻
 
@@ -90,4 +92,4 @@ Das Logo stammt von [OpenMoji](https://openmoji.org/library/emoji-1F436/). Lizen
 
 ### Lizenz 📄
 
-[MIT](license.md)
+[MIT](/license.md)
