@@ -47,22 +47,6 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { each } from 'lodash';
 
-export const updateCollectionPresets = (newPresets, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
-
-    ipcRenderer
-      .invoke('renderer:update-collection-presets', newPresets, collection.pathname)
-      .then(resolve)
-      .catch(reject);
-  });
-};
-
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);

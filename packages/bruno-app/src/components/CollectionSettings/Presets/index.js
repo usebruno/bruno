@@ -9,14 +9,14 @@ import cloneDeep from 'lodash/cloneDeep';
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
   const {
-    brunoConfig: { presets: defaultPresets = {} }
+    brunoConfig: { presets: presets = {} }
   } = collection;
 
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
-      defaultType: defaultPresets.defaultType || 'http-request',
-      defaultRequestUrl: defaultPresets.defaultRequestUrl || ''
+      requestType: presets.requestType || 'http',
+      requestUrl: presets.requestUrl || ''
     },
     onSubmit: (newPresets) => {
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -32,53 +32,53 @@ const PresetsSettings = ({ collection }) => {
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label flex  items-center" htmlFor="enabled">
-            Default Request Type
+            Request Type
           </label>
-          <div className="flex items-center mt-2">
+          <div className="flex items-center">
             <input
-              id="http-request"
+              id="http"
               className="cursor-pointer"
               type="radio"
-              name="defaultType"
+              name="requestType"
               onChange={formik.handleChange}
-              value="http-request"
-              checked={formik.values.defaultType === 'http-request'}
+              value="http"
+              checked={formik.values.requestType === 'http'}
             />
-            <label htmlFor="http-request" className="ml-1 cursor-pointer select-none">
+            <label htmlFor="http" className="ml-1 cursor-pointer select-none">
               HTTP
             </label>
 
             <input
-              id="graphql-request"
+              id="graphql"
               className="ml-4 cursor-pointer"
               type="radio"
-              name="defaultType"
+              name="requestType"
               onChange={formik.handleChange}
-              value="graphql-request"
-              checked={formik.values.defaultType === 'graphql-request'}
+              value="graphql"
+              checked={formik.values.requestType === 'graphql'}
             />
-            <label htmlFor="graphql-request" className="ml-1 cursor-pointer select-none">
+            <label htmlFor="graphql" className="ml-1 cursor-pointer select-none">
               GraphQL
             </label>
           </div>
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="defaultRequestUrl">
-            Default Base URL
+          <label className="settings-label" htmlFor="requestUrl">
+            Base URL
           </label>
-          <div className="flex items-center mt-2 ">
+          <div className="flex items-center">
             <div className="flex items-center flex-grow input-container h-full">
               <input
                 id="request-url"
                 type="text"
-                name="defaultRequestUrl"
+                name="requestUrl"
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                value={formik.values.defaultRequestUrl || ''}
+                value={formik.values.requestUrl || ''}
               />
             </div>
           </div>

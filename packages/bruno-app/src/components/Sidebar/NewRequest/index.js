@@ -19,12 +19,33 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
+
+  const getRequestType = (collectionPresets) => {
+    if (!collectionPresets || !collectionPresets.requestType) {
+      return 'http-request';
+    }
+
+    // Note: Why different labels for the same thing?
+    // http-request and graphql-request are used inside the app's json representation of a request
+    // http and graphql are used in Bru DSL as well as collection exports
+    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
+    if (collectionPresets.requestType === 'http') {
+      return 'http-request';
+    }
+
+    if (collectionPresets.requestType === 'graphql') {
+      return 'graphql-request';
+    }
+
+    return 'http-request';
+  };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: collectionPresets.defaultType || 'http-request',
-      requestUrl: collectionPresets.defaultRequestUrl || '',
+      requestType: getRequestType(collectionPresets),
+      requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
     },

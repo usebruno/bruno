@@ -1231,14 +1231,6 @@ export const collectionsSlice = createSlice({
         collection.name = newName;
       }
     },
-    collectionPresetsUpdatedEvent: (state, action) => {
-      const { collectionPathname, newPresets } = action.payload;
-      const collection = findCollectionByPathname(state.collections, collectionPathname);
-
-      if (collection.brunoConfig) {
-        collection.brunoConfig.presets = newPresets;
-      }
-    },
     resetRunResults: (state, action) => {
       const { collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1442,7 +1434,6 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
-  collectionPresetsUpdatedEvent,
   resetRunResults,
   runRequestEvent,
   runFolderEvent,
