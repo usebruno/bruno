@@ -1,5 +1,6 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
+const FormData = require('form-data');
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -28,6 +29,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(collectionAuth, 'digest.username'),
+          password: get(collectionAuth, 'digest.password')
+        };
+        break;
     }
   }
 
@@ -52,6 +59,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(request, 'auth.digest.username'),
+          password: get(request, 'auth.digest.password')
+        };
     }
   }
 
@@ -137,6 +149,15 @@ const prepareRequest = (request, collectionRoot) => {
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
+
+    // make axios work in node using form data
+    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+    const form = new FormData();
+    forOwn(axiosRequest.data, (value, key) => {
+      form.append(key, value);
+    });
+    extend(axiosRequest.headers, form.getHeaders());
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {

@@ -409,8 +409,8 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const sortCollections = () => (dispatch) => {
-  dispatch(_sortCollections());
+export const sortCollections = (payload) => (dispatch) => {
+  dispatch(_sortCollections(payload));
 };
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
@@ -584,7 +584,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid } = params;
+  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -607,9 +607,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       request: {
         method: requestMethod,
         url: requestUrl,
-        headers: [],
+        headers: headers ?? [],
         params,
-        body: {
+        body: body ?? {
           mode: 'none',
           json: null,
           text: null,

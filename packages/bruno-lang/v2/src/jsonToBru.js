@@ -117,6 +117,15 @@ ${indentString(`token: ${auth.bearer.token}`)}
 `;
   }
 
+  if (auth && auth.digest) {
+    bru += `auth:digest {
+${indentString(`username: ${auth.digest.username}`)}
+${indentString(`password: ${auth.digest.password}`)}
+}
+
+`;
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}
@@ -154,7 +163,7 @@ ${indentString(body.sparql)}
     if (enabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${item.name}: ${encodeURIComponent(item.value)}`)
           .join('\n')
       )}`;
     }
@@ -162,7 +171,7 @@ ${indentString(body.sparql)}
     if (disabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${item.name}: ${encodeURIComponent(item.value)}`)
           .join('\n')
       )}`;
     }

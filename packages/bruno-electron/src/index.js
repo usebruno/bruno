@@ -14,16 +14,18 @@ const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window')
 
 const lastOpenedCollections = new LastOpenedCollections();
 
+// Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
-  isDev ? "default-src 'self' 'unsafe-inline' 'unsafe-eval'" : "default-src 'self'",
-  "connect-src 'self' https://api.github.com/repos/usebruno/bruno",
-  "font-src 'self' https://fonts.gstatic.com",
+  "default-src 'self'",
+  "script-src * 'unsafe-inline' 'unsafe-eval'",
+  "connect-src 'self' api.github.com",
+  "font-src 'self' https:",
   "form-action 'none'",
-  "img-src 'self' blob: data:",
-  "style-src 'self' https://fonts.googleapis.com"
+  "img-src 'self' blob: data: https:",
+  "style-src 'self' 'unsafe-inline' https:"
 ];
 
-setContentSecurityPolicy(contentSecurityPolicy.join(';'));
+setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
 Menu.setApplicationMenu(menu);
@@ -67,7 +69,21 @@ app.on('ready', async () => {
         slashes: true
       });
 
-  mainWindow.loadURL(url);
+  mainWindow.loadURL(url).catch((reason) => {
+    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+    console.error('Original message:', reason);
+    if (isDev) {
+      console.error(
+        'Could not connect to Next.Js dev server, is it running?' +
+          ' Start the dev server using "npm run dev:web" and restart electron'
+      );
+    } else {
+      console.error(
+        'If you are using an official production build: the above error is most likely a bug! ' +
+          ' Please report this under: https://github.com/usebruno/bruno/issues'
+      );
+    }
+  });
   watcher = new Watcher();
 
   const handleBoundsChange = () => {

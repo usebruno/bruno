@@ -40,6 +40,11 @@ auth:bearer {
   token: 123
 }
 
+auth:digest {
+  username: john
+  password: secret
+}
+
 body:json {
   {
     "hello": "world"
@@ -66,7 +71,7 @@ body:sparql {
 
 body:form-urlencoded {
   apikey: secret
-  numbers: +91998877665
+  numbers: %2B91998877665
   ~message: hello
 }
 

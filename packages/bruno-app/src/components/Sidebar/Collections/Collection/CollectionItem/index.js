@@ -84,7 +84,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
-    'item-focused-in-tab': item.uid == activeTabUid
+    'item-focused-in-tab': item.uid == activeTabUid,
+    'item-hovered': isOver
   });
 
   const scrollToTheActiveTab = () => {

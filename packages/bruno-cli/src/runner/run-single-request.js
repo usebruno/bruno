@@ -3,7 +3,7 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, each, extend, get, compact } = require('lodash');
+const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -12,11 +12,10 @@ const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@use
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
-const { shouldUseProxy } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
 const runSingleRequest = async function (
   filename,
@@ -137,14 +136,15 @@ const runSingleRequest = async function (
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
       if (socksEnabled) {
@@ -152,7 +152,7 @@ const runSingleRequest = async function (
         request.httpsAgent = socksProxyAgent;
         request.httpAgent = socksProxyAgent;
       } else {
-        request.httpsAgent = new HttpsProxyAgent(
+        request.httpsAgent = new PatchedHttpsProxyAgent(
           proxyUri,
           Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
         );

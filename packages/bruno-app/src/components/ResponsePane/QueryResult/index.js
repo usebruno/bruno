@@ -35,7 +35,7 @@ const formatResponse = (data, mode) => {
   return safeStringifyJSON(data);
 };
 
-const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType);
   const formattedData = formatResponse(data, mode);
@@ -49,6 +49,8 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
       allowedPreviewModes.unshift('preview-web');
     } else if (mode.includes('image')) {
       allowedPreviewModes.unshift('preview-image');
+    } else if (contentType.includes('pdf')) {
+      allowedPreviewModes.unshift('preview-pdf');
     }
 
     return allowedPreviewModes;
@@ -85,12 +87,21 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
         {tabs}
       </div>
       {error ? (
-        <span className="text-red-500">{error}</span>
+        <div>
+          <div className="text-red-500">{error}</div>
+
+          {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
+            <div className="mt-6 muted text-xs">
+              You can disable SSL verification in the Preferences. <br />
+              To open the Preferences, click on the gear icon in the bottom left corner.
+            </div>
+          ) : null}
+        </div>
       ) : (
         <QueryResultPreview
           previewTab={previewTab}
           data={data}
-          dataBuffer={item.response.dataBuffer}
+          dataBuffer={dataBuffer}
           formattedData={formattedData}
           item={item}
           contentType={contentType}

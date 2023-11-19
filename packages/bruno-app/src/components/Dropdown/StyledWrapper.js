@@ -14,6 +14,8 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.dropdown.bg};
     box-shadow: ${(props) => props.theme.dropdown.shadow};
     border-radius: 3px;
+    max-height: 90vh;
+    overflow-y: auto;
 
     .tippy-content {
       padding-left: 0;
