@@ -268,13 +268,10 @@ export const collectionsSlice = createSlice({
           const cookies = parseCookiesFromHeaders(item.response.headers);
 
           // The new cookies overwrite the old ones
-          item.cookies = {
-            ...item.cookies,
+          collection.cookies = {
+            ...collection.cookies,
             ...cookies
           };
-
-          // Set the new cookies on the item
-          item.response.cookies = cookies;
         }
       }
     },

@@ -28,21 +28,13 @@ const KeyValueExplorer = ({ data, theme }) => {
 };
 
 const Cookies = ({ collection, theme }) => {
-  // const collectionVariablesFound = Object.keys(collection.collectionVariables).length > 0;
-  const collectionVariablesFound = true;
-
-  const demo_data = {
-    session_cookie: '1234567890',
-    user_id: '1234',
-    user_name: 'John Doe'
-  };
+  const collectionVariablesFound = Object.keys(collection.cookies).length > 0;
 
   return (
     <>
       <h1 className="font-semibold mb-2">Current cookies</h1>
       {collectionVariablesFound ? (
-        // <KeyValueExplorer data={collection.collectionVariables} theme={theme} />
-        <KeyValueExplorer data={demo_data} theme={theme} />
+        <KeyValueExplorer data={collection.cookies} theme={theme} />
       ) : (
         <div className="muted text-xs">No cookies found</div>
       )}
@@ -60,8 +52,8 @@ const CookieEditor = ({ collection }) => {
       <Cookies collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
-        Note: As of today, cookies are active WIP. <br />
-        It's done when it's done, thx.
+        Cookies are stored per collection. <br />
+        Currently, they are <i>not persisted</i> to storage.
       </div>
     </StyledWrapper>
   );

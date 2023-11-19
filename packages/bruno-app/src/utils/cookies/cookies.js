@@ -11,6 +11,10 @@
 export function parseCookiesFromHeaders(headers) {
   const cookies = {};
 
+  if (headers == null) {
+    return cookies;
+  }
+
   for (const [headKey, headValue] of headers) {
     if (headKey.toLowerCase() === 'set-cookie') {
       const cookieStrings = Array.isArray(headValue) ? headValue : [headValue];
