@@ -16,12 +16,15 @@ import { getRequestFromCurlCommand } from 'utils/curl';
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const {
+    brunoConfig: { presets: collectionPresets = {} }
+  } = collection;
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: 'http-request',
-      requestUrl: '',
+      requestType: collectionPresets.defaultType || 'http-request',
+      requestUrl: collectionPresets.defaultRequestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
     },

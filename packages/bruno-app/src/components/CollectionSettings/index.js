@@ -13,6 +13,7 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Docs from './Docs';
+import Presets from './Presets';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSettings = ({ collection }) => {
@@ -84,6 +85,9 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
+      case 'presets': {
+        return <Presets collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
       }
@@ -122,6 +126,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
+        </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
