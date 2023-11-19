@@ -1,4 +1,5 @@
 import { safeStringifyJSON } from 'utils/common';
+import { uuid } from 'utils/common/index';
 
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
@@ -25,6 +26,28 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
 const sendHttpRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
+
+    // Apply the cookies from the collection
+    const cookies = collection.cookies ?? {};
+    /** @type {Array} */
+    const headers = item.draft?.request?.headers ?? item.request?.headers;
+    const cookiesHeader = headers?.find((header) => header.name.toLowerCase() === 'cookie');
+
+    if (cookiesHeader != null) {
+      cookiesHeader.value = Object.entries(cookies)
+        .map(([key, value]) => `${key}=${value}`)
+        .join('; ');
+    } else if (Object.keys(cookies).length > 0) {
+      headers.push({
+        uid: uuid(),
+        name: 'Cookie',
+        value: Object.entries(cookies)
+          .map(([key, value]) => `${key}=${value}`)
+          .join('; '),
+        description: '',
+        enabled: true
+      });
+    }
 
     ipcRenderer
       .invoke('send-http-request', item, collection, environment, collectionVariables)
