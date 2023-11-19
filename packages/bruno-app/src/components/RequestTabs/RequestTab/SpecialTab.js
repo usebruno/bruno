@@ -8,7 +8,7 @@ const SpecialTab = ({ handleCloseClick, type }) => {
         return (
           <>
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Collection</span>
+            <span className="ml-1">Settings</span>
           </>
         );
       }
