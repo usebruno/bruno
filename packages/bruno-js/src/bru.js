@@ -45,7 +45,7 @@ class Bru {
 
   setEnvVar(key, value) {
     if (!key) {
-      throw new Error('Key is required');
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
     // gracefully ignore if key is not present in environment
@@ -58,7 +58,7 @@ class Bru {
 
   setVar(key, value) {
     if (!key) {
-      throw new Error('Key is required');
+      throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
     if (envVariableNameRegex.test(key) === false) {
