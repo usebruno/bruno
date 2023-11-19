@@ -25,7 +25,6 @@ import {
 } from 'utils/collections';
 import { parseQueryParams, stringifyQueryParams } from 'utils/url';
 import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
-import { useDispatch } from 'react-redux';
 import { parseCookiesFromHeaders } from 'utils/cookies/cookies';
 
 const initialState = {
