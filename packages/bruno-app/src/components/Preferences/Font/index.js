@@ -42,8 +42,8 @@ const Font = ({ close }) => {
         <option value="12px">12px</option>
         <option value="14px">14px</option>
         <option value="16px">16px</option>
-        <option value="16px">18px</option>
-        <option value="16px">20px</option>
+        <option value="18px">18px</option>
+        <option value="20px">20px</option>
       </select>
 
       <div className="mt-10">
