@@ -61,6 +61,7 @@ const CollectionToolBar = ({ collection }) => {
           <span className="mr-2">
             <span className="cursor-pointer" onClick={viewCookies}>
               Cookies
+              {/* TODO consider replacing this with an icon button */}
             </span>
             {/* <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} /> */}
           </span>
