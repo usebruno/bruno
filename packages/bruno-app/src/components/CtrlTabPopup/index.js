@@ -4,10 +4,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import reverse from 'lodash/reverse';
-import { getSpecialTabName, isSpecialTab } from 'utils/tabs';
+import { getSpecialTabName, isSpecialTab, isItemAFolder } from 'utils/tabs';
 import { selectCtrlTabAction } from 'providers/ReduxStore/slices/tabs';
 
-const tabStackToPopupTabs = (collections, ctrlTabStack) => {
+export const tabStackToPopupTabs = (collections, ctrlTabStack) => {
   if (!collections) {
     return [];
   }
@@ -19,9 +19,22 @@ const tabStackToPopupTabs = (collections, ctrlTabStack) => {
     })
     .map(({ collection, tab }) => ({
       tabName: isSpecialTab(tab) ? getSpecialTabName(tab.type) : tab.name,
-      collectionName: collection.name,
+      path: getItemPath(collection, tab),
       uid: tab.uid
     }));
+};
+
+const getItemPath = (collection, item) => {
+  if (isSpecialTab(item)) {
+    return collection.name;
+  }
+  if (collection.items.find((i) => i.uid === item.uid)) {
+    return collection.name;
+  }
+
+  return (
+    collection.name + '/' + collection.items.map((i) => (isItemAFolder(i) ? getItemPath(i, item) : null)).find(Boolean)
+  );
 };
 
 // required in cases where we remove a tab from the stack but the user is still holding ctrl
@@ -59,7 +72,7 @@ export default function CtrlTabPopup() {
           >
             <strong className="font-medium">{popupTab.tabName}</strong>
             {'  '}
-            <span className="text-xs font-extralight">{popupTab.collectionName}</span>
+            <span className="text-xs font-extralight">{popupTab.path}</span>
           </button>
         ))}
       </StyledWrapper>
