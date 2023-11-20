@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
@@ -16,12 +16,36 @@ import { getRequestFromCurlCommand } from 'utils/curl';
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+  const {
+    brunoConfig: { presets: collectionPresets = {} }
+  } = collection;
+
+  const getRequestType = (collectionPresets) => {
+    if (!collectionPresets || !collectionPresets.requestType) {
+      return 'http-request';
+    }
+
+    // Note: Why different labels for the same thing?
+    // http-request and graphql-request are used inside the app's json representation of a request
+    // http and graphql are used in Bru DSL as well as collection exports
+    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
+    if (collectionPresets.requestType === 'http') {
+      return 'http-request';
+    }
+
+    if (collectionPresets.requestType === 'graphql') {
+      return 'graphql-request';
+    }
+
+    return 'http-request';
+  };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: 'http-request',
-      requestUrl: '',
+      requestType: getRequestType(collectionPresets),
+      requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
     },
@@ -115,6 +139,25 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
 
   const onSubmit = () => formik.handleSubmit();
 
+  const handlePaste = useCallback(
+    (event) => {
+      const clipboardData = event.clipboardData || window.clipboardData;
+      const pastedData = clipboardData.getData('Text');
+
+      // Check if pasted data looks like a cURL command
+      const curlCommandRegex = /^\s*curl\s/i;
+      if (curlCommandRegex.test(pastedData)) {
+        // Switch to the 'from-curl' request type
+        formik.setFieldValue('requestType', 'from-curl');
+        formik.setFieldValue('curlCommand', pastedData);
+
+        // Prevent the default paste behavior to avoid pasting into the textarea
+        event.preventDefault();
+      }
+    },
+    [formik]
+  );
+
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
@@ -174,7 +217,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               Name
             </label>
             <input
-              id="collection-name"
+              id="request-name"
               type="text"
               name="requestName"
               ref={inputRef}
@@ -216,6 +259,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                       spellCheck="false"
                       onChange={formik.handleChange}
                       value={formik.values.requestUrl || ''}
+                      onPaste={handlePaste}
                     />
                   </div>
                 </div>
@@ -232,8 +276,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               <textarea
                 name="curlCommand"
                 placeholder="Enter cURL request here.."
-                className="block textbox w-full mt-4"
-                style={{ resize: 'none' }}
+                className="block textbox w-full mt-4 curl-command"
                 value={formik.values.curlCommand}
                 onChange={formik.handleChange}
               ></textarea>

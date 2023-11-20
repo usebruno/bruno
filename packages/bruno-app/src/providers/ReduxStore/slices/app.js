@@ -16,7 +16,8 @@ const initialState = {
     font: {
       codeFont: 'default'
     }
-  }
+  },
+  cookies: []
 };
 
 export const appSlice = createSlice({
@@ -46,6 +47,10 @@ export const appSlice = createSlice({
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateCookies: (state, action) => {
+      state.cookies = action.payload;
+      console.log(state.cookies);
     }
   }
 });
@@ -58,7 +63,8 @@ export const {
   showHomePage,
   hideHomePage,
   showPreferences,
-  updatePreferences
+  updatePreferences,
+  updateCookies
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

@@ -35,6 +35,10 @@ const StyledWrapper = styled.div`
       }
     }
   }
+
+  textarea.curl-command {
+    min-height: 150px;
+  }
 `;
 
 export default StyledWrapper;

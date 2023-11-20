@@ -9,10 +9,11 @@ const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { target, client, language: lang } = language;
+  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
   let snippet = '';
 
   try {
-    snippet = new HTTPSnippet(buildHarRequest(item.request)).convert(target, client);
+    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(target, client);
   } catch (e) {
     console.error(e);
     snippet = 'Error generating code snippet';

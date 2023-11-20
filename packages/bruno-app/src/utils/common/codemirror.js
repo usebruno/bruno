@@ -1,5 +1,4 @@
 import get from 'lodash/get';
-import isString from 'lodash/isString';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
