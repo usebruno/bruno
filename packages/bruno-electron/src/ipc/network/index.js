@@ -28,6 +28,7 @@ const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-he
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -180,6 +181,12 @@ const configureRequest = async (
   }
 
   request.timeout = preferencesUtil.getRequestTimeout();
+
+  // add cookies to request
+  const cookieString = getCookieStringForUrl(request.url);
+  if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+    request.headers['cookie'] = cookieString;
+  }
 
   return axiosInstance;
 };
@@ -438,6 +445,22 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
+
+      // save cookies
+      let setCookieHeaders = [];
+      if (response.headers['set-cookie']) {
+        setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+          ? response.headers['set-cookie']
+          : [response.headers['set-cookie']];
+
+        for (let setCookieHeader of setCookieHeaders) {
+          addCookieToJar(setCookieHeader, request.url);
+        }
+      }
+
+      // send domain cookies to renderer
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
         request,
