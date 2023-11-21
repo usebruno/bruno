@@ -1,0 +1,120 @@
+meta {
+  name: Send Bulk SMS
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://api.textlocal.in/send
+  body: json
+  auth: bearer
+}
+
+query {
+  apiKey: secret
+  numbers: 998877665
+  ~message: hello
+}
+
+headers {
+  content-type: application/json
+  Authorization: Bearer 123
+  ~transaction-id: {{transactionId}}
+}
+
+auth:awsv4 {
+  accessKeyId: A12345678
+  secretAccessKey: thisisasecret
+  sessionToken: thisisafakesessiontoken
+  service: execute-api
+  region: us-east-1
+  profileName: test_profile
+}
+
+auth:basic {
+  username: john
+  password: secret
+}
+
+auth:bearer {
+  token: 123
+}
+
+auth:digest {
+  username: john
+  password: secret
+}
+
+body:json {
+  {
+    "hello": "world"
+  }
+}
+
+body:text {
+  This is a text body
+}
+
+body:xml {
+  <xml>
+    <name>John</name>
+    <age>30</age>
+  </xml>
+}
+
+body:sparql {
+  SELECT * WHERE {
+    ?subject ?predicate ?object .
+  }
+  LIMIT 10
+}
+
+body:form-urlencoded {
+  apikey: secret
+  numbers: %2B91998877665
+  ~message: hello
+}
+
+body:multipart-form {
+  apikey: secret
+  numbers: +91998877665
+  ~message: hello
+}
+
+body:graphql {
+  {
+    launchesPast {
+      launch_site {
+        site_name
+      }
+      launch_success
+    }
+  }
+}
+
+body:graphql:vars {
+  {
+    "limit": 5
+  }
+}
+
+statusCode {
+  200
+}
+
+responseBody:json {
+  {
+    "hello": "world"
+  }
+}
+
+responseBody:text {
+  This is a text response
+}
+
+responseBody:xml {
+  <xml>
+    <name>John</name>
+    <age>30</age>
+  </xml>
+}

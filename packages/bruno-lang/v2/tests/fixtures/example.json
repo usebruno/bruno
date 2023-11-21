@@ -1,0 +1,118 @@
+{
+  "meta": {
+    "name": "Send Bulk SMS",
+    "type": "http",
+    "seq": "1"
+  },
+  "http": {
+    "method": "get",
+    "url": "https://api.textlocal.in/send",
+    "body": "json",
+    "auth": "bearer"
+  },
+  "query": [
+    {
+      "name": "apiKey",
+      "value": "secret",
+      "enabled": true
+    },
+    {
+      "name": "numbers",
+      "value": "998877665",
+      "enabled": true
+    },
+    {
+      "name": "message",
+      "value": "hello",
+      "enabled": false
+    }
+  ],
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    },
+    {
+      "name": "Authorization",
+      "value": "Bearer 123",
+      "enabled": true
+    },
+    {
+      "name": "transaction-id",
+      "value": "{{transactionId}}",
+      "enabled": false
+    }
+  ],
+  "auth": {
+    "awsv4": {
+      "accessKeyId": "A12345678",
+      "secretAccessKey": "thisisasecret",
+      "sessionToken": "thisisafakesessiontoken",
+      "service": "execute-api",
+      "region": "us-east-1",
+      "profileName": "test_profile"
+    },
+    "basic": {
+      "username": "john",
+      "password": "secret"
+    },
+    "bearer": {
+      "token": "123"
+    },
+    "digest": {
+      "username": "john",
+      "password": "secret"
+    }
+  },
+  "body": {
+    "json": "{\n  \"hello\": \"world\"\n}",
+    "text": "This is a text body",
+    "xml": "<xml>\n  <name>John</name>\n  <age>30</age>\n</xml>",
+    "sparql": "SELECT * WHERE {\n  ?subject ?predicate ?object .\n}\nLIMIT 10",
+    "graphql": {
+      "query": "{\n  launchesPast {\n    launch_site {\n      site_name\n    }\n    launch_success\n  }\n}",
+      "variables": "{\n  \"limit\": 5\n}"
+    },
+    "formUrlEncoded": [
+      {
+        "name": "apikey",
+        "value": "secret",
+        "enabled": true
+      },
+      {
+        "name": "numbers",
+        "value": "+91998877665",
+        "enabled": true
+      },
+      {
+        "name": "message",
+        "value": "hello",
+        "enabled": false
+      }
+    ],
+    "multipartForm": [
+      {
+        "name": "apikey",
+        "value": "secret",
+        "enabled": true
+      },
+      {
+        "name": "numbers",
+        "value": "+91998877665",
+        "enabled": true
+      },
+      {
+        "name": "message",
+        "value": "hello",
+        "enabled": false
+      }
+    ]
+  },
+  "statusCode": 200,
+  "responseBody": {
+    "json": "{\n  \"hello\": \"world\"\n}",
+    "text": "This is a text response",
+    "xml": "<xml>\n  <name>John</name>\n  <age>30</age>\n</xml>"
+  }
+}
