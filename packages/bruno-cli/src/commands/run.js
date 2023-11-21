@@ -240,6 +240,7 @@ const handler = async function (argv) {
     const collectionVariables = {};
     let envVars = {};
 
+    env = !env && brunoConfig?.presets?.environment ? brunoConfig.presets.environment : env;
     if (env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
       const envPathExists = await exists(envFile);

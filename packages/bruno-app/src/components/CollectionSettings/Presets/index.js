@@ -1,4 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useRef, forwardRef } from 'react';
+import find from 'lodash/find';
+import Dropdown from 'components/Dropdown';
+import { IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
 import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -8,6 +11,8 @@ import cloneDeep from 'lodash/cloneDeep';
 
 const PresetsSettings = ({ collection }) => {
   const dispatch = useDispatch();
+  const dropdownTippyRef = useRef();
+  const { environments } = collection;
   const {
     brunoConfig: { presets: presets = {} }
   } = collection;
@@ -16,7 +21,8 @@ const PresetsSettings = ({ collection }) => {
     enableReinitialize: true,
     initialValues: {
       requestType: presets.requestType || 'http',
-      requestUrl: presets.requestUrl || ''
+      requestUrl: presets.requestUrl || '',
+      environment: find(environments, (e) => e.name === presets.environment) ? presets.environment : null
     },
     onSubmit: (newPresets) => {
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -26,6 +32,15 @@ const PresetsSettings = ({ collection }) => {
     }
   });
 
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const Icon = forwardRef((props, ref) => {
+    return (
+      <div ref={ref} className="default-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
+        {formik.values.environment || 'No Environment'}
+        <IconCaretDown className="caret" size={14} strokeWidth={2} />
+      </div>
+    );
+  });
   return (
     <StyledWrapper>
       <h1 className="font-medium mb-3">Collection Presets</h1>
@@ -81,6 +96,44 @@ const PresetsSettings = ({ collection }) => {
                 value={formik.values.requestUrl || ''}
               />
             </div>
+          </div>
+        </div>
+        <div className="mb-3 flex items-center">
+          <label className="settings-label" htmlFor="defaultEnv">
+            Environment
+          </label>
+          <div className="flex items-center cursor-pointer default-environment">
+            <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+              {environments && environments.length
+                ? environments.map((e) => (
+                    <div
+                      className="dropdown-item"
+                      name="environment"
+                      key={e.uid}
+                      value={formik.values.environment || 'No Environment'}
+                      onChange={formik.handleChange}
+                      onClick={() => {
+                        formik.setFieldValue('environment', e.name);
+                        dropdownTippyRef.current.hide();
+                      }}
+                    >
+                      <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2">{e.name}</span>
+                    </div>
+                  ))
+                : null}
+              <div
+                className="dropdown-item"
+                name="environment"
+                onChange={formik.handleChange}
+                onClick={() => {
+                  dropdownTippyRef.current.hide();
+                  formik.setFieldValue('environment', null);
+                }}
+              >
+                <IconDatabaseOff size={18} strokeWidth={1.5} />
+                <span className="ml-2">No Environment</span>
+              </div>
+            </Dropdown>
           </div>
         </div>
         <div className="mt-6">

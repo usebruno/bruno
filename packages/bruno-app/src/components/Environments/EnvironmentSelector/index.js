@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useState } from 'react';
+import React, { useRef, forwardRef, useState, useEffect } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -17,7 +17,7 @@ const EnvironmentSelector = ({ collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="current-enviroment flex items-center justify-center pl-3 pr-2 py-1 select-none">
+      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
         {activeEnvironment ? activeEnvironment.name : 'No Environment'}
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
@@ -38,6 +38,16 @@ const EnvironmentSelector = ({ collection }) => {
       .catch((err) => console.log(err) && toast.error('An error occurred while selecting the environment'));
   };
 
+  useEffect(() => {
+    let presetEnv = collection.brunoConfig?.presets?.environment;
+    if (presetEnv && !activeEnvironment) {
+      if (find(environments, (e) => e.name === presetEnv)) {
+        onSelect(find(environments, (e) => e.name === presetEnv));
+      } else {
+        toast.error(`Preset Environment ${presetEnv} not found`);
+      }
+    }
+  }, [collection.uid]);
   return (
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector">
@@ -53,6 +63,9 @@ const EnvironmentSelector = ({ collection }) => {
                   }}
                 >
                   <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2">{e.name}</span>
+                  <span className="ml-3">
+                    {collection.brunoConfig?.presets?.environment == e.name ? '(Default)' : ''}
+                  </span>
                 </div>
               ))
             : null}
@@ -65,6 +78,12 @@ const EnvironmentSelector = ({ collection }) => {
           >
             <IconDatabaseOff size={18} strokeWidth={1.5} />
             <span className="ml-2">No Environment</span>
+            <span className="ml-3">
+              {collection.brunoConfig?.presets?.environment &&
+              find(environments, (e) => e.name === collection.brunoConfig.presets.environment)
+                ? ''
+                : '(Default)'}
+            </span>
           </div>
           <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
             <div className="pr-2 text-gray-600">
