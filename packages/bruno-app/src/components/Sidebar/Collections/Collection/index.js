@@ -2,7 +2,6 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
-import cloneDeep from 'lodash/cloneDeep';
 import { useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
@@ -15,7 +14,6 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
-import CollectionProperties from './CollectionProperties';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
@@ -29,7 +27,6 @@ const Collection = ({ collection, searchText }) => {
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const [collectionPropertiesModal, setCollectionPropertiesModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
 
@@ -80,9 +77,14 @@ const Collection = ({ collection, searchText }) => {
     }
   };
 
-  const handleExportClick = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+  const viewCollectionSettings = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
   };
 
   const [{ isOver }, drop] = useDrop({
@@ -130,9 +132,6 @@ const Collection = ({ collection, searchText }) => {
       )}
       {showExportCollectionModal && (
         <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
-      )}
-      {collectionPropertiesModal && (
-        <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
@@ -201,19 +200,19 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setCollectionPropertiesModal(true);
+                setShowRemoveCollectionModal(true);
               }}
             >
-              Properties
+              Remove
             </div>
             <div
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowRemoveCollectionModal(true);
+                viewCollectionSettings();
               }}
             >
-              Remove
+              Settings
             </div>
           </Dropdown>
         </div>

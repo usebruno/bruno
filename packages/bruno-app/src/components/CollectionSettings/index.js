@@ -14,6 +14,7 @@ import Script from './Script';
 import Test from './Tests';
 import Docs from './Docs';
 import Presets from './Presets';
+import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSettings = ({ collection }) => {
@@ -103,6 +104,9 @@ const CollectionSettings = ({ collection }) => {
       case 'docs': {
         return <Docs collection={collection} />;
       }
+      case 'info': {
+        return <Info collection={collection} />;
+      }
     }
   };
 
@@ -138,6 +142,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
+        </div>
+        <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
+          Info
         </div>
       </div>
       <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
