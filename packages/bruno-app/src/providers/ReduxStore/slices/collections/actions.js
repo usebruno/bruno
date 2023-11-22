@@ -319,8 +319,10 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
     }
 
     if (isItemAFolder(item)) {
+      const parentFolder = findParentItemInCollection(collection, item.uid) || collection;
+
       const folderWithSameNameExists = find(
-        collection.items,
+        parentFolder.items,
         (i) => i.type === 'folder' && trim(i.name) === trim(newName)
       );
 
@@ -328,7 +330,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
       }
 
-      const collectionPath = `${collection.pathname}${PATH_SEPARATOR}${newName}`;
+      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newName}`;
       ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;
     }
