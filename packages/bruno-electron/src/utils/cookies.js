@@ -5,7 +5,9 @@ const cookieJar = new CookieJar();
 
 const addCookieToJar = (setCookieHeader, requestUrl) => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
-  cookieJar.setCookieSync(cookie, requestUrl);
+  cookieJar.setCookieSync(cookie, requestUrl, {
+    ignoreError: true // silently ignore things like parse errors and invalid domains
+  });
 };
 
 const getCookiesForUrl = (url) => {
