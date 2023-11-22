@@ -12,8 +12,7 @@ const {
   browseDirectory,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName,
-  parseCollectionItems
+  sanitizeDirectoryName
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
