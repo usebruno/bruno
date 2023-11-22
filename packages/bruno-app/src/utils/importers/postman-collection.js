@@ -55,9 +55,9 @@ const convertV21Auth = (array) => {
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
-  const folderMap = {};
 
   each(item, (i) => {
+    const folderMap = {};
     if (isItemAFolder(i)) {
       const baseFolderName = i.name;
       let folderName = baseFolderName;
