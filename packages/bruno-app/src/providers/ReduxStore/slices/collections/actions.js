@@ -329,7 +329,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
       }
 
       const collectionPath = `${collection.pathname}${PATH_SEPARATOR}${newName}`;
-      ipcRenderer.invoke('renderer:clone-folder', newName, item, collectionPath).then(resolve).catch(reject);
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
       return;
     }
 

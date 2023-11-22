@@ -336,6 +336,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
+      // Recursive function to parse the collection items and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach((item) => {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if (item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
+
       const parseEnvironments = (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
         if (!fs.existsSync(envDirPath)) {
@@ -378,6 +397,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(collectionPath)) {
         throw new Error(`folder: ${collectionPath} already exists`);
       }
+
+      // Recursive function to parse the folder and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach((item) => {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if (item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
 
       await createDirectory(collectionPath);
 
