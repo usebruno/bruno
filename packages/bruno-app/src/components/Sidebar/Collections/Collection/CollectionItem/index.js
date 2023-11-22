@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -93,6 +94,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
     if (activeTab) {
       activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  };
+
+  const handleRun = async () => {
+    dispatch(sendRequest(item, collection.uid)).catch((err) =>
+      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+        duration: 5000
+      })
+    );
   };
 
   const handleClick = (event) => {
@@ -297,15 +306,27 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 Rename
               </div>
               {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    dropdownTippyRef.current.hide();
-                    setCloneItemModalOpen(true);
-                  }}
-                >
-                  Clone
-                </div>
+                <>
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      setCloneItemModalOpen(true);
+                    }}
+                  >
+                    Clone
+                  </div>
+                  <div
+                    className="dropdown-item"
+                    onClick={(e) => {
+                      dropdownTippyRef.current.hide();
+                      handleClick(null);
+                      handleRun();
+                    }}
+                  >
+                    Run
+                  </div>
+                </>
               )}
               {!isFolder && item.type === 'http-request' && (
                 <div
