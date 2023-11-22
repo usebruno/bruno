@@ -24,6 +24,7 @@ import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import NetworkError from 'components/ResponsePane/NetworkError/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
