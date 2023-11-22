@@ -12,7 +12,8 @@ const {
   browseDirectory,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  parseCollectionItems
 } = require('../utils/filesystem');
 const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
@@ -335,25 +336,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`collection: ${collectionPath} already exists`);
       }
 
-      // Recursive function to parse the collection items and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach((item) => {
-          if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
-            fs.writeFileSync(filePath, content);
-          }
-          if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
-            fs.mkdirSync(folderPath);
-
-            if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
-            }
-          }
-        });
-      };
-
       const parseEnvironments = (environments = [], collectionPath) => {
         const envDirPath = path.join(collectionPath, 'environments');
         if (!fs.existsSync(envDirPath)) {
@@ -386,6 +368,21 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // create folder and files based on collection
       await parseCollectionItems(collection.items, collectionPath);
       await parseEnvironments(collection.environments, collectionPath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
+    try {
+      if (fs.existsSync(collectionPath)) {
+        throw new Error(`folder: ${collectionPath} already exists`);
+      }
+
+      await createDirectory(collectionPath);
+
+      // create folder and files based on another folder
+      await parseCollectionItems(itemFolder.items, collectionPath);
     } catch (error) {
       return Promise.reject(error);
     }
