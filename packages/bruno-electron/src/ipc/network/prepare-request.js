@@ -1,5 +1,6 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
+const FormData = require('form-data');
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -28,6 +29,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(collectionAuth, 'digest.username'),
+          password: get(collectionAuth, 'digest.password')
+        };
+        break;
     }
   }
 
@@ -52,6 +59,11 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(request, 'auth.digest.username'),
+          password: get(request, 'auth.digest.password')
+        };
     }
   }
 

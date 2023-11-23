@@ -5,6 +5,7 @@ import AuthMode from './AuthMode';
 import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
+import DigestAuth from './DigestAuth';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
@@ -24,6 +25,9 @@ const Auth = ({ collection }) => {
       }
       case 'bearer': {
         return <BearerAuth collection={collection} />;
+      }
+      case 'digest': {
+        return <DigestAuth collection={collection} />;
       }
     }
   };

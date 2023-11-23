@@ -65,6 +65,15 @@ const AuthMode = ({ collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('digest');
+            }}
+          >
+            Digest Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('none');
             }}
           >

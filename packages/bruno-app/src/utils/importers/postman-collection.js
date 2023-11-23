@@ -14,6 +14,34 @@ const readFile = (files) => {
   });
 };
 
+const parseGraphQLRequest = (graphqlSource) => {
+  try {
+    let queryResultObject = {
+      query: '',
+      variables: ''
+    };
+
+    if (typeof graphqlSource === 'string') {
+      graphqlSource = JSON.parse(text);
+    }
+
+    if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
+      queryResultObject.variables = graphqlSource.variables;
+    }
+
+    if (graphqlSource.hasOwnProperty('query') && graphqlSource.query !== '') {
+      queryResultObject.query = graphqlSource.query;
+    }
+
+    return queryResultObject;
+  } catch (e) {
+    return {
+      query: '',
+      variables: ''
+    };
+  }
+};
+
 const isItemAFolder = (item) => {
   return !item.request;
 };
@@ -27,16 +55,27 @@ const convertV21Auth = (array) => {
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
+  const folderMap = {};
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
+      const baseFolderName = i.name;
+      let folderName = baseFolderName;
+      let count = 1;
+
+      while (folderMap[folderName]) {
+        folderName = `${baseFolderName}_${count}`;
+        count++;
+      }
+
       const brunoFolderItem = {
         uid: uuid(),
-        name: i.name,
+        name: folderName,
         type: 'folder',
         items: []
       };
       brunoParent.items.push(brunoFolderItem);
+      folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }
@@ -144,6 +183,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
               brunoRequestItem.request.body.text = i.request.body.raw;
             }
           }
+        }
+
+        if (bodyMode === 'graphql') {
+          brunoRequestItem.type = 'graphql-request';
+          brunoRequestItem.request.body.mode = 'graphql';
+          brunoRequestItem.request.body.graphql = parseGraphQLRequest(i.request.body.graphql);
         }
 
         each(i.request.header, (header) => {

@@ -411,6 +411,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'basic';
               item.draft.request.auth.basic = action.payload.content;
               break;
+            case 'digest':
+              item.draft.request.auth.mode = 'digest';
+              item.draft.request.auth.digest = action.payload.content;
+              break;
           }
         }
       }
@@ -1016,6 +1020,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'basic':
             set(collection, 'root.request.auth.basic', action.payload.content);
+            break;
+          case 'digest':
+            set(collection, 'root.request.auth.digest', action.payload.content);
             break;
         }
       }

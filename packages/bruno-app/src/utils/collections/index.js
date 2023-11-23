@@ -516,6 +516,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Bearer Token';
       break;
     }
+    case 'digest': {
+      label = 'Digest Auth';
+      break;
+    }
   }
 
   return label;

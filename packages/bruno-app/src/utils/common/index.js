@@ -94,3 +94,15 @@ export const getContentType = (headers) => {
 
   return '';
 };
+
+export const startsWith = (str, search) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return false;
+  }
+
+  if (!search || !search.length || typeof search !== 'string') {
+    return false;
+  }
+
+  return str.substr(0, search.length) === search;
+};
