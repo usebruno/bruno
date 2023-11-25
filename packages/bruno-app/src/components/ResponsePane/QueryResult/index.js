@@ -11,7 +11,7 @@ import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 
 const formatResponse = (data, mode) => {
-  if (!data) {
+  if (data === undefined) {
     return '';
   }
 

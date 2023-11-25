@@ -38,7 +38,7 @@ export const safeParseJSON = (str) => {
 };
 
 export const safeStringifyJSON = (obj, indent = false) => {
-  if (!obj) {
+  if (obj === undefined) {
     return obj;
   }
   try {
