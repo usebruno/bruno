@@ -210,6 +210,8 @@ const runSingleRequest = async function (
       }
     }
 
+    response.responseTime = responseTime;
+
     console.log(
       chalk.green(stripExtension(filename)) +
         chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)

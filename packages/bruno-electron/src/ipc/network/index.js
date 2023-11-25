@@ -446,6 +446,8 @@ const registerNetworkIpc = (mainWindow) => {
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
 
+      response.responseTime = responseTime;
+
       // save cookies
       let setCookieHeaders = [];
       if (response.headers['set-cookie']) {
