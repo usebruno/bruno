@@ -190,7 +190,7 @@ export default class QueryEditor extends React.Component {
   render() {
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className="h-full w-full flex flex-col"
         aria-label="Query Editor"
         ref={(node) => {
           this._node = node;
