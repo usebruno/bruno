@@ -31,6 +31,7 @@ import {
   sortCollections as _sortCollections,
   updateCollectionMountStatus,
   moveCollection,
+  saveEnvironmentColor as _saveEnvironmentColor,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -1480,6 +1481,27 @@ export const mergeAndPersistEnvironment =
         .catch(reject);
     });
   };
+
+export const saveEnvironmentColor = (color, environmentUid, collectionUid) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const collection =
+      findCollectionByUid(getState().collections.collections, collectionUid) ??
+      reject(new Error('Collection not found'));
+    const environment =
+      findEnvironmentInCollection(collection, environmentUid) ?? reject(new Error('Environment not found'));
+    const updatedEnvironment = { ...environment, color: color };
+
+    const { ipcRenderer } = window;
+    environmentSchema
+      .validate(updatedEnvironment)
+      // save to file
+      .then(() => ipcRenderer.invoke('renderer:save-environment', collection.pathname, updatedEnvironment))
+      // update store
+      .then(() => dispatch(_saveEnvironmentColor({ color, environmentUid, collectionUid })))
+      .then(resolve)
+      .catch(reject);
+  });
+};
 
 export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {

@@ -3,9 +3,10 @@ import styled from 'styled-components';
 const Wrapper = styled.div`
   .current-environment {
     border-radius: 0.9375rem;
+    //FIXME border-radius: 15px; use rem
     padding: 0.25rem 0.5rem 0.25rem 0.75rem;
     user-select: none;
-    background-color: transparent;
+    background-color: ${(props) => props.color ?? transparent};
     border: 1px solid ${(props) => props.theme.dropdown.selectedColor};
     line-height: 1rem;
 

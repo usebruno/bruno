@@ -6,6 +6,7 @@ import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, reorderTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
+import { findEnvironmentInCollection } from 'utils/collections';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
@@ -78,9 +79,11 @@ const RequestTabs = () => {
       'has-chevrons': showChevrons
     });
   };
+
+  const activeEnvironment = findEnvironmentInCollection(activeCollection, activeCollection.activeEnvironmentUid);
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper color={activeEnvironment?.color} className={getRootClassname()}>
       {newRequestModalOpen && (
         <NewRequest collectionUid={activeCollection?.uid} onClose={() => setNewRequestModalOpen(false)} />
       )}

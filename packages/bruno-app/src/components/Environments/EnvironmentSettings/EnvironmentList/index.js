@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findItem } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
@@ -11,8 +11,9 @@ import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
 import { isEqual } from 'lodash';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose }) => {
-  const { environments } = collection;
+const EnvironmentList = ({ collection, isModified, setIsModified, onClose }) => {
+  const { environments, activeEnvironmentUid } = collection;
+  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
@@ -20,7 +21,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
-  const envUids = environments ? environments.map((env) => env.uid) : [];
+  const envUids = environments?.map((env) => env.uid) ?? [];
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
@@ -31,27 +32,28 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
         setSelectedEnvironment(_selectedEnvironment);
       }
       setOriginalEnvironmentVariables(selectedEnvironment.variables);
+      setSelectedEnvironment(findItem(environments, selectedEnvironment.uid));
       return;
     }
 
-    const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    const environment = findItem(environments, activeEnvironmentUid);
     if (environment) {
       setSelectedEnvironment(environment);
     } else {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+      setSelectedEnvironment(environments?.length ? environments[0] : null);
     }
-  }, [collection, environments, selectedEnvironment]);
+  }, [activeEnvironmentUid, selectedEnvironment]);
 
   useEffect(() => {
-    if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
+    if (prevEnvUids?.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
         setSelectedEnvironment(newEnv);
       }
     }
 
-    if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+    if (prevEnvUids?.length && envUids.length < prevEnvUids.length) {
+      setSelectedEnvironment(environments?.length ? environments[0] : null);
     }
   }, [envUids, environments, prevEnvUids]);
 
@@ -107,9 +109,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
-            {environments &&
-              environments.length &&
-              environments.map((env) => (
+            {environments?.map((env) => (
                 <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
                   <div
                     id={env.uid}

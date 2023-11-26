@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { IconWorld, IconDatabase, IconCaretDown, IconSettings, IconPlus, IconDownload } from '@tabler/icons';
+import { IconWorld, IconDatabase, IconCaretDown } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -135,6 +135,9 @@ const EnvironmentSelector = ({ collection }) => {
         {activeCollectionEnvironment && (
           <>
             <div className="flex items-center">
+              {
+                //FIXME color={e.color == '' ? undefined : e.color}
+              }
               <IconDatabase size={14} strokeWidth={1.5} className="env-icon" />
               <ToolHint
                 text={activeCollectionEnvironment.name}
@@ -183,7 +186,7 @@ const EnvironmentSelector = ({ collection }) => {
   });
 
   return (
-    <StyledWrapper width={dropdownWidth}>
+    <StyledWrapper color={activeCollectionEnvironment?.color} width={dropdownWidth}>
       <div className="environment-selector flex align-center cursor-pointer">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           {/* Tab Headers */}
