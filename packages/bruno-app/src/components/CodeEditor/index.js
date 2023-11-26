@@ -12,6 +12,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
+import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -183,6 +184,28 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+    CodeMirror.registerHelper('lint', 'json', function (text) {
+      let found = [];
+      if (!window.jsonlint) {
+        if (window.console) {
+          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
+        }
+        return found;
+      }
+      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      jsonlint.parseError = function (str, hash) {
+        let loc = hash.loc;
+        found.push({
+          from: CodeMirror.Pos(loc.first_line - 1, loc.first_column),
+          to: CodeMirror.Pos(loc.last_line - 1, loc.last_column),
+          message: str
+        });
+      };
+      try {
+        jsonlint.parse(stripJsonComments(text));
+      } catch (e) { }
+      return found;
+    });
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
       editor.on('change', this._onEdit);
