@@ -64,6 +64,7 @@
     "react-redux": "^7.2.6",
     "react-tooltip": "^5.5.2",
     "sass": "^1.46.0",
+    "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",
     "system": "^2.0.1",
     "tailwindcss": "^2.2.19",
