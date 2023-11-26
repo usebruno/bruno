@@ -71,6 +71,14 @@ const StyledMarkdownBodyWrapper = styled.div`
     pre {
       background: ${(props) => props.theme.sidebar.bg};
     }
+
+    table {
+      th,
+      td {
+        border: 1px solid ${(props) => props.theme.table.border};
+        background-color: ${(props) => props.theme.bg};
+      }
+    }
   }
 
   @media (max-width: 767px) {
