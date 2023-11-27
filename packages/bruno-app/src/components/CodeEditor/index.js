@@ -204,8 +204,8 @@ export default class CodeEditor extends React.Component {
         });
       };
       try {
-        jsonlint.parse(stripJsonComments(text));
-      } catch (e) { }
+        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
+      } catch (e) {}
       return found;
     });
     if (editor) {
