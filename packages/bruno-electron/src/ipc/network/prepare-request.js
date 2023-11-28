@@ -73,6 +73,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
+  let responseOfTypeZip = false;
+  const zipResponseHeader = 'application/zip';
 
   // collection headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
@@ -80,6 +82,8 @@ const prepareRequest = (request, collectionRoot) => {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
+        const headerValue = h.value;
+        if (headerValue === zipResponseHeader) responseOfTypeZip = true;
       }
     }
   });
@@ -89,6 +93,8 @@ const prepareRequest = (request, collectionRoot) => {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
+        const headerValue = h.value;
+        if (headerValue === zipResponseHeader) responseOfTypeZip = true;
       }
     }
   });
@@ -99,6 +105,8 @@ const prepareRequest = (request, collectionRoot) => {
     headers: headers,
     responseType: 'arraybuffer'
   };
+  // set responseType to array buffer if expected response is application/zip
+  if (responseOfTypeZip) axiosRequest.responseType = 'arraybuffer';
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
