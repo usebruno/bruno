@@ -2,8 +2,8 @@ import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
-import { addAssertion, updateAssertion, deleteAssertion } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addAssertion, updateAssertion, deleteAssertion } from '@providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
 import AssertionRow from './AssertionRow';
 import StyledWrapper from './StyledWrapper';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
-import { uuid } from 'utils/common';
+import { uuid } from '@utils/common';
 import * as Yup from 'yup';
 
 import StyledWrapper from './StyledWrapper';

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { buildClientSchema } from 'graphql';
-import { fetchGqlSchema } from 'utils/network';
-import { simpleHash } from 'utils/common';
+import { fetchGqlSchema } from '@utils/network';
+import { simpleHash } from '@utils/common';
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 

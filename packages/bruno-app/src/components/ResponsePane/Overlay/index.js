@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconRefresh } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { cancelRequest } from '@providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
 

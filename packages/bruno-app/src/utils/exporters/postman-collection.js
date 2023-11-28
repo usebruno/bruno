@@ -1,6 +1,6 @@
 import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '@utils/collections/export';
 
 export const exportCollection = (collection) => {
   delete collection.uid;

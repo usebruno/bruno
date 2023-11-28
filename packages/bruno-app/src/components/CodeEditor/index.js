@@ -7,8 +7,8 @@
 
 import React from 'react';
 import isEqual from 'lodash/isEqual';
-import { getEnvironmentVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { getEnvironmentVariables } from '@utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from '@utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';

@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'components/Modal';
+import Modal from '@components/Modal';
 
 const ConfirmRequestClose = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
   const _handleCancel = ({ type }) => {

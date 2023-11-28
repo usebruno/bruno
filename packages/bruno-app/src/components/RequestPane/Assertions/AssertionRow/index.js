@@ -1,8 +1,8 @@
 import React from 'react';
 import { IconTrash } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
+import SingleLineEditor from '@components/SingleLineEditor';
 import AssertionOperator from '../AssertionOperator';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 
 /**
  * Assertion operators

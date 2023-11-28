@@ -4,7 +4,7 @@ import trim from 'lodash/trim';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
-import { uuid } from 'utils/common';
+import { uuid } from '@utils/common';
 import cloneDeep from 'lodash/cloneDeep';
 import {
   findItemInCollection,
@@ -18,11 +18,11 @@ import {
   isItemARequest,
   isItemAFolder,
   refreshUidsInItem
-} from 'utils/collections';
+} from '@utils/collections';
 import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
-import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS, PATH_SEPARATOR } from 'utils/common/platform';
-import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
+import { waitForNextTick } from '@utils/common';
+import { getDirectoryName, isWindowsOS, PATH_SEPARATOR } from '@utils/common/platform';
+import { sendNetworkRequest, cancelNetworkRequest } from '@utils/network';
 
 import {
   updateLastAction,
@@ -42,9 +42,9 @@ import {
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
-import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
-import { resolveRequestFilename } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { closeAllCollectionTabs } from '@providers/ReduxStore/slices/tabs';
+import { resolveRequestFilename } from '@utils/common/platform';
+import { parseQueryParams, splitOnFirst } from '@utils/url/index';
 import { each } from 'lodash';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {

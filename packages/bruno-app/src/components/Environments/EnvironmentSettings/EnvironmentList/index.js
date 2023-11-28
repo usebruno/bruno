@@ -1,6 +1,6 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
-import { findEnvironmentInCollection } from 'utils/collections';
-import usePrevious from 'hooks/usePrevious';
+import { findEnvironmentInCollection } from '@utils/collections';
+import usePrevious from '@hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
 import { IconDownload, IconShieldLock } from '@tabler/icons';

@@ -2,8 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import Modal from 'components/Modal';
+import { browseDirectory } from '@providers/ReduxStore/slices/collections/actions';
+import Modal from '@components/Modal';
 
 const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();

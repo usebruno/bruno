@@ -2,16 +2,16 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { uuid } from 'utils/common';
-import Modal from 'components/Modal';
+import { uuid } from '@utils/common';
+import Modal from '@components/Modal';
 import { useDispatch } from 'react-redux';
-import { newEphemeralHttpRequest } from 'providers/ReduxStore/slices/collections';
-import { newHttpRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
-import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelector';
-import { getDefaultRequestPaneTab } from 'utils/collections';
+import { newEphemeralHttpRequest } from '@providers/ReduxStore/slices/collections';
+import { newHttpRequest } from '@providers/ReduxStore/slices/collections/actions';
+import { addTab } from '@providers/ReduxStore/slices/tabs';
+import HttpMethodSelector from '@components/RequestPane/QueryUrl/HttpMethodSelector';
+import { getDefaultRequestPaneTab } from '@utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { getRequestFromCurlCommand } from 'utils/curl';
+import { getRequestFromCurlCommand } from '@utils/curl';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();

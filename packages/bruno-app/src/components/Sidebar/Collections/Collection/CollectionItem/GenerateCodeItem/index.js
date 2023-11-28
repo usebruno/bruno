@@ -1,11 +1,11 @@
-import Modal from 'components/Modal/index';
+import Modal from '@components/Modal/index';
 import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url/index';
+import { isValidUrl } from '@utils/url/index';
 import get from 'lodash/get';
 import handlebars from 'handlebars';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findEnvironmentInCollection } from '@utils/collections';
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {

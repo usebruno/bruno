@@ -1,13 +1,13 @@
 import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import Dropdown from '@components/Dropdown';
 import { useDispatch } from 'react-redux';
-import { updateRequestBodyMode } from 'providers/ReduxStore/slices/collections';
-import { humanizeRequestBodyMode } from 'utils/collections';
+import { updateRequestBodyMode } from '@providers/ReduxStore/slices/collections';
+import { humanizeRequestBodyMode } from '@utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
-import { toastError } from 'utils/common/error';
+import { updateRequestBody } from '@providers/ReduxStore/slices/collections/index';
+import { toastError } from '@utils/common/error';
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();

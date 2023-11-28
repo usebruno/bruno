@@ -1,7 +1,7 @@
 import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
-import Dropdown from 'components/Dropdown';
-import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import Dropdown from '@components/Dropdown';
+import { selectEnvironment } from '@providers/ReduxStore/slices/collections/actions';
 import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';

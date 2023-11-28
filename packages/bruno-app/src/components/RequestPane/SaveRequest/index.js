@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { faFolder } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import StyledWrapper from './StyledWrapper';
-import Modal from 'components//Modal';
+import Modal from '@components//Modal';
 
 const SaveRequest = ({ items, onClose }) => {
   const [showFolders, setShowFolders] = useState([]);

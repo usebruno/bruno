@@ -1,8 +1,8 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
-import { uuid } from 'utils/common';
-import { BrunoError } from 'utils/common/error';
+import { uuid } from '@utils/common';
+import { BrunoError } from '@utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 
 const readFile = (files) => {

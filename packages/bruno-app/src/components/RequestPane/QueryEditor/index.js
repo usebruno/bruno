@@ -8,8 +8,8 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
-import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { getAllVariables } from '@utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from '@utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';

@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'components/Modal/index';
+import Modal from '@components/Modal/index';
 import { IconSpeakerphone, IconBrandTwitter, IconBrandGithub, IconBrandDiscord, IconBook } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 

@@ -13,11 +13,11 @@ import {
   runRequestEvent,
   runFolderEvent,
   brunoConfigUpdateEvent
-} from 'providers/ReduxStore/slices/collections';
-import { showPreferences, updatePreferences, updateCookies } from 'providers/ReduxStore/slices/app';
+} from '@providers/ReduxStore/slices/collections';
+import { showPreferences, updatePreferences, updateCookies } from '@providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
-import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
-import { isElectron } from 'utils/common/platform';
+import { openCollectionEvent, collectionAddEnvFileEvent } from '@providers/ReduxStore/slices/collections/actions';
+import { isElectron } from '@utils/common/platform';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();

@@ -1,7 +1,7 @@
-import CodeEditor from 'components/CodeEditor/index';
+import CodeEditor from '@components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest } from '@providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
 import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';

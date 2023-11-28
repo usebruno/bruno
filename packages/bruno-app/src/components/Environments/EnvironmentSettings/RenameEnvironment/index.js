@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import Portal from 'components/Portal/index';
-import Modal from 'components/Modal/index';
+import Portal from '@components/Portal/index';
+import Modal from '@components/Modal/index';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
-import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { renameEnvironment } from '@providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 

@@ -1,5 +1,5 @@
 import fileDialog from 'file-dialog';
-import { BrunoError } from 'utils/common/error';
+import { BrunoError } from '@utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
 
 const readFile = (files) => {

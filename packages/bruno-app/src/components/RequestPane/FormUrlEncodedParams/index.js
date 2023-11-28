@@ -3,14 +3,14 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 import {
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam
-} from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+} from '@providers/ReduxStore/slices/collections';
+import SingleLineEditor from '@components/SingleLineEditor';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const FormUrlEncodedParams = ({ item, collection }) => {

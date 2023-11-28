@@ -1,10 +1,10 @@
 import React from 'react';
-import importBrunoCollection from 'utils/importers/bruno-collection';
-import importPostmanCollection from 'utils/importers/postman-collection';
-import importInsomniaCollection from 'utils/importers/insomnia-collection';
-import importOpenapiCollection from 'utils/importers/openapi-collection';
-import { toastError } from 'utils/common/error';
-import Modal from 'components/Modal';
+import importBrunoCollection from '@utils/importers/bruno-collection';
+import importPostmanCollection from '@utils/importers/postman-collection';
+import importInsomniaCollection from '@utils/importers/insomnia-collection';
+import importOpenapiCollection from '@utils/importers/openapi-collection';
+import { toastError } from '@utils/common/error';
+import Modal from '@components/Modal';
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
   const handleImportBrunoCollection = () => {

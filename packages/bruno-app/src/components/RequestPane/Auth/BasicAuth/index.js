@@ -1,10 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import SingleLineEditor from '@components/SingleLineEditor';
+import { updateAuth } from '@providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const BasicAuth = ({ item, collection }) => {

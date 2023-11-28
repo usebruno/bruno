@@ -2,14 +2,14 @@ import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
 import GitHubButton from 'react-github-btn';
-import Preferences from 'components/Preferences';
-import Cookies from 'components/Cookies';
+import Preferences from '@components/Preferences';
+import Cookies from '@components/Cookies';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { IconSettings, IconCookie } from '@tabler/icons';
-import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
-import { useTheme } from 'providers/Theme';
+import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from '@providers/ReduxStore/slices/app';
+import { useTheme } from '@providers/Theme';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 222;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;

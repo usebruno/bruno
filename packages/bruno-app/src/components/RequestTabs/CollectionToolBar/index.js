@@ -1,8 +1,8 @@
 import React from 'react';
-import { uuid } from 'utils/common';
+import { uuid } from '@utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
-import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
+import EnvironmentSelector from '@components/Environments/EnvironmentSelector';
+import { addTab } from '@providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 

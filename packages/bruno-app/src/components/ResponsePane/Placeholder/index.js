@@ -1,7 +1,7 @@
 import React from 'react';
 import { IconSend } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
-import { isMacOS } from 'utils/common/platform';
+import { isMacOS } from '@utils/common/platform';
 
 const Placeholder = () => {
   const isMac = isMacOS();

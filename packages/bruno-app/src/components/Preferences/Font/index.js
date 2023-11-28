@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useSelector, useDispatch } from 'react-redux';
-import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { savePreferences } from '@providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 
 const Font = ({ close }) => {

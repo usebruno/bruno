@@ -1,5 +1,5 @@
-import themes from 'themes/index';
-import useLocalStorage from 'hooks/useLocalStorage/index';
+import themes from '@themes/index';
+import useLocalStorage from '@hooks/useLocalStorage/index';
 
 import { createContext, useContext } from 'react';
 import { ThemeProvider as SCThemeProvider } from 'styled-components';

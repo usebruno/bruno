@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import get from 'lodash/get';
 import each from 'lodash/each';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { getDefaultRequestPaneTab, findItemInCollectionByPathname } from 'utils/collections/index';
-import { hideHomePage } from 'providers/ReduxStore/slices/app';
-import { updateNextAction } from 'providers/ReduxStore/slices/collections/index';
+import { addTab } from '@providers/ReduxStore/slices/tabs';
+import { getDefaultRequestPaneTab, findItemInCollectionByPathname } from '@utils/collections/index';
+import { hideHomePage } from '@providers/ReduxStore/slices/app';
+import { updateNextAction } from '@providers/ReduxStore/slices/collections/index';
 import { useSelector, useDispatch } from 'react-redux';
 
 const useCollectionNextAction = () => {

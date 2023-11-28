@@ -3,13 +3,13 @@ import toast from 'react-hot-toast';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
-import SaveRequest from 'components/RequestPane/SaveRequest';
-import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
-import NetworkError from 'components/ResponsePane/NetworkError';
-import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import SaveRequest from '@components/RequestPane/SaveRequest';
+import EnvironmentSettings from '@components/Environments/EnvironmentSettings';
+import NetworkError from '@components/ResponsePane/NetworkError';
+import NewRequest from '@components/Sidebar/NewRequest';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
+import { findCollectionByUid, findItemInCollection } from '@utils/collections';
+import { closeTabs } from '@providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 

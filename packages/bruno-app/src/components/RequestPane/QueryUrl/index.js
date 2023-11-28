@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
-import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { requestUrlChanged, updateRequestMethod } from '@providers/ReduxStore/slices/collections';
+import { saveRequest } from '@providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
-import { isMacOS } from 'utils/common/platform';
+import SingleLineEditor from '@components/SingleLineEditor';
+import { isMacOS } from '@utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
 const QueryUrl = ({ item, collection, handleRun }) => {

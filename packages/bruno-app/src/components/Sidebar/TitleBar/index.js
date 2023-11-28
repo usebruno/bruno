@@ -1,15 +1,15 @@
 import toast from 'react-hot-toast';
-import Bruno from 'components/Bruno';
-import Dropdown from 'components/Dropdown';
+import Bruno from '@components/Bruno';
+import Dropdown from '@components/Dropdown';
 import CreateCollection from '../CreateCollection';
-import ImportCollection from 'components/Sidebar/ImportCollection';
-import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import ImportCollection from '@components/Sidebar/ImportCollection';
+import ImportCollectionLocation from '@components/Sidebar/ImportCollectionLocation';
 
 import { IconDots } from '@tabler/icons';
 import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { showHomePage } from '@providers/ReduxStore/slices/app';
+import { openCollection, importCollection } from '@providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {

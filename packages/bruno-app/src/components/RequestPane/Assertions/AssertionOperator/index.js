@@ -1,7 +1,7 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme/index';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
+import { useTheme } from '@providers/Theme/index';
+import darkTheme from '@themes/dark';
+import lightTheme from '@themes/light';
 
 /**
  * Assertion operators

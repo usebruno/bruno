@@ -1,5 +1,5 @@
 import { forOwn } from 'lodash';
-import { safeStringifyJSON } from 'utils/common';
+import { safeStringifyJSON } from '@utils/common';
 import curlToJson from './curl-to-json';
 
 export const getRequestFromCurlCommand = (curlCommand) => {

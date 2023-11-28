@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import Modal from 'components/Modal';
+import Modal from '@components/Modal';
 
 const CollectionProperties = ({ onClose }) => {
   const cookies = useSelector((state) => state.app.cookies) || [];

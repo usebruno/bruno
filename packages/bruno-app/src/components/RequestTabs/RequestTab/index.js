@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { closeTabs } from '@providers/ReduxStore/slices/tabs';
+import { saveRequest } from '@providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from '@providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
-import { findItemInCollection } from 'utils/collections';
+import { findItemInCollection } from '@utils/collections';
 import StyledWrapper from './StyledWrapper';
 import RequestTabNotFound from './RequestTabNotFound';
 import ConfirmRequestClose from './ConfirmRequestClose';
 import SpecialTab from './SpecialTab';
-import { useTheme } from 'providers/Theme';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
+import { useTheme } from '@providers/Theme';
+import darkTheme from '@themes/dark';
+import lightTheme from '@themes/light';
 
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();

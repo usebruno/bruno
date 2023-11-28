@@ -1,6 +1,6 @@
 import React, { useRef, forwardRef } from 'react';
 import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import Dropdown from '@components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 
 const HttpMethodSelector = ({ method, onMethodSelect }) => {

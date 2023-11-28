@@ -1,10 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
-import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import { useTheme } from 'providers/Theme';
+import CodeEditor from '@components/CodeEditor';
+import { updateCollectionTests } from '@providers/ReduxStore/slices/collections';
+import { saveCollectionRoot } from '@providers/ReduxStore/slices/collections/actions';
+import { useTheme } from '@providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const Tests = ({ collection }) => {

@@ -2,10 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import Modal from 'components/Modal';
+import Modal from '@components/Modal';
 import { useDispatch } from 'react-redux';
-import { isItemAFolder } from 'utils/tabs';
-import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
+import { isItemAFolder } from '@utils/tabs';
+import { cloneItem } from '@providers/ReduxStore/slices/collections/actions';
 
 const CloneCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();

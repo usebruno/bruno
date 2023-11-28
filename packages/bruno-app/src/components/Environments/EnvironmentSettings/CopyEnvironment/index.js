@@ -1,7 +1,7 @@
-import Modal from 'components/Modal/index';
-import Portal from 'components/Portal/index';
+import Modal from '@components/Modal/index';
+import Portal from '@components/Portal/index';
 import { useFormik } from 'formik';
-import { copyEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { copyEnvironment } from '@providers/ReduxStore/slices/collections/actions';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';

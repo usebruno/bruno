@@ -2,15 +2,15 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import { saveEnvironment } from '@providers/ReduxStore/slices/collections/actions';
+import SingleLineEditor from '@components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { uuid } from 'utils/common';
-import { envVariableNameRegex } from 'utils/common/regex';
+import { uuid } from '@utils/common';
+import { envVariableNameRegex } from '@utils/common/regex';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();

@@ -2,7 +2,7 @@ import React from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 
 const Theme = () => {
   const { storedTheme, setStoredTheme } = useTheme();

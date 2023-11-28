@@ -1,6 +1,6 @@
 import React from 'react';
 import forOwn from 'lodash/forOwn';
-import { safeStringifyJSON } from 'utils/common';
+import { safeStringifyJSON } from '@utils/common';
 import StyledWrapper from './StyledWrapper';
 
 const Timeline = ({ request, response }) => {

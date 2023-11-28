@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from '@providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 
 const RequestNotFound = ({ itemUid }) => {

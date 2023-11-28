@@ -1,14 +1,14 @@
 import React from 'react';
 import classnames from 'classnames';
-import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
-import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
+import { getContentType, safeStringifyJSON, safeParseXML } from '@utils/common';
+import { getCodeMirrorModeBasedOnContentType } from '@utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 
 import StyledWrapper from './StyledWrapper';
 import { useState } from 'react';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
-import { useTheme } from 'providers/Theme/index';
+import { useTheme } from '@providers/Theme/index';
 
 const formatResponse = (data, mode) => {
   if (data === undefined) {

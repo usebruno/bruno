@@ -1,10 +1,10 @@
 import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
-import Dropdown from 'components/Dropdown';
+import Dropdown from '@components/Dropdown';
 import { useDispatch } from 'react-redux';
-import { updateRequestAuthMode } from 'providers/ReduxStore/slices/collections';
-import { humanizeRequestAuthMode } from 'utils/collections';
+import { updateRequestAuthMode } from '@providers/ReduxStore/slices/collections';
+import { humanizeRequestAuthMode } from '@utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const AuthMode = ({ item, collection }) => {

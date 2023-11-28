@@ -2,9 +2,9 @@ import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import toast from 'react-hot-toast';
 import * as Yup from 'yup';
-import Modal from 'components/Modal';
+import Modal from '@components/Modal';
 import { useDispatch } from 'react-redux';
-import { newFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { newFolder } from '@providers/ReduxStore/slices/collections/actions';
 
 const NewFolder = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();

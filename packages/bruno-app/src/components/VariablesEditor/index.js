@@ -2,8 +2,8 @@ import React from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { Inspector } from 'react-inspector';
-import { useTheme } from 'providers/Theme';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { useTheme } from '@providers/Theme';
+import { findEnvironmentInCollection } from '@utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 const KeyValueExplorer = ({ data, theme }) => {

@@ -1,10 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import Modal from 'components/Modal';
+import Modal from '@components/Modal';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import { renameCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { renameCollection } from '@providers/ReduxStore/slices/collections/actions';
 
 const RenameCollection = ({ collection, onClose }) => {
   const dispatch = useDispatch();

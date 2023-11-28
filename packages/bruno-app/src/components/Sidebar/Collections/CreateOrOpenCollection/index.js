@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useTheme } from '../../../../providers/Theme';
 import { useDispatch } from 'react-redux';
-import { openCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { openCollection } from '@providers/ReduxStore/slices/collections/actions';
 
 import toast from 'react-hot-toast';
 import styled from 'styled-components';
-import CreateCollection from 'components/Sidebar/CreateCollection';
+import CreateCollection from '@components/Sidebar/CreateCollection';
 import StyledWrapper from './StyledWrapper';
 
 const LinkStyle = styled.span`

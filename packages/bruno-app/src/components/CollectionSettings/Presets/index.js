@@ -3,7 +3,7 @@ import { useFormik } from 'formik';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
-import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { updateBrunoConfig } from '@providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
 
 const PresetsSettings = ({ collection }) => {

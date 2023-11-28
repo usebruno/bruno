@@ -1,4 +1,4 @@
-import { safeStringifyJSON } from 'utils/common';
+import { safeStringifyJSON } from '@utils/common';
 
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {

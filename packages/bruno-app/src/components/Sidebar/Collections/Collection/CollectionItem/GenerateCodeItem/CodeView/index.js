@@ -1,8 +1,8 @@
-import CodeEditor from 'components/CodeEditor/index';
+import CodeEditor from '@components/CodeEditor/index';
 import get from 'lodash/get';
 import { HTTPSnippet } from 'httpsnippet';
-import { useTheme } from 'providers/Theme/index';
-import { buildHarRequest } from 'utils/codegenerator/har';
+import { useTheme } from '@providers/Theme/index';
+import { buildHarRequest } from '@utils/codegenerator/har';
 import { useSelector } from 'react-redux';
 
 const CodeView = ({ language, item }) => {

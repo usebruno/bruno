@@ -1,8 +1,8 @@
 import React from 'react';
-import Portal from 'components/Portal/index';
+import Portal from '@components/Portal/index';
 import toast from 'react-hot-toast';
-import Modal from 'components/Modal/index';
-import { deleteEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import Modal from '@components/Modal/index';
+import { deleteEnvironment } from '@providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 

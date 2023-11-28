@@ -1,4 +1,4 @@
-import { uuid } from 'utils/common';
+import { uuid } from '@utils/common';
 import find from 'lodash/find';
 import map from 'lodash/map';
 import forOwn from 'lodash/forOwn';
@@ -9,7 +9,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
+import { splitOnFirst } from '@utils/url';
 import {
   findCollectionByUid,
   findCollectionByPathname,
@@ -22,9 +22,9 @@ import {
   deleteItemInCollectionByPathname,
   isItemARequest,
   areItemsTheSameExceptSeqUpdate
-} from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+} from '@utils/collections';
+import { parseQueryParams, stringifyQueryParams } from '@utils/url';
+import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from '@utils/common/platform';
 
 const initialState = {
   collections: [],

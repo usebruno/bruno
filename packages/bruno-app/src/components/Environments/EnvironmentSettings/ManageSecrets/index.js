@@ -1,6 +1,6 @@
 import React from 'react';
-import Portal from 'components/Portal';
-import Modal from 'components/Modal';
+import Portal from '@components/Portal';
+import Modal from '@components/Modal';
 
 const ManageSecrets = ({ onClose }) => {
   return (

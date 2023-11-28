@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import getConfig from 'next/config';
 import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
-import { uuid } from 'utils/common';
-import { isElectron } from 'utils/common/platform';
+import { uuid } from '@utils/common';
+import { isElectron } from '@utils/common/platform';
 
 const { publicRuntimeConfig } = getConfig();
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';

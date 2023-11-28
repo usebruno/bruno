@@ -1,4 +1,4 @@
-import Modal from 'components/Modal/index';
+import Modal from '@components/Modal/index';
 import classnames from 'classnames';
 import React, { useState } from 'react';
 import Support from './Support';

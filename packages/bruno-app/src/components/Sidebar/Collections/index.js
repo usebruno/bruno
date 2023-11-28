@@ -14,7 +14,7 @@ import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { sortCollections } from '@providers/ReduxStore/slices/collections/actions';
 
 // todo: move this to a separate folder
 // the coding convention is to keep all the components in a folder named after the component

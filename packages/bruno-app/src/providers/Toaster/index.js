@@ -1,6 +1,6 @@
 import React from 'react';
 import { Toaster } from 'react-hot-toast';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 
 export const ToastContext = React.createContext();
 

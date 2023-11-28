@@ -1,10 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
-import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { useTheme } from 'providers/Theme';
+import CodeEditor from '@components/CodeEditor';
+import { updateRequestGraphqlVariables } from '@providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
+import { useTheme } from '@providers/Theme';
 import StyledWrapper from './StyledWrapper';
 
 const GraphQLVariables = ({ variables, item, collection }) => {

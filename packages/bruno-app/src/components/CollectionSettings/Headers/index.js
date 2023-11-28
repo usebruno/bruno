@@ -3,14 +3,14 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
+import { useTheme } from '@providers/Theme';
 import {
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader
-} from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+} from '@providers/ReduxStore/slices/collections';
+import { saveCollectionRoot } from '@providers/ReduxStore/slices/collections/actions';
+import SingleLineEditor from '@components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);

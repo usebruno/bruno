@@ -1,9 +1,9 @@
 import React from 'react';
 import classnames from 'classnames';
-import Welcome from 'components/Welcome';
-import RequestTabs from 'components/RequestTabs';
-import RequestTabPanel from 'components/RequestTabPanel';
-import Sidebar from 'components/Sidebar';
+import Welcome from '@components/Welcome';
+import RequestTabs from '@components/RequestTabs';
+import RequestTabPanel from '@components/RequestTabPanel';
+import Sidebar from '@components/Sidebar';
 import { useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
@@ -40,7 +40,7 @@ if (!SERVER_RENDERED) {
   require('codemirror-graphql/lint');
   require('codemirror-graphql/mode');
 
-  require('utils/codemirror/brunoVarInfo');
+  require('@utils/codemirror/brunoVarInfo');
 }
 
 export default function Main() {

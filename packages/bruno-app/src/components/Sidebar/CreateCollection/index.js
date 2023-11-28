@@ -2,11 +2,11 @@ import React, { useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
-import { createCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { browseDirectory } from '@providers/ReduxStore/slices/collections/actions';
+import { createCollection } from '@providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import Tooltip from 'components/Tooltip';
-import Modal from 'components/Modal';
+import Tooltip from '@components/Tooltip';
+import Modal from '@components/Modal';
 
 const CreateCollection = ({ onClose }) => {
   const inputRef = useRef();

@@ -2,14 +2,14 @@ import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
-import Tooltip from 'components/Tooltip';
+import { useTheme } from '@providers/Theme';
+import { addVar, updateVar, deleteVar } from '@providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
+import SingleLineEditor from '@components/SingleLineEditor';
+import Tooltip from '@components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
-import { envVariableNameRegex } from 'utils/common/regex';
+import { envVariableNameRegex } from '@utils/common/regex';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();

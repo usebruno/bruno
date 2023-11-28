@@ -8,7 +8,7 @@ import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
 import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid } from 'utils/common';
+import { uuid } from '@utils/common';
 import path from 'path';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {

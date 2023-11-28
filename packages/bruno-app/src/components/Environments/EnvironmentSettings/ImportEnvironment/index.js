@@ -1,11 +1,11 @@
 import React from 'react';
-import Portal from 'components/Portal';
+import Portal from '@components/Portal';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import importPostmanEnvironment from 'utils/importers/postman-environment';
-import { importEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { toastError } from 'utils/common/error';
-import Modal from 'components/Modal';
+import importPostmanEnvironment from '@utils/importers/postman-environment';
+import { importEnvironment } from '@providers/ReduxStore/slices/collections/actions';
+import { toastError } from '@utils/common/error';
+import Modal from '@components/Modal';
 
 const ImportEnvironment = ({ onClose, collection }) => {
   const dispatch = useDispatch();

@@ -1,12 +1,12 @@
 import React from 'react';
 import get from 'lodash/get';
-import CodeEditor from 'components/CodeEditor';
-import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
-import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
+import CodeEditor from '@components/CodeEditor';
+import FormUrlEncodedParams from '@components/RequestPane/FormUrlEncodedParams';
+import MultipartFormParams from '@components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
-import { useTheme } from 'providers/Theme';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from '@providers/Theme';
+import { updateRequestBody } from '@providers/ReduxStore/slices/collections';
+import { sendRequest, saveRequest } from '@providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
 const RequestBody = ({ item, collection }) => {

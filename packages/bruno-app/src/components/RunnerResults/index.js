@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, each, cloneDeep } from 'lodash';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
-import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
-import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
+import { runCollectionFolder } from '@providers/ReduxStore/slices/collections/actions';
+import { resetCollectionRunner } from '@providers/ReduxStore/slices/collections';
+import { findItemInCollection, getTotalRequestCountInCollection } from '@utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
-import slash from 'utils/common/slash';
+import slash from '@utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
 

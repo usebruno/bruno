@@ -1,6 +1,6 @@
 import each from 'lodash/each';
 import fileDialog from 'file-dialog';
-import { BrunoError } from 'utils/common/error';
+import { BrunoError } from '@utils/common/error';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {

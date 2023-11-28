@@ -3,7 +3,7 @@ import useTelemetry from './useTelemetry';
 import useIpcEvents from './useIpcEvents';
 import useCollectionNextAction from './useCollectionNextAction';
 import { useDispatch } from 'react-redux';
-import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import { refreshScreenWidth } from '@providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
 
 export const AppContext = React.createContext();
