@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
-import find from 'lodash/find';
-import filter from 'lodash/filter';
+import { IconChevronLeft, IconChevronRight } from '@tabler/icons';
 import classnames from 'classnames';
-import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
-import { useSelector, useDispatch } from 'react-redux';
-import { closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import { closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
@@ -37,9 +37,11 @@ const RequestTabs = () => {
 
   const handleAuxClick = (e, tab) => {
     if (e.button === 1) {
-      closeTabs({
-        tabUids: [tab.uid]
-      });
+      dispatch(
+        closeTabs({
+          tabUids: [tab.uid]
+        })
+      );
     }
   };
 
