@@ -70,14 +70,14 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const PROTOCOLS = ['http://', 'https://', 'wss://'];
+const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
 
-  if (PROTOCOLS.find((protocol) => url.startsWith(protocol)) === undefined) {
+  if (!protocolRegex.test(url)) {
     url = `http://${url}`;
   }
 
@@ -102,8 +102,8 @@ const prepareRequest = (request, collectionRoot) => {
 
   let axiosRequest = {
     method: request.method,
-    url: url,
-    headers: headers,
+    url,
+    headers,
     responseType: 'arraybuffer'
   };
 
