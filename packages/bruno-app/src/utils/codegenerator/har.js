@@ -23,12 +23,12 @@ const createHeaders = (headers) => {
 };
 
 const createQuery = (queryParams = []) => {
-  return queryParams.map((param) => {
-    return {
+  return queryParams
+    .filter((param) => param.enabled)
+    .map((param) => ({
       name: param.name,
       value: param.value
-    };
-  });
+    }));
 };
 
 const createPostData = (body) => {
