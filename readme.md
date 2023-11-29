@@ -28,7 +28,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
 
-You can also install Bruno via package managers like Homebrew, Chocolatey, Snap and Apt.
+You can also install Bruno via package managers like Homebrew, Chocolatey, Scoop, Snap and Apt.
 
 ```sh
 # On Mac via Homebrew
@@ -36,6 +36,10 @@ brew install bruno
 
 # On Windows via Chocolatey
 choco install bruno
+
+# On Windows via Scoop
+scoop bucket add extras
+scoop install bruno
 
 # On Linux via Snap
 snap install bruno
