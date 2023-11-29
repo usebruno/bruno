@@ -10,12 +10,88 @@ import isEqual from 'lodash/isEqual';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import jsonlint from 'jsonlint';
+import { JSHINT } from 'jshint';
+import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
+  window.jsonlint = jsonlint;
+  window.JSHINT = JSHINT;
+  //This should be done dynamically if possible
+  const hintWords = [
+    'res',
+    'res.status',
+    'res.statusText',
+    'res.headers',
+    'res.body',
+    'res.responseTime',
+    'res.getStatus()',
+    'res.getHeader(name)',
+    'res.getHeaders()',
+    'res.getBody()',
+    'res.getResponseTime()',
+    'req',
+    'req.url',
+    'req.method',
+    'req.headers',
+    'req.body',
+    'req.timeout',
+    'req.getUrl()',
+    'req.setUrl(url)',
+    'req.getMethod()',
+    'req.setMethod(method)',
+    'req.getHeader(name)',
+    'req.getHeaders()',
+    'req.setHeader(name, value)',
+    'req.setHeaders(data)',
+    'req.getBody()',
+    'req.setBody(data)',
+    'req.setMaxRedirects(maxRedirects)',
+    'req.getTimeout()',
+    'req.setTimeout(timeout)',
+    'bru',
+    'bru.cwd()',
+    'bru.getEnvName(key)',
+    'bru.getProcessEnv(key)',
+    'bru.getEnvVar(key)',
+    'bru.setEnvVar(key,value)',
+    'bru.getVar(key)',
+    'bru.setVar(key,value)'
+  ];
+  CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
+    const cursor = editor.getCursor();
+    const currentLine = editor.getLine(cursor.line);
+    let startBru = cursor.ch;
+    let endBru = startBru;
+    while (endBru < currentLine.length && /[\w.]/.test(currentLine.charAt(endBru))) ++endBru;
+    while (startBru && /[\w.]/.test(currentLine.charAt(startBru - 1))) --startBru;
+    let curWordBru = startBru != endBru && currentLine.slice(startBru, endBru);
+
+    let start = cursor.ch;
+    let end = start;
+    while (end < currentLine.length && /[\w]/.test(currentLine.charAt(end))) ++end;
+    while (start && /[\w]/.test(currentLine.charAt(start - 1))) --start;
+    const jsHinter = CodeMirror.hint.javascript;
+    let result = jsHinter(editor) || { list: [] };
+    result.to = CodeMirror.Pos(cursor.line, end);
+    result.from = CodeMirror.Pos(cursor.line, start);
+    if (curWordBru) {
+      hintWords.forEach((h) => {
+        if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
+          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+        }
+      });
+      result.list?.sort();
+    }
+    return result;
+  });
+  CodeMirror.commands.autocomplete = (cm, hint, options) => {
+    cm.showHint({ hint, ...options });
+  };
 }
 
 export default class CodeEditor extends React.Component {
@@ -41,7 +117,8 @@ export default class CodeEditor extends React.Component {
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
+      lint: { esversion: 11 },
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -68,9 +145,16 @@ export default class CodeEditor extends React.Component {
         },
         'Cmd-F': 'findPersistent',
         'Ctrl-F': 'findPersistent',
+        'Cmd-H': 'replace',
+        'Ctrl-H': 'replace',
         Tab: function (cm) {
-          cm.replaceSelection('  ', 'end');
+          cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
+            ? cm.execCommand('indentMore')
+            : cm.replaceSelection('  ', 'end');
         },
+        'Shift-Tab': 'indentLess',
+        'Ctrl-Space': 'autocomplete',
+        'Cmd-Space': 'autocomplete',
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
@@ -102,9 +186,52 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+    CodeMirror.registerHelper('lint', 'json', function (text) {
+      let found = [];
+      if (!window.jsonlint) {
+        if (window.console) {
+          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
+        }
+        return found;
+      }
+      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      jsonlint.parseError = function (str, hash) {
+        let loc = hash.loc;
+        found.push({
+          from: CodeMirror.Pos(loc.first_line - 1, loc.first_column),
+          to: CodeMirror.Pos(loc.last_line - 1, loc.last_column),
+          message: str
+        });
+      };
+      try {
+        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
+      } catch (e) {}
+      return found;
+    });
     if (editor) {
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
+    }
+    if (this.props.mode == 'javascript') {
+      editor.on('keyup', function (cm, event) {
+        const cursor = editor.getCursor();
+        const currentLine = editor.getLine(cursor.line);
+        let start = cursor.ch;
+        let end = start;
+        while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
+        while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
+        let curWord = start != end && currentLine.slice(start, end);
+        //Qualify if autocomplete will be shown
+        if (
+          /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          curWord.length > 0 &&
+          !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
+          /(?<!\d)[a-zA-Z\._]$/.test(curWord)
+        ) {
+          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.brunoJS, { completeSingle: false });
+        }
+      });
     }
   }
 
@@ -172,6 +299,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

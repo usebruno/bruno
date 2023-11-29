@@ -14,7 +14,7 @@ import {
   runFolderEvent,
   brunoConfigUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { showPreferences, updatePreferences } from 'providers/ReduxStore/slices/app';
+import { showPreferences, updatePreferences, updateCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
 import { isElectron } from 'utils/common/platform';
@@ -135,6 +135,10 @@ const useIpcEvents = () => {
       dispatch(updatePreferences(val));
     });
 
+    const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
+      dispatch(updateCookies(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -149,6 +153,7 @@ const useIpcEvents = () => {
       removeConfigUpdatesListener();
       showPreferencesListener();
       removePreferencesUpdatesListener();
+      removeCookieUpdateListener();
     };
   }, [isElectron]);
 };

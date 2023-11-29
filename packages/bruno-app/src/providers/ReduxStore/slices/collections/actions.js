@@ -319,7 +319,20 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
     }
 
     if (isItemAFolder(item)) {
-      throw new Error('Cloning folders is not supported yet');
+      const parentFolder = findParentItemInCollection(collection, item.uid) || collection;
+
+      const folderWithSameNameExists = find(
+        parentFolder.items,
+        (i) => i.type === 'folder' && trim(i.name) === trim(newName)
+      );
+
+      if (folderWithSameNameExists) {
+        return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
+      }
+
+      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newName}`;
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
+      return;
     }
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);

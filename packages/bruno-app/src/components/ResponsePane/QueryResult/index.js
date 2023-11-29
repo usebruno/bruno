@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
 
 const formatResponse = (data, mode, filter) => {
-  if (!data) {
+  if (data === undefined) {
     return '';
   }
 
@@ -65,6 +65,8 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift('preview-web');
     } else if (mode.includes('image')) {
       allowedPreviewModes.unshift('preview-image');
+    } else if (contentType.includes('pdf')) {
+      allowedPreviewModes.unshift('preview-pdf');
     }
 
     return allowedPreviewModes;

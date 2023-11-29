@@ -391,6 +391,40 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
+    try {
+      if (fs.existsSync(collectionPath)) {
+        throw new Error(`folder: ${collectionPath} already exists`);
+      }
+
+      // Recursive function to parse the folder and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach((item) => {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if (item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
+
+      await createDirectory(collectionPath);
+
+      // create folder and files based on another folder
+      await parseCollectionItems(itemFolder.items, collectionPath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
       for (let item of itemsToResequence) {
