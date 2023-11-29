@@ -77,9 +77,10 @@ const prepareRequest = (request, collectionRoot) => {
   let contentTypeDefined = false;
   let url = request.url;
 
-  if (!protocolRegex.test(url)) {
-    url = `http://${url}`;
-  }
+  // Temporarily disabling this as this fails when url has vars Ex: {{baseUrl}}/api
+  // if (!protocolRegex.test(url)) {
+  //   url = `http://${url}`;
+  // }
 
   // collection headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
