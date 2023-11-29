@@ -1,4 +1,4 @@
-**English** | [Português (BR)](docs/publishing/publishing_pt_br.md)
+**English** | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md)
 
 ### Publishing Bruno to a new package manager
 
