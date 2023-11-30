@@ -54,7 +54,7 @@ const buildEmptyJsonBody = (bodySchema) => {
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.operationId || _operationObject.summary || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
