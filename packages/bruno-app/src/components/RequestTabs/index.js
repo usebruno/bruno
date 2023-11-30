@@ -84,7 +84,7 @@ const RequestTabs = () => {
 
   const handleRightClick = (event, tab) => {
     event.preventDefault();
-    ipcRenderer.invoke('renderer:show-tab-context-menu', tab);
+    if (tab.type === 'request') ipcRenderer.invoke('renderer:show-tab-context-menu', tab);
   };
   // Todo: Must support ephemeral requests
   return (
