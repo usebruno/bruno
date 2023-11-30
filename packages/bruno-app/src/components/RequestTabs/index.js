@@ -4,25 +4,19 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeTabs, focusTab, showCloneRequest, showNewRequest } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, showCloneRequest, showNewRequest } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import { findItemInCollection } from 'utils/collections/index';
-import ConfirmRequestClose from './RequestTab/ConfirmRequestClose/index';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections/index';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 const RequestTabs = () => {
   const { ipcRenderer } = window;
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
-  const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [contextMenuItem, setContextMenuItem] = useState(null);
-  const [contextMenuTab, setContextMenuTab] = useState(null);
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
@@ -97,39 +91,6 @@ const RequestTabs = () => {
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
         <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
-      )}
-      {showConfirmClose && (
-        <ConfirmRequestClose
-          onCancel={() => setShowConfirmClose(false)}
-          onCloseWithoutSave={() => {
-            dispatch(
-              deleteRequestDraft({
-                itemUid: contextMenuItem.uid,
-                collectionUid: activeCollection.uid
-              })
-            );
-            dispatch(
-              closeTabs({
-                tabUids: [contextMenuTab.uid]
-              })
-            );
-            setShowConfirmClose(false);
-          }}
-          onSaveAndClose={() => {
-            dispatch(saveRequest(contextMenuItem.uid, activeCollection.uid))
-              .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [contextMenuTab.uid]
-                  })
-                );
-                setShowConfirmClose(false);
-              })
-              .catch((err) => {
-                console.log('err', err);
-              });
-          }}
-        />
       )}
       {cloneRequestOpen && (
         <CloneCollectionItem
