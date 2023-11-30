@@ -521,7 +521,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
       },
       {
-        label: 'Clone Tab',
+        label: 'Clone',
         click: () => {
           event.sender.send('main:tab-context-menu-commands', 'clone-request', tab);
         }
