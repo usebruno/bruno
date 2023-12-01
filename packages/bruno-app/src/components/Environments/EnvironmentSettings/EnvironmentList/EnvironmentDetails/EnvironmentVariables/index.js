@@ -26,7 +26,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
           .required('Name cannot be empty')
           .matches(
             envVariableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-" and "_"'
+            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
           )
           .trim(),
         secret: Yup.boolean(),
