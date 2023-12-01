@@ -48,11 +48,6 @@ class Bru {
       throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
-    // gracefully ignore if key is not present in environment
-    if (!this.envVariables.hasOwnProperty(key)) {
-      return;
-    }
-
     this.envVariables[key] = value;
   }
 
