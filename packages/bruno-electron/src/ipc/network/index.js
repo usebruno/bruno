@@ -1,6 +1,7 @@
 const os = require('os');
 const fs = require('fs');
 const qs = require('qs');
+const parseUrl = require('url').parse;
 const https = require('https');
 const axios = require('axios');
 const path = require('path');
@@ -73,6 +74,14 @@ const getEnvVars = (environment = {}) => {
 };
 
 const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
+
+const getTld = (hostname) => {
+  if (!hostname) {
+    return '';
+  }
+
+  return hostname.substring(hostname.lastIndexOf('.') + 1);
+};
 
 const configureRequest = async (
   collectionUid,
@@ -172,6 +181,15 @@ const configureRequest = async (
     request.httpsAgent = new https.Agent({
       ...httpsAgentRequestFields
     });
+  }
+
+  // resolve all *.localhost to localhost
+  // RFC: 6761 section 6.3 (https://tools.ietf.org/html/rfc6761#section-6.3)
+  // @see https://github.com/usebruno/bruno/issues/124
+  let parsedUrl = parseUrl(request.url);
+  if (getTld(parsedUrl.hostname) === 'localhost') {
+    request.headers['Host'] = parsedUrl.hostname;
+    request.url = request.url.replace(parsedUrl.hostname, 'localhost');
   }
 
   const axiosInstance = makeAxiosInstance();
