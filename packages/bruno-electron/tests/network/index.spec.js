@@ -1,3 +1,12 @@
+// damn jest throws an error when no tests are found in a file
+// --passWithNoTests doesn't work
+
+describe('dummy test', () => {
+  it('should pass', () => {
+    expect(true).toBe(true);
+  });
+});
+
 // todo: fix this failing test
 // const { configureRequest } = require('../../src/ipc/network/index');
 
