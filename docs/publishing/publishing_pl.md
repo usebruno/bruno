@@ -1,4 +1,4 @@
-**English** | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | **Polski** 
+[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | **Polski** 
 
 ### Publikowanie Bruno w nowym menedżerze pakietów
 
