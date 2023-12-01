@@ -14,10 +14,10 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName
 } = require('../utils/filesystem');
-const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -509,6 +509,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return JSON.parse(jsonData);
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
+    }
+  });
+
+  ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
+    try {
+      await deleteCookiesForDomain(domain);
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };
