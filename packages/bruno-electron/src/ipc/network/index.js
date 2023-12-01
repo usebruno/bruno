@@ -72,6 +72,8 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -80,6 +82,10 @@ const configureRequest = async (
   processEnvVars,
   collectionPath
 ) => {
+  if (!protocolRegex.test(request.url)) {
+    request.url = `http://${request.url}`;
+  }
+
   const httpsAgentRequestFields = {};
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -932,3 +938,4 @@ const registerNetworkIpc = (mainWindow) => {
 };
 
 module.exports = registerNetworkIpc;
+module.exports.configureRequest = configureRequest;
