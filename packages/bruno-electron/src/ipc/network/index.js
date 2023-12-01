@@ -468,7 +468,9 @@ const registerNetworkIpc = (mainWindow) => {
             : [response.headers['set-cookie']];
 
           for (let setCookieHeader of setCookieHeaders) {
-            addCookieToJar(setCookieHeader, request.url);
+            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+              addCookieToJar(setCookieHeader, request.url);
+            }
           }
         }
       }
