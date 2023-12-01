@@ -17,7 +17,7 @@ const useCollectionNextAction = () => {
         const item = findItemInCollectionByPathname(collection, get(collection, 'nextAction.payload.pathname'));
 
         if (item) {
-          dispatch(updateNextAction(collection.uid, null));
+          dispatch(updateNextAction({ collectionUid: collection.uid, nextAction: null }));
           dispatch(
             addTab({
               uid: item.uid,
