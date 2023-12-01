@@ -1,4 +1,5 @@
 import React from 'react';
+import get from 'lodash/get';
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
@@ -12,6 +13,8 @@ const General = ({ close }) => {
 
   const preferencesSchema = Yup.object().shape({
     sslVerification: Yup.boolean(),
+    storeCookies: Yup.boolean(),
+    sendCookies: Yup.boolean(),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -28,7 +31,9 @@ const General = ({ close }) => {
   const formik = useFormik({
     initialValues: {
       sslVerification: preferences.request.sslVerification,
-      timeout: preferences.request.timeout
+      timeout: preferences.request.timeout,
+      storeCookies: get(preferences, 'request.storeCookies', true),
+      sendCookies: get(preferences, 'request.sendCookies', true)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -47,7 +52,9 @@ const General = ({ close }) => {
         ...preferences,
         request: {
           sslVerification: newPreferences.sslVerification,
-          timeout: newPreferences.timeout
+          timeout: newPreferences.timeout,
+          storeCookies: newPreferences.storeCookies,
+          sendCookies: newPreferences.sendCookies
         }
       })
     )
@@ -61,20 +68,46 @@ const General = ({ close }) => {
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="flex items-center mt-2">
-          <label className="block font-medium mr-2 select-none" style={{ minWidth: 200 }} htmlFor="sslVerification">
-            SSL/TLS Certificate Verification
-          </label>
           <input
-            id="ssl-cert-verification"
+            id="sslVerification"
             type="checkbox"
             name="sslVerification"
             checked={formik.values.sslVerification}
             onChange={formik.handleChange}
             className="mousetrap mr-0"
           />
+          <label className="block ml-2 select-none" htmlFor="sslVerification">
+            SSL/TLS Certificate Verification
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="storeCookies"
+            type="checkbox"
+            name="storeCookies"
+            checked={formik.values.storeCookies}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="storeCookies">
+            Store Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="sendCookies"
+            type="checkbox"
+            name="sendCookies"
+            checked={formik.values.sendCookies}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="sendCookies">
+            Send Cookies automatically
+          </label>
         </div>
         <div className="flex flex-col mt-6">
-          <label className="block font-medium select-none" htmlFor="timeout">
+          <label className="block select-none" htmlFor="timeout">
             Request Timeout (in ms)
           </label>
           <input

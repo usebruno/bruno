@@ -189,9 +189,11 @@ const configureRequest = async (
   request.timeout = preferencesUtil.getRequestTimeout();
 
   // add cookies to request
-  const cookieString = getCookieStringForUrl(request.url);
-  if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-    request.headers['cookie'] = cookieString;
+  if (preferencesUtil.shouldSendCookies()) {
+    const cookieString = getCookieStringForUrl(request.url);
+    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+      request.headers['cookie'] = cookieString;
+    }
   }
 
   return axiosInstance;
@@ -396,9 +398,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      // todo:
-      // i have no clue why electron can't send the request object
-      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -461,14 +460,16 @@ const registerNetworkIpc = (mainWindow) => {
       response.responseTime = responseTime;
 
       // save cookies
-      let setCookieHeaders = [];
-      if (response.headers['set-cookie']) {
-        setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-          ? response.headers['set-cookie']
-          : [response.headers['set-cookie']];
+      if (preferencesUtil.shouldStoreCookies()) {
+        let setCookieHeaders = [];
+        if (response.headers['set-cookie']) {
+          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+            ? response.headers['set-cookie']
+            : [response.headers['set-cookie']];
 
-        for (let setCookieHeader of setCookieHeaders) {
-          addCookieToJar(setCookieHeader, request.url);
+          for (let setCookieHeader of setCookieHeaders) {
+            addCookieToJar(setCookieHeader, request.url);
+          }
         }
       }
 
