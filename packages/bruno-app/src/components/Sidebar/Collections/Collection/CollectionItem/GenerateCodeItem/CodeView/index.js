@@ -4,6 +4,7 @@ import { HTTPSnippet } from 'httpsnippet';
 import { useTheme } from 'providers/Theme/index';
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { useSelector } from 'react-redux';
+import { uuid } from 'utils/common';
 
 const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
@@ -20,7 +21,8 @@ const CodeView = ({ language, item }) => {
     newHeaders.push({
       name: 'Authorization',
       value: 'Bearer ' + auth.bearer.token,
-      enabled: true
+      enabled: true,
+      uid: uuid()
     });
   }
 
