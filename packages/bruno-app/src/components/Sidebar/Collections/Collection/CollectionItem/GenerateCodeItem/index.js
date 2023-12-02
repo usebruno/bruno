@@ -7,7 +7,7 @@ import get from 'lodash/get';
 import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
 
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
+const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars, auth }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
@@ -75,7 +75,11 @@ const languages = [
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
   const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const auth =
+    get(item, 'draft.request.auth') !== undefined ? get(item, 'draft.request.auth') : get(item, 'request.auth');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const variables = collection.collectionVariables;
+
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -89,7 +93,8 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     url,
     envVars,
     collectionVariables: collection.collectionVariables,
-    processEnvVars: collection.processEnvVariables
+    processEnvVars: collection.processEnvVariables,
+    auth
   });
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
