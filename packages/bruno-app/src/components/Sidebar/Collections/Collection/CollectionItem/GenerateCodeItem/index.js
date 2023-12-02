@@ -123,6 +123,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
               <CodeView
                 language={selectedLanguage}
                 item={{
+                  collection,
                   ...item,
                   request:
                     item.request.url !== ''
