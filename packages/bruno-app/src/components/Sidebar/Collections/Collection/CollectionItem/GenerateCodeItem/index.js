@@ -7,7 +7,7 @@ import get from 'lodash/get';
 import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
 
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars, auth }) => {
+const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
@@ -74,11 +74,11 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  let url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
   const auth =
     get(item, 'draft.request.auth') !== undefined ? get(item, 'draft.request.auth') : get(item, 'request.auth');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-  const variables = collection.collectionVariables;
+  const collectionVariables = collection.collectionVariables;
 
   let envVars = {};
   if (environment) {
@@ -87,6 +87,18 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
       acc[curr.name] = curr.value;
       return acc;
     }, {});
+  }
+
+  let matches = url.match(/{{(.*?)}}/);
+
+  if (matches) {
+    let variableName = matches[1];
+
+    // Vérifier si la variable existe dans collectionVariables
+    if (collectionVariables.hasOwnProperty(variableName)) {
+      // Remplacer la valeur de la variable dans l'URL
+      url = url.replace(matches[0], encodeURIComponent(collectionVariables[variableName]));
+    }
   }
 
   const interpolatedUrl = interpolateUrl({
