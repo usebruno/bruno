@@ -54,7 +54,7 @@ const buildEmptyJsonBody = (bodySchema) => {
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.operationId || _operationObject.summary || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
@@ -187,17 +187,23 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components) => {
+const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
 
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components));
+    return spec.map((item) => resolveRefs(item, components, visitedItems));
   }
 
   if ('$ref' in spec) {
     const refPath = spec.$ref;
+
+    if (visitedItems.has(refPath)) {
+      return spec;
+    } else {
+      visitedItems.add(refPath);
+    }
 
     if (refPath.startsWith('#/components/')) {
       // Local reference within components
@@ -213,7 +219,7 @@ const resolveRefs = (spec, components = spec.components) => {
         }
       }
 
-      return resolveRefs(ref, components);
+      return resolveRefs(ref, components, visitedItems);
     } else {
       // Handle external references (not implemented here)
       // You would need to fetch the external reference and resolve it.
@@ -223,7 +229,7 @@ const resolveRefs = (spec, components = spec.components) => {
 
   // Recursively resolve references in nested objects
   for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components);
+    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
   }
 
   return spec;

@@ -1,5 +1,5 @@
 import React from 'react';
-import Modal from 'components/Modal';
+import StyledWrapper from './StyledWrapper';
 
 function countRequests(items) {
   let count = 0;
@@ -20,9 +20,9 @@ function countRequests(items) {
   return count;
 }
 
-const CollectionProperties = ({ collection, onClose }) => {
+const Info = ({ collection }) => {
   return (
-    <Modal size="sm" title="Collection Properties" hideFooter={true} handleCancel={onClose}>
+    <StyledWrapper className="w-full flex flex-col h-full">
       <table className="w-full border-collapse">
         <tbody>
           <tr className="">
@@ -43,8 +43,8 @@ const CollectionProperties = ({ collection, onClose }) => {
           </tr>
         </tbody>
       </table>
-    </Modal>
+    </StyledWrapper>
   );
 };
 
-export default CollectionProperties;
+export default Info;

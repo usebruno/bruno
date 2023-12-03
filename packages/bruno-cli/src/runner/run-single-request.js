@@ -3,7 +3,7 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, each, extend, get, compact } = require('lodash');
+const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -16,6 +16,8 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
+
+const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
 
 const runSingleRequest = async function (
   filename,
@@ -81,6 +83,10 @@ const runSingleRequest = async function (
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
 
+    if (!protocolRegex.test(request.url)) {
+      request.url = `http://${request.url}`;
+    }
+
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
     const httpsAgentRequestFields = {};
@@ -136,14 +142,15 @@ const runSingleRequest = async function (
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
       if (socksEnabled) {
@@ -208,6 +215,8 @@ const runSingleRequest = async function (
         };
       }
     }
+
+    response.responseTime = responseTime;
 
     console.log(
       chalk.green(stripExtension(filename)) +

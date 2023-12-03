@@ -34,7 +34,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       requestUrlChanged({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        url: value
+        url: value && typeof value === 'string' ? value.trim() : value
       })
     );
   };

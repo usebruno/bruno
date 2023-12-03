@@ -217,6 +217,19 @@ export const collectionsSlice = createSlice({
 
             if (variable) {
               variable.value = value;
+            } else {
+              // __name__ is a private variable used to store the name of the environment
+              // this is not a user defined variable and hence should not be updated
+              if (key !== '__name__') {
+                activeEnvironment.variables.push({
+                  name: key,
+                  value,
+                  secret: false,
+                  enabled: true,
+                  type: 'text',
+                  uid: uuid()
+                });
+              }
             }
           });
         }

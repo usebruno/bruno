@@ -18,7 +18,7 @@ const lastOpenedCollections = new LastOpenedCollections();
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src * 'unsafe-inline' 'unsafe-eval'",
-  "connect-src 'self' api.github.com",
+  "connect-src 'self' api.github.com app.posthog.com",
   "font-src 'self' https:",
   "form-action 'none'",
   "img-src 'self' blob: data: https:",

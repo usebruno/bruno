@@ -22,13 +22,11 @@ const ProxySettings = ({ close }) => {
       })
       .max(1024),
     port: Yup.number()
-      .when('enabled', {
-        is: true,
-        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
-        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
-      })
       .min(1)
-      .max(65535),
+      .max(65535)
+      .typeError('Specify port between 1 and 65535')
+      .nullable()
+      .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
       .when('enabled', {
         is: true,
