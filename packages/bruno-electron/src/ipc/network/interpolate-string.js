@@ -1,21 +1,6 @@
 const Handlebars = require('handlebars');
 const { forOwn, cloneDeep } = require('lodash');
-
-const interpolateEnvVars = (str, processEnvVars) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  return template({
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
+const interpolateEnvVars = require('./interpolate-env-vars');
 
 const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -24,15 +9,7 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
 
   processEnvVars = processEnvVars || {};
   collectionVariables = collectionVariables || {};
-
-  // we clone envVars because we don't want to modify the original object
-  envVars = envVars ? cloneDeep(envVars) : {};
-
-  // envVars can inturn have values as {{process.env.VAR_NAME}}
-  // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
-  });
+  envVars = interpolateEnvVars(processEnvVars, envVars);
 
   const template = Handlebars.compile(str, { noEscape: true });
 
