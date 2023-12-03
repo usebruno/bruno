@@ -186,6 +186,12 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+
+    // Update gutter with checkboxes after the editor has been initialized
+    if (this.props.checkboxEnabled) {
+      this.createCheckboxes();
+    }
+
     CodeMirror.registerHelper('lint', 'json', function (text) {
       let found = [];
       if (!window.jsonlint) {
@@ -235,7 +241,44 @@ export default class CodeEditor extends React.Component {
     }
   }
 
+  createCheckboxes = () => {
+    const lastLine = this.editor.lineCount();
+
+    // Remove existing checkboxes
+    this.editor.clearGutter('checkboxes');
+
+    for (let i = 0; i <= lastLine; i++) {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.style.float = 'left';
+      checkbox.style.marginRight = '5px';
+
+      if (i === 0) {
+        // Add a control checkbox at line 0
+        checkbox.addEventListener('change', () => {
+          for (let j = 1; j <= lastLine; j++) {
+            const fileInfo = this.editor.lineInfo(j);
+            if (fileInfo && fileInfo.gutterMarkers && fileInfo.gutterMarkers['checkboxes']) {
+              const lineCheckbox = fileInfo.gutterMarkers['checkboxes'].firstChild;
+              if (lineCheckbox) lineCheckbox.checked = checkbox.checked;
+            }
+          }
+        });
+      }
+
+      this.editor.setGutterMarker(i, 'checkboxes', checkbox);
+    }
+  };
+
   componentDidUpdate(prevProps) {
+    if (this.props.checkboxEnabled !== prevProps.checkboxEnabled) {
+      if (this.props.checkboxEnabled) {
+        this.createCheckboxes();
+      } else {
+        this.editor.clearGutter('control-checkboxes');
+        this.editor.clearGutter('checkboxes');
+      }
+    }
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
     // event loop.
