@@ -1,6 +1,35 @@
 const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+
+const parseFormData = (datas, rootCollectionPath) => {
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item.value;
+    const name = item.name;
+    if (item.isFile === true) {
+      const filePaths = value
+        .toString()
+        .replace(/^@file\(/, '')
+        .replace(/\)$/, '')
+        .split('|');
+
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(rootCollectionPath, trimmedFilePath);
+        }
+        const file = fs.readFileSync(trimmedFilePath);
+        form.append(name, file, path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(name, value);
+    }
+  });
+  return form;
+};
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -146,18 +175,10 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
-    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
-
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    const form = new FormData();
-    forOwn(axiosRequest.data, (value, key) => {
-      form.append(key, value);
-    });
+    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
+    const form = parseFormData(enabledParams, collectionRoot);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
