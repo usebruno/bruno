@@ -17,6 +17,8 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
+const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
+
 const runSingleRequest = async function (
   filename,
   bruJson,
@@ -80,6 +82,10 @@ const runSingleRequest = async function (
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+
+    if (!protocolRegex.test(request.url)) {
+      request.url = `http://${request.url}`;
+    }
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);

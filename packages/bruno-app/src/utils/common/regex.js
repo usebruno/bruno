@@ -1,1 +1,1 @@
-export const envVariableNameRegex = /^(?!\d)[\w-]*$/;
+export const variableNameRegex = /^[\w-.]*$/;

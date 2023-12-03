@@ -25,6 +25,22 @@ const parseJson = async (obj) => {
   }
 };
 
+const safeStringifyJSON = (data) => {
+  try {
+    return JSON.stringify(data);
+  } catch (e) {
+    return data;
+  }
+};
+
+const safeParseJSON = (data) => {
+  try {
+    return JSON.parse(data);
+  } catch (e) {
+    return data;
+  }
+};
+
 const simpleHash = (str) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -73,6 +89,8 @@ module.exports = {
   uuid,
   stringifyJson,
   parseJson,
+  safeStringifyJSON,
+  safeParseJSON,
   simpleHash,
   generateUidBasedOnHash,
   flattenDataForDotNotation

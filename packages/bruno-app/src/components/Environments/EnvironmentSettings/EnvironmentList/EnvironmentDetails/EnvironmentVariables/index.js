@@ -10,7 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
-import { envVariableNameRegex } from 'utils/common/regex';
+import { variableNameRegex } from 'utils/common/regex';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -25,8 +25,8 @@ const EnvironmentVariables = ({ environment, collection }) => {
         name: Yup.string()
           .required('Name cannot be empty')
           .matches(
-            envVariableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-" and "_"'
+            variableNameRegex,
+            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
           )
           .trim(),
         secret: Yup.boolean(),
@@ -52,7 +52,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
-    console.log(name, meta);
     if (!meta.error) {
       return null;
     }
