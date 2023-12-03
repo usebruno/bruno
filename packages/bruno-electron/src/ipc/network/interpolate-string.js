@@ -1,5 +1,4 @@
 const Handlebars = require('handlebars');
-const { forOwn, cloneDeep } = require('lodash');
 const interpolateEnvVars = require('./interpolate-env-vars');
 
 const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {

@@ -1,5 +1,5 @@
 const Handlebars = require('handlebars');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn } = require('lodash');
 const interpolateEnvVars = require('./interpolate-env-vars');
 
 const getContentType = (headers = {}) => {
