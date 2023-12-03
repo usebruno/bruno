@@ -134,7 +134,9 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             disableRunEventListener={disableRunEventListener}
             storedTheme={storedTheme}
           />
-          {queryFilterEnabled && <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} />}
+          {queryFilterEnabled && (
+            <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} data={data} item={item} />
+          )}
         </>
       )}
     </StyledWrapper>
