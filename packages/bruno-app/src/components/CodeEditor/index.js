@@ -117,7 +117,7 @@ export default class CodeEditor extends React.Component {
       matchBrackets: true,
       showCursorWhenSelecting: true,
       foldGutter: true,
-      gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
+      gutters: ['control-checkboxes', 'checkboxes', 'CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       lint: { esversion: 11 },
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
