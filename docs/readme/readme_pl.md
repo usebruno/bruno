@@ -22,7 +22,7 @@ Bruno działa tylko w trybie offline. Nie planujemy nigdy dodawać synchronizacj
 
 📢 Obejrzyj naszą ostatnią rozmowę na konferencji India FOSS 3.0 [tutaj](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](/assets/images/landing-2.png) <br /><br />
 
 ### Instalacja
 
@@ -56,13 +56,13 @@ sudo apt install bruno
 
 ### Uruchom na wielu platformach 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Współpracuj przez Git 👩‍💻🧑‍💻
 
 Lub dowolny inny system kontroli wersji, który wybierzesz
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### Ważne Linki 📌
 
