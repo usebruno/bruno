@@ -14,7 +14,6 @@ const FilePickerEditor = ({ value, onChange }) => {
   const browse = () => {
     dispatch(browseFiles())
       .then((filePaths) => {
-        // When the user closes the diolog without selecting anything dirPath will be false
         onChange(filePaths.join('|'));
       })
       .catch((error) => {

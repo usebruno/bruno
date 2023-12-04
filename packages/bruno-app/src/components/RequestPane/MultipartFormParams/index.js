@@ -49,9 +49,6 @@ const MultipartFormParams = ({ item, collection }) => {
       }
       case 'value': {
         param.value = e.target.value;
-        // if (param.isFile === true) {
-        //   param.value = `@file(${param.value})`;
-        // }
         break;
       }
       case 'enabled': {
