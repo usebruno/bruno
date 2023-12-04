@@ -1,6 +1,7 @@
 const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
+const dnsPromises = require('dns').promises;
 const connectionCache = new Map(); // Cache to store checkConnection() results
 
 const LOCAL_IPV6 = '::1';
@@ -32,7 +33,7 @@ const checkConnection = (host, port) =>
       });
 
       socket.once('error', () => {
-        connectionCache.set(key, false); // Cache failed connection
+        // we don't cache here, we want to test the connection everytime if it fails.
         resolve(false);
       });
 
@@ -40,6 +41,34 @@ const checkConnection = (host, port) =>
       socket.connect(port, host);
     }
   });
+
+const localhostLookup = (url, hostname, options, callback) => {
+  const port = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
+
+  dnsPromises
+    .lookup(hostname, options)
+    .then((res) => handleSuccessfulLookup(port, res, callback))
+    .catch(() => handleCustomLookup(port, callback));
+};
+
+const handleSuccessfulLookup = (port, res, callback) => {
+  /**
+   * If we're here it means that localhost or *.localhost resolved to an IP address inside the hosts file,
+   * but we still need to check connectivity, as localhost could resolve to 127.0.0.1, but a server could listen on ::1.
+   */
+  console.log('DNS lookup successful, checking connection');
+  checkConnection(res.address, port).then((success) =>
+    success ? callback(null, res.address, res.family) : handleCustomLookup(port, callback)
+  );
+};
+
+const handleCustomLookup = (port, callback) => {
+  console.log(`DNS lookup failed, falling back to custom lookup.`);
+  checkConnection(LOCAL_IPV6, port).then((useIpv6) => {
+    const ip = useIpv6 ? LOCAL_IPV6 : LOCAL_IPV4;
+    callback(null, ip, useIpv6 ? 6 : 4);
+  });
+};
 
 /**
  * Function that configures axios with timing interceptors
@@ -60,11 +89,7 @@ function makeAxiosInstance() {
     if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCAL_IPV4 || url.hostname === LOCAL_IPV6) {
       // use custom DNS lookup for localhost
       config.lookup = (hostname, options, callback) => {
-        const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
-        checkConnection(LOCAL_IPV6, portNumber).then((useIpv6) => {
-          const ip = useIpv6 ? LOCAL_IPV6 : LOCAL_IPV4;
-          callback(null, ip, useIpv6 ? 6 : 4);
-        });
+        localhostLookup(url, hostname, options, callback);
       };
     }
 
