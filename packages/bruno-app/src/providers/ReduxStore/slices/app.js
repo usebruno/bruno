@@ -50,7 +50,6 @@ export const appSlice = createSlice({
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
-      console.log(state.cookies);
     }
   }
 });

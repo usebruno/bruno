@@ -93,7 +93,6 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  console.log(collection.root);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
