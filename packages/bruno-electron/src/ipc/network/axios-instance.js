@@ -1,6 +1,11 @@
 const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
+const connectionCache = new Map(); // Cache to store checkConnection() results
+
+const LOCAL_IPV6 = '::1';
+const LOCAL_IPV4 = '127.0.0.1';
+const LOCALHOST = 'localhost';
 
 const getTld = (hostname) => {
   if (!hostname) {
@@ -12,19 +17,28 @@ const getTld = (hostname) => {
 
 const checkConnection = (host, port) =>
   new Promise((resolve) => {
-    const socket = new Socket();
+    const key = `${host}:${port}`;
+    const cachedResult = connectionCache.get(key);
 
-    socket.once('connect', () => {
-      socket.end();
-      resolve(true);
-    });
+    if (cachedResult !== undefined) {
+      resolve(cachedResult);
+    } else {
+      const socket = new Socket();
 
-    socket.once('error', () => {
-      resolve(false);
-    });
+      socket.once('connect', () => {
+        socket.end();
+        connectionCache.set(key, true); // Cache successful connection
+        resolve(true);
+      });
 
-    // Try to connect to the host and port
-    socket.connect(port, host);
+      socket.once('error', () => {
+        connectionCache.set(key, false); // Cache failed connection
+        resolve(false);
+      });
+
+      // Try to connect to the host and port
+      socket.connect(port, host);
+    }
   });
 
 /**
@@ -43,16 +57,16 @@ function makeAxiosInstance() {
     // Resolve all *.localhost to localhost and check if it should use IPv6 or IPv4
     // RFC: 6761 section 6.3 (https://tools.ietf.org/html/rfc6761#section-6.3)
     // @see https://github.com/usebruno/bruno/issues/124
-    // temporarily disabling the fix (- Anoop)
-    // if (getTld(url.hostname) === 'localhost') {
-    //   config.headers.Host = url.hostname; // Put original hostname in Host
-
-    //   const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
-    //   const useIpv6 = await checkConnection('::1', portNumber);
-    //   url.hostname = useIpv6 ? '::1' : '127.0.0.1';
-    //   delete url.host; // Clear hostname cache
-    //   config.url = URL.format(url);
-    // }
+    if (getTld(url.hostname) === LOCALHOST || url.hostname === LOCAL_IPV4 || url.hostname === LOCAL_IPV6) {
+      // use custom DNS lookup for localhost
+      config.lookup = (hostname, options, callback) => {
+        const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
+        checkConnection(LOCAL_IPV6, portNumber).then((useIpv6) => {
+          const ip = useIpv6 ? LOCAL_IPV6 : LOCAL_IPV4;
+          callback(null, ip, useIpv6 ? 6 : 4);
+        });
+      };
+    }
 
     config.headers['request-start-time'] = Date.now();
     return config;
