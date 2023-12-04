@@ -43,15 +43,16 @@ function makeAxiosInstance() {
     // Resolve all *.localhost to localhost and check if it should use IPv6 or IPv4
     // RFC: 6761 section 6.3 (https://tools.ietf.org/html/rfc6761#section-6.3)
     // @see https://github.com/usebruno/bruno/issues/124
-    if (getTld(url.hostname) === 'localhost') {
-      config.headers.Host = url.hostname; // Put original hostname in Host
+    // temporarily disabling the fix (- Anoop)
+    // if (getTld(url.hostname) === 'localhost') {
+    //   config.headers.Host = url.hostname; // Put original hostname in Host
 
-      const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
-      const useIpv6 = await checkConnection('::1', portNumber);
-      url.hostname = useIpv6 ? '::1' : '127.0.0.1';
-      delete url.host; // Clear hostname cache
-      config.url = URL.format(url);
-    }
+    //   const portNumber = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
+    //   const useIpv6 = await checkConnection('::1', portNumber);
+    //   url.hostname = useIpv6 ? '::1' : '127.0.0.1';
+    //   delete url.host; // Clear hostname cache
+    //   config.url = URL.format(url);
+    // }
 
     config.headers['request-start-time'] = Date.now();
     return config;
