@@ -4,6 +4,7 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
+import { postmanTranslation } from 'utils/importers/translators/postman_translation';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -121,9 +122,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
                 brunoRequestItem.request.script = {};
               }
               if (Array.isArray(event.script.exec)) {
-                brunoRequestItem.request.script.req = event.script.exec.map((line) => `// ${line}`).join('\n');
+                brunoRequestItem.request.script.req = event.script.exec
+                  .map((line) => postmanTranslation(line))
+                  .join('\n');
               } else {
-                brunoRequestItem.request.script.req = `// ${event.script.exec[0]} `;
+                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec[0]);
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
@@ -131,9 +134,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
                 brunoRequestItem.request.tests = {};
               }
               if (Array.isArray(event.script.exec)) {
-                brunoRequestItem.request.tests = event.script.exec.map((line) => `// ${line}`).join('\n');
+                brunoRequestItem.request.tests = event.script.exec.map((line) => postmanTranslation(line)).join('\n');
               } else {
-                brunoRequestItem.request.tests = `// ${event.script.exec[0]} `;
+                brunoRequestItem.request.tests = postmanTranslation(event.script.exec[0]);
               }
             }
           });
