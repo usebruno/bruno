@@ -28,6 +28,8 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
+const varsRegex = /{{((?!process\.env\.)[\w-.]*)}}/g;
+
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
@@ -43,9 +45,11 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
-    const strLiteralSegment = str.replace('{{', '{{[').replace('}}', ']}}');
-    const template = Handlebars.compile(strLiteralSegment, { noEscape: true });
+    if (varsRegex.test(str)) {
+      // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
+      str = str.replaceAll(varsRegex, '{{[$1]}}');
+    }
+    const template = Handlebars.compile(str, { noEscape: true });
 
     // collectionVariables take precedence over envVars
     const combinedVars = {
