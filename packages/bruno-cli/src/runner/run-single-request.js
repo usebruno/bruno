@@ -17,7 +17,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
-const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const runSingleRequest = async function (
   filename,
