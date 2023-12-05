@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Support for `bru.setNextRequest()`
+
 ## 1.1.0
 
 - Upgraded axios to 1.5.1
