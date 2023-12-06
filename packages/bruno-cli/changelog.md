@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Fixed bug related to `bru.setNextRequest()`
+
 ## 1.2.0
 
 - Support for `bru.setNextRequest()`
