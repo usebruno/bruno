@@ -11,6 +11,10 @@ const initialState = {
   preferences: {
     request: {
       sslVerification: true,
+      customCaCertificate: {
+        enabled: false,
+        filePath: null
+      },
       timeout: 0
     },
     font: {
