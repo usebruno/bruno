@@ -1,3 +1,5 @@
+[English](/readme.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | **Türkçe** | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md)
+
 ## Bruno'yu birlikte daha iyi hale getirelim !!
 
 Bruno'yu geliştirmek istemenizden mutluluk duyuyorum. Aşağıda, bruno'yu bilgisayarınıza getirmeye başlamak için yönergeler bulunmaktadır.

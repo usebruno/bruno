@@ -28,6 +28,7 @@ const nanoid = require('nanoid');
 const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
+const NodeVault = require('node-vault');
 
 class TestRuntime {
   constructor() {}
@@ -130,7 +131,8 @@ class TestRuntime {
           'node-fetch': fetch,
           'crypto-js': CryptoJS,
           ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
         }
       }
     });

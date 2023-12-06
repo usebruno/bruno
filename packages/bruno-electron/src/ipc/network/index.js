@@ -6,11 +6,10 @@ const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
-const FormData = require('form-data');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each, get, compact } = require('lodash');
+const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -26,8 +25,10 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
+const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -71,21 +72,7 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
-const getSize = (data) => {
-  if (!data) {
-    return 0;
-  }
-
-  if (typeof data === 'string') {
-    return Buffer.byteLength(data, 'utf8');
-  }
-
-  if (typeof data === 'object') {
-    return Buffer.byteLength(safeStringifyJSON(data), 'utf8');
-  }
-
-  return 0;
-};
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const configureRequest = async (
   collectionUid,
@@ -95,6 +82,10 @@ const configureRequest = async (
   processEnvVars,
   collectionPath
 ) => {
+  if (!protocolRegex.test(request.url)) {
+    request.url = `http://${request.url}`;
+  }
+
   const httpsAgentRequestFields = {};
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -142,7 +133,7 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', false);
+  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
@@ -155,14 +146,15 @@ const configureRequest = async (
     const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
     const socksEnabled = proxyProtocol.includes('socks');
 
+    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
     let proxyUri;
     if (proxyAuthEnabled) {
       const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
       const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
     } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
     }
 
     if (socksEnabled) {
@@ -190,7 +182,19 @@ const configureRequest = async (
     delete request.awsv4config;
   }
 
+  if (request.digestConfig) {
+    addDigestInterceptor(axiosInstance, request);
+  }
+
   request.timeout = preferencesUtil.getRequestTimeout();
+
+  // add cookies to request
+  if (preferencesUtil.shouldSendCookies()) {
+    const cookieString = getCookieStringForUrl(request.url);
+    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+      request.headers['cookie'] = cookieString;
+    }
+  }
 
   return axiosInstance;
 };
@@ -198,10 +202,10 @@ const configureRequest = async (
 const parseDataFromResponse = (response) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
   // Overwrite the original data for backwards compatability
   let data = dataBuffer.toString(charset || 'utf-8');
-  // Try to parse response to JSON, this can quitly fail
+  // Try to parse response to JSON, this can quietly fail
   try {
     data = JSON.parse(response.data);
   } catch {}
@@ -254,10 +258,11 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
+    let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runRequestScript(
+      scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
         envVars,
@@ -269,8 +274,8 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
@@ -279,10 +284,18 @@ const registerNetworkIpc = (mainWindow) => {
     // interpolate variables inside request
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    }
+
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
     }
+
+    return scriptResult;
   };
 
   const runPostResponse = async (
@@ -322,12 +335,13 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    let scriptResult;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runResponseScript(
+      scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
         response,
@@ -340,12 +354,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
     }
+    return scriptResult;
   };
 
   // handler for sending http request
@@ -388,9 +403,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      // todo:
-      // i have no clue why electron can't send the request object
-      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -449,6 +461,28 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
+
+      response.responseTime = responseTime;
+
+      // save cookies
+      if (preferencesUtil.shouldStoreCookies()) {
+        let setCookieHeaders = [];
+        if (response.headers['set-cookie']) {
+          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+            ? response.headers['set-cookie']
+            : [response.headers['set-cookie']];
+
+          for (let setCookieHeader of setCookieHeaders) {
+            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+              addCookieToJar(setCookieHeader, request.url);
+            }
+          }
+        }
+      }
+
+      // send domain cookies to renderer
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
         request,
@@ -582,6 +616,7 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
         preparedRequest,
@@ -666,7 +701,11 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        for (let item of folderRequests) {
+        let currentRequestIndex = 0;
+        let nJumps = 0; // count the number of jumps to avoid infinite loops
+        while (currentRequestIndex < folderRequests.length) {
+          const item = folderRequests[currentRequestIndex];
+          let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -688,7 +727,7 @@ const registerNetworkIpc = (mainWindow) => {
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            await runPreRequest(
+            const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
               envVars,
@@ -699,6 +738,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (preRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = preRequestScriptResult.nextRequestName;
+            }
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -775,7 +818,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            await runPostResponse(
+            const postRequestScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -787,6 +830,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (postRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postRequestScriptResult.nextRequestName;
+            }
 
             // run assertions
             const assertions = get(item, 'request.assertions');
@@ -847,6 +894,24 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          }
+          if (nextRequestName !== undefined) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
+              break;
+            }
+            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            if (nextRequestIdx >= 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              console.error("Could not find request with name '" + nextRequestName + "'");
+              currentRequestIndex++;
+            }
+          } else {
+            currentRequestIndex++;
           }
         }
 
@@ -911,3 +976,4 @@ const registerNetworkIpc = (mainWindow) => {
 };
 
 module.exports = registerNetworkIpc;
+module.exports.configureRequest = configureRequest;

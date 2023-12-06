@@ -14,10 +14,10 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName
 } = require('../utils/filesystem');
-const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -391,6 +391,40 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
+    try {
+      if (fs.existsSync(collectionPath)) {
+        throw new Error(`folder: ${collectionPath} already exists`);
+      }
+
+      // Recursive function to parse the folder and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach((item) => {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if (item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
+
+      await createDirectory(collectionPath);
+
+      // create folder and files based on another folder
+      await parseCollectionItems(itemFolder.items, collectionPath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
       for (let item of itemsToResequence) {
@@ -475,6 +509,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return JSON.parse(jsonData);
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
+    }
+  });
+
+  ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
+    try {
+      await deleteCookiesForDomain(domain);
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };

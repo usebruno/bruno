@@ -55,16 +55,27 @@ const convertV21Auth = (array) => {
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
+  const folderMap = {};
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
+      const baseFolderName = i.name;
+      let folderName = baseFolderName;
+      let count = 1;
+
+      while (folderMap[folderName]) {
+        folderName = `${baseFolderName}_${count}`;
+        count++;
+      }
+
       const brunoFolderItem = {
         uid: uuid(),
-        name: i.name,
+        name: folderName,
         type: 'folder',
         items: []
       };
       brunoParent.items.push(brunoFolderItem);
+      folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
       }

@@ -43,7 +43,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    const template = Handlebars.compile(str, { noEscape: true });
+    // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
+    const strLiteralSegment = str.replace('{{', '{{[').replace('}}', ']}}');
+    const template = Handlebars.compile(strLiteralSegment, { noEscape: true });
 
     // collectionVariables take precedence over envVars
     const combinedVars = {
@@ -129,6 +131,12 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.awsv4config.service = interpolate(request.awsv4config.service) || '';
     request.awsv4config.region = interpolate(request.awsv4config.region) || '';
     request.awsv4config.profileName = interpolate(request.awsv4config.profileName) || '';
+  }
+
+  // interpolate vars for digest auth
+  if (request.digestConfig) {
+    request.digestConfig.username = interpolate(request.digestConfig.username) || '';
+    request.digestConfig.password = interpolate(request.digestConfig.password) || '';
   }
 
   return request;

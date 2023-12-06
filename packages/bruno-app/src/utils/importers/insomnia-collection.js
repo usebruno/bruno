@@ -41,7 +41,7 @@ const parseGraphQL = (text) => {
   } catch (e) {
     return {
       query: '',
-      variables: {}
+      variables: ''
     };
   }
 };
@@ -80,7 +80,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       auth: {
         mode: 'none',
         basic: null,
-        bearer: null
+        bearer: null,
+        digest: null
       },
       headers: [],
       params: [],

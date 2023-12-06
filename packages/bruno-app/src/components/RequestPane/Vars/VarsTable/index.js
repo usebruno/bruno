@@ -9,6 +9,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
+import { variableNameRegex } from 'utils/common/regex';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -32,13 +33,10 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       case 'name': {
         const value = e.target.value;
 
-        if (/^(?!\d).*$/.test(value) === false) {
-          toast.error('Variable names must not start with a number!');
-          return;
-        }
-
-        if (/^\w*$/.test(value) === false) {
-          toast.error('Variable contains invalid character! Variables must only contain alpha-numeric characters.');
+        if (variableNameRegex.test(value) === false) {
+          toast.error(
+            'Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."'
+          );
           return;
         }
 
