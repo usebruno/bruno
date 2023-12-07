@@ -28,14 +28,44 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
+const interpolateCollectionVars = (str, processEnvVars, processCollectionVariables) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  const template = Handlebars.compile(str, { noEscape: true });
+
+  const output = template({
+    ...processEnvVars,
+    ...processEnvCollectionVariables,
+    process: {
+      env: {
+        ...processEnvCollectionVariables
+      }
+    }
+  });
+
+  // Check if returned string has any more variables to interpolate
+  if (output.includes('{{') && output.includes('}}')) {
+    return interpolateCollectionVars(output, processEnvVars, processCollectionVariables);
+  }
+
+  return output;
+};
+
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
+  collectionVariables = cloneDeep(collectionVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
     envVars[key] = interpolateEnvVars(value, processEnvVars);
+  });
+
+  Object.entries(collectionVariables).map(([key, value]) => {
+    collectionVariables[key] = interpolateCollectionVars(value, envVars, collectionVariables);
   });
 
   const interpolate = (str) => {
@@ -58,7 +88,14 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       }
     };
 
-    return template(combinedVars);
+    const output = template(combinedVars);
+
+    // Check if returned string has any more variables to interpolate
+    if (output.includes('{{') && output.includes('}}')) {
+      return interpolate(output);
+    }
+
+    return output;
   };
 
   request.url = interpolate(request.url);
