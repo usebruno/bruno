@@ -88,7 +88,6 @@ export const findCollectionByUid = (collections, collectionUid) => {
 };
 
 export const findCollectionByPathname = (collections, pathname) => {
-  console.log('findCollectionByPathname', collections);
   return find(collections, (c) => c.pathname === pathname);
 };
 
