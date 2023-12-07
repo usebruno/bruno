@@ -92,7 +92,6 @@ const envJsonToBru = (json) => {
 const bruToJson = (bru) => {
   try {
     const json = bruToJsonV2(bru);
-
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
       requestType = 'http-request';

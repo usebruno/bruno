@@ -119,7 +119,6 @@ const Collection = ({ collection, searchText }) => {
 
   const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
-
   return (
     <StyledWrapper className="flex flex-col">
       {showNewRequestModal && <NewRequest collection={collection} onClose={() => setShowNewRequestModal(false)} />}

@@ -66,7 +66,6 @@ const Collections = () => {
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
-
   if (!collections || !collections.length) {
     return (
       <StyledWrapper>

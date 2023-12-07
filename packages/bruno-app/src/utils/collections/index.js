@@ -88,6 +88,7 @@ export const findCollectionByUid = (collections, collectionUid) => {
 };
 
 export const findCollectionByPathname = (collections, pathname) => {
+  console.log('findCollectionByPathname', collections);
   return find(collections, (c) => c.pathname === pathname);
 };
 
@@ -103,7 +104,6 @@ export const findItemInCollectionByPathname = (collection, pathname) => {
 
 export const findItemInCollection = (collection, itemUid) => {
   let flattenedItems = flattenItems(collection.items);
-
   return findItem(flattenedItems, itemUid);
 };
 
