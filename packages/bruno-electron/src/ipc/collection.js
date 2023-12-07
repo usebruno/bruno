@@ -232,7 +232,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
+      if (oldPath.toUpperCase() !== newPath.toUpperCase() && fs.existsSync(newPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
