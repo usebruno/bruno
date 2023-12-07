@@ -12,6 +12,8 @@ import SpecialTab from './SpecialTab';
 import { useTheme } from 'providers/Theme';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
+import CloseTabIcon from './CloseTab/CloseTabIcon';
+import DraftTabIcon from './CloseTab/DraftTabIcon';
 
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
@@ -140,24 +142,9 @@ const RequestTab = ({ tab, collection }) => {
         }}
       >
         {!item.draft ? (
-          <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
-            <path
-              fill="currentColor"
-              d="M207.6 256l107.72-107.72c6.23-6.23 6.23-16.34 0-22.58l-25.03-25.03c-6.23-6.23-16.34-6.23-22.58 0L160 208.4 52.28 100.68c-6.23-6.23-16.34-6.23-22.58 0L4.68 125.7c-6.23 6.23-6.23 16.34 0 22.58L112.4 256 4.68 363.72c-6.23 6.23-6.23 16.34 0 22.58l25.03 25.03c6.23 6.23 16.34 6.23 22.58 0L160 303.6l107.72 107.72c6.23 6.23 16.34 6.23 22.58 0l25.03-25.03c6.23-6.23 6.23-16.34 0-22.58L207.6 256z"
-            ></path>
-          </svg>
+          <CloseTabIcon />
         ) : (
-          <svg
-            focusable="false"
-            xmlns="http://www.w3.org/2000/svg"
-            width="8"
-            height="16"
-            fill="#cc7b1b"
-            className="has-changes-icon"
-            viewBox="0 0 8 8"
-          >
-            <circle cx="4" cy="4" r="3" />
-          </svg>
+          <DraftTabIcon />
         )}
       </div>
     </StyledWrapper>
