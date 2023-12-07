@@ -1,20 +1,17 @@
+// @ts-ignore
 import MarkdownIt from 'markdown-it';
 import StyledWrapper from './StyledWrapper';
+import * as React from 'react';
 
 const md = new MarkdownIt();
 
-const Markdown = ({ onDoubleClick, content }) => {
-  const handleOnDoubleClick = (event) => {
-    switch (event.detail) {
-      case 2: {
-        onDoubleClick();
-        break;
-      }
-      case 1:
-      default: {
-        break;
-      }
+const Markdown = ({ onDoubleClick, content }: { onDoubleClick: () => void; content?: string }) => {
+  const handleOnDoubleClick = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    console.log(event);
+    if (event?.detail === 2) {
+      onDoubleClick();
     }
+    return;
   };
   const htmlFromMarkdown = md.render(content || '');
 

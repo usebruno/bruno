@@ -98,9 +98,16 @@ app.on('ready', async () => {
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
 
-  mainWindow.webContents.on('new-window', function (e, url) {
-    e.preventDefault();
-    require('electron').shell.openExternal(url);
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    event.preventDefault();
+    if (/^(http:\/\/|https:\/\/)/.test(url)) {
+      require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    require('electron').shell.openExternal(details.url);
+    return { action: 'allow' };
   });
 
   // register all ipc handlers
