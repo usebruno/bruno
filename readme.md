@@ -10,7 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md)) | [한국어](docs/readme/readme_kr.md) ) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md)
+**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md)) | [한국어](docs/readme/readme_kr.md) ) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -28,7 +28,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
 
-You can also install Bruno via package managers like Homebrew, Chocolatey, Snap and Apt.
+You can also install Bruno via package managers like Homebrew, Chocolatey, Scoop, Snap and Apt.
 
 ```sh
 # On Mac via Homebrew
@@ -36,6 +36,10 @@ brew install bruno
 
 # On Windows via Chocolatey
 choco install bruno
+
+# On Windows via Scoop
+scoop bucket add extras
+scoop install bruno
 
 # On Linux via Snap
 snap install bruno

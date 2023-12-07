@@ -217,6 +217,19 @@ export const collectionsSlice = createSlice({
 
             if (variable) {
               variable.value = value;
+            } else {
+              // __name__ is a private variable used to store the name of the environment
+              // this is not a user defined variable and hence should not be updated
+              if (key !== '__name__') {
+                activeEnvironment.variables.push({
+                  name: key,
+                  value,
+                  secret: false,
+                  enabled: true,
+                  type: 'text',
+                  uid: uuid()
+                });
+              }
             }
           });
         }
@@ -972,7 +985,6 @@ export const collectionsSlice = createSlice({
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
-            console.log('set auth awsv4', action.payload.content);
             break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
@@ -1310,29 +1322,29 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-sent') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'queued');
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
         }
 
         if (type === 'response-received') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
         }
 
         if (type === 'test-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
           item.testResults = action.payload.testResults;
         }
 
         if (type === 'assertion-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
           item.assertionResults = action.payload.assertionResults;
         }
 
         if (type === 'error') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';

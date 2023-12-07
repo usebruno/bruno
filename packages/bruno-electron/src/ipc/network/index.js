@@ -72,6 +72,8 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -80,6 +82,10 @@ const configureRequest = async (
   processEnvVars,
   collectionPath
 ) => {
+  if (!protocolRegex.test(request.url)) {
+    request.url = `http://${request.url}`;
+  }
+
   const httpsAgentRequestFields = {};
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
@@ -183,9 +189,11 @@ const configureRequest = async (
   request.timeout = preferencesUtil.getRequestTimeout();
 
   // add cookies to request
-  const cookieString = getCookieStringForUrl(request.url);
-  if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-    request.headers['cookie'] = cookieString;
+  if (preferencesUtil.shouldSendCookies()) {
+    const cookieString = getCookieStringForUrl(request.url);
+    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+      request.headers['cookie'] = cookieString;
+    }
   }
 
   return axiosInstance;
@@ -250,10 +258,11 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
+    let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runRequestScript(
+      scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
         envVars,
@@ -265,8 +274,8 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
@@ -275,10 +284,18 @@ const registerNetworkIpc = (mainWindow) => {
     // interpolate variables inside request
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    }
+
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
     }
+
+    return scriptResult;
   };
 
   const runPostResponse = async (
@@ -318,12 +335,13 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    let scriptResult;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runResponseScript(
+      scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
         response,
@@ -336,12 +354,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
     }
+    return scriptResult;
   };
 
   // handler for sending http request
@@ -384,9 +403,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      // todo:
-      // i have no clue why electron can't send the request object
-      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -449,14 +465,18 @@ const registerNetworkIpc = (mainWindow) => {
       response.responseTime = responseTime;
 
       // save cookies
-      let setCookieHeaders = [];
-      if (response.headers['set-cookie']) {
-        setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-          ? response.headers['set-cookie']
-          : [response.headers['set-cookie']];
+      if (preferencesUtil.shouldStoreCookies()) {
+        let setCookieHeaders = [];
+        if (response.headers['set-cookie']) {
+          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+            ? response.headers['set-cookie']
+            : [response.headers['set-cookie']];
 
-        for (let setCookieHeader of setCookieHeaders) {
-          addCookieToJar(setCookieHeader, request.url);
+          for (let setCookieHeader of setCookieHeaders) {
+            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+              addCookieToJar(setCookieHeader, request.url);
+            }
+          }
         }
       }
 
@@ -681,7 +701,11 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        for (let item of folderRequests) {
+        let currentRequestIndex = 0;
+        let nJumps = 0; // count the number of jumps to avoid infinite loops
+        while (currentRequestIndex < folderRequests.length) {
+          const item = folderRequests[currentRequestIndex];
+          let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -703,7 +727,7 @@ const registerNetworkIpc = (mainWindow) => {
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            await runPreRequest(
+            const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
               envVars,
@@ -714,6 +738,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (preRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = preRequestScriptResult.nextRequestName;
+            }
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -790,7 +818,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            await runPostResponse(
+            const postRequestScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -802,6 +830,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (postRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postRequestScriptResult.nextRequestName;
+            }
 
             // run assertions
             const assertions = get(item, 'request.assertions');
@@ -862,6 +894,24 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          }
+          if (nextRequestName !== undefined) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
+              break;
+            }
+            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            if (nextRequestIdx >= 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              console.error("Could not find request with name '" + nextRequestName + "'");
+              currentRequestIndex++;
+            }
+          } else {
+            currentRequestIndex++;
           }
         }
 
@@ -926,3 +976,4 @@ const registerNetworkIpc = (mainWindow) => {
 };
 
 module.exports = registerNetworkIpc;
+module.exports.configureRequest = configureRequest;

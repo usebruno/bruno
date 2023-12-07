@@ -1,9 +1,16 @@
+/**
+ * Telemetry in bruno is just an anonymous visit counter (triggered once per day).
+ * The only details shared are:
+ *      - OS (ex: mac, windows, linux)
+ *      - Bruno Version (ex: 1.3.0)
+ * We don't track usage analytics / micro-interactions / crash logs / anything else.
+ */
+
 import { useEffect } from 'react';
 import getConfig from 'next/config';
 import { PostHog } from 'posthog-node';
 import platformLib from 'platform';
 import { uuid } from 'utils/common';
-import { isElectron } from 'utils/common/platform';
 
 const { publicRuntimeConfig } = getConfig();
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
@@ -15,11 +22,6 @@ const isPlaywrightTestRunning = () => {
 
 const isDevEnv = () => {
   return publicRuntimeConfig.ENV === 'dev';
-};
-
-// Todo support chrome and firefox extension
-const getPlatform = () => {
-  return isElectron() ? 'electron' : 'web';
 };
 
 const getPosthogClient = () => {
@@ -52,14 +54,13 @@ const trackStart = () => {
   }
 
   const trackingId = getAnonymousTrackingId();
-  const platform = getPlatform();
   const client = getPosthogClient();
   client.capture({
     distinctId: trackingId,
     event: 'start',
     properties: {
-      platform: platform,
-      os: platformLib.os.family
+      os: platformLib.os.family,
+      version: '1.4.0'
     }
   });
 };

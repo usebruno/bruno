@@ -11,6 +11,8 @@ const { get } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
+    storeCookies: true,
+    sendCookies: true,
     timeout: 0
   },
   font: {
@@ -33,6 +35,8 @@ const defaultPreferences = {
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
+    storeCookies: Yup.boolean(),
+    sendCookies: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
@@ -101,6 +105,12 @@ const preferencesUtil = {
   },
   getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', {});
+  },
+  shouldStoreCookies: () => {
+    return get(getPreferences(), 'request.storeCookies', true);
+  },
+  shouldSendCookies: () => {
+    return get(getPreferences(), 'request.sendCookies', true);
   }
 };
 

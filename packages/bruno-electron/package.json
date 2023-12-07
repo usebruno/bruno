@@ -1,5 +1,5 @@
 {
-  "version": "v1.2.0",
+  "version": "v1.4.0",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.425.0",
-    "@usebruno/js": "0.9.2",
+    "@usebruno/js": "0.9.3",
     "@usebruno/lang": "0.9.0",
     "@usebruno/schema": "0.6.0",
     "about-window": "^1.15.2",

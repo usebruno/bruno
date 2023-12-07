@@ -306,28 +306,26 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Rename
               </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setCloneItemModalOpen(true);
+                }}
+              >
+                Clone
+              </div>
               {!isFolder && (
-                <>
-                  <div
-                    className="dropdown-item"
-                    onClick={(e) => {
-                      dropdownTippyRef.current.hide();
-                      setCloneItemModalOpen(true);
-                    }}
-                  >
-                    Clone
-                  </div>
-                  <div
-                    className="dropdown-item"
-                    onClick={(e) => {
-                      dropdownTippyRef.current.hide();
-                      handleClick(null);
-                      handleRun();
-                    }}
-                  >
-                    Run
-                  </div>
-                </>
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    handleClick(null);
+                    handleRun();
+                  }}
+                >
+                  Run
+                </div>
               )}
               {!isFolder && item.type === 'http-request' && (
                 <div

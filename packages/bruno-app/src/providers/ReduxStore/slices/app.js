@@ -50,7 +50,6 @@ export const appSlice = createSlice({
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
-      console.log(state.cookies);
     }
   }
 });
@@ -81,6 +80,14 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
         console.error(err);
         reject(err);
       });
+  });
+};
+
+export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
   });
 };
 
