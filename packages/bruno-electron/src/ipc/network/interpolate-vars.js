@@ -37,10 +37,10 @@ const interpolateCollectionVars = (str, processEnvVars, processCollectionVariabl
 
   const output = template({
     ...processEnvVars,
-    ...processEnvCollectionVariables,
+    ...processCollectionVariables,
     process: {
       env: {
-        ...processEnvCollectionVariables
+        ...processCollectionVariables
       }
     }
   });
