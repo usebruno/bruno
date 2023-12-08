@@ -6,7 +6,6 @@ const md = new MarkdownIt();
 
 const Markdown = ({ onDoubleClick, content }) => {
   const handleOnDoubleClick = (event) => {
-    console.log(event);
     if (event?.detail === 2) {
       onDoubleClick();
     }
