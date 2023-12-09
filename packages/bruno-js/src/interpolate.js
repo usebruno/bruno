@@ -27,6 +27,55 @@ const interpolateEnvVars = (str, processEnvVars) => {
     }
   });
 };
+const interpolateString = (str, { envVariables, collectionVariables, processEnvVars }) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+
+  processEnvVars = processEnvVars || {};
+  collectionVariables = collectionVariables || {};
+
+  // we clone envVariables because we don't want to modify the original object
+  envVariables = envVariables ? cloneDeep(envVariables) : {};
+
+  // envVariables can, in turn, have values as {{process.env.VAR_NAME}}
+  // Therefore, we need to interpolate envVariables first with processEnvVars
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolateEnvVars(value, processEnvVars);
+  });
+
+  const template = Handlebars.compile(str, { noEscape: true });
+
+  // collectionVariables take precedence over envVariables
+  const combinedVars = {
+    ...envVariables,
+    ...collectionVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  };
+
+  return template(combinedVars);
+};
+const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
+  if (!url || !url.length || typeof url !== 'string') {
+    return;
+  }
+
+  const template = Handlebars.compile(url, { noEscape: true });
+
+  return template({
+    ...envVars,
+    ...collectionVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  });
+};
 
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
@@ -124,4 +173,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   return request;
 };
 
-module.exports = interpolateVars;
+module.exports = {
+  interpolateVars,
+  interpolateString,
+  interpolateUrl
+};

@@ -4,7 +4,7 @@ const { nanoid } = require('nanoid');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
-const { interpolateString } = require('../interpolate-string');
+const { interpolateString } = require('../interpolate');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
