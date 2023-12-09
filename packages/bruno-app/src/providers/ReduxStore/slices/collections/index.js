@@ -1224,6 +1224,7 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
         } else {
           collection.environments.push(environment);
+          collection.environments.sort((a, b) => a.name.localeCompare(b.name));
 
           const lastAction = collection.lastAction;
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
