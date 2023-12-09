@@ -1,6 +1,6 @@
 const Handlebars = require('handlebars');
 const { each, forOwn } = require('lodash');
-const interpolateEnvVars = require('./interpolate-env-vars');
+const interpolateString = require('./interpolate-string');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -13,30 +13,9 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
-  envVars = interpolateEnvVars(processEnvVars, envVars);
-
+const interpolateRequest = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   const interpolate = (str) => {
-    if (!str || !str.length || typeof str !== 'string') {
-      return str;
-    }
-
-    // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
-    const strLiteralSegment = str.replace('{{', '{{[').replace('}}', ']}}');
-    const template = Handlebars.compile(strLiteralSegment, { noEscape: true });
-
-    // collectionVariables take precedence over envVars
-    const combinedVars = {
-      ...envVars,
-      ...collectionVariables,
-      process: {
-        env: {
-          ...processEnvVars
-        }
-      }
-    };
-
-    return template(combinedVars);
+    return interpolateString(str, envVars, collectionVariables, processEnvVars);
   };
 
   request.url = interpolate(request.url);

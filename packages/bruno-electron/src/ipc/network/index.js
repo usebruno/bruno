@@ -10,13 +10,18 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { isUndefined, isNull, each, get, compact } = require('lodash');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const {
+  VarsRuntime,
+  AssertRuntime,
+  ScriptRuntime,
+  TestRuntime,
+  interpolateString,
+  interpolateRequest
+} = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
-const interpolateVars = require('./interpolate-vars');
-const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
 const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
@@ -281,7 +286,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+    interpolateRequest(request, envVars, collectionVariables, processEnvVars);
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
@@ -611,7 +616,7 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      interpolateRequest(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
         preparedRequest,

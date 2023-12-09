@@ -1,4 +1,4 @@
-const interpolateEnvVars = require('../../src/ipc/network/interpolate-env-vars');
+const interpolateEnvVars = require('../src/interpolate-env-vars');
 
 describe('interpolate wiht nested env vars', () => {
   test('until nested env vars are resolved', () => {

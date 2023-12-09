@@ -6,9 +6,14 @@ const fs = require('fs');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
-const interpolateVars = require('./interpolate-vars');
-const { interpolateString } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
+const {
+  ScriptRuntime,
+  TestRuntime,
+  VarsRuntime,
+  AssertRuntime,
+  interpolateString,
+  interpolateRequest
+} = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -81,7 +86,7 @@ const runSingleRequest = async function (
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+    interplateRequest(request, envVariables, collectionVariables, processEnvVars);
 
     if (!protocolRegex.test(request.url)) {
       request.url = `http://${request.url}`;
