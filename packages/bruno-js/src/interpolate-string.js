@@ -50,6 +50,25 @@ const interpolateString = (str, { envVariables, collectionVariables, processEnvV
   return template(combinedVars);
 };
 
+const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
+  if (!url || !url.length || typeof url !== 'string') {
+    return;
+  }
+
+  const template = handlebars.compile(url, { noEscape: true });
+
+  return template({
+    ...envVars,
+    ...collectionVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  });
+};
+
 module.exports = {
-  interpolateString
+  interpolateString,
+  interpolateUrl
 };

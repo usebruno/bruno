@@ -4,26 +4,9 @@ import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url/index';
 import get from 'lodash/get';
-import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
-
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
-  if (!url || !url.length || typeof url !== 'string') {
-    return;
-  }
-
-  const template = handlebars.compile(url, { noEscape: true });
-
-  return template({
-    ...envVars,
-    ...collectionVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
+const { interpolateVars, interpolateUrl } = require('@usebruno/js/src/interpolate-vars');
+const { interpolateString } = require('@usebruno/js/src/interpolate-string');
 
 const languages = [
   {
