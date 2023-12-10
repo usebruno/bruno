@@ -48,13 +48,13 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, newHeaders }) => {
+export const buildHarRequest = ({ request, headers }) => {
   return {
     method: request.method,
     url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
-    headers: createHeaders(newHeaders),
+    headers: createHeaders(headers),
     queryString: createQuery(request.params),
     postData: createPostData(request.body),
     headersSize: 0,
