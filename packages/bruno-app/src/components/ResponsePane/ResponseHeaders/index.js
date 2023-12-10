@@ -3,7 +3,7 @@ import StyledWrapper from './StyledWrapper';
 
 const ResponseHeaders = ({ headers }) => {
   return (
-    <StyledWrapper className="pb-4 w-full">
+    <StyledWrapper className="pb-4 w-full overflow-auto">
       <table>
         <thead>
           <tr>

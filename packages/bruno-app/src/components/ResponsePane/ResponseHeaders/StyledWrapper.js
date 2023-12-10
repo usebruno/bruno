@@ -1,9 +1,18 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
+  /* This is a hack to force headers-pane use all available space. Denoted by --hack-- */
+  position: relative;
+
   table {
     width: 100%;
     border-collapse: collapse;
+
+    /* --hack-- */
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 100%;
 
     thead {
       color: #777777;
