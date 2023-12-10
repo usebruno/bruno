@@ -19,6 +19,9 @@ const Wrapper = styled.div`
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
+      position: sticky;
+      top: 0;
+      background: #1c1c1c;
     }
 
     td {
