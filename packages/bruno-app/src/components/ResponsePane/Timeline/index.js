@@ -20,7 +20,7 @@ const Timeline = ({ request, response }) => {
   let requestData = safeStringifyJSON(request.data);
 
   return (
-    <StyledWrapper className="pb-4 w-full">
+    <StyledWrapper className="pb-4 w-full overflow-auto">
       <div>
         <pre className="line request font-bold">
           <span className="arrow">{'>'}</span> {request.method} {request.url}
