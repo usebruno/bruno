@@ -114,7 +114,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   // todo: we have things happening in two places w.r.t basic auth
   //       need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
-  if (request.auth) {
+  if (request.auth && request.auth.mode === undefined) {
     const username = interpolate(request.auth.username) || '';
     const password = interpolate(request.auth.password) || '';
 
