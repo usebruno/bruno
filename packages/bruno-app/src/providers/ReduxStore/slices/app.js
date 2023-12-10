@@ -16,7 +16,8 @@ const initialState = {
     font: {
       codeFont: 'default'
     }
-  }
+  },
+  cookies: []
 };
 
 export const appSlice = createSlice({
@@ -46,6 +47,9 @@ export const appSlice = createSlice({
     },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateCookies: (state, action) => {
+      state.cookies = action.payload;
     }
   }
 });
@@ -58,7 +62,8 @@ export const {
   showHomePage,
   hideHomePage,
   showPreferences,
-  updatePreferences
+  updatePreferences,
+  updateCookies
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -75,6 +80,14 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
         console.error(err);
         reject(err);
       });
+  });
+};
+
+export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
   });
 };
 

@@ -1,3 +1,5 @@
+[English](/contributing.md) | [Українська](/contributing_ua.md) | **Русский** | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md)
+
 ## Давайте вместе сделаем Бруно лучше!!!
 
 Я рад, что Вы хотите усовершенствовать bruno. Ниже приведены рекомендации по запуску bruno на вашем компьютере.

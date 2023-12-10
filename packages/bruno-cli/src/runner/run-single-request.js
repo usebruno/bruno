@@ -3,7 +3,7 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, each, extend, get, compact } = require('lodash');
+const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
@@ -17,6 +17,8 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+
 const runSingleRequest = async function (
   filename,
   bruJson,
@@ -29,6 +31,7 @@ const runSingleRequest = async function (
 ) {
   try {
     let request;
+    let nextRequestName;
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
@@ -66,7 +69,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runRequestScript(
+      const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
         envVariables,
@@ -76,10 +79,17 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+
+    if (!protocolRegex.test(request.url)) {
+      request.url = `http://${request.url}`;
+    }
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
@@ -136,14 +146,15 @@ const runSingleRequest = async function (
       const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
       const socksEnabled = proxyProtocol.includes('socks');
 
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
       let proxyUri;
       if (proxyAuthEnabled) {
         const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
         const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
 
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
       } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
       if (socksEnabled) {
@@ -204,10 +215,13 @@ const runSingleRequest = async function (
           },
           error: err.message,
           assertionResults: [],
-          testResults: []
+          testResults: [],
+          nextRequestName: nextRequestName
         };
       }
     }
+
+    response.responseTime = responseTime;
 
     console.log(
       chalk.green(stripExtension(filename)) +
@@ -236,7 +250,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runResponseScript(
+      const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
         response,
@@ -247,6 +261,9 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // run assertions
@@ -318,7 +335,8 @@ const runSingleRequest = async function (
       },
       error: null,
       assertionResults,
-      testResults
+      testResults,
+      nextRequestName: nextRequestName
     };
   } catch (err) {
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));

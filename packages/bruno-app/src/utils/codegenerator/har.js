@@ -9,34 +9,26 @@ const createContentType = (mode) => {
     case 'multipartForm':
       return 'multipart/form-data';
     default:
-      return 'application/json';
+      return '';
   }
 };
 
-const createHeaders = (headers, mode) => {
-  const contentType = createContentType(mode);
-  const headersArray = headers
+const createHeaders = (headers) => {
+  return headers
     .filter((header) => header.enabled)
-    .map((header) => {
-      return {
-        name: header.name,
-        value: header.value
-      };
-    });
-  const headerNames = headersArray.map((header) => header.name);
-  if (!headerNames.includes('Content-Type')) {
-    return [...headersArray, { name: 'Content-Type', value: contentType }];
-  }
-  return headersArray;
+    .map((header) => ({
+      name: header.name,
+      value: header.value
+    }));
 };
 
 const createQuery = (queryParams = []) => {
-  return queryParams.map((param) => {
-    return {
+  return queryParams
+    .filter((param) => param.enabled)
+    .map((param) => ({
       name: param.name,
       value: param.value
-    };
-  });
+    }));
 };
 
 const createPostData = (body) => {
@@ -56,13 +48,13 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = (request) => {
+export const buildHarRequest = ({ request, headers }) => {
   return {
     method: request.method,
     url: request.url,
     httpVersion: 'HTTP/1.1',
     cookies: [],
-    headers: createHeaders(request.headers, request.body.mode),
+    headers: createHeaders(headers),
     queryString: createQuery(request.params),
     postData: createPostData(request.body),
     headersSize: 0,

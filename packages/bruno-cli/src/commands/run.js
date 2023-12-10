@@ -355,7 +355,10 @@ const handler = async function (argv) {
       }
     }
 
-    for (const iter of bruJsons) {
+    let currentRequestIndex = 0;
+    let nJumps = 0; // count the number of jumps to avoid infinite loops
+    while (currentRequestIndex < bruJsons.length) {
+      const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
       const result = await runSingleRequest(
         bruFilepath,
@@ -369,6 +372,28 @@ const handler = async function (argv) {
       );
 
       results.push(result);
+
+      // determine next request
+      const nextRequestName = result?.nextRequestName;
+      if (nextRequestName !== undefined) {
+        nJumps++;
+        if (nJumps > 10000) {
+          console.error(chalk.red(`Too many jumps, possible infinite loop`));
+          process.exit(1);
+        }
+        if (nextRequestName === null) {
+          break;
+        }
+        const nextRequestIdx = bruJsons.findIndex((iter) => iter.bruJson.name === nextRequestName);
+        if (nextRequestIdx >= 0) {
+          currentRequestIndex = nextRequestIdx;
+        } else {
+          console.error("Could not find request with name '" + nextRequestName + "'");
+          currentRequestIndex++;
+        }
+      } else {
+        currentRequestIndex++;
+      }
     }
 
     const summary = printRunSummary(results);

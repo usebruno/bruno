@@ -1,7 +1,7 @@
 const Handlebars = require('handlebars');
 const { cloneDeep } = require('lodash');
 
-const envVariableNameRegex = /^(?!\d)[\w-]*$/;
+const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
   constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
@@ -45,12 +45,7 @@ class Bru {
 
   setEnvVar(key, value) {
     if (!key) {
-      throw new Error('Key is required');
-    }
-
-    // gracefully ignore if key is not present in environment
-    if (!this.envVariables.hasOwnProperty(key)) {
-      return;
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
     }
 
     this.envVariables[key] = value;
@@ -58,13 +53,13 @@ class Bru {
 
   setVar(key, value) {
     if (!key) {
-      throw new Error('Key is required');
+      throw new Error('Creating a variable without specifying a name is not allowed.');
     }
 
-    if (envVariableNameRegex.test(key) === false) {
+    if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_" and cannot start with a digit.'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -72,14 +67,18 @@ class Bru {
   }
 
   getVar(key) {
-    if (envVariableNameRegex.test(key) === false) {
+    if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters and cannot start with a digit.'
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
     return this.collectionVariables[key];
+  }
+
+  setNextRequest(nextRequest) {
+    this.nextRequest = nextRequest;
   }
 }
 

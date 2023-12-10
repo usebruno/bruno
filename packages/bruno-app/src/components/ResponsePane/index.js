@@ -104,6 +104,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+          {response.headers?.length > 0 && <sup className="ml-1 font-medium">{response.headers.length}</sup>}
         </div>
         <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
           Timeline

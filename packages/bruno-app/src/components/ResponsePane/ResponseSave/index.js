@@ -10,7 +10,6 @@ const ResponseSave = ({ item }) => {
 
   const saveResponseToFile = () => {
     return new Promise((resolve, reject) => {
-      console.log(item);
       ipcRenderer
         .invoke('renderer:save-response-to-file', response, item.requestSent.url)
         .then(resolve)
