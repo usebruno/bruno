@@ -98,12 +98,6 @@ const grammar = ohm.grammar(`Bru {
   tests = "tests" st* "{" nl* textblock tagend
   docs = "docs" st* "{" nl* textblock tagend
 }`);
-const decodeURIComponentSafe = (s) => {
-  if (!s) {
-    return s;
-  }
-  return decodeURIComponent(s.replace(/%(?![0-9][0-9a-fA-F]+)/g, '%25'));
-};
 
 const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   if (!pairList.length) {
@@ -111,7 +105,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = decodeURIComponentSafe(pair[name]);
+    let value = pair[name].startsWith('http') ? decodeURIComponent(pair[name]) : pair[name];
 
     if (!parseEnabled) {
       return {
