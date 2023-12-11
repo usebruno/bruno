@@ -70,7 +70,43 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
     }
   );
+  // clone collection
+  ipcMain.handle(
+    'renderer:clone-collection',
+    async (event, collectionName, collectionFolderName, collectionLocation, perviousPath) => {
+      try {
+        const dirPath = path.join(collectionLocation, collectionFolderName);
+        if (fs.existsSync(dirPath)) {
+          throw new Error(`collection: ${dirPath} already exists`);
+        }
 
+        if (!isValidPathname(dirPath)) {
+          throw new Error(`collection: invalid pathname - ${dir}`);
+        }
+
+        await createDirectory(dirPath);
+        const uid = generateUidBasedOnHash(dirPath);
+        const brunoJsonFilePath = path.join(perviousPath, 'bruno.json');
+        const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+        let json = JSON.parse(content);
+        json.name = collectionName;
+        const cont = await stringifyJson(json);
+        await writeFile(path.join(dirPath, 'bruno.json'), cont);
+        const files = searchForBruFiles(perviousPath);
+        console.log(files);
+        for (const sourceFilePath of files) {
+          const fileName = path.basename(sourceFilePath);
+          const destinationFilePath = path.join(dirPath, fileName);
+          console.log(destinationFilePath);
+          fs.copyFileSync(sourceFilePath, destinationFilePath);
+        }
+        mainWindow.webContents.send('main:collection-opened', dirPath, uid, json);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+  );
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {

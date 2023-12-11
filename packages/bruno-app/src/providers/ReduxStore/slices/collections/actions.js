@@ -939,7 +939,16 @@ export const createCollection = (collectionName, collectionFolderName, collectio
       .catch(reject);
   });
 };
+export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
+  const { ipcRenderer } = window;
 
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+      .invoke('renderer:clone-collection', collectionName, collectionFolderName, collectionLocation, perviousPath)
+      .then(resolve)
+      .catch(reject);
+  });
+};
 export const openCollection = () => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
