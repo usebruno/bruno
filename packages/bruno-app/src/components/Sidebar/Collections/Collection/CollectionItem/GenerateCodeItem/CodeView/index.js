@@ -6,8 +6,7 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCopy } from '@fortawesome/free-solid-svg-icons';
+import { IconCopy } from '@tabler/icons';
 
 const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
@@ -27,7 +26,7 @@ const CodeView = ({ language, item }) => {
     <>
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <CopyToClipboard text={snippet} onCopy={() => toast.success('Copied to clipboard!')}>
-          <FontAwesomeIcon icon={faCopy} style={{ cursor: 'pointer' }} />
+          <IconCopy size={25} strokeWidth={1.5} />
         </CopyToClipboard>
       </div>
       <CodeEditor
