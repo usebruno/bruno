@@ -31,35 +31,39 @@ export default function RunnerResults({ collection }) {
   }, [collection, setSelectedItem]);
 
   const collectionCopy = cloneDeep(collection);
-  const items = cloneDeep(get(collection, 'runnerResult.items', []));
   const runnerInfo = get(collection, 'runnerResult.info', {});
-  each(items, (item) => {
-    const info = findItemInCollection(collectionCopy, item.uid);
-
-    item.name = info.name;
-    item.type = info.type;
-    item.filename = info.filename;
-    item.pathname = info.pathname;
-    item.relativePath = getRelativePath(collection.pathname, info.pathname);
-
-    if (item.status !== 'error') {
-      if (item.testResults) {
-        const failed = item.testResults.filter((result) => result.status === 'fail');
-
-        item.testStatus = failed.length ? 'fail' : 'pass';
-      } else {
-        item.testStatus = 'pass';
+  const items = cloneDeep(get(collection, 'runnerResult.items', []))
+    .map((item) => {
+      const info = findItemInCollection(collectionCopy, item.uid);
+      if (!info) {
+        return null;
       }
+      const newItem = {
+        ...item,
+        name: info.name,
+        type: info.type,
+        filename: info.filename,
+        pathname: info.pathname,
+        relativePath: getRelativePath(collection.pathname, info.pathname)
+      };
+      if (newItem.status !== 'error') {
+        if (newItem.testResults) {
+          const failed = newItem.testResults.filter((result) => result.status === 'fail');
+          newItem.testStatus = failed.length ? 'fail' : 'pass';
+        } else {
+          newItem.testStatus = 'pass';
+        }
 
-      if (item.assertionResults) {
-        const failed = item.assertionResults.filter((result) => result.status === 'fail');
-
-        item.assertionStatus = failed.length ? 'fail' : 'pass';
-      } else {
-        item.assertionStatus = 'pass';
+        if (newItem.assertionResults) {
+          const failed = newItem.assertionResults.filter((result) => result.status === 'fail');
+          newItem.assertionStatus = failed.length ? 'fail' : 'pass';
+        } else {
+          newItem.assertionStatus = 'pass';
+        }
       }
-    }
-  });
+      return newItem;
+    })
+    .filter(Boolean);
 
   const runCollection = () => {
     dispatch(runCollectionFolder(collection.uid, null, true));
@@ -168,26 +172,24 @@ export default function RunnerResults({ collection }) {
                           </li>
                         ))
                       : null}
-                    {item.assertionResults
-                      ? item.assertionResults.map((result) => (
-                          <li key={result.uid}>
-                            {result.status === 'pass' ? (
-                              <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
-                                {result.lhsExpr}: {result.rhsExpr}
-                              </span>
-                            ) : (
-                              <>
-                                <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
-                                  {result.lhsExpr}: {result.rhsExpr}
-                                </span>
-                                <span className="error-message pl-8 text-xs">{result.error}</span>
-                              </>
-                            )}
-                          </li>
-                        ))
-                      : null}
+                    {item.assertionResults?.map((result) => (
+                      <li key={result.uid}>
+                        {result.status === 'pass' ? (
+                          <span className="test-success flex items-center">
+                            <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                            {result.lhsExpr}: {result.rhsExpr}
+                          </span>
+                        ) : (
+                          <>
+                            <span className="test-failure flex items-center">
+                              <IconX size={18} strokeWidth={2} className="mr-2" />
+                              {result.lhsExpr}: {result.rhsExpr}
+                            </span>
+                            <span className="error-message pl-8 text-xs">{result.error}</span>
+                          </>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
