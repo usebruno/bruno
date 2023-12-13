@@ -1,4 +1,4 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 
@@ -146,20 +146,12 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
 
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    const form = new FormData();
-    forOwn(axiosRequest.data, (value, key) => {
-      form.append(key, value);
-    });
-    extend(axiosRequest.headers, form.getHeaders());
-    axiosRequest.data = form;
+    const params = {};
+    each(enabledParams, (p) => (params[p.name] = p.value));
+    axiosRequest.data = params;
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
   }
 
   if (request.body.mode === 'graphql') {

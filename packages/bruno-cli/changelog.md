@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fixed variable interpolation for multipart form body
+
 ## 1.1.0
 
 - Upgraded axios to 1.5.1
