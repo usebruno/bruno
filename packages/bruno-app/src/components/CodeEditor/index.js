@@ -104,7 +104,6 @@ export default class CodeEditor extends React.Component {
     this.cachedValue = props.value || '';
     this.variables = {};
   }
-
   componentDidMount() {
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',

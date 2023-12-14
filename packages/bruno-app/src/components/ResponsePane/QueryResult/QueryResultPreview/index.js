@@ -7,6 +7,7 @@ import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const QueryResultPreview = ({
   previewTab,
@@ -68,7 +69,7 @@ const QueryResultPreview = ({
     default:
     case 'raw': {
       return (
-        <CodeEditor
+        <CodeEditor2
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
           theme={storedTheme}
