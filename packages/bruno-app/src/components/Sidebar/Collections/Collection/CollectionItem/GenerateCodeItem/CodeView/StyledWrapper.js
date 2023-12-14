@@ -6,8 +6,8 @@ const StyledWrapper = styled.div`
   .copy-to-clipboard {
     position: absolute;
     cursor: pointer;
-    top: 0px;
-    right: 0px;
+    top: 10px;
+    right: 10px;
     z-index: 10;
     opacity: 0.5;
 
