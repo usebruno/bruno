@@ -42,7 +42,10 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
   });
 };
 
-export const getCodeMirrorModeBasedOnContentType = (contentType) => {
+export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
+  if (typeof body === 'object') {
+    return 'application/ld+json';
+  }
   if (!contentType || typeof contentType !== 'string') {
     return 'application/text';
   }
