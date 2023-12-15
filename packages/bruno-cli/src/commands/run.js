@@ -1,7 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const { forOwn, result } = require('lodash');
+const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
