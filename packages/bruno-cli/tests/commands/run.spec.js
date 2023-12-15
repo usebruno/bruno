@@ -157,4 +157,43 @@ describe('makeJUnitOutput', () => {
     expect(failcase.failure).toBeDefined;
     expect(failcase.failure[0]['@type']).toBe('failure');
   });
+
+  it('should handle request errors', () => {
+    const results = [
+      {
+        description: 'description provided',
+        suitename: 'Tests/Suite A',
+        request: {
+          method: 'GET',
+          url: 'https://ima.test'
+        },
+        assertionResults: [
+          {
+            lhsExpr: 'res.status',
+            rhsExpr: 'eq 200',
+            status: 'fail'
+          }
+        ],
+        runtime: 1.2345678,
+        error: 'timeout of 2000ms exceeded'
+      }
+    ];
+
+    makeJunitOutput(results, '/tmp/testfile.xml');
+
+    const junit = xmlbuilder.create.mock.calls[0][0];
+
+    expect(createStub).toBeCalled;
+
+    expect(junit.testsuites).toBeDefined;
+    expect(junit.testsuites.testsuite.length).toBe(1);
+    expect(junit.testsuites.testsuite[0].testcase.length).toBe(1);
+
+    const failcase = junit.testsuites.testsuite[0].testcase[0];
+
+    expect(failcase['@name']).toBe('Test suite has no errors');
+    expect(failcase.error).toBeDefined;
+    expect(failcase.error[0]['@type']).toBe('error');
+    expect(failcase.error[0]['@message']).toBe('timeout of 2000ms exceeded');
+  });
 });

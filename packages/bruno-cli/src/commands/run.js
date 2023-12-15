@@ -174,7 +174,7 @@ const makeJunitOutput = async (results, outputPath) => {
     }
   };
 
-  results.forEach((result, idx) => {
+  results.forEach((result) => {
     const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
     const testCount = result.testResults ? result.testResults.length : 0;
     const totalTests = assertionTestCount + testCount;
@@ -212,7 +212,6 @@ const makeJunitOutput = async (results, outputPath) => {
     result.testResults &&
       result.testResults.forEach((test) => {
         const testcase = {
-          '@type': 'testcase',
           '@name': test.description,
           '@status': test.status,
           '@classname': result.request.url,
@@ -227,6 +226,20 @@ const makeJunitOutput = async (results, outputPath) => {
 
         suite.testcase.push(testcase);
       });
+
+    if (result.error) {
+      suite['@errors'] = 1;
+      suite['@tests'] = 1;
+      suite.testcase = [
+        {
+          '@name': 'Test suite has no errors',
+          '@status': 'fail',
+          '@classname': result.request.url,
+          '@time': result.runtime.toFixed(3),
+          error: [{ '@type': 'error', '@message': result.error }]
+        }
+      ];
+    }
 
     output.testsuites.testsuite.push(suite);
   });
