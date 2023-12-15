@@ -1,7 +1,9 @@
 const fs = require('fs');
 const chalk = require('chalk');
+const os = require('os');
 const path = require('path');
-const { forOwn } = require('lodash');
+const xmlbuilder = require('xmlbuilder');
+const { forOwn, result } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
@@ -165,6 +167,73 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const makeJunitOutput = async (results, outputPath) => {
+  const output = {
+    testsuites: {
+      testsuite: []
+    }
+  };
+
+  results.forEach((result, idx) => {
+    const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
+    const testCount = result.testResults ? result.testResults.length : 0;
+    const totalTests = assertionTestCount + testCount;
+
+    const suite = {
+      '@name': result.suitename,
+      '@errors': 0,
+      '@failures': 0,
+      '@skipped': 0,
+      '@tests': totalTests,
+      '@timestamp': new Date().toISOString().split('Z')[0],
+      '@hostname': os.hostname(),
+      '@time': result.runtime.toFixed(3),
+      testcase: []
+    };
+
+    result.assertionResults &&
+      result.assertionResults.forEach((assertion) => {
+        const testcase = {
+          '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
+          '@status': assertion.status,
+          '@classname': result.request.url,
+          '@time': (result.runtime / totalTests).toFixed(3)
+        };
+
+        if (assertion.status === 'fail') {
+          suite['@failures']++;
+
+          testcase.failure = [{ '@type': 'failure', '@message': assertion.error }];
+        }
+
+        suite.testcase.push(testcase);
+      });
+
+    result.testResults &&
+      result.testResults.forEach((test) => {
+        const testcase = {
+          '@type': 'testcase',
+          '@name': test.description,
+          '@status': test.status,
+          '@classname': result.request.url,
+          '@time': (result.runtime / totalTests).toFixed(3)
+        };
+
+        if (test.status === 'fail') {
+          suite['@failures']++;
+
+          testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+        }
+
+        suite.testcase.push(testcase);
+      });
+
+    output.testsuites.testsuite.push(suite);
+  });
+
+  fs.writeFileSync(outputPath, xmlbuilder.create(output).end({ pretty: true }));
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -186,7 +255,13 @@ const builder = async (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to write JSON results to',
+      describe: 'Path to write file results to',
+      type: 'string'
+    })
+    .option('format', {
+      alias: 'f',
+      describe: 'Format for the file results',
+      default: 'json',
       type: 'string'
     })
     .option('insecure', {
@@ -204,12 +279,16 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.json',
       'Run a request and write the results to results.json in the current directory'
+    )
+    .example(
+      '$0 run request.bru --output results.xml --format junit',
+      'Run a request and write the results to results.xml in junit format in the current directory'
     );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -297,6 +376,11 @@ const handler = async function (argv) {
       }
     }
 
+    if (['json', 'junit'].indexOf(format) === -1) {
+      console.error(chalk.red(`Format must be one of "json" or "junit"`));
+      return;
+    }
+
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
@@ -360,6 +444,8 @@ const handler = async function (argv) {
     while (currentRequestIndex < bruJsons.length) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
+
+      const start = process.hrtime();
       const result = await runSingleRequest(
         bruFilepath,
         bruJson,
@@ -371,7 +457,11 @@ const handler = async function (argv) {
         collectionRoot
       );
 
-      results.push(result);
+      results.push({
+        ...result,
+        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        suitename: bruFilepath.replace('.bru', '')
+      });
 
       // determine next request
       const nextRequestName = result?.nextRequestName;
@@ -413,7 +503,12 @@ const handler = async function (argv) {
         results
       };
 
-      fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      if (format === 'json') {
+        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      } else if (format === 'junit') {
+        makeJunitOutput(results, outputPath);
+      }
+
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 
@@ -432,5 +527,6 @@ module.exports = {
   desc,
   builder,
   handler,
-  printRunSummary
+  printRunSummary,
+  makeJunitOutput
 };
