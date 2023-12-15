@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -40,6 +40,7 @@
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
+    "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }
 }
