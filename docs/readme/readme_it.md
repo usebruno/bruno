@@ -24,7 +24,7 @@ Bruno funziona solo in modalità offline. Non ci sono piani per aggiungere la si
 
 ### Installazione
 
-Bruno è disponisible come download binario [sul nostro sito](https://www.usebruno.com/downloads) per Mac, Windows e Linux.
+Bruno è disponibile come download binario [sul nostro sito](https://www.usebruno.com/downloads) per Mac, Windows e Linux.
 
 Puoi installare Bruno anche tramite package manger come Homebrew, Chocolatey, Snap e Apt.
 
