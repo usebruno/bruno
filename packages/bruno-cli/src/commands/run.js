@@ -1,12 +1,11 @@
 const fs = require('fs');
 const chalk = require('chalk');
-const os = require('os');
 const path = require('path');
-const xmlbuilder = require('xmlbuilder');
 const { forOwn, result } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
@@ -165,86 +164,6 @@ const getCollectionRoot = (dir) => {
 
   const content = fs.readFileSync(collectionRootPath, 'utf8');
   return collectionBruToJson(content);
-};
-
-const makeJunitOutput = async (results, outputPath) => {
-  const output = {
-    testsuites: {
-      testsuite: []
-    }
-  };
-
-  results.forEach((result) => {
-    const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
-    const testCount = result.testResults ? result.testResults.length : 0;
-    const totalTests = assertionTestCount + testCount;
-
-    const suite = {
-      '@name': result.suitename,
-      '@errors': 0,
-      '@failures': 0,
-      '@skipped': 0,
-      '@tests': totalTests,
-      '@timestamp': new Date().toISOString().split('Z')[0],
-      '@hostname': os.hostname(),
-      '@time': result.runtime.toFixed(3),
-      testcase: []
-    };
-
-    result.assertionResults &&
-      result.assertionResults.forEach((assertion) => {
-        const testcase = {
-          '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
-          '@status': assertion.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
-
-        if (assertion.status === 'fail') {
-          suite['@failures']++;
-
-          testcase.failure = [{ '@type': 'failure', '@message': assertion.error }];
-        }
-
-        suite.testcase.push(testcase);
-      });
-
-    result.testResults &&
-      result.testResults.forEach((test) => {
-        const testcase = {
-          '@name': test.description,
-          '@status': test.status,
-          '@classname': result.request.url,
-          '@time': (result.runtime / totalTests).toFixed(3)
-        };
-
-        if (test.status === 'fail') {
-          suite['@failures']++;
-
-          testcase.failure = [{ '@type': 'failure', '@message': test.error }];
-        }
-
-        suite.testcase.push(testcase);
-      });
-
-    if (result.error) {
-      suite['@errors'] = 1;
-      suite['@tests'] = 1;
-      suite.testcase = [
-        {
-          '@name': 'Test suite has no errors',
-          '@status': 'fail',
-          '@classname': result.request.url,
-          '@time': result.runtime.toFixed(3),
-          error: [{ '@type': 'error', '@message': result.error }]
-        }
-      ];
-    }
-
-    output.testsuites.testsuite.push(suite);
-  });
-
-  fs.writeFileSync(outputPath, xmlbuilder.create(output).end({ pretty: true }));
 };
 
 const builder = async (yargs) => {
@@ -519,7 +438,7 @@ const handler = async function (argv) {
       if (format === 'json') {
         fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
       } else if (format === 'junit') {
-        makeJunitOutput(results, outputPath);
+        makeJUnitOutput(results, outputPath);
       }
 
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
@@ -540,6 +459,5 @@ module.exports = {
   desc,
   builder,
   handler,
-  printRunSummary,
-  makeJunitOutput
+  printRunSummary
 };
