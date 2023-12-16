@@ -19,17 +19,18 @@ import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
-import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
+import { doesItemMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
 
-const CollectionItem = ({ item, collection, searchText }) => {
+const CollectionItem = ({ item, collection, searchText, forceShow }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+  const { includeFoldersInSearch } = useSelector((state) => state.collections);
   const dispatch = useDispatch();
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
@@ -159,17 +160,25 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'is-sidebar-dragging': isSidebarDragging
   });
 
-  if (searchText && searchText.length) {
+  // If parent is displayed, then the item and all of its children should be displayed.
+  let _forceShowAllChildren = forceShow;
+
+  if (!forceShow && searchText && searchText.length) {
     if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
+      if (!doesItemMatchSearchText(item, searchText)) {
         return null;
       }
     } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+      // If the folder name matches the search text, then all children should be shown as well.
+      _forceShowAllChildren = includeFoldersInSearch && doesItemMatchSearchText(item, searchText);
+      if (!_forceShowAllChildren && !doesFolderHaveItemsMatchSearchText(item, searchText, includeFoldersInSearch)) {
         return null;
       }
     }
   }
+
+  // Make it immutable.
+  const forceShowAllChildren = _forceShowAllChildren;
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
@@ -355,12 +364,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
         <div>
           {folderItems && folderItems.length
             ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                return (
+                  <CollectionItem
+                    key={i.uid}
+                    item={i}
+                    collection={collection}
+                    searchText={searchText}
+                    forceShow={forceShowAllChildren}
+                  />
+                );
               })
             : null}
           {requestItems && requestItems.length
             ? requestItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
+                return (
+                  <CollectionItem
+                    key={i.uid}
+                    item={i}
+                    collection={collection}
+                    searchText={searchText}
+                    forceShow={forceShowAllChildren}
+                  />
+                );
               })
             : null}
         </div>

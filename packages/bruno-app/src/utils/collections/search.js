@@ -2,20 +2,20 @@ import { flattenItems, isItemARequest } from './index';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 
-export const doesRequestMatchSearchText = (request, searchText = '') => {
-  return request.name.toLowerCase().includes(searchText.toLowerCase());
+export const doesItemMatchSearchText = (item, searchText = '') => {
+  return item.name.toLowerCase().includes(searchText.toLowerCase());
 };
 
-export const doesFolderHaveItemsMatchSearchText = (item, searchText = '') => {
+export const doesFolderHaveItemsMatchSearchText = (item, searchText = '', includeFolders = false) => {
   let flattenedItems = flattenItems(item.items);
-  let requestItems = filter(flattenedItems, (item) => isItemARequest(item));
+  let requestItems = includeFolders ? flattenedItems : filter(flattenedItems, (item) => isItemARequest(item));
 
-  return find(requestItems, (request) => doesRequestMatchSearchText(request, searchText));
+  return find(requestItems, (request) => doesItemMatchSearchText(request, searchText));
 };
 
-export const doesCollectionHaveItemsMatchingSearchText = (collection, searchText = '') => {
+export const doesCollectionHaveItemsMatchingSearchText = (collection, searchText = '', includeFolders = false) => {
   let flattenedItems = flattenItems(collection.items);
-  let requestItems = filter(flattenedItems, (item) => isItemARequest(item));
+  let requestItems = includeFolders ? flattenedItems : filter(flattenedItems, (item) => isItemARequest(item));
 
-  return find(requestItems, (request) => doesRequestMatchSearchText(request, searchText));
+  return find(requestItems, (request) => doesItemMatchSearchText(request, searchText));
 };

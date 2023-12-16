@@ -39,6 +39,7 @@ import {
   renameCollection as _renameCollection,
   removeCollection as _removeCollection,
   sortCollections as _sortCollections,
+  toggleIncludeFoldersInSearch as _toggleIncludeFoldersInSearch,
   collectionAddEnvFileEvent as _collectionAddEnvFileEvent
 } from './index';
 
@@ -407,6 +408,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
 
 export const sortCollections = (payload) => (dispatch) => {
   dispatch(_sortCollections(payload));
+};
+export const toggleIncludeFoldersInSearch = (payload) => (dispatch) => {
+  dispatch(_toggleIncludeFoldersInSearch(payload));
 };
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();

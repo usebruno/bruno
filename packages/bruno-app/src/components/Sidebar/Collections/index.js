@@ -6,7 +6,9 @@ import {
   IconArrowsSort,
   IconSortAscendingLetters,
   IconSortDescendingLetters,
-  IconX
+  IconX,
+  IconFolder,
+  IconFolderOff
 } from '@tabler/icons';
 import Collection from '../Collections/Collection';
 import CreateCollection from '../CreateCollection';
@@ -14,7 +16,7 @@ import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { sortCollections, toggleIncludeFoldersInSearch } from 'providers/ReduxStore/slices/collections/actions';
 
 // todo: move this to a separate folder
 // the coding convention is to keep all the components in a folder named after the component
@@ -63,8 +65,10 @@ const CollectionsBadge = () => {
 };
 
 const Collections = () => {
+  const dispatch = useDispatch();
   const [searchText, setSearchText] = useState('');
   const { collections } = useSelector((state) => state.collections);
+  const { includeFoldersInSearch } = useSelector((state) => state.collections);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
 
   if (!collections || !collections.length) {
@@ -102,7 +106,7 @@ const Collections = () => {
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />
         {searchText !== '' && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
+          <div className="absolute inset-y-0 right-5 pr-4 flex items-center">
             <span
               className="close-icon"
               onClick={() => {
@@ -113,6 +117,16 @@ const Collections = () => {
             </span>
           </div>
         )}
+        <button
+          className="absolute inset-y-0 right-0 pr-4 flex items-center"
+          onClick={() => dispatch(toggleIncludeFoldersInSearch({ includeFoldersInSearch: !includeFoldersInSearch }))}
+        >
+          {includeFoldersInSearch ? (
+            <IconFolder size={18} strokeWidth={1.5} />
+          ) : (
+            <IconFolderOff size={18} strokeWidth={1.5} />
+          )}
+        </button>
       </div>
 
       <div className="mt-4 flex flex-col overflow-y-auto absolute top-32 bottom-10 left-0 right-0">

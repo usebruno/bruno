@@ -92,6 +92,9 @@ export const collectionsSlice = createSlice({
           break;
       }
     },
+    toggleIncludeFoldersInSearch: (state, action) => {
+      state.includeFoldersInSearch = action.payload.includeFoldersInSearch;
+    },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
@@ -1393,6 +1396,7 @@ export const {
   renameCollection,
   removeCollection,
   sortCollections,
+  toggleIncludeFoldersInSearch,
   updateLastAction,
   updateNextAction,
   updateSettingsSelectedTab,
