@@ -42,38 +42,34 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation) => {
-      try {
-        const dirPath = path.join(collectionLocation, collectionFolderName);
-        if (fs.existsSync(dirPath)) {
-          throw new Error(`collection: ${dirPath} already exists`);
-        }
-
-        if (!isValidPathname(dirPath)) {
-          throw new Error(`collection: invalid pathname - ${dir}`);
-        }
-
-        await createDirectory(dirPath);
-
-        const uid = generateUidBasedOnHash(dirPath);
-        const brunoConfig = {
-          version: '1',
-          name: collectionName,
-          type: 'collection'
-        };
-        const content = await stringifyJson(brunoConfig);
-        await writeFile(path.join(dirPath, 'bruno.json'), content);
-
-        mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
-      } catch (error) {
-        return Promise.reject(error);
+      const dirPath = path.join(collectionLocation, collectionFolderName);
+      if (fs.existsSync(dirPath)) {
+        throw new Error(`collection: ${dirPath} already exists`);
       }
+
+      if (!isValidPathname(dirPath)) {
+        throw new Error(`collection: invalid pathname - ${dir}`);
+      }
+
+      await createDirectory(dirPath);
+
+      const uid = generateUidBasedOnHash(dirPath);
+      const brunoConfig = {
+        version: '1',
+        name: collectionName,
+        type: 'collection'
+      };
+      const content = await stringifyJson(brunoConfig);
+      await writeFile(path.join(dirPath, 'bruno.json'), content);
+
+      mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
     }
   );
   // clone collection
   ipcMain.handle(
     'renderer:clone-collection',
-    async (event, collectionName, collectionFolderName, collectionLocation, perviousPath) => {
+    async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
       try {
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
@@ -84,22 +80,35 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`collection: invalid pathname - ${dir}`);
         }
 
+        // create dir
         await createDirectory(dirPath);
         const uid = generateUidBasedOnHash(dirPath);
-        const brunoJsonFilePath = path.join(perviousPath, 'bruno.json');
+
+        // open the bruno.json of previousPath
+        const brunoJsonFilePath = path.join(previousPath, 'bruno.json');
         const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+
+        //Chnage new name of collection
         let json = JSON.parse(content);
         json.name = collectionName;
         const cont = await stringifyJson(json);
+
+        // write the bruno.json to new dir
         await writeFile(path.join(dirPath, 'bruno.json'), cont);
-        const files = searchForBruFiles(perviousPath);
-        console.log(files);
+
+        // Now copy all the files with extension name .bru along with there dir
+        const files = searchForBruFiles(previousPath);
+
         for (const sourceFilePath of files) {
-          const fileName = path.basename(sourceFilePath);
-          const destinationFilePath = path.join(dirPath, fileName);
-          console.log(destinationFilePath);
-          fs.copyFileSync(sourceFilePath, destinationFilePath);
+          const relativePath = path.relative(previousPath, sourceFilePath);
+          const newFilePath = path.join(dirPath, relativePath);
+
+          // handle dir of files
+          fs.mkdirSync(path.dirname(newFilePath), { recursive: true });
+          // copy each files
+          fs.copyFileSync(sourceFilePath, newFilePath);
         }
+
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, json);
         ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
       } catch (error) {

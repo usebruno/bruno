@@ -943,10 +943,13 @@ export const cloneCollection = (collectionName, collectionFolderName, collection
   const { ipcRenderer } = window;
 
   return new Promise((resolve, reject) => {
-    ipcRenderer
-      .invoke('renderer:clone-collection', collectionName, collectionFolderName, collectionLocation, perviousPath)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke(
+      'renderer:clone-collection',
+      collectionName,
+      collectionFolderName,
+      collectionLocation,
+      perviousPath
+    );
   });
 };
 export const openCollection = () => () => {
