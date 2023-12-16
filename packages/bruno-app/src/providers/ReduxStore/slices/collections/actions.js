@@ -942,15 +942,13 @@ export const createCollection = (collectionName, collectionFolderName, collectio
 export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
   const { ipcRenderer } = window;
 
-  return new Promise((resolve, reject) => {
-    ipcRenderer.invoke(
-      'renderer:clone-collection',
-      collectionName,
-      collectionFolderName,
-      collectionLocation,
-      perviousPath
-    );
-  });
+  return ipcRenderer.invoke(
+    'renderer:clone-collection',
+    collectionName,
+    collectionFolderName,
+    collectionLocation,
+    perviousPath
+  );
 };
 export const openCollection = () => () => {
   return new Promise((resolve, reject) => {
