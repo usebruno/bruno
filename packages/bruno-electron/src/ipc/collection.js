@@ -91,7 +91,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const brunoJsonFilePath = path.join(previousPath, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
 
-      //Chnage new name of collection
+      //Change new name of collection
       let json = JSON.parse(content);
       json.name = collectionName;
       const cont = await stringifyJson(json);
