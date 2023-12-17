@@ -60,6 +60,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
+//save request
 export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -86,6 +87,36 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       .catch((err) => {
         toast.error('Failed to save request!');
         reject(err);
+      });
+  });
+};
+
+//save-all request
+export const saveAllRequests = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    const promises = collectionCopy.items.map((item) => {
+      const itemToSave = transformRequestToSaveToFilesystem(item);
+      return itemSchema
+        .validate(itemToSave)
+        .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
+        .catch((err) => reject(err));
+    });
+
+    Promise.all(promises)
+      .then(() => toast.success('All Request Saved successfully'))
+      .then(resolve)
+      .catch(() => {
+        toast.error('Failed to save all requests in the collection');
+        reject();
       });
   });
 };
