@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0
+
+- Junit report generation
+
 ## 1.2.1
 
 - Fixed bug related to `bru.setNextRequest()`
