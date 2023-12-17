@@ -5,10 +5,13 @@ import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
+import OAuth2 from './OAuth2';
 import StyledWrapper from './StyledWrapper';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+
+  console.log(item);
 
   const getAuthView = () => {
     switch (authMode) {
@@ -23,6 +26,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
+      }
+      case 'oauth2': {
+        return <OAuth2 collection={collection} item={item} />;
       }
     }
   };

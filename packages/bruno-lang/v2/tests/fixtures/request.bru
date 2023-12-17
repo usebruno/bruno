@@ -22,6 +22,12 @@ headers {
   ~transaction-id: {{transactionId}}
 }
 
+auth:oauth2 {
+  grantType: resourceOwnerPasswordCredentials
+  username: john
+  password: secret
+}
+
 auth:awsv4 {
   accessKeyId: A12345678
   secretAccessKey: thisisasecret

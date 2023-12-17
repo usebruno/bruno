@@ -498,6 +498,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'oauth2': {
+      label = 'OAuth 2.0';
+      break;
+    }
   }
 
   return label;

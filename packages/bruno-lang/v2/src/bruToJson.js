@@ -23,7 +23,7 @@ const { outdentString } = require('../../v1/src/utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest 
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
@@ -80,6 +80,7 @@ const grammar = ohm.grammar(`Bru {
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
+  authOAuth2 = "auth:oauth2" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -362,6 +363,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         digest: {
           username,
           password
+        }
+      }
+    };
+  },
+  authOAuth2(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const grantTypeKey = _.find(auth, { name: 'grantType' });
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    return {
+      auth: {
+        oauth2: {
+          grantType: grantTypeKey ? grantTypeKey.value : '',
+          username: usernameKey ? usernameKey.value : '',
+          password: passwordKey ? passwordKey.value : ''
         }
       }
     };

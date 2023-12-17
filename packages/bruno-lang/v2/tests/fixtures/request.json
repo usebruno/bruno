@@ -45,6 +45,11 @@
     }
   ],
   "auth": {
+    "oauth2": {
+      "grantType": "resourceOwnerPasswordCredentials",
+      "username": "john",
+      "password": "secret"
+    },
     "awsv4": {
       "accessKeyId": "A12345678",
       "secretAccessKey": "thisisasecret",

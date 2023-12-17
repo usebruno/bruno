@@ -87,6 +87,16 @@ const jsonToBru = (json) => {
     bru += '\n}\n\n';
   }
 
+  if (auth && auth.oauth2) {
+    bru += `auth:oauth2 {
+${indentString(`grantType: ${auth.oauth2.grantType}`)}
+${indentString(`username: ${auth.oauth2.username}`)}
+${indentString(`password: ${auth.oauth2.password}`)}
+}
+
+`;
+  }
+
   if (auth && auth.awsv4) {
     bru += `auth:awsv4 {
 ${indentString(`accessKeyId: ${auth.awsv4.accessKeyId}`)}

@@ -64,6 +64,17 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           username: get(request, 'auth.digest.username'),
           password: get(request, 'auth.digest.password')
         };
+        break;
+      case 'oauth2':
+        const grantType = get(request, 'auth.oauth2.grantType');
+        if (grantType === 'resourceOwnerPasswordCredentials') {
+          axiosRequest.data = {
+            grant_type: grantType,
+            username: get(request, 'auth.oauth2.username'),
+            password: get(request, 'auth.oauth2.password')
+          };
+        }
+        break;
     }
   }
 
