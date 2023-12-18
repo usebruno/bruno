@@ -5,6 +5,7 @@ const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
@@ -186,7 +187,13 @@ const builder = async (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to write JSON results to',
+      describe: 'Path to write file results to',
+      type: 'string'
+    })
+    .option('format', {
+      alias: 'f',
+      describe: 'Format for the file results',
+      default: 'json',
       type: 'string'
     })
     .option('insecure', {
@@ -204,12 +211,16 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.json',
       'Run a request and write the results to results.json in the current directory'
+    )
+    .example(
+      '$0 run request.bru --output results.xml --format junit',
+      'Run a request and write the results to results.xml in junit format in the current directory'
     );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -297,6 +308,11 @@ const handler = async function (argv) {
       }
     }
 
+    if (['json', 'junit'].indexOf(format) === -1) {
+      console.error(chalk.red(`Format must be one of "json" or "junit"`));
+      return;
+    }
+
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
@@ -360,6 +376,8 @@ const handler = async function (argv) {
     while (currentRequestIndex < bruJsons.length) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
+
+      const start = process.hrtime();
       const result = await runSingleRequest(
         bruFilepath,
         bruJson,
@@ -371,7 +389,11 @@ const handler = async function (argv) {
         collectionRoot
       );
 
-      results.push(result);
+      results.push({
+        ...result,
+        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        suitename: bruFilepath.replace('.bru', '')
+      });
 
       // determine next request
       const nextRequestName = result?.nextRequestName;
@@ -413,7 +435,12 @@ const handler = async function (argv) {
         results
       };
 
-      fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      if (format === 'json') {
+        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      } else if (format === 'junit') {
+        makeJUnitOutput(results, outputPath);
+      }
+
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 

@@ -1,4 +1,4 @@
-[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | **বাংলা**
+[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | **বাংলা** | [Français](docs/publishing/publishing_fr.md)
 
 ### ব্রুনোকে নতুন প্যাকেজ ম্যানেজারে প্রকাশ করা
 

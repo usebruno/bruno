@@ -412,7 +412,7 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: false,
+        usePolling: watchPath.startsWith("\\\\") ? true : false,
         ignored: (path) => ['node_modules', '.git'].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,

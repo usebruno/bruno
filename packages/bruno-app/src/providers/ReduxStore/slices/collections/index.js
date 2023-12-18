@@ -269,6 +269,16 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    responseCleared: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response = null;
+        }
+      }
+    },
     saveRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1323,29 +1333,29 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-sent') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'queued');
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
         }
 
         if (type === 'response-received') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
         }
 
         if (type === 'test-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.testResults = action.payload.testResults;
         }
 
         if (type === 'assertion-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
         }
 
         if (type === 'error') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid && i.status === 'running');
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
@@ -1397,6 +1407,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  responseCleared,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,

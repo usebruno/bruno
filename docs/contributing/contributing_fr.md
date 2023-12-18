@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | **Français** | [বাংলা](docs/contributing/contributing_bn.md)
+[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | **Français** | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
 
 ## Ensemble, améliorons Bruno !
 
@@ -23,22 +23,10 @@ Les librairies que nous utilisons :
 
 Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
 
-### Commençons à coder
-
-Veuillez vous référer à la [documentation de développement](docs/development_fr.md) pour les instructions de démarrage de l'environnement de développement local.
-
-### Ouvrir une Pull Request
-
-- Merci de conserver les PR minimes et focalisées sur un seul objectif
-- Merci de suivre le format de nom des branches :
-  - feature/[feature name]: Cette branche doit contenir une fonctionnalité spécifique
-    - Exemple: feature/dark-mode
-  - bugfix/[bug name]: Cette branche doit contenir seulement une solution pour un bug spécifique
-    - Exemple: bugfix/bug-1
-
 ## Développement
 
 Bruno est développé comme une application _client lourd_. Vous devrez charger l'application en démarrant nextjs dans un premier terminal, puis démarre l'application Electron dans un second.
+
 
 ### Dépendances
 
@@ -80,6 +68,7 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
+
 ### Tests
 
 ```bash
@@ -89,3 +78,13 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
+
+
+### Ouvrir une Pull Request
+
+- Merci de conserver les PR minimes et focalisées sur un seul objectif
+- Merci de suivre le format de nom des branches :
+  - feature/[feature name]: Cette branche doit contenir une fonctionnalité spécifique
+    - Exemple: feature/dark-mode
+  - bugfix/[bug name]: Cette branche doit contenir seulement une solution pour un bug spécifique
+    - Exemple: bugfix/bug-1
