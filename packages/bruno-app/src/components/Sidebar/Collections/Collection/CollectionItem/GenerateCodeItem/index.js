@@ -6,6 +6,7 @@ import { isValidUrl } from 'utils/url/index';
 import get from 'lodash/get';
 import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
+import { uuid } from 'utils/common';
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
@@ -84,13 +85,22 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
       return acc;
     }, {});
   }
-
   const interpolatedUrl = interpolateUrl({
     url,
     envVars,
     collectionVariables: collection.collectionVariables,
     processEnvVars: collection.processEnvVariables
   });
+  const headers = [];
+  Object.keys(item.requestSent.headers).forEach((header) => {
+    headers.push({
+      uid: uuid(),
+      name: header,
+      value: item.requestSent.headers[header],
+      enabled: true
+    });
+  });
+
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -123,11 +133,13 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url: interpolatedUrl
+                          url: interpolatedUrl,
+                          headers: headers
                         }
                       : {
                           ...item.draft.request,
-                          url: interpolatedUrl
+                          url: interpolatedUrl,
+                          headers: headers
                         }
                 }}
               />
