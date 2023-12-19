@@ -463,7 +463,6 @@ const handler = async function (argv) {
       process.exit(1);
     }
   } catch (err) {
-    console.error(err);
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
     process.exit(1);
