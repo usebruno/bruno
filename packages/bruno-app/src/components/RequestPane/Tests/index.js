@@ -6,6 +6,7 @@ import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -28,8 +29,8 @@ const Tests = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
-      <CodeEditor
+    <StyledWrapper className="w-full h-full">
+      <CodeEditor2
         collection={collection}
         value={tests || ''}
         theme={storedTheme}
