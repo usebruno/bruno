@@ -192,7 +192,7 @@ const builder = async (yargs) => {
     })
     .option('format', {
       alias: 'f',
-      describe: 'Format for the file results',
+      describe: 'Format of the file results; available formats are "json" (default) or "junit"',
       default: 'json',
       type: 'string'
     })
