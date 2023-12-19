@@ -166,6 +166,87 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const makeJunitOutput = async (results, outputPath) => {
+  const output = {
+    testsuites: {
+      testsuite: []
+    }
+  };
+
+  results.forEach((result) => {
+    const assertionTestCount = result.assertionResults ? result.assertionResults.length : 0;
+    const testCount = result.testResults ? result.testResults.length : 0;
+    const totalTests = assertionTestCount + testCount;
+
+    const suite = {
+      '@name': result.suitename,
+      '@errors': 0,
+      '@failures': 0,
+      '@skipped': 0,
+      '@tests': totalTests,
+      '@timestamp': new Date().toISOString().split('Z')[0],
+      '@hostname': os.hostname(),
+      '@time': result.runtime.toFixed(3),
+      testcase: []
+    };
+
+    result.assertionResults &&
+      result.assertionResults.forEach((assertion) => {
+        const testcase = {
+          '@name': `${assertion.lhsExpr} ${assertion.rhsExpr}`,
+          '@status': assertion.status,
+          '@classname': result.request.url,
+          '@time': (result.runtime / totalTests).toFixed(3)
+        };
+
+        if (assertion.status === 'fail') {
+          suite['@failures']++;
+
+          testcase.failure = [{ '@type': 'failure', '@message': assertion.error }];
+        }
+
+        suite.testcase.push(testcase);
+      });
+
+    result.testResults &&
+      result.testResults.forEach((test) => {
+        const testcase = {
+          '@name': test.description,
+          '@status': test.status,
+          '@classname': result.request.url,
+          '@time': (result.runtime / totalTests).toFixed(3)
+        };
+
+        if (test.status === 'fail') {
+          suite['@failures']++;
+
+          testcase.failure = [{ '@type': 'failure', '@message': test.error }];
+        }
+
+        suite.testcase.push(testcase);
+      });
+
+    if (result.error) {
+      suite['@errors'] = 1;
+      suite['@tests'] = 1;
+      suite.testcase = [
+        {
+          '@type': 'testcase',
+          '@name': 'Test suite has no errors',
+          '@status': 'fail',
+          '@classname': result.request.url,
+          '@time': result.runtime.toFixed(3),
+          error: [{ '@type': 'error', '@message': result.error }]
+        }
+      ];
+    }
+
+    output.testsuites.testsuite.push(suite);
+  });
+
+  fs.writeFileSync(outputPath, xmlbuilder.create(output).end({ pretty: true }));
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -189,6 +270,12 @@ const builder = async (yargs) => {
       alias: 'o',
       describe: 'Path to write file results to',
       type: 'string'
+    })
+    .option('timeout', {
+      alias: 't',
+      describe: 'Timeout for test request',
+      default: -1,
+      type: 'integer'
     })
     .option('format', {
       alias: 'f',
@@ -220,7 +307,7 @@ const builder = async (yargs) => {
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, timeout } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -328,6 +415,11 @@ const handler = async function (argv) {
       });
     }
 
+    if (typeof timeout !== 'number') {
+      console.error(chalk.red(`Timeout must be a number`));
+      return;
+    }
+
     const _isFile = await isFile(filename);
     let results = [];
 
@@ -376,6 +468,10 @@ const handler = async function (argv) {
     while (currentRequestIndex < bruJsons.length) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
+
+      if (timeout > -1) {
+        bruJson.request.timeout = timeout;
+      }
 
       const start = process.hrtime();
       const result = await runSingleRequest(
@@ -448,6 +544,7 @@ const handler = async function (argv) {
       process.exit(1);
     }
   } catch (err) {
+    console.error(err);
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
     process.exit(1);
