@@ -1,19 +1,13 @@
 import MarkdownIt from 'markdown-it';
 import StyledWrapper from './StyledWrapper';
+import * as React from 'react';
 
 const md = new MarkdownIt();
 
 const Markdown = ({ onDoubleClick, content }) => {
   const handleOnDoubleClick = (event) => {
-    switch (event.detail) {
-      case 2: {
-        onDoubleClick();
-        break;
-      }
-      case 1:
-      default: {
-        break;
-      }
+    if (event?.detail === 2) {
+      onDoubleClick();
     }
   };
   const htmlFromMarkdown = md.render(content || '');

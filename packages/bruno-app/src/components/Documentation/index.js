@@ -1,7 +1,7 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { useTheme } from 'providers/Theme/index';
+import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
