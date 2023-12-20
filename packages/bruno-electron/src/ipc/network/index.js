@@ -72,7 +72,7 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
-const protocolRegex = /([a-zA-Z]{2,20}:\/\/)(.*)/;
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const configureRequest = async (
   collectionUid,
@@ -258,10 +258,11 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
+    let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runRequestScript(
+      scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
         envVars,
@@ -273,8 +274,8 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
@@ -293,6 +294,8 @@ const registerNetworkIpc = (mainWindow) => {
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
     }
+
+    return scriptResult;
   };
 
   const runPostResponse = async (
@@ -332,12 +335,13 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    let scriptResult;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runResponseScript(
+      scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
         response,
@@ -350,12 +354,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
     }
+    return scriptResult;
   };
 
   // handler for sending http request
@@ -696,7 +701,11 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        for (let item of folderRequests) {
+        let currentRequestIndex = 0;
+        let nJumps = 0; // count the number of jumps to avoid infinite loops
+        while (currentRequestIndex < folderRequests.length) {
+          const item = folderRequests[currentRequestIndex];
+          let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -718,7 +727,7 @@ const registerNetworkIpc = (mainWindow) => {
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            await runPreRequest(
+            const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
               envVars,
@@ -729,6 +738,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (preRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = preRequestScriptResult.nextRequestName;
+            }
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -805,7 +818,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            await runPostResponse(
+            const postRequestScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -817,6 +830,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (postRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postRequestScriptResult.nextRequestName;
+            }
 
             // run assertions
             const assertions = get(item, 'request.assertions');
@@ -877,6 +894,24 @@ const registerNetworkIpc = (mainWindow) => {
               responseReceived: {},
               ...eventData
             });
+          }
+          if (nextRequestName !== undefined) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
+              break;
+            }
+            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            if (nextRequestIdx >= 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              console.error("Could not find request with name '" + nextRequestName + "'");
+              currentRequestIndex++;
+            }
+          } else {
+            currentRequestIndex++;
           }
         }
 

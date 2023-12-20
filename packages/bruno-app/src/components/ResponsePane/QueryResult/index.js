@@ -39,7 +39,7 @@ const formatResponse = (data, mode, filter) => {
     return safeStringifyJSON(parsed, true);
   }
 
-  if (['text', 'html'].includes(mode) || typeof data === 'string') {
+  if (typeof data === 'string') {
     return data;
   }
 
@@ -48,7 +48,7 @@ const formatResponse = (data, mode, filter) => {
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType);
+  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { storedTheme } = useTheme();

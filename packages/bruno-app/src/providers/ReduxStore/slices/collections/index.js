@@ -269,6 +269,16 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    responseCleared: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response = null;
+        }
+      }
+    },
     saveRequest: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1224,6 +1234,7 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
         } else {
           collection.environments.push(environment);
+          collection.environments.sort((a, b) => a.name.localeCompare(b.name));
 
           const lastAction = collection.lastAction;
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
@@ -1396,6 +1407,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  responseCleared,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,

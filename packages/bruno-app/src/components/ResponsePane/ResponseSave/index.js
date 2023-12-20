@@ -21,7 +21,7 @@ const ResponseSave = ({ item }) => {
   };
 
   return (
-    <StyledWrapper className="ml-4 flex items-center">
+    <StyledWrapper className="ml-2 flex items-center">
       <button onClick={saveResponseToFile} disabled={!response.dataBuffer} title="Save response to file">
         <IconDownload size={16} strokeWidth={1.5} />
       </button>
