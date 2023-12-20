@@ -18,7 +18,8 @@ const collectionBruToJson = (bru) => {
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
-        tests: _.get(json, 'tests', '')
+        tests: _.get(json, 'tests', ''),
+        timeout: _.get(json, 'timeout', '')
       }
     };
 
@@ -67,7 +68,7 @@ const bruToJson = (bru) => {
         assertions: _.get(json, 'assertions', []),
         script: _.get(json, 'script', ''),
         tests: _.get(json, 'tests', ''),
-        timeout: _.get(json, 'http.timeout', bruTimeout)
+        timeout: _.get(json, 'http.timeout', '')
       }
     };
 

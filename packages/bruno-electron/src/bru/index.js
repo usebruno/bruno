@@ -21,7 +21,8 @@ const collectionBruToJson = (bru) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
-      docs: _.get(json, 'docs', '')
+      docs: _.get(json, 'docs', ''),
+      timeout: _.get(json, 'timeout', '')
     };
 
     return transformedJson;
@@ -45,7 +46,8 @@ const jsonToCollectionBru = (json) => {
         res: _.get(json, 'request.vars.req', [])
       },
       tests: _.get(json, 'request.tests', ''),
-      docs: _.get(json, 'docs', '')
+      docs: _.get(json, 'docs', ''),
+      timeout: _.get(json, 'timeout', '')
     };
 
     return _jsonToCollectionBru(collectionBruJson);
@@ -119,6 +121,7 @@ const bruToJson = (bru) => {
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
+        timeout: _.get(json, 'http.timeout', ''),
         docs: _.get(json, 'docs', '')
       }
     };
@@ -175,6 +178,10 @@ const jsonToBru = (json) => {
     tests: _.get(json, 'request.tests', ''),
     docs: _.get(json, 'request.docs', '')
   };
+
+  if (_.get(json, 'request.timeout', '').length > 0) {
+    bruJson.http.timeout = json.request.timeout;
+  }
 
   return jsonToBruV2(bruJson);
 };

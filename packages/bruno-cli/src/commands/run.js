@@ -388,6 +388,10 @@ const handler = async function (argv) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
 
+      if (collectionRoot.request.timeout && !bruJson.request.timeout) {
+        bruJson.request.timeout = collectionRoot.request.timeout;
+      }
+
       if (timeout > -1) {
         bruJson.request.timeout = timeout;
       }

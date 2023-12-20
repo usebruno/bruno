@@ -39,6 +39,11 @@ const jsonToBru = (json) => {
   auth: ${http.auth}`;
     }
 
+    if (http.timeout && http.timeout.length) {
+      bru += `
+  timeout: ${http.timeout}`;
+    }
+
     bru += `
 }
 

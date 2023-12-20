@@ -186,7 +186,7 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
-  request.timeout = preferencesUtil.getRequestTimeout();
+  request.timeout = get(request, 'timeout', preferencesUtil.getRequestTimeout());
 
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
