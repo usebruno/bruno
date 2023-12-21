@@ -6,6 +6,7 @@ import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -42,7 +43,7 @@ const Script = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
+        <CodeEditor2
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}

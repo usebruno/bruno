@@ -6,7 +6,19 @@ import { StyledWrapper } from 'components/CodeEditor2/StyledWrapper';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { autocompletion } from '@codemirror/autocomplete';
-import { materialDark, githubLight, monokai, noctisLilac, eclipse } from '@uiw/codemirror-themes-all';
+import {
+  materialDark,
+  githubLight,
+  monokai,
+  noctisLilac,
+  eclipse,
+  aura,
+  copilot,
+  okaidia,
+  sublime,
+  xcodeDark,
+  vscodeDark
+} from '@uiw/codemirror-themes-all';
 import styled from 'styled-components';
 
 const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, theme, value }) => {
@@ -90,7 +102,7 @@ const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, 
           defaultKeymap: false
         }}
         readOnly={readOnly}
-        theme={theme === 'dark' ? monokai : eclipse}
+        theme={theme === 'dark' ? vscodeDark : eclipse}
         value={value}
         height="100%"
         onChange={onEdit}
