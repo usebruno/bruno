@@ -1,5 +1,4 @@
 const path = require('path');
-const isDev = require('electron-is-dev');
 const { format } = require('url');
 const { BrowserWindow, app, Menu } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
@@ -61,7 +60,8 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
-  const url = isDev
+  const isRunningFromConsole = !app.isPackaged;
+  const url = isRunningFromConsole
     ? 'http://localhost:3000'
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
@@ -72,7 +72,7 @@ app.on('ready', async () => {
   mainWindow.loadURL(url).catch((reason) => {
     console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
     console.error('Original message:', reason);
-    if (isDev) {
+    if (isRunningFromConsole) {
       console.error(
         'Could not connect to Next.Js dev server, is it running?' +
           ' Start the dev server using "npm run dev:web" and restart electron'
