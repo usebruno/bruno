@@ -76,7 +76,7 @@ sudo apt install bruno
 - [Download](https://www.usebruno.com/downloads)
 - [Github Sponsors](https://github.com/sponsors/helloanoop).
 
-### Showcase 🎥
+### ショーケース 🎥
 
 - [Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
