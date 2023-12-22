@@ -53,12 +53,18 @@ export const StyledWrapper = styled.div`
           props.theme.bg === '#fff' ? '!bg-red-100 !text-red-800' : '!bg-red-400/10 !text-red-400 !border-red-400/20'
         )}
     }
+    .cm-panels button[name="close"]:hover {
+      ${(props) => twi(props.theme.bg === '#fff' ? '!bg-red-300' : '!bg-red-800/10')}
+    }
     .cm-panels button {
        ${(props) =>
          twi(
            'rounded bg-none border-[1px] px-2 py-1 h-7 text-xs font-base !bg-transparent',
            props.theme.bg === '#fff' ? 'text-zinc-900' : ' text-white'
          )}
+    }
+    .cm-panels button:hover {
+      ${(props) => twi(props.theme.bg === '#fff' ? '!bg-zinc-200' : '!bg-zinc-700')}
     }
     .cm-panels label {
         ${(props) => twi('flex items-center pr-4')}

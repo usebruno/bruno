@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
@@ -33,7 +34,7 @@ const CodeView = ({ language, item }) => {
         >
           <IconCopy size={25} strokeWidth={1.5} />
         </CopyToClipboard>
-        <CodeEditor
+        <CodeEditor2
           readOnly
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}

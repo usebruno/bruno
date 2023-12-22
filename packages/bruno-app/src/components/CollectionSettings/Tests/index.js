@@ -6,6 +6,7 @@ import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -26,7 +27,7 @@ const Tests = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      <CodeEditor
+      <CodeEditor2
         collection={collection}
         value={tests || ''}
         theme={storedTheme}

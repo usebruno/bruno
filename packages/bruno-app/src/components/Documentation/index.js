@@ -8,6 +8,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -43,7 +44,7 @@ const Documentation = ({ item, collection }) => {
       </div>
 
       {isEditing ? (
-        <CodeEditor
+        <CodeEditor2
           collection={collection}
           theme={storedTheme}
           font={get(preferences, 'font.codeFont', 'default')}

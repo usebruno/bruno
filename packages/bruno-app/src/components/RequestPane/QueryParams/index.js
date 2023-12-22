@@ -13,7 +13,7 @@ import StyledWrapper from './StyledWrapper';
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
+  const params = item?.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
 
   const handleAddParam = () => {
     dispatch(

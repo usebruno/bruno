@@ -20,6 +20,7 @@
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
+    "@uiw/codemirror-extensions-langs": "^4.21.21",
     "@uiw/codemirror-extensions-mentions": "^4.21.21",
     "@uiw/codemirror-themes": "^4.21.21",
     "@uiw/codemirror-themes-all": "^4.21.21",

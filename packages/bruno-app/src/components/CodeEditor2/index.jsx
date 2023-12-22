@@ -20,62 +20,79 @@ import {
   vscodeDark
 } from '@uiw/codemirror-themes-all';
 import styled from 'styled-components';
+import { loadLanguage } from '@uiw/codemirror-extensions-langs';
+
+const hintWords = [
+  { label: 'res' },
+  { label: 'res.status' },
+  { label: 'res.statusText' },
+  { label: 'res.headers' },
+  { label: 'res.body' },
+  { label: 'res.responseTime' },
+  { label: 'res.getStatus()' },
+  { label: 'res.getHeader(name)' },
+  { label: 'res.getHeaders()' },
+  { label: 'res.getBody()' },
+  { label: 'res.getResponseTime()' },
+  { label: 'req' },
+  { label: 'req.url' },
+  { label: 'req.method' },
+  { label: 'req.headers' },
+  { label: 'req.body' },
+  { label: 'req.timeout' },
+  { label: 'req.getUrl()' },
+  { label: 'req.setUrl(url)' },
+  { label: 'req.getMethod()' },
+  { label: 'req.setMethod(method)' },
+  { label: 'req.getHeader(name)' },
+  { label: 'req.getHeaders()' },
+  { label: 'req.setHeader(name, value)' },
+  { label: 'req.setHeaders(data)' },
+  { label: 'req.getBody()' },
+  { label: 'req.setBody(data)' },
+  { label: 'req.setMaxRedirects(maxRedirects)' },
+  { label: 'req.getTimeout()' },
+  { label: 'req.setTimeout(timeout)' },
+  { label: 'bru' },
+  { label: 'bru.cwd()' },
+  { label: 'bru.getEnvName(key)' },
+  { label: 'bru.getProcessEnv(key)' },
+  { label: 'bru.getEnvVar(key)' },
+  { label: 'bru.setEnvVar(key,value)' },
+  { label: 'bru.getVar(key)' },
+  { label: 'bru.setVar(key,value)' }
+];
 
 const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, theme, value }) => {
+  console.log('currently running IDE');
   window.jsonlint = jsonlint;
   window.JSHINT = JSHINT;
-  const hintWords = [
-    { label: 'res' },
-    { label: 'res.status' },
-    { label: 'res.statusText' },
-    { label: 'res.headers' },
-    { label: 'res.body' },
-    { label: 'res.responseTime' },
-    { label: 'res.getStatus()' },
-    { label: 'res.getHeader(name)' },
-    { label: 'res.getHeaders()' },
-    { label: 'res.getBody()' },
-    { label: 'res.getResponseTime()' },
-    { label: 'req' },
-    { label: 'req.url' },
-    { label: 'req.method' },
-    { label: 'req.headers' },
-    { label: 'req.body' },
-    { label: 'req.timeout' },
-    { label: 'req.getUrl()' },
-    { label: 'req.setUrl(url)' },
-    { label: 'req.getMethod()' },
-    { label: 'req.setMethod(method)' },
-    { label: 'req.getHeader(name)' },
-    { label: 'req.getHeaders()' },
-    { label: 'req.setHeader(name, value)' },
-    { label: 'req.setHeaders(data)' },
-    { label: 'req.getBody()' },
-    { label: 'req.setBody(data)' },
-    { label: 'req.setMaxRedirects(maxRedirects)' },
-    { label: 'req.getTimeout()' },
-    { label: 'req.setTimeout(timeout)' },
-    { label: 'bru' },
-    { label: 'bru.cwd()' },
-    { label: 'bru.getEnvName(key)' },
-    { label: 'bru.getProcessEnv(key)' },
-    { label: 'bru.getEnvVar(key)' },
-    { label: 'bru.setEnvVar(key,value)' },
-    { label: 'bru.getVar(key)' },
-    { label: 'bru.setVar(key,value)' }
-  ];
 
-  const hint = (context) => {
-    let word = context.matchBefore(/\w*/);
-    if (word.from == word.to && !context.explicit) return null;
-    return {
-      from: word.from,
-      options: hintWords
-    };
+  const hint = React.useMemo(
+    () => (context) => {
+      let word = context.matchBefore(/\w+/);
+      if (!word || (word.from === word.to && !context.explicit)) return null;
+      return {
+        from: word.from,
+        options: hintWords
+      };
+    },
+    []
+  );
+
+  const memoizedValue = React.useMemo(() => value, [value]);
+
+  const languages = {
+    'application/sparql-query': 'sparql',
+    'application/ld+json': 'json',
+    'application/text': 'text',
+    'application/xml': 'xml',
+    'application/javascript': 'javascript',
+    javascript: 'javascript'
   };
 
   const extensions = [
-    mode === 'javascript' ? javascript() : json(),
+    loadLanguage(languages[mode]),
     autocompletion({ override: [hint] }),
     keymap.of([
       { key: 'Mod-s', run: onSave },
@@ -103,7 +120,7 @@ const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, 
         }}
         readOnly={readOnly}
         theme={theme === 'dark' ? vscodeDark : eclipse}
-        value={value}
+        value={memoizedValue}
         height="100%"
         onChange={onEdit}
         extensions={extensions}

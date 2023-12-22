@@ -8,6 +8,8 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
+import { loadLanguage } from '@uiw/codemirror-extensions-langs';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -46,7 +48,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <CodeEditor
+        <CodeEditor2
           collection={collection}
           theme={storedTheme}
           font={get(preferences, 'font.codeFont', 'default')}

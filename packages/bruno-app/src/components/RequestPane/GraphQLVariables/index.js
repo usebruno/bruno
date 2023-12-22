@@ -6,6 +6,7 @@ import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/colle
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor2 from 'components/CodeEditor2';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
@@ -28,7 +29,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <CodeEditor
+      <CodeEditor2
         collection={collection}
         value={variables || ''}
         theme={storedTheme}

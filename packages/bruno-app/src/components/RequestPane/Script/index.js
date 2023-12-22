@@ -56,7 +56,7 @@ const Script = ({ item, collection }) => {
       </div>
       <div className="flex-1 mt-6">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
+        <CodeEditor2
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}
