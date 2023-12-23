@@ -31,7 +31,7 @@ Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de 
 
 Bruno est disponible au téléchargement [sur notre site web](https://www.usebruno.com/downloads), pour Mac, Windows et Linux.
 
-Vous pouvez aussi installer Bruno via un getsionnaires de paquets, comme  Homebrew, Chocolatey, Scoop, Snap et Apt.
+Vous pouvez aussi installer Bruno via un gestionnaires de paquets, comme  Homebrew, Chocolatey, Scoop, Snap et Apt.
 
 ```sh
 # Mac via Homebrew
