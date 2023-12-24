@@ -1,11 +1,11 @@
-import { IconCheck, IconCircleCheck, IconCircleX, IconRefresh, IconRun, IconX } from '@tabler/icons';
-import { cloneDeep, get } from 'lodash';
+import React, { useState, useEffect } from 'react';
 import path from 'path';
-import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
-import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { get, cloneDeep } from 'lodash';
+import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
