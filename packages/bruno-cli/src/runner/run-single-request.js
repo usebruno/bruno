@@ -179,6 +179,7 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
+    let response;
     try {
       // run request
       const axiosInstance = makeAxiosInstance();
@@ -217,7 +218,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${response.responseTime} ms`)
+        chalk.dim(` (${response.status} ${response.statusText}) - ${response.headers['request-duration']} ms`)
     );
 
     // run post-response vars
