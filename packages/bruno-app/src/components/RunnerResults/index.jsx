@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { IconCheck, IconCircleCheck, IconCircleX, IconRefresh, IconRun, IconX } from '@tabler/icons';
+import { cloneDeep, get } from 'lodash';
 import path from 'path';
-import { useDispatch } from 'react-redux';
-import { get, each, cloneDeep } from 'lodash';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
+import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import React, { useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -113,12 +113,12 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
       <div className="font-medium mt-6 mb-4 title flex items-center">
         Runner
         <IconRun size={20} strokeWidth={1.5} className="ml-2" />
       </div>
-      <div className="flex">
+      <div className="flex flex-1">
         <div className="flex flex-col flex-1">
           <div className="py-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
