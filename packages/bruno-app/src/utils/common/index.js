@@ -64,6 +64,7 @@ export const safeParseXML = (str, options) => {
 
 // Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
 export const normalizeFileName = (name) => {
+  return name;
   if (!name) {
     return name;
   }

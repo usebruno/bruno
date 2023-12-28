@@ -290,9 +290,13 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
 
     const dirname = getDirectoryName(item.pathname);
 
+    const sanitize = (name) => {
+      return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+    };
+
     let newPathname = '';
     if (item.type === 'folder') {
-      newPathname = path.join(dirname, trim(newName));
+      newPathname = path.join(dirname, trim(sanitize(newName)));
     } else {
       const filename = resolveRequestFilename(newName);
       newPathname = path.join(dirname, filename);
@@ -362,21 +366,17 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
         parentItem.items,
         (i) => i.type !== 'folder' && trim(i.filename) === trim(filename)
       );
-      if (!reqWithSameNameExists) {
-        const dirname = getDirectoryName(item.pathname);
-        const fullName = path.join(dirname, filename);
-        const { ipcRenderer } = window;
-        const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
-        itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
+      const dirname = getDirectoryName(item.pathname);
+      const fullName = path.join(dirname, filename);
+      const { ipcRenderer } = window;
+      const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
+      itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
 
-        itemSchema
-          .validate(itemToSave)
-          .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
-          .then(resolve)
-          .catch(reject);
-      } else {
-        return reject(new Error('Duplicate request names are not allowed under the same folder'));
-      }
+      itemSchema
+        .validate(itemToSave)
+        .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
+        .then(resolve)
+        .catch(reject);
     }
   });
 };

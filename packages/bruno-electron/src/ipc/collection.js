@@ -154,7 +154,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:new-request', async (event, pathname, request) => {
     try {
       if (fs.existsSync(pathname)) {
-        throw new Error(`path: ${pathname} already exists`);
+        const splitname = pathname.slice(0, -4);
+        console.info(splitname);
+
+        let nameSuffix = 1;
+        while (fs.existsSync(`${splitname}_${nameSuffix}.bru`)) {
+          nameSuffix++;
+          console.info(pathname);
+        }
+        pathname = `${splitname}_${nameSuffix}.bru`;
+        // throw new Error(`path: ${pathname} already exists`);
       }
 
       const content = jsonToBru(request);
@@ -385,7 +394,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            let nameSuffix = 1;
+            let filename = item.name;
+
+            filename = sanitizeDirectoryName(filename);
+            let filePath = path.join(currentPath, `${filename}.bru`);
+
+            while (fs.existsSync(filePath)) {
+              filename = `${item.name}_${nameSuffix}`;
+              filePath = path.join(currentPath, `${filename}.bru`);
+              nameSuffix++;
+            }
+
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {

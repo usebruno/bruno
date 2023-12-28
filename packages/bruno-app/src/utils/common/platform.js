@@ -16,7 +16,10 @@ export const isLocalCollection = (collection) => {
 };
 
 export const resolveRequestFilename = (name) => {
-  return `${trim(name)}.bru`;
+  const sanitizeDirectoryName = (n) => {
+    return n.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+  };
+  return `${trim(sanitizeDirectoryName(name))}.bru`;
 };
 
 export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
