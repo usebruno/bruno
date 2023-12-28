@@ -286,8 +286,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${oldPath} already exists`);
+      if (fs.existsSync(newPath) && oldPath !== newPath) {
+        let nameSuffix = 1;
+        const curPath = newPath.slice(0, -4);
+
+        while (fs.existsSync(newPath)) {
+          newPath = `${curPath}_${nameSuffix}.bru`;
+          nameSuffix++;
+        }
       }
 
       // if its directory, rename and return
@@ -316,7 +322,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const content = jsonToBru(jsonData);
       await writeFile(newPath, content);
-      await fs.unlinkSync(oldPath);
+      if (oldPath !== newPath) {
+        await fs.unlinkSync(oldPath);
+      }
     } catch (error) {
       return Promise.reject(error);
     }

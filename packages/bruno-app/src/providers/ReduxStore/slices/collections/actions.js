@@ -298,7 +298,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     if (item.type === 'folder') {
       newPathname = path.join(dirname, trim(sanitize(newName)));
     } else {
-      const filename = resolveRequestFilename(newName);
+      const filename = resolveRequestFilename(sanitize(newName));
       newPathname = path.join(dirname, filename);
     }
     const { ipcRenderer } = window;
