@@ -127,7 +127,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              http
+              HTTP
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -138,7 +138,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              https
+              HTTPS
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -149,7 +149,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks4
+              SOCKS4
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -160,7 +160,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks5
+              SOCKS5
             </label>
           </div>
         </div>
