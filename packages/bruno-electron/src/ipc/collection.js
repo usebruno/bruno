@@ -585,6 +585,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     watcher.addWatcher(win, pathname, uid);
     lastOpenedCollections.add(pathname);
   });
+
+  ipcMain.on('main:start-quit-flow', () => {
+    mainWindow.webContents.send('main:start-quit-flow');
+  });
 };
 
 const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {

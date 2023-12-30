@@ -1,14 +1,15 @@
-import React, { useEffect } from 'react';
-import get from 'lodash/get';
 import each from 'lodash/each';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
-import { getDefaultRequestPaneTab, findItemInCollectionByPathname } from 'utils/collections/index';
+import get from 'lodash/get';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import { updateNextAction } from 'providers/ReduxStore/slices/collections/index';
-import { useSelector, useDispatch } from 'react-redux';
+import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections/index';
 
 const useCollectionNextAction = () => {
   const collections = useSelector((state) => state.collections.collections);
+  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -18,14 +19,18 @@ const useCollectionNextAction = () => {
 
         if (item) {
           dispatch(updateNextAction({ collectionUid: collection.uid, nextAction: null }));
-          dispatch(
-            addTab({
-              uid: item.uid,
-              collectionUid: collection.uid,
-              requestPaneTab: getDefaultRequestPaneTab(item.type)
-            })
-          );
-          dispatch(hideHomePage());
+          if (tabs.some((t) => t.uid === item.uid)) {
+            dispatch(focusTab({ uid: item.uid }));
+          } else {
+            dispatch(
+              addTab({
+                uid: item.uid,
+                collectionUid: collection.uid,
+                requestPaneTab: getDefaultRequestPaneTab(item.type)
+              })
+            );
+            dispatch(hideHomePage());
+          }
         }
       }
     });

@@ -1,30 +1,29 @@
-import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import forOwn from 'lodash/forOwn';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import get from 'lodash/get';
-import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
+import cloneDeep from 'lodash/cloneDeep';
+import concat from 'lodash/concat';
+import each from 'lodash/each';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import forOwn from 'lodash/forOwn';
+import get from 'lodash/get';
+import map from 'lodash/map';
+import set from 'lodash/set';
 import {
-  findCollectionByUid,
-  findCollectionByPathname,
-  findItemInCollection,
-  findEnvironmentInCollection,
-  findItemInCollectionByPathname,
   addDepth,
+  areItemsTheSameExceptSeqUpdate,
   collapseCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
-  isItemARequest,
-  areItemsTheSameExceptSeqUpdate
+  findCollectionByPathname,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  isItemARequest
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { uuid } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 
 const initialState = {
   collections: [],

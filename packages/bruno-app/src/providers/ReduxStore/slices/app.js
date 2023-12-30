@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { updateNextAction } from 'providers/ReduxStore/slices/collections/index';
 import toast from 'react-hot-toast';
 
 const initialState = {
@@ -89,6 +90,44 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
 
     ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
   });
+};
+
+export const startQuitFlow = () => (dispatch, getState) => {
+  const state = getState();
+  console.log(state);
+
+  const currentDrafts = [];
+  const { collections } = state.collections;
+
+  const getAllDraftsFromItems = (collectionUid, currentLevel) => {
+    for (const item of currentLevel.items) {
+      if (item.draft) {
+        currentDrafts.push({ collectionUid, pathname: item.pathname });
+      } else if (item.items) {
+        getAllDraftsFromItems(collectionUid, item);
+      }
+    }
+  };
+  collections.forEach((collection) => getAllDraftsFromItems(collection.uid, collection));
+
+  currentDrafts.forEach((draft) => {
+    console.log(draft.collectionUid, draft.pathname);
+  });
+
+  const [draft] = currentDrafts;
+  if (draft) {
+    dispatch(
+      updateNextAction({
+        nextAction: {
+          type: 'OPEN_REQUEST',
+          payload: {
+            pathname: draft.pathname
+          }
+        },
+        collectionUid: draft.collectionUid
+      })
+    );
+  }
 };
 
 export default appSlice.reducer;

@@ -1,22 +1,22 @@
-import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { showPreferences, startQuitFlow, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
 import {
+  brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
   collectionChangeFileEvent,
-  collectionUnlinkFileEvent,
+  collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
-  scriptEnvironmentUpdateEvent,
+  collectionUnlinkFileEvent,
   processEnvUpdateEvent,
-  collectionRenamedEvent,
-  runRequestEvent,
   runFolderEvent,
-  brunoConfigUpdateEvent
+  runRequestEvent,
+  scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { showPreferences, updatePreferences, updateCookies } from 'providers/ReduxStore/slices/app';
+import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { useEffect } from 'react';
 import toast from 'react-hot-toast';
-import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 
 const useIpcEvents = () => {
@@ -139,6 +139,11 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
+    const startQuitFlowListener = ipcRenderer.on('main:start-quit-flow', () => {
+      console.log('start quit flow');
+      dispatch(startQuitFlow());
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -154,6 +159,7 @@ const useIpcEvents = () => {
       showPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
+      startQuitFlowListener();
     };
   }, [isElectron]);
 };

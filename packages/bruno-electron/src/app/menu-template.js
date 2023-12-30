@@ -19,6 +19,13 @@ const template = [
           ipcMain.emit('main:open-preferences');
         }
       },
+      // TODO: remove after development
+      {
+        label: 'Simulate Quit',
+        click() {
+          ipcMain.emit('main:start-quit-flow');
+        }
+      },
       { type: 'separator' },
       { role: 'quit' }
     ]
