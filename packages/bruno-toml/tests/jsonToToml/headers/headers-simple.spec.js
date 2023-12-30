@@ -9,6 +9,9 @@ const json = {
   http: {
     method: 'get',
     url: 'https://reqres.in/api/users'
+  },
+  headers: {
+    Accept: 'application/json'
   }
 };
 
@@ -20,10 +23,13 @@ seq = '1'
 [http]
 method = 'get'
 url = 'https://reqres.in/api/users'
+
+[headers]
+Accept = 'application/json'
 `;
 
 describe('jsonToToml - simple get', () => {
-  it('should parse the json', () => {
+  it('should parse the json file', () => {
     expect(jsonToToml(json)).toEqual(toml);
   });
 });
