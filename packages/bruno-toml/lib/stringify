@@ -177,7 +177,7 @@ function stringifyMultilineString (str) {
     return escapeString(str).replace(/'(?='')/g, "\\'")
   }).join('\n')
   if (escaped.slice(-1) === "'") escaped += '\\\n'
-  return "'''\n" + escaped + "\n'''"
+  return "'''\n" + escaped + "'''"
 }
 
 function stringifyAnyInline (value, multilineOk) {

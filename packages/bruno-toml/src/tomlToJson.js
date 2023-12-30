@@ -1,14 +1,22 @@
 const Toml = require('@iarna/toml');
-const { has, each } = require('lodash');
+const { has, each, get } = require('lodash');
+
+const stripNewlineAtEnd = (str) => {
+  if (!str || typeof str !== 'string') {
+    return '';
+  }
+
+  return str.replace(/\n$/, '');
+};
 
 const tomlToJson = (toml) => {
   const json = Toml.parse(toml);
 
   const formattedJson = {
     meta: {
-      name: json.meta.name,
-      type: json.meta.type,
-      seq: json.meta.seq
+      name: get(json, 'meta.name', ''),
+      type: get(json, 'meta.type', ''),
+      seq: get(json, 'meta.seq', 0)
     },
     http: {
       method: json.http.method,
@@ -50,6 +58,22 @@ const tomlToJson = (toml) => {
           enabled: true
         });
       });
+    }
+  }
+
+  if (json.script) {
+    if (json.script['pre-request']) {
+      formattedJson.script = formattedJson.script || {};
+      formattedJson.script.req = stripNewlineAtEnd(json.script['pre-request']);
+    }
+
+    if (json.script['post-response']) {
+      formattedJson.script = formattedJson.script || {};
+      formattedJson.script.res = stripNewlineAtEnd(json.script['post-response']);
+    }
+
+    if (json.script['tests']) {
+      formattedJson.tests = stripNewlineAtEnd(json.script['tests']);
     }
   }
 

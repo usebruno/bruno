@@ -13,7 +13,10 @@ const fixtures = [
   'headers/disabled-header',
   'headers/dotted-header',
   'headers/duplicate-header',
-  'headers/reserved-header'
+  'headers/reserved-header',
+  'scripts/pre-request',
+  'scripts/post-response',
+  'scripts/tests'
 ];
 
 describe('bruno toml', () => {
@@ -35,7 +38,7 @@ describe('bruno toml', () => {
       });
 
       it(`should convert toml to json`, () => {
-        // expect(json).toEqual(tomlToJson(toml));
+        expect(json).toEqual(tomlToJson(toml));
       });
     });
   });
