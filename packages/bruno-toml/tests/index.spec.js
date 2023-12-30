@@ -6,11 +6,13 @@ const tomlToJson = require('../src/tomlToJson');
 const fixtures = [
   'methods/get',
   'methods/delete',
-  'headers/simple',
+  'headers/simple-header',
   'headers/empty-header',
   'headers/spaces-in-header',
   'headers/unicode-in-header',
-  'headers/disabled-header'
+  'headers/disabled-header',
+  'headers/dotted-header',
+  'headers/duplicate-header'
 ];
 
 describe('bruno toml', () => {
