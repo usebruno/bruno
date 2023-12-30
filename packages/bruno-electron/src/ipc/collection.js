@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell, dialog } = require('electron');
+const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -588,6 +588,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
 
   ipcMain.on('main:start-quit-flow', () => {
     mainWindow.webContents.send('main:start-quit-flow');
+  });
+
+  ipcMain.handle('main:complete-quit-flow', () => {
+    app.quit();
   });
 };
 

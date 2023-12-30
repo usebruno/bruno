@@ -110,9 +110,10 @@ export const startQuitFlow = () => (dispatch, getState) => {
   };
   collections.forEach((collection) => getAllDraftsFromItems(collection.uid, collection));
 
-  currentDrafts.forEach((draft) => {
-    console.log(draft.collectionUid, draft.pathname);
-  });
+  if (currentDrafts.length === 0) {
+    const { ipcRenderer } = window;
+    return ipcRenderer.invoke('main:complete-quit-flow');
+  }
 
   const [draft] = currentDrafts;
   if (draft) {
