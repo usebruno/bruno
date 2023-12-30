@@ -12,6 +12,18 @@ const keyValPairHasDuplicateKeys = (keyValPair) => {
   return names.length !== uniqueNames.size;
 };
 
+// these keys are reserved: disabled, description, enum
+const keyValPairHasReservedKeys = (keyValPair) => {
+  if (!keyValPair || !Array.isArray(keyValPair) || !keyValPair.length) {
+    return false;
+  }
+
+  const reservedKeys = ['disabled', 'description', 'enum'];
+  const names = keyValPair.map((pair) => pair.name);
+
+  return names.some((name) => reservedKeys.includes(name));
+};
+
 const jsonToToml = (json) => {
   const formattedJson = {
     meta: {
@@ -27,8 +39,9 @@ const jsonToToml = (json) => {
 
   if (json.headers && json.headers.length) {
     const hasDuplicateHeaders = keyValPairHasDuplicateKeys(json.headers);
+    const hasReservedHeaders = keyValPairHasReservedKeys(json.headers);
 
-    if (!hasDuplicateHeaders) {
+    if (!hasDuplicateHeaders && !hasReservedHeaders) {
       const enabledHeaders = filter(json.headers, (header) => header.enabled);
       const disabledHeaders = filter(json.headers, (header) => !header.enabled);
       each(enabledHeaders, (header) => {
@@ -42,7 +55,7 @@ const jsonToToml = (json) => {
       });
     } else {
       formattedJson.headers = {
-        raw: JSON.stringify(json.headers, null, 2)
+        bru: JSON.stringify(json.headers, null, 2)
       };
     }
   }

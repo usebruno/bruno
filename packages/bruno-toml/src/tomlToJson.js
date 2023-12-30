@@ -19,9 +19,10 @@ const tomlToJson = (toml) => {
   if (json.headers) {
     formattedJson.headers = [];
 
-    // headers are stored in raw format if they contain duplicate keys
-    if (has(json.headers, 'raw')) {
-      let parsedHeaders = JSON.parse(json.headers.raw);
+    // headers are stored in plain json format if they contain duplicate keys
+    // the json is stored in a stringified format in the bru key
+    if (has(json.headers, 'bru')) {
+      let parsedHeaders = JSON.parse(json.headers.bru);
 
       each(parsedHeaders, (header) => {
         formattedJson.headers.push({

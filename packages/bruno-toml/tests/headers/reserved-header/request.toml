@@ -11,14 +11,14 @@ url = 'https://reqres.in/api/users'
 bru = '''
 [
   {
-    "name": "Content-Type",
-    "value": "application/json",
+    "name": "disabled",
+    "value": "foo",
     "enabled": true
   },
   {
-    "name": "Content-Type",
-    "value": "application/ld+json",
-    "enabled": true
+    "name": "disabled-header-name",
+    "value": "disabled-header-value",
+    "enabled": false
   }
 ]
 '''
