@@ -3,7 +3,15 @@ const path = require('path');
 const jsonToToml = require('../src/jsonToToml');
 const tomlToJson = require('../src/tomlToJson');
 
-const fixtures = ['methods/get', 'methods/delete', 'headers/simple'];
+const fixtures = [
+  'methods/get',
+  'methods/delete',
+  'headers/simple',
+  'headers/empty-header',
+  'headers/spaces-in-header',
+  'headers/unicode-in-header',
+  'headers/disabled-header'
+];
 
 describe('bruno toml', () => {
   fixtures.forEach((fixture) => {

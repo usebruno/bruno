@@ -17,8 +17,6 @@
  * You can search for "modified for bruno-toml" to see the changes
  */
 
-
-
 'use strict'
 module.exports = stringify
 module.exports.value = stringifyInline
@@ -73,7 +71,14 @@ function stringifyObject (prefix, indent, obj) {
     }
   })
   if (result.length > 0) result.push('')
-  const complexIndent = prefix && inlineKeys.length > 0 ? indent + '  ' : ''
+
+  // original
+  // const complexIndent = prefix && inlineKeys.length > 0 ? indent + '  ' : ''
+
+  // modified for bruno-toml
+  // we don't want to indent tables
+  const complexIndent = '';
+
   complexKeys.forEach(key => {
     result.push(stringifyComplex(prefix, complexIndent, key, obj[key]))
   })
@@ -292,7 +297,12 @@ function stringifyComplexTable (prefix, indent, key, value) {
   const fullKey = prefix + stringifyKey(key)
   let result = ''
   if (getInlineKeys(value).length > 0) {
-    result += indent + '[' + fullKey + ']\n'
+    // original
+    // result += indent + '[' + fullKey + ']\n'
+
+    // modified for bruno-toml
+    // we don't want to indent tables
+    result += '[' + fullKey + ']\n'
   }
   return result + stringifyObject(fullKey + '.', indent, value)
 }

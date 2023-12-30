@@ -18,6 +18,17 @@ const tomlToJson = (toml) => {
   if (json.headers) {
     formattedJson.headers = [];
     Object.keys(json.headers).forEach((key) => {
+      if (key === 'disabled') {
+        Object.keys(json.headers['disabled']).forEach((disabledKey) => {
+          formattedJson.headers.push({
+            name: disabledKey,
+            value: json.headers[key][disabledKey],
+            enabled: false
+          });
+        });
+        return;
+      }
+
       formattedJson.headers.push({
         name: key,
         value: json.headers[key],

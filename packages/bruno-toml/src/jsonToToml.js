@@ -1,5 +1,5 @@
 const stringify = require('../lib/stringify');
-const { get, each } = require('lodash');
+const { get, each, filter } = require('lodash');
 
 const jsonToToml = (json) => {
   const formattedJson = {
@@ -15,9 +15,16 @@ const jsonToToml = (json) => {
   };
 
   if (json.headers && json.headers.length) {
-    formattedJson.headers = {};
-    each(json.headers, (header) => {
+    const enabledHeaders = filter(json.headers, (header) => header.enabled);
+    const disabledHeaders = filter(json.headers, (header) => !header.enabled);
+    each(enabledHeaders, (header) => {
+      formattedJson.headers = formattedJson.headers || {};
       formattedJson.headers[header.name] = header.value;
+    });
+    each(disabledHeaders, (header) => {
+      formattedJson.headers = formattedJson.headers || {};
+      formattedJson.headers.disabled = formattedJson.headers.disabled || {};
+      formattedJson.headers.disabled[header.name] = header.value;
     });
   }
 
