@@ -5,17 +5,19 @@ import {
   findItemInCollectionByPathname,
   getDefaultRequestPaneTab
 } from 'utils/collections/index';
-import appReducer, { insertEventsIntoQueue, removeEventsFromQueue } from './slices/app';
+import appReducer, { removeEventsFromQueue } from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer, { addTab } from './slices/tabs';
 
 const listenerMiddleware = createListenerMiddleware();
 
 listenerMiddleware.startListening({
-  actionCreator: insertEventsIntoQueue,
+  predicate: (_, currentState, originalState) =>
+    currentState.app.eventsQueue.length !== originalState.app.eventsQueue.length,
   effect: async (action, listenerApi) => {
     const [event] = listenerApi.getState().app.eventsQueue;
-    const { itemPathname, collectionUid, eventType } = event;
+    if (!event) return;
+    const { itemUid, itemPathname, collectionUid, eventType } = event;
     let eventItem = null;
     // waiting until item is added into collection (only happens after IO completes) before handling event
     await listenerApi.condition((action, currentState, originalState) => {
