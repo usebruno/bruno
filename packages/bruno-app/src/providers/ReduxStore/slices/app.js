@@ -62,7 +62,7 @@ export const appSlice = createSlice({
       const eventsToRemove = action.payload;
       state.eventsQueue = filter(
         state.eventsQueue,
-        (event) => !eventsToRemove.some((e) => e.itemUid === event.itemUid && e.type === event.type)
+        (event) => !eventsToRemove.some((e) => e.eventUid === event.eventUid)
       );
     }
   }
