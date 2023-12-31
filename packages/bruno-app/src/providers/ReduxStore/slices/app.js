@@ -1,6 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
+import filter from 'lodash/filter';
 import { updateNextAction } from 'providers/ReduxStore/slices/collections/index';
 import toast from 'react-hot-toast';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 const initialState = {
   isDragging: false,
@@ -18,7 +20,8 @@ const initialState = {
       codeFont: 'default'
     }
   },
-  cookies: []
+  cookies: [],
+  eventsQueue: []
 };
 
 export const appSlice = createSlice({
@@ -51,6 +54,16 @@ export const appSlice = createSlice({
     },
     updateCookies: (state, action) => {
       state.cookies = action.payload;
+    },
+    insertEventsIntoQueue: (state, action) => {
+      state.eventsQueue = state.eventsQueue.concat(action.payload);
+    },
+    removeEventsFromQueue: (state, action) => {
+      const eventsToRemove = action.payload;
+      state.eventsQueue = filter(
+        state.eventsQueue,
+        (event) => !eventsToRemove.some((e) => e.itemUid === event.itemUid && e.type === event.type)
+      );
     }
   }
 });
@@ -64,7 +77,9 @@ export const {
   hideHomePage,
   showPreferences,
   updatePreferences,
-  updateCookies
+  updateCookies,
+  insertEventsIntoQueue,
+  removeEventsFromQueue
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -101,9 +116,9 @@ export const startQuitFlow = () => (dispatch, getState) => {
 
   const getAllDraftsFromItems = (collectionUid, currentLevel) => {
     for (const item of currentLevel.items) {
-      if (item.draft) {
+      if (isItemARequest(item) && item.draft) {
         currentDrafts.push({ collectionUid, pathname: item.pathname });
-      } else if (item.items) {
+      } else if (isItemAFolder(item)) {
         getAllDraftsFromItems(collectionUid, item);
       }
     }
