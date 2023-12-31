@@ -49,10 +49,6 @@ export const collectionsSlice = createSlice({
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
 
-      // an improvement over the above approach.
-      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
-      collection.nextAction = null;
-
       collapseCollection(collection);
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
@@ -97,14 +93,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
-      }
-    },
-    updateNextAction: (state, action) => {
-      const { collectionUid, nextAction } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.nextAction = nextAction;
       }
     },
     updateSettingsSelectedTab: (state, action) => {
