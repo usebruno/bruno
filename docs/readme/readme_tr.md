@@ -58,7 +58,7 @@ sudo apt install bruno
 
 ![bruno](/assets/images/run-anywhere.png) <br /><br />
 
-### Git üzerinden işbirliği yapın 👩‍💻🧑‍💻
+### Git üzerinden katkıda bulunun 👩‍💻🧑‍💻
 
 Veya seçtiğiniz herhangi bir sürüm kontrol sistemi
 
