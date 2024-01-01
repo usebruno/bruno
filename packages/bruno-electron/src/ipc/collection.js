@@ -591,7 +591,7 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   });
 
   ipcMain.handle('main:complete-quit-flow', () => {
-    app.quit();
+    mainWindow.destroy();
   });
 };
 
