@@ -68,13 +68,13 @@ listenerMiddleware.startListening({
   }
 });
 
-// listenerMiddleware.startListening({
-//   predicate: () => true,
-//   effect: (action, listenerApi) => {
-//     console.log('action', action.type);
-//     console.log(listenerApi.getState());
-//   }
-// });
+listenerMiddleware.startListening({
+  predicate: () => true,
+  effect: (action, listenerApi) => {
+    console.log('action', action.type);
+    console.log(listenerApi.getState());
+  }
+});
 
 export const store = configureStore({
   reducer: {

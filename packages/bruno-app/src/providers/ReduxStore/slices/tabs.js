@@ -1,7 +1,7 @@
-import find from 'lodash/find';
-import filter from 'lodash/filter';
-import last from 'lodash/last';
 import { createSlice } from '@reduxjs/toolkit';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import last from 'lodash/last';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -101,6 +101,11 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    setShowConfirmClose: (state, action) => {
+      const { uid, showConfirmClose } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) tab.showConfirmClose = showConfirmClose;
     }
   }
 });
@@ -112,7 +117,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  setShowConfirmClose
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
