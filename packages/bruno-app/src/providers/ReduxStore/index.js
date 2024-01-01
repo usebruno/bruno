@@ -5,36 +5,60 @@ import {
   findItemInCollectionByPathname,
   getDefaultRequestPaneTab
 } from 'utils/collections/index';
-import appReducer, { removeEventsFromQueue } from './slices/app';
+import { itemIsOpenedInTabs } from 'utils/tabs/index';
+import appReducer, { completeQuitFlow, removeEventsFromQueue } from './slices/app';
 import collectionsReducer from './slices/collections';
-import tabsReducer, { addTab } from './slices/tabs';
+import tabsReducer, { addTab, closeTabs, focusTab, setShowConfirmClose } from './slices/tabs';
 
 const listenerMiddleware = createListenerMiddleware();
 
 listenerMiddleware.startListening({
-  predicate: (_, currentState, originalState) =>
-    currentState.app.eventsQueue.length !== originalState.app.eventsQueue.length,
+  predicate: (action) => ['app/insertEventsIntoQueue', 'app/removeEventsFromQueue'].includes(action.type),
   effect: async (action, listenerApi) => {
-    const [event] = listenerApi.getState().app.eventsQueue;
+    const state = listenerApi.getState();
+    const { tabs } = state.tabs;
+    const [event] = state.app.eventsQueue;
     if (!event) return;
+    if (event.eventType === 'CLOSE_APP') {
+      return listenerApi.dispatch(completeQuitFlow());
+    }
     const { itemUid, itemPathname, collectionUid, eventType } = event;
     let eventItem = null;
     // waiting until item is added into collection (only happens after IO completes) before handling event
-    await listenerApi.condition((action, currentState, originalState) => {
-      const { collections } = currentState.collections;
+    if (event.eventType === 'OPEN_REQUEST') {
+      await listenerApi.condition((action, currentState, originalState) => {
+        const { collections } = currentState.collections;
+        const collection = findCollectionByUid(collections, collectionUid);
+        const item = findItemInCollectionByPathname(collection, itemPathname);
+        if (item) eventItem = item;
+        return !!item;
+      });
+    } else {
+      const { collections } = state.collections;
       const collection = findCollectionByUid(collections, collectionUid);
-      const item = findItemInCollectionByPathname(collection, itemPathname);
+      const item = findItemInCollection(collection, itemUid);
       if (item) eventItem = item;
-      return !!item;
-    });
+    }
     if (eventItem) {
+      console.log('Will handle event:', eventType);
       switch (eventType) {
         case 'OPEN_REQUEST':
           return listenerApi.dispatch(
-            addTab({
-              uid: eventItem.uid,
-              collectionUid,
-              requestPaneTab: getDefaultRequestPaneTab(eventItem)
+            itemIsOpenedInTabs(eventItem, tabs)
+              ? focusTab({
+                  uid: eventItem.uid
+                })
+              : addTab({
+                  uid: eventItem.uid,
+                  collectionUid,
+                  requestPaneTab: getDefaultRequestPaneTab(eventItem)
+                })
+          );
+        case 'CLOSE_REQUEST':
+          return listenerApi.dispatch(
+            setShowConfirmClose({
+              tabUid: eventItem.uid,
+              showConfirmClose: true
             })
           );
       }
@@ -42,28 +66,44 @@ listenerMiddleware.startListening({
   }
 });
 
+const handleTabOpen = (action, listenerApi) => {
+  let { uid, collectionUid } = action.payload;
+  const state = listenerApi.getState();
+  const { eventsQueue } = state.app;
+  const { collections } = state.collections;
+  const { tabs } = state.tabs;
+  const firstEvent = eventsQueue[0];
+  if (firstEvent && firstEvent.eventType == 'OPEN_REQUEST') {
+    collectionUid = collectionUid ?? tabs.find((t) => t.uid === uid).collectionUid;
+    const collection = findCollectionByUid(collections, collectionUid);
+    const item = findItemInCollection(collection, uid);
+    const eventToRemove =
+      (firstEvent.itemUid === item.uid || firstEvent.itemPathname === item.pathname) &&
+      firstEvent.eventType === 'OPEN_REQUEST'
+        ? firstEvent
+        : null;
+    if (eventToRemove) {
+      listenerApi.dispatch(removeEventsFromQueue([eventToRemove]));
+    }
+  }
+};
+
 listenerMiddleware.startListening({
-  actionCreator: addTab,
+  predicate: (action) => ['tabs/addTab', 'tabs/focusTab'].includes(action.type),
+  effect: handleTabOpen
+});
+
+listenerMiddleware.startListening({
+  actionCreator: closeTabs,
   effect: (action, listenerApi) => {
-    const { uid, collectionUid } = action.payload;
     const state = listenerApi.getState();
+    const { tabUids } = action.payload;
     const { eventsQueue } = state.app;
-    const { collections } = state.collections;
-    if (eventsQueue.length) {
-      const collection = findCollectionByUid(collections, collectionUid);
-      const item = findItemInCollection(collection, uid);
-      const eventToRemove = eventsQueue.find(
-        (event) => event.itemPathname === item.pathname && event.eventType === 'OPEN_REQUEST'
-      );
-      if (eventToRemove) {
-        listenerApi.dispatch(
-          removeEventsFromQueue([
-            {
-              eventUid: eventToRemove.eventUid
-            }
-          ])
-        );
-      }
+    const firstEvent = eventsQueue[0];
+    if (!firstEvent || firstEvent.eventType !== 'CLOSE_REQUEST') return;
+    const eventToRemove = tabUids.some((uid) => uid === firstEvent.itemUid) ? firstEvent : null;
+    if (eventToRemove) {
+      listenerApi.dispatch(removeEventsFromQueue([eventToRemove]));
     }
   }
 });

@@ -1,8 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
-import { updateNextAction } from 'providers/ReduxStore/slices/collections/index';
+import groupBy from 'lodash/groupBy';
 import toast from 'react-hot-toast';
-import { isItemAFolder, isItemARequest } from 'utils/collections';
+import { isItemARequest } from 'utils/collections';
+import { findCollectionByUid, flattenItems } from 'utils/collections/index';
+import { uuid } from 'utils/common';
 
 const initialState = {
   isDragging: false,
@@ -117,37 +119,45 @@ export const startQuitFlow = () => (dispatch, getState) => {
 
   const currentDrafts = [];
   const { collections } = state.collections;
+  const { tabs } = state.tabs;
 
-  const getAllDraftsFromItems = (collectionUid, currentLevel) => {
-    for (const item of currentLevel.items) {
+  const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
+  Object.keys(tabsByCollection).forEach((collectionUid) => {
+    const collectionItems = flattenItems(findCollectionByUid(collections, collectionUid).items);
+    let openedTabs = tabsByCollection[collectionUid];
+    for (const item of collectionItems) {
       if (isItemARequest(item) && item.draft) {
-        currentDrafts.push({ collectionUid, pathname: item.pathname });
-      } else if (isItemAFolder(item)) {
-        getAllDraftsFromItems(collectionUid, item);
+        openedTabs = filter(openedTabs, (t) => t.uid !== item.uid);
+        currentDrafts.push({ ...item, collectionUid });
       }
+      if (!openedTabs.length) return;
     }
-  };
-  collections.forEach((collection) => getAllDraftsFromItems(collection.uid, collection));
+  });
 
   if (currentDrafts.length === 0) {
-    const { ipcRenderer } = window;
-    return ipcRenderer.invoke('main:complete-quit-flow');
+    return dispatch(completeQuitFlow());
   }
 
-  const [draft] = currentDrafts;
-  if (draft) {
-    dispatch(
-      updateNextAction({
-        nextAction: {
-          type: 'OPEN_REQUEST',
-          payload: {
-            pathname: draft.pathname
-          }
-        },
-        collectionUid: draft.collectionUid
-      })
-    );
-  }
+  const events = currentDrafts
+    .reduce((acc, draft) => {
+      const { uid, pathname, collectionUid } = draft;
+      const defaultProperties = { itemUid: uid, collectionUid, itemPathname: pathname };
+      acc.push(
+        ...[
+          { eventUid: uuid(), eventType: 'OPEN_REQUEST', ...defaultProperties },
+          { eventUid: uuid(), eventType: 'CLOSE_REQUEST', ...defaultProperties }
+        ]
+      );
+      return acc;
+    }, [])
+    .concat([{ eventUid: uuid(), eventType: 'CLOSE_APP' }]);
+
+  dispatch(insertEventsIntoQueue(events));
+};
+
+export const completeQuitFlow = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('main:complete-quit-flow');
 };
 
 export default appSlice.reducer;
