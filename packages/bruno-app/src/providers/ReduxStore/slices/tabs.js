@@ -152,12 +152,12 @@ export const closeWithoutSavingDraft = (itemUid, collectionUid) => (dispatch) =>
 
 export const cancelCloseDraft = (itemUid) => (dispatch, getState) => {
   const state = getState();
+  dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
   const { eventsQueue } = state.app;
-  const relatedEvent = eventsQueue.find((event) => event.itemUid === itemUid);
-  if (relatedEvent) {
+  const firstEvent = eventsQueue[0];
+  if (firstEvent && firstEvent.eventType === 'CLOSE_REQUEST' && firstEvent.itemUid === itemUid) {
     dispatch(removeAllEventsFromQueue());
   }
-  dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
 };
 
 export default tabsSlice.reducer;
