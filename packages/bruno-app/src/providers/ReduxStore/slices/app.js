@@ -64,6 +64,9 @@ export const appSlice = createSlice({
         state.eventsQueue,
         (event) => !eventsToRemove.some((e) => e.eventUid === event.eventUid)
       );
+    },
+    removeAllEventsFromQueue: (state) => {
+      state.eventsQueue = [];
     }
   }
 });
@@ -79,7 +82,8 @@ export const {
   updatePreferences,
   updateCookies,
   insertEventsIntoQueue,
-  removeEventsFromQueue
+  removeEventsFromQueue,
+  removeAllEventsFromQueue
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

@@ -1,7 +1,11 @@
 import get from 'lodash/get';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { closeTabs, setShowConfirmClose } from 'providers/ReduxStore/slices/tabs';
+import {
+  cancelCloseDraft,
+  closeAndSaveDraft,
+  closeTabs,
+  closeWithoutSavingDraft,
+  setShowConfirmClose
+} from 'providers/ReduxStore/slices/tabs';
 import { useTheme } from 'providers/Theme';
 import React from 'react';
 import { useDispatch } from 'react-redux';
@@ -27,19 +31,10 @@ const RequestTab = ({ tab, collection }) => {
     );
   };
 
-  const hideConfirmClose = () => {
-    dispatch(
-      setShowConfirmClose({
-        uid: tab.uid,
-        showConfirmClose: false
-      })
-    );
-  };
-
   const showConfirmClose = () => {
     dispatch(
       setShowConfirmClose({
-        uid: tab.uid,
+        tabUid: tab.uid,
         showConfirmClose: true
       })
     );
@@ -109,35 +104,9 @@ const RequestTab = ({ tab, collection }) => {
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {tab.showConfirmClose && (
         <ConfirmRequestClose
-          onCancel={hideConfirmClose}
-          onCloseWithoutSave={() => {
-            dispatch(
-              deleteRequestDraft({
-                itemUid: item.uid,
-                collectionUid: collection.uid
-              })
-            );
-            dispatch(
-              closeTabs({
-                tabUids: [tab.uid]
-              })
-            );
-            hideConfirmClose();
-          }}
-          onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
-              .then(() => {
-                dispatch(
-                  closeTabs({
-                    tabUids: [tab.uid]
-                  })
-                );
-                hideConfirmClose();
-              })
-              .catch((err) => {
-                console.log('err', err);
-              });
-          }}
+          onCancel={() => dispatch(cancelCloseDraft(item.uid))}
+          onCloseWithoutSave={() => dispatch(closeWithoutSavingDraft(item.uid, collection.uid))}
+          onSaveAndClose={() => dispatch(closeAndSaveDraft(item.uid, collection.uid))}
         />
       )}
       <div className="flex items-baseline tab-label pl-2">
