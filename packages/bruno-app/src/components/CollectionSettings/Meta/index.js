@@ -2,6 +2,7 @@ import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateCollectionDocs, updateCollectionTimeout } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
