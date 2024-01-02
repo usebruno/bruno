@@ -409,8 +409,8 @@ export const transformRequestToSaveToFilesystem = (item) => {
     });
   });
 
-  if (item.request.timeout && item.request.timeout.length > 0) {
-    itemToSave.request.timeout = item.request.timeout;
+  if (_item.request.timeout) {
+    itemToSave.request.timeout = _item.request.timeout;
   }
 
   if (itemToSave.request.body.mode === 'json') {

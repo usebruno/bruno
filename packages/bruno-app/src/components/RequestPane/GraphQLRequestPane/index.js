@@ -16,7 +16,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import Documentation from 'components/Documentation/index';
+import Meta from 'components/Meta/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
@@ -93,8 +93,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
       case 'tests': {
         return <Tests item={item} collection={collection} />;
       }
-      case 'docs': {
-        return <Documentation item={item} collection={collection} />;
+      case 'meta': {
+        return <Meta item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -144,8 +144,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
-          Docs
+        <div className={getTabClassname('meta')} role="tab" onClick={() => selectTab('meta')}>
+          Meta
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>

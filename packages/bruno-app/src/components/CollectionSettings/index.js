@@ -12,7 +12,7 @@ import Headers from './Headers';
 import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
-import Docs from './Docs';
+import Meta from './Meta';
 import Presets from './Presets';
 import Info from './Info';
 import StyledWrapper from './StyledWrapper';
@@ -101,8 +101,8 @@ const CollectionSettings = ({ collection }) => {
           />
         );
       }
-      case 'docs': {
-        return <Docs collection={collection} />;
+      case 'meta': {
+        return <Meta collection={collection} />;
       }
       case 'info': {
         return <Info collection={collection} />;
@@ -140,14 +140,14 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
-          Docs
+        <div className={getTabClassname('meta')} role="tab" onClick={() => setTab('meta')}>
+          Meta
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
         </div>
       </div>
-      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
+      <section className={`flex ${['auth', 'script', 'meta', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
         {getTabPanel(tab)}
       </section>
     </StyledWrapper>
