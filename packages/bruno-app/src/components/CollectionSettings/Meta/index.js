@@ -50,7 +50,7 @@ const Meta = ({ collection }) => {
     <StyledWrapper className="mt-1 h-full w-full relative">
       <form className="bruno-form" onSubmit={onSave}>
         <div className="mb-3">
-          <div className="mb-3 flex items-center mb-2">
+          <div className="flex items-center mb-2">
             <label className="settings-label mr-1" htmlFor="enabled">
               Docs
             </label>
