@@ -74,7 +74,7 @@ const Meta = ({ collection }) => {
         </div>
         <div className="mb-3 flex items-center">
           <label className="settings-label mr-3" htmlFor="requestUrl">
-            Timeout
+            Timeout (ms)
           </label>
           <div className="flex items-center">
             <div className="flex items-center flex-grow input-container h-full">
