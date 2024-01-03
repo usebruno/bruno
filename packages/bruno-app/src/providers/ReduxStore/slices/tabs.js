@@ -5,6 +5,7 @@ import last from 'lodash/last';
 import { removeAllEventsFromQueue } from 'providers/ReduxStore/slices/app';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { eventTypes } from 'utils/events-queue/index';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -154,8 +155,8 @@ export const cancelCloseDraft = (itemUid) => (dispatch, getState) => {
   const state = getState();
   dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
   const { eventsQueue } = state.app;
-  const firstEvent = eventsQueue[0];
-  if (firstEvent && firstEvent.eventType === 'CLOSE_REQUEST' && firstEvent.itemUid === itemUid) {
+  const [firstEvent] = eventsQueue;
+  if (firstEvent && firstEvent.eventType === eventTypes.CLOSE_REQUEST && firstEvent.itemUid === itemUid) {
     dispatch(removeAllEventsFromQueue());
   }
 };

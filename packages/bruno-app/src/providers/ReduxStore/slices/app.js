@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { isItemARequest } from 'utils/collections';
 import { findCollectionByUid, flattenItems } from 'utils/collections/index';
 import { uuid } from 'utils/common';
+import { eventTypes } from 'utils/events-queue/index';
 
 const initialState = {
   isDragging: false,
@@ -143,13 +144,13 @@ export const startQuitFlow = () => (dispatch, getState) => {
       const defaultProperties = { itemUid: uid, collectionUid, itemPathname: pathname };
       acc.push(
         ...[
-          { eventUid: uuid(), eventType: 'OPEN_REQUEST', ...defaultProperties },
-          { eventUid: uuid(), eventType: 'CLOSE_REQUEST', ...defaultProperties }
+          { eventUid: uuid(), eventType: eventTypes.OPEN_REQUEST, ...defaultProperties },
+          { eventUid: uuid(), eventType: eventTypes.CLOSE_REQUEST, ...defaultProperties }
         ]
       );
       return acc;
     }, [])
-    .concat([{ eventUid: uuid(), eventType: 'CLOSE_APP' }]);
+    .concat([{ eventUid: uuid(), eventType: eventTypes.CLOSE_APP }]);
 
   dispatch(insertEventsIntoQueue(events));
 };
