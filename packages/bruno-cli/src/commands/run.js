@@ -92,7 +92,7 @@ const printRunSummary = (results) => {
   };
 };
 
-const getBruFilesRecursively = (dir) => {
+const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
 
   const getFilesInOrder = (dir) => {
@@ -131,10 +131,19 @@ const getBruFilesRecursively = (dir) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          currentDirBruJsons.push({
-            bruFilepath: filePath,
-            bruJson
-          });
+          if (testsOnly) {
+            if (bruJson.request.tests) {
+              currentDirBruJsons.push({
+                bruFilepath: filePath,
+                bruJson
+              });
+            }
+          } else {
+            currentDirBruJsons.push({
+              bruFilepath: filePath,
+              bruJson
+            });
+          }
         }
       }
 
@@ -383,7 +392,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename);
+        bruJsons = getBruFilesRecursively(filename, testsOnly);
       }
     }
 
