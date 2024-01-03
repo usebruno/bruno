@@ -26,7 +26,7 @@ Bruno yalnızca çevrimdışıdır. Bruno'ya bulut senkronizasyonu eklemek gibi 
 
 ### Kurulum
 
-Bruno Mac, Windows ve Linux için ikili indirme olarak [web sitemizde] (https://www.usebruno.com/downloads) mevcuttur.
+Bruno Mac, Windows ve Linux için ikili indirme olarak [web sitemizde](https://www.usebruno.com/downloads) mevcuttur.
 
 Bruno'yu Homebrew, Chocolatey, Scoop, Snap ve Apt gibi paket yöneticileri aracılığıyla da yükleyebilirsiniz.
 

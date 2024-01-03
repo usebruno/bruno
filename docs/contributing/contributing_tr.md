@@ -13,7 +13,7 @@ Kullandığımız kütüphaneler
 - CSS - Tailwind
 - Kod Düzenleyiciler - Codemirror
 - Durum Yönetimi - Redux
-- Iconlar - Tabler Simgeleri
+- Iconlar - Tabler Icons
 - Formlar - formik
 - Şema Doğrulama - Yup
 - İstek İstemcisi - axios
