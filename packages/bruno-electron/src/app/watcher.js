@@ -230,7 +230,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
-
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
@@ -334,7 +333,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
-
+      console.log('currently reading file', file.data);
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -412,7 +411,7 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith("\\\\") ? true : false,
+        usePolling: watchPath.startsWith('\\\\') ? true : false,
         ignored: (path) => ['node_modules', '.git'].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,

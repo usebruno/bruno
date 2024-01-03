@@ -109,7 +109,7 @@ export const collectionsSlice = createSlice({
       }
     },
     updateSettingsSelectedTab: (state, action) => {
-      const { collectionUid, tab } = action.payload;
+      const { collectionUid, folderUid, tab } = action.payload;
 
       const collection = findCollectionByUid(state.collections, collectionUid);
 
