@@ -104,6 +104,7 @@ const RequestTab = ({ tab, collection }) => {
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {tab.showConfirmClose && (
         <ConfirmRequestClose
+          item={item}
           onCancel={() => dispatch(cancelCloseDraft(item.uid))}
           onCloseWithoutSave={() => dispatch(closeWithoutSavingDraft(item.uid, collection.uid))}
           onSaveAndClose={() => dispatch(closeAndSaveDraft(item.uid, collection.uid))}
