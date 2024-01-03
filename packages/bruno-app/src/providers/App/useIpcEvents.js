@@ -140,7 +140,6 @@ const useIpcEvents = () => {
     });
 
     const startQuitFlowListener = ipcRenderer.on('main:start-quit-flow', () => {
-      console.log('start quit flow');
       dispatch(startQuitFlow());
     });
 

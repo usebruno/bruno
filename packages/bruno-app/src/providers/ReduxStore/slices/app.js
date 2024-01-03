@@ -115,7 +115,6 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
 
 export const startQuitFlow = () => (dispatch, getState) => {
   const state = getState();
-  console.log(state);
 
   const currentDrafts = [];
   const { collections } = state.collections;

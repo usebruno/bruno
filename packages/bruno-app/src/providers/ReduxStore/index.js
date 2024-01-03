@@ -40,7 +40,6 @@ listenerMiddleware.startListening({
       if (item) eventItem = item;
     }
     if (eventItem) {
-      console.log('Will handle event:', eventType);
       switch (eventType) {
         case 'OPEN_REQUEST':
           return listenerApi.dispatch(
@@ -105,14 +104,6 @@ listenerMiddleware.startListening({
     if (eventToRemove) {
       listenerApi.dispatch(removeEventsFromQueue([eventToRemove]));
     }
-  }
-});
-
-listenerMiddleware.startListening({
-  predicate: () => true,
-  effect: (action, listenerApi) => {
-    console.log('action', action.type);
-    console.log(listenerApi.getState());
   }
 });
 
