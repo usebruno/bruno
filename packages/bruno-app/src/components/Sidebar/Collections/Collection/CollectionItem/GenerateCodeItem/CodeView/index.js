@@ -48,13 +48,6 @@ const CodeView = ({ language, item }) => {
           theme={storedTheme}
           mode={lang}
         />
-        <pre>{JSON.stringify(item, null, 2)}</pre>
-        {collection && (
-          <>
-            ---------------------------
-            <pre>{JSON.stringify(collection, null, 2)}</pre>
-          </>
-        )}
       </StyledWrapper>
     </>
   );
