@@ -12,7 +12,8 @@ import {
   collectionRenamedEvent,
   runRequestEvent,
   runFolderEvent,
-  brunoConfigUpdateEvent
+  brunoConfigUpdateEvent,
+  folderAddFileEvent
 } from 'providers/ReduxStore/slices/collections';
 import { showPreferences, updatePreferences, updateCookies } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
@@ -44,6 +45,13 @@ const useIpcEvents = () => {
       if (type === 'addFile') {
         dispatch(
           collectionAddFileEvent({
+            file: val
+          })
+        );
+      }
+      if (type === 'addFileDir') {
+        dispatch(
+          folderAddFileEvent({
             file: val
           })
         );

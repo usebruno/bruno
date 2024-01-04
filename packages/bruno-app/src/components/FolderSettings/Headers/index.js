@@ -4,12 +4,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import {
-  addCollectionHeader,
-  updateCollectionHeader,
-  deleteCollectionHeader
-} from 'providers/ReduxStore/slices/collections';
-import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { addFolderHeader, updateFolderHeader, deleteFolderHeader } from 'providers/ReduxStore/slices/collections';
+import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
@@ -18,19 +14,18 @@ const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  console.log('using the following data', collection, folder);
-  console.log('pitié', get(folder, 'root', []));
-  const headers = get(collection, 'root.request.headers', []);
+  const headers = get(folder, 'root.request.headers', []);
 
   const addHeader = () => {
     dispatch(
-      addCollectionHeader({
-        collectionUid: collection.uid
+      addFolderHeader({
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {
@@ -48,18 +43,20 @@ const Headers = ({ collection, folder }) => {
       }
     }
     dispatch(
-      updateCollectionHeader({
+      updateFolderHeader({
         header: header,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };
 
   const handleRemoveHeader = (header) => {
     dispatch(
-      deleteCollectionHeader({
+      deleteFolderHeader({
         headerUid: header.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };

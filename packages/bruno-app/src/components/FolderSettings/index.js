@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import Headers from './Headers';
 
 const FolderSettings = ({ collection, folder }) => {
-  console.log('i got this', folder);
   const dispatch = useDispatch();
   const tab = folder?.settingsSelectedTab || 'headers';
   const setTab = (tab) => {
