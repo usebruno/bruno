@@ -107,7 +107,7 @@ app.on('ready', async () => {
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     require('electron').shell.openExternal(details.url);
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   // register all ipc handlers

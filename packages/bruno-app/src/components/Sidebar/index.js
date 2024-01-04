@@ -4,19 +4,21 @@ import StyledWrapper from './StyledWrapper';
 import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
+import GoldenEdition from './GoldenEdition';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie } from '@tabler/icons';
+import { IconSettings, IconCookie, IconHeart } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 222;
+const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
+  const [goldenEditonOpen, setGoldenEditonOpen] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const [cookiesOpen, setCookiesOpen] = useState(false);
@@ -79,6 +81,7 @@ const Sidebar = () => {
   return (
     <StyledWrapper className="flex relative h-screen">
       <aside>
+        {goldenEditonOpen && <GoldenEdition onClose={() => setGoldenEditonOpen(false)} />}
         <div className="flex flex-row h-screen w-full">
           {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
           {cookiesOpen && <Cookies onClose={() => setCookiesOpen(false)} />}
@@ -102,6 +105,12 @@ const Sidebar = () => {
                   strokeWidth={1.5}
                   className="mr-2 hover:text-gray-700"
                   onClick={() => setCookiesOpen(true)}
+                />
+                <IconHeart
+                  size={18}
+                  strokeWidth={1.5}
+                  className="mr-2 hover:text-gray-700"
+                  onClick={() => setGoldenEditonOpen(true)}
                 />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
