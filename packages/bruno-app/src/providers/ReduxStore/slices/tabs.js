@@ -154,6 +154,8 @@ export const closeWithoutSavingDraft = (itemUid, collectionUid) => (dispatch) =>
 export const cancelCloseDraft = (itemUid) => (dispatch, getState) => {
   const state = getState();
   dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
+
+  // check if there was an event to close this tab and aborts the sequence
   const { eventsQueue } = state.app;
   const [firstEvent] = eventsQueue;
   if (firstEvent && firstEvent.eventType === eventTypes.CLOSE_REQUEST && firstEvent.itemUid === itemUid) {

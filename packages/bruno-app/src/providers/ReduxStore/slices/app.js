@@ -117,6 +117,7 @@ export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
 export const startQuitFlow = () => (dispatch, getState) => {
   const state = getState();
 
+  // Before closing the app, checks for unsaved requests (drafts)
   const currentDrafts = [];
   const { collections } = state.collections;
   const { tabs } = state.tabs;
@@ -134,10 +135,14 @@ export const startQuitFlow = () => (dispatch, getState) => {
     }
   });
 
+  // If there are no drafts, closes the window
   if (currentDrafts.length === 0) {
     return dispatch(completeQuitFlow());
   }
 
+  // Sequence of events tracked by listener middleware
+  // For every draft, it will focus the request and immediately prompt if the user wants to save it
+  // At the end of the sequence, closes the window
   const events = currentDrafts
     .reduce((acc, draft) => {
       const { uid, pathname, collectionUid } = draft;

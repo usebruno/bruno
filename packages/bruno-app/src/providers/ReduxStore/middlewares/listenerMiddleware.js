@@ -17,14 +17,20 @@ listenerMiddleware.startListening({
   effect: async (action, listenerApi) => {
     const state = listenerApi.getState();
     const { tabs } = state.tabs;
-    const [event] = state.app.eventsQueue;
-    if (!event) return;
-    if (event.eventType === eventTypes.CLOSE_APP) {
+
+    // after events are added or removed from queue, it will handle the first (if there is any left)
+    const [firstEvent] = state.app.eventsQueue;
+    if (!firstEvent) return;
+
+    if (firstEvent.eventType === eventTypes.CLOSE_APP) {
+      // this events closes the window
       return listenerApi.dispatch(completeQuitFlow());
     }
-    const { itemUid, itemPathname, collectionUid, eventType } = event;
+
+    const { itemUid, itemPathname, collectionUid, eventType } = firstEvent;
     let eventItem = null;
-    if (event.eventType === eventTypes.OPEN_REQUEST) {
+    if (firstEvent.eventType === eventTypes.OPEN_REQUEST) {
+      // this event adds or opens a request
       // waiting until item is added into collection (only happens after IO completes) before handling event
       // this happens when first opening a request just after creating it
       await listenerApi.condition((action, currentState, originalState) => {
@@ -42,7 +48,7 @@ listenerMiddleware.startListening({
     }
     if (eventItem) {
       switch (eventType) {
-        case eventTypes.OPEN_REQUEST:
+        case eventTypes.OPEN_REQUEST: // this event adds or opens a request
           return listenerApi.dispatch(
             itemIsOpenedInTabs(eventItem, tabs)
               ? focusTab({
@@ -54,7 +60,7 @@ listenerMiddleware.startListening({
                   requestPaneTab: getDefaultRequestPaneTab(eventItem)
                 })
           );
-        case eventTypes.CLOSE_REQUEST:
+        case eventTypes.CLOSE_REQUEST: // this event prompts the user if they want to save the request
           return listenerApi.dispatch(
             setShowConfirmClose({
               tabUid: eventItem.uid,
@@ -74,6 +80,8 @@ listenerMiddleware.startListening({
     const { eventsQueue } = state.app;
     const { collections } = state.collections;
     const { tabs } = state.tabs;
+
+    // after tab is opened, remove corresponding event from start of queue (if any)
     const [firstEvent] = eventsQueue;
     if (firstEvent && firstEvent.eventType == eventTypes.OPEN_REQUEST) {
       collectionUid = collectionUid ?? tabs.find((t) => t.uid === uid).collectionUid;
@@ -93,6 +101,8 @@ listenerMiddleware.startListening({
     const state = listenerApi.getState();
     const { tabUids } = action.payload;
     const { eventsQueue } = state.app;
+
+    // after tab is closed, remove corresponding event from start of queue (if any)
     const [firstEvent] = eventsQueue;
     if (!firstEvent || firstEvent.eventType !== eventTypes.CLOSE_REQUEST) return;
     const eventToRemove = tabUids.some((uid) => uid === firstEvent.itemUid) ? firstEvent : null;

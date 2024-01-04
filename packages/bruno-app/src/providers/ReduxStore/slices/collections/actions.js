@@ -625,8 +625,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // the useCollectionNextAction() will track this and open the new request in a new tab
-        // once the request is created
+        // listener middleware will track this and open the new request in a new tab once request is created
         dispatch(
           insertEventsIntoQueue([
             {
@@ -654,9 +653,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-
-          // the useCollectionNextAction() will track this and open the new request in a new tab
-          // once the request is created
+          // listener middleware will track this and open the new request in a new tab once request is created
           dispatch(
             insertEventsIntoQueue([
               {
