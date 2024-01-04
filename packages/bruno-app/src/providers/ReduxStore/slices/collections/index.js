@@ -1381,7 +1381,6 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
-  updateNextAction,
   updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
