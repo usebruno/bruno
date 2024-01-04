@@ -80,6 +80,7 @@ const useIpcEvents = () => {
     };
 
     ipcRenderer.invoke('renderer:ready');
+
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
@@ -127,7 +128,7 @@ const useIpcEvents = () => {
       dispatch(brunoConfigUpdateEvent(val))
     );
 
-    const showPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
+    const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       dispatch(showPreferences(true));
     });
 
@@ -139,7 +140,7 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
-    const startQuitFlowListener = ipcRenderer.on('main:start-quit-flow', () => {
+    const removeStartQuitFlowListener = ipcRenderer.on('main:start-quit-flow', () => {
       dispatch(startQuitFlow());
     });
 
@@ -155,10 +156,10 @@ const useIpcEvents = () => {
       removeProcessEnvUpdatesListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
-      showPreferencesListener();
+      removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
-      startQuitFlowListener();
+      removeStartQuitFlowListener();
     };
   }, [isElectron]);
 };
