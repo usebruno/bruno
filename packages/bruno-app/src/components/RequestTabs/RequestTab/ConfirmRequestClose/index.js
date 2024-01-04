@@ -22,7 +22,9 @@ const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClos
       disableCloseOnOutsideClick={true}
       closeModalFadeTimeout={150}
     >
-      <div className="font-normal">You have unsaved changes in request "{item.name}".</div>
+      <div className="font-normal">
+        You have unsaved changes in request <span className="font-semibold">{item.name}</span>.
+      </div>
     </Modal>
   );
 };
