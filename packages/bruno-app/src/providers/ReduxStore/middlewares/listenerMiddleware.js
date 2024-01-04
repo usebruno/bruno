@@ -31,15 +31,19 @@ listenerMiddleware.startListening({
     let eventItem = null;
     if (firstEvent.eventType === eventTypes.OPEN_REQUEST) {
       // this event adds or opens a request
-      // waiting until item is added into collection (only happens after IO completes) before handling event
-      // this happens when first opening a request just after creating it
-      await listenerApi.condition((action, currentState, originalState) => {
-        const { collections } = currentState.collections;
-        const collection = findCollectionByUid(collections, collectionUid);
-        const item = findItemInCollectionByPathname(collection, itemPathname);
-        if (item) eventItem = item;
-        return !!item;
-      });
+      const collection = findCollectionByUid(state.collections.collections, collectionUid);
+      eventItem = findItemInCollectionByPathname(collection, itemPathname);
+      if (!eventItem) {
+        // waiting until item is added into collection (only happens after IO completes) before handling event
+        // this happens when first opening a request just after creating it
+        await listenerApi.condition((action, currentState, originalState) => {
+          const { collections } = currentState.collections;
+          const collection = findCollectionByUid(collections, collectionUid);
+          const item = findItemInCollectionByPathname(collection, itemPathname);
+          if (item) eventItem = item;
+          return !!item;
+        });
+      }
     } else {
       const { collections } = state.collections;
       const collection = findCollectionByUid(collections, collectionUid);
@@ -60,12 +64,16 @@ listenerMiddleware.startListening({
                   requestPaneTab: getDefaultRequestPaneTab(eventItem)
                 })
           );
-        case eventTypes.CLOSE_REQUEST: // this event prompts the user if they want to save the request
+        case eventTypes.CLOSE_REQUEST: // this event closes a request or prompts the user to save it if has pending changes
           return listenerApi.dispatch(
-            setShowConfirmClose({
-              tabUid: eventItem.uid,
-              showConfirmClose: true
-            })
+            eventItem.draft
+              ? setShowConfirmClose({
+                  tabUid: eventItem.uid,
+                  showConfirmClose: true
+                })
+              : closeTabs({
+                  tabUids: [eventItem.uid]
+                })
           );
       }
     }
