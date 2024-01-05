@@ -17,6 +17,7 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
+    saveRequestOnRun: true,
     timeout: 0
   },
   font: {
@@ -45,6 +46,7 @@ const preferencesSchema = Yup.object().shape({
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    saveRequestOnRun: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
@@ -125,6 +127,9 @@ const preferencesUtil = {
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  shouldSaveRequestOnRun: () => {
+    return get(getPreferences(), 'request.saveRequestOnRun', true);
   }
 };
 
