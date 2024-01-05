@@ -1039,7 +1039,6 @@ export const collectionsSlice = createSlice({
     addFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
-      console.log('logging folder', { state, action, collection, folder });
       if (folder) {
         const headers = get(folder, 'root.request.headers', []);
         headers.push({
