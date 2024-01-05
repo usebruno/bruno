@@ -20,7 +20,7 @@ const CodeView = ({ language, item }) => {
     item.uid
   );
 
-  const headers = [...collection?.root?.request?.headers, ...requestHeaders];
+  const headers = [...(collection?.root?.request?.headers || []), ...(requestHeaders || [])];
 
   let snippet = '';
 
