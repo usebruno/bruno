@@ -129,42 +129,27 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-Enter': () => {
+        'Mod-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
+        'Mod-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        'Mod-F': 'findPersistent',
+        'Mod-H': 'replace',
         Tab: function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
-        'Ctrl-Y': 'foldAll',
-        'Cmd-Y': 'foldAll',
-        'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        'Mod-Space': 'autocomplete',
+        'Mod-Y': 'foldAll',
+        'Mod-I': 'unfoldAll'
       },
       foldOptions: {
         widget: (from, to) => {

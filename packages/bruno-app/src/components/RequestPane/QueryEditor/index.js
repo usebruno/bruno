@@ -9,7 +9,6 @@ import React from 'react';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
@@ -41,7 +40,6 @@ export default class QueryEditor extends React.Component {
       lineNumbers: true,
       tabSize: 2,
       mode: 'graphql',
-      // mode: 'brunovariables',
       brunoVarInfo: {
         variables: getAllVariables(this.props.collection)
       },
@@ -80,56 +78,38 @@ export default class QueryEditor extends React.Component {
       },
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       extraKeys: {
-        'Cmd-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-        'Ctrl-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        'Mod-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-        'Cmd-Enter': () => {
+        'Mod-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Shift-Ctrl-C': () => {
-          if (this.props.onCopyQuery) {
-            this.props.onCopyQuery();
-          }
-        },
-        'Shift-Ctrl-P': () => {
+        'Shift-Mod-P': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
-        /* Shift-Ctrl-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
-        'Shift-Ctrl-F': () => {
+        /* Shift-Mod-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
+        'Shift-Mod-F': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
-        'Shift-Ctrl-M': () => {
+        'Shift-Mod-M': () => {
           if (this.props.onMergeQuery) {
             this.props.onMergeQuery();
           }
         },
-        'Cmd-S': () => {
+        'Mod-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
             return false;
           }
         },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-            return false;
-          }
-        },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent'
+        'Mod-F': 'findPersistent'
       }
     }));
     if (editor) {

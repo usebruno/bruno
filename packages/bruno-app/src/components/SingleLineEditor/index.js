@@ -74,12 +74,7 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
+        'Mod-Enter': () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
@@ -97,18 +92,12 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
+        'Mod-S': () => {
           if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Mod-F': () => {},
         // Tabbing disabled to make tabindex work
         Tab: false,
         'Shift-Tab': false
