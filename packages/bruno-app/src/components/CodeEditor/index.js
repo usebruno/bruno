@@ -13,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { isMacOS } from 'utils/common/platform';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -112,6 +113,8 @@ export default class CodeEditor extends React.Component {
   }
 
   componentDidMount() {
+    const modifierKey = isMacOS() ? 'Cmd' : 'Ctrl';
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -129,27 +132,27 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Mod-Enter': () => {
+        [`${modifierKey}-Enter`]: () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Mod-S': () => {
+        [`${modifierKey}-S`]: () => {
           if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Mod-F': 'findPersistent',
-        'Mod-H': 'replace',
+        [`${modifierKey}-F`]: 'findPersistent',
+        [`${modifierKey}-H`]: 'replace',
         Tab: function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Mod-Space': 'autocomplete',
-        'Mod-Y': 'foldAll',
-        'Mod-I': 'unfoldAll'
+        [`${modifierKey}-Space`]: 'autocomplete',
+        [`${modifierKey}-Y`]: 'foldAll',
+        [`${modifierKey}-I`]: 'unfoldAll'
       },
       foldOptions: {
         widget: (from, to) => {

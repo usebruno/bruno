@@ -12,6 +12,7 @@ import { getAllVariables } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
+import { isMacOS } from 'utils/common/platform';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -35,6 +36,8 @@ export default class QueryEditor extends React.Component {
   }
 
   componentDidMount() {
+    const modifierKey = isMacOS() ? 'Cmd' : 'Ctrl';
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -78,38 +81,38 @@ export default class QueryEditor extends React.Component {
       },
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
       extraKeys: {
-        'Mod-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
+        [`${modifierKey}-Space`]: () => editor.showHint({ completeSingle: true, container: this._node }),
         'Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
         'Shift-Alt-Space': () => editor.showHint({ completeSingle: true, container: this._node }),
-        'Mod-Enter': () => {
+        [`${modifierKey}-Enter`]: () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Shift-Mod-P': () => {
+        [`Shift-${modifierKey}-P`]: () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
         /* Shift-Mod-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
-        'Shift-Mod-F': () => {
+        [`Shift-${modifierKey}-F`]: () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
           }
         },
-        'Shift-Mod-M': () => {
+        [`Shift-${modifierKey}-M`]: () => {
           if (this.props.onMergeQuery) {
             this.props.onMergeQuery();
           }
         },
-        'Mod-S': () => {
+        [`${modifierKey}-S`]: () => {
           if (this.props.onSave) {
             this.props.onSave();
             return false;
           }
         },
-        'Mod-F': 'findPersistent'
+        [`${modifierKey}-F`]: 'findPersistent'
       }
     }));
     if (editor) {
