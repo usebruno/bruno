@@ -101,20 +101,6 @@ If Bruno has helped you at work and your teams, please don't forget to share you
 
 Please see [here](publishing.md) for more information.
 
-### Contribute 👩‍💻🧑‍💻
-
-I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
-
-Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
-
-### Authors
-
-<div align="center">
-    <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
-    </a>
-</div>
-
 ### Stay in touch 🌐
 
 [𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
@@ -131,6 +117,20 @@ Even if you are not able to make contributions via code, please don't hesitate t
 **Logo**
 
 The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+### Contribute 👩‍💻🧑‍💻
+
+I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
+
+Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
+
+### Authors
+
+<div align="center">
+    <a href="https://github.com/usebruno/bruno/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+    </a>
+</div>
 
 ### License 📄
 
