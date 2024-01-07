@@ -17,7 +17,7 @@ const defaultPreferences = {
     },
     storeCookies: true,
     sendCookies: true,
-    saveRequestOnRun: true,
+    saveRequestOnRun: false,
     timeout: 0
   },
   font: {
@@ -129,7 +129,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.sendCookies', true);
   },
   shouldSaveRequestOnRun: () => {
-    return get(getPreferences(), 'request.saveRequestOnRun', true);
+    return get(getPreferences(), 'request.saveRequestOnRun', false);
   }
 };
 
