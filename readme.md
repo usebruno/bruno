@@ -24,6 +24,14 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
+### Golden Edition ✨
+
+Majority of our features are free and open source.
+We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
+
+Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon at ~~$19~~ **$9** ! <br/>
+[Sign up here](https://usebruno.ck.page/4c65576bd4) to get notified when we launch.
+
 ### Installation
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
