@@ -24,6 +24,14 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
+### Golden Edition ✨
+
+Majority of our features are free and open source.
+We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
+
+Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon at ~~$19~~ **$9** ! <br/>
+[Sign up here](https://usebruno.ck.page/4c65576bd4) to get notified when we launch.
+
 ### Installation
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
@@ -93,20 +101,6 @@ If Bruno has helped you at work and your teams, please don't forget to share you
 
 Please see [here](publishing.md) for more information.
 
-### Contribute 👩‍💻🧑‍💻
-
-I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
-
-Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
-
-### Authors
-
-<div align="center">
-    <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
-    </a>
-</div>
-
 ### Stay in touch 🌐
 
 [𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
@@ -123,6 +117,20 @@ Even if you are not able to make contributions via code, please don't hesitate t
 **Logo**
 
 The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+### Contribute 👩‍💻🧑‍💻
+
+I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
+
+Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
+
+### Authors
+
+<div align="center">
+    <a href="https://github.com/usebruno/bruno/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+    </a>
+</div>
 
 ### License 📄
 
