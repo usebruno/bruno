@@ -9,7 +9,6 @@ const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
-
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -131,8 +130,11 @@ const getBruFilesRecursively = (dir, testsOnly) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+
           if (testsOnly) {
-            if (bruJson.request.tests) {
+            if (requestHasTests || requestHasActiveAsserts) {
               currentDirBruJsons.push({
                 bruFilepath: filePath,
                 bruJson
@@ -369,9 +371,10 @@ const handler = async function (argv) {
           const bruFilepath = path.join(filename, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
           const bruJson = bruToJson(bruContent);
-
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
           if (testsOnly) {
-            if (bruJson.request.tests) {
+            if (requestHasTests || requestHasActiveAsserts) {
               bruJsons.push({
                 bruFilepath,
                 bruJson
