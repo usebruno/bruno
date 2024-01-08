@@ -199,7 +199,6 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
         request: mergeParams
       }
     };
-    console.log('alors alors ?', mergedCollection);
     sendNetworkRequest(itemCopy, mergedCollection, environment, collectionCopy.collectionVariables)
       .then((response) => {
         return dispatch(
