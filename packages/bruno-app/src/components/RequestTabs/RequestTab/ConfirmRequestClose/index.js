@@ -1,7 +1,7 @@
 import Modal from 'components/Modal';
 import React from 'react';
 
-const ConfirmRequestClose = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
+const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
   const _handleCancel = ({ type }) => {
     if (type === 'button') {
       return onCloseWithoutSave();
@@ -22,7 +22,9 @@ const ConfirmRequestClose = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) =
       disableCloseOnOutsideClick={true}
       closeModalFadeTimeout={150}
     >
-      <div className="font-normal">You have unsaved changes in your request.</div>
+      <div className="font-normal">
+        You have unsaved changes in request <span className="font-semibold">{item.name}</span>.
+      </div>
     </Modal>
   );
 };
