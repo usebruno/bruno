@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   --color-brand: #546de5;
   --color-text: rgb(52 52 52);
