@@ -1,4 +1,4 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter, forOwn, extend, reduce } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 
@@ -139,9 +139,23 @@ const prepareRequest = (request, collectionRoot) => {
 
   if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+
+    const params = reduce(
+      enabledParams,
+      (acc, p) => {
+        if (!acc[p.name]) {
+          acc[p.name] = p.value;
+          return acc;
+        }
+
+        const oldVal = acc[p.name];
+        acc[p.name] = [oldVal];
+        acc[p.name].push(p.value);
+        return acc;
+      },
+      {}
+    );
     axiosRequest.data = params;
   }
 
