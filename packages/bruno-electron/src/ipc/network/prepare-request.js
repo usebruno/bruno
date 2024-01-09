@@ -1,4 +1,4 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter, forOwn, extend, reduce } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 
@@ -70,6 +70,31 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
+/**
+ *
+ * @param {object} requestObj the request body obj
+ * @returns {object} Returns an obj with repeating key as a array of values
+ * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
+ */
+const createPayload = (requestObj) => {
+  const res = reduce(
+    requestObj,
+    (acc, p) => {
+      if (!acc[p.name]) {
+        acc[p.name] = p.value;
+        return acc;
+      }
+
+      const oldVal = acc[p.name];
+      acc[p.name] = [oldVal];
+      acc[p.name].push(p.value);
+      return acc;
+    },
+    {}
+  );
+  return res;
+};
+
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
@@ -139,16 +164,14 @@ const prepareRequest = (request, collectionRoot) => {
 
   if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+    const params = createPayload(enabledParams);
     axiosRequest.data = params;
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+    const params = createPayload(enabledParams);
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
 
