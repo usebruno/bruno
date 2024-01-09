@@ -1,9 +1,8 @@
 import get from 'lodash/get';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
-import { uuid } from 'utils/common';
 import { createListenerMiddleware } from '@reduxjs/toolkit';
-import { completeQuitFlow, removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
+import { removeTaskFromQueue, hideHomePage } from 'providers/ReduxStore/slices/app';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionAddFileEvent } from 'providers/ReduxStore/slices/collections';
 import { findCollectionByUid, findItemInCollectionByPathname, getDefaultRequestPaneTab } from 'utils/collections/index';

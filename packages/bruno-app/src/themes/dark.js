@@ -173,6 +173,11 @@ const darkTheme = {
       color: '#a5a5a5',
       bg: '#626262',
       border: '#626262'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 

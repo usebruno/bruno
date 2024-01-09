@@ -94,7 +94,7 @@ const SaveRequestsModal = ({ onClose }) => {
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-close btn-border" onClick={closeWithoutSave}>
+          <button className="btn btn-sm btn-danger" onClick={closeWithoutSave}>
             Don't Save
           </button>
         </div>

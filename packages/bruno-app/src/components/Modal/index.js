@@ -64,6 +64,7 @@ const Modal = ({
   hideFooter,
   disableCloseOnOutsideClick,
   disableEscapeKey,
+  onClick,
   closeModalFadeTimeout = 500
 }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -96,7 +97,7 @@ const Modal = ({
     classes += ' modal-footer-none';
   }
   return (
-    <StyledWrapper className={classes}>
+    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} />
         <ModalContent>{children}</ModalContent>

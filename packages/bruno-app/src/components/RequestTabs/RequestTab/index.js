@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
@@ -135,6 +136,9 @@ const RequestTab = ({ tab, collection }) => {
         className="flex px-2 close-icon-container"
         onClick={(e) => {
           if (!item.draft) return handleCloseClick(e);
+
+          e.stopPropagation();
+          e.preventDefault();
           setShowConfirmClose(true);
         }}
       >
