@@ -86,7 +86,7 @@ const Modal = ({
     return () => {
       document.removeEventListener('keydown', escFunction, false);
     };
-  }, []);
+  }, [disableEscapeKey, document]);
 
   let classes = 'bruno-modal';
   if (isClosing) {

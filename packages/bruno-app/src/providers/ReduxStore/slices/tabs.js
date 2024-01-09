@@ -2,10 +2,6 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
-import { removeAllEventsFromQueue } from 'providers/ReduxStore/slices/app';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { eventTypes } from 'utils/events-queue/index';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -105,11 +101,6 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
-    },
-    setShowConfirmClose: (state, action) => {
-      const { tabUid, showConfirmClose } = action.payload;
-      const tab = find(state.tabs, (t) => t.uid === tabUid);
-      if (tab) tab.showConfirmClose = showConfirmClose;
     }
   }
 });
@@ -121,46 +112,7 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs,
-  setShowConfirmClose
+  closeAllCollectionTabs
 } = tabsSlice.actions;
-
-export const closeAndSaveDraft = (itemUid, collectionUid) => (dispatch) => {
-  dispatch(saveRequest(itemUid, collectionUid)).then(() => {
-    dispatch(
-      closeTabs({
-        tabUids: [itemUid]
-      })
-    );
-    dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
-  });
-};
-
-export const closeWithoutSavingDraft = (itemUid, collectionUid) => (dispatch) => {
-  dispatch(
-    deleteRequestDraft({
-      itemUid: itemUid,
-      collectionUid: collectionUid
-    })
-  );
-  dispatch(
-    closeTabs({
-      tabUids: [itemUid]
-    })
-  );
-  dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
-};
-
-export const cancelCloseDraft = (itemUid) => (dispatch, getState) => {
-  const state = getState();
-  dispatch(setShowConfirmClose({ tabUid: itemUid, showConfirmClose: false }));
-
-  // check if there was an event to close this tab and aborts the sequence
-  const { eventsQueue } = state.app;
-  const [firstEvent] = eventsQueue;
-  if (firstEvent && firstEvent.eventType === eventTypes.CLOSE_REQUEST && firstEvent.itemUid === itemUid) {
-    dispatch(removeAllEventsFromQueue());
-  }
-};
 
 export default tabsSlice.reducer;

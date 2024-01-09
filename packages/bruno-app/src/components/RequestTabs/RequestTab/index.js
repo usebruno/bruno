@@ -1,13 +1,8 @@
+import React, { useState } from 'react';
 import get from 'lodash/get';
-import {
-  cancelCloseDraft,
-  closeAndSaveDraft,
-  closeTabs,
-  closeWithoutSavingDraft,
-  setShowConfirmClose
-} from 'providers/ReduxStore/slices/tabs';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
-import React from 'react';
 import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
@@ -20,6 +15,7 @@ import StyledWrapper from './StyledWrapper';
 const RequestTab = ({ tab, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -27,15 +23,6 @@ const RequestTab = ({ tab, collection }) => {
     dispatch(
       closeTabs({
         tabUids: [tab.uid]
-      })
-    );
-  };
-
-  const showConfirmClose = () => {
-    dispatch(
-      setShowConfirmClose({
-        tabUid: tab.uid,
-        showConfirmClose: true
       })
     );
   };
@@ -102,12 +89,38 @@ const RequestTab = ({ tab, collection }) => {
 
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
-      {tab.showConfirmClose && (
+      {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
-          onCancel={() => dispatch(cancelCloseDraft(item.uid))}
-          onCloseWithoutSave={() => dispatch(closeWithoutSavingDraft(item.uid, collection.uid))}
-          onSaveAndClose={() => dispatch(closeAndSaveDraft(item.uid, collection.uid))}
+          onCancel={() => setShowConfirmClose(false)}
+          onCloseWithoutSave={() => {
+            dispatch(
+              deleteRequestDraft({
+                itemUid: item.uid,
+                collectionUid: collection.uid
+              })
+            );
+            dispatch(
+              closeTabs({
+                tabUids: [tab.uid]
+              })
+            );
+            setShowConfirmClose(false);
+          }}
+          onSaveAndClose={() => {
+            dispatch(saveRequest(item.uid, collection.uid))
+              .then(() => {
+                dispatch(
+                  closeTabs({
+                    tabUids: [tab.uid]
+                  })
+                );
+                setShowConfirmClose(false);
+              })
+              .catch((err) => {
+                console.log('err', err);
+              });
+          }}
         />
       )}
       <div className="flex items-baseline tab-label pl-2">
@@ -122,7 +135,7 @@ const RequestTab = ({ tab, collection }) => {
         className="flex px-2 close-icon-container"
         onClick={(e) => {
           if (!item.draft) return handleCloseClick(e);
-          showConfirmClose();
+          setShowConfirmClose(true);
         }}
       >
         {!item.draft ? (

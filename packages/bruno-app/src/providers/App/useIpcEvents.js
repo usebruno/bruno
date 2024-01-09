@@ -1,4 +1,5 @@
-import { showPreferences, startQuitFlow, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
+import { useEffect } from 'react';
+import { showPreferences, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
@@ -14,7 +15,6 @@ import {
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
 import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
-import { useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -140,10 +140,6 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
-    const removeStartQuitFlowListener = ipcRenderer.on('main:start-quit-flow', () => {
-      dispatch(startQuitFlow());
-    });
-
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -159,7 +155,6 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
-      removeStartQuitFlowListener();
     };
   }, [isElectron]);
 };

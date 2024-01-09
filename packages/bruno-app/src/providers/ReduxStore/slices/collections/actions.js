@@ -5,7 +5,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import trim from 'lodash/trim';
 import path from 'path';
-import { insertEventsIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
   findCollectionByUid,
@@ -79,6 +79,38 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleRequests = (items) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const itemsToSave = [];
+    each(items, (item) => {
+      const collection = findCollectionByUid(collections, item.collectionUid);
+      if (collection) {
+        const itemToSave = transformRequestToSaveToFilesystem(item);
+        const itemIsValid = itemSchema.validateSync(itemToSave);
+        if (itemIsValid) {
+          itemsToSave.push({
+            item: itemToSave,
+            pathname: item.pathname
+          });
+        }
+      }
+    });
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save requests!');
         reject(err);
       });
   });
@@ -625,16 +657,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // listener middleware will track this and open the new request in a new tab once request is created
+        // task middleware will track this and open the new request in a new tab once request is created
         dispatch(
-          insertEventsIntoQueue([
-            {
-              eventUid: uuid(),
-              eventType: 'OPEN_REQUEST',
-              collectionUid,
-              itemPathname: fullName
-            }
-          ])
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
         );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
@@ -653,16 +683,14 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-          // listener middleware will track this and open the new request in a new tab once request is created
+          // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
-            insertEventsIntoQueue([
-              {
-                eventUid: uuid(),
-                eventType: 'OPEN_REQUEST',
-                collectionUid,
-                itemPathname: fullName
-              }
-            ])
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
+            })
           );
         } else {
           return reject(new Error('Duplicate request names are not allowed under the same folder'));

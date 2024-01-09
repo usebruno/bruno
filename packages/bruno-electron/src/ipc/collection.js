@@ -178,6 +178,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // save multiple requests
+  ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
+    try {
+      for (let r of requestsToSave) {
+        const request = r.item;
+        const pathname = r.pathname;
+
+        if (!fs.existsSync(pathname)) {
+          throw new Error(`path: ${pathname} does not exist`);
+        }
+
+        const content = jsonToBru(request);
+        await writeFile(pathname, content);
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // create environment
   ipcMain.handle('renderer:create-environment', async (event, collectionPathname, name, variables) => {
     try {
@@ -586,6 +605,7 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     lastOpenedCollections.add(pathname);
   });
 
+  // The app listen for this event and allows the user to save unsaved requests before closing the app
   ipcMain.on('main:start-quit-flow', () => {
     mainWindow.webContents.send('main:start-quit-flow');
   });
