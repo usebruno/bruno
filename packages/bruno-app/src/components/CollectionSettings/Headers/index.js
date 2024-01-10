@@ -1,7 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
@@ -13,6 +12,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import { Trash2 } from 'lucide-react';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
@@ -117,16 +117,20 @@ const Headers = ({ collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-between">
                         <input
                           type="checkbox"
                           checked={header.enabled}
                           tabIndex="-1"
-                          className="mr-3 mousetrap"
+                          className="mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
+                        <button
+                          tabIndex="-1"
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                          onClick={() => handleRemoveHeader(header)}
+                        >
+                          <Trash2 size={16} className="" />
                         </button>
                       </div>
                     </td>

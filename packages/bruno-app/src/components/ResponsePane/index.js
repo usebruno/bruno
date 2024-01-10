@@ -14,7 +14,7 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
-import ResponseSave from 'src/components/ResponsePane/ResponseSave';
+import ResponseSave from 'components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconAlertTriangle } from '@tabler/icons';
+import { AlertTriangle } from 'lucide-react';
 
 const RequestTabNotFound = ({ handleCloseClick }) => {
   const [showErrorMessage, setShowErrorMessage] = useState(false);
@@ -22,7 +22,7 @@ const RequestTabNotFound = ({ handleCloseClick }) => {
       <div className="flex items-center tab-label pl-2">
         {showErrorMessage ? (
           <>
-            <IconAlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <AlertTriangle size={18} strokeWidth={1.5} className="text-yellow-600" />
             <span className="ml-1">Not Found</span>
           </>
         ) : null}

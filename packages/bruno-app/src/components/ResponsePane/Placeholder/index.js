@@ -1,7 +1,7 @@
 import React from 'react';
-import { IconSend } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { isMacOS } from 'utils/common/platform';
+import { Send } from 'lucide-react';
 
 const Placeholder = () => {
   const isMac = isMacOS();
@@ -12,7 +12,7 @@ const Placeholder = () => {
   return (
     <StyledWrapper>
       <div className="send-icon flex justify-center" style={{ fontSize: 200 }}>
-        <IconSend size={150} strokeWidth={1} />
+        <Send size={150} strokeWidth={1} />
       </div>
       <div className="flex mt-4">
         <div className="flex flex-1 flex-col items-end px-1">

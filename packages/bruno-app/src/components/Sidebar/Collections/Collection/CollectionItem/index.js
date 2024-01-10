@@ -3,7 +3,6 @@ import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
@@ -25,7 +24,17 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { BadgePlus, CopyPlus, FileCode2, FilePenLine, FolderPlus, Rocket, Trash2 } from 'lucide-react';
+import {
+  BadgePlus,
+  ChevronRight,
+  CopyPlus,
+  FileCode2,
+  FilePenLine,
+  FolderPlus,
+  MoreHorizontal,
+  Rocket,
+  Trash2
+} from 'lucide-react';
 import { DropdownItem } from 'components/Dropdown/DropdownItem/dropdown_item';
 
 const CollectionItem = ({ item, collection, searchText }) => {
@@ -77,8 +86,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const dropdownTippyRef = useRef();
   const MenuIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref}>
-        <IconDots size={22} />
+      <div ref={ref} className="group">
+        <MoreHorizontal size={22} className="group-hover:text-slate-950 dark:group-hover:text-white" />
       </div>
     );
   });
@@ -250,7 +259,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
           >
             <div style={{ width: 16, minWidth: 16 }}>
               {isFolder ? (
-                <IconChevronRight
+                <ChevronRight
                   size={16}
                   strokeWidth={2}
                   className={iconClassName}

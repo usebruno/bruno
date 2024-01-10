@@ -2,11 +2,12 @@ import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { ChevronDown, CircleOff, Database, Settings } from 'lucide-react';
+import { DropdownItem } from 'components/Dropdown/DropdownItem/dropdown_item';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
@@ -19,7 +20,7 @@ const EnvironmentSelector = ({ collection }) => {
     return (
       <div ref={ref} className="current-enviroment flex items-center justify-center pl-3 pr-2 py-1 select-none">
         {activeEnvironment ? activeEnvironment.name : 'No Environment'}
-        <IconCaretDown className="caret" size={14} strokeWidth={2} />
+        <ChevronDown className="caret" size={16} />
       </div>
     );
   });
@@ -42,35 +43,37 @@ const EnvironmentSelector = ({ collection }) => {
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          {environments && environments.length
-            ? environments.map((e) => (
-                <div
-                  className="dropdown-item"
-                  key={e.uid}
-                  onClick={() => {
-                    onSelect(e);
-                    dropdownTippyRef.current.hide();
-                  }}
-                >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2">{e.name}</span>
-                </div>
-              ))
-            : null}
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
-              onSelect(null);
-            }}
-          >
-            <IconDatabaseOff size={18} strokeWidth={1.5} />
-            <span className="ml-2">No Environment</span>
-          </div>
-          <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
-            <div className="pr-2 text-gray-600">
-              <IconSettings size={18} strokeWidth={1.5} />
-            </div>
-            <span>Configure</span>
+          <div className="flex flex-col px-1">
+            {environments && environments.length
+              ? environments.map((e) => (
+                  <DropdownItem
+                    key={e.uid}
+                    onClick={() => {
+                      onSelect(e);
+                      dropdownTippyRef.current.hide();
+                    }}
+                    className={activeEnvironmentUid === e.uid && '!text-green-500 bg-green-400/10'}
+                  >
+                    <Database size={16} />
+                    <span className="ml-2">{e.name}</span>
+                  </DropdownItem>
+                ))
+              : null}
+            <DropdownItem
+              className={!activeEnvironmentUid && '!text-amber-500 bg-amber-400/10'}
+              onClick={() => {
+                dropdownTippyRef.current.hide();
+                onSelect(null);
+              }}
+            >
+              <CircleOff size={16} />
+              <span className="ml-2">No Environment</span>
+            </DropdownItem>
+            <span className="h-0.25 bg-slate-200 dark:bg-slate-600 my-1 rounded" />
+            <DropdownItem onClick={() => setOpenSettingsModal(true)}>
+              <Settings className="mr-2" size={16} />
+              <span>Configure</span>
+            </DropdownItem>
           </div>
         </Dropdown>
       </div>

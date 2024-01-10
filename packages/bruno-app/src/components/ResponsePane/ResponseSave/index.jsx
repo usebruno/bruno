@@ -1,8 +1,7 @@
 import React from 'react';
-import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import get from 'lodash/get';
-import { IconDownload } from '@tabler/icons';
+import { Download } from 'lucide-react';
 
 const ResponseSave = ({ item }) => {
   const { ipcRenderer } = window;
@@ -21,11 +20,14 @@ const ResponseSave = ({ item }) => {
   };
 
   return (
-    <StyledWrapper className="ml-2 flex items-center">
-      <button onClick={saveResponseToFile} disabled={!response.dataBuffer} title="Save response to file">
-        <IconDownload size={16} strokeWidth={1.5} />
-      </button>
-    </StyledWrapper>
+    <button
+      className="ml-2 hover:text-slate-950 dark:hover:text-white"
+      onClick={saveResponseToFile}
+      disabled={!response.dataBuffer}
+      title="Save response to file"
+    >
+      <Download size={16} />
+    </button>
   );
 };
 export default ResponseSave;

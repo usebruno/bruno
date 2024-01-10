@@ -1,10 +1,11 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { Eye, Layers, Settings } from 'lucide-react';
+import { Runner } from 'components/Icons/Runner';
 
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
@@ -43,19 +44,19 @@ const CollectionToolBar = ({ collection }) => {
     <StyledWrapper>
       <div className="flex items-center p-2">
         <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
-          <IconFiles size={18} strokeWidth={1.5} />
+          <Layers size={18} />
           <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
-          <span className="mr-2">
-            <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
-          </span>
-          <span className="mr-3">
-            <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
-          </span>
-          <span className="mr-3">
-            <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
-          </span>
+          <button className="mr-2 dark:hover:text-white hover:text-slate-950" onClick={handleRun}>
+            <Runner size={20} />
+          </button>
+          <button className="mr-3 dark:hover:text-white hover:text-slate-950" onClick={viewVariables}>
+            <Eye size={18} />
+          </button>
+          <button className="mr-3 dark:hover:text-white hover:text-slate-950" onClick={viewCollectionSettings}>
+            <Settings className="cursor-pointer" size={18} />
+          </button>
           <EnvironmentSelector collection={collection} />
         </div>
       </div>

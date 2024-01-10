@@ -2,13 +2,13 @@ import React, { useState, useRef } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
-import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -90,7 +90,7 @@ const RequestTabs = () => {
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={leftSlide}>
                   <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5} />
+                    <ChevronLeft size={18} />
                   </div>
                 </li>
               ) : null}
@@ -122,7 +122,7 @@ const RequestTabs = () => {
               {showChevrons ? (
                 <li className="select-none short-tab" onClick={rightSlide}>
                   <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5} />
+                    <ChevronRight size={18} />
                   </div>
                 </li>
               ) : null}

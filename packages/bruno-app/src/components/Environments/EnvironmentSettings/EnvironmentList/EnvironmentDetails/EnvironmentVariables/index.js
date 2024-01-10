@@ -1,7 +1,6 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -11,6 +10,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
+import { Trash2 } from 'lucide-react';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -137,8 +137,11 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 />
               </td>
               <td>
-                <button onClick={() => handleRemoveVar(variable.uid)}>
-                  <IconTrash strokeWidth={1.5} size={20} />
+                <button
+                  className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                  onClick={() => handleRemoveVar(variable.uid)}
+                >
+                  <Trash2 size={16} />
                 </button>
               </td>
             </tr>

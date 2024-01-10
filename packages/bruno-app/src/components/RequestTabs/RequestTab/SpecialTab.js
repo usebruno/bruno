@@ -1,5 +1,6 @@
 import React from 'react';
-import { IconVariable, IconSettings, IconRun } from '@tabler/icons';
+import { Settings, Variable } from 'lucide-react';
+import { Runner } from 'components/icons/Runner';
 
 const SpecialTab = ({ handleCloseClick, type }) => {
   const getTabInfo = (type) => {
@@ -7,7 +8,7 @@ const SpecialTab = ({ handleCloseClick, type }) => {
       case 'collection-settings': {
         return (
           <>
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <Settings size={18} className="text-amber-500" />
             <span className="ml-1">Collection</span>
           </>
         );
@@ -15,16 +16,16 @@ const SpecialTab = ({ handleCloseClick, type }) => {
       case 'variables': {
         return (
           <>
-            <IconVariable size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Variables</span>
+            <Variable size={18} className="text-amber-500 mr-1" />
+            <span>Variables</span>
           </>
         );
       }
       case 'collection-runner': {
         return (
           <>
-            <IconRun size={18} strokeWidth={1.5} className="text-yellow-600" />
-            <span className="ml-1">Runner</span>
+            <Runner size={18} className="text-amber-500 mr-1" />
+            <span>Runner</span>
           </>
         );
       }

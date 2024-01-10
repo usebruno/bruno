@@ -1,10 +1,10 @@
 import React from 'react';
-import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
 import { uuid } from 'utils/common';
 import * as Yup from 'yup';
 
 import StyledWrapper from './StyledWrapper';
+import { FileBadge, Globe, Trash2 } from 'lucide-react';
 
 const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   const formik = useFormik({
@@ -32,20 +32,23 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center font-semibold mt-4 mb-2">
-        <IconCertificate className="mr-1 certificate-icon" size={24} strokeWidth={1.5} /> Client Certificates
+        <FileBadge className="mr-1 text-amber-500" size={24} /> Client Certificates
       </div>
       <ul className="mt-4">
         {!clientCertConfig.length
           ? 'None'
           : clientCertConfig.map((clientCert) => (
-              <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
+              <li key={uuid()} className="flex items-center available-certificates px-2 py-1.5 rounded-lg mb-2">
                 <div className="flex items-center w-full justify-between">
                   <div className="flex items-center">
-                    <IconWorld className="mr-2" size={18} strokeWidth={1.5} />
+                    <Globe className="mr-2" size={16} />
                     {clientCert.domain}
                   </div>
-                  <button onClick={() => onRemove(clientCert)} className="remove-certificate ml-2">
-                    <IconTrash size={18} strokeWidth={1.5} />
+                  <button
+                    onClick={() => onRemove(clientCert)}
+                    className="remove-certificate ml-2 p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </li>

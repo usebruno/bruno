@@ -30,7 +30,7 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="Collection Runner" hideFooter={true} handleCancel={onClose}>
+      <Modal size="md" title="Collection Index" hideFooter={true} handleCancel={onClose}>
         <div className="mb-1">
           <span className="font-medium">Run</span>
           <span className="ml-1 text-xs">({runLength} requests)</span>

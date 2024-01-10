@@ -1,6 +1,6 @@
 import React from 'react';
-import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
+import { AlertTriangle } from 'lucide-react';
 
 const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClose }) => {
   return (
@@ -19,7 +19,7 @@ const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClos
       hideFooter={true}
     >
       <div className="flex items-center font-normal">
-        <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+        <AlertTriangle size={32} strokeWidth={1.5} className="text-amber-500" />
         <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
       </div>
       <div className="font-normal mt-4">

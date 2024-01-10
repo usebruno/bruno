@@ -1,12 +1,12 @@
-import React, { useEffect, useState, forwardRef, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
-import { IconDownload, IconShieldLock } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
+import { Import, LockKeyhole } from 'lucide-react';
 
 const EnvironmentList = ({ collection }) => {
   const { environments } = collection;
@@ -75,11 +75,11 @@ const EnvironmentList = ({ collection }) => {
 
             <div className="mt-auto btn-import-environment">
               <div className="flex items-center" onClick={() => setOpenImportModal(true)}>
-                <IconDownload size={12} strokeWidth={2} />
+                <Import size={16} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
               </div>
               <div className="flex items-center mt-2" onClick={() => setOpenManageSecretsModal(true)}>
-                <IconShieldLock size={12} strokeWidth={2} />
+                <LockKeyhole size={16} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Managing Secrets</span>
               </div>
             </div>

@@ -1,9 +1,9 @@
 import React from 'react';
-import { IconRefresh } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { cancelRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StopWatch from '../../StopWatch';
 import StyledWrapper from './StyledWrapper';
+import { RefreshCw } from 'lucide-react';
 
 const ResponseLoadingOverlay = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +20,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
             <StopWatch requestTimestamp={item?.requestSent?.timestamp} />
           </div>
         </div>
-        <IconRefresh size={24} className="loading-icon" />
+        <RefreshCw size={24} className="loading-icon" />
         <button
           onClick={handleCancelRequest}
           className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150"
