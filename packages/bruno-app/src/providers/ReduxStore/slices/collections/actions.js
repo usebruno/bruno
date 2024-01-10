@@ -1,52 +1,47 @@
-import path from 'path';
-import toast from 'react-hot-toast';
-import trim from 'lodash/trim';
+import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
+import cloneDeep from 'lodash/cloneDeep';
+import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import filter from 'lodash/filter';
-import { uuid } from 'utils/common';
-import cloneDeep from 'lodash/cloneDeep';
+import trim from 'lodash/trim';
+import path from 'path';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 import {
-  findItemInCollection,
-  moveCollectionItem,
-  getItemsToResequence,
-  moveCollectionItemToRootOfCollection,
   findCollectionByUid,
-  transformRequestToSaveToFilesystem,
-  findParentItemInCollection,
   findEnvironmentInCollection,
-  isItemARequest,
+  findItemInCollection,
+  findParentItemInCollection,
+  getItemsToResequence,
   isItemAFolder,
   refreshUidsInItem,
   findItemInCollectionByPathname
+  isItemARequest,
+  moveCollectionItem,
+  moveCollectionItemToRootOfCollection,
+  refreshUidsInItem,
+  transformRequestToSaveToFilesystem
 } from 'utils/collections';
-import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
-import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS, PATH_SEPARATOR } from 'utils/common/platform';
-import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
+import { uuid, waitForNextTick } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
+import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
-  updateLastAction,
-  updateNextAction,
-  resetRunResults,
-  requestCancelled,
-  responseReceived,
-  newItem as _newItem,
-  cloneItem as _cloneItem,
-  deleteItem as _deleteItem,
-  saveRequest as _saveRequest,
-  selectEnvironment as _selectEnvironment,
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
-  renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
+  requestCancelled,
+  resetRunResults,
+  responseReceived,
+  updateLastAction
 } from './index';
 
+import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
-import { each } from 'lodash';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -86,6 +81,38 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
+        reject(err);
+      });
+  });
+};
+
+export const saveMultipleRequests = (items) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const itemsToSave = [];
+    each(items, (item) => {
+      const collection = findCollectionByUid(collections, item.collectionUid);
+      if (collection) {
+        const itemToSave = transformRequestToSaveToFilesystem(item);
+        const itemIsValid = itemSchema.validateSync(itemToSave);
+        if (itemIsValid) {
+          itemsToSave.push({
+            item: itemToSave,
+            pathname: item.pathname
+          });
+        }
+      }
+    });
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save requests!');
         reject(err);
       });
   });
@@ -668,7 +695,6 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       urlParam.enabled = true;
     });
 
-    const collectionCopy = cloneDeep(collection);
     const item = {
       uid: uuid(),
       type: requestType,
@@ -705,17 +731,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // the useCollectionNextAction() will track this and open the new request in a new tab
-        // once the request is created
+        // task middleware will track this and open the new request in a new tab once request is created
         dispatch(
-          updateNextAction({
-            nextAction: {
-              type: 'OPEN_REQUEST',
-              payload: {
-                pathname: fullName
-              }
-            },
-            collectionUid
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
           })
         );
       } else {
@@ -735,18 +757,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-
-          // the useCollectionNextAction() will track this and open the new request in a new tab
-          // once the request is created
+          // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
-            updateNextAction({
-              nextAction: {
-                type: 'OPEN_REQUEST',
-                payload: {
-                  pathname: fullName
-                }
-              },
-              collectionUid
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
             })
           );
         } else {

@@ -86,9 +86,20 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
-  const httpsAgentRequestFields = {};
+  /**
+   * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
+   * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
+   */
+  const httpsAgentRequestFields = { keepAlive: true };
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
+  }
+
+  if (preferencesUtil.shouldUseCustomCaCertificate()) {
+    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
+    if (caCertFilePath) {
+      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+    }
   }
 
   const brunoConfig = getBrunoConfig(collectionUid);
