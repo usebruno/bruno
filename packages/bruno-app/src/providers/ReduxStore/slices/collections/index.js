@@ -1,30 +1,29 @@
-import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import forOwn from 'lodash/forOwn';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import get from 'lodash/get';
-import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
+import cloneDeep from 'lodash/cloneDeep';
+import concat from 'lodash/concat';
+import each from 'lodash/each';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import forOwn from 'lodash/forOwn';
+import get from 'lodash/get';
+import map from 'lodash/map';
+import set from 'lodash/set';
 import {
-  findCollectionByUid,
-  findCollectionByPathname,
-  findItemInCollection,
-  findEnvironmentInCollection,
-  findItemInCollectionByPathname,
   addDepth,
+  areItemsTheSameExceptSeqUpdate,
   collapseCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
-  isItemARequest,
-  areItemsTheSameExceptSeqUpdate
+  findCollectionByPathname,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  isItemARequest
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { uuid } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 
 const initialState = {
   collections: [],
@@ -49,10 +48,6 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-
-      // an improvement over the above approach.
-      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
-      collection.nextAction = null;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -98,14 +93,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
-      }
-    },
-    updateNextAction: (state, action) => {
-      const { collectionUid, nextAction } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.nextAction = nextAction;
       }
     },
     updateSettingsSelectedTab: (state, action) => {
@@ -1394,7 +1381,6 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
-  updateNextAction,
   updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
