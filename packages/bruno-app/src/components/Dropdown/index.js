@@ -2,9 +2,9 @@ import React from 'react';
 import Tippy from '@tippyjs/react';
 import StyledWrapper from './StyledWrapper';
 
-const Dropdown = ({ icon, children, onCreate, placement }) => {
+const Dropdown = ({ icon, children, onCreate, placement, classes }) => {
   return (
-    <StyledWrapper className="dropdown">
+    <StyledWrapper className={`dropdown ${classes?.wrapper}`}>
       <Tippy
         content={children}
         placement={placement || 'bottom-end'}

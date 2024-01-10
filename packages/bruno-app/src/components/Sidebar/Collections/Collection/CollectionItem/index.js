@@ -25,7 +25,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { BadgePlus, CopyPlus, FilePenLine, FolderPlus, Play, Rocket, Trash2 } from 'lucide-react';
+import { BadgePlus, CopyPlus, FileCode2, FilePenLine, FolderPlus, Rocket, Trash2 } from 'lucide-react';
 import { DropdownItem } from 'components/Dropdown/DropdownItem/dropdown_item';
 
 const CollectionItem = ({ item, collection, searchText }) => {
@@ -42,8 +42,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
-
-  const dropdownRef = useRef(null);
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -269,7 +267,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </div>
           </div>
           <div className="menu-icon pr-2">
-            <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start" ref={dropdownRef}>
+            <Dropdown onCreate={onDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
               <div className="flex flex-col px-1">
                 {isFolder && (
                   <>
@@ -282,8 +280,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                       <BadgePlus size={16} className="mr-2" />
                       New Request
                     </DropdownItem>
-                    <div
-                      className="dropdown-item rounded"
+                    <DropdownItem
                       onClick={(e) => {
                         dropdownTippyRef.current.hide();
                         setNewFolderModalOpen(true);
@@ -291,9 +288,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
                     >
                       <FolderPlus size={16} className="mr-2" />
                       New Folder
-                    </div>
-                    <div
-                      className="dropdown-item rounded"
+                    </DropdownItem>
+                    <DropdownItem
                       onClick={(e) => {
                         dropdownTippyRef.current.hide();
                         setRunCollectionModalOpen(true);
@@ -301,11 +297,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
                     >
                       <Rocket size={16} className="mr-2" />
                       Run
-                    </div>
+                    </DropdownItem>
                   </>
                 )}
-                <div
-                  className="dropdown-item rounded"
+                <DropdownItem
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
                     setRenameItemModalOpen(true);
@@ -313,9 +308,8 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 >
                   <FilePenLine size={16} className="mr-2" />
                   Rename
-                </div>
-                <div
-                  className="dropdown-item rounded"
+                </DropdownItem>
+                <DropdownItem
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
                     setCloneItemModalOpen(true);
@@ -323,10 +317,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 >
                   <CopyPlus size={16} className="mr-2" />
                   Clone
-                </div>
+                </DropdownItem>
                 {!isFolder && (
-                  <div
-                    className="dropdown-item rounded"
+                  <DropdownItem
                     onClick={(e) => {
                       dropdownTippyRef.current.hide();
                       handleClick(null);
@@ -335,28 +328,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   >
                     <Rocket size={16} className="mr-2" />
                     Run
-                  </div>
+                  </DropdownItem>
                 )}
                 {!isFolder && item.type === 'http-request' && (
-                  <div
-                    className="dropdown-item rounded"
+                  <DropdownItem
                     onClick={(e) => {
                       handleGenerateCode(e);
                     }}
                   >
+                    <FileCode2 size={16} className="mr-2" />
                     Generate Code
-                  </div>
+                  </DropdownItem>
                 )}
-                <div
-                  className="dropdown-item rounded delete-item text-red-500 group"
+                <DropdownItem
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
                     setDeleteItemModalOpen(true);
                   }}
+                  className="text-red-500 hover:!bg-red-100 dark:hover:!bg-red-400/20"
                 >
-                  <Trash2 size={16} className="mr-2 text-red-500 delete-item dark:text-indigo-800" />
+                  <Trash2 size={16} className="mr-2 text-red-500" />
                   Delete
-                </div>
+                </DropdownItem>
               </div>
             </Dropdown>
           </div>

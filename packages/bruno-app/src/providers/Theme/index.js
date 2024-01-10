@@ -13,9 +13,20 @@ export const ThemeProvider = (props) => {
   useEffect(() => {
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
       if (storedTheme !== 'system') return;
+      e.matches ? document.documentElement.classList.remove('dark') : document.documentElement.classList.add('dark');
       setDisplayedTheme(e.matches ? 'light' : 'dark');
     });
   }, []);
+  useEffect(() => {
+    if (storedTheme === 'system') {
+      document.documentElement.classList.remove('dark');
+      setDisplayedTheme(isBrowserThemeLight ? 'light' : 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add(storedTheme);
+      setDisplayedTheme(storedTheme);
+    }
+  }, [storedTheme]);
 
   const theme = storedTheme === 'system' ? themes[displayedTheme] : themes[storedTheme];
   const themeOptions = Object.keys(themes);

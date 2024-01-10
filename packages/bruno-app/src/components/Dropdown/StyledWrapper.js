@@ -13,7 +13,7 @@ const Wrapper = styled.div`
     color: ${(props) => props.theme.dropdown.color};
     background-color: ${(props) => props.theme.dropdown.bg};
     box-shadow: ${(props) => props.theme.dropdown.shadow};
-    border-radius: 3px;
+    border-radius: 5px;
     max-height: 90vh;
     overflow-y: auto;
 
