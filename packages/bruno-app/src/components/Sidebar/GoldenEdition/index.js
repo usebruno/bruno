@@ -5,6 +5,7 @@ import { uuid } from 'utils/common';
 import { IconHeart, IconUser, IconUsers } from '@tabler/icons';
 import platformLib from 'platform';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
@@ -58,6 +59,8 @@ const CheckIcon = () => {
 };
 
 const GoldenEdition = ({ onClose }) => {
+  const { storedTheme } = useTheme();
+
   useEffect(() => {
     const anonymousId = getAnonymousTrackingId();
     const client = getPosthogClient();
@@ -101,10 +104,15 @@ const GoldenEdition = ({ onClose }) => {
     setPricingOption(option);
   };
 
+  const themeBasedContainerClassNames = storedTheme === 'light' ? 'text-gray-900' : 'text-white';
+  const themeBasedTabContainerClassNames = storedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
+  const themeBasedActiveTabClassNames =
+    storedTheme === 'light' ? 'bg-white text-gray-900 font-medium' : 'bg-gray-700 text-white font-medium';
+
   return (
     <StyledWrapper>
       <Modal size="sm" title={'Golden Edition'} handleCancel={onClose} hideFooter={true}>
-        <div className="flex flex-col text-gray-900 bg-white w-full">
+        <div className={`flex flex-col w-full ${themeBasedContainerClassNames}`}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Golden Edition</h3>
             <a
@@ -124,7 +132,7 @@ const GoldenEdition = ({ onClose }) => {
               <div className="my-4">
                 <span className="text-3xl font-extrabold">$19</span>
               </div>
-              <p className="bg-yellow-200 rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
               <p className="text-sm">perpetual license for 2 devices, with 2 years of updates</p>
             </div>
           ) : (
@@ -136,12 +144,12 @@ const GoldenEdition = ({ onClose }) => {
             </div>
           )}
           <div
-            className="flex items-center justify-between my-8 w-40 bg-gray-200 rounded-full p-1"
+            className={`flex items-center justify-between my-8 w-40 rounded-full p-1 ${themeBasedTabContainerClassNames}`}
             style={{ width: '24rem' }}
           >
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'individuals' ? 'bg-white text-gray-900 font-medium' : 'text-gray-500'
+                pricingOption === 'individuals' ? themeBasedActiveTabClassNames : 'text-gray-500'
               }`}
               onClick={() => handlePricingOptionChange('individuals')}
             >
@@ -149,7 +157,7 @@ const GoldenEdition = ({ onClose }) => {
             </div>
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'organizations' ? 'bg-white text-gray-900 font-medium' : 'text-gray-500'
+                pricingOption === 'organizations' ? themeBasedActiveTabClassNames : 'text-gray-500'
               }`}
               onClick={() => handlePricingOptionChange('organizations')}
             >
