@@ -15,11 +15,10 @@ import {
   getItemsToResequence,
   isItemAFolder,
   refreshUidsInItem,
-  findItemInCollectionByPathname
+  findItemInCollectionByPathname,
   isItemARequest,
   moveCollectionItem,
   moveCollectionItemToRootOfCollection,
-  refreshUidsInItem,
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';

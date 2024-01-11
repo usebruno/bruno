@@ -11,8 +11,7 @@ import {
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
   runFolderEvent,
-  brunoConfigUpdateEvent,
-  folderAddFileEvent
+  folderAddFileEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
