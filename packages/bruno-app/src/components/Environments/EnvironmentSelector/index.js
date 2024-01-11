@@ -52,7 +52,7 @@ const EnvironmentSelector = ({ collection }) => {
                       onSelect(e);
                       dropdownTippyRef.current.hide();
                     }}
-                    className={activeEnvironmentUid === e.uid && '!text-green-500 bg-green-400/10'}
+                    active={activeEnvironmentUid === e.uid}
                   >
                     <Database size={16} />
                     <span className="ml-2">{e.name}</span>
@@ -60,7 +60,7 @@ const EnvironmentSelector = ({ collection }) => {
                 ))
               : null}
             <DropdownItem
-              className={!activeEnvironmentUid && '!text-amber-500 bg-amber-400/10'}
+              warning={!activeEnvironmentUid}
               onClick={() => {
                 dropdownTippyRef.current.hide();
                 onSelect(null);

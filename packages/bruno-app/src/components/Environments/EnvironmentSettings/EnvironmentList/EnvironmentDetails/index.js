@@ -51,7 +51,6 @@ const EnvironmentDetails = ({ environment, collection }) => {
           </button>
         </div>
       </div>
-
       <div>
         <EnvironmentVariables key={environment.uid} environment={environment} collection={collection} />
       </div>

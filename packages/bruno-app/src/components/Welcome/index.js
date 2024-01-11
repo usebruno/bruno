@@ -2,13 +2,13 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import StyledWrapper from './StyledWrapper';
+import { BookOpen, Folders, Github, Import, Megaphone, Plus } from 'lucide-react';
 
 const Welcome = () => {
   const dispatch = useDispatch();
@@ -59,17 +59,17 @@ const Welcome = () => {
       <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">
         <div className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
-          <IconPlus size={18} strokeWidth={2} />
+          <Plus size={18} strokeWidth={2} />
           <span className="label ml-2" id="create-collection">
             Create Collection
           </span>
         </div>
         <div className="flex items-center ml-6" onClick={handleOpenCollection}>
-          <IconFolders size={18} strokeWidth={2} />
+          <Folders size={18} strokeWidth={2} />
           <span className="label ml-2">Open Collection</span>
         </div>
         <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
-          <IconDownload size={18} strokeWidth={2} />
+          <Import size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
             Import Collection
           </span>
@@ -80,19 +80,19 @@ const Welcome = () => {
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
           <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
-            <IconBook size={18} strokeWidth={2} />
+            <BookOpen size={18} />
             <span className="label ml-2">Documentation</span>
           </a>
         </div>
         <div className="mt-2">
           <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
-            <IconSpeakerphone size={18} strokeWidth={2} />
+            <Megaphone size={18} />
             <span className="label ml-2">Report Issues</span>
           </a>
         </div>
         <div className="mt-2">
-          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
-            <IconBrandGithub size={18} strokeWidth={2} />
+          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center w-fit">
+            <Github size={18} />
             <span className="label ml-2">GitHub</span>
           </a>
         </div>

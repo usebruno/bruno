@@ -1,16 +1,15 @@
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
 import GoldenEdition from './GoldenEdition';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie, IconHeart } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
+import { Settings, Cookie, Heart } from 'lucide-react';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -22,8 +21,6 @@ const Sidebar = () => {
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const [cookiesOpen, setCookiesOpen] = useState(false);
-
-  const { storedTheme } = useTheme();
 
   const dispatch = useDispatch();
   const [dragging, setDragging] = useState(false);
@@ -85,46 +82,33 @@ const Sidebar = () => {
         <div className="flex flex-row h-screen w-full">
           {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
           {cookiesOpen && <Cookies onClose={() => setCookiesOpen(false)} />}
-
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
               <TitleBar />
               <Collections />
             </div>
-
-            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center cursor-pointer select-none">
+            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center select-none">
               <div className="flex items-center ml-1 text-xs ">
-                <IconSettings
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
+                <button
                   onClick={() => dispatch(showPreferences(true))}
-                />
-                <IconCookie
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
-                  onClick={() => setCookiesOpen(true)}
-                />
-                <IconHeart
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
-                  onClick={() => setGoldenEditonOpen(true)}
-                />
-              </div>
-              <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
-                {/* This will get moved to home page */}
-                {/* <GitHubButton
-                  href="https://github.com/usebruno/bruno"
-                  data-color-scheme={storedTheme}
-                  data-show-count="true"
-                  aria-label="Star usebruno/bruno on GitHub"
+                  className="mr-2 hover:text-slate-950 dark:hover:text-white"
                 >
-                  Star
-                </GitHubButton> */}
+                  <Settings size={16} />
+                </button>
+                <button
+                  onClick={() => setCookiesOpen(true)}
+                  className="mr-2 hover:text-slate-950 dark:hover:text-white"
+                >
+                  <Cookie size={16} />
+                </button>
+                <button
+                  onClick={() => setGoldenEditonOpen(true)}
+                  className="mr-2 hover:text-slate-950 dark:hover:text-white"
+                >
+                  <Heart size={16} />
+                </button>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.6.1</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2 cursor-default">v1.6.1</div>
             </div>
           </div>
         </div>

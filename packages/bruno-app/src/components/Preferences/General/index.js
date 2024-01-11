@@ -8,7 +8,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'path';
 import slash from 'utils/common/slash';
-import { IconTrash } from '@tabler/icons';
+import { Trash2 } from 'lucide-react';
 
 const General = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -130,7 +130,7 @@ const General = ({ close }) => {
                 disabled={formik.values.customCaCertificate.enabled ? false : true}
                 onClick={deleteCaCertificate}
               >
-                <IconTrash strokeWidth={1.5} size={14} />
+                <Trash2 strokeWidth={1.5} size={16} />
               </button>
             </span>
           </div>

@@ -5,14 +5,13 @@ import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
-import { IconDots } from '@tabler/icons';
 import { useState, forwardRef, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { DropdownItem } from 'components/Dropdown/DropdownItem/dropdown_item';
-import { BadgePlus, Bolt, FolderSymlink, Import } from 'lucide-react';
+import { BadgePlus, Bolt, FolderSymlink, Import, MoreHorizontal } from 'lucide-react';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -39,9 +38,9 @@ const TitleBar = () => {
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
   const MenuIcon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="dropdown-icon cursor-pointer">
-        <IconDots size={22} />
-      </div>
+      <button ref={ref} className="dropdown-icon cursor-pointer hover:text-slate-950 dark:hover:text-white">
+        <MoreHorizontal size={22} />
+      </button>
     );
   });
 

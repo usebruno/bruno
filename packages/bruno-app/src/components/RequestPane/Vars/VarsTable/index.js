@@ -1,6 +1,5 @@
 import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
@@ -10,6 +9,7 @@ import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
+import { Trash2 } from 'lucide-react';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -139,12 +139,14 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         <input
                           type="checkbox"
                           checked={_var.enabled}
-                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleVarChange(e, _var, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
+                        <button
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                          onClick={() => handleRemoveVar(_var)}
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

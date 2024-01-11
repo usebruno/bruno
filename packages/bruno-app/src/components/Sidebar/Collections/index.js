@@ -1,13 +1,5 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  IconSearch,
-  IconFolders,
-  IconArrowsSort,
-  IconSortAscendingLetters,
-  IconSortDescendingLetters,
-  IconX
-} from '@tabler/icons';
 import Collection from '../Collections/Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
@@ -15,6 +7,7 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { ArrowDownAz, ArrowDownZa, ArrowUpDown, Layers, Search, X } from 'lucide-react';
 
 // todo: move this to a separate folder
 // the coding convention is to keep all the components in a folder named after the component
@@ -40,20 +33,20 @@ const CollectionsBadge = () => {
   return (
     <div className="items-center mt-2 relative">
       <div className="collections-badge flex items-center justify-between px-2">
-        <div className="flex items-center  py-1 select-none">
+        <div className="flex items-center py-1 select-none">
           <span className="mr-2">
-            <IconFolders size={18} strokeWidth={1.5} />
+            <Layers size={18} />
           </span>
           <span>Collections</span>
         </div>
         {collections.length >= 1 && (
-          <button onClick={() => sortCollectionOrder()}>
+          <button className="hover:text-slate-950 dark:hover:text-white" onClick={() => sortCollectionOrder()}>
             {collectionSortOrder == 'default' ? (
-              <IconArrowsSort size={18} strokeWidth={1.5} />
+              <ArrowUpDown size={16} />
             ) : collectionSortOrder == 'alphabetical' ? (
-              <IconSortAscendingLetters size={18} strokeWidth={1.5} />
+              <ArrowDownAz size={16} />
             ) : (
-              <IconSortDescendingLetters size={18} strokeWidth={1.5} />
+              <ArrowDownZa size={16} />
             )}
           </button>
         )}
@@ -84,8 +77,8 @@ const Collections = () => {
 
       <div className="mt-4 relative collection-filter px-2">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-gray-500 sm:text-sm">
-            <IconSearch size={16} strokeWidth={1.5} />
+          <span className="text-slate-400 sm:text-sm">
+            <Search size={16} />
           </span>
         </div>
         <input
@@ -96,7 +89,7 @@ const Collections = () => {
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
-          className="block w-full pl-7 py-1 sm:text-sm"
+          className="block w-full pl-7 py-1 sm:text-sm !rounded"
           placeholder="search"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
@@ -109,7 +102,7 @@ const Collections = () => {
                 setSearchText('');
               }}
             >
-              <IconX size={16} strokeWidth={1.5} className="cursor-pointer" />
+              <X size={16} className="cursor-pointer hover:text-slate-950 dark:hover:text-white" />
             </span>
           </div>
         )}

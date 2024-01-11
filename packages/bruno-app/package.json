@@ -16,7 +16,6 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
     "@reduxjs/toolkit": "^1.8.0",
-    "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/graphql-docs": "0.1.0",
     "@usebruno/schema": "0.6.0",

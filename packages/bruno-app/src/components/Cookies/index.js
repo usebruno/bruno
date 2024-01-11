@@ -1,11 +1,11 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
-import { IconTrash } from '@tabler/icons';
 import { deleteCookiesForDomain } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 
 import StyledWrapper from './StyledWrapper';
+import { Trash2 } from 'lucide-react';
 
 const CollectionProperties = ({ onClose }) => {
   const dispatch = useDispatch();
@@ -38,8 +38,11 @@ const CollectionProperties = ({ onClose }) => {
                 <td className="py-2 px-2">{cookie.domain}</td>
                 <td className="py-2 px-2 break-all">{cookie.cookieString}</td>
                 <td className="text-center">
-                  <button tabIndex="-1" onClick={() => handleDeleteDomain(cookie.domain)}>
-                    <IconTrash strokeWidth={1.5} size={20} />
+                  <button
+                    className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                    onClick={() => handleDeleteDomain(cookie.domain)}
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </td>
               </tr>

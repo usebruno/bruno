@@ -8,8 +8,8 @@ import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collect
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
-import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
+import { AlertTriangle } from 'lucide-react';
 
 const SaveRequestsModal = ({ onClose }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
@@ -67,7 +67,7 @@ const SaveRequestsModal = ({ onClose }) => {
       hideFooter={true}
     >
       <div className="flex items-center">
-        <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
+        <AlertTriangle size={32} className="text-yellow-600" />
         <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
       </div>
       <p className="mt-4">

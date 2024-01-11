@@ -30,9 +30,7 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
           dropdownTippyRef.current.hide();
           handleMethodSelect(verb);
         }}
-        className={
-          method === verb && 'font-medium !text-green-600 dark:!text-green-500 bg-green-100 dark:bg-green-400/10'
-        }
+        active={method === verb}
       >
         {verb}
       </DropdownItem>

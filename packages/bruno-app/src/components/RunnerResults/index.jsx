@@ -5,10 +5,11 @@ import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { Check, CheckCircle2, RefreshCw, X, XCircle } from 'lucide-react';
+import { Runner } from 'components/Icons/Runner';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -94,7 +95,7 @@ export default function RunnerResults({ collection }) {
       <StyledWrapper className="px-4">
         <div className="font-medium mt-6 title flex items-center">
           Runner
-          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+          <Runner size={20} strokeWidth={1.5} className="ml-2" />
         </div>
 
         <div className="mt-6">
@@ -116,7 +117,7 @@ export default function RunnerResults({ collection }) {
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
       <div className="font-medium mt-6 mb-4 title flex items-center">
         Runner
-        <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+        <Runner size={20} strokeWidth={1.5} className="ml-2" />
       </div>
       <div className="flex flex-1">
         <div className="flex flex-col flex-1">
@@ -130,40 +131,43 @@ export default function RunnerResults({ collection }) {
                   <div className="flex items-center">
                     <span>
                       {item.status !== 'error' && item.testStatus === 'pass' ? (
-                        <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                        <CheckCircle2 className="test-success" size={18} strokeWidth={1.5} />
                       ) : (
-                        <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                        <XCircle className="test-failure" size={18} strokeWidth={1.5} />
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 ${
+                        item.status == 'error' || item.testStatus == 'fail' ? 'text-red-500' : ''
+                      }`}
                     >
                       {item.relativePath}
                     </span>
                     {item.status !== 'error' && item.status !== 'completed' ? (
-                      <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
+                      <RefreshCw className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                     ) : (
-                      <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
+                      <button className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
                         (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
                         <span>{get(item.responseReceived, 'statusText')}</span>)
-                      </span>
+                      </button>
                     )}
                   </div>
-                  {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
-
+                  {item.status == 'error' && item.error ? (
+                    <div className="error-message pl-8 pt-2 text-xs">{item.error}</div>
+                  ) : null}
                   <ul className="pl-8">
                     {item.testResults
                       ? item.testResults.map((result) => (
                           <li key={result.uid}>
                             {result.status === 'pass' ? (
                               <span className="test-success flex items-center">
-                                <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                                <Check size={18} className="mr-2" />
                                 {result.description}
                               </span>
                             ) : (
                               <>
                                 <span className="test-failure flex items-center">
-                                  <IconX size={18} strokeWidth={2} className="mr-2" />
+                                  <X size={18} className="mr-2" />
                                   {result.description}
                                 </span>
                                 <span className="error-message pl-8 text-xs">{result.error}</span>
@@ -176,13 +180,13 @@ export default function RunnerResults({ collection }) {
                       <li key={result.uid}>
                         {result.status === 'pass' ? (
                           <span className="test-success flex items-center">
-                            <IconCheck size={18} strokeWidth={2} className="mr-2" />
+                            <Check size={18} className="mr-2" />
                             {result.lhsExpr}: {result.rhsExpr}
                           </span>
                         ) : (
                           <>
                             <span className="test-failure flex items-center">
-                              <IconX size={18} strokeWidth={2} className="mr-2" />
+                              <X size={18} className="mr-2" />
                               {result.lhsExpr}: {result.rhsExpr}
                             </span>
                             <span className="error-message pl-8 text-xs">{result.error}</span>
@@ -210,23 +214,23 @@ export default function RunnerResults({ collection }) {
             </div>
           ) : null}
         </div>
-        <div className="flex flex-1" style={{ width: '50%' }}>
-          {selectedItem ? (
+        <div className="flex flex-1 w-1/2">
+          {selectedItem && (
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.relativePath}</span>
                 <span>
                   {selectedItem.testStatus === 'pass' ? (
-                    <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                    <CheckCircle2 className="test-success" size={20} strokeWidth={1.5} />
                   ) : (
-                    <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
+                    <XCircle className="test-failure" size={20} strokeWidth={1.5} />
                   )}
                 </span>
               </div>
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
-          ) : null}
+          )}
         </div>
       </div>
     </StyledWrapper>

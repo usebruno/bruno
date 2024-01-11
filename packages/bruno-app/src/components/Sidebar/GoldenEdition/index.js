@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'components/Modal/index';
 import { PostHog } from 'posthog-node';
 import { uuid } from 'utils/common';
-import { IconHeart, IconUser, IconUsers } from '@tabler/icons';
 import platformLib from 'platform';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
+import { Check, Heart, User, Users } from 'lucide-react';
 
 let posthogClient = null;
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
@@ -26,36 +26,6 @@ const getAnonymousTrackingId = () => {
   }
 
   return id;
-};
-
-const HeartIcon = () => {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      fill="currentColor"
-      className="flex-shrink-0 w-5 h-4 text-yellow-600"
-      viewBox="0 0 16 16"
-    >
-      <path fillRule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314z" />
-    </svg>
-  );
-};
-
-const CheckIcon = () => {
-  return (
-    <svg
-      className="flex-shrink-0 w-5 h-5 text-green-500"
-      fill="currentColor"
-      viewBox="0 0 20 20"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        fillRule="evenodd"
-        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-        clipRule="evenodd"
-      ></path>
-    </svg>
-  );
 };
 
 const GoldenEdition = ({ onClose }) => {
@@ -123,7 +93,7 @@ const GoldenEdition = ({ onClose }) => {
               target="_blank"
               className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg text-sm px-4 py-2 text-center cursor-pointer"
             >
-              <IconHeart size={18} strokeWidth={1.5} />{' '}
+              <Heart size={18} strokeWidth={1.5} />
               <span className="ml-2">{pricingOption === 'individuals' ? 'Buy' : 'Subscribe'}</span>
             </a>
           </div>
@@ -149,29 +119,29 @@ const GoldenEdition = ({ onClose }) => {
           >
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'individuals' ? themeBasedActiveTabClassNames : 'text-gray-500'
+                pricingOption === 'individuals' ? themeBasedActiveTabClassNames : 'text-slate-500'
               }`}
               onClick={() => handlePricingOptionChange('individuals')}
             >
-              <IconUser className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> Individuals
+              <User className="mr-2 icon" size={16} /> Individuals
             </div>
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'organizations' ? themeBasedActiveTabClassNames : 'text-gray-500'
+                pricingOption === 'organizations' ? themeBasedActiveTabClassNames : 'text-slate-500'
               }`}
               onClick={() => handlePricingOptionChange('organizations')}
             >
-              <IconUsers className="text-gray-500 mr-2 icon" size={16} strokeWidth={1.5} /> Organizations
+              <Users className="mr-2 icon" size={16} /> Organizations
             </div>
           </div>
           <ul role="list" className="space-y-3 text-left">
             <li className="flex items-center space-x-3">
-              <HeartIcon />
+              <Heart className="fill-amber-500 text-amber-500" size={18} strokeWidth={0} />
               <span>Support Bruno's Development</span>
             </li>
             {goldenEditon.map((item, index) => (
               <li className="flex items-center space-x-3" key={index}>
-                <CheckIcon />
+                <Check className="text-green-500" size={16} />
                 <span>{item}</span>
               </li>
             ))}
