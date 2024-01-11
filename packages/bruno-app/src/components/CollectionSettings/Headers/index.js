@@ -121,16 +121,14 @@ const Headers = ({ collection }) => {
                         <input
                           type="checkbox"
                           checked={header.enabled}
-                          tabIndex="-1"
                           className="mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
                         <button
-                          tabIndex="-1"
                           className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
                           onClick={() => handleRemoveHeader(header)}
                         >
-                          <Trash2 size={16} className="" />
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

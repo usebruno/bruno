@@ -1,8 +1,8 @@
 import React from 'react';
-import { IconTrash } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
+import { Trash2 } from 'lucide-react';
 
 /**
  * Assertion operators
@@ -197,12 +197,14 @@ const AssertionRow = ({
           <input
             type="checkbox"
             checked={assertion.enabled}
-            tabIndex="-1"
             className="mr-3 mousetrap"
             onChange={(e) => handleAssertionChange(e, assertion, 'enabled')}
           />
-          <button tabIndex="-1" onClick={() => handleRemoveAssertion(assertion)}>
-            <IconTrash strokeWidth={1.5} size={20} />
+          <button
+            className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+            onClick={() => handleRemoveAssertion(assertion)}
+          >
+            <Trash2 size={16} />
           </button>
         </div>
       </td>

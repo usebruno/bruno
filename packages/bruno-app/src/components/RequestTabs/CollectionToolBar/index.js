@@ -49,13 +49,13 @@ const CollectionToolBar = ({ collection }) => {
         </div>
         <div className="flex flex-1 items-center justify-end">
           <button className="mr-2 dark:hover:text-white hover:text-slate-950" onClick={handleRun}>
-            <Runner size={20} />
+            <Runner size={20} strokeWidth={1.5} />
           </button>
           <button className="mr-3 dark:hover:text-white hover:text-slate-950" onClick={viewVariables}>
-            <Eye size={18} />
+            <Eye size={18} strokeWidth={1.5} />
           </button>
           <button className="mr-3 dark:hover:text-white hover:text-slate-950" onClick={viewCollectionSettings}>
-            <Settings className="cursor-pointer" size={18} />
+            <Settings className="cursor-pointer" size={18} strokeWidth={1.5} />
           </button>
           <EnvironmentSelector collection={collection} />
         </div>

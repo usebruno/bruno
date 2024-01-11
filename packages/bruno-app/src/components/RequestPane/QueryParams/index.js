@@ -1,7 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
@@ -9,6 +8,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
+import { Trash2 } from 'lucide-react';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -115,12 +115,14 @@ const QueryParams = ({ item, collection }) => {
                         <input
                           type="checkbox"
                           checked={param.enabled}
-                          tabIndex="-1"
                           className="mr-3 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveParam(param)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
+                        <button
+                          className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-400/10 hover:text-red-600"
+                          onClick={() => handleRemoveParam(param)}
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

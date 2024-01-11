@@ -1,7 +1,8 @@
 import React, { useRef, forwardRef } from 'react';
-import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
+import { DropdownItem } from 'components/Dropdown/DropdownItem/dropdown_item';
+import { ChevronDown } from 'lucide-react';
 
 const HttpMethodSelector = ({ method, onMethodSelect }) => {
   const dropdownTippyRef = useRef();
@@ -14,7 +15,7 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
           {method}
         </div>
         <div>
-          <IconCaretDown className="caret ml-2 mr-2" size={14} strokeWidth={2} />
+          <ChevronDown className="caret ml-2 mr-2" size={16} />
         </div>
       </div>
     );
@@ -24,15 +25,17 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
 
   const Verb = ({ verb }) => {
     return (
-      <div
-        className="dropdown-item"
+      <DropdownItem
         onClick={() => {
           dropdownTippyRef.current.hide();
           handleMethodSelect(verb);
         }}
+        className={
+          method === verb && 'font-medium !text-green-600 dark:!text-green-500 bg-green-100 dark:bg-green-400/10'
+        }
       >
         {verb}
-      </div>
+      </DropdownItem>
     );
   };
 
@@ -40,13 +43,15 @@ const HttpMethodSelector = ({ method, onMethodSelect }) => {
     <StyledWrapper>
       <div className="flex items-center cursor-pointer method-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-start">
-          <Verb verb="GET" />
-          <Verb verb="POST" />
-          <Verb verb="PUT" />
-          <Verb verb="DELETE" />
-          <Verb verb="PATCH" />
-          <Verb verb="OPTIONS" />
-          <Verb verb="HEAD" />
+          <div className="flex flex-col px-1">
+            <Verb verb="GET" />
+            <Verb verb="POST" />
+            <Verb verb="PUT" />
+            <Verb verb="DELETE" />
+            <Verb verb="PATCH" />
+            <Verb verb="OPTIONS" />
+            <Verb verb="HEAD" />
+          </div>
         </Dropdown>
       </div>
     </StyledWrapper>

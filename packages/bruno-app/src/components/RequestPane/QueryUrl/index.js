@@ -5,10 +5,10 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import { ArrowRight, Save } from 'lucide-react';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -71,7 +71,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           collection={collection}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
-          <div
+          <button
             className="tooltip mr-3"
             onClick={(e) => {
               e.stopPropagation();
@@ -79,7 +79,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               onSave();
             }}
           >
-            <IconDeviceFloppy
+            <Save
               color={item.draft ? theme.colors.text.yellow : theme.requestTabs.icon.color}
               strokeWidth={1.5}
               size={22}
@@ -88,8 +88,12 @@ const QueryUrl = ({ item, collection, handleRun }) => {
             <span className="tooltiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
-          </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          </button>
+          <ArrowRight
+            className="text-slate-500 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white"
+            size={22}
+            strokeWidth={1.5}
+          />
         </div>
       </div>
     </StyledWrapper>
