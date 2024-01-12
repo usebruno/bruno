@@ -629,6 +629,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         method: requestMethod,
         url: requestUrl,
         headers: headers ?? [],
+        encodeQuery: false,
         params,
         body: body ?? {
           mode: 'none',

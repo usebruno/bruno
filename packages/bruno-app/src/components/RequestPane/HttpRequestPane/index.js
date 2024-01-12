@@ -16,6 +16,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import EncodeQueryParams from '../QueryParams/EncodeQueryParams/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -132,6 +133,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
             <RequestBodyMode item={item} collection={collection} />
+          </div>
+        ) : null}
+        {focusedTab.requestPaneTab === 'params' ? (
+          <div className="flex flex-grow justify-end items-center">
+            <EncodeQueryParams item={item} collection={collection} />
           </div>
         ) : null}
       </div>

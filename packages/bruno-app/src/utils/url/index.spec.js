@@ -49,6 +49,11 @@ describe('Url Utils - parseQueryParams', () => {
       { name: 'b', value: '2' }
     ]);
   });
+
+  it('should parse query - case 9', () => {
+    const params = parseQueryParams('a=my test');
+    expect(params).toEqual([{ name: 'a', value: 'my%20test' }]);
+  });
 });
 
 describe('Url Utils - splitOnFirst', () => {

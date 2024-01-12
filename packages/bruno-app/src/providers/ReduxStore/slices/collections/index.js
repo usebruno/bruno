@@ -23,7 +23,8 @@ import {
 } from 'utils/collections';
 import { uuid } from 'utils/common';
 import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { parseQueryParams, splitOnFirst } from 'utils/url';
+import { getUrlWithQueryParams } from 'utils/url/index';
 
 const initialState = {
   collections: [],
@@ -306,6 +307,7 @@ export const collectionsSlice = createSlice({
           request: {
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
+            encodeQuery: false,
             params,
             headers: [],
             body: {
@@ -350,7 +352,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.url = action.payload.url;
 
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const urlParams = parseQueryParams(parts[1]);
+          const urlParams = parseQueryParams(parts[1], item.draft.request.encodeQuery);
           const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
           let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
 
@@ -427,6 +429,27 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    updateEncodeQuery: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.encodeQuery = action.payload.encodeQuery;
+
+          // update request url
+          item.draft.request.url = getUrlWithQueryParams(
+            item.draft.request.url,
+            item.draft.request.params,
+            item.draft.request.encodeQuery
+          );
+        }
+      }
+    },
     updateQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -445,25 +468,11 @@ export const collectionsSlice = createSlice({
             param.enabled = action.payload.param.enabled;
 
             // update request url
-            const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
-
-            // if no query is found, then strip the query params in url
-            if (!query || !query.length) {
-              if (parts.length) {
-                item.draft.request.url = parts[0];
-              }
-              return;
-            }
-
-            // if no parts were found, then append the query
-            if (!parts.length) {
-              item.draft.request.url += '?' + query;
-              return;
-            }
-
-            // control reaching here means the request has parts and query is present
-            item.draft.request.url = parts[0] + '?' + query;
+            item.draft.request.url = getUrlWithQueryParams(
+              item.draft.request.url,
+              item.draft.request.params,
+              item.draft.request.encodeQuery
+            );
           }
         }
       }
@@ -481,13 +490,11 @@ export const collectionsSlice = createSlice({
           item.draft.request.params = filter(item.draft.request.params, (p) => p.uid !== action.payload.paramUid);
 
           // update request url
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
-          if (query && query.length) {
-            item.draft.request.url = parts[0] + '?' + query;
-          } else {
-            item.draft.request.url = parts[0];
-          }
+          item.draft.request.url = getUrlWithQueryParams(
+            item.draft.request.url,
+            item.draft.request.params,
+            item.draft.request.encodeQuery
+          );
         }
       }
     },
@@ -1402,6 +1409,7 @@ export const {
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  updateEncodeQuery,
   updateQueryParam,
   deleteQueryParam,
   addRequestHeader,
