@@ -51,8 +51,8 @@ describe('Url Utils - parseQueryParams', () => {
   });
 
   it('should parse query - case 9', () => {
-    const params = parseQueryParams('a=my test');
-    expect(params).toEqual([{ name: 'a', value: 'my%20test' }]);
+    const params = parseQueryParams('a=my%20test', true);
+    expect(params).toEqual([{ name: 'a', value: 'my test' }]);
   });
 });
 
