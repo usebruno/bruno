@@ -58,8 +58,7 @@ describe('makeJUnitOutput', () => {
           {
             description: 'A test that fails',
             status: 'fail',
-            error: 'expected 200 to not equal 200',
-            status: 'fail'
+            error: 'expected 200 to not equal 200'
           }
         ],
         runtime: 2.3456789

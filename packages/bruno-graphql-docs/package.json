@@ -1,7 +1,7 @@
 {
   "name": "@usebruno/graphql-docs",
   "version": "0.1.0",
-  "license" : "MIT",
+  "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "files": [
@@ -17,6 +17,10 @@
     "@rollup/plugin-typescript": "^9.0.2",
     "@types/markdown-it": "^12.2.3",
     "@types/react": "^18.0.25",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
     "graphql": "^16.6.0",
     "markdown-it": "^13.0.1",
     "postcss": "^8.4.18",
