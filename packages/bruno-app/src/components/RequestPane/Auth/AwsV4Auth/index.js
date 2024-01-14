@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -6,7 +6,6 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { update } from 'lodash';
 
 const AwsV4Auth = ({ onTokenChange, item, collection }) => {
   const dispatch = useDispatch();

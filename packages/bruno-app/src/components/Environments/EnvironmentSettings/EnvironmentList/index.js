@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';

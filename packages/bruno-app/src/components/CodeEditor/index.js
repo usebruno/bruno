@@ -1,3 +1,4 @@
+/*eslint-disable*/
 /**
  *  Copyright (c) 2021 GraphQL Contributors.
  *
@@ -5,14 +6,14 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-import React from 'react';
+import { JSHINT } from 'jshint';
+import jsonlint from 'jsonlint';
 import isEqual from 'lodash/isEqual';
+import React from 'react';
+import stripJsonComments from 'strip-json-comments';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
-import jsonlint from 'jsonlint';
-import { JSHINT } from 'jshint';
-import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;

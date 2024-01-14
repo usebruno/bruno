@@ -1,8 +1,6 @@
 import React, { useState, forwardRef, useRef } from 'react';
 import Dropdown from '../Dropdown';
-import { faCaretDown } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { IconBox, IconSearch, IconDots } from '@tabler/icons';
+import { IconDots } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 
 const Navbar = () => {

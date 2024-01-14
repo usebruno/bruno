@@ -8,7 +8,6 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
-import AuthMode from 'components/RequestPane/Auth/AuthMode';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';

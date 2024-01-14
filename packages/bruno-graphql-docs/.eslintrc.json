@@ -3,7 +3,7 @@
     "browser": true,
     "es2021": true
   },
-  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended", "plugin:react/recommended"],
+  "extends": ["../../.eslintrc.json", "plugin:@typescript-eslint/recommended", "plugin:react/recommended"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": "latest",
