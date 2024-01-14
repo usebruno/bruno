@@ -54,7 +54,7 @@ function addDigestInterceptor(axiosInstance, request) {
         const cnonce = crypto.randomBytes(24).toString('hex');
 
         if (authDetails.algorithm && authDetails.algorithm.toUpperCase() !== 'MD5') {
-          console.warn(`Unsupported Digest algorithm: ${authDetails.algorithm.toUpperCase()}`);
+          console.warn(`Unsupported Digest algorithm: ${authDetails.algorithm}`);
           return Promise.reject(error);
         } else {
           authDetails.algorithm = 'MD5';
