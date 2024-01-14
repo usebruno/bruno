@@ -33,7 +33,7 @@ const sortFolder = (folder = {}) => {
 };
 
 const findItemInCollection = (collection, itemId) => {
-  let item = null;
+  let foundItem = null;
 
   if (collection.uid === itemId) {
     return collection;
@@ -42,14 +42,14 @@ const findItemInCollection = (collection, itemId) => {
   if (collection.items && collection.items.length) {
     collection.items.forEach((item) => {
       if (item.uid === itemId) {
-        item = item;
+        foundItem = item;
       } else if (item.type === 'folder') {
-        item = findItemInCollection(item, itemId);
+        foundItem = findItemInCollection(item, itemId);
       }
     });
   }
 
-  return item;
+  return foundItem;
 };
 
 const getAllRequestsInFolderRecursively = (folder = {}) => {

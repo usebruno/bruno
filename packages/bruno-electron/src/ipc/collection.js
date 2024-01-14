@@ -49,7 +49,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         if (!isValidPathname(dirPath)) {
-          throw new Error(`collection: invalid pathname - ${dir}`);
+          throw new Error(`collection: invalid pathname - ${dirPath}`);
         }
 
         await createDirectory(dirPath);
@@ -80,7 +80,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       if (!isValidPathname(dirPath)) {
-        throw new Error(`collection: invalid pathname - ${dir}`);
+        throw new Error(`collection: invalid pathname - ${dirPath}`);
       }
 
       // create dir
