@@ -133,11 +133,12 @@ export function get(source: any, path: string, ...fns: PredicateOrMapper[]) {
       case token === '..':
       case token === '.':
         break;
-      case token === '?':
+      case token === '?': {
         const fun = fns[funIndex++];
         if (fun == null) throw new Error(`missing function for ${lookbehind}`);
         source = filterOrMap(source, fun);
         break;
+      }
       case typeof token === 'number':
         source = normalize(source[token]);
         break;

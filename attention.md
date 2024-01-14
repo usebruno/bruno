@@ -5,7 +5,7 @@
 [ X ] Bruno GraphQL Docs
 [ X ] Bruno JS
 [ X ] Bruno Lang
-[ ] Bruno Query
+[ X ] Bruno Query
 [ ] Bruno Schema
 [ ] Bruno Testbench
 [ ] Bruno TOML
@@ -14,7 +14,9 @@
 
 ### /home/silvr/dev/side/bruno/packages/bruno-js/src/runtime/assert-runtime.js
 
-283:13 Unexpected lexical declaration in case block ([no-case-declarations](https://eslint.org/docs/latest/rules/no-case-declarations))
+### /home/silvr/dev/side/bruno/packages/bruno-query/src/index.ts
+
+Unexpected lexical declaration in case block ([no-case-declarations](https://eslint.org/docs/latest/rules/no-case-declarations))
 
 ## Attention
 
