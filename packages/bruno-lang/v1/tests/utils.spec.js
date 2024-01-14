@@ -1,4 +1,4 @@
-const { safeParseJson, indentString, outdentString, get } = require('../src/utils');
+const { safeParseJson, indentString, outdentString } = require('../src/utils');
 
 describe('utils', () => {
   describe('safeParseJson', () => {

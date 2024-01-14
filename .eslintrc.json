@@ -10,7 +10,9 @@
     "ecmaVersion": "latest"
   },
   "rules": {
-    "no-unused-vars": "warn",
-    "no-empty": "warn"
+    "no-unused-vars": ["warn", { "ignoreRestSiblings": true, "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }],
+    "no-empty": "warn",
+    "no-useless-escape": "warn",
+    "no-regex-spaces": "warn"
   }
 }
