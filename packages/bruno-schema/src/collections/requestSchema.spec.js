@@ -1,5 +1,5 @@
 const { expect } = require('@jest/globals');
-const { uuid, validationErrorWithMessages } = require('../utils/testUtils');
+const { validationErrorWithMessages } = require('../utils/testUtils');
 const { requestSchema } = require('./index');
 
 describe('Request Schema Validation', () => {
