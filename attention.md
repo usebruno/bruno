@@ -6,9 +6,9 @@
 [ X ] Bruno JS
 [ X ] Bruno Lang
 [ X ] Bruno Query
-[ ] Bruno Schema
-[ ] Bruno Testbench
-[ ] Bruno TOML
+[ X ] Bruno Schema
+[ X ] Bruno Testbench
+[ X ] Bruno TOML
 
 ## Changed
 
