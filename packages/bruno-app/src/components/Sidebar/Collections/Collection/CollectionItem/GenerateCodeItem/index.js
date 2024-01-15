@@ -6,7 +6,6 @@ import { isValidUrl } from 'utils/url/index';
 import get from 'lodash/get';
 import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
-import { uuid } from 'utils/common';
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
