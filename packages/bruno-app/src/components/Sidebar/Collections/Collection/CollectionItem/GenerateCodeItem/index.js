@@ -91,15 +91,6 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     collectionVariables: collection.collectionVariables,
     processEnvVars: collection.processEnvVariables
   });
-  const headers = [];
-  Object.keys(item.requestSent.headers).forEach((header) => {
-    headers.push({
-      uid: uuid(),
-      name: header,
-      value: item.requestSent.headers[header],
-      enabled: true
-    });
-  });
 
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
@@ -134,12 +125,12 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                       ? {
                           ...item.request,
                           url: interpolatedUrl,
-                          headers: headers
+                          headers: [...(item.request.headers ?? []), ...(collection.root.request?.headers ?? [])]
                         }
                       : {
                           ...item.draft.request,
                           url: interpolatedUrl,
-                          headers: headers
+                          headers: [...(item.draft.request.headers ?? []), ...(collection.root.request?.headers ?? [])]
                         }
                 }}
               />
