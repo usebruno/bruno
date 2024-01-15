@@ -7,11 +7,8 @@ import StyledWrapper from './StyledWrapper';
 const StatusCode = ({ status }) => {
   const getTabClassname = (status) => {
     return classnames('ml-2', {
-      'text-ok': status >= 100 && status < 200,
-      'text-ok': status >= 200 && status < 300,
-      'text-error': status >= 300 && status < 400,
-      'text-error': status >= 400 && status < 500,
-      'text-error': status >= 500 && status < 600
+      'text-ok': status >= 100 && status < 300,
+      'text-error': status >= 300 && status < 600
     });
   };
 

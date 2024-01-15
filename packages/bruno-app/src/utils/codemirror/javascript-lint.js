@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * MIT License
  * https://github.com/codemirror/codemirror5/blob/master/LICENSE

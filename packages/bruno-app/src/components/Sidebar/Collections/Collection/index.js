@@ -15,8 +15,7 @@ import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
-import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
-import exportCollection from 'utils/collections/export';
+import { isItemAFolder, isItemARequest } from 'utils/collections';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';

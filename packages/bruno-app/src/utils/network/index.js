@@ -1,5 +1,3 @@
-import { safeStringifyJSON } from 'utils/common';
-
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {

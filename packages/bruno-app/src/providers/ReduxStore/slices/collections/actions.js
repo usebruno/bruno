@@ -46,6 +46,8 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -213,6 +215,8 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -334,6 +338,8 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     if (!collection) {
       throw new Error('Collection not found');
     }
@@ -439,6 +445,8 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -567,6 +575,8 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     if (!collection) {
       return reject(new Error('Collection not found'));
     }
@@ -702,6 +712,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
 
 export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -728,6 +739,7 @@ export const addEnvironment = (name, collectionUid) => (dispatch, getState) => {
 
 export const importEnvironment = (name, variables, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -754,6 +766,7 @@ export const importEnvironment = (name, variables, collectionUid) => (dispatch, 
 
 export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -785,6 +798,7 @@ export const copyEnvironment = (name, baseEnvUid, collectionUid) => (dispatch, g
 
 export const renameEnvironment = (newName, environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -810,6 +824,7 @@ export const renameEnvironment = (newName, environmentUid, collectionUid) => (di
 
 export const deleteEnvironment = (environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -832,6 +847,7 @@ export const deleteEnvironment = (environmentUid, collectionUid) => (dispatch, g
 
 export const saveEnvironment = (variables, environmentUid, collectionUid) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
     const state = getState();
     const collection = findCollectionByUid(state.collections.collections, collectionUid);
     if (!collection) {
@@ -910,14 +926,15 @@ export const browseDirectory = () => (dispatch, getState) => {
 };
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
-  const state = getState();
-
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  if (!collection) {
-    return reject(new Error('Collection not found'));
-  }
-
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
     ipcRenderer
       .invoke('renderer:update-bruno-config', brunoConfig, collection.pathname, collectionUid)
       .then(resolve)

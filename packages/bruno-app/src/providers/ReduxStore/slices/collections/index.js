@@ -1292,7 +1292,6 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
-        const folder = findItemInCollection(collection, folderUid);
         const request = findItemInCollection(collection, itemUid);
 
         collection.runnerResult = collection.runnerResult || { info: {}, items: [] };

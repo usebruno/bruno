@@ -45,7 +45,6 @@ export default class QueryEditor extends React.Component {
       brunoVarInfo: {
         variables: getAllVariables(this.props.collection)
       },
-      theme: this.props.editorTheme || 'graphiql',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       keyMap: 'sublime',
       autoCloseBrackets: true,

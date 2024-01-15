@@ -13,7 +13,9 @@
     "react/prop-types": "off",
     "react/react-in-jsx-scope": "off",
     "react/jsx-no-target-blank": "off",
-    "react/display-name": "off"
+    "react/display-name": "off",
+    "react/no-unescaped-entities": "off",
+    "react/no-unknown-property": "warn"
   },
   "settings": {
     "react": {
