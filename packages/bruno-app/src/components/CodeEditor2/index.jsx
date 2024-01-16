@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import CodeMirror, { EditorView, keymap } from '@uiw/react-codemirror';
 import { defaultKeymap } from '@codemirror/commands';
 import { foldAll, unfoldAll } from '@codemirror/language';
@@ -6,6 +6,7 @@ import { StyledWrapper } from 'components/CodeEditor2/StyledWrapper';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { autocompletion } from '@codemirror/autocomplete';
+import { debounce } from 'lodash';
 import {
   materialDark,
   githubLight,
@@ -63,33 +64,41 @@ const hintWords = [
   { label: 'bru.setVar(key,value)' }
 ];
 
+const hint = (context) => {
+  let word = context.matchBefore(/\w+/);
+  if (!word || (word.from === word.to && !context.explicit)) return null;
+  return {
+    from: word.from,
+    options: hintWords
+  };
+};
+
+const languages = {
+  'application/sparql-query': 'sparql',
+  'application/ld+json': 'json',
+  'application/text': 'text',
+  'application/xml': 'xml',
+  'application/javascript': 'javascript',
+  javascript: 'javascript'
+};
+
 const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, theme, value }) => {
-  console.log('currently running IDE');
   window.jsonlint = jsonlint;
   window.JSHINT = JSHINT;
+  const [editor, setEditor] = useState(null);
 
-  const hint = React.useMemo(
-    () => (context) => {
-      let word = context.matchBefore(/\w+/);
-      if (!word || (word.from === word.to && !context.explicit)) return null;
-      return {
-        from: word.from,
-        options: hintWords
-      };
+  const debounceChanges = debounce((newValue) => {
+    onEdit(newValue);
+  }, 700);
+
+  const controlledEdit = useCallback(
+    (newValue) => {
+      if (value !== newValue && editor) {
+        debounceChanges(newValue);
+      }
     },
-    []
+    [debounceChanges, editor, value]
   );
-
-  const memoizedValue = React.useMemo(() => value, [value]);
-
-  const languages = {
-    'application/sparql-query': 'sparql',
-    'application/ld+json': 'json',
-    'application/text': 'text',
-    'application/xml': 'xml',
-    'application/javascript': 'javascript',
-    javascript: 'javascript'
-  };
 
   const extensions = [
     loadLanguage(languages[mode]),
@@ -107,7 +116,6 @@ const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, 
       ...defaultKeymap
     ])
   ];
-
   return (
     <StyledWrapper className="h-full">
       <CodeMirror
@@ -118,11 +126,12 @@ const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, 
           closeBrackets: true,
           defaultKeymap: false
         }}
+        onCreateEditor={(editor) => setEditor(editor)}
         readOnly={readOnly}
         theme={theme === 'dark' ? vscodeDark : eclipse}
-        value={memoizedValue}
+        value={value}
         height="100%"
-        onChange={onEdit}
+        onChange={controlledEdit}
         extensions={extensions}
       />
     </StyledWrapper>
