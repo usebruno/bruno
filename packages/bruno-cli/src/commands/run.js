@@ -404,9 +404,10 @@ const handler = async function (argv) {
 
       // bail if option is set and there is a failure
       if (bail) {
+        const requestFailure = result?.error;
         const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
         const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
-        if (testFailure || assertionFailure) {
+        if (requestFailure || testFailure || assertionFailure) {
           break;
         }
       }
