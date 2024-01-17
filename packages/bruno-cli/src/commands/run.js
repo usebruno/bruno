@@ -202,7 +202,7 @@ const builder = async (yargs) => {
     })
     .option('bail', {
       type: 'boolean',
-      description: 'Stop execution after first test or assertion failure'
+      description: 'Stop execution after a failure of a request, test, or assertion'
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
