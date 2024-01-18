@@ -144,7 +144,7 @@ const ProxySettings = ({ close }) => {
               <input
                 type="radio"
                 name="protocol"
-                value="socks5"
+                value="socks4"
                 checked={formik.values.protocol === 'socks4'}
                 onChange={formik.handleChange}
                 className="mr-1"
