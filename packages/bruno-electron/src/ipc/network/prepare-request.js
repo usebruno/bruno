@@ -181,6 +181,14 @@ const prepareRequest = (request, collectionRoot) => {
   axiosRequest.vars = request.vars;
   axiosRequest.assertions = request.assertions;
 
+  if (collectionRoot.timeout) {
+    axiosRequest.timeout = collectionRoot.timeout;
+  }
+
+  if (request.timeout) {
+    axiosRequest.timeout = request.timeout;
+  }
+
   return axiosRequest;
 };
 

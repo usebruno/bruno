@@ -1061,6 +1061,13 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.headers', headers);
       }
     },
+    updateCollectionTimeout: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        set(collection, 'root.timeout', action.payload.timeout);
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -1370,6 +1377,20 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    updateRequestTimeout: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.timeout = action.payload.timeout;
+        }
+      }
     }
   }
 });
@@ -1431,6 +1452,7 @@ export const {
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
+  updateCollectionTimeout,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
@@ -1448,7 +1470,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateRequestTimeout
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

@@ -126,6 +126,10 @@ const prepareRequest = (request, collectionRoot) => {
     axiosRequest.script = request.script;
   }
 
+  if (request.timeout) {
+    axiosRequest.timeout = request.timeout;
+  }
+
   return axiosRequest;
 };
 

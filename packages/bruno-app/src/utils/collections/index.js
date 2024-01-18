@@ -415,6 +415,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
     });
   });
 
+  if (_item.request.timeout) {
+    itemToSave.request.timeout = _item.request.timeout;
+  }
+
   if (itemToSave.request.body.mode === 'json') {
     itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
   }
