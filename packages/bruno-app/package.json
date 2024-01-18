@@ -33,6 +33,7 @@
     "codemirror-graphql": "^1.2.5",
     "cookie": "^0.6.0",
     "escape-html": "^1.0.3",
+    "eslint-linter-browserify": "^8.56.0",
     "file": "^0.2.2",
     "file-dialog": "^0.0.8",
     "file-saver": "^2.0.5",

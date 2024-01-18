@@ -50,7 +50,7 @@ const Script = ({ collection }) => {
           onSave={handleSave}
         />
       </div>
-      <div className="flex-1 mt-6">
+      <div className="flex-1 mt-6 pb-6">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
         <CodeEditor2
           collection={collection}

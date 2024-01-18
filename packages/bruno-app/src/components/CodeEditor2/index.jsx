@@ -3,8 +3,10 @@ import CodeMirror, { EditorView, keymap } from '@uiw/react-codemirror';
 import { defaultKeymap } from '@codemirror/commands';
 import { foldAll, unfoldAll } from '@codemirror/language';
 import { StyledWrapper } from 'components/CodeEditor2/StyledWrapper';
-import { javascript } from '@codemirror/lang-javascript';
-import { json } from '@codemirror/lang-json';
+import { esLint, javascript } from '@codemirror/lang-javascript';
+import { json, jsonParseLinter } from '@codemirror/lang-json';
+import { linter } from '@codemirror/lint';
+import * as eslint from 'eslint-linter-browserify';
 import { autocompletion } from '@codemirror/autocomplete';
 import { debounce } from 'lodash';
 import {
@@ -22,6 +24,7 @@ import {
 } from '@uiw/codemirror-themes-all';
 import styled from 'styled-components';
 import { loadLanguage } from '@uiw/codemirror-extensions-langs';
+import { parseJson } from 'bruno/src/utils/common';
 
 const hintWords = [
   { label: 'res' },
@@ -65,13 +68,30 @@ const hintWords = [
 ];
 
 const hint = (context) => {
-  let word = context.matchBefore(/\w+/);
+  let word = context.matchBefore(/.+/);
   if (!word || (word.from === word.to && !context.explicit)) return null;
   return {
     from: word.from,
     options: hintWords
   };
 };
+
+const config = {
+  // eslint configuration
+  parserOptions: {
+    ecmaVersion: 2019,
+    sourceType: 'module'
+  },
+  env: {
+    browser: true,
+    node: true
+  },
+  rules: {
+    semi: ['error', 'never']
+  }
+};
+
+const esLinter = linter(esLint(new eslint.Linter(), config));
 
 const languages = {
   'application/sparql-query': 'sparql',
@@ -103,6 +123,8 @@ const CodeEditor2 = ({ collection, font, mode, onEdit, onRun, onSave, readOnly, 
   const extensions = [
     loadLanguage(languages[mode]),
     autocompletion({ override: [hint] }),
+    javascript(),
+    esLinter,
     keymap.of([
       { key: 'Mod-s', run: onSave },
       { key: 'Ctrl-s', run: onSave },
