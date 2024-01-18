@@ -36,7 +36,7 @@ Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
 
-You can also install Bruno via package managers like Homebrew, Chocolatey, Scoop, Snap and Apt.
+You can also install Bruno via package managers like Homebrew, Chocolatey, Scoop, Snap, Flatpak and Apt.
 
 ```sh
 # On Mac via Homebrew
@@ -51,6 +51,9 @@ scoop install bruno
 
 # On Linux via Snap
 snap install bruno
+
+# On Linux via Flatpak
+flatpak install com.usebruno.Bruno
 
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
