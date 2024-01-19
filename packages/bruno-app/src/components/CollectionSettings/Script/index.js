@@ -7,6 +7,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import CodeEditor2 from 'components/CodeEditor2';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
@@ -41,7 +42,7 @@ const Script = ({ collection }) => {
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor2
+        <MonacoEditor
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}
@@ -52,7 +53,7 @@ const Script = ({ collection }) => {
       </div>
       <div className="flex-1 mt-6 pb-6">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor2
+        <MonacoEditor
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}

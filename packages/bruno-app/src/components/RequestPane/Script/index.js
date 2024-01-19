@@ -7,6 +7,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import CodeEditor2 from 'components/CodeEditor2';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -43,10 +44,21 @@ const Script = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor2
+        {/* <CodeEditor2
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
+          onEdit={onRequestScriptEdit}
+          mode="javascript"
+          onRun={onRun}
+          onSave={onSave}
+        /> */}
+        <MonacoEditor
+          collection={collection}
+          value={requestScript || ''}
+          theme={storedTheme}
+          height={'20vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onRequestScriptEdit}
           mode="javascript"
@@ -56,10 +68,11 @@ const Script = ({ item, collection }) => {
       </div>
       <div className="flex-1 mt-6 pb-6">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor2
+        <MonacoEditor
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}
+          height={'20vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onResponseScriptEdit}
           mode="javascript"

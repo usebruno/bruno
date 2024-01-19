@@ -7,6 +7,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import CodeEditor2 from 'components/CodeEditor2';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
@@ -27,7 +28,7 @@ const Tests = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      <CodeEditor2
+      <MonacoEditor
         collection={collection}
         value={tests || ''}
         theme={storedTheme}

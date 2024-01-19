@@ -10,6 +10,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import CodeEditor2 from 'components/CodeEditor2';
 import { loadLanguage } from '@uiw/codemirror-extensions-langs';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -48,7 +49,7 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <CodeEditor2
+        <MonacoEditor
           collection={collection}
           theme={storedTheme}
           font={get(preferences, 'font.codeFont', 'default')}

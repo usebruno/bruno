@@ -8,6 +8,7 @@ import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import CodeEditor2 from 'components/CodeEditor2';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryResultPreview = ({
   previewTab,
@@ -40,7 +41,6 @@ const QueryResultPreview = ({
     }
     dispatch(sendRequest(item, collection.uid));
   };
-
   switch (previewTab) {
     case 'preview-web': {
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
@@ -69,11 +69,12 @@ const QueryResultPreview = ({
     default:
     case 'raw': {
       return (
-        <CodeEditor2
+        <MonacoEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
           theme={storedTheme}
           onRun={onRun}
+          height={'50vh'}
           value={formattedData}
           mode={mode}
           readOnly
