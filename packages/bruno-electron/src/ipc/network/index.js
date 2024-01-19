@@ -169,9 +169,11 @@ const configureRequest = async (
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
