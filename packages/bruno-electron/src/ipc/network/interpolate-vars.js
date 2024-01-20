@@ -28,7 +28,7 @@ const interpolateEnvVars = (str, processEnvVars) => {
   });
 };
 
-const varsRegex = /{{((?!process\.env\.)[\w-.]*)}}/g;
+const varsRegex = /(?<!\\)\{\{(?!process\.env\.\w+)(.*\..*)\}\}/g;
 
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object

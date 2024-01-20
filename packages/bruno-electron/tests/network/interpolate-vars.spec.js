@@ -70,6 +70,13 @@ describe('interpolate-vars: interpolateVars', () => {
 
   describe('Does NOT interpolate string', () => {
     describe('With environment variables', () => {
+      it('If the var is escaped', async () => {
+        const request = { method: 'GET', url: `\\{{test.url}}` };
+
+        const result = interpolateVars(request, { 'test.url': 'test.com' }, null, null);
+        expect(result.url).toEqual('{{test.url}}');
+      });
+
       it("If it's not a var (no braces)", async () => {
         const request = { method: 'GET', url: 'test' };
 
