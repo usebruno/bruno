@@ -1,0 +1,9 @@
+---
+blank_issues_enabled: true
+contact_links:
+  - name: Discussions
+    url: https://github.com/usebruno/bruno/discussions
+    about: Please ask/answer your questions or give the feedback here.
+  - name: Discord Server
+    url: https://discord.com/invite/KgcZUncpjq
+    about: Please join the discord server for furthur clarification of your query or feedback.
