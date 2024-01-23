@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell, dialog } = require('electron');
+const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -14,10 +14,10 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName
 } = require('../utils/filesystem');
-const { stringifyJson } = require('../utils/common');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash } = require('../utils/common');
+const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
+const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -70,7 +70,52 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
     }
   );
+  // clone collection
+  ipcMain.handle(
+    'renderer:clone-collection',
+    async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
+      const dirPath = path.join(collectionLocation, collectionFolderName);
+      if (fs.existsSync(dirPath)) {
+        throw new Error(`collection: ${dirPath} already exists`);
+      }
 
+      if (!isValidPathname(dirPath)) {
+        throw new Error(`collection: invalid pathname - ${dir}`);
+      }
+
+      // create dir
+      await createDirectory(dirPath);
+      const uid = generateUidBasedOnHash(dirPath);
+
+      // open the bruno.json of previousPath
+      const brunoJsonFilePath = path.join(previousPath, 'bruno.json');
+      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+
+      //Change new name of collection
+      let json = JSON.parse(content);
+      json.name = collectionName;
+      const cont = await stringifyJson(json);
+
+      // write the bruno.json to new dir
+      await writeFile(path.join(dirPath, 'bruno.json'), cont);
+
+      // Now copy all the files with extension name .bru along with there dir
+      const files = searchForBruFiles(previousPath);
+
+      for (const sourceFilePath of files) {
+        const relativePath = path.relative(previousPath, sourceFilePath);
+        const newFilePath = path.join(dirPath, relativePath);
+
+        // handle dir of files
+        fs.mkdirSync(path.dirname(newFilePath), { recursive: true });
+        // copy each files
+        fs.copyFileSync(sourceFilePath, newFilePath);
+      }
+
+      mainWindow.webContents.send('main:collection-opened', dirPath, uid, json);
+      ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+    }
+  );
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
@@ -128,6 +173,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const content = jsonToBru(request);
       await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // save multiple requests
+  ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
+    try {
+      for (let r of requestsToSave) {
+        const request = r.item;
+        const pathname = r.pathname;
+
+        if (!fs.existsSync(pathname)) {
+          throw new Error(`path: ${pathname} does not exist`);
+        }
+
+        const content = jsonToBru(request);
+        await writeFile(pathname, content);
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -391,6 +455,40 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
+    try {
+      if (fs.existsSync(collectionPath)) {
+        throw new Error(`folder: ${collectionPath} already exists`);
+      }
+
+      // Recursive function to parse the folder and create files/folders
+      const parseCollectionItems = (items = [], currentPath) => {
+        items.forEach((item) => {
+          if (['http-request', 'graphql-request'].includes(item.type)) {
+            const content = jsonToBru(item);
+            const filePath = path.join(currentPath, `${item.name}.bru`);
+            fs.writeFileSync(filePath, content);
+          }
+          if (item.type === 'folder') {
+            const folderPath = path.join(currentPath, item.name);
+            fs.mkdirSync(folderPath);
+
+            if (item.items && item.items.length) {
+              parseCollectionItems(item.items, folderPath);
+            }
+          }
+        });
+      };
+
+      await createDirectory(collectionPath);
+
+      // create folder and files based on another folder
+      await parseCollectionItems(itemFolder.items, collectionPath);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
       for (let item of itemsToResequence) {
@@ -477,6 +575,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
     }
   });
+
+  ipcMain.handle('renderer:delete-cookies-for-domain', async (event, domain) => {
+    try {
+      await deleteCookiesForDomain(domain);
+
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
@@ -494,6 +603,15 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   ipcMain.on('main:collection-opened', (win, pathname, uid) => {
     watcher.addWatcher(win, pathname, uid);
     lastOpenedCollections.add(pathname);
+  });
+
+  // The app listen for this event and allows the user to save unsaved requests before closing the app
+  ipcMain.on('main:start-quit-flow', () => {
+    mainWindow.webContents.send('main:start-quit-flow');
+  });
+
+  ipcMain.handle('main:complete-quit-flow', () => {
+    mainWindow.destroy();
   });
 };
 

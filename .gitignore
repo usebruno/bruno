@@ -6,6 +6,8 @@ yarn.lock
 pnpm-lock.yaml
 .pnp
 .pnp.js
+bun.lockb
+bun.lock
 
 # testing
 coverage

@@ -9,7 +9,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import get from 'lodash/get';
 import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
 import {
   findCollectionByUid,
   findCollectionByPathname,
@@ -23,7 +22,7 @@ import {
   isItemARequest,
   areItemsTheSameExceptSeqUpdate
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams, parsePathParams } from 'utils/url';
+import { parseQueryParams, stringifyQueryParams, splitOnFirst, parsePathParams } from 'utils/url';
 import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
 
 const initialState = {
@@ -49,10 +48,6 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-
-      // an improvement over the above approach.
-      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
-      collection.nextAction = null;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -98,14 +93,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
-      }
-    },
-    updateNextAction: (state, action) => {
-      const { collectionUid, nextAction } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.nextAction = nextAction;
       }
     },
     updateSettingsSelectedTab: (state, action) => {
@@ -217,6 +204,19 @@ export const collectionsSlice = createSlice({
 
             if (variable) {
               variable.value = value;
+            } else {
+              // __name__ is a private variable used to store the name of the environment
+              // this is not a user defined variable and hence should not be updated
+              if (key !== '__name__') {
+                activeEnvironment.variables.push({
+                  name: key,
+                  value,
+                  secret: false,
+                  enabled: true,
+                  type: 'text',
+                  uid: uuid()
+                });
+              }
             }
           });
         }
@@ -253,6 +253,16 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+        }
+      }
+    },
+    responseCleared: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response = null;
         }
       }
     },
@@ -1013,7 +1023,6 @@ export const collectionsSlice = createSlice({
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
-            console.log('set auth awsv4', action.payload.content);
             break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
@@ -1253,6 +1262,7 @@ export const collectionsSlice = createSlice({
           existingEnv.variables = environment.variables;
         } else {
           collection.environments.push(environment);
+          collection.environments.sort((a, b) => a.name.localeCompare(b.name));
 
           const lastAction = collection.lastAction;
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
@@ -1412,7 +1422,6 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
-  updateNextAction,
   updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
@@ -1425,6 +1434,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  responseCleared,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,

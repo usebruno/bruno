@@ -12,6 +12,7 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
+import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -27,10 +28,12 @@ if (!SERVER_RENDERED) {
     'res.statusText',
     'res.headers',
     'res.body',
+    'res.responseTime',
     'res.getStatus()',
     'res.getHeader(name)',
     'res.getHeaders()',
     'res.getBody()',
+    'res.getResponseTime()',
     'req',
     'req.url',
     'req.method',
@@ -100,6 +103,12 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
   }
 
   componentDidMount() {
@@ -115,7 +124,7 @@ export default class CodeEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-      lint: { esversion: 11 },
+      lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -183,8 +192,30 @@ export default class CodeEditor extends React.Component {
         }
       }
     }));
+    CodeMirror.registerHelper('lint', 'json', function (text) {
+      let found = [];
+      if (!window.jsonlint) {
+        if (window.console) {
+          window.console.error('Error: window.jsonlint not defined, CodeMirror JSON linting cannot run.');
+        }
+        return found;
+      }
+      let jsonlint = window.jsonlint.parser || window.jsonlint;
+      jsonlint.parseError = function (str, hash) {
+        let loc = hash.loc;
+        found.push({
+          from: CodeMirror.Pos(loc.first_line - 1, loc.first_column),
+          to: CodeMirror.Pos(loc.last_line - 1, loc.last_column),
+          message: str
+        });
+      };
+      try {
+        jsonlint.parse(stripJsonComments(text.replace(/(?<!"[^":{]*){{[^}]*}}(?![^"},]*")/g, '1')));
+      } catch (e) {}
+      return found;
+    });
     if (editor) {
-      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -274,7 +305,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

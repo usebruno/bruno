@@ -38,7 +38,7 @@ export const safeParseJSON = (str) => {
 };
 
 export const safeStringifyJSON = (obj, indent = false) => {
-  if (!obj) {
+  if (obj === undefined) {
     return obj;
   }
   try {
@@ -105,4 +105,8 @@ export const startsWith = (str, search) => {
   }
 
   return str.substr(0, search.length) === search;
+};
+
+export const pluralizeWord = (word, count) => {
+  return count === 1 ? word : `${word}s`;
 };

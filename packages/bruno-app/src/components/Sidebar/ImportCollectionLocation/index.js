@@ -21,7 +21,6 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
         .required('name is required')
     }),
     onSubmit: (values) => {
-      console.log('here');
       handleSubmit(values.collectionLocation);
     }
   });

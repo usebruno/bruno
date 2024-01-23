@@ -11,6 +11,12 @@ const { get } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
+    customCaCertificate: {
+      enabled: false,
+      filePath: null
+    },
+    storeCookies: true,
+    sendCookies: true,
     timeout: 0
   },
   font: {
@@ -33,6 +39,12 @@ const defaultPreferences = {
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
+    customCaCertificate: Yup.object({
+      enabled: Yup.boolean(),
+      filePath: Yup.string().nullable()
+    }),
+    storeCookies: Yup.boolean(),
+    sendCookies: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
@@ -96,11 +108,23 @@ const preferencesUtil = {
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
   },
+  shouldUseCustomCaCertificate: () => {
+    return get(getPreferences(), 'request.customCaCertificate.enabled', false);
+  },
+  getCustomCaCertificateFilePath: () => {
+    return get(getPreferences(), 'request.customCaCertificate.filePath', null);
+  },
   getRequestTimeout: () => {
     return get(getPreferences(), 'request.timeout', 0);
   },
   getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', {});
+  },
+  shouldStoreCookies: () => {
+    return get(getPreferences(), 'request.storeCookies', true);
+  },
+  shouldSendCookies: () => {
+    return get(getPreferences(), 'request.sendCookies', true);
   }
 };
 

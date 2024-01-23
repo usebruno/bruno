@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@n8n/vm2');
 const path = require('path');
 const http = require('http');
 const https = require('https');
@@ -123,7 +123,8 @@ class ScriptRuntime {
     return {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables)
+      collectionVariables: cleanJson(collectionVariables),
+      nextRequestName: bru.nextRequest
     };
   }
 
@@ -215,7 +216,8 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables)
+      collectionVariables: cleanJson(collectionVariables),
+      nextRequestName: bru.nextRequest
     };
   }
 }

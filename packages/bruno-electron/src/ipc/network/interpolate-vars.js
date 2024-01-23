@@ -43,7 +43,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    const template = Handlebars.compile(str, { noEscape: true });
+    // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
+    const strLiteralSegment = str.replace('{{', '{{[').replace('}}', ']}}');
+    const template = Handlebars.compile(strLiteralSegment, { noEscape: true });
 
     // collectionVariables take precedence over envVars
     const combinedVars = {

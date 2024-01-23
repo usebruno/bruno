@@ -43,8 +43,6 @@ export const getRequestFromCurlCommand = (curlCommand) => {
         body.xml = parsedBody;
       } else if (contentType.includes('application/x-www-form-urlencoded')) {
         body.mode = 'formUrlEncoded';
-        console.log(parsedBody);
-        console.log(parseFormData(parsedBody));
         body.formUrlEncoded = parseFormData(parsedBody);
       } else if (contentType.includes('multipart/form-data')) {
         body.mode = 'multipartForm';

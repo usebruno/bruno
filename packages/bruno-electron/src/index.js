@@ -1,7 +1,7 @@
 const path = require('path');
 const isDev = require('electron-is-dev');
 const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -18,7 +18,7 @@ const lastOpenedCollections = new LastOpenedCollections();
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src * 'unsafe-inline' 'unsafe-eval'",
-  "connect-src 'self' api.github.com",
+  "connect-src * 'unsafe-inline'",
   "font-src 'self' https:",
   "form-action 'none'",
   "img-src 'self' blob: data: https:",
@@ -97,10 +97,21 @@ app.on('ready', async () => {
 
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
-
-  mainWindow.webContents.on('new-window', function (e, url) {
+  mainWindow.on('close', (e) => {
     e.preventDefault();
-    require('electron').shell.openExternal(url);
+    ipcMain.emit('main:start-quit-flow');
+  });
+
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    event.preventDefault();
+    if (/^(http:\/\/|https:\/\/)/.test(url)) {
+      require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    require('electron').shell.openExternal(details.url);
+    return { action: 'deny' };
   });
 
   // register all ipc handlers

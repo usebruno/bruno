@@ -5,12 +5,12 @@
     "packages/bruno-app",
     "packages/bruno-electron",
     "packages/bruno-cli",
-    "packages/bruno-tauri",
     "packages/bruno-schema",
     "packages/bruno-query",
     "packages/bruno-js",
     "packages/bruno-lang",
     "packages/bruno-testbench",
+    "packages/bruno-toml",
     "packages/bruno-graphql-docs"
   ],
   "homepage": "https://usebruno.com",

@@ -41,7 +41,7 @@ const parseGraphQL = (text) => {
   } catch (e) {
     return {
       query: '',
-      variables: {}
+      variables: ''
     };
   }
 };
