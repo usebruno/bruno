@@ -5,6 +5,8 @@ import useCollectionNextAction from './useCollectionNextAction';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import StyledWrapper from './StyledWrapper';
+import { useMonaco } from '@monaco-editor/react';
+import { initMonaco } from 'utils/monaco/monacoUtils';
 
 export const AppContext = React.createContext();
 
@@ -12,8 +14,14 @@ export const AppProvider = (props) => {
   useTelemetry();
   useIpcEvents();
   useCollectionNextAction();
-
+  const monaco = useMonaco();
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (monaco) {
+      initMonaco(monaco);
+    }
+  }, [monaco]);
 
   useEffect(() => {
     dispatch(refreshScreenWidth());

@@ -2,6 +2,7 @@ import { Editor, useMonaco } from '@monaco-editor/react';
 import { useEffect, useState } from 'react';
 import { debounce } from 'lodash';
 import * as darkTheme from 'monaco-themes/themes/All Hallows Eve.json';
+import { addMonacoCommands } from 'utils/monaco/monacoUtils';
 
 export const MonacoEditor = ({
   collection,
@@ -33,43 +34,8 @@ export const MonacoEditor = ({
     debounceChanges(value);
   };
   const onMount = (editor) => {
-    // TODO : move all of this in a separate file
-    if (editor) {
-      console.log('here is the monaco instance:', editor, monaco);
-      // editor.updateOptions()
-      editor.addAction({
-        id: 'save',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-        label: 'Save',
-        run: () => {
-          onEdit(editor.getValue());
-          onSave();
-        }
-      });
-      editor.addAction({
-        id: 'run',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter],
-        label: 'Run',
-        run: () => {
-          onRun();
-        }
-      });
-      editor.addAction({
-        id: 'foldAll',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY],
-        label: 'FoldAll',
-        run: () => {
-          editor.trigger('fold', 'editor.foldAll');
-        }
-      });
-      editor.addAction({
-        id: 'unfoldAll',
-        keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyI],
-        label: 'UnfoldAll',
-        run: () => {
-          editor.trigger('fold', 'editor.unfoldAll');
-        }
-      });
+    if (editor && monaco) {
+      addMonacoCommands({ monaco, editor, onEdit, onSave, onRun });
     }
   };
   return (
