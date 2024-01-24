@@ -4,6 +4,11 @@ description: Suggest an idea for this project.
 title: '[Feature Request: ]'
 label: ['enhancement']
 body:
+  - type: checkboxes
+    attributes:
+      options:
+        - label: I've searched existing issues and found nothing related to my issue.
+          required: true
   - type: markdown
     attributes:
       value: |
@@ -20,8 +25,3 @@ body:
       description: Add some images to support your feature.
     validiations:
       required: true
-  - type: checkboxes
-    attributes:
-      options:
-        - label: I've searched existing issues and found nothing related to my issue.
-          required: true
