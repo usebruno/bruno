@@ -43,22 +43,12 @@ const Script = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        {/* <CodeEditor2
-          collection={collection}
-          value={requestScript || ''}
-          theme={storedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        /> */}
+        <h3 className="title text-xs mb-2">Pre Request</h3>
         <MonacoEditor
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}
-          height={'20vh'}
+          height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onRequestScriptEdit}
           mode="javascript"
@@ -66,13 +56,13 @@ const Script = ({ item, collection }) => {
           onSave={onSave}
         />
       </div>
-      <div className="flex-1 mt-6 pb-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+      <div className="flex-1 pb-6 mt-2">
+        <h3 className="mb-2 title text-xs">Post Response</h3>
         <MonacoEditor
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}
-          height={'20vh'}
+          height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onEdit={onResponseScriptEdit}
           mode="javascript"

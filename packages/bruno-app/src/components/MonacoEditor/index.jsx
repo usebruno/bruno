@@ -46,6 +46,9 @@ export const MonacoEditor = ({
         minimap: { enabled: false },
         wordWrap: 'off',
         wrappingIndent: 'indent',
+        autoIndent: 'keep',
+        formatOnType: true,
+        formatOnPaste: true,
         scrollBeyondLastLine: false,
         automaticLayout: true,
         scrollbar: {

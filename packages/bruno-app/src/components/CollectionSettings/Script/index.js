@@ -41,24 +41,26 @@ const Script = ({ collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
+        <h3 className="mb-2 title text-xs">Pre Request</h3>
         <MonacoEditor
           collection={collection}
           value={requestScript || ''}
           theme={storedTheme}
           onEdit={onRequestScriptEdit}
           mode="javascript"
+          height={'25vh'}
           onSave={handleSave}
         />
       </div>
-      <div className="flex-1 mt-6 pb-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+      <div className="flex-1 mt-2 pb-6">
+        <h3 className="mb-2 title text-xs">Post Response</h3>
         <MonacoEditor
           collection={collection}
           value={responseScript || ''}
           theme={storedTheme}
           onEdit={onResponseScriptEdit}
           mode="javascript"
+          height={'25vh'}
           onSave={handleSave}
         />
       </div>
