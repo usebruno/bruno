@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { updateCollectionDocs } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
@@ -16,6 +16,7 @@ const Docs = ({ collection }) => {
   const { storedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const docs = get(collection, 'root.docs', '');
+  const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -46,6 +47,7 @@ const Docs = ({ collection }) => {
           onEdit={onEdit}
           onSave={onSave}
           mode="application/text"
+          font={get(preferences, 'font.codeFont', 'default')}
         />
       ) : (
         <Markdown onDoubleClick={toggleViewMode} content={docs} />

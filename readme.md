@@ -10,7 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
+**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -23,6 +23,14 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
 ![bruno](assets/images/landing-2.png) <br /><br />
+
+### Golden Edition ✨
+
+Majority of our features are free and open source.
+We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
+
+Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon at ~~$19~~ **$9** ! <br/>
+[Sign up here](https://usebruno.ck.page/4c65576bd4) to get notified when we launch.
 
 ### Installation
 
@@ -93,20 +101,6 @@ If Bruno has helped you at work and your teams, please don't forget to share you
 
 Please see [here](publishing.md) for more information.
 
-### Contribute 👩‍💻🧑‍💻
-
-I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
-
-Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
-
-### Authors
-
-<div align="center">
-    <a href="https://github.com/usebruno/bruno/graphs/contributors">
-        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
-    </a>
-</div>
-
 ### Stay in touch 🌐
 
 [𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
@@ -123,6 +117,20 @@ Even if you are not able to make contributions via code, please don't hesitate t
 **Logo**
 
 The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
+### Contribute 👩‍💻🧑‍💻
+
+I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
+
+Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
+
+### Authors
+
+<div align="center">
+    <a href="https://github.com/usebruno/bruno/graphs/contributors">
+        <img src="https://contrib.rocks/image?repo=usebruno/bruno" />
+    </a>
+</div>
 
 ### License 📄
 

@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import useTelemetry from './useTelemetry';
-import useIpcEvents from './useIpcEvents';
-import useCollectionNextAction from './useCollectionNextAction';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import ConfirmAppClose from './ConfirmAppClose';
+import useIpcEvents from './useIpcEvents';
+import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
 import { useMonaco } from '@monaco-editor/react';
 import { initMonaco } from 'utils/monaco/monacoUtils';
@@ -39,7 +39,10 @@ export const AppProvider = (props) => {
 
   return (
     <AppContext.Provider {...props} value="appProvider">
-      <StyledWrapper>{props.children}</StyledWrapper>
+      <StyledWrapper>
+        <ConfirmAppClose />
+        {props.children}
+      </StyledWrapper>
     </AppContext.Provider>
   );
 };

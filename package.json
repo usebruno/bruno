@@ -10,6 +10,7 @@
     "packages/bruno-js",
     "packages/bruno-lang",
     "packages/bruno-testbench",
+    "packages/bruno-toml",
     "packages/bruno-graphql-docs"
   ],
   "homepage": "https://usebruno.com",
