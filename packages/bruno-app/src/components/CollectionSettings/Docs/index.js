@@ -6,9 +6,7 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import CodeEditor2 from 'components/CodeEditor2';
 import { MonacoEditor } from 'components/MonacoEditor';
 
 const Docs = ({ collection }) => {
@@ -44,7 +42,7 @@ const Docs = ({ collection }) => {
           collection={collection}
           theme={storedTheme}
           value={docs || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onSave={onSave}
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}

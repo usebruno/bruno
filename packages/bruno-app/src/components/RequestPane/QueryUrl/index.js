@@ -6,9 +6,9 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -62,7 +62,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           maxWidth: `calc(100% - ${methodSelectorWidth}px)`
         }}
       >
-        <SingleLineEditor
+        <MonacoEditor
+          singleLine
           value={url}
           onSave={onSave}
           theme={storedTheme}

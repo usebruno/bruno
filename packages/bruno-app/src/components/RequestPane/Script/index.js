@@ -1,12 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
-import CodeEditor2 from 'components/CodeEditor2';
 import { MonacoEditor } from 'components/MonacoEditor';
 
 const Script = ({ item, collection }) => {
@@ -50,7 +48,7 @@ const Script = ({ item, collection }) => {
           theme={storedTheme}
           height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
+          onChange={onRequestScriptEdit}
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
@@ -64,7 +62,7 @@ const Script = ({ item, collection }) => {
           theme={storedTheme}
           height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onResponseScriptEdit}
+          onChange={onResponseScriptEdit}
           mode="javascript"
           onRun={onRun}
           onSave={onSave}

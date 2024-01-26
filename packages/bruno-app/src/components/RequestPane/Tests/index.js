@@ -1,12 +1,10 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
-import CodeEditor from 'components/CodeEditor';
 import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
-import CodeEditor2 from 'components/CodeEditor2';
 import { MonacoEditor } from 'components/MonacoEditor';
 
 const Tests = ({ item, collection }) => {
@@ -36,7 +34,7 @@ const Tests = ({ item, collection }) => {
         value={tests || ''}
         theme={storedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
-        onEdit={onEdit}
+        onChange={onEdit}
         mode="javascript"
         onRun={onRun}
         onSave={onSave}

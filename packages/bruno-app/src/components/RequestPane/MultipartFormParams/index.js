@@ -9,9 +9,9 @@ import {
   updateMultipartFormParam,
   deleteMultipartFormParam
 } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -92,7 +92,8 @@ const MultipartFormParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MonacoEditor
+                        singleLine
                         onSave={onSave}
                         theme={storedTheme}
                         value={param.value}

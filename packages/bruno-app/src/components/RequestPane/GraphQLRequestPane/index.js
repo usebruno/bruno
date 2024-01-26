@@ -4,7 +4,6 @@ import get from 'lodash/get';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
-import QueryEditor from 'components/RequestPane/QueryEditor';
 import Auth from 'components/RequestPane/Auth';
 import GraphQLVariables from 'components/RequestPane/GraphQLVariables';
 import RequestHeaders from 'components/RequestPane/RequestHeaders';
@@ -18,6 +17,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -59,7 +59,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     switch (tab) {
       case 'query': {
         return (
-          <QueryEditor
+          <MonacoEditor
             collection={collection}
             theme={storedTheme}
             schema={schema}
@@ -67,8 +67,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             onSave={onSave}
             value={query}
             onRun={onRun}
+            mode={'graphql-query'}
             onEdit={onQueryChange}
-            onClickReference={handleGqlClickReference}
           />
         );
       }

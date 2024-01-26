@@ -11,7 +11,7 @@ Bruno ist mit Next.js und React erstellt. Außerdem benötigen wir electron für
 Bibliotheken die wir benutzen
 
 - CSS - Tailwind
-- Code Editoren - Codemirror
+- Code Editoren - Monaco Editor
 - State Management - Redux
 - Icons - Tabler Icons
 - Formulare - formik

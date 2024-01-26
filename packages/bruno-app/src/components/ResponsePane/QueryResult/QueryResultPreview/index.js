@@ -1,4 +1,3 @@
-import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -7,7 +6,6 @@ import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import CodeEditor2 from 'components/CodeEditor2';
 import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryResultPreview = ({

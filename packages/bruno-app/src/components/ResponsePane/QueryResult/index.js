@@ -4,7 +4,6 @@ import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
-import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import QueryResultPreview from './QueryResultPreview';
 
 import StyledWrapper from './StyledWrapper';
@@ -12,6 +11,7 @@ import { useState } from 'react';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
+import { getMonacoModeFromContent } from 'utils/monaco/monacoUtils';
 
 const formatResponse = (data, mode, filter) => {
   if (data === undefined) {
@@ -48,7 +48,7 @@ const formatResponse = (data, mode, filter) => {
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
+  const mode = getMonacoModeFromContent(contentType, data);
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { storedTheme } = useTheme();

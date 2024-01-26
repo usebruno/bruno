@@ -5,10 +5,10 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
+import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -91,7 +91,8 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MonacoEditor
+                        singleLine
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}

@@ -13,7 +13,7 @@ export const AppContext = React.createContext();
 export const AppProvider = (props) => {
   useTelemetry();
   useIpcEvents();
-  useCollectionNextAction();
+  // useCollectionNextAction();
   const monaco = useMonaco();
   const dispatch = useDispatch();
 

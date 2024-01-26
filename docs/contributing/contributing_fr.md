@@ -11,7 +11,7 @@ Bruno est basé sur NextJs et React. Nous utilisons aussi Electron pour embarque
 Les librairies que nous utilisons :
 
 - CSS - Tailwind
-- Code Editors - Codemirror
+- Code Editors - Monaco Editor
 - State Management - Redux
 - Icons - Tabler Icons
 - Forms - formik
@@ -26,7 +26,6 @@ Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org
 ## Développement
 
 Bruno est développé comme une application _client lourd_. Vous devrez charger l'application en démarrant nextjs dans un premier terminal, puis démarre l'application Electron dans un second.
-
 
 ### Dépendances
 
@@ -68,7 +67,6 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
-
 ### Tests
 
 ```bash
@@ -78,7 +76,6 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
-
 
 ### Ouvrir une Pull Request
 

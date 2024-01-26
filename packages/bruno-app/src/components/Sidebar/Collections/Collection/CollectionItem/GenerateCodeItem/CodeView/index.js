@@ -1,4 +1,3 @@
-import CodeEditor from 'components/CodeEditor/index';
 import get from 'lodash/get';
 import { HTTPSnippet } from 'httpsnippet';
 import { useTheme } from 'providers/Theme/index';

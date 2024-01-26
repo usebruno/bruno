@@ -224,6 +224,17 @@ const buildSuggestions = (monaco) => [
 ];
 
 export const initMonaco = (monaco) => {
+  monaco.languages.setLanguageConfiguration('plaintext', {
+    autoClosingPairs: [{ open: '{{', close: '}}' }]
+  });
+  monaco.languages.setMonarchTokensProvider('plaintext', {
+    tokenizer: {
+      root: [
+        [/{{.*?}}/, 'variable'], // Use a regular expression to match variables without brackets
+        [/[^{{]*$/, '']
+      ]
+    }
+  });
   monaco.languages.typescript.typescriptDefaults.addExtraLib(`
   declare const res: {
     status: number;
@@ -285,14 +296,14 @@ const createEditorAction = (id, keybindings, label, run) => {
   };
 };
 
-export const addMonacoCommands = ({ monaco, editor, onEdit, onSave, onRun }) => {
+export const addMonacoCommands = ({ monaco, editor, onChange, onSave, onRun }) => {
   const editorActions = [
     createEditorAction('save', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS], 'Save', () => {
-      onEdit(editor.getValue());
+      onChange(editor.getValue());
       onSave();
     }),
     createEditorAction('run', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter], 'Run', () => {
-      onRun();
+      onRun ? onRun() : null;
     }),
     createEditorAction('foldAll', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY], 'FoldAll', () => {
       editor.trigger('fold', 'editor.foldAll');
@@ -304,4 +315,31 @@ export const addMonacoCommands = ({ monaco, editor, onEdit, onSave, onRun }) => 
   editorActions.map((action) => {
     editor.addAction(action);
   });
+};
+
+export const getMonacoModeFromContent = (contentType, body) => {
+  if (typeof body === 'object') {
+    return 'application/ld+json';
+  }
+  if (!contentType || typeof contentType !== 'string') {
+    return 'application/text';
+  }
+
+  if (contentType.includes('json')) {
+    return 'application/ld+json';
+  } else if (contentType.includes('xml')) {
+    return 'application/xml';
+  } else if (contentType.includes('html')) {
+    return 'application/html';
+  } else if (contentType.includes('text')) {
+    return 'application/text';
+  } else if (contentType.includes('application/edn')) {
+    return 'application/xml';
+  } else if (contentType.includes('yaml')) {
+    return 'application/yaml';
+  } else if (contentType.includes('image')) {
+    return 'application/image';
+  } else {
+    return 'application/text';
+  }
 };

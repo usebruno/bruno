@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
@@ -165,7 +164,7 @@ class SingleLineEditor extends Component {
     let variables = getAllVariables(this.props.collection);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
+    // defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'brunovariables');
   };
 
