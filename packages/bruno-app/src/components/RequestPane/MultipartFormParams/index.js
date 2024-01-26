@@ -117,6 +117,7 @@ const MultipartFormParams = ({ item, collection }) => {
                               'value'
                             )
                           }
+                          collection={collection}
                         />
                       ) : (
                         <SingleLineEditor
