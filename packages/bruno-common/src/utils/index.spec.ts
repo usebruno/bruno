@@ -36,4 +36,16 @@ describe('flattenObject', () => {
     const output = flattenObject(input);
     expect(output).toEqual({});
   });
+
+  it('should handle an object with duplicate keys - dot notation used to define the last duplicate key', () => {
+    const input = { a: { b: 2 }, 'a.b': 1 };
+    const output = flattenObject(input);
+    expect(output).toEqual({ 'a.b': 1 });
+  });
+
+  it('should handle an object with duplicate keys - inner object used to define the last duplicate key', () => {
+    const input = { 'a.b': 1, a: { b: 2 } };
+    const output = flattenObject(input);
+    expect(output).toEqual({ 'a.b': 2 });
+  });
 });
