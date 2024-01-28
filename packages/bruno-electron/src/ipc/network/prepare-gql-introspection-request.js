@@ -2,7 +2,7 @@ const Handlebars = require('handlebars');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {

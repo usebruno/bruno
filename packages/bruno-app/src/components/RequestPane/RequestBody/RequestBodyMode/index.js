@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();

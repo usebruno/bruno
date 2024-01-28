@@ -2,7 +2,7 @@ const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 // Authentication
 // A request can override the collection auth with another auth
 // But it cannot override the collection auth with no auth

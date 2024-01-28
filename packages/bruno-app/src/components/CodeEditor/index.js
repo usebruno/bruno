@@ -15,7 +15,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 

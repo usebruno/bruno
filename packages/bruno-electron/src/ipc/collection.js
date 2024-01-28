@@ -4,7 +4,7 @@ const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const {
   isValidPathname,

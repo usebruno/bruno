@@ -1,7 +1,7 @@
 const stringify = require('../lib/stringify');
 const { get, each, filter } = require('lodash');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const keyValPairHasDuplicateKeys = (keyValPair) => {
   if (!keyValPair || !Array.isArray(keyValPair) || !keyValPair.length) {

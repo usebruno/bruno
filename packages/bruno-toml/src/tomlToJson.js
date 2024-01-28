@@ -1,7 +1,7 @@
 const Toml = require('@iarna/toml');
 const { has, each, get } = require('lodash');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const stripNewlineAtEnd = (str) => {
   if (!str || typeof str !== 'string') {

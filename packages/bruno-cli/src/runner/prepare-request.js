@@ -1,7 +1,7 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};

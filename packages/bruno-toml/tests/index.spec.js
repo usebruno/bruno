@@ -3,7 +3,7 @@ const path = require('path');
 const jsonToToml = require('../src/jsonToToml');
 const tomlToJson = require('../src/tomlToJson');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const fixtures = [
   'methods/get',

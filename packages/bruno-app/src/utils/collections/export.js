@@ -2,7 +2,7 @@ import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;

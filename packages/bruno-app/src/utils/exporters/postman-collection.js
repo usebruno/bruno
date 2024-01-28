@@ -2,7 +2,7 @@ import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 export const exportCollection = (collection) => {
   delete collection.uid;
   delete collection.processEnvVariables;

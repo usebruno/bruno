@@ -4,7 +4,7 @@ import { buildClientSchema } from 'graphql';
 import { fetchGqlSchema } from 'utils/network';
 import { simpleHash } from 'utils/common';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
 const useGraphqlSchema = (endpoint, environment, request, collection) => {

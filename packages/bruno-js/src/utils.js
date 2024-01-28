@@ -1,7 +1,7 @@
 const jsonQuery = require('json-query');
 const { get } = require('@usebruno/query');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do

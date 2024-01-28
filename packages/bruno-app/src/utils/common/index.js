@@ -1,7 +1,7 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
   // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js

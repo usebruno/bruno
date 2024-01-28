@@ -1,6 +1,6 @@
 const { customAlphabet } = require('nanoid');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import JSONbig from 'json-bigint';
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 export default function useLocalStorage(key, defaultValue) {
   const [value, setValue] = useState(() => {
     try {

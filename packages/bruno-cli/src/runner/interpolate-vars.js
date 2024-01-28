@@ -1,7 +1,7 @@
 const Handlebars = require('handlebars');
 const { each, forOwn, cloneDeep } = require('lodash');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 
 const getContentType = (headers = {}) => {
   let contentType = '';

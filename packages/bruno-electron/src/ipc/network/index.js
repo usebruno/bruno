@@ -30,7 +30,7 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-ut
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const JSONbig = require('json-bigint');
-const JSONbigAsStr = JSONbig({ storeAsString: true });
+const JSONbigAsStr = JSONbig({ useNativeBigInt: true });
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
   return value;
