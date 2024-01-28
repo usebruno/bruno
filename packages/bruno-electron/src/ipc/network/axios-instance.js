@@ -1,8 +1,7 @@
 const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
-const http = require('http');
-const { Cookie, CookieJar } = require('tough-cookie');
+const connectionCache = new Map(); // Cache to store checkConnection() results
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
