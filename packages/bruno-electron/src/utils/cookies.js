@@ -5,7 +5,7 @@ const cookieJar = new CookieJar();
 
 const addCookieToJar = (setCookieHeader, requestUrl) => {
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
-  cookieJar.setCookieSync(cookie, requestUrl, {
+  cookieJar.setCookieSync(cookie, requestUrl.startsWith('http') ? requestUrl : `http://${requestUrl}`, {
     ignoreError: true // silently ignore things like parse errors and invalid domains
   });
 };
@@ -28,7 +28,7 @@ const getCookieStringForUrl = (url) => {
 
 const getDomainsWithCookies = () => {
   return new Promise((resolve, reject) => {
-    const domainCookieMap = {};
+    const domainPathCookieMap = {};
 
     cookieJar.store.getAllCookies((err, cookies) => {
       if (err) {
@@ -36,23 +36,25 @@ const getDomainsWithCookies = () => {
       }
 
       cookies.forEach((cookie) => {
-        if (!domainCookieMap[cookie.domain]) {
-          domainCookieMap[cookie.domain] = [cookie];
+        const key = cookie.domain + cookie.path;
+
+        if (!domainPathCookieMap[key]) {
+          domainPathCookieMap[key] = [cookie];
         } else {
-          domainCookieMap[cookie.domain].push(cookie);
+          domainPathCookieMap[key].push(cookie);
         }
       });
 
-      const domains = Object.keys(domainCookieMap);
+      const domains = Object.keys(domainPathCookieMap);
       const domainsWithCookies = [];
 
-      each(domains, (domain) => {
-        const cookies = domainCookieMap[domain];
+      each(domains, (domainPath) => {
+        const cookies = domainPathCookieMap[domainPath];
         const validCookies = cookies.filter((cookie) => !cookie.expires || cookie.expires > Date.now());
 
         if (validCookies.length) {
           domainsWithCookies.push({
-            domain,
+            domainPath,
             cookies: validCookies,
             cookieString: validCookies.map((cookie) => cookie.cookieString()).join('; ')
           });
@@ -64,9 +66,9 @@ const getDomainsWithCookies = () => {
   });
 };
 
-const deleteCookiesForDomain = (domain) => {
+const deleteCookiesForDomain = (domain, path) => {
   return new Promise((resolve, reject) => {
-    cookieJar.store.removeCookies(domain, null, (err) => {
+    cookieJar.store.removeCookies(domain, path, (err) => {
       if (err) {
         return reject(err);
       }
@@ -76,10 +78,26 @@ const deleteCookiesForDomain = (domain) => {
   });
 };
 
+const addCookiesForURL = (values) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const cookiesArray = values.cookieString.split(/\r?\n/);
+
+      cookiesArray.forEach((cookie) => {
+        addCookieToJar(cookie, values.url);
+      });
+      return resolve();
+    } catch (error) {
+      return reject(error);
+    }
+  });
+};
+
 module.exports = {
   addCookieToJar,
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookiesForDomain,
+  addCookiesForURL
 };

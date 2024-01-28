@@ -28,7 +28,8 @@ const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-he
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
-const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const { addRequestCookieInterceptor, addResponseCookieInterceptor } = require('./cookie-interceptors');
+const { getDomainsWithCookies } = require('../../utils/cookies');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -197,15 +198,17 @@ const configureRequest = async (
     addDigestInterceptor(axiosInstance, request);
   }
 
-  request.timeout = preferencesUtil.getRequestTimeout();
-
   // add cookies to request
   if (preferencesUtil.shouldSendCookies()) {
-    const cookieString = getCookieStringForUrl(request.url);
-    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
-    }
+    addRequestCookieInterceptor(axiosInstance);
   }
+
+  // save cookies
+  if (preferencesUtil.shouldStoreCookies()) {
+    addResponseCookieInterceptor(axiosInstance);
+  }
+
+  request.timeout = preferencesUtil.getRequestTimeout();
 
   return axiosInstance;
 };
@@ -446,6 +449,11 @@ const registerNetworkIpc = (mainWindow) => {
         // Prevents the duration on leaking to the actual result
         responseTime = response.headers.get('request-duration');
         response.headers.delete('request-duration');
+
+        if (preferencesUtil.shouldStoreCookies()) {
+          const domainsWithCookies = await getDomainsWithCookies();
+          mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+        }
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -474,26 +482,6 @@ const registerNetworkIpc = (mainWindow) => {
       response.data = data;
 
       response.responseTime = responseTime;
-
-      // save cookies
-      if (preferencesUtil.shouldStoreCookies()) {
-        let setCookieHeaders = [];
-        if (response.headers['set-cookie']) {
-          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-            ? response.headers['set-cookie']
-            : [response.headers['set-cookie']];
-
-          for (let setCookieHeader of setCookieHeaders) {
-            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
-            }
-          }
-        }
-      }
-
-      // send domain cookies to renderer
-      const domainsWithCookies = await getDomainsWithCookies();
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
         request,

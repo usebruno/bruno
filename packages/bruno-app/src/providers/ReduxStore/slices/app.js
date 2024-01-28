@@ -101,11 +101,19 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
   });
 };
 
-export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
+export const deleteCookiesForDomain = (domain, path) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain, path).then(resolve).catch(reject);
+  });
+};
+
+export const addCookiesForURL = (values) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:add-cookies-for-domain', values).then(resolve).catch(reject);
   });
 };
 
