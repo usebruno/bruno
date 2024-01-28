@@ -29,7 +29,8 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
-
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
   return value;
@@ -37,7 +38,7 @@ Mustache.escape = function (value) {
 
 const safeStringifyJSON = (data) => {
   try {
-    return JSON.stringify(data);
+    return JSONbigAsStr.stringify(data);
   } catch (e) {
     return data;
   }
@@ -45,7 +46,7 @@ const safeStringifyJSON = (data) => {
 
 const safeParseJSON = (data) => {
   try {
-    return JSON.parse(data);
+    return JSONbigAsStr.parse(data);
   } catch (e) {
     return data;
   }
@@ -218,7 +219,7 @@ const parseDataFromResponse = (response) => {
   let data = dataBuffer.toString(charset || 'utf-8');
   // Try to parse response to JSON, this can quietly fail
   try {
-    data = JSON.parse(response.data);
+    data = JSONbigAsStr.parse(response.data);
   } catch {}
 
   return { data, dataBuffer };
@@ -298,7 +299,7 @@ const registerNetworkIpc = (mainWindow) => {
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
     if (request.mode === 'graphql') {
-      request.data.variables = JSON.parse(request.data.variables);
+      request.data.variables = JSONbigAsStr.parse(request.data.variables);
     }
 
     // stringify the request url encoded params

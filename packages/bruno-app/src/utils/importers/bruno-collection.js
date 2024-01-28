@@ -1,7 +1,8 @@
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
@@ -14,7 +15,7 @@ const readFile = (files) => {
 const parseJsonCollection = (str) => {
   return new Promise((resolve, reject) => {
     try {
-      let parsed = JSON.parse(str);
+      let parsed = JSONbigAsStr.parse(str);
       return resolve(parsed);
     } catch (err) {
       console.log(err);

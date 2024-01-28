@@ -5,14 +5,15 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.onload = (e) => {
       try {
         // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
+        const parsedData = JSONbigAsStr.parse(e.target.result);
         resolve(parsedData);
       } catch (jsonError) {
         // not a valid JSOn, try yaml
@@ -32,11 +33,11 @@ const readFile = (files) => {
 
 const parseGraphQL = (text) => {
   try {
-    const graphql = JSON.parse(text);
+    const graphql = JSONbigAsStr.parse(text);
 
     return {
       query: graphql.query,
-      variables: JSON.stringify(graphql.variables, null, 2)
+      variables: JSONbigAsStr.stringify(graphql.variables, null, 2)
     };
   } catch (e) {
     return {

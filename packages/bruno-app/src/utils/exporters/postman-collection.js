@@ -1,7 +1,8 @@
 import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 export const exportCollection = (collection) => {
   delete collection.uid;
   delete collection.processEnvVariables;
@@ -207,7 +208,7 @@ export const exportCollection = (collection) => {
   collectionToExport.variable = generateCollectionVars(collection);
 
   const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collectionToExport, null, 2)], { type: 'application/json' });
+  const fileBlob = new Blob([JSONbigAsStr.stringify(collectionToExport, null, 2)], { type: 'application/json' });
 
   FileSaver.saveAs(fileBlob, fileName);
 };

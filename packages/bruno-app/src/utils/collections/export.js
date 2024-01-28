@@ -1,7 +1,8 @@
 import * as FileSaver from 'file-saver';
 import get from 'lodash/get';
 import each from 'lodash/each';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
     delete item.uid;
@@ -77,7 +78,7 @@ export const exportCollection = (collection) => {
   transformItem(collection.items);
 
   const fileName = `${collection.name}.json`;
-  const fileBlob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+  const fileBlob = new Blob([JSONbigAsStr.stringify(collection, null, 2)], { type: 'application/json' });
 
   FileSaver.saveAs(fileBlob, fileName);
 };

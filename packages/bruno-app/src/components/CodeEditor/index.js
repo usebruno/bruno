@@ -14,6 +14,8 @@ import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
@@ -176,7 +178,7 @@ export default class CodeEditor extends React.Component {
               var toParse = '[' + internal + ']';
             } else var toParse = '{' + internal + '}';
             try {
-              count = Object.keys(JSON.parse(toParse)).length;
+              count = Object.keys(JSONbigAsStr.parse(toParse)).length;
             } catch (e) {}
           } else if (this.props.mode == 'application/xml') {
             var doc = new DOMParser();

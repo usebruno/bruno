@@ -1,5 +1,7 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
@@ -68,7 +70,7 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbigAsStr.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
@@ -114,7 +116,7 @@ const prepareRequest = (request, collectionRoot) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
+      variables: JSONbigAsStr.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';

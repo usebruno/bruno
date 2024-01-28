@@ -8,7 +8,8 @@ import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
@@ -37,8 +38,8 @@ const RequestBodyMode = ({ item, collection }) => {
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const bodyJson = JSON.parse(body.json);
-        const prettyBodyJson = JSON.stringify(bodyJson, null, 2);
+        const bodyJson = JSONbigAsStr.parse(body.json);
+        const prettyBodyJson = JSONbigAsStr.stringify(bodyJson, null, 2);
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,

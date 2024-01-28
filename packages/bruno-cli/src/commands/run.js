@@ -9,6 +9,8 @@ const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const command = 'run [filename]';
 const desc = 'Run a request';
@@ -234,7 +236,7 @@ const handler = async function (argv) {
     }
 
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-    const brunoConfig = JSON.parse(brunoConfigFile);
+    const brunoConfig = JSONbigAsStr.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
 
     if (filename && filename.length) {
@@ -436,7 +438,7 @@ const handler = async function (argv) {
       };
 
       if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+        fs.writeFileSync(outputPath, JSONbigAsStr.stringify(outputJson, null, 2));
       } else if (format === 'junit') {
         makeJUnitOutput(results, outputPath);
       }

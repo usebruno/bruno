@@ -1,6 +1,7 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
   // https://github.com/ai/nanoid/blob/main/url-alphabet/index.js
@@ -31,7 +32,7 @@ export const safeParseJSON = (str) => {
     return str;
   }
   try {
-    return JSON.parse(str);
+    return JSONbigAsStr.parse(str);
   } catch (e) {
     return str;
   }
@@ -43,9 +44,9 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
   try {
     if (indent) {
-      return JSON.stringify(obj, null, 2);
+      return JSONbigAsStr.stringify(obj, null, 2);
     }
-    return JSON.stringify(obj);
+    return JSONbigAsStr.stringify(obj);
   } catch (e) {
     return obj;
   }

@@ -1,7 +1,8 @@
 const { get, each, filter, forOwn, extend } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
-
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 // Authentication
 // A request can override the collection auth with another auth
 // But it cannot override the collection auth with no auth
@@ -110,7 +111,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
     try {
       // axiosRequest.data = JSON.parse(request.body.json);
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbigAsStr.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }

@@ -1,7 +1,8 @@
+const JSONbig = require('json-bigint')
 // safely parse json
 const safeParseJson = (json) => {
   try {
-    return JSON.parse(json);
+    return JSONbigAsStr.parse(json);
   } catch (e) {
     return null;
   }

@@ -1,5 +1,7 @@
 const stringify = require('../lib/stringify');
 const { get, each, filter } = require('lodash');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const keyValPairHasDuplicateKeys = (keyValPair) => {
   if (!keyValPair || !Array.isArray(keyValPair) || !keyValPair.length) {
@@ -65,7 +67,7 @@ const jsonToToml = (json) => {
       });
     } else {
       formattedJson.headers = {
-        bru: JSON.stringify(json.headers, null, 2) + '\n'
+        bru: JSONbigAsStr.stringify(json.headers, null, 2) + '\n'
       };
     }
   }

@@ -5,6 +5,8 @@ const chokidar = require('chokidar');
 const { hasBruExtension } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
@@ -185,7 +187,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      const brunoConfig = JSONbigAsStr.parse(content);
 
       setBrunoConfig(collectionUid, brunoConfig);
     } catch (err) {
@@ -283,7 +285,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   if (isBrunoConfigFile(pathname, collectionPath)) {
     try {
       const content = fs.readFileSync(pathname, 'utf8');
-      const brunoConfig = JSON.parse(content);
+      const brunoConfig = JSONbigAsStr.parse(content);
 
       const payload = {
         collectionUid,

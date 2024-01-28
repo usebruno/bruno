@@ -5,14 +5,15 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.onload = (e) => {
       try {
         // try to load JSON
-        const parsedData = JSON.parse(e.target.result);
+        const parsedData = JSONbigAsStr.parse(e.target.result);
         resolve(parsedData);
       } catch (jsonError) {
         // not a valid JSOn, try yaml
@@ -147,7 +148,7 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.body.mode = 'json';
       if (bodySchema && bodySchema.type === 'object') {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
-        brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
+        brunoRequestItem.request.body.json = JSONbigAsStr.stringify(_jsonBody, null, 2);
       }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';

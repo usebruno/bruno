@@ -4,7 +4,8 @@ import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
@@ -22,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSONbigAsStr.parse(text);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -279,7 +280,7 @@ const importPostmanV2Collection = (collection) => {
 const parsePostmanCollection = (str) => {
   return new Promise((resolve, reject) => {
     try {
-      let collection = JSON.parse(str);
+      let collection = JSONbigAsStr.parse(str);
       let schema = get(collection, 'info.schema');
 
       let v2Schemas = [

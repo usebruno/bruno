@@ -4,6 +4,8 @@ const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
@@ -15,7 +17,7 @@ const configSchema = Yup.object({
 const readConfigFile = async (pathname) => {
   try {
     const jsonData = fs.readFileSync(pathname, 'utf8');
-    return JSON.parse(jsonData);
+    return JSONbigAsStr.parse(jsonData);
   } catch (err) {
     return Promise.reject(new Error('Unable to parse json in bruno.json'));
   }

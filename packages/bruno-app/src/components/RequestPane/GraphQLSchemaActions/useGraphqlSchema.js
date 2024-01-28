@@ -3,7 +3,8 @@ import toast from 'react-hot-toast';
 import { buildClientSchema } from 'graphql';
 import { fetchGqlSchema } from 'utils/network';
 import { simpleHash } from 'utils/common';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
 const useGraphqlSchema = (endpoint, environment, request, collection) => {
@@ -18,7 +19,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       if (!saved) {
         return null;
       }
-      return buildClientSchema(JSON.parse(saved));
+      return buildClientSchema(JSONbigAsStr.parse(saved));
     } catch {
       localStorage.setItem(localStorageKey, null);
       return null;
@@ -67,7 +68,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
         data = await loadSchemaFromIntrospection();
       }
       setSchema(buildClientSchema(data));
-      localStorage.setItem(localStorageKey, JSON.stringify(data));
+      localStorage.setItem(localStorageKey, JSONbigAsStr.stringify(data));
       toast.success('GraphQL Schema loaded successfully');
     } catch (err) {
       setError(err);

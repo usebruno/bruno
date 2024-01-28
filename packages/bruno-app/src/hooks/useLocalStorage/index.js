@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 export default function useLocalStorage(key, defaultValue) {
   const [value, setValue] = useState(() => {
     try {
       const saved = localStorage.getItem(key);
       if (saved !== null) {
-        return JSON.parse(saved);
+        return JSONbigAsStr.parse(saved);
       }
       return defaultValue;
     } catch {
@@ -14,7 +15,7 @@ export default function useLocalStorage(key, defaultValue) {
   });
 
   useEffect(() => {
-    const rawValue = JSON.stringify(value);
+    const rawValue = JSONbigAsStr.stringify(value);
     localStorage.setItem(key, rawValue);
   }, [key, value]);
 

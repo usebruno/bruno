@@ -1,5 +1,7 @@
 const Toml = require('@iarna/toml');
 const { has, each, get } = require('lodash');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const stripNewlineAtEnd = (str) => {
   if (!str || typeof str !== 'string') {
@@ -30,7 +32,7 @@ const tomlToJson = (toml) => {
     // headers are stored in plain json format if they contain duplicate keys
     // the json is stored in a stringified format in the bru key
     if (has(json.headers, 'bru')) {
-      let parsedHeaders = JSON.parse(json.headers.bru);
+      let parsedHeaders = JSONbigAsStr.parse(json.headers.bru);
 
       each(parsedHeaders, (header) => {
         formattedJson.headers.push({

@@ -3,6 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const {
   isValidPathname,
@@ -92,7 +94,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
 
       //Change new name of collection
-      let json = JSON.parse(content);
+      let json = JSONbigAsStr.parse(content);
       json.name = collectionName;
       const cont = await stringifyJson(json);
 
@@ -121,7 +123,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
-      const json = JSON.parse(content);
+      const json = JSONbigAsStr.parse(content);
 
       json.name = newName;
 
@@ -570,7 +572,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const jsonData = fs.readFileSync(filePaths[0], 'utf8');
-      return JSON.parse(jsonData);
+      return JSONbigAsStr.parse(jsonData);
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
     }

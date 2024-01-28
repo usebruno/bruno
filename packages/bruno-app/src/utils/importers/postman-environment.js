@@ -1,7 +1,8 @@
 import each from 'lodash/each';
 import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-
+import JSONbig from 'json-bigint';
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
@@ -43,7 +44,7 @@ const importPostmanEnvironment = (environment) => {
 const parsePostmanEnvironment = (str) => {
   return new Promise((resolve, reject) => {
     try {
-      let environment = JSON.parse(str);
+      let environment = JSONbigAsStr.parse(str);
       return resolve(importPostmanEnvironment(environment));
     } catch (err) {
       console.log(err);

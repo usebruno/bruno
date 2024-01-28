@@ -1,5 +1,7 @@
 const jsonQuery = require('json-query');
 const { get } = require('@usebruno/query');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -136,7 +138,7 @@ const createResponseParser = (response = {}) => {
  */
 const cleanJson = (data) => {
   try {
-    return JSON.parse(JSON.stringify(data));
+    return JSONbigAsStr.parse(JSONbigAsStr.stringify(data));
   } catch (e) {
     return data;
   }

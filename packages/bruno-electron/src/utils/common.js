@@ -1,4 +1,6 @@
 const { customAlphabet } = require('nanoid');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -11,7 +13,7 @@ const uuid = () => {
 
 const stringifyJson = async (str) => {
   try {
-    return JSON.stringify(str, null, 2);
+    return JSONbigAsStr.stringify(str, null, 2);
   } catch (err) {
     return Promise.reject(err);
   }
@@ -19,7 +21,7 @@ const stringifyJson = async (str) => {
 
 const parseJson = async (obj) => {
   try {
-    return JSON.parse(obj);
+    return JSONbigAsStr.parse(obj);
   } catch (err) {
     return Promise.reject(err);
   }
@@ -27,7 +29,7 @@ const parseJson = async (obj) => {
 
 const safeStringifyJSON = (data) => {
   try {
-    return JSON.stringify(data);
+    return JSONbigAsStr.stringify(data);
   } catch (e) {
     return data;
   }
@@ -35,7 +37,7 @@ const safeStringifyJSON = (data) => {
 
 const safeParseJSON = (data) => {
   try {
-    return JSON.parse(data);
+    return JSONbigAsStr.parse(data);
   } catch (e) {
     return data;
   }

@@ -1,5 +1,7 @@
 const Handlebars = require('handlebars');
 const { each, forOwn, cloneDeep } = require('lodash');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -77,9 +79,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   if (contentType.includes('json')) {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
+        let parsed = JSONbigAsStr.stringify(request.data);
         parsed = interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        request.data = JSONbigAsStr.parse(parsed);
       } catch (err) {}
     }
 
@@ -91,9 +93,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
+        let parsed = JSONbigAsStr.stringify(request.data);
         parsed = interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        request.data = JSONbigAsStr.parse(parsed);
       } catch (err) {}
     }
   } else {

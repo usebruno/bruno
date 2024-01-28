@@ -1,6 +1,8 @@
 const Handlebars = require('handlebars');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
+const JSONbig = require('json-bigint');
+const JSONbigAsStr = JSONbig({ storeAsString: true });
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
@@ -19,7 +21,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
-    data: JSON.stringify(queryParams)
+    data: JSONbigAsStr.stringify(queryParams)
   };
 
   return setAuthHeaders(axiosRequest, request, collectionRoot);
