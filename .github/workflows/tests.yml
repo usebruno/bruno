@@ -6,6 +6,7 @@ on:
     branches: [main]
 jobs:
   unit-test:
+    name: Unit Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +39,7 @@ jobs:
         run: npm run test --workspace=packages/bruno-electron
 
   cli-test:
-    name: Run Bruno CLI Tests
+    name: CLI Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +69,7 @@ jobs:
           reporter: java-junit
 
   prettier:
+    name: Prettier
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
