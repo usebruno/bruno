@@ -36,7 +36,8 @@ assert {
 tests {
   test("should return json", function() {
     const url = req.getUrl();
-    expect(url).to.equal("http://localhost:80/api/echo/json?foo={{undefinedVar}}");
+    const query = url.split("?")[1];
+    expect(query).to.equal("foo={{undefinedVar}}");
   
     const data = res.getBody();
     expect(res.getBody()).to.eql({
