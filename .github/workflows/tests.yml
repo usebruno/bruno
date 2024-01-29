@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  tests:
+  unit-test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -17,8 +17,6 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
-      - name: Build Package bruno-query
-        run: npm run build --workspace=packages/bruno-query
       - name: Test Package bruno-lang
         run: npm run test --workspace=packages/bruno-lang
       - name: Test Package bruno-schema
@@ -27,10 +25,31 @@ jobs:
         run: npm run test --workspace=packages/bruno-app
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-common
+        run: npm run test --workspace=packages/bruno-common
       - name: Test Package bruno-cli
         run: npm run test --workspace=packages/bruno-cli
       - name: Test Package bruno-electron
-        run: npm run test --workspace=packages/bruno-electron --passWithNoTests
+        run: npm run test --workspace=packages/bruno-electron
+
+  cli-test:
+    name: Run Bruno CLI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies and run tests
+        run: |
+          cd sanity/collection
+          npm install @usebruno/cli -g
+          bru run --env Prod --output junit.xml --format junit
+
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Report
+          path: sanity/collection/junit.xml
+          reporter: java-junit
 
   prettier:
     runs-on: ubuntu-latest
