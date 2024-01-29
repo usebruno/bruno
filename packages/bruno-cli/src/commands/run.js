@@ -214,6 +214,7 @@ const builder = async (yargs) => {
     .option('tests-only', {
       type: 'boolean',
       description: 'Only run requests that have a test'
+    })
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
