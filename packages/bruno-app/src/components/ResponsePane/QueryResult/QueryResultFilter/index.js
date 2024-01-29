@@ -14,6 +14,18 @@ const QueryResultFilter = ({ onChange, mode }) => {
 
     return null;
   }, [mode]);
+  
+  const placeholderText = useMemo(() => {
+    if (mode.includes('json')) {
+      return '$.store.books..author';
+    }
+
+    if (mode.includes('xml')) {
+      return '/store/books//author';
+    }
+
+    return null;
+  }, [mode]);
 
   return (
     <div className={'response-filter relative'}>
@@ -29,6 +41,7 @@ const QueryResultFilter = ({ onChange, mode }) => {
         type="text"
         name="response-filter"
         id="response-filter"
+        placeholder={placeholderText}
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

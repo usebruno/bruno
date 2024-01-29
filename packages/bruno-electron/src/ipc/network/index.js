@@ -86,9 +86,20 @@ const configureRequest = async (
     request.url = `http://${request.url}`;
   }
 
-  const httpsAgentRequestFields = {};
+  /**
+   * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
+   * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
+   */
+  const httpsAgentRequestFields = { keepAlive: true };
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
+  }
+
+  if (preferencesUtil.shouldUseCustomCaCertificate()) {
+    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
+    if (caCertFilePath) {
+      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+    }
   }
 
   const brunoConfig = getBrunoConfig(collectionUid);
@@ -158,9 +169,11 @@ const configureRequest = async (
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
@@ -781,7 +794,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -798,7 +811,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),

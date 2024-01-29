@@ -1,7 +1,7 @@
 const path = require('path');
 const isDev = require('electron-is-dev');
 const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -97,6 +97,10 @@ app.on('ready', async () => {
 
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('close', (e) => {
+    e.preventDefault();
+    ipcMain.emit('main:start-quit-flow');
+  });
 
   mainWindow.webContents.on('will-redirect', (event, url) => {
     event.preventDefault();
@@ -107,7 +111,7 @@ app.on('ready', async () => {
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     require('electron').shell.openExternal(details.url);
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   // register all ipc handlers

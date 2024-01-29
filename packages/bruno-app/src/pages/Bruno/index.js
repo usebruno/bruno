@@ -25,7 +25,6 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/hint/javascript-hint');
   require('codemirror/addon/hint/show-hint');
   require('codemirror/addon/lint/lint');
-  require('codemirror/addon/lint/javascript-lint');
   require('codemirror/addon/lint/json-lint');
   require('codemirror/addon/mode/overlay');
   require('codemirror/addon/scroll/simplescrollbars');
@@ -41,6 +40,7 @@ if (!SERVER_RENDERED) {
   require('codemirror-graphql/mode');
 
   require('utils/codemirror/brunoVarInfo');
+  require('utils/codemirror/javascript-lint');
 }
 
 export default function Main() {

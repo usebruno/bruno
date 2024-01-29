@@ -2,6 +2,8 @@ import React from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ResponseHeaders = ({ headers }) => {
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
   return (
     <StyledWrapper className="pb-4 w-full">
       <table>
@@ -12,8 +14,8 @@ const ResponseHeaders = ({ headers }) => {
           </tr>
         </thead>
         <tbody>
-          {headers && headers.length
-            ? headers.map((header, index) => {
+          {headersArray && headersArray.length
+            ? headersArray.map((header, index) => {
                 return (
                   <tr key={index}>
                     <td className="key">{header[0]}</td>
