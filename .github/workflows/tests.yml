@@ -52,8 +52,6 @@ jobs:
       - name: Build Libraries
         run: |
           npm run build --workspace=packages/bruno-query
-          npm run build --workspace=packages/bruno-lang
-          npm run build --workspace=packages/bruno-schema
           npm run build --workspace=packages/bruno-common
 
       - name: Run tests
