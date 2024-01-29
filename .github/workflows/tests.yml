@@ -16,6 +16,14 @@ jobs:
           node-version-file: '.nvmrc'
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
+
+      # build libraries
+      - name: Build libraries
+        run: |
+          npm run build --workspace=packages/bruno-common
+          npm run build --workspace=packages/bruno-query
+
+      # test
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
       - name: Test Package bruno-lang
@@ -24,13 +32,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-schema
       - name: Test Package bruno-app
         run: npm run test --workspace=packages/bruno-app
-
-      # bruno-js needs bruno-query to be built first
-      - name: Build Package bruno-query
-        run: npm run build --workspace=packages/bruno-query
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js
-
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
       - name: Test Package bruno-cli
