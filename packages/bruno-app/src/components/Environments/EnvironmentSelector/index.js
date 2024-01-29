@@ -52,7 +52,7 @@ const EnvironmentSelector = ({ collection }) => {
                     dropdownTippyRef.current.hide();
                   }}
                 >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2">{e.name}</span>
+                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
                 </div>
               ))
             : null}

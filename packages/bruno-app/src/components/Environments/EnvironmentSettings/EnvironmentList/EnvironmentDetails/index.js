@@ -28,7 +28,7 @@ const EnvironmentDetails = ({ environment, collection }) => {
       <div className="flex">
         <div className="flex flex-grow items-center">
           <IconDatabase className="cursor-pointer" size={20} strokeWidth={1.5} />
-          <span className="ml-1 font-semibold">{environment.name}</span>
+          <span className="ml-1 font-semibold break-all">{environment.name}</span>
         </div>
         <div className="flex gap-x-4 pl-4">
           <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} onClick={() => setOpenEditModal(true)} />
