@@ -64,7 +64,7 @@ jobs:
         if: success() || failure()
         with:
           name: Test Report
-          path: sanity/collection/junit.xml
+          path: packages/bruno-tests/collection/junit.xml
           reporter: java-junit
 
   prettier:
