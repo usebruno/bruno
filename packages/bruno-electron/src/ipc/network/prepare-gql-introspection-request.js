@@ -1,11 +1,11 @@
-const Handlebars = require('handlebars');
 const { get, each } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = Handlebars.compile(endpoint, { noEscape: true })(envVars);
+    endpoint = interpolate(endpoint, envVars);
   }
 
   const queryParams = {
