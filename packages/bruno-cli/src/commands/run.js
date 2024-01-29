@@ -9,7 +9,6 @@ const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
-
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -92,7 +91,7 @@ const printRunSummary = (results) => {
   };
 };
 
-const getBruFilesRecursively = (dir) => {
+const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
 
   const getFilesInOrder = (dir) => {
@@ -131,10 +130,22 @@ const getBruFilesRecursively = (dir) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          currentDirBruJsons.push({
-            bruFilepath: filePath,
-            bruJson
-          });
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+
+          if (testsOnly) {
+            if (requestHasTests || requestHasActiveAsserts) {
+              currentDirBruJsons.push({
+                bruFilepath: filePath,
+                bruJson
+              });
+            }
+          } else {
+            currentDirBruJsons.push({
+              bruFilepath: filePath,
+              bruJson
+            });
+          }
         }
       }
 
@@ -200,6 +211,9 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Allow insecure server connections'
     })
+    .option('tests-only', {
+      type: 'boolean',
+      description: 'Only run requests that have a test'
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
@@ -219,12 +233,13 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.xml --format junit',
       'Run a request and write the results to results.xml in junit format in the current directory'
-    );
+    )
+    .example('$0 run request.bru --test-only', 'Run all requests that have a test');
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, bail } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, testsOnly, bail } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -335,7 +350,7 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = await isFile(filename);
+    const _isFile = isFile(filename);
     let results = [];
 
     let bruJsons = [];
@@ -350,7 +365,7 @@ const handler = async function (argv) {
       });
     }
 
-    const _isDirectory = await isDirectory(filename);
+    const _isDirectory = isDirectory(filename);
     if (_isDirectory) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
@@ -361,10 +376,21 @@ const handler = async function (argv) {
           const bruFilepath = path.join(filename, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          bruJsons.push({
-            bruFilepath,
-            bruJson
-          });
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+          if (testsOnly) {
+            if (requestHasTests || requestHasActiveAsserts) {
+              bruJsons.push({
+                bruFilepath,
+                bruJson
+              });
+            }
+          } else {
+            bruJsons.push({
+              bruFilepath,
+              bruJson
+            });
+          }
         }
         bruJsons.sort((a, b) => {
           const aSequence = a.bruJson.seq || 0;
@@ -374,7 +400,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename);
+        bruJsons = getBruFilesRecursively(filename, testsOnly);
       }
     }
 
