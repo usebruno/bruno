@@ -14,7 +14,7 @@ const QueryResultFilter = ({ onChange, mode }) => {
 
     return null;
   }, [mode]);
-  
+
   const placeholderText = useMemo(() => {
     if (mode.includes('json')) {
       return '$.store.books..author';
