@@ -792,7 +792,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -809,7 +809,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
