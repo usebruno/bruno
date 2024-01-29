@@ -20,7 +20,11 @@ npm start
 ```bash
 cd collection
 
+# run collection against local server
 node ../../bruno-cli/bin/bru.js run --env Local --output junit.xml --format junit
+
+# run collection against prod server hosted at https://testbench.usebruno.com
+node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 ```
 
 ### License
