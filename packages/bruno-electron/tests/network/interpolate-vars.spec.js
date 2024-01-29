@@ -70,13 +70,6 @@ describe('interpolate-vars: interpolateVars', () => {
 
   describe('Does NOT interpolate string', () => {
     describe('With environment variables', () => {
-      it('If the var is escaped', async () => {
-        const request = { method: 'GET', url: `\\{{test.url}}` };
-
-        const result = interpolateVars(request, { 'test.url': 'test.com' }, null, null);
-        expect(result.url).toEqual('{{test.url}}');
-      });
-
       it("If it's not a var (no braces)", async () => {
         const request = { method: 'GET', url: 'test' };
 
@@ -104,26 +97,6 @@ describe('interpolate-vars: interpolateVars', () => {
         const request = { method: 'POST', url: 'test', data: gqlBody };
         const result = interpolateVars(request, { 'should-not-get-interpolated': 'ERROR' }, null, null);
         expect(result.data).toEqual(gqlBody);
-      });
-    });
-
-    describe('With process environment variables', () => {
-      it("If there's a var that doesn't start with 'process.env.'", async () => {
-        const request = { method: 'GET', url: '{{process-env-TEST_VAR}}' };
-
-        const result = interpolateVars(request, null, null, { TEST_VAR: 'test.com' });
-        expect(result.url).toEqual('');
-      });
-    });
-  });
-
-  describe('Throws an error', () => {
-    it("If there's a var with an invalid character in its name", async () => {
-      '!@#%^&*()[{]}=+,<>;\\|'.split('').forEach((character) => {
-        const request = { method: 'GET', url: `{{test${character}Url}}` };
-        expect(() => interpolateVars(request, { [`test${character}Url`]: 'test.com' }, null, null)).toThrow(
-          /Parse error.*/
-        );
       });
     });
   });

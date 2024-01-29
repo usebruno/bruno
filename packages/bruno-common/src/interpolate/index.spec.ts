@@ -82,3 +82,90 @@ describe('interpolate', () => {
     expect(result).toBe('Hello, my name is Not Bruno and I am 4 years old');
   });
 });
+
+describe('interpolate - template edge cases', () => {
+  it('should return the input string if the template is not a string', () => {
+    const inputString = 123;
+    const inputObject = {
+      user: 'Bruno'
+    };
+
+    const result = interpolate(inputString as any, inputObject);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the template is null', () => {
+    const inputString = null;
+    const inputObject = {
+      user: 'Bruno'
+    };
+
+    const result = interpolate(inputString as any, inputObject);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the template is undefined', () => {
+    const inputString = undefined;
+    const inputObject = {
+      user: 'Bruno'
+    };
+
+    const result = interpolate(inputString as any, inputObject);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the template is empty', () => {
+    const inputString = '';
+    const inputObject = {
+      user: 'Bruno'
+    };
+
+    const result = interpolate(inputString, inputObject);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return preserve whitespaces', () => {
+    const inputString = '    ';
+    const inputObject = {
+      user: 'Bruno'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe(inputString);
+  });
+});
+
+describe('interpolate - value edge cases', () => {
+  it('should return the input string if the value is not an object', () => {
+    const inputString = 'Hello, my name is {{user.name}}';
+    const inputObject = 123;
+
+    const result = interpolate(inputString, inputObject as any);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the value is null', () => {
+    const inputString = 'Hello, my name is {{user.name}}';
+    const inputObject = null;
+
+    const result = interpolate(inputString, inputObject as any);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the value is undefined', () => {
+    const inputString = 'Hello, my name is {{user.name}}';
+    const inputObject = undefined;
+
+    const result = interpolate(inputString, inputObject as any);
+    expect(result).toBe(inputString);
+  });
+
+  it('should return the input string if the value is empty', () => {
+    const inputString = 'Hello, my name is {{user.name}}';
+    const inputObject = {};
+
+    const result = interpolate(inputString, inputObject);
+    expect(result).toBe(inputString);
+  });
+});
