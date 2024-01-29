@@ -29,10 +29,6 @@ assert {
   ~res.body: eq {{pong}}
 }
 
-script:pre-request {
-  console.log(bru.getEnvName());
-}
-
 tests {
   test("should ping pong", function() {
     const data = res.getBody();

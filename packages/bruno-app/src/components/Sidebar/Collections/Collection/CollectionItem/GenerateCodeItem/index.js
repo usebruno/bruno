@@ -8,8 +8,8 @@ import { findEnvironmentInCollection } from 'utils/collections';
 
 // Todo: Fix this
 // import { interpolate } from '@usebruno/common';
-const brunoCommon = require('@usebruno/common');
-const { interpolate } = brunoCommon.default;
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
