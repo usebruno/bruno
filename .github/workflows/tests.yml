@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Tests
 on:
   push:
     branches: [main]
@@ -23,8 +23,13 @@ jobs:
         run: npm run test --workspace=packages/bruno-schema
       - name: Test Package bruno-app
         run: npm run test --workspace=packages/bruno-app
+
+      # bruno-js needs bruno-query to be built first
+      - name: Build Package bruno-query
+        run: npm build test --workspace=packages/bruno-query
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js
+
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
       - name: Test Package bruno-cli
@@ -39,9 +44,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install dependencies and run tests
         run: |
-          cd sanity/collection
-          npm install @usebruno/cli -g
-          bru run --env Prod --output junit.xml --format junit
+          cd packages/bruno-tests/collection
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
