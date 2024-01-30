@@ -59,6 +59,16 @@ export const convertToCodeMirrorJson = (obj) => {
   }
 };
 
+export const isValidJson = (str) => {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+
+  return true;
+};
+
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;

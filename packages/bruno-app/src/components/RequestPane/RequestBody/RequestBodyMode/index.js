@@ -1,13 +1,15 @@
-import React, { useRef, forwardRef } from 'react';
-import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { useDispatch } from 'react-redux';
+import get from 'lodash/get';
 import { updateRequestBodyMode } from 'providers/ReduxStore/slices/collections';
-import { humanizeRequestBodyMode } from 'utils/collections';
-import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
+import React, { forwardRef, useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import { humanizeRequestBodyMode } from 'utils/collections';
 import { toastError } from 'utils/common/error';
+import useOnMount from '../../../../hooks/useOnMount/index';
+import { isValidJson } from '../../../../utils/common/index';
+import StyledWrapper from './StyledWrapper';
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -51,6 +53,12 @@ const RequestBodyMode = ({ item, collection }) => {
       }
     }
   };
+
+  useOnMount(() => {
+    if (bodyMode === 'json' && body?.json && isValidJson(body.json)) {
+      onPrettify();
+    }
+  });
 
   return (
     <StyledWrapper>
