@@ -61,6 +61,7 @@ jobs:
       - name: Run tests
         run: |
           cd packages/bruno-tests/collection
+          npm install
           node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
       - name: Publish Test Report
