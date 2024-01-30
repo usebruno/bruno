@@ -48,15 +48,15 @@ const prepareRequest = (request, collectionRoot) => {
     }
   }
 
-  if (collectionAuth) {
-    if (collectionAuth.mode === 'basic' && isEmpty(axiosRequest.auth)) {
+  if (collectionAuth && isEmpty(axiosRequest.auth) && isEmpty(get(axiosRequest, 'headers.authorization'))) {
+    if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
         password: get(collectionAuth, 'basic.password')
       };
     }
 
-    if (collectionAuth.mode === 'bearer' && isEmpty(axiosRequest, 'headers.authorization')) {
+    if (collectionAuth.mode === 'bearer') {
       axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
