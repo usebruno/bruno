@@ -181,7 +181,7 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
-    let response, responseTime;
+    let response;
     try {
       // run request
       const axiosInstance = makeAxiosInstance();
@@ -189,16 +189,10 @@ const runSingleRequest = async function (
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
-      // Prevents the duration on leaking to the actual result
-      responseTime = response.headers.get('request-duration');
-      response.headers.delete('request-duration');
     } catch (err) {
       if (err?.response) {
         response = err.response;
 
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
@@ -226,11 +220,10 @@ const runSingleRequest = async function (
       }
     }
 
-    response.responseTime = responseTime;
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+        chalk.dim(` (${response.status} ${response.statusText}) - ${response.headers['request-duration']} ms`)
     );
 
     // run post-response vars
@@ -339,7 +332,7 @@ const runSingleRequest = async function (
         statusText: response.statusText,
         headers: response.headers,
         data: response.data,
-        responseTime
+        responseTime: response.responseTime
       },
       error: null,
       assertionResults,

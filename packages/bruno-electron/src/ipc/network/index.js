@@ -440,14 +440,9 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
         response = await axiosInstance(request);
-
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
       } catch (error) {
         deleteCancelToken(cancelTokenUid);
 
@@ -460,10 +455,6 @@ const registerNetworkIpc = (mainWindow) => {
 
         if (error?.response) {
           response = error.response;
-
-          // Prevents the duration on leaking to the actual result
-          responseTime = response.headers.get('request-duration');
-          response.headers.delete('request-duration');
         } else {
           // if it's not a network error, don't continue
           return Promise.reject(error);
@@ -474,8 +465,6 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
-
-      response.responseTime = responseTime;
 
       // save cookies
       if (preferencesUtil.shouldStoreCookies()) {
@@ -574,7 +563,7 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
+        duration: response.responseTime ?? 0
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);

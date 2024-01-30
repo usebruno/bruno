@@ -25,7 +25,7 @@ class BrunoResponse {
   }
 
   getResponseTime() {
-    return this.res ? this.res.responseTime : null;
+    return this.res?.headers ? this.res.headers['request-duration'] : null;
   }
 }
 
