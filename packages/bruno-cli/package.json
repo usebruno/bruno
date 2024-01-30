@@ -24,7 +24,6 @@
     "package.json"
   ],
   "dependencies": {
-    "@n8n/vm2": "^3.9.23",
     "@usebruno/common": "0.1.0",
     "@usebruno/js": "0.10.0",
     "@usebruno/lang": "0.9.0",
@@ -41,6 +40,7 @@
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
+    "vm2": "^3.9.13",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }
