@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+- --bail and --test-only flags
+
 ## 1.3.0
 
 - Junit report generation
