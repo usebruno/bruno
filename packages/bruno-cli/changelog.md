@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+
+- Fixing [bug](https://github.com/usebruno/bruno/issues/1487)
+
 ## 1.4.0
 
 - --bail and --test-only flags
