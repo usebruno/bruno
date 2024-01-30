@@ -1,18 +1,18 @@
-import React from 'react';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
+import SingleLineEditor from 'components/SingleLineEditor';
+import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
 import {
   addCollectionHeader,
-  updateCollectionHeader,
-  deleteCollectionHeader
+  deleteCollectionHeader,
+  updateCollectionHeader
 } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import { useTheme } from 'providers/Theme';
+import React from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
@@ -75,9 +75,10 @@ const Headers = ({ collection }) => {
         <tbody>
           {headers && headers.length
             ? headers.map((header) => {
+                const enabledClass = header.enabled ? ' bg-inherit' : 'bg-gray-100 opacity-75';
                 return (
                   <tr key={header.uid}>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
@@ -97,7 +98,7 @@ const Headers = ({ collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={header.value}
                         theme={storedTheme}
@@ -116,7 +117,7 @@ const Headers = ({ collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <div className="flex items-center">
                         <input
                           type="checkbox"

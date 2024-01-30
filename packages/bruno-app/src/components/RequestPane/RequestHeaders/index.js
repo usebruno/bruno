@@ -1,14 +1,14 @@
-import React from 'react';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
+import { addRequestHeader, deleteRequestHeader, updateRequestHeader } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import StyledWrapper from './StyledWrapper';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
@@ -75,9 +75,10 @@ const RequestHeaders = ({ item, collection }) => {
         <tbody>
           {headers && headers.length
             ? headers.map((header) => {
+                const enabledClass = header.enabled ? ' bg-inherit' : 'bg-gray-100 opacity-75';
                 return (
                   <tr key={header.uid}>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
@@ -98,7 +99,7 @@ const RequestHeaders = ({ item, collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={header.value}
                         theme={storedTheme}
@@ -118,7 +119,7 @@ const RequestHeaders = ({ item, collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <div className="flex items-center">
                         <input
                           type="checkbox"

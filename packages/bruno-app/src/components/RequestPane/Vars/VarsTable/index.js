@@ -1,15 +1,15 @@
-import React from 'react';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import Tooltip from 'components/Tooltip';
-import StyledWrapper from './StyledWrapper';
+import cloneDeep from 'lodash/cloneDeep';
+import { addVar, deleteVar, updateVar } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React from 'react';
 import toast from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
 import { variableNameRegex } from 'utils/common/regex';
+import StyledWrapper from './StyledWrapper';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -100,9 +100,10 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         <tbody>
           {vars && vars.length
             ? vars.map((_var) => {
+                const enabledClass = _var.enabled ? ' bg-inherit' : 'bg-gray-100 opacity-75';
                 return (
                   <tr key={_var.uid}>
-                    <td>
+                    <td className={enabledClass}>
                       <input
                         type="text"
                         autoComplete="off"
@@ -114,7 +115,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         onChange={(e) => handleVarChange(e, _var, 'name')}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={_var.value}
                         theme={storedTheme}
@@ -134,7 +135,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <div className="flex items-center">
                         <input
                           type="checkbox"

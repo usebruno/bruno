@@ -1,16 +1,16 @@
-import React from 'react';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
+import SingleLineEditor from 'components/SingleLineEditor';
+import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
 import {
   addFormUrlEncodedParam,
-  updateFormUrlEncodedParam,
-  deleteFormUrlEncodedParam
+  deleteFormUrlEncodedParam,
+  updateFormUrlEncodedParam
 } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
@@ -77,9 +77,10 @@ const FormUrlEncodedParams = ({ item, collection }) => {
         <tbody>
           {params && params.length
             ? params.map((param, index) => {
+                const enabledClass = param.enabled ? ' bg-inherit' : 'bg-gray-100 opacity-50';
                 return (
                   <tr key={param.uid}>
-                    <td>
+                    <td className={enabledClass}>
                       <input
                         type="text"
                         autoComplete="off"
@@ -91,7 +92,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                         onChange={(e) => handleParamChange(e, param, 'name')}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={param.value}
                         theme={storedTheme}
@@ -112,7 +113,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <div className="flex items-center">
                         <input
                           type="checkbox"

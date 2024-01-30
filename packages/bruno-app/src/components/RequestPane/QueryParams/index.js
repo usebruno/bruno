@@ -1,12 +1,12 @@
-import React from 'react';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
-import { useDispatch } from 'react-redux';
-import { useTheme } from 'providers/Theme';
-import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import cloneDeep from 'lodash/cloneDeep';
+import get from 'lodash/get';
+import { addQueryParam, deleteQueryParam, updateQueryParam } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { useTheme } from 'providers/Theme';
+import React from 'react';
+import { useDispatch } from 'react-redux';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -76,9 +76,10 @@ const QueryParams = ({ item, collection }) => {
         <tbody>
           {params && params.length
             ? params.map((param, index) => {
+                const enabledClass = param.enabled ? ' bg-inherit' : 'bg-gray-100 opacity-50';
                 return (
                   <tr key={param.uid}>
-                    <td>
+                    <td className={enabledClass}>
                       <input
                         type="text"
                         autoComplete="off"
@@ -86,11 +87,11 @@ const QueryParams = ({ item, collection }) => {
                         autoCapitalize="off"
                         spellCheck="false"
                         value={param.name}
-                        className="mousetrap"
+                        className={`mousetrap`}
                         onChange={(e) => handleParamChange(e, param, 'name')}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <SingleLineEditor
                         value={param.value}
                         theme={storedTheme}
@@ -110,7 +111,7 @@ const QueryParams = ({ item, collection }) => {
                         collection={collection}
                       />
                     </td>
-                    <td>
+                    <td className={enabledClass}>
                       <div className="flex items-center">
                         <input
                           type="checkbox"
