@@ -21,7 +21,7 @@ jobs:
           node-version: 18
 
       - name: Check package-lock.json
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
