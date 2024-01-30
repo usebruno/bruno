@@ -24,8 +24,9 @@
     "package.json"
   ],
   "dependencies": {
+    "@n8n/vm2": "^3.9.23",
     "@usebruno/common": "0.1.0",
-    "@usebruno/js": "0.9.4",
+    "@usebruno/js": "0.10.0",
     "@usebruno/lang": "0.9.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
