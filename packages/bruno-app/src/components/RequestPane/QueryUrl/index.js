@@ -48,7 +48,6 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       })
     );
   };
-
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
@@ -64,6 +63,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       >
         <MonacoEditor
           singleLine
+          withVariables
+          mode={'javascript'}
           value={url}
           onSave={onSave}
           theme={storedTheme}

@@ -1,3 +1,5 @@
+import { blue, indigo } from 'tailwindcss/colors';
+
 const buildSuggestions = (monaco) => [
   {
     label: 'res',
@@ -223,16 +225,124 @@ const buildSuggestions = (monaco) => [
   }
 ];
 
-export const initMonaco = (monaco) => {
-  monaco.languages.setLanguageConfiguration('plaintext', {
-    autoClosingPairs: [{ open: '{{', close: '}}' }]
+export const getWordAtPosition = (model, position) => {
+  const wordAtPos = model.getWordUntilPosition(position);
+  let word = wordAtPos.word;
+  let startPos = wordAtPos.startColumn;
+  let endPos = wordAtPos.endColumn;
+
+  while (
+    startPos > 0 &&
+    isAllowedChar(
+      model.getValueInRange({
+        startLineNumber: position.lineNumber,
+        startColumn: startPos - 1,
+        endLineNumber: position.lineNumber,
+        endColumn: startPos
+      })
+    )
+  ) {
+    startPos--;
+  }
+
+  while (
+    endPos < model.getLineMaxColumn(position.lineNumber) &&
+    isAllowedChar(
+      model.getValueInRange({
+        startLineNumber: position.lineNumber,
+        startColumn: endPos,
+        endLineNumber: position.lineNumber,
+        endColumn: endPos + 1
+      })
+    )
+  ) {
+    endPos++;
+  }
+
+  return model.getValueInRange({
+    startLineNumber: position.lineNumber,
+    startColumn: startPos,
+    endLineNumber: position.lineNumber,
+    endColumn: endPos
   });
-  monaco.languages.setMonarchTokensProvider('plaintext', {
+
+  function isAllowedChar(char) {
+    return /[a-zA-Z0-9._]/.test(char); // Allow letters, numbers, dots, and underscores
+  }
+};
+
+export const setCustomLanguage = (monaco) => {
+  monaco.languages.register({ id: 'myCustomLanguage' });
+
+  monaco.languages.setMonarchTokensProvider('myCustomLanguage', {
     tokenizer: {
       root: [
-        [/{{.*?}}/, 'variable'], // Use a regular expression to match variables without brackets
-        [/[^{{]*$/, '']
+        [/{{.*?}}/, 'variable'], // Match anything inside {{}}
+        [/\w+/, 'other'] // Match other words
       ]
+    }
+  });
+
+  monaco.editor.defineTheme('customTheme', {
+    base: 'vs',
+    inherit: false,
+    rules: [
+      { token: 'defined-variable', foreground: '#75A99C' },
+      { token: 'undefined-variable', foreground: '#FC0117' }
+    ]
+  });
+};
+
+export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQuery) => {
+  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    diagnosticCodesToIgnore: [1109]
+  });
+  monaco.languages.setLanguageConfiguration(mode, {
+    autoClosingPairs: [{ open: '{{', close: '}}' }]
+  });
+  monaco.languages.setMonarchTokensProvider(mode, {
+    tokenizer: {
+      root: [
+        [/[^{\/]+/, ''],
+        [/\{{[^{}]+}}/, 'variable'],
+        [/(https?:\/\/)?\{{[^{}]+}}[^\s/]*\/?/, 'url-variable']
+      ]
+    }
+  });
+
+  const allVariables2 = Object.entries(variables ?? {});
+  const hoverProvider = monaco.languages.registerHoverProvider('typescript', {
+    provideHover: (model, position) => {
+      const word = getWordAtPosition(model, position);
+      const variable = allVariables2.find(([key, value]) => key === word);
+      if (variable) {
+        return {
+          range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+          contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
+        };
+      }
+    }
+  });
+  const allVariables = Object.entries(variables ?? {}).map(([key, value]) => `declare const ${key}: string`);
+  monaco.languages.typescript.typescriptDefaults.addExtraLib(allVariables.join('\n'));
+};
+
+export const initMonaco = (monaco) => {
+  monaco.editor.defineTheme('bruno-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [{ background: '#3D3D3D' }],
+    colors: {
+      'editor.background': '#00000000',
+      'editor.foreground': '#ffffff'
+    }
+  });
+  monaco.editor.defineTheme('bruno-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [],
+    colors: {
+      'editor.background': '#00000000'
     }
   });
   monaco.languages.typescript.typescriptDefaults.addExtraLib(`
@@ -284,6 +394,10 @@ export const initMonaco = (monaco) => {
         suggestions: buildSuggestions(monaco)
       };
     }
+  });
+  // javascript is solely used for the query editor
+  monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+    diagnosticCodesToIgnore: [1109]
   });
 };
 
