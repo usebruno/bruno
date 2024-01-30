@@ -51,6 +51,14 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
+export const convertToCodeMirrorJson = (obj) => {
+  try {
+    return JSON5.stringify(obj).slice(1, -1);
+  } catch (e) {
+    return obj;
+  }
+};
+
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
@@ -105,4 +113,8 @@ export const startsWith = (str, search) => {
   }
 
   return str.substr(0, search.length) === search;
+};
+
+export const pluralizeWord = (word, count) => {
+  return count === 1 ? word : `${word}s`;
 };
