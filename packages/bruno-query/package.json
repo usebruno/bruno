@@ -1,7 +1,7 @@
 {
   "name": "@usebruno/query",
   "version": "0.1.0",
-  "license" : "MIT",
+  "license": "MIT",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
@@ -15,6 +15,7 @@
     "test": "jest",
     "prebuild": "npm run clean",
     "build": "rollup -c",
+    "dev": "rollup -cw",
     "prepack": "npm run test && npm run build"
   },
   "devDependencies": {

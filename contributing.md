@@ -26,7 +26,7 @@ You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) an
 
 ## Development
 
-Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
+Bruno is being developed as a desktop app. Behind the scenes, it runs Next in one process and electron in another. Some packages are also required to be built before running the application. Everyone can be build and ready for development by following the steps below.
 
 ### Dependencies
 
@@ -41,10 +41,15 @@ nvm use
 # install deps
 npm i --legacy-peer-deps
 
-# build packages
-npm run build:graphql-docs
-npm run build:bruno-query
-npm run build:bruno-common
+# run dev mode with hot reload
+npm run dev
+```
+
+It is also possible to do the last part manually by running the following commands, but then you won't get hot reload from the common packages:
+
+```bash
+# build packages (no hot reload)
+npm run build:packages
 
 # run next app (terminal 1)
 npm run dev:web
