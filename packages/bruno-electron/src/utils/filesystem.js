@@ -105,7 +105,7 @@ const browseDirectory = async (win) => {
 
 const browseFiles = async (win, filters) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['multiSelections'],
+    properties: ['openFile', 'multiSelections'],
     filters
   });
 
