@@ -169,9 +169,11 @@ const configureRequest = async (
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
@@ -792,7 +794,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -809,7 +811,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),

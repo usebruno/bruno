@@ -1,4 +1,4 @@
-const { NodeVM } = require('@n8n/vm2');
+const { NodeVM } = require('vm2');
 const path = require('path');
 const http = require('http');
 const https = require('https');
