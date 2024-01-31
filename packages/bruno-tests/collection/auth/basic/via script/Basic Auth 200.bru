@@ -1,0 +1,26 @@
+meta {
+  name: Basic Auth 200
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/basic/protected
+  body: json
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.message: Authentication successful
+}
+
+script:pre-request {
+  const username = "bruno";
+  const password = "della";
+  
+  const authString = `${username}:${password}`;
+  const encodedAuthString = require('btoa')(authString);
+  
+  req.setHeader("Authorization", `Basic ${encodedAuthString}`);
+}

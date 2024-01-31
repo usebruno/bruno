@@ -138,7 +138,7 @@ const GoldenEdition = ({ onClose }) => {
           ) : (
             <div>
               <div className="my-4">
-                <span className="text-3xl font-extrabold">$2</span>
+                <span className="text-3xl font-extrabold">$5</span>
               </div>
               <p>/user/month</p>
             </div>

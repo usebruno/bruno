@@ -1,5 +1,5 @@
 {
-  "version": "v1.6.1",
+  "version": "v1.7.1",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.425.0",
-    "@usebruno/js": "0.9.4",
+    "@usebruno/common": "0.1.0",
+    "@usebruno/js": "0.10.1",
     "@usebruno/lang": "0.9.0",
     "@usebruno/schema": "0.6.0",
     "about-window": "^1.15.2",
@@ -38,7 +39,6 @@
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "graphql": "^16.6.0",
-    "handlebars": "^4.7.8",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "is-valid-path": "^0.1.1",

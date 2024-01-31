@@ -1,21 +1,5 @@
-const Handlebars = require('handlebars');
 const { forOwn, cloneDeep } = require('lodash');
-
-const interpolateEnvVars = (str, processEnvVars) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  return template({
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
+const { interpolate } = require('@usebruno/common');
 
 const interpolateString = (str, { envVars, collectionVariables, processEnvVars }) => {
   if (!str || !str.length || typeof str !== 'string') {
@@ -31,10 +15,14 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
+    envVars[key] = interpolate(value, {
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
   });
-
-  const template = Handlebars.compile(str, { noEscape: true });
 
   // collectionVariables take precedence over envVars
   const combinedVars = {
@@ -47,7 +35,7 @@ const interpolateString = (str, { envVars, collectionVariables, processEnvVars }
     }
   };
 
-  return template(combinedVars);
+  return interpolate(str, combinedVars);
 };
 
 module.exports = {

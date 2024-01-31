@@ -66,7 +66,7 @@ const EnvironmentList = ({ collection }) => {
                   className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                   onClick={() => setSelectedEnvironment(env)}
                 >
-                  <span>{env.name}</span>
+                  <span className="break-all">{env.name}</span>
                 </div>
               ))}
             <div className="btn-create-environment" onClick={() => setOpenCreateModal(true)}>
