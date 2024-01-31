@@ -4,7 +4,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
-const parseFormData = (datas, rootCollectionPath) => {
+const parseFormData = (datas, collectionPath) => {
   const form = new FormData();
   datas.forEach((item) => {
     const value = item.value;
@@ -19,7 +19,7 @@ const parseFormData = (datas, rootCollectionPath) => {
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
         if (!path.isAbsolute(trimmedFilePath)) {
-          trimmedFilePath = path.join(rootCollectionPath, trimmedFilePath);
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
         const file = fs.readFileSync(trimmedFilePath);
         form.append(name, file, path.basename(trimmedFilePath));
@@ -99,7 +99,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -178,7 +178,7 @@ const prepareRequest = (request, collectionRoot) => {
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = parseFormData(enabledParams, collectionRoot);
+    const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }

@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';
 
-const FilePickerEditor = ({ value, onChange }) => {
+const FilePickerEditor = ({ value, onChange, collection }) => {
   const dispatch = useDispatch();
   const filnames = value
     .split('|')
@@ -14,6 +14,18 @@ const FilePickerEditor = ({ value, onChange }) => {
   const browse = () => {
     dispatch(browseFiles())
       .then((filePaths) => {
+        // If file is in the collection's directory, then we use relative path
+        // Otherwise, we use the absolute path
+        filePaths = filePaths.map((filePath) => {
+          const collectionDir = collection.pathname;
+
+          if (filePath.startsWith(collectionDir)) {
+            return filePath.substring(collectionDir.length + 1);
+          }
+
+          return filePath;
+        });
+
         onChange(filePaths.join('|'));
       })
       .catch((error) => {
