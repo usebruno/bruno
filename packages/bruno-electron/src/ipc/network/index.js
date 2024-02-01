@@ -946,8 +946,10 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
     try {
       const getHeaderValue = (headerName) => {
-        if (response.headers) {
-          const header = response.headers.find((header) => header[0] === headerName);
+        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+
+        if (headersArray.length > 0) {
+          const header = headersArray.find((header) => header[0] === headerName);
           if (header && header.length > 1) {
             return header[1];
           }

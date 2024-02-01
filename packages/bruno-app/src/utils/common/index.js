@@ -83,8 +83,10 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-  if (headers && headers.length) {
-    let contentType = headers
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
+  if (headersArray.length > 0) {
+    let contentType = headersArray
       .filter((header) => header[0].toLowerCase() === 'content-type')
       .map((header) => {
         return header[1];
