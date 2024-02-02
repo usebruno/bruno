@@ -13,6 +13,10 @@ const StyledWrapper = styled.div`
     background: #d2d7db;
   }
 
+  .CodeMirror-dialog {
+    z-index: auto;
+  }
+
   textarea.cm-editor {
     position: relative;
   }
