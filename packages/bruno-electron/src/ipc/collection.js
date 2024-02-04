@@ -10,6 +10,7 @@ const {
   hasBruExtension,
   isDirectory,
   browseDirectory,
+  browseFiles,
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName
@@ -33,6 +34,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:browse-directory', async (event, pathname, request) => {
     try {
       return await browseDirectory(mainWindow);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // browse directory for file
+  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+    try {
+      const filePaths = await browseFiles(mainWindow, filters);
+
+      return filePaths;
     } catch (error) {
       return Promise.reject(error);
     }

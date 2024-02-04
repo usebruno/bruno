@@ -617,6 +617,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
           item.draft.request.body.multipartForm.push({
             uid: uuid(),
+            isFile: action.payload.isFile ?? false,
             name: '',
             value: '',
             description: '',
@@ -637,6 +638,7 @@ export const collectionsSlice = createSlice({
           }
           const param = find(item.draft.request.body.multipartForm, (p) => p.uid === action.payload.param.uid);
           if (param) {
+            param.isFile = action.payload.param.isFile;
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;

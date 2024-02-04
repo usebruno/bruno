@@ -24,6 +24,7 @@ const environmentsSchema = Yup.array().of(environmentSchema);
 
 const keyValueSchema = Yup.object({
   uid: uidSchema,
+  isFile: Yup.boolean().nullable(),
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
