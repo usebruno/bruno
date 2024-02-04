@@ -188,9 +188,17 @@ ${indentString(body.sparql)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
-            const value = item.isFile ? `@file(${item.value})` : item.value;
 
-            return `${enabled}${item.name}: ${value}`;
+            if (item.type === 'text') {
+              return `${enabled}${item.name}: ${item.value}`;
+            }
+
+            if (item.type === 'file') {
+              let filepaths = item.value || [];
+              let filestr = filepaths.join('|');
+              const value = `@file(${filestr})`;
+              return `${enabled}${item.name}: ${value}`;
+            }
           })
           .join('\n')
       )}`;

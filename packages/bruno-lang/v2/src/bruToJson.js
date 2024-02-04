@@ -132,9 +132,11 @@ const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) =
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
 
   return pairs.map((pair) => {
+    pair.type = 'text';
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
-      pair.isFile = true;
-      pair.value = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'file';
+      pair.value = filestr.split('|');
     }
     return pair;
   });

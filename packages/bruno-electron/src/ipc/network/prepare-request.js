@@ -1,21 +1,18 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter, extend } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 
 const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
   datas.forEach((item) => {
     const value = item.value;
     const name = item.name;
-    if (item.isFile === true) {
-      const filePaths = value
-        .toString()
-        .replace(/^@file\(/, '')
-        .replace(/\)$/, '')
-        .split('|');
-
+    if (item.type === 'file') {
+      const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
         if (!path.isAbsolute(trimmedFilePath)) {
@@ -175,8 +172,6 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());

@@ -109,7 +109,7 @@ const prepareRequest = (request, collectionRoot) => {
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
-    // TODO is it needed here as well ?
+    // TODO: Add support for file uploads
   }
 
   if (request.body.mode === 'graphql') {

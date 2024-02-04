@@ -40,7 +40,7 @@ const runSingleRequest = async function (
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      // TODO remove ?
+      // TODO: Add support for file uploads
       const form = new FormData();
       forOwn(request.data, (value, key) => {
         form.append(key, value);
@@ -204,7 +204,7 @@ const runSingleRequest = async function (
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
           test: {
-            filename: filename,
+            filename: filename
           },
           request: {
             method: request.method,
@@ -327,7 +327,7 @@ const runSingleRequest = async function (
 
     return {
       test: {
-        filename: filename,
+        filename: filename
       },
       request: {
         method: request.method,
@@ -351,7 +351,7 @@ const runSingleRequest = async function (
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
     return {
       test: {
-        filename: filename,
+        filename: filename
       },
       request: {
         method: null,

@@ -12,7 +12,7 @@ import {
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import FilePickerEditor from 'components/FilePickerEditor/index';
+import FilePickerEditor from 'components/FilePickerEditor';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -23,7 +23,8 @@ const MultipartFormParams = ({ item, collection }) => {
     dispatch(
       addMultipartFormParam({
         itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        type: 'text'
       })
     );
   };
@@ -33,7 +34,7 @@ const MultipartFormParams = ({ item, collection }) => {
       addMultipartFormParam({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        isFile: true
+        type: 'file'
       })
     );
   };
@@ -103,7 +104,7 @@ const MultipartFormParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      {param.isFile === true ? (
+                      {param.type === 'file' ? (
                         <FilePickerEditor
                           value={param.value}
                           onChange={(newValue) =>

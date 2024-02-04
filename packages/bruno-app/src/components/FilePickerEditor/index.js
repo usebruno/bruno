@@ -1,15 +1,22 @@
 import React from 'react';
+import path from 'path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
 import { IconX } from '@tabler/icons';
+import { isWindowsOS } from 'utils/common/platform';
 
 const FilePickerEditor = ({ value, onChange, collection }) => {
+  value = value || [];
   const dispatch = useDispatch();
-  const filnames = value
-    .split('|')
+  const filenames = value
     .filter((v) => v != null && v != '')
-    .map((v) => v.split('\\').pop());
-  const title = filnames.map((v) => `- ${v}`).join('\n');
+    .map((v) => {
+      const separator = isWindowsOS() ? '\\' : '/';
+      return v.split(separator).pop();
+    });
+
+  // title is shown when hovering over the button
+  const title = filenames.map((v) => `- ${v}`).join('\n');
 
   const browse = () => {
     dispatch(browseFiles())
@@ -20,13 +27,13 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
           const collectionDir = collection.pathname;
 
           if (filePath.startsWith(collectionDir)) {
-            return filePath.substring(collectionDir.length + 1);
+            return path.relative(collectionDir, filePath);
           }
 
           return filePath;
         });
 
-        onChange(filePaths.join('|'));
+        onChange(filePaths);
       })
       .catch((error) => {
         console.error(error);
@@ -37,14 +44,14 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
     onChange('');
   };
 
-  const renderButtonText = (filnames) => {
-    if (filnames.length == 1) {
-      return filnames[0];
+  const renderButtonText = (filenames) => {
+    if (filenames.length == 1) {
+      return filenames[0];
     }
-    return filnames.length + ' files selected';
+    return filenames.length + ' files selected';
   };
 
-  return filnames.length > 0 ? (
+  return filenames.length > 0 ? (
     <div
       className="btn btn-secondary px-1"
       style={{ fontWeight: 400, width: '100%', textOverflow: 'ellipsis', overflowX: 'hidden' }}
@@ -54,7 +61,7 @@ const FilePickerEditor = ({ value, onChange, collection }) => {
         <IconX size={18} />
       </button>
       &nbsp;
-      {renderButtonText(filnames)}
+      {renderButtonText(filenames)}
     </div>
   ) : (
     <button className="btn btn-secondary px-1" style={{ width: '100%' }} onClick={browse}>
