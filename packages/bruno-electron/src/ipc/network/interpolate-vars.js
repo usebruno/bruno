@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn, cloneDeep, find } = require('lodash');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -85,6 +85,29 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   each(request.params, (param) => {
     param.value = _interpolate(param.value);
   });
+
+  if (request.paths.length) {
+    let url = new URL(request.url);
+    let urlPaths = url.pathname.split('/');
+    urlPaths = urlPaths.reduce((acc, path) => {
+      if (path !== '') {
+        if (path[0] !== ':') {
+          acc += '/' + path;
+        } else {
+          let name = path.slice(1, path.length);
+          if (name) {
+            let existingPath = find(request.paths, (path) => path.name === name);
+            if (existingPath) {
+              acc += '/' + interpolate(existingPath.value);
+            }
+          }
+        }
+      }
+      return acc;
+    }, '');
+
+    request.url = url.origin + urlPaths + url.search;
+  }
 
   if (request.proxy) {
     request.proxy.protocol = _interpolate(request.proxy.protocol);

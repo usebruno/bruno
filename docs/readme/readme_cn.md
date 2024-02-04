@@ -1,7 +1,7 @@
 <br />
 <img src="../../assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - 开源IDE，用于探索和测试API。
+### Bruno - 开源 IDE，用于探索和测试 API。
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
@@ -12,15 +12,13 @@
 
 [English](../../readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](./readme_cn.md)
 
-
 Bruno 是一款全新且创新的 API 客户端，旨在颠覆 Postman 和其他类似工具。
 
 Bruno 直接在您的电脑文件夹中存储您的 API 信息。我们使用纯文本标记语言 Bru 来保存有关 API 的信息。
 
-您可以使用 Git 或您选择的任何版本控制系统来对您的API信息进行版本控制和协作。
+您可以使用 Git 或您选择的任何版本控制系统来对您的 API 信息进行版本控制和协作。
 
 Bruno 仅限离线使用。我们计划永不向 Bruno 添加云同步功能。我们重视您的数据隐私，并认为它应该留在您的设备上。阅读我们的长期愿景 [点击查看](https://github.com/usebruno/bruno/discussions/269)
-
 
 📢 观看我们在印度 FOSS 3.0 会议上的最新演讲 [点击查看](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
@@ -97,9 +95,9 @@ sudo apt install bruno
 
 ### 贡献 👩‍💻🧑‍💻
 
-我很高兴您希望改进bruno。请查看 [贡献指南](../../contributing.md)。
+我很高兴您希望改进 bruno。请查看 [贡献指南](../../contributing.md)。
 
-即使您无法通过代码做出贡献，我们仍然欢迎您提出BUG和新的功能需求。
+即使您无法通过代码做出贡献，我们仍然欢迎您提出 BUG 和新的功能需求。
 
 ### 作者
 

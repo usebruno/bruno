@@ -31,6 +31,7 @@ export const updateUidsInCollection = (_collection) => {
       each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
       each(get(item, 'request.query'), (param) => (param.uid = uuid()));
       each(get(item, 'request.params'), (param) => (param.uid = uuid()));
+      each(get(item, 'request.paths'), (path) => (path.uid = uuid()));
       each(get(item, 'request.vars.req'), (v) => (v.uid = uuid()));
       each(get(item, 'request.vars.res'), (v) => (v.uid = uuid()));
       each(get(item, 'request.assertions'), (a) => (a.uid = uuid()));

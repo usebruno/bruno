@@ -48,6 +48,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
   const params = _.get(request, 'request.params', []);
+  const paths = _.get(request, 'request.paths', []);
   const headers = _.get(request, 'request.headers', []);
   const requestVars = _.get(request, 'request.vars.req', []);
   const responseVars = _.get(request, 'request.vars.res', []);
@@ -56,6 +57,7 @@ const hydrateRequestWithUuid = (request, pathname) => {
   const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
 
   params.forEach((param) => (param.uid = uuid()));
+  paths.forEach((path) => (path.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
   requestVars.forEach((variable) => (variable.uid = uuid()));
   responseVars.forEach((variable) => (variable.uid = uuid()));
@@ -68,11 +70,13 @@ const hydrateRequestWithUuid = (request, pathname) => {
 
 const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
   const params = _.get(collectionRoot, 'request.params', []);
+  const paths = _.get(collectionRoot, 'request.paths', []);
   const headers = _.get(collectionRoot, 'request.headers', []);
   const requestVars = _.get(collectionRoot, 'request.vars.req', []);
   const responseVars = _.get(collectionRoot, 'request.vars.res', []);
 
   params.forEach((param) => (param.uid = uuid()));
+  paths.forEach((path) => (path.uid = uuid()));
   headers.forEach((header) => (header.uid = uuid()));
   requestVars.forEach((variable) => (variable.uid = uuid()));
   responseVars.forEach((variable) => (variable.uid = uuid()));
@@ -412,7 +416,7 @@ class Watcher {
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith("\\\\") ? true : false,
+        usePolling: watchPath.startsWith('\\\\') ? true : false,
         ignored: (path) => ['node_modules', '.git'].some((s) => path.includes(s)),
         persistent: true,
         ignorePermissionErrors: true,

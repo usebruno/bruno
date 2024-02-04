@@ -59,6 +59,7 @@ describe('Collection Schema Validation', () => {
             method: 'GET',
             headers: [],
             params: [],
+            paths: [],
             body: {
               mode: 'none'
             }
@@ -116,6 +117,7 @@ describe('Collection Schema Validation', () => {
                 method: 'GET',
                 headers: [],
                 params: [],
+                paths: [],
                 body: {
                   mode: 'none'
                 }

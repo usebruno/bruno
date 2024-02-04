@@ -41,7 +41,7 @@ O cualquier otro sistema de control de versiones que prefieras
 - [Precios](https://www.usebruno.com/pricing)
 - [Descargas](https://www.usebruno.com/downloads)
 
-### Casos de uso 🎥 
+### Casos de uso 🎥
 
 - [Testimonios](https://github.com/usebruno/bruno/discussions/343)
 - [Centro de Conocimiento](https://github.com/usebruno/bruno/discussions/386)
