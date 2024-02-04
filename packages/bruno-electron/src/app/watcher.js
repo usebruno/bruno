@@ -414,7 +414,15 @@ class Watcher {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
         usePolling: watchPath.startsWith('\\\\') ? true : false,
-        ignored: (path) => ignores.some((s) => path.includes(s)),
+        ignored: (filepath) => {
+          const normalizedPath = filepath.replace(/\\/g, '/');
+          const relativePath = path.relative(watchPath, normalizedPath);
+
+          return ignores.some((ignorePattern) => {
+            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+          });
+        },
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {
