@@ -62,8 +62,13 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
 
+      if (!brunoConfig.ignore || brunoConfig.ignore.length === 0) {
+        // Forces default behavior for legacy collections
+        brunoConfig.ignore = ['node_modules', '.git'];
+      }
+
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid);
+      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {
