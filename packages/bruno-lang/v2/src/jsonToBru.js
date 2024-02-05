@@ -163,7 +163,7 @@ ${indentString(body.sparql)}
     if (enabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${encodeURIComponent(item.value)}`)
+          .map((item) => `${item.name}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -171,7 +171,7 @@ ${indentString(body.sparql)}
     if (disabled(body.formUrlEncoded).length) {
       bru += `\n${indentString(
         disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${encodeURIComponent(item.value)}`)
+          .map((item) => `~${item.name}: ${item.value}`)
           .join('\n')
       )}`;
     }
