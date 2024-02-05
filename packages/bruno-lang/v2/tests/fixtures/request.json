@@ -95,17 +95,20 @@
       {
         "name": "apikey",
         "value": "secret",
-        "enabled": true
+        "enabled": true,
+        "type": "text"
       },
       {
         "name": "numbers",
         "value": "+91998877665",
-        "enabled": true
+        "enabled": true,
+        "type": "text"
       },
       {
         "name": "message",
         "value": "hello",
-        "enabled": false
+        "enabled": false,
+        "type": "text"
       }
     ]
   },
