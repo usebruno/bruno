@@ -309,7 +309,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
+      if (fs.existsSync(newPath) && path.basename(oldPath) === path.basename(newPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
@@ -338,8 +338,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
     } catch (error) {
       return Promise.reject(error);
     }
