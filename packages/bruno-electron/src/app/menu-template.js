@@ -1,8 +1,20 @@
-const { ipcMain } = require('electron');
+const { ipcMain, ipcRenderer } = require('electron');
 const openAboutWindow = require('about-window').default;
 const { join } = require('path');
 
-const template = [
+let isButtonEnabled = false;
+
+const toggleButtonState = () => {
+  isButtonEnabled = !isButtonEnabled;
+
+  console.log('Button triggered');
+};
+
+const getFullResizeState = () => {
+  return isButtonEnabled;
+};
+
+const menuTemplate = [
   {
     label: 'Collection',
     submenu: [
@@ -52,7 +64,15 @@ const template = [
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
+    submenu: [
+      { role: 'minimize' },
+      { role: 'close', accelerator: 'CommandOrControl+Shift+Q' },
+      { type: 'separator' },
+      {
+        label: 'Full Resize',
+        click: toggleButtonState
+      }
+    ]
   },
   {
     role: 'help',
@@ -73,4 +93,9 @@ const template = [
   }
 ];
 
-module.exports = template;
+module.exports = {
+  menuTemplate,
+  toggleButtonState,
+  isButtonEnabled,
+  getFullResizeState
+};

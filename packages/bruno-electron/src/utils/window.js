@@ -13,12 +13,15 @@ const loadWindowState = () => {
   const positionValid = isPositionValid(bounds);
   const sizeValid = isSizeValid(bounds);
 
+  const isFullResize = windowStateStore.getFullResize();
+
   return {
     maximized,
     x: bounds.x && positionValid ? bounds.x : undefined,
     y: bounds.y && positionValid ? bounds.y : undefined,
     width: bounds.width && sizeValid ? bounds.width : DEFAULT_WINDOW_WIDTH,
-    height: bounds.height && sizeValid ? bounds.height : DEFAULT_WINDOW_HEIGHT
+    height: bounds.height && sizeValid ? bounds.height : DEFAULT_WINDOW_HEIGHT,
+    isFullResize
   };
 };
 
@@ -53,8 +56,13 @@ const getArea = (bounds) => {
   return screen.getDisplayMatching(bounds).workArea;
 };
 
+const saveFullSizeState = (state) => {
+  windowStateStore.setFullResize(state);
+};
+
 module.exports = {
   loadWindowState,
   saveBounds,
-  saveMaximized
+  saveMaximized,
+  saveFullSizeState
 };

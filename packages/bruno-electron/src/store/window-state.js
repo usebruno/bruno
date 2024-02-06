@@ -35,6 +35,14 @@ class WindowStateStore {
   setMaximized(isMaximized) {
     this.store.set('maximized', isMaximized);
   }
+
+  getFullResize() {
+    return this.store.get('fullResize');
+  }
+
+  setFullResize(isFullResize) {
+    this.store.set('fullResize', isFullResize);
+  }
 }
 
 module.exports = WindowStateStore;

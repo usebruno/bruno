@@ -4,13 +4,13 @@ const { format } = require('url');
 const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
-const menuTemplate = require('./app/menu-template');
+const { menuTemplate, toggleButtonState, isButtonEnabled, getFullResizeState } = require('./app/menu-template');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
-const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const { loadWindowState, saveBounds, saveMaximized, saveFullSizeState } = require('./utils/window');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -35,15 +35,15 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  const { maximized, x, y, width, height } = loadWindowState();
+  const { maximized, x, y, width, height, isFullResize } = loadWindowState();
 
   mainWindow = new BrowserWindow({
     x,
     y,
     width,
     height,
-    minWidth: 1000,
-    minHeight: 640,
+    minWidth: isFullResize ? 0 : 1000,
+    minHeight: isFullResize ? 0 : 640,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -89,6 +89,9 @@ app.on('ready', async () => {
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
       saveBounds(mainWindow);
+
+      console.log('resize state:', getFullResizeState());
+      saveFullSizeState(getFullResizeState());
     }
   };
 
