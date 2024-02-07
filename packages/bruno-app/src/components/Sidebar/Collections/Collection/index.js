@@ -217,7 +217,7 @@ const Collection = ({ collection, searchText }) => {
                 setShowRemoveCollectionModal(true);
               }}
             >
-              Remove
+              Disconnect
             </div>
             <div
               className="dropdown-item"

@@ -18,7 +18,8 @@ const RemoveCollection = ({ onClose, collection }) => {
 
   return (
     <Modal size="sm" title="Remove Collection" confirmText="Remove" handleConfirm={onConfirm} handleCancel={onClose}>
-      Are you sure you want to remove collection <span className="font-semibold">{collection.name}</span> ?
+      Are you sure you want to disconnect collection <span className="font-semibold">{collection.name}</span> from
+      Bruno? It will remain in your file system anyways.
     </Modal>
   );
 };
