@@ -10,10 +10,10 @@ const RemoveCollection = ({ onClose, collection }) => {
   const onConfirm = () => {
     dispatch(removeCollection(collection.uid))
       .then(() => {
-        toast.success('Collection removed');
+        toast.success('Collection disconnected');
         onClose();
       })
-      .catch(() => toast.error('An error occurred while removing the collection'));
+      .catch(() => toast.error('An error occurred while disconnecting the collection'));
   };
 
   return (
