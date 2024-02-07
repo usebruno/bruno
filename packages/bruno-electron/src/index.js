@@ -10,7 +10,7 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
-const { loadWindowState, saveBounds, saveMaximized, saveFullSizeState } = require('./utils/window');
+const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -89,9 +89,6 @@ app.on('ready', async () => {
   const handleBoundsChange = () => {
     if (!mainWindow.isMaximized()) {
       saveBounds(mainWindow);
-
-      console.log('resize state:', getFullResizeState());
-      saveFullSizeState(getFullResizeState());
     }
   };
 

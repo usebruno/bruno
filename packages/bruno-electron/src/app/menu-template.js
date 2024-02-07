@@ -1,5 +1,6 @@
-const { ipcMain, ipcRenderer } = require('electron');
+const { ipcMain, dialog } = require('electron');
 const openAboutWindow = require('about-window').default;
+const { saveFullSizeState } = require('../utils/window');
 const { join } = require('path');
 
 let isButtonEnabled = false;
@@ -7,6 +8,7 @@ let isButtonEnabled = false;
 const toggleButtonState = () => {
   isButtonEnabled = !isButtonEnabled;
 
+  saveFullSizeState(isButtonEnabled);
   console.log('Button triggered');
 };
 
@@ -70,7 +72,31 @@ const menuTemplate = [
       { type: 'separator' },
       {
         label: 'Full Resize',
-        click: toggleButtonState
+        // click: toggleButtonState
+        click: () => {
+          const buttonState = toggleButtonState();
+          console.log('Button state:', buttonState);
+          // Open a dialog
+          const options = {
+            type: 'info',
+            buttons: ['Cancel', 'Confirm'],
+            defaultId: 1,
+            title: 'Reboot Confirmation',
+            message: 'Are you sure you want to reboot the app?',
+            detail: 'Your changes will not be saved.'
+          };
+          dialog.showMessageBox(null, options).then((response) => {
+            console.log(response);
+            if (response.response === 1) {
+              // User confirmed, initiate reboot
+              ipcMain.emit('main:reboot-app');
+            } else {
+              // User canceled
+              // Reset button state if needed
+              // toggleButtonState();
+            }
+          });
+        }
       }
     ]
   },
