@@ -66,6 +66,21 @@ class Bru {
     this.collectionVariables[key] = value;
   }
 
+  deleteVar(key) {
+    if (!key) {
+      throw new Error('Deleting a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    delete this.collectionVariables[key];
+  }
+
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
