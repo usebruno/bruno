@@ -146,9 +146,11 @@ const runSingleRequest = async function (
       }
 
       if (socksEnabled) {
-        const socksProxyAgent = new SocksProxyAgent(proxyUri);
-        request.httpsAgent = socksProxyAgent;
-        request.httpAgent = socksProxyAgent;
+        request.httpsAgent = new SocksProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new SocksProxyAgent(proxyUri);
       } else {
         request.httpsAgent = new PatchedHttpsProxyAgent(
           proxyUri,
@@ -188,6 +190,9 @@ const runSingleRequest = async function (
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
+          test: {
+            filename: filename
+          },
           request: {
             method: request.method,
             url: request.url,
@@ -308,6 +313,9 @@ const runSingleRequest = async function (
     }
 
     return {
+      test: {
+        filename: filename
+      },
       request: {
         method: request.method,
         url: request.url,
@@ -329,6 +337,9 @@ const runSingleRequest = async function (
   } catch (err) {
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
     return {
+      test: {
+        filename: filename
+      },
       request: {
         method: null,
         url: null,

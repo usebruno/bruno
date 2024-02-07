@@ -37,8 +37,11 @@ const varsSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
-  local: Yup.boolean(),
-  enabled: Yup.boolean()
+  enabled: Yup.boolean(),
+
+  // todo
+  // anoop(4 feb 2023) - nobody uses this, and it needs to be removed
+  local: Yup.boolean()
 })
   .noUnknown(true)
   .strict();
@@ -55,6 +58,21 @@ const graphqlBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const multipartFormSchema = Yup.object({
+  uid: uidSchema,
+  type: Yup.string().oneOf(['file', 'text']).required('type is required'),
+  name: Yup.string().nullable(),
+  value: Yup.mixed().when('type', {
+    is: 'file',
+    then: Yup.array().of(Yup.string().nullable()).nullable(),
+    otherwise: Yup.string().nullable()
+  }),
+  description: Yup.string().nullable(),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
     .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
@@ -64,7 +82,7 @@ const requestBodySchema = Yup.object({
   xml: Yup.string().nullable(),
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
-  multipartForm: Yup.array().of(keyValueSchema).nullable(),
+  multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
 })
   .noUnknown(true)

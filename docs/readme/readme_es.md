@@ -10,6 +10,8 @@
 [![Sitio Web](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Descargas](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
+[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | **Español** | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md)
+
 Bruno un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 
 Bruno almacena tus colecciones directamente en una carpeta de tu sistema de archivos. Usamos un lenguaje de marcado de texto plano, llamado Bru, para guardar información sobre las peticiones a tus APIs.
@@ -39,7 +41,7 @@ O cualquier otro sistema de control de versiones que prefieras
 - [Precios](https://www.usebruno.com/pricing)
 - [Descargas](https://www.usebruno.com/downloads)
 
-### Casos de uso 🎥 
+### Casos de uso 🎥
 
 - [Testimonios](https://github.com/usebruno/bruno/discussions/343)
 - [Centro de Conocimiento](https://github.com/usebruno/bruno/discussions/386)

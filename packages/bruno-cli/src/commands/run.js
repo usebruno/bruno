@@ -5,10 +5,10 @@ const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const makeJUnitOutput = require('../reporters/junit');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
-
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -91,7 +91,7 @@ const printRunSummary = (results) => {
   };
 };
 
-const getBruFilesRecursively = (dir) => {
+const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
 
   const getFilesInOrder = (dir) => {
@@ -130,10 +130,22 @@ const getBruFilesRecursively = (dir) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          currentDirBruJsons.push({
-            bruFilepath: filePath,
-            bruJson
-          });
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+
+          if (testsOnly) {
+            if (requestHasTests || requestHasActiveAsserts) {
+              currentDirBruJsons.push({
+                bruFilepath: filePath,
+                bruJson
+              });
+            }
+          } else {
+            currentDirBruJsons.push({
+              bruFilepath: filePath,
+              bruJson
+            });
+          }
         }
       }
 
@@ -186,12 +198,26 @@ const builder = async (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to write JSON results to',
+      describe: 'Path to write file results to',
+      type: 'string'
+    })
+    .option('format', {
+      alias: 'f',
+      describe: 'Format of the file results; available formats are "json" (default) or "junit"',
+      default: 'json',
       type: 'string'
     })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
+    })
+    .option('tests-only', {
+      type: 'boolean',
+      description: 'Only run requests that have a test'
+    })
+    .option('bail', {
+      type: 'boolean',
+      description: 'Stop execution after a failure of a request, test, or assertion'
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -204,12 +230,17 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.json',
       'Run a request and write the results to results.json in the current directory'
-    );
+    )
+    .example(
+      '$0 run request.bru --output results.xml --format junit',
+      'Run a request and write the results to results.xml in junit format in the current directory'
+    )
+    .example('$0 run request.bru --test-only', 'Run all requests that have a test');
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath } = argv;
+    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, testsOnly, bail } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -281,6 +312,9 @@ const handler = async function (argv) {
     }
 
     const options = getOptions();
+    if (bail) {
+      options['bail'] = true;
+    }
     if (insecure) {
       options['insecure'] = true;
     }
@@ -295,6 +329,11 @@ const handler = async function (argv) {
           console.error(chalk.red(`Cacert File ${cacert} does not exist`));
         }
       }
+    }
+
+    if (['json', 'junit'].indexOf(format) === -1) {
+      console.error(chalk.red(`Format must be one of "json" or "junit"`));
+      return;
     }
 
     // load .env file at root of collection if it exists
@@ -312,7 +351,7 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = await isFile(filename);
+    const _isFile = isFile(filename);
     let results = [];
 
     let bruJsons = [];
@@ -327,7 +366,7 @@ const handler = async function (argv) {
       });
     }
 
-    const _isDirectory = await isDirectory(filename);
+    const _isDirectory = isDirectory(filename);
     if (_isDirectory) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
@@ -338,10 +377,21 @@ const handler = async function (argv) {
           const bruFilepath = path.join(filename, bruFile);
           const bruContent = fs.readFileSync(bruFilepath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          bruJsons.push({
-            bruFilepath,
-            bruJson
-          });
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+          if (testsOnly) {
+            if (requestHasTests || requestHasActiveAsserts) {
+              bruJsons.push({
+                bruFilepath,
+                bruJson
+              });
+            }
+          } else {
+            bruJsons.push({
+              bruFilepath,
+              bruJson
+            });
+          }
         }
         bruJsons.sort((a, b) => {
           const aSequence = a.bruJson.seq || 0;
@@ -351,7 +401,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename);
+        bruJsons = getBruFilesRecursively(filename, testsOnly);
       }
     }
 
@@ -360,6 +410,8 @@ const handler = async function (argv) {
     while (currentRequestIndex < bruJsons.length) {
       const iter = bruJsons[currentRequestIndex];
       const { bruFilepath, bruJson } = iter;
+
+      const start = process.hrtime();
       const result = await runSingleRequest(
         bruFilepath,
         bruJson,
@@ -371,7 +423,21 @@ const handler = async function (argv) {
         collectionRoot
       );
 
-      results.push(result);
+      results.push({
+        ...result,
+        runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
+        suitename: bruFilepath.replace('.bru', '')
+      });
+
+      // bail if option is set and there is a failure
+      if (bail) {
+        const requestFailure = result?.error;
+        const testFailure = result?.testResults?.find((iter) => iter.status === 'fail');
+        const assertionFailure = result?.assertionResults?.find((iter) => iter.status === 'fail');
+        if (requestFailure || testFailure || assertionFailure) {
+          break;
+        }
+      }
 
       // determine next request
       const nextRequestName = result?.nextRequestName;
@@ -413,7 +479,12 @@ const handler = async function (argv) {
         results
       };
 
-      fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      if (format === 'json') {
+        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+      } else if (format === 'junit') {
+        makeJUnitOutput(results, outputPath);
+      }
+
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 

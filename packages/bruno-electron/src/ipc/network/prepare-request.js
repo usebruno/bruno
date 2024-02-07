@@ -1,6 +1,32 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+
+const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item.value;
+    const name = item.name;
+    if (item.type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+        const file = fs.readFileSync(trimmedFilePath);
+        form.append(name, file, path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(name, value);
+    }
+  });
+  return form;
+};
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -70,7 +96,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;

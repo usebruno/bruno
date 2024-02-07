@@ -105,7 +105,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = decodeURIComponent(pair[name]);
+    let value = pair[name];
 
     if (!parseEnabled) {
       return {
@@ -125,6 +125,20 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       value,
       enabled
     };
+  });
+};
+
+const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
+  const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+
+  return pairs.map((pair) => {
+    pair.type = 'text';
+    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'file';
+      pair.value = filestr.split('|');
+    }
+    return pair;
   });
 };
 
@@ -376,7 +390,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   bodymultipart(_1, dictionary) {
     return {
       body: {
-        multipartForm: mapPairListToKeyValPairs(dictionary.ast)
+        multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
       }
     };
   },

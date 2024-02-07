@@ -91,6 +91,12 @@ export const findCollectionByPathname = (collections, pathname) => {
   return find(collections, (c) => c.pathname === pathname);
 };
 
+export const findCollectionByItemUid = (collections, itemUid) => {
+  return find(collections, (c) => {
+    return findItemInCollection(c, itemUid);
+  });
+};
+
 export const findItemByPathname = (items = [], pathname) => {
   return find(items, (i) => i.pathname === pathname);
 };
@@ -250,6 +256,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     return map(params, (param) => {
       return {
         uid: param.uid,
+        type: param.type,
         name: param.name,
         value: param.value,
         description: param.description,
@@ -512,10 +519,6 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
 
   return item;
-};
-
-export const isLocalCollection = (collection) => {
-  return collection.pathname ? true : false;
 };
 
 export const deleteUidsInItem = (item) => {

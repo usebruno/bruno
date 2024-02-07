@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "name": "Get users",
+    "type": "http",
+    "seq": 1
+  },
+  "http": {
+    "method": "GET",
+    "url": "https://reqres.in/api/users"
+  },
+  "headers": [
+    {
+      "name": "disabled",
+      "value": "foo",
+      "enabled": true
+    },
+    {
+      "name": "disabled-header-name",
+      "value": "disabled-header-value",
+      "enabled": false
+    }
+  ]
+}

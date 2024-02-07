@@ -1,6 +1,6 @@
-const Handlebars = require('handlebars');
 const FormData = require('form-data');
 const { each, forOwn, cloneDeep, extend } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -13,22 +13,6 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateEnvVars = (str, processEnvVars) => {
-  if (!str || !str.length || typeof str !== 'string') {
-    return str;
-  }
-
-  const template = Handlebars.compile(str, { noEscape: true });
-
-  return template({
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
-
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
@@ -36,17 +20,19 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
-    envVars[key] = interpolateEnvVars(value, processEnvVars);
+    envVars[key] = interpolate(value, {
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
   });
 
-  const interpolate = (str) => {
+  const _interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
-
-    // Handlebars doesn't allow dots as identifiers, so we need to use literal segments
-    const strLiteralSegment = str.replace('{{', '{{[').replace('}}', ']}}');
-    const template = Handlebars.compile(strLiteralSegment, { noEscape: true });
 
     // collectionVariables take precedence over envVars
     const combinedVars = {
@@ -59,14 +45,14 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       }
     };
 
-    return template(combinedVars);
+    return interpolate(str, combinedVars);
   };
 
-  request.url = interpolate(request.url);
+  request.url = _interpolate(request.url);
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[interpolate(key)] = interpolate(value);
+    request.headers[_interpolate(key)] = _interpolate(value);
   });
 
   const contentType = getContentType(request.headers);
@@ -75,21 +61,21 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = interpolate(parsed);
+        parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
 
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = interpolate(request.data);
+        request.data = _interpolate(request.data);
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = interpolate(parsed);
+        parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
@@ -98,27 +84,27 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     const form = new FormData();
     forOwn(request.data, (value, name) => {
-      form.append(interpolate(name), interpolate(value));
+      form.append(_interpolate(name), _interpolate(value));
     });
 
     extend(request.headers, form.getHeaders());
     request.data = form;
   } else {
-    request.data = interpolate(request.data);
+    request.data = _interpolate(request.data);
   }
 
   each(request.params, (param) => {
-    param.value = interpolate(param.value);
+    param.value = _interpolate(param.value);
   });
 
   if (request.proxy) {
-    request.proxy.protocol = interpolate(request.proxy.protocol);
-    request.proxy.hostname = interpolate(request.proxy.hostname);
-    request.proxy.port = interpolate(request.proxy.port);
+    request.proxy.protocol = _interpolate(request.proxy.protocol);
+    request.proxy.hostname = _interpolate(request.proxy.hostname);
+    request.proxy.port = _interpolate(request.proxy.port);
 
     if (request.proxy.auth) {
-      request.proxy.auth.username = interpolate(request.proxy.auth.username);
-      request.proxy.auth.password = interpolate(request.proxy.auth.password);
+      request.proxy.auth.username = _interpolate(request.proxy.auth.username);
+      request.proxy.auth.password = _interpolate(request.proxy.auth.password);
     }
   }
 
@@ -126,8 +112,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   //       need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
   if (request.auth) {
-    const username = interpolate(request.auth.username) || '';
-    const password = interpolate(request.auth.password) || '';
+    const username = _interpolate(request.auth.username) || '';
+    const password = _interpolate(request.auth.password) || '';
 
     // use auth header based approach and delete the request.auth object
     request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
@@ -136,18 +122,18 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
 
   // interpolate vars for aws sigv4 auth
   if (request.awsv4config) {
-    request.awsv4config.accessKeyId = interpolate(request.awsv4config.accessKeyId) || '';
-    request.awsv4config.secretAccessKey = interpolate(request.awsv4config.secretAccessKey) || '';
-    request.awsv4config.sessionToken = interpolate(request.awsv4config.sessionToken) || '';
-    request.awsv4config.service = interpolate(request.awsv4config.service) || '';
-    request.awsv4config.region = interpolate(request.awsv4config.region) || '';
-    request.awsv4config.profileName = interpolate(request.awsv4config.profileName) || '';
+    request.awsv4config.accessKeyId = _interpolate(request.awsv4config.accessKeyId) || '';
+    request.awsv4config.secretAccessKey = _interpolate(request.awsv4config.secretAccessKey) || '';
+    request.awsv4config.sessionToken = _interpolate(request.awsv4config.sessionToken) || '';
+    request.awsv4config.service = _interpolate(request.awsv4config.service) || '';
+    request.awsv4config.region = _interpolate(request.awsv4config.region) || '';
+    request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
   }
 
   // interpolate vars for digest auth
   if (request.digestConfig) {
-    request.digestConfig.username = interpolate(request.digestConfig.username) || '';
-    request.digestConfig.password = interpolate(request.digestConfig.password) || '';
+    request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
+    request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
   }
 
   return request;
