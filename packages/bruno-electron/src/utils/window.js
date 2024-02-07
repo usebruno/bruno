@@ -56,7 +56,7 @@ const getArea = (bounds) => {
   return screen.getDisplayMatching(bounds).workArea;
 };
 
-const saveFullSizeState = (state) => {
+const saveFullResizeState = (state) => {
   windowStateStore.setFullResize(state);
 };
 
@@ -64,5 +64,5 @@ module.exports = {
   loadWindowState,
   saveBounds,
   saveMaximized,
-  saveFullSizeState
+  saveFullResizeState
 };

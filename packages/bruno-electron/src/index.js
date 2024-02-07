@@ -4,7 +4,7 @@ const { format } = require('url');
 const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
-const { menuTemplate, toggleButtonState, isButtonEnabled, getFullResizeState } = require('./app/menu-template');
+const menuTemplate = require('./app/menu-template');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
@@ -36,7 +36,7 @@ let watcher;
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   const { maximized, x, y, width, height, isFullResize } = loadWindowState();
-
+  console.log('isFullResize', isFullResize);
   mainWindow = new BrowserWindow({
     x,
     y,

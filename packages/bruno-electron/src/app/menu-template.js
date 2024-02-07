@@ -1,22 +1,19 @@
-const { ipcMain, dialog } = require('electron');
+const { ipcMain, dialog, app } = require('electron');
 const openAboutWindow = require('about-window').default;
-const { saveFullSizeState } = require('../utils/window');
+const { saveFullResizeState, loadWindowState } = require('../utils/window');
 const { join } = require('path');
 
-let isButtonEnabled = false;
-
 const toggleButtonState = () => {
-  isButtonEnabled = !isButtonEnabled;
+  const { isFullResize } = loadWindowState();
 
-  saveFullSizeState(isButtonEnabled);
-  console.log('Button triggered');
+  if (!isFullResize) {
+    saveFullResizeState(true);
+  } else {
+    saveFullResizeState(false);
+  }
 };
 
-const getFullResizeState = () => {
-  return isButtonEnabled;
-};
-
-const menuTemplate = [
+const template = [
   {
     label: 'Collection',
     submenu: [
@@ -72,30 +69,33 @@ const menuTemplate = [
       { type: 'separator' },
       {
         label: 'Full Resize',
-        // click: toggleButtonState
         click: () => {
-          const buttonState = toggleButtonState();
-          console.log('Button state:', buttonState);
-          // Open a dialog
-          const options = {
-            type: 'info',
-            buttons: ['Cancel', 'Confirm'],
-            defaultId: 1,
-            title: 'Reboot Confirmation',
-            message: 'Are you sure you want to reboot the app?',
-            detail: 'Your changes will not be saved.'
-          };
-          dialog.showMessageBox(null, options).then((response) => {
-            console.log(response);
-            if (response.response === 1) {
-              // User confirmed, initiate reboot
-              ipcMain.emit('main:reboot-app');
-            } else {
-              // User canceled
-              // Reset button state if needed
-              // toggleButtonState();
-            }
-          });
+          const { isFullResize } = loadWindowState();
+
+          if (!isFullResize) {
+            // Open a dialog
+            const options = {
+              type: 'info',
+              buttons: ['Cancel', 'Confirm'],
+              defaultId: 1,
+              title: 'Reboot Confirmation',
+              message:
+                'Are you sure you want to set App window to Full Resize mode and reboot the App? It might break some UI Components output.',
+              detail: 'Changes will be saved for further usage'
+            };
+            dialog.showMessageBox(null, options).then((response) => {
+              if (response.response === 1) {
+                // User confirmed, initiate reboot
+                toggleButtonState();
+                app.relaunch();
+                app.quit();
+              }
+            });
+          } else {
+            toggleButtonState();
+            app.relaunch();
+            app.quit();
+          }
         }
       }
     ]
@@ -119,9 +119,4 @@ const menuTemplate = [
   }
 ];
 
-module.exports = {
-  menuTemplate,
-  toggleButtonState,
-  isButtonEnabled,
-  getFullResizeState
-};
+module.exports = template;
