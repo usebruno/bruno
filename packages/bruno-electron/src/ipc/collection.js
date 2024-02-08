@@ -14,7 +14,7 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName
 } = require('../utils/filesystem');
-const { openCollectionDialog } = require('../app/collections');
+const { openCollectionDialog, openRecentCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
@@ -603,6 +603,7 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   ipcMain.on('main:collection-opened', (win, pathname, uid) => {
     watcher.addWatcher(win, pathname, uid);
     lastOpenedCollections.add(pathname);
+    app.addRecentDocument(pathname);
   });
 
   // The app listen for this event and allows the user to save unsaved requests before closing the app
