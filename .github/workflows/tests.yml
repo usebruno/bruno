@@ -51,6 +51,7 @@ jobs:
       checks: write
       contents: write
       pull-requests: write
+      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
