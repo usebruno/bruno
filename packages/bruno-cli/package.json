@@ -25,8 +25,8 @@
   ],
   "dependencies": {
     "@usebruno/common": "0.1.0",
-    "@usebruno/js": "0.10.1",
-    "@usebruno/lang": "0.10.0",
+    "@usebruno/js": "0.10.2",
+    "@usebruno/lang": "0.10.1",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
