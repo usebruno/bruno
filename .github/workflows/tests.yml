@@ -4,6 +4,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+
+# Assign permissions for unit tests to be reported.
+# See https://github.com/dorny/test-reporter/issues/168
+permissions:
+  statuses: write
+  checks: write
+  contents: write
+  pull-requests: write
+  actions: write
+
 jobs:
   unit-test:
     name: Unit Tests
@@ -44,14 +54,6 @@ jobs:
   cli-test:
     name: CLI Tests
     runs-on: ubuntu-latest
-    # Assign permissions for unit tests to be reported.
-    # See https://github.com/dorny/test-reporter/issues/168
-    permissions:
-      statuses: write
-      checks: write
-      contents: write
-      pull-requests: write
-      actions: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
