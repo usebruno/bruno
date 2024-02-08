@@ -36,7 +36,7 @@ let watcher;
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
   const { maximized, x, y, width, height, isFullResize } = loadWindowState();
-  console.log('isFullResize', isFullResize);
+
   mainWindow = new BrowserWindow({
     x,
     y,
