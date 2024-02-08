@@ -74,17 +74,13 @@ jobs:
           npm install
           node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
-      # Todo Fix this
-      # https://github.com/dorny/test-reporter/issues/168
-      # https://github.com/dorny/test-reporter/issues/229
-      # https://github.com/dorny/test-reporter/issues/309
-      # - name: Publish Test Report
-      #   uses: dorny/test-reporter@v1
-      #   if: success() || failure()
-      #   with:
-      #     name: Test Report
-      #     path: packages/bruno-tests/collection/junit.xml
-      #     reporter: java-junit
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Report
+          path: packages/bruno-tests/collection/junit.xml
+          reporter: java-junit
 
   prettier:
     name: Prettier
