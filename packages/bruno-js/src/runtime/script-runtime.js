@@ -124,7 +124,8 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       collectionVariables: cleanJson(collectionVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      promptVars: bru.promptVars
     };
   }
 
@@ -217,7 +218,8 @@ class ScriptRuntime {
       response,
       envVariables: cleanJson(envVariables),
       collectionVariables: cleanJson(collectionVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      promptVars: bru.promptVars
     };
   }
 }

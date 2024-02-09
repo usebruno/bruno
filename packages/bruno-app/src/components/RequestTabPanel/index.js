@@ -18,6 +18,7 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
+import Prompt from 'components/Prompt';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -194,6 +195,7 @@ const RequestTabPanel = () => {
           </DocExplorer>
         </div>
       ) : null}
+      <Prompt />
     </StyledWrapper>
   );
 };

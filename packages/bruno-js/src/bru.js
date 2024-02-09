@@ -80,6 +80,13 @@ class Bru {
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
   }
+
+  prompt(varName, prompt) {
+    if (!this.promptVars) {
+      this.promptVars = [];
+    }
+    this.promptVars = [...this.promptVars, { varName, prompt }];
+  }
 }
 
 module.exports = Bru;

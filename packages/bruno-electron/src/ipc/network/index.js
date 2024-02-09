@@ -286,6 +286,20 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      if (scriptResult.promptVars) {
+        await new Promise(async (resolve) => {
+          ipcMain.handle('main:prompt-variable-return', (event, variables) => {
+            ipcMain.removeHandler('main:prompt-variable-return');
+            Object.getOwnPropertyNames(variables).forEach((key) => (collectionVariables[key] = variables[key]));
+            resolve();
+          });
+          mainWindow.webContents.send('main:prompt-variable', {
+            variables: collectionVariables,
+            promptVars: scriptResult.promptVars
+          });
+        });
+      }
+
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         collectionVariables: scriptResult.collectionVariables,
@@ -365,6 +379,20 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig
       );
+
+      if (scriptResult.promptVars) {
+        await new Promise(async (resolve) => {
+          ipcMain.handle('main:prompt-variable-return', (event, variables) => {
+            ipcMain.removeHandler('main:prompt-variable-return');
+            Object.getOwnPropertyNames(variables).forEach((key) => (collectionVariables[key] = variables[key]));
+            resolve();
+          });
+          mainWindow.webContents.send('main:prompt-variable', {
+            variables: collectionVariables,
+            promptVars: scriptResult.promptVars
+          });
+        });
+      }
 
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,

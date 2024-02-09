@@ -61,7 +61,8 @@ if (!SERVER_RENDERED) {
     'bru.setEnvVar(key,value)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
-    'bru.setNextRequest(requestName)'
+    'bru.setNextRequest(requestName)',
+    'bru.prompt(varName, prompt)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
