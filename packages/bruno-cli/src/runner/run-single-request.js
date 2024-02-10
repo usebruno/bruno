@@ -8,7 +8,7 @@ const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
+const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, runScript } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -68,20 +68,42 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
-    if (requestScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runRequestScript(
-        decomment(requestScriptFile),
-        request,
+    // TODO: Add feature Flag
+    if (false) {
+      const variables = {
         envVariables,
         collectionVariables,
-        collectionPath,
+        processEnvVars
+      };
+      const result = await runScript(
+        decomment(requestScriptFile),
+        request,
         null,
-        processEnvVars,
-        scriptingConfig
+        variables,
+        false,
+        collectionPath,
+        scriptingConfig,
+        null
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
+      }
+    } else {
+      if (requestScriptFile?.length) {
+        const scriptRuntime = new ScriptRuntime();
+        const result = await scriptRuntime.runRequestScript(
+          decomment(requestScriptFile),
+          request,
+          envVariables,
+          collectionVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig
+        );
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
       }
     }
 
@@ -254,21 +276,43 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.res'),
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
-    if (responseScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runResponseScript(
+    // TODO: Add feature flag
+    if (false) {
+      const variables = {
+        envVariables,
+        collectionVariables,
+        processEnvVars
+      };
+      const result = await runScript(
         decomment(responseScriptFile),
         request,
         response,
-        envVariables,
-        collectionVariables,
+        variables,
+        false,
         collectionPath,
-        null,
-        processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        null
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
+      }
+    } else {
+      if (responseScriptFile?.length) {
+        const scriptRuntime = new ScriptRuntime();
+        const result = await scriptRuntime.runResponseScript(
+          decomment(responseScriptFile),
+          request,
+          response,
+          envVariables,
+          collectionVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig
+        );
+        if (result?.nextRequestName !== undefined) {
+          nextRequestName = result.nextRequestName;
+        }
       }
     }
 

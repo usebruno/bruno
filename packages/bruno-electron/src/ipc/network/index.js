@@ -10,7 +10,7 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { isUndefined, isNull, each, get, compact } = require('lodash');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, runScript } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -227,13 +227,17 @@ const parseDataFromResponse = (response) => {
 };
 
 const registerNetworkIpc = (mainWindow) => {
-  const onConsoleLog = (type, args) => {
+  const onConsoleLog = async (type, args) => {
     console[type](...args);
 
-    mainWindow.webContents.send('main:console-log', {
-      type,
-      args
-    });
+    try {
+      await mainWindow.webContents.send('main:console-log', {
+        type,
+        args
+      });
+    } catch (e) {
+      console.error(`Could not send the above console.log to the BrowserWindow: "${e}"`);
+    }
   };
 
   const runPreRequest = async (
@@ -271,28 +275,46 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
-    let scriptResult;
+    let scriptResult, nextRequestName;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
-    if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      scriptResult = await scriptRuntime.runRequestScript(
+    // TODO: Add feature flags
+    if (false) {
+      scriptResult = await runScript(
         decomment(requestScript),
         request,
-        envVars,
-        collectionVariables,
+        null,
+        {
+          envVariables: envVars,
+          collectionVariables,
+          processEnvVars
+        },
+        false,
         collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        onConsoleLog
       );
-
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        collectionVariables: scriptResult.collectionVariables,
-        requestUid,
-        collectionUid
-      });
+    } else {
+      if (requestScript?.length) {
+        const scriptRuntime = new ScriptRuntime();
+        scriptResult = await scriptRuntime.runRequestScript(
+          decomment(requestScript),
+          request,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+      }
     }
+
+    mainWindow.webContents.send('main:script-environment-update', {
+      envVariables: scriptResult.envVariables,
+      collectionVariables: scriptResult.collectionVariables,
+      requestUid,
+      collectionUid
+    });
 
     // interpolate variables inside request
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
@@ -348,23 +370,30 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    let scriptResult;
+    let scriptResult, nextRequestName;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
-    if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      scriptResult = await scriptRuntime.runResponseScript(
+
+    // TODO: Add feature flag
+    if (false) {
+      scriptResult = await runScript(
         decomment(responseScript),
         request,
-        response,
-        envVars,
-        collectionVariables,
+        null,
+        {
+          envVariables: envVars,
+          collectionVariables,
+          processEnvVars
+        },
+        false,
         collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        onConsoleLog
       );
+      if (scriptResult?.nextRequestName !== undefined) {
+        nextRequestName = scriptResult.nextRequestName;
+      }
 
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
@@ -372,6 +401,24 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+    } else {
+      if (responseScript?.length) {
+        const scriptRuntime = new ScriptRuntime();
+        scriptResult = await scriptRuntime.runResponseScript(
+          decomment(responseScript),
+          request,
+          response,
+          envVars,
+          collectionVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+        if (scriptResult?.nextRequestName !== undefined) {
+          nextRequestName = scriptResult.nextRequestName;
+        }
+      }
     }
     return scriptResult;
   };
@@ -538,18 +585,37 @@ const registerNetworkIpc = (mainWindow) => {
         item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
       ]).join(os.EOL);
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
+        let testResults;
+        // TODO: Add feature flag
+        if (false) {
+          testResults = await runScript(
+            decomment(testFile),
+            request,
+            null,
+            {
+              envVariables: envVars,
+              collectionVariables,
+              processEnvVars
+            },
+            true,
+            collectionPath,
+            scriptingConfig,
+            null
+          );
+        } else {
+          const testRuntime = new TestRuntime();
+          testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            collectionVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig
+          );
+        }
 
         mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
@@ -875,18 +941,37 @@ const registerNetworkIpc = (mainWindow) => {
               item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
             ]).join(os.EOL);
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime();
-              const testResults = await testRuntime.runTests(
-                decomment(testFile),
-                request,
-                response,
-                envVars,
-                collectionVariables,
-                collectionPath,
-                onConsoleLog,
-                processEnvVars,
-                scriptingConfig
-              );
+              let testResults;
+              // TODO: Add feature flag
+              if (false) {
+                testResults = await runScript(
+                  decomment(testFile),
+                  request,
+                  null,
+                  {
+                    envVariables: envVars,
+                    collectionVariables,
+                    processEnvVars
+                  },
+                  true,
+                  collectionPath,
+                  scriptingConfig,
+                  null
+                );
+              } else {
+                const testRuntime = new TestRuntime();
+                testResults = await testRuntime.runTests(
+                  decomment(testFile),
+                  request,
+                  response,
+                  envVars,
+                  collectionVariables,
+                  collectionPath,
+                  onConsoleLog,
+                  processEnvVars,
+                  scriptingConfig
+                );
+              }
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
