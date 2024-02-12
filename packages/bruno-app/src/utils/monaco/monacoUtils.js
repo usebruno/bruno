@@ -294,6 +294,7 @@ export const setCustomLanguage = (monaco) => {
 let oldHoverProvider = null;
 
 export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQuery) => {
+  const allVariables = Object.entries(variables ?? {});
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
     diagnosticCodesToIgnore: [1109]
   });
@@ -301,39 +302,71 @@ export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQue
     autoClosingPairs: [{ open: '{{', close: '}}' }]
   });
   monaco.languages.setMonarchTokensProvider(mode, {
+    EnvVariables: Object.keys(variables ?? {}).map((key) => `{{${key}}}`),
     tokenizer: {
       root: [
         [/[^{\/]+/, ''],
-        [/\{{[^{}]+}}/, 'variable'],
-        [/(https?:\/\/)?\{{[^{}]+}}[^\s/]*\/?/, 'url-variable']
+        [
+          /\{{[^{}]+}}/,
+          {
+            cases: {
+              '@EnvVariables': 'EnvVariables',
+              '@default': 'UndefinedVariables'
+            }
+          }
+        ],
+        [
+          /(https?:\/\/)?\{{[^{}]+}}[^\s/]*\/?/,
+          {
+            cases: {
+              '@EnvVariables': 'EnvVariables',
+              '@default': 'UndefinedVariables'
+            }
+          }
+        ]
       ]
     }
   });
-  const allVariables2 = Object.entries(variables ?? {});
-  const newHOverProvider = monaco.languages.registerHoverProvider('typescript', {
+  const newHoverProvider = monaco.languages.registerHoverProvider('typescript', {
     provideHover: (model, position) => {
       // Rebuild the hoverProvider to avoid memory leaks
       const word = getWordAtPosition(model, position);
-      const variable = allVariables2.find(([key, value]) => key === word);
+      const variable = allVariables.find(([key, _]) => key === word);
       if (variable) {
         return {
           range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
           contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
         };
+      } else {
+        return {
+          range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
+          contents: [{ value: `**${word}**` }, { value: 'Variable not found in environment.' }]
+        };
       }
     }
   });
   oldHoverProvider?.dispose();
-  oldHoverProvider = newHOverProvider;
-  const allVariables = Object.entries(variables ?? {}).map(([key, value]) => `declare const ${key}: string`);
-  monaco.languages.typescript.typescriptDefaults.addExtraLib(allVariables.join('\n'));
+  oldHoverProvider = newHoverProvider;
+  const typedVariables = Object.entries(variables ?? {}).map(([key, value]) => `declare const ${key}: string`);
+  monaco.languages.typescript.typescriptDefaults.addExtraLib(typedVariables.join('\n'));
 };
 
 export const initMonaco = (monaco) => {
   monaco.editor.defineTheme('bruno-dark', {
     base: 'vs-dark',
     inherit: true,
-    rules: [{ background: '#3D3D3D' }],
+    rules: [
+      {
+        token: 'UndefinedVariables',
+        foreground: '#f87171',
+        fontStyle: 'medium underline'
+      },
+      {
+        token: 'EnvVariables',
+        foreground: '#4ade80',
+        fontStyle: 'medium'
+      }
+    ],
     colors: {
       'editor.background': '#00000000',
       'editor.foreground': '#ffffff'
@@ -342,7 +375,18 @@ export const initMonaco = (monaco) => {
   monaco.editor.defineTheme('bruno-light', {
     base: 'vs',
     inherit: true,
-    rules: [],
+    rules: [
+      {
+        token: 'UndefinedVariables',
+        foreground: '#dc2626',
+        fontStyle: 'medium underline'
+      },
+      {
+        token: 'EnvVariables',
+        foreground: '#15803d',
+        fontStyle: 'medium'
+      }
+    ],
     colors: {
       'editor.background': '#00000000'
     }
