@@ -15,7 +15,7 @@ export const MonacoEditor = ({
   theme,
   value,
   singleLine,
-  withVariables,
+  withVariables = false,
   height = '60vh'
 }) => {
   const monaco = useMonaco();
@@ -74,27 +74,7 @@ export const MonacoEditor = ({
     if (allVariables && withVariables) {
       setMonacoVariables(monaco, allVariables);
     }
-  }, [allVariables]);
-  /* useEffect(() => {
-    console.log('triggering effect', monaco, collection, singleLine, allVariables);
-    if (monaco && collection && (singleLine || mode === 'application/ld+json') && allVariables && Object.keys(allVariables ?? {}).length > 1) {
-      setMonacoVariables(monaco, allVariables);
-      hoverProvider?.dispose();
-      setHoverProvider(monaco.languages.registerHoverProvider('typescript', {
-        provideHover: (model, position) => {
-          const word = getWordAtPosition(model, position);
-          console.log('omg got a word', word)
-          const variable = Object.entries(allVariables ?? {}).find(([key, value]) => key === word);
-          if (variable) {
-            return {
-              range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-              contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
-            };
-          }
-        }})
-      );
-    }
-  }, []); */
+  }, [allVariables, withVariables]);
   const singleLineOptions = singleLine
     ? {
         folding: false,

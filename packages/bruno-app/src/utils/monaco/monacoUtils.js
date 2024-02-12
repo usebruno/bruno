@@ -1,5 +1,3 @@
-import { blue, indigo } from 'tailwindcss/colors';
-
 const buildSuggestions = (monaco) => [
   {
     label: 'res',
@@ -293,6 +291,8 @@ export const setCustomLanguage = (monaco) => {
   });
 };
 
+let oldHoverProvider = null;
+
 export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQuery) => {
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
     diagnosticCodesToIgnore: [1109]
@@ -309,10 +309,10 @@ export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQue
       ]
     }
   });
-
   const allVariables2 = Object.entries(variables ?? {});
-  const hoverProvider = monaco.languages.registerHoverProvider('typescript', {
+  const newHOverProvider = monaco.languages.registerHoverProvider('typescript', {
     provideHover: (model, position) => {
+      // Rebuild the hoverProvider to avoid memory leaks
       const word = getWordAtPosition(model, position);
       const variable = allVariables2.find(([key, value]) => key === word);
       if (variable) {
@@ -323,6 +323,8 @@ export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQue
       }
     }
   });
+  oldHoverProvider?.dispose();
+  oldHoverProvider = newHOverProvider;
   const allVariables = Object.entries(variables ?? {}).map(([key, value]) => `declare const ${key}: string`);
   monaco.languages.typescript.typescriptDefaults.addExtraLib(allVariables.join('\n'));
 };
