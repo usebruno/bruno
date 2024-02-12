@@ -25,7 +25,8 @@ const CodeView = ({ language, item }) => {
   let snippet = '';
 
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(target, client);
+    const harRequest = buildHarRequest({ request: item.request, headers })
+    snippet = new HTTPSnippet(harRequest).convert(target, client);
   } catch (e) {
     console.error(e);
     snippet = 'Error generating code snippet';
