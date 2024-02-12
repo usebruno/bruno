@@ -1,3 +1,6 @@
+# JUnit
+collection/junit.xml
+
 # Logs
 logs
 *.log
@@ -40,9 +43,6 @@ build/Release
 # Dependency directories
 node_modules/
 jspm_packages/
-pnpm-lock.yaml
-yarn.lock
-package-lock.json
 
 # TypeScript v1 declaration files
 typings/

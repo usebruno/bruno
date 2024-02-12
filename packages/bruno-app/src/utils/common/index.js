@@ -51,6 +51,14 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
+export const convertToCodeMirrorJson = (obj) => {
+  try {
+    return JSON5.stringify(obj).slice(1, -1);
+  } catch (e) {
+    return obj;
+  }
+};
+
 export const safeParseXML = (str, options) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
@@ -75,8 +83,10 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-  if (headers && headers.length) {
-    let contentType = headers
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
+  if (headersArray.length > 0) {
+    let contentType = headersArray
       .filter((header) => header[0].toLowerCase() === 'content-type')
       .map((header) => {
         return header[1];

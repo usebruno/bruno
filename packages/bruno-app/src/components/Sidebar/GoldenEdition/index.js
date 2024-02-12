@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'components/Modal/index';
 import { PostHog } from 'posthog-node';
 import { uuid } from 'utils/common';
-import { IconHeart, IconUser, IconUsers } from '@tabler/icons';
+import { IconHeart, IconUser, IconUsers, IconPlus } from '@tabler/icons';
 import platformLib from 'platform';
 import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
@@ -59,7 +59,7 @@ const CheckIcon = () => {
 };
 
 const GoldenEdition = ({ onClose }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
 
   useEffect(() => {
     const anonymousId = getAnonymousTrackingId();
@@ -85,11 +85,10 @@ const GoldenEdition = ({ onClose }) => {
     });
   };
 
-  const goldenEditon = [
+  const goldenEditonIndividuals = [
     'Inbuilt Bru File Explorer',
     'Visual Git (Like Gitlens for Vscode)',
     'GRPC, Websocket, SocketIO, MQTT',
-    'Intergration with Secret Managers',
     'Load Data from File for Collection Run',
     'Developer Tools',
     'OpenAPI Designer',
@@ -98,16 +97,25 @@ const GoldenEdition = ({ onClose }) => {
     'Custom Themes'
   ];
 
+  const goldenEditonOrganizations = [
+    'Centralized License Management',
+    'Intergration with Secret Managers',
+    'Private Collection Registry',
+    'Request Forms',
+    'Priority Support'
+  ];
+
   const [pricingOption, setPricingOption] = useState('individuals');
 
   const handlePricingOptionChange = (option) => {
     setPricingOption(option);
   };
+  console.log(displayedTheme);
 
-  const themeBasedContainerClassNames = storedTheme === 'light' ? 'text-gray-900' : 'text-white';
-  const themeBasedTabContainerClassNames = storedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
+  const themeBasedContainerClassNames = displayedTheme === 'light' ? 'text-gray-900' : 'text-white';
+  const themeBasedTabContainerClassNames = displayedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
   const themeBasedActiveTabClassNames =
-    storedTheme === 'light' ? 'bg-white text-gray-900 font-medium' : 'bg-gray-700 text-white font-medium';
+    displayedTheme === 'light' ? 'bg-white text-gray-900 font-medium' : 'bg-gray-700 text-white font-medium';
 
   return (
     <StyledWrapper>
@@ -138,7 +146,7 @@ const GoldenEdition = ({ onClose }) => {
           ) : (
             <div>
               <div className="my-4">
-                <span className="text-3xl font-extrabold">$2</span>
+                <span className="text-3xl font-extrabold">$5</span>
               </div>
               <p>/user/month</p>
             </div>
@@ -169,12 +177,29 @@ const GoldenEdition = ({ onClose }) => {
               <HeartIcon />
               <span>Support Bruno's Development</span>
             </li>
-            {goldenEditon.map((item, index) => (
-              <li className="flex items-center space-x-3" key={index}>
-                <CheckIcon />
-                <span>{item}</span>
-              </li>
-            ))}
+            {pricingOption === 'individuals' ? (
+              <>
+                {goldenEditonIndividuals.map((item, index) => (
+                  <li className="flex items-center space-x-3" key={index}>
+                    <CheckIcon />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </>
+            ) : (
+              <>
+                <li className="flex items-center space-x-3 pb-4">
+                  <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
+                  <span>Everything in the Individual Plan</span>
+                </li>
+                {goldenEditonOrganizations.map((item, index) => (
+                  <li className="flex items-center space-x-3" key={index}>
+                    <CheckIcon />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </div>
       </Modal>

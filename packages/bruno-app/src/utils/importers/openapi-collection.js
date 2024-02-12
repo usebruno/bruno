@@ -168,6 +168,7 @@ const transformOpenapiRequestItem = (request) => {
         each(bodySchema.properties || {}, (prop, name) => {
           brunoRequestItem.request.body.multipartForm.push({
             uid: uuid(),
+            type: 'text',
             name: name,
             value: '',
             description: prop.description || '',

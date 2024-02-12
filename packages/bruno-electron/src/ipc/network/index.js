@@ -169,9 +169,11 @@ const configureRequest = async (
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
@@ -391,7 +393,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot);
+    const request = prepareRequest(_request, collectionRoot, collectionPath);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -733,7 +735,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot);
+          const request = prepareRequest(_request, collectionRoot, collectionPath);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
@@ -792,7 +794,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -809,7 +811,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -944,8 +946,10 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
     try {
       const getHeaderValue = (headerName) => {
-        if (response.headers) {
-          const header = response.headers.find((header) => header[0] === headerName);
+        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+
+        if (headersArray.length > 0) {
+          const header = headersArray.find((header) => header[0] === headerName);
           if (header && header.length > 1) {
             return header[1];
           }
