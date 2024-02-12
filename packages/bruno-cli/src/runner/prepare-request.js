@@ -1,4 +1,5 @@
 const { get, each, filter } = require('lodash');
+const fs = require('fs');
 const decomment = require('decomment');
 
 const prepareRequest = (request, collectionRoot) => {
@@ -106,10 +107,16 @@ const prepareRequest = (request, collectionRoot) => {
   if (request.body.mode === 'multipartForm') {
     const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+    each(enabledParams, (p) => {
+      if (p.type === 'file') {
+        params[p.name] = p.value.map((path) => fs.createReadStream(path));
+      } else {
+        params[p.name] = p.value;
+      }
+    });
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
-    // TODO: Add support for file uploads
+    console.log(params);
   }
 
   if (request.body.mode === 'graphql') {
