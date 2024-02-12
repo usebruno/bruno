@@ -14,6 +14,8 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import ResponseSave from 'src/components/ResponsePane/ResponseSave';
+import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -41,8 +43,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             collection={collection}
             width={rightPaneWidth}
             data={response.data}
+            dataBuffer={response.dataBuffer}
             headers={response.headers}
             error={response.error}
+            key={item.filename}
           />
         );
       }
@@ -101,6 +105,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+          {response.headers?.length > 0 && <sup className="ml-1 font-medium">{response.headers.length}</sup>}
         </div>
         <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
           Timeline
@@ -110,6 +115,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
+            <ResponseClear item={item} collection={collection} />
+            <ResponseSave item={item} />
             <StatusCode status={response.status} />
             <ResponseTime duration={response.duration} />
             <ResponseSize size={response.size} />

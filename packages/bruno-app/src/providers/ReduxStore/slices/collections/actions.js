@@ -1,54 +1,45 @@
-import path from 'path';
-import toast from 'react-hot-toast';
-import trim from 'lodash/trim';
+import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
+import cloneDeep from 'lodash/cloneDeep';
+import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import filter from 'lodash/filter';
-import { uuid } from 'utils/common';
-import cloneDeep from 'lodash/cloneDeep';
+import trim from 'lodash/trim';
+import path from 'path';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 import {
-  findItemInCollection,
-  moveCollectionItem,
-  getItemsToResequence,
-  moveCollectionItemToRootOfCollection,
   findCollectionByUid,
-  transformRequestToSaveToFilesystem,
-  findParentItemInCollection,
   findEnvironmentInCollection,
-  isItemARequest,
+  findItemInCollection,
+  findParentItemInCollection,
+  getItemsToResequence,
   isItemAFolder,
-  refreshUidsInItem
+  isItemARequest,
+  moveCollectionItem,
+  moveCollectionItemToRootOfCollection,
+  refreshUidsInItem,
+  transformRequestToSaveToFilesystem
 } from 'utils/collections';
-import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
-import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS } from 'utils/common/platform';
-import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
+import { uuid, waitForNextTick } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
+import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
-  updateLastAction,
-  updateNextAction,
-  resetRunResults,
-  requestCancelled,
-  responseReceived,
-  newItem as _newItem,
-  renameItem as _renameItem,
-  cloneItem as _cloneItem,
-  deleteItem as _deleteItem,
-  saveRequest as _saveRequest,
-  selectEnvironment as _selectEnvironment,
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
-  renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
+  requestCancelled,
+  resetRunResults,
+  responseReceived,
+  updateLastAction
 } from './index';
 
+import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
-import { each } from 'lodash';
-
-const PATH_SEPARATOR = path.sep;
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -93,10 +84,41 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveMultipleRequests = (items) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const itemsToSave = [];
+    each(items, (item) => {
+      const collection = findCollectionByUid(collections, item.collectionUid);
+      if (collection) {
+        const itemToSave = transformRequestToSaveToFilesystem(item);
+        const itemIsValid = itemSchema.validateSync(itemToSave);
+        if (itemIsValid) {
+          itemsToSave.push({
+            item: itemToSave,
+            pathname: item.pathname
+          });
+        }
+      }
+    });
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save requests!');
+        reject(err);
+      });
+  });
+};
+
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  console.log(collection.root);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -186,11 +208,6 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
-// todo: this can be directly put inside the collections/index.js file
-// the coding convention is to put only actions that need ipc in this file
-export const sortCollections = (order) => (dispatch) => {
-  dispatch(_sortCollections(order));
-};
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -308,19 +325,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('renderer:rename-item', item.pathname, newPathname, newName)
-      .then(() => {
-        // In case of Mac and Linux, we get the unlinkDir and addDir IPC events from electron which takes care of updating the state
-        // But in windows we don't get those events, so we need to update the state manually
-        // This looks like an issue in our watcher library chokidar
-        // GH: https://github.com/usebruno/bruno/issues/251
-        if (isWindowsOS()) {
-          dispatch(_renameItem({ newName, itemUid, collectionUid }));
-        }
-        resolve();
-      })
-      .catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
   });
 };
 
@@ -339,7 +344,20 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
     }
 
     if (isItemAFolder(item)) {
-      throw new Error('Cloning folders is not supported yet');
+      const parentFolder = findParentItemInCollection(collection, item.uid) || collection;
+
+      const folderWithSameNameExists = find(
+        parentFolder.items,
+        (i) => i.type === 'folder' && trim(i.name) === trim(newName)
+      );
+
+      if (folderWithSameNameExists) {
+        return reject(new Error('Duplicate folder names under same parent folder are not allowed'));
+      }
+
+      const collectionPath = `${parentFolder.pathname}${PATH_SEPARATOR}${newName}`;
+      ipcRenderer.invoke('renderer:clone-folder', item, collectionPath).then(resolve).catch(reject);
+      return;
     }
 
     const parentItem = findParentItemInCollection(collectionCopy, itemUid);
@@ -405,13 +423,6 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
       ipcRenderer
         .invoke('renderer:delete-item', item.pathname, item.type)
         .then(() => {
-          // In case of Mac and Linux, we get the unlinkDir IPC event from electron which takes care of updating the state
-          // But in windows we don't get those events, so we need to update the state manually
-          // This looks like an issue in our watcher library chokidar
-          // GH: https://github.com/usebruno/bruno/issues/265
-          if (isWindowsOS()) {
-            dispatch(_deleteItem({ itemUid, collectionUid }));
-          }
           resolve();
         })
         .catch((error) => reject(error));
@@ -420,6 +431,9 @@ export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const sortCollections = (payload) => (dispatch) => {
+  dispatch(_sortCollections(payload));
+};
 export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -592,7 +606,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid } = params;
+  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -607,7 +621,6 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       urlParam.enabled = true;
     });
 
-    const collectionCopy = cloneDeep(collection);
     const item = {
       uid: uuid(),
       type: requestType,
@@ -615,9 +628,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
       request: {
         method: requestMethod,
         url: requestUrl,
-        headers: [],
+        headers: headers ?? [],
         params,
-        body: {
+        body: body ?? {
           mode: 'none',
           json: null,
           text: null,
@@ -644,17 +657,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // the useCollectionNextAction() will track this and open the new request in a new tab
-        // once the request is created
+        // task middleware will track this and open the new request in a new tab once request is created
         dispatch(
-          updateNextAction({
-            nextAction: {
-              type: 'OPEN_REQUEST',
-              payload: {
-                pathname: fullName
-              }
-            },
-            collectionUid
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
           })
         );
       } else {
@@ -674,18 +683,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-
-          // the useCollectionNextAction() will track this and open the new request in a new tab
-          // once the request is created
+          // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
-            updateNextAction({
-              nextAction: {
-                type: 'OPEN_REQUEST',
-                payload: {
-                  pathname: fullName
-                }
-              },
-              collectionUid
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
             })
           );
         } else {
@@ -905,6 +909,16 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseFiles =
+  (filters = []) =>
+  (dispatch, getState) => {
+    const { ipcRenderer } = window;
+
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+    });
+  };
+
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
 
@@ -951,7 +965,17 @@ export const createCollection = (collectionName, collectionFolderName, collectio
       .catch(reject);
   });
 };
+export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
+  const { ipcRenderer } = window;
 
+  return ipcRenderer.invoke(
+    'renderer:clone-collection',
+    collectionName,
+    collectionFolderName,
+    collectionLocation,
+    perviousPath
+  );
+};
 export const openCollection = () => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

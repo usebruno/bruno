@@ -1,9 +1,9 @@
 import 'github-markdown-css/github-markdown.css';
 import get from 'lodash/get';
 import { updateRequestDocs } from 'providers/ReduxStore/slices/collections';
-import { useTheme } from 'providers/Theme/index';
+import { useTheme } from 'providers/Theme';
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
@@ -14,6 +14,7 @@ const Documentation = ({ item, collection }) => {
   const { storedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
+  const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -45,6 +46,7 @@ const Documentation = ({ item, collection }) => {
         <CodeEditor
           collection={collection}
           theme={storedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
           value={docs || ''}
           onEdit={onEdit}
           onSave={onSave}

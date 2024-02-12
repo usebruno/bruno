@@ -4,17 +4,19 @@ import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url/index';
 import get from 'lodash/get';
-import handlebars from 'handlebars';
 import { findEnvironmentInCollection } from 'utils/collections';
+
+// Todo: Fix this
+// import { interpolate } from '@usebruno/common';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
-  const template = handlebars.compile(url, { noEscape: true });
-
-  return template({
+  return interpolate(url, {
     ...envVars,
     ...collectionVariables,
     process: {

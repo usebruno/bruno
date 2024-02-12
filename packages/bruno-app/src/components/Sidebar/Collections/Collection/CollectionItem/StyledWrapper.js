@@ -33,7 +33,8 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
-    &:hover {
+    &:hover,
+    &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
         .dropdown {

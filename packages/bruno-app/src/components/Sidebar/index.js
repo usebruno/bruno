@@ -3,21 +3,25 @@ import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
 import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
+import Cookies from 'components/Cookies';
+import GoldenEdition from './GoldenEdition';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings } from '@tabler/icons';
-import { updateLeftSidebarWidth, updateIsDragging } from 'providers/ReduxStore/slices/app';
+import { IconSettings, IconCookie, IconHeart } from '@tabler/icons';
+import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 222;
+const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
-  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const preferencesOpen = useSelector((state) => state.app.showPreferences);
+  const [goldenEditonOpen, setGoldenEditonOpen] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
+  const [cookiesOpen, setCookiesOpen] = useState(false);
 
   const { storedTheme } = useTheme();
 
@@ -77,8 +81,10 @@ const Sidebar = () => {
   return (
     <StyledWrapper className="flex relative h-screen">
       <aside>
+        {goldenEditonOpen && <GoldenEdition onClose={() => setGoldenEditonOpen(false)} />}
         <div className="flex flex-row h-screen w-full">
-          {preferencesOpen && <Preferences onClose={() => setPreferencesOpen(false)} />}
+          {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
+          {cookiesOpen && <Cookies onClose={() => setCookiesOpen(false)} />}
 
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -91,21 +97,34 @@ const Sidebar = () => {
                 <IconSettings
                   size={18}
                   strokeWidth={1.5}
-                  className="mr-2  hover:text-gray-700"
-                  onClick={() => setPreferencesOpen(true)}
+                  className="mr-2 hover:text-gray-700"
+                  onClick={() => dispatch(showPreferences(true))}
+                />
+                <IconCookie
+                  size={18}
+                  strokeWidth={1.5}
+                  className="mr-2 hover:text-gray-700"
+                  onClick={() => setCookiesOpen(true)}
+                />
+                <IconHeart
+                  size={18}
+                  strokeWidth={1.5}
+                  className="mr-2 hover:text-gray-700"
+                  onClick={() => setGoldenEditonOpen(true)}
                 />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
-                <GitHubButton
+                {/* This will get moved to home page */}
+                {/* <GitHubButton
                   href="https://github.com/usebruno/bruno"
                   data-color-scheme={storedTheme}
                   data-show-count="true"
                   aria-label="Star usebruno/bruno on GitHub"
                 >
                   Star
-                </GitHubButton>
+                </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v0.25.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.8.0</div>
             </div>
           </div>
         </div>

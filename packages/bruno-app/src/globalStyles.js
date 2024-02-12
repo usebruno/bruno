@@ -57,6 +57,18 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  .btn-danger {
+    color: ${(props) => props.theme.button.danger.color};
+    background: ${(props) => props.theme.button.danger.bg};
+    border: solid 1px ${(props) => props.theme.button.danger.border};
+
+    &:hover,
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
   .btn-secondary {
     color: ${(props) => props.theme.button.secondary.color};
     background: ${(props) => props.theme.button.secondary.bg};

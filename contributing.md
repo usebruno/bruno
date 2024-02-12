@@ -1,12 +1,13 @@
-**English** | [Русский](/contributing_ru.md)
+**English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
+| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
 
-## Lets make bruno better, together !!
+## Let's make bruno better, together !!
 
-I am happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
+We are happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
 
 ### Technology Stack
 
-Bruno is built using NextJs and React. We also use electron to ship a desktop version (that supports local collections)
+Bruno is built using Next.js and React. We also use electron to ship a desktop version (that supports local collections)
 
 Libraries we use
 
@@ -23,9 +24,58 @@ Libraries we use
 
 You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
-### Lets start coding
+## Development
 
-Please reference [development.md](docs/development.md) for instructions on running the local development environment.
+Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
+
+### Dependencies
+
+- NodeJS v18
+
+### Local Development
+
+```bash
+# use nodejs 18 version
+nvm use
+
+# install deps
+npm i --legacy-peer-deps
+
+# build packages
+npm run build:graphql-docs
+npm run build:bruno-query
+npm run build:bruno-common
+
+# run next app (terminal 1)
+npm run dev:web
+
+# run electron app (terminal 2)
+npm run dev:electron
+```
+
+### Troubleshooting
+
+You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
+
+```shell
+# Delete node_modules in sub-directories
+find ./ -type d -name "node_modules" -print0 | while read -d $'\0' dir; do
+  rm -rf "$dir"
+done
+
+# Delete package-lock in sub-directories
+find . -type f -name "package-lock.json" -delete
+```
+
+### Testing
+
+```bash
+# bruno-schema
+npm test --workspace=packages/bruno-schema
+
+# bruno-lang
+npm test --workspace=packages/bruno-lang
+```
 
 ### Raising Pull Request
 
@@ -33,5 +83,5 @@ Please reference [development.md](docs/development.md) for instructions on runni
 - Please follow the format of creating branches
   - feature/[feature name]: This branch should contain changes for a specific feature
     - Example: feature/dark-mode
-  - bugfix/[bug name]: This branch should container only bug fixes for a specific bug
+  - bugfix/[bug name]: This branch should contain only bug fixes for a specific bug
     - Example bugfix/bug-1

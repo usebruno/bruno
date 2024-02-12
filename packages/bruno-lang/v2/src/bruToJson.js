@@ -23,7 +23,7 @@ const { outdentString } = require('../../v1/src/utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer  
+  auths = authawsv4 | authbasic | authbearer | authdigest 
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
 
@@ -79,6 +79,7 @@ const grammar = ohm.grammar(`Bru {
   authawsv4 = "auth:awsv4" dictionary
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
+  authdigest = "auth:digest" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -124,6 +125,20 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       value,
       enabled
     };
+  });
+};
+
+const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
+  const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+
+  return pairs.map((pair) => {
+    pair.type = 'text';
+    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'file';
+      pair.value = filestr.split('|');
+    }
+    return pair;
   });
 };
 
@@ -350,6 +365,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authdigest(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const username = usernameKey ? usernameKey.value : '';
+    const password = passwordKey ? passwordKey.value : '';
+    return {
+      auth: {
+        digest: {
+          username,
+          password
+        }
+      }
+    };
+  },
   bodyformurlencoded(_1, dictionary) {
     return {
       body: {
@@ -360,7 +390,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   bodymultipart(_1, dictionary) {
     return {
       body: {
-        multipartForm: mapPairListToKeyValPairs(dictionary.ast)
+        multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
       }
     };
   },

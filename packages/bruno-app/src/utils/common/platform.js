@@ -11,10 +11,6 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const isLocalCollection = (collection) => {
-  return collection.pathname ? true : false;
-};
-
 export const resolveRequestFilename = (name) => {
   return `${trim(name)}.bru`;
 };
@@ -48,3 +44,5 @@ export const isMacOS = () => {
 
   return osFamily.includes('os x');
 };
+
+export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';

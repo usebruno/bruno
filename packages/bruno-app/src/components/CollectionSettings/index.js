@@ -13,6 +13,8 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Docs from './Docs';
+import Presets from './Presets';
+import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 
 const CollectionSettings = ({ collection }) => {
@@ -36,7 +38,7 @@ const CollectionSettings = ({ collection }) => {
     brunoConfig.proxy = config;
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
-        toast.success('Collection settings updated successfully');
+        toast.success('Collection settings updated successfully.');
       })
       .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
   };
@@ -60,7 +62,9 @@ const CollectionSettings = ({ collection }) => {
 
   const onClientCertSettingsRemove = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
-    brunoConfig.clientCertificates = brunoConfig.clientCertificates.filter((item) => item.domain != config.domain);
+    brunoConfig.clientCertificates.certs = brunoConfig.clientCertificates.certs.filter(
+      (item) => item.domain != config.domain
+    );
     dispatch(updateBrunoConfig(brunoConfig, collection.uid))
       .then(() => {
         toast.success('Collection settings updated successfully');
@@ -82,6 +86,9 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
+      case 'presets': {
+        return <Presets collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
       }
@@ -96,6 +103,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'docs': {
         return <Docs collection={collection} />;
+      }
+      case 'info': {
+        return <Info collection={collection} />;
       }
     }
   };
@@ -121,6 +131,9 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
         </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
+        </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
         </div>
@@ -129,6 +142,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
+        </div>
+        <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
+          Info
         </div>
       </div>
       <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>

@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import find from 'lodash/find';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { IconRefresh, IconLoader2, IconBook, IconDownload } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryEditor from 'components/RequestPane/QueryEditor';
@@ -16,10 +15,9 @@ import Tests from 'components/RequestPane/Tests';
 import { useTheme } from 'providers/Theme';
 import { updateRequestGraphqlQuery } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { findEnvironmentInCollection } from 'utils/collections';
-import useGraphqlSchema from './useGraphqlSchema';
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
+import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -29,30 +27,11 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const variables = item.draft
     ? get(item, 'draft.request.body.graphql.variables')
     : get(item, 'request.body.graphql.variables');
-  const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
   const { storedTheme } = useTheme();
-
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
-
-  const request = item.draft ? item.draft.request : item.request;
-
-  let {
-    schema,
-    loadSchema,
-    isLoading: isSchemaLoading,
-    error: schemaError
-  } = useGraphqlSchema(url, environment, request, collection);
-
-  const loadGqlSchema = () => {
-    if (!isSchemaLoading) {
-      loadSchema();
-    }
-  };
+  const [schema, setSchema] = useState(null);
 
   useEffect(() => {
-    if (onSchemaLoad) {
-      onSchemaLoad(schema);
-    }
+    onSchemaLoad(schema);
   }, [schema]);
 
   const onQueryChange = (value) => {
@@ -168,18 +147,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
         </div>
-        <div className="flex flex-grow justify-end items-center" style={{ fontSize: 13 }}>
-          <div className="flex items-center cursor-pointer hover:underline" onClick={loadGqlSchema}>
-            {isSchemaLoading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
-            {!isSchemaLoading && !schema ? <IconDownload size={18} strokeWidth={1.5} /> : null}
-            {!isSchemaLoading && schema ? <IconRefresh size={18} strokeWidth={1.5} /> : null}
-            <span className="ml-1">Schema</span>
-          </div>
-          <div className="flex items-center cursor-pointer hover:underline ml-2" onClick={toggleDocs}>
-            <IconBook size={18} strokeWidth={1.5} />
-            <span className="ml-1">Docs</span>
-          </div>
-        </div>
+        <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
       <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>

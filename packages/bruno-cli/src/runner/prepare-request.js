@@ -88,6 +88,13 @@ const prepareRequest = (request, collectionRoot) => {
     axiosRequest.data = request.body.xml;
   }
 
+  if (request.body.mode === 'sparql') {
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/sparql-query';
+    }
+    axiosRequest.data = request.body.sparql;
+  }
+
   if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     const params = {};
@@ -102,6 +109,7 @@ const prepareRequest = (request, collectionRoot) => {
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
+    // TODO: Add support for file uploads
   }
 
   if (request.body.mode === 'graphql') {

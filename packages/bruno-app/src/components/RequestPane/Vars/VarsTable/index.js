@@ -8,6 +8,8 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import SingleLineEditor from 'components/SingleLineEditor';
 import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
+import { variableNameRegex } from 'utils/common/regex';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -29,7 +31,16 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     const _var = cloneDeep(v);
     switch (type) {
       case 'name': {
-        _var.name = e.target.value;
+        const value = e.target.value;
+
+        if (variableNameRegex.test(value) === false) {
+          toast.error(
+            'Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."'
+          );
+          return;
+        }
+
+        _var.name = value;
         break;
       }
       case 'value': {
@@ -88,7 +99,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         </thead>
         <tbody>
           {vars && vars.length
-            ? vars.map((_var, index) => {
+            ? vars.map((_var) => {
                 return (
                   <tr key={_var.uid}>
                     <td>

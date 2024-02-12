@@ -1,7 +1,7 @@
 const path = require('path');
 const isDev = require('electron-is-dev');
 const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -10,20 +10,22 @@ const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
-const { loadWindowState, saveWindowState } = require('./utils/window');
+const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
+// Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
-  isDev ? "default-src 'self' 'unsafe-inline' 'unsafe-eval'" : "default-src 'self'",
-  "connect-src 'self' https://api.github.com/repos/usebruno/bruno",
-  "font-src 'self' https://fonts.gstatic.com",
+  "default-src 'self'",
+  "script-src * 'unsafe-inline' 'unsafe-eval'",
+  "connect-src * 'unsafe-inline'",
+  "font-src 'self' https:",
   "form-action 'none'",
-  "img-src 'self' blob: data:",
-  "style-src 'self' https://fonts.googleapis.com"
+  "img-src 'self' blob: data: https:",
+  "style-src 'self' 'unsafe-inline' https:"
 ];
 
-setContentSecurityPolicy(contentSecurityPolicy.join(';'));
+setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
 Menu.setApplicationMenu(menu);
@@ -33,7 +35,7 @@ let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
-  const { x, y, width, height } = loadWindowState();
+  const { maximized, x, y, width, height } = loadWindowState();
 
   mainWindow = new BrowserWindow({
     x,
@@ -55,6 +57,10 @@ app.on('ready', async () => {
     // autoHideMenuBar: true
   });
 
+  if (maximized) {
+    mainWindow.maximize();
+  }
+
   const url = isDev
     ? 'http://localhost:3000'
     : format({
@@ -63,19 +69,53 @@ app.on('ready', async () => {
         slashes: true
       });
 
-  mainWindow.loadURL(url);
+  mainWindow.loadURL(url).catch((reason) => {
+    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+    console.error('Original message:', reason);
+    if (isDev) {
+      console.error(
+        'Could not connect to Next.Js dev server, is it running?' +
+          ' Start the dev server using "npm run dev:web" and restart electron'
+      );
+    } else {
+      console.error(
+        'If you are using an official production build: the above error is most likely a bug! ' +
+          ' Please report this under: https://github.com/usebruno/bruno/issues'
+      );
+    }
+  });
   watcher = new Watcher();
 
-  mainWindow.on('resize', () => saveWindowState(mainWindow));
-  mainWindow.on('move', () => saveWindowState(mainWindow));
+  const handleBoundsChange = () => {
+    if (!mainWindow.isMaximized()) {
+      saveBounds(mainWindow);
+    }
+  };
 
-  mainWindow.webContents.on('new-window', function (e, url) {
+  mainWindow.on('resize', handleBoundsChange);
+  mainWindow.on('move', handleBoundsChange);
+
+  mainWindow.on('maximize', () => saveMaximized(true));
+  mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('close', (e) => {
     e.preventDefault();
-    require('electron').shell.openExternal(url);
+    ipcMain.emit('main:start-quit-flow');
+  });
+
+  mainWindow.webContents.on('will-redirect', (event, url) => {
+    event.preventDefault();
+    if (/^(http:\/\/|https:\/\/)/.test(url)) {
+      require('electron').shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    require('electron').shell.openExternal(details.url);
+    return { action: 'deny' };
   });
 
   // register all ipc handlers
-  registerNetworkIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
 });

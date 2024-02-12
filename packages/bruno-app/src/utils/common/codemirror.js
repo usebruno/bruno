@@ -1,5 +1,4 @@
 import get from 'lodash/get';
-import isString from 'lodash/isString';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -10,7 +9,7 @@ if (!SERVER_RENDERED) {
 
 const pathFoundInVariables = (path, obj) => {
   const value = get(obj, path);
-  return isString(value);
+  return value !== undefined;
 };
 
 export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
@@ -43,7 +42,10 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
   });
 };
 
-export const getCodeMirrorModeBasedOnContentType = (contentType) => {
+export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
+  if (typeof body === 'object') {
+    return 'application/ld+json';
+  }
   if (!contentType || typeof contentType !== 'string') {
     return 'application/text';
   }

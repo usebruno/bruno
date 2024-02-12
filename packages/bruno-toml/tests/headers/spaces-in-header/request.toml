@@ -1,0 +1,12 @@
+[meta]
+name = 'Get users'
+type = 'http'
+seq = 1
+
+[http]
+method = 'GET'
+url = 'https://reqres.in/api/users'
+
+[headers]
+Content-Type = 'application/json'
+'Spaces In Header' = ''

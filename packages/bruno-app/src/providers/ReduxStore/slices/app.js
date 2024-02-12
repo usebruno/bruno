@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import filter from 'lodash/filter';
 import toast from 'react-hot-toast';
 
 const initialState = {
@@ -7,14 +8,22 @@ const initialState = {
   leftSidebarWidth: 222,
   screenWidth: 500,
   showHomePage: false,
+  showPreferences: false,
   preferences: {
     request: {
-      sslVerification: true
+      sslVerification: true,
+      customCaCertificate: {
+        enabled: false,
+        filePath: null
+      },
+      timeout: 0
     },
     font: {
       codeFont: 'default'
     }
-  }
+  },
+  cookies: [],
+  taskQueue: []
 };
 
 export const appSlice = createSlice({
@@ -39,8 +48,23 @@ export const appSlice = createSlice({
     hideHomePage: (state) => {
       state.showHomePage = false;
     },
+    showPreferences: (state, action) => {
+      state.showPreferences = action.payload;
+    },
     updatePreferences: (state, action) => {
       state.preferences = action.payload;
+    },
+    updateCookies: (state, action) => {
+      state.cookies = action.payload;
+    },
+    insertTaskIntoQueue: (state, action) => {
+      state.taskQueue.push(action.payload);
+    },
+    removeTaskFromQueue: (state, action) => {
+      state.taskQueue = filter(state.taskQueue, (task) => task.uid !== action.payload.taskUid);
+    },
+    removeAllTasksFromQueue: (state) => {
+      state.taskQueue = [];
     }
   }
 });
@@ -52,7 +76,12 @@ export const {
   updateIsDragging,
   showHomePage,
   hideHomePage,
-  updatePreferences
+  showPreferences,
+  updatePreferences,
+  updateCookies,
+  insertTaskIntoQueue,
+  removeTaskFromQueue,
+  removeAllTasksFromQueue
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
@@ -70,6 +99,19 @@ export const savePreferences = (preferences) => (dispatch, getState) => {
         reject(err);
       });
   });
+};
+
+export const deleteCookiesForDomain = (domain) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:delete-cookies-for-domain', domain).then(resolve).catch(reject);
+  });
+};
+
+export const completeQuitFlow = () => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+  return ipcRenderer.invoke('main:complete-quit-flow');
 };
 
 export default appSlice.reducer;

@@ -12,6 +12,7 @@ import {
 import SingleLineEditor from 'components/SingleLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import FilePickerEditor from 'components/FilePickerEditor';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -22,7 +23,18 @@ const MultipartFormParams = ({ item, collection }) => {
     dispatch(
       addMultipartFormParam({
         itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        type: 'text'
+      })
+    );
+  };
+
+  const addFile = () => {
+    dispatch(
+      addMultipartFormParam({
+        itemUid: item.uid,
+        collectionUid: collection.uid,
+        type: 'file'
       })
     );
   };
@@ -92,24 +104,42 @@ const MultipartFormParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
-                        onSave={onSave}
-                        theme={storedTheme}
-                        value={param.value}
-                        onChange={(newValue) =>
-                          handleParamChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            param,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
+                      {param.type === 'file' ? (
+                        <FilePickerEditor
+                          value={param.value}
+                          onChange={(newValue) =>
+                            handleParamChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              param,
+                              'value'
+                            )
+                          }
+                          collection={collection}
+                        />
+                      ) : (
+                        <SingleLineEditor
+                          onSave={onSave}
+                          theme={storedTheme}
+                          value={param.value}
+                          onChange={(newValue) =>
+                            handleParamChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              param,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          collection={collection}
+                        />
+                      )}
                     </td>
                     <td>
                       <div className="flex items-center">
@@ -131,9 +161,16 @@ const MultipartFormParams = ({ item, collection }) => {
             : null}
         </tbody>
       </table>
-      <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addParam}>
-        + Add Param
-      </button>
+      <div>
+        <button className="btn-add-param text-link pr-2 pt-3 mt-2 select-none" onClick={addParam}>
+          + Add Param
+        </button>
+      </div>
+      <div>
+        <button className="btn-add-param text-link pr-2 pt-3 select-none" onClick={addFile}>
+          + Add File
+        </button>
+      </div>
     </StyledWrapper>
   );
 };
