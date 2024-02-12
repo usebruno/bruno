@@ -116,7 +116,6 @@ const prepareRequest = (request, collectionRoot) => {
     });
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
-    console.log(params);
   }
 
   if (request.body.mode === 'graphql') {
