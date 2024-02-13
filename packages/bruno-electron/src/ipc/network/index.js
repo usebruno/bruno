@@ -696,19 +696,18 @@ const registerNetworkIpc = (mainWindow) => {
         folder = collection;
       }
 
-      console.log('Running tests in folder - testrun-started');
       mainWindow.webContents.send('main:run-folder-event', {
         type: 'testrun-started',
         isRecursive: recursive,
         collectionUid,
-        folderUid
+        folderUid,
+        cancelTokenUid
       });
 
       try {
         const envVars = getEnvVars(environment);
         let folderRequests = [];
 
-        console.log('Searching requests');
         if (recursive) {
           let sortedFolder = sortFolder(folder);
           folderRequests = getAllRequestsInFolderRecursively(sortedFolder);
@@ -732,11 +731,10 @@ const registerNetworkIpc = (mainWindow) => {
           if (abortController.signal.aborted) {
             let error = new Error('Runner execution cancelled');
             error.isCancel = true;
-            return Promise.reject(error);
+            throw error;
           }
 
           const item = folderRequests[currentRequestIndex];
-          console.log(`Starting request ${currentRequestIndex} - ${item.name}`);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
@@ -759,7 +757,6 @@ const registerNetworkIpc = (mainWindow) => {
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            console.log(`Running pre-request ${currentRequestIndex} - ${item.name}`);
             const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
@@ -779,7 +776,6 @@ const registerNetworkIpc = (mainWindow) => {
             // todo:
             // i have no clue why electron can't send the request object
             // without safeParseJSON(safeStringifyJSON(request.data))
-            console.log(`request-sent - ${currentRequestIndex} - ${item.name}`);
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'request-sent',
               requestSent: {
@@ -791,7 +787,6 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
-            console.log(`Configuring axios - ${currentRequestIndex} - ${item.name}`);
             request.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
@@ -806,14 +801,12 @@ const registerNetworkIpc = (mainWindow) => {
             let response;
             try {
               /** @type {import('axios').AxiosResponse} */
-              console.log(`Invoking - ${currentRequestIndex} - ${item.name}`);
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
 
-              console.log(`response-received success - ${currentRequestIndex} - ${item.name}`);
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
@@ -844,7 +837,6 @@ const registerNetworkIpc = (mainWindow) => {
                 };
 
                 // if we get a response from the server, we consider it as a success
-                console.log(`response-received error - ${currentRequestIndex} - ${item.name}`);
                 mainWindow.webContents.send('main:run-folder-event', {
                   type: 'response-received',
                   error: error ? error.message : 'An error occurred while running the request',
@@ -853,12 +845,10 @@ const registerNetworkIpc = (mainWindow) => {
                 });
               } else {
                 // if it's not a network error, don't continue
-                console.log(`throwing unknown error - ${currentRequestIndex} - ${item.name}`);
                 throw Promise.reject(error);
               }
             }
 
-            console.log(`Running post-response - ${currentRequestIndex} - ${item.name}`);
             const postRequestScriptResult = await runPostResponse(
               request,
               response,
@@ -877,7 +867,6 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run assertions
-            console.log(`Running assertions - ${currentRequestIndex} - ${item.name}`);
             const assertions = get(item, 'request.assertions');
             if (assertions) {
               const assertRuntime = new AssertRuntime();
@@ -890,7 +879,6 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath
               );
 
-              console.log(`assertion-results - ${currentRequestIndex} - ${item.name}`);
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'assertion-results',
                 assertionResults: results,
@@ -900,7 +888,6 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run tests
-            console.log(`Running tests - ${currentRequestIndex} - ${item.name}`);
             const testFile = compact([
               get(collectionRoot, 'request.tests'),
               item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
@@ -919,14 +906,12 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptingConfig
               );
 
-              console.log(`test-results - ${currentRequestIndex} - ${item.name}`);
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,
                 ...eventData
               });
 
-              console.log(`script-environment-update - ${currentRequestIndex} - ${item.name}`);
               mainWindow.webContents.send('main:script-environment-update', {
                 envVariables: testResults.envVariables,
                 collectionVariables: testResults.collectionVariables,
@@ -934,7 +919,6 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
           } catch (error) {
-            console.log(`error (request catch) - ${currentRequestIndex} - ${item.name}`);
             mainWindow.webContents.send('main:run-folder-event', {
               type: 'error',
               error: error ? error.message : 'An error occurred while running the request',
@@ -942,7 +926,6 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
-          console.log(`infinite loop control`);
           if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
@@ -963,17 +946,19 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
-        console.log(`testrun-ended`);
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid
         });
       } catch (error) {
-        console.log(`error (external catch)`);
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
-          type: 'error',
-          error
+          type: 'testrun-ended',
+          collectionUid,
+          folderUid,
+          error: error && !error.isCancel ? error : null
         });
       }
     }

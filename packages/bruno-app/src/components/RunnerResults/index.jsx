@@ -24,7 +24,6 @@ const getRelativePath = (fullPath, pathname) => {
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
-  const [cancelToken, setCancelToken] = useState(null);
 
   useEffect(() => {
     if (!collection.runnerResult) {
@@ -34,6 +33,7 @@ export default function RunnerResults({ collection }) {
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -68,15 +68,11 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    const newCancelToken = uuid();
-    setCancelToken(newCancelToken);
-    dispatch(runCollectionFolder(collection.uid, null, true, newCancelToken));
+    dispatch(runCollectionFolder(collection.uid, null, true, uuid()));
   };
 
   const runAgain = () => {
-    const newCancelToken = uuid();
-    setCancelToken(newCancelToken);
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, newCancelToken));
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, uuid()));
   };
 
   const resetRunner = () => {
@@ -88,8 +84,7 @@ export default function RunnerResults({ collection }) {
   };
 
   const cancelExecution = () => {
-    dispatch(cancelRunnerExecution(cancelToken));
-    setCancelToken(null);
+    dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
   };
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
@@ -130,7 +125,7 @@ export default function RunnerResults({ collection }) {
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
-        {!['ended', 'error'].includes(runnerInfo.status) && (
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
           <button className="btn ml-6 btn-sm btn-danger" onClick={cancelExecution}>
             Cancel Execution
           </button>
