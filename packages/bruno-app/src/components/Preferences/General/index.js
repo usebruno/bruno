@@ -23,6 +23,7 @@ const General = ({ close }) => {
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
+    saveRequestOnRun: Yup.boolean(),
     timeout: Yup.mixed()
       .transform((value, originalValue) => {
         return originalValue === '' ? undefined : value;
@@ -45,7 +46,8 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      saveRequestOnRun: get(preferences, 'request.saveRequestOnRun', false)
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -70,7 +72,8 @@ const General = ({ close }) => {
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
-          sendCookies: newPreferences.sendCookies
+          sendCookies: newPreferences.sendCookies,
+          saveRequestOnRun: newPreferences.saveRequestOnRun
         }
       })
     )
@@ -182,6 +185,19 @@ const General = ({ close }) => {
           />
           <label className="block ml-2 select-none" htmlFor="sendCookies">
             Send Cookies automatically
+          </label>
+        </div>
+        <div className="flex items-center mt-2">
+          <input
+            id="saveRequestOnRun"
+            type="checkbox"
+            name="saveRequestOnRun"
+            checked={formik.values.saveRequestOnRun}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="saveRequestOnRun">
+            Save a Request on running
           </label>
         </div>
         <div className="flex flex-col mt-6">
