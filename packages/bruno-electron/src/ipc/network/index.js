@@ -675,10 +675,11 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, collectionVariables, recursive, cancelTokenUid) => {
+    async (event, folder, collection, environment, collectionVariables, recursive) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
