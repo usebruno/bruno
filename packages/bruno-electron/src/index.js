@@ -122,3 +122,7 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit);
+
+app.on('open-file', (event, path) => {
+  openCollection(mainWindow, watcher, path);
+})
