@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
@@ -33,6 +33,7 @@ export default function RunnerResults({ collection }) {
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -87,6 +88,10 @@ export default function RunnerResults({ collection }) {
     );
   };
 
+  const cancelExecution = () => {
+    dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
+  };
+
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const passedRequests = items.filter((item) => {
     return item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
@@ -120,9 +125,16 @@ export default function RunnerResults({ collection }) {
 
   return (
     <StyledWrapper ref={listWrapperRef} className="px-4 pb-4 flex flex-grow flex-col relative">
-      <div className="font-medium mt-6 mb-4 title flex items-center">
-        Runner
-        <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+      <div className="flex flex-row mt-6 mb-4">
+        <div className="font-medium title flex items-center">
+          Runner
+          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+        </div>
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
+          <button className="btn ml-6 btn-sm btn-danger" onClick={cancelExecution}>
+            Cancel Execution
+          </button>
+        )}
       </div>
       <div className="flex flex-1">
         <div className="flex flex-col flex-1">
@@ -201,7 +213,6 @@ export default function RunnerResults({ collection }) {
               </div>
             );
           })}
-
           {runnerInfo.status === 'ended' ? (
             <div className="mt-2 mb-4">
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
