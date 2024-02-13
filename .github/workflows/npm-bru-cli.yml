@@ -30,6 +30,9 @@ jobs:
       - name: Install Bru CLI from NPM
         run: npm install -g @usebruno/cli
 
+      - name: Display Bru CLI Version
+        run: bru --version
+
       - name: Run tests
         run: |
           cd packages/bruno-tests/collection
