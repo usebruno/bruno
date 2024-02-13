@@ -14,7 +14,7 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName
 } = require('../utils/filesystem');
-const { openCollectionDialog, openRecentCollectionDialog } = require('../app/collections');
+const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
