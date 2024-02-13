@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
@@ -22,6 +22,7 @@ const getRelativePath = (fullPath, pathname) => {
 
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
+  const listWrapperRef = useRef();
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
@@ -65,6 +66,11 @@ export default function RunnerResults({ collection }) {
     })
     .filter(Boolean);
 
+  useEffect(() => {
+    if (listWrapperRef.current) {
+      listWrapperRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+    }
+  }, [items]);
   const runCollection = () => {
     dispatch(runCollectionFolder(collection.uid, null, true));
   };
@@ -113,7 +119,7 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
+    <StyledWrapper ref={listWrapperRef} className="px-4 pb-4 flex flex-grow flex-col relative">
       <div className="font-medium mt-6 mb-4 title flex items-center">
         Runner
         <IconRun size={20} strokeWidth={1.5} className="ml-2" />
