@@ -585,8 +585,6 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
-      console.log('Canceling request with token', cancelTokenUid);
-      console.log('Current tokens:', Object.keys(cancelTokens));
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
         cancelTokens[cancelTokenUid].abort();
         deleteCancelToken(cancelTokenUid);
@@ -678,10 +676,6 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle(
     'renderer:run-collection-folder',
     async (event, folder, collection, environment, collectionVariables, recursive, cancelTokenUid) => {
-      console.log('Running tests in folder - run-collection-folder');
-      console.log('folder', folder);
-      console.log('cancelTokenUid', cancelTokenUid);
-
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
