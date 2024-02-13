@@ -212,47 +212,49 @@ export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
   cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive, cancelTokenUid) => (dispatch, getState) => {
-  const state = getState();
-  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+export const runCollectionFolder =
+  (collectionUid, folderUid, recursive, cancelTokenUid = uuid()) =>
+  (dispatch, getState) => {
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
-  return new Promise((resolve, reject) => {
-    if (!collection) {
-      return reject(new Error('Collection not found'));
-    }
+    return new Promise((resolve, reject) => {
+      if (!collection) {
+        return reject(new Error('Collection not found'));
+      }
 
-    const collectionCopy = cloneDeep(collection);
-    const folder = findItemInCollection(collectionCopy, folderUid);
+      const collectionCopy = cloneDeep(collection);
+      const folder = findItemInCollection(collectionCopy, folderUid);
 
-    if (folderUid && !folder) {
-      return reject(new Error('Folder not found'));
-    }
+      if (folderUid && !folder) {
+        return reject(new Error('Folder not found'));
+      }
 
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+      const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    dispatch(
-      resetRunResults({
-        collectionUid: collection.uid
-      })
-    );
+      dispatch(
+        resetRunResults({
+          collectionUid: collection.uid
+        })
+      );
 
-    ipcRenderer
-      .invoke(
-        'renderer:run-collection-folder',
-        folder,
-        collectionCopy,
-        environment,
-        collectionCopy.collectionVariables,
-        recursive,
-        cancelTokenUid
-      )
-      .then(resolve)
-      .catch((err) => {
-        toast.error(get(err, 'error.message') || 'Something went wrong!');
-        reject(err);
-      });
-  });
-};
+      ipcRenderer
+        .invoke(
+          'renderer:run-collection-folder',
+          folder,
+          collectionCopy,
+          environment,
+          collectionCopy.collectionVariables,
+          recursive,
+          cancelTokenUid
+        )
+        .then(resolve)
+        .catch((err) => {
+          toast.error(get(err, 'error.message') || 'Something went wrong!');
+          reject(err);
+        });
+    });
+  };
 
 export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();

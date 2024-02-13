@@ -19,7 +19,7 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
         type: 'collection-runner'
       })
     );
-    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, uuid()));
+    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));
     onClose();
   };
 
