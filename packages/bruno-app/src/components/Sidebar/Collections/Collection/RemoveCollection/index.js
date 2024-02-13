@@ -10,15 +10,16 @@ const RemoveCollection = ({ onClose, collection }) => {
   const onConfirm = () => {
     dispatch(removeCollection(collection.uid))
       .then(() => {
-        toast.success('Collection removed');
+        toast.success('Collection closed');
         onClose();
       })
-      .catch(() => toast.error('An error occurred while removing the collection'));
+      .catch(() => toast.error('An error occurred while closing the collection'));
   };
 
   return (
-    <Modal size="sm" title="Remove Collection" confirmText="Remove" handleConfirm={onConfirm} handleCancel={onClose}>
-      Are you sure you want to remove collection <span className="font-semibold">{collection.name}</span> ?
+    <Modal size="sm" title="Close Collection" confirmText="Close" handleConfirm={onConfirm} handleCancel={onClose}>
+      Are you sure you want to close collection <span className="font-semibold">{collection.name}</span> from Bruno? It
+      will remain in your file system in <span className="font-semibold break-words">{collection.pathname}</span>.
     </Modal>
   );
 };
