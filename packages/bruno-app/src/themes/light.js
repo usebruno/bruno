@@ -242,6 +242,10 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
   }
 };
 
