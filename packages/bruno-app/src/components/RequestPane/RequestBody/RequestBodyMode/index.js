@@ -125,7 +125,7 @@ const RequestBodyMode = ({ item, collection }) => {
         </Dropdown>
       </div>
       {bodyMode === 'json' && (
-        <button className="ml-1" onClick={onPrettify}>
+        <button title="Prettify (Shift+Alt+F)" className="ml-1" onClick={onPrettify}>
           Prettify
         </button>
       )}

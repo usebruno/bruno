@@ -165,7 +165,12 @@ export default class CodeEditor extends React.Component {
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        'Cmd-I': 'unfoldAll',
+        'Shift-Alt-F': () => {
+          if (this.props.onPrettify) {
+            this.props.onPrettify();
+          }
+        }
       },
       foldOptions: {
         widget: (from, to) => {

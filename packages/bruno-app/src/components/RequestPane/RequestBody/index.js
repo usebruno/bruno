@@ -26,6 +26,24 @@ const RequestBody = ({ item, collection }) => {
     );
   };
 
+  const onPrettify = () => {
+    if (body?.json && bodyMode === 'json') {
+      try {
+        const bodyJson = JSON.parse(body.json);
+        const prettyBodyJson = JSON.stringify(bodyJson, null, 2);
+        dispatch(
+          updateRequestBody({
+            content: prettyBodyJson,
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      } catch (e) {
+        toastError(new Error('Unable to prettify. Invalid JSON format.'));
+      }
+    }
+  };
+
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
@@ -54,6 +72,7 @@ const RequestBody = ({ item, collection }) => {
           onEdit={onEdit}
           onRun={onRun}
           onSave={onSave}
+          onPrettify={onPrettify}
           mode={codeMirrorMode[bodyMode]}
         />
       </StyledWrapper>
