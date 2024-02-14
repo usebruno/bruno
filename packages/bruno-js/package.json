@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/js",
-  "version": "0.9.3",
+  "version": "0.10.1",
   "license": "MIT",
   "main": "src/index.js",
   "files": [
@@ -8,7 +8,7 @@
     "package.json"
   ],
   "peerDependencies": {
-    "vm2": "^3.9.13"
+    "@n8n/vm2": "^3.9.23"
   },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js"

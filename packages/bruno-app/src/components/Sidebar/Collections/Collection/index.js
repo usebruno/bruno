@@ -20,11 +20,13 @@ import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
+import CloneCollection from './CloneCollection/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
+  const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
@@ -133,6 +135,9 @@ const Collection = ({ collection, searchText }) => {
       {showExportCollectionModal && (
         <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
       )}
+      {showCloneCollectionModalOpen && (
+        <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
+      )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
@@ -173,6 +178,15 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                setShowCloneCollectionModalOpen(true);
+              }}
+            >
+              Clone
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
                 handleRun();
               }}
             >
@@ -203,7 +217,7 @@ const Collection = ({ collection, searchText }) => {
                 setShowRemoveCollectionModal(true);
               }}
             >
-              Remove
+              Close
             </div>
             <div
               className="dropdown-item"

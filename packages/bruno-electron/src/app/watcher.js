@@ -403,17 +403,26 @@ class Watcher {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
 
+    const ignores = brunoConfig?.ignore || [];
     const self = this;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: false,
-        ignored: (path) => ['node_modules', '.git'].some((s) => path.includes(s)),
+        usePolling: watchPath.startsWith('\\\\') ? true : false,
+        ignored: (filepath) => {
+          const normalizedPath = filepath.replace(/\\/g, '/');
+          const relativePath = path.relative(watchPath, normalizedPath);
+
+          return ignores.some((ignorePattern) => {
+            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+          });
+        },
         persistent: true,
         ignorePermissionErrors: true,
         awaitWriteFinish: {

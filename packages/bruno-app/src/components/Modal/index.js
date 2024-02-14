@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 
 const ModalHeader = ({ title, handleCancel }) => (
@@ -62,6 +62,9 @@ const Modal = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
+  disableCloseOnOutsideClick,
+  disableEscapeKey,
+  onClick,
   closeModalFadeTimeout = 500
 }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -78,12 +81,13 @@ const Modal = ({
   };
 
   useEffect(() => {
+    if (disableEscapeKey) return;
     document.addEventListener('keydown', escFunction, false);
 
     return () => {
       document.removeEventListener('keydown', escFunction, false);
     };
-  }, []);
+  }, [disableEscapeKey, document]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
@@ -93,7 +97,7 @@ const Modal = ({
     classes += ' modal-footer-none';
   }
   return (
-    <StyledWrapper className={classes}>
+    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} />
         <ModalContent>{children}</ModalContent>
@@ -111,9 +115,13 @@ const Modal = ({
       {/* Clicking on backdrop closes the modal */}
       <div
         className="bruno-modal-backdrop"
-        onClick={() => {
-          closeModal({ type: 'backdrop' });
-        }}
+        onClick={
+          disableCloseOnOutsideClick
+            ? null
+            : () => {
+                closeModal({ type: 'backdrop' });
+              }
+        }
       />
     </StyledWrapper>
   );
