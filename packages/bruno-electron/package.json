@@ -21,8 +21,8 @@
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.425.0",
     "@usebruno/common": "0.1.0",
-    "@usebruno/js": "0.10.1",
-    "@usebruno/lang": "0.10.0",
+    "@usebruno/js": "0.10.2",
+    "@usebruno/lang": "0.10.1",
     "@usebruno/schema": "0.6.0",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
