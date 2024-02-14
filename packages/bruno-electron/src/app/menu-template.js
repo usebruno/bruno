@@ -1,6 +1,9 @@
+const os = require('os');
 const { ipcMain } = require('electron');
 const openAboutWindow = require('about-window').default;
 const { join } = require('path');
+
+const isMacOs = os.platform() === 'darwin';
 
 const template = [
   {
@@ -12,16 +15,20 @@ const template = [
           ipcMain.emit('main:open-collection');
         }
       },
-      {
-        label: 'Open Recent',
-        role: 'recentdocuments',
-        submenu: [
-          {
-            label: 'Clear Recent',
-            role: 'clearrecentdocuments'
-          }
-        ]
-      },
+      ...(isMacOs
+        ? [
+            {
+              label: 'Open Recent',
+              role: 'recentdocuments',
+              submenu: [
+                {
+                  label: 'Clear Recent',
+                  role: 'clearrecentdocuments'
+                }
+              ]
+            }
+          ]
+        : []),
       {
         label: 'Preferences',
         accelerator: 'CommandOrControl+,',
