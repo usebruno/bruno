@@ -10,7 +10,6 @@ import ErrorBoundary from './ErrorBoundary';
 
 import '../styles/app.scss';
 import '../styles/globals.css';
-import 'tailwindcss/dist/tailwind.min.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 import 'react-tooltip/dist/react-tooltip.css';
