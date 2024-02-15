@@ -13,6 +13,16 @@ const template = [
         }
       },
       {
+        label: 'Open Recent',
+        role: 'recentdocuments',
+        submenu: [
+          {
+            label: 'Clear Recent',
+            role: 'clearrecentdocuments'
+          }
+        ]
+      },
+      {
         label: 'Preferences',
         accelerator: 'CommandOrControl+,',
         click() {
