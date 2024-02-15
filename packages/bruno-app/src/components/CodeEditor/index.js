@@ -170,6 +170,11 @@ export default class CodeEditor extends React.Component {
           if (this.props.onPrettify) {
             this.props.onPrettify();
           }
+        },
+        'Meta-Alt-F': () => {
+          if (this.props.onPrettify) {
+            this.props.onPrettify();
+          }
         }
       },
       foldOptions: {

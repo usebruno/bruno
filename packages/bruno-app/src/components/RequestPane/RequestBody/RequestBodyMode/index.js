@@ -8,6 +8,7 @@ import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
+import { isMacOS, isWindowsOS } from 'utils/common/platform';
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -125,7 +126,11 @@ const RequestBodyMode = ({ item, collection }) => {
         </Dropdown>
       </div>
       {bodyMode === 'json' && (
-        <button title="Prettify (Shift+Alt+F)" className="ml-1" onClick={onPrettify}>
+        <button
+          title={`Prettify ${isWindowsOS ? '(Shift+Alt+F)' : isMacOS ? '(Meta-Alt-F)' : ''}`}
+          className="ml-1"
+          onClick={onPrettify}
+        >
           Prettify
         </button>
       )}
