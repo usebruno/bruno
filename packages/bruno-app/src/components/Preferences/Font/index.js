@@ -9,9 +9,14 @@ const Font = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
+  const [fontSize, setFontSize] = useState(get(preferences, 'font.fontSize', 14));
 
   const handleInputChange = (event) => {
     setCodeFont(event.target.value);
+  };
+
+  const handleFontSizeChange = (event) => {
+    setFontSize(event.target.value);
   };
 
   const handleSave = () => {
@@ -19,7 +24,8 @@ const Font = ({ close }) => {
       savePreferences({
         ...preferences,
         font: {
-          codeFont
+          codeFont,
+          fontSize
         }
       })
     ).then(() => {
@@ -39,6 +45,18 @@ const Font = ({ close }) => {
         spellCheck="false"
         onChange={handleInputChange}
         defaultValue={codeFont}
+      />
+
+      <label className="block font-medium mt-3">Font Size</label>
+      <input
+        type="text"
+        className="block textbox mt-2 w-full"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck="false"
+        onChange={handleFontSizeChange}
+        defaultValue={fontSize}
       />
 
       <div className="mt-10">

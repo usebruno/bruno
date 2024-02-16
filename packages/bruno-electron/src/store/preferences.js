@@ -22,6 +22,9 @@ const defaultPreferences = {
   font: {
     codeFont: 'default'
   },
+  fontSize: {
+    fontSize: 14
+  },
   proxy: {
     enabled: false,
     protocol: 'http',
@@ -49,6 +52,9 @@ const preferencesSchema = Yup.object().shape({
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable()
+  }),
+  fontSize: Yup.object().shape({
+    fontSize: Yup.number().min(1).max(20).nullable()
   }),
   proxy: Yup.object({
     enabled: Yup.boolean(),
