@@ -34,6 +34,7 @@ const Tests = ({ item, collection }) => {
         value={tests || ''}
         theme={storedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.fontSize', 14)}
         onEdit={onEdit}
         mode="javascript"
         onRun={onRun}

@@ -46,6 +46,7 @@ const Docs = ({ collection }) => {
           onSave={onSave}
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.fontSize', 14)}
         />
       ) : (
         <Markdown onDoubleClick={toggleViewMode} content={docs} />

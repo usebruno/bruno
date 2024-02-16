@@ -71,6 +71,7 @@ const QueryResultPreview = ({
         <CodeEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.fontSize', 14)}
           theme={storedTheme}
           onRun={onRun}
           value={formattedData}
