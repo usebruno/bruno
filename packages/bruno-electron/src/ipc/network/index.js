@@ -447,9 +447,9 @@ const registerNetworkIpc = (mainWindow) => {
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     try {
-      const cancelToken = axios.CancelToken.source();
-      request.cancelToken = cancelToken.token;
-      saveCancelToken(cancelTokenUid, cancelToken);
+      const controller = new AbortController();
+      request.signal = controller.signal;
+      saveCancelToken(cancelTokenUid, controller);
 
       await runPreRequest(
         request,
@@ -652,7 +652,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
-        cancelTokens[cancelTokenUid].cancel();
+        cancelTokens[cancelTokenUid].abort();
         deleteCancelToken(cancelTokenUid);
         resolve();
       } else {
@@ -745,9 +745,13 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
+
+      const abortController = new AbortController();
+      saveCancelToken(cancelTokenUid, abortController);
 
       if (!folder) {
         folder = collection;
@@ -757,7 +761,8 @@ const registerNetworkIpc = (mainWindow) => {
         type: 'testrun-started',
         isRecursive: recursive,
         collectionUid,
-        folderUid
+        folderUid,
+        cancelTokenUid
       });
 
       try {
@@ -783,6 +788,13 @@ const registerNetworkIpc = (mainWindow) => {
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
         while (currentRequestIndex < folderRequests.length) {
+          // user requested to cancel runner
+          if (abortController.signal.aborted) {
+            let error = new Error('Runner execution cancelled');
+            error.isCancel = true;
+            throw error;
+          }
+
           const item = folderRequests[currentRequestIndex];
           let nextRequestName;
           const itemUid = item.uid;
@@ -836,6 +848,7 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
+            request.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
               request,
@@ -869,7 +882,7 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
             } catch (error) {
-              if (error?.response) {
+              if (error?.response && !axios.isCancel(error)) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
@@ -1013,15 +1026,19 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid
         });
       } catch (error) {
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
-          type: 'error',
-          error
+          type: 'testrun-ended',
+          collectionUid,
+          folderUid,
+          error: error && !error.isCancel ? error : null
         });
       }
     }

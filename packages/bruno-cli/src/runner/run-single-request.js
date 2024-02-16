@@ -40,10 +40,13 @@ const runSingleRequest = async function (
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
     if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      // TODO: Add support for file uploads
       const form = new FormData();
       forOwn(request.data, (value, key) => {
-        form.append(key, value);
+        if (value instanceof Array) {
+          each(value, (v) => form.append(key, v));
+        } else {
+          form.append(key, value);
+        }
       });
       extend(request.headers, form.getHeaders());
       request.data = form;
@@ -343,20 +346,39 @@ const runSingleRequest = async function (
     // run tests
     let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
-    if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime();
-      const result = await testRuntime.runTests(
+
+    if (false) {
+      const result = await runScript(
         decomment(testFile),
         request,
-        response,
-        envVariables,
-        collectionVariables,
-        collectionPath,
         null,
-        processEnvVars,
-        scriptingConfig
+        {
+          envVariables,
+          collectionVariables,
+          processEnvVars
+        },
+        true,
+        collectionPath,
+        scriptingConfig,
+        null
       );
       testResults = get(result, 'results', []);
+    } else {
+      if (typeof testFile === 'string') {
+        const testRuntime = new TestRuntime();
+        const result = await testRuntime.runTests(
+          decomment(testFile),
+          request,
+          response,
+          envVariables,
+          collectionVariables,
+          collectionPath,
+          null,
+          processEnvVars,
+          scriptingConfig
+        );
+        testResults = get(result, 'results', []);
+      }
     }
 
     if (testResults?.length) {

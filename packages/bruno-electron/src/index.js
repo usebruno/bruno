@@ -5,6 +5,7 @@ const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
+const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
@@ -28,13 +29,13 @@ const contentSecurityPolicy = [
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
-Menu.setApplicationMenu(menu);
 
 let mainWindow;
 let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
   mainWindow = new BrowserWindow({
@@ -122,3 +123,8 @@ app.on('ready', async () => {
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit);
+
+// Open collection from Recent menu (#1521)
+app.on('open-file', (event, path) => {
+  openCollection(mainWindow, watcher, path);
+});
