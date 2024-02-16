@@ -28,7 +28,7 @@ const Test = require('../test');
  *   collectionVariables: Record<string, unknown>,
  *   envVariables: Record<string, unknown>,
  *   nextRequestName: string,
- *   testResults: array|null,
+ *   results: array|null,
  * }>}
  */
 async function runScript(
@@ -63,7 +63,7 @@ async function runScript(
     envVariables: cleanJson(scriptContext.bru.envVariables),
     collectionVariables: cleanJson(scriptContext.bru.collectionVariables),
     nextRequestName: scriptContext.bru.nextRequest,
-    testResults: scriptContext.__brunoTestResults ? cleanJson(scriptContext.__brunoTestResults.getResults()) : null
+    results: scriptContext.__brunoTestResults ? cleanJson(scriptContext.__brunoTestResults.getResults()) : null
   };
 }
 
@@ -164,14 +164,29 @@ function createCustomRequire(scriptingConfig, collectionPath) {
     .chain(additionalContextRoots)
     .map((acr) => (acr.startsWith('/') ? acr : path.join(collectionPath, acr)))
     .value();
+  additionalContextRootsAbsolute.push(collectionPath);
 
   return (moduleName) => {
-    // Remove the "node:" prefix, to make sure "node:fs" and "fs" can be required and we only need to whitelist one
+    // First check If we want to require a native node module or
+    // Remove the "node:" prefix, to make sure "node:fs" and "fs" can be required, and we only need to whitelist one
     if (whitelistedModules.includes(moduleName.replace(/^node:/, ''))) {
       try {
         return require(moduleName);
-      } catch (error) {
-        throw new Error(`Failed to require "${moduleName}": ${error}`);
+      } catch {
+        // This can happen, if it s module installed by the user under additionalContextRoots
+        // So now we check if the user installed it themselves
+        let modulePath;
+        try {
+          modulePath = require.resolve(moduleName, { paths: additionalContextRootsAbsolute });
+          return require(modulePath);
+        } catch (error) {
+          throw new Error(`Could not resolve module "${moduleName}": ${error}
+          This most likely means you did not install the module under "additionalContextRoots" using a package manger like npm.
+          
+          These are your current "additionalContextRoots":
+          - ${additionalContextRootsAbsolute.join('- ') || 'No "additionalContextRoots" defined'}
+          `);
+        }
       }
     }
 
@@ -188,7 +203,7 @@ function createCustomRequire(scriptingConfig, collectionPath) {
     const triedPathsFormatted = triedPaths.map((i) => `- "${i.fullScriptPath}": ${i.error}\n`);
     throw new Error(`Failed to require "${moduleName}"!
 
-If you tried to require a node-module / package, make sure its whitelisted in the "bruno.json" under "scriptConfig".
+If you tried to require a internal node module / external package, make sure its whitelisted in the "bruno.json" under "scriptConfig".
 If you wanted to require an external script make sure the path is correct or added to "additionalContextRoots" in your "bruno.json".
 
 ${
@@ -203,7 +218,6 @@ ${triedPathsFormatted}`);
 function createCustomConsole(onConsoleLog) {
   const customLogger = (type) => {
     return (...args) => {
-      console.error('LOG', args);
       onConsoleLog(type, cleanJson(args));
     };
   };
