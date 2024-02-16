@@ -11,10 +11,13 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
+import { updateActiveEnvironmentSettings } from 'providers/ReduxStore/slices/app';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+
+  //dispatch(updateActiveEnvironmentSettings(environment));
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -40,7 +43,9 @@ const EnvironmentVariables = ({ environment, collection }) => {
         toast.error('Nothing to save');
         return;
       }
-
+      console.log('environment1',environment.uid)
+      console.log('collectionUid1',collection.uid)
+      console.log('values1',values)
       dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
         .then(() => {
           toast.success('Changes saved successfully');
@@ -49,6 +54,14 @@ const EnvironmentVariables = ({ environment, collection }) => {
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  const getOnChange = (name,value,index) => {
+      let getenv = [];
+      getenv.values = formik.values;
+      getenv.uid = environment.uid;
+      console.log('getenv',getenv)
+      dispatch(updateActiveEnvironmentSettings(getenv));
+  }
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
@@ -101,6 +114,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   name={`${index}.enabled`}
                   checked={variable.enabled}
                   onChange={formik.handleChange}
+                  onBlur={() =>  getOnChange() }
                 />
               </td>
               <td>
@@ -115,6 +129,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   name={`${index}.name`}
                   value={variable.name}
                   onChange={formik.handleChange}
+                  onKeyUp={() =>  getOnChange() }
                 />
                 <ErrorMessage name={`${index}.name`} />
               </td>
@@ -124,7 +139,8 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   collection={collection}
                   name={`${index}.value`}
                   value={variable.value}
-                  onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                  onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true) }
+                  onKeyup={(newValue) =>  getOnChange() }
                 />
               </td>
               <td>
@@ -134,6 +150,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   name={`${index}.secret`}
                   checked={variable.secret}
                   onChange={formik.handleChange}
+                  onBlur={() =>  getOnChange() }
                 />
               </td>
               <td>

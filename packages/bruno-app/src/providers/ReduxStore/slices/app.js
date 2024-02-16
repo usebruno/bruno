@@ -10,6 +10,7 @@ const initialState = {
   showHomePage: false,
   showPreferences: false,
   isEnvironmentSettingsModalOpen: false,
+  getActiveEnvironment: [],
   preferences: {
     request: {
       sslVerification: true,
@@ -46,6 +47,10 @@ export const appSlice = createSlice({
     updateEnvironmentSettingsModalVisibility: (state, action) => {
       state.isEnvironmentSettingsModalOpen = action.payload;
     },
+    updateActiveEnvironmentSettings: (state, action) => {
+      state.getActiveEnvironment = action.payload;
+    },
+    
     showHomePage: (state) => {
       state.showHomePage = true;
     },
@@ -79,6 +84,7 @@ export const {
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
+  updateActiveEnvironmentSettings,
   showHomePage,
   hideHomePage,
   showPreferences,

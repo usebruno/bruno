@@ -15,7 +15,7 @@ const EnvironmentSelector = ({ collection }) => {
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
   const { environments, activeEnvironmentUid } = collection;
   const activeEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
-
+  
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="current-enviroment flex items-center justify-center pl-3 pr-2 py-1 select-none">

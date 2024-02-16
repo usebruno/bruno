@@ -24,6 +24,7 @@ const EnvironmentList = ({ collection }) => {
     }
 
     const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+    
     if (environment) {
       setSelectedEnvironment(environment);
     } else {

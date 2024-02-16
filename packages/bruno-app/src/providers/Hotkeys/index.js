@@ -7,9 +7,11 @@ import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { findEnvironmentInCollection } from 'utils/collections';
+import cloneDeep from 'lodash/cloneDeep';
 
 export const HotkeysContext = React.createContext();
 
@@ -22,6 +24,8 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const getActiveEnvironment = useSelector((state) => state.app.getActiveEnvironment);
+
 
   const getCurrentCollectionItems = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -46,6 +50,14 @@ export const HotkeysProvider = (props) => {
     Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
       if (isEnvironmentSettingsModalOpen) {
         console.log('todo: save environment settings');
+        console.log('getActiveEnvironment',getActiveEnvironment)
+        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+        dispatch(saveEnvironment(cloneDeep(getActiveEnvironment?.values), getActiveEnvironment?.uid, activeTab.collectionUid))
+        .then(() => {
+          toast.success('Changes saved successfully');
+        })
+        .catch(() => toast.error('An error occurred while saving the changes'));
+
       } else {
         const activeTab = find(tabs, (t) => t.uid === activeTabUid);
         if (activeTab) {
@@ -68,7 +80,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       Mousetrap.unbind(['command+s', 'ctrl+s']);
     };
-  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
+  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen,getActiveEnvironment]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {

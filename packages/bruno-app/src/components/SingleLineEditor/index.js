@@ -124,8 +124,18 @@ class SingleLineEditor extends Component {
     }
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
+    this.editor.on('keyup', this._onKeyup);
     this.addOverlay();
   }
+
+  _onKeyup = () => {
+    if (!this.ignoreChangeEvent && this.editor) {
+      this.cachedValue = this.editor.getValue();
+      if (this.props.onKeyup) {
+        this.props.onKeyup(this.cachedValue);
+      }
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
