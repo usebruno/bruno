@@ -13,7 +13,8 @@ const {
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName,
-  sanitizeFilename
+  sanitizeFilename,
+  fileExistsWithCase
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -283,7 +284,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.join(envDirPath, `${sanitizeFilename(newName)}.bru`);
-      if (fs.existsSync(newEnvFilePath) && envFilePath !== newEnvFilePath) {
+      if (fileExistsWithCase(newEnvFilePath, envFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -328,10 +329,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(oldPathFull)) {
         throw new Error(`path: ${oldPathFull} does not exist`);
       }
+      if (fileExistsWithCase(newPath, oldPathFull)) {
+        throw new Error(`path: ${newPath} already exists`);
+      }
 
       // if its directory, rename and return
       if (isDirectory(oldPathFull)) {
-        const bruFilesAtSource = await searchForBruFiles(oldPathFull);
+        const bruFilesAtSource = searchForBruFiles(oldPathFull);
 
         const newPathFull = path.join(newPath, newName);
         if (fs.existsSync(newPathFull)) {
@@ -364,12 +368,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPathFull, newSanitizedPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newSanitizedPath, content);
 
       // Because of sanitization the name can change but the path stays the same
       if (newSanitizedPath !== oldPathFull) {
         fs.unlinkSync(oldPathFull);
       }
+      await writeFile(newSanitizedPath, content);
     } catch (error) {
       return Promise.reject(error);
     }

@@ -151,6 +151,15 @@ const sanitizeFilename = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
+const fileExistsWithCase = (newFilePath, oldFilePath) => {
+  const newFileName = path.basename(newFilePath);
+  const oldFileName = path.basename(oldFilePath);
+  if (newFileName.toLowerCase() === oldFileName.toLowerCase()) {
+    return false;
+  }
+  return fs.existsSync(newFilePath);
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -169,5 +178,6 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  sanitizeFilename
+  sanitizeFilename,
+  fileExistsWithCase
 };
