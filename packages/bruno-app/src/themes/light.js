@@ -177,6 +177,11 @@ const lightTheme = {
       color: '#9f9f9f',
       bg: '#efefef',
       border: 'rgb(234, 234, 234)'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 
@@ -237,6 +242,10 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
   }
 };
 

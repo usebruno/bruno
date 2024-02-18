@@ -22,13 +22,11 @@ const ProxySettings = ({ close }) => {
       })
       .max(1024),
     port: Yup.number()
-      .when('enabled', {
-        is: true,
-        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
-        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
-      })
       .min(1)
-      .max(65535),
+      .max(65535)
+      .typeError('Specify port between 1 and 65535')
+      .nullable()
+      .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
       .when('enabled', {
         is: true,
@@ -129,7 +127,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              http
+              HTTP
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -140,18 +138,18 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              https
+              HTTPS
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
                 name="protocol"
-                value="socks5"
+                value="socks4"
                 checked={formik.values.protocol === 'socks4'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks4
+              SOCKS4
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -162,7 +160,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks5
+              SOCKS5
             </label>
           </div>
         </div>

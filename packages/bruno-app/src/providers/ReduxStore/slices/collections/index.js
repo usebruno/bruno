@@ -1,30 +1,29 @@
-import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import forOwn from 'lodash/forOwn';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import get from 'lodash/get';
-import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
+import cloneDeep from 'lodash/cloneDeep';
+import concat from 'lodash/concat';
+import each from 'lodash/each';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import forOwn from 'lodash/forOwn';
+import get from 'lodash/get';
+import map from 'lodash/map';
+import set from 'lodash/set';
 import {
-  findCollectionByUid,
-  findCollectionByPathname,
-  findItemInCollection,
-  findEnvironmentInCollection,
-  findItemInCollectionByPathname,
   addDepth,
+  areItemsTheSameExceptSeqUpdate,
   collapseCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
-  isItemARequest,
-  areItemsTheSameExceptSeqUpdate
+  findCollectionByPathname,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  isItemARequest
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { uuid } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 
 const initialState = {
   collections: [],
@@ -49,10 +48,6 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-
-      // an improvement over the above approach.
-      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
-      collection.nextAction = null;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -98,14 +93,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
-      }
-    },
-    updateNextAction: (state, action) => {
-      const { collectionUid, nextAction } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.nextAction = nextAction;
       }
     },
     updateSettingsSelectedTab: (state, action) => {
@@ -220,6 +207,19 @@ export const collectionsSlice = createSlice({
 
             if (variable) {
               variable.value = value;
+            } else {
+              // __name__ is a private variable used to store the name of the environment
+              // this is not a user defined variable and hence should not be updated
+              if (key !== '__name__') {
+                activeEnvironment.variables.push({
+                  name: key,
+                  value,
+                  secret: false,
+                  enabled: true,
+                  type: 'text',
+                  uid: uuid()
+                });
+              }
             }
           });
         }
@@ -256,6 +256,16 @@ export const collectionsSlice = createSlice({
           item.requestState = 'received';
           item.response = action.payload.response;
           item.cancelTokenUid = null;
+        }
+      }
+    },
+    responseCleared: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item) {
+          item.response = null;
         }
       }
     },
@@ -390,6 +400,10 @@ export const collectionsSlice = createSlice({
             case 'basic':
               item.draft.request.auth.mode = 'basic';
               item.draft.request.auth.basic = action.payload.content;
+              break;
+            case 'digest':
+              item.draft.request.auth.mode = 'digest';
+              item.draft.request.auth.digest = action.payload.content;
               break;
           }
         }
@@ -606,6 +620,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
           item.draft.request.body.multipartForm.push({
             uid: uuid(),
+            type: action.payload.type,
             name: '',
             value: '',
             description: '',
@@ -626,6 +641,7 @@ export const collectionsSlice = createSlice({
           }
           const param = find(item.draft.request.body.multipartForm, (p) => p.uid === action.payload.param.uid);
           if (param) {
+            param.type = action.payload.param.type;
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
@@ -971,13 +987,15 @@ export const collectionsSlice = createSlice({
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
-            console.log('set auth awsv4', action.payload.content);
             break;
           case 'bearer':
             set(collection, 'root.request.auth.bearer', action.payload.content);
             break;
           case 'basic':
             set(collection, 'root.request.auth.basic', action.payload.content);
+            break;
+          case 'digest':
+            set(collection, 'root.request.auth.digest', action.payload.content);
             break;
         }
       }
@@ -1209,6 +1227,7 @@ export const collectionsSlice = createSlice({
           existingEnv.name = environment.name;
         } else {
           collection.environments.push(environment);
+          collection.environments.sort((a, b) => a.name.localeCompare(b.name));
 
           const lastAction = collection.lastAction;
           if (lastAction && lastAction.type === 'ADD_ENVIRONMENT') {
@@ -1275,7 +1294,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, isRecursive, error } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -1291,6 +1310,7 @@ export const collectionsSlice = createSlice({
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
           info.isRecursive = isRecursive;
+          info.cancelTokenUid = cancelTokenUid;
           info.status = 'started';
         }
 
@@ -1368,7 +1388,6 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
-  updateNextAction,
   updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
@@ -1381,6 +1400,7 @@ export const {
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
+  responseCleared,
   saveRequest,
   deleteRequestDraft,
   newEphemeralHttpRequest,

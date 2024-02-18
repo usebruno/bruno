@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/cli",
-  "version": "0.15.1",
+  "version": "1.9.0",
   "license": "MIT",
   "main": "src/index.js",
   "bin": {
@@ -24,15 +24,15 @@
     "package.json"
   ],
   "dependencies": {
-    "@usebruno/js": "0.9.1",
-    "@usebruno/lang": "0.9.0",
+    "@usebruno/common": "0.1.0",
+    "@usebruno/js": "0.10.1",
+    "@usebruno/lang": "0.10.0",
     "axios": "^1.5.1",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
     "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
-    "handlebars": "^4.7.8",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "inquirer": "^9.1.4",
@@ -40,6 +40,8 @@
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
+    "vm2": "^3.9.13",
+    "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }
 }

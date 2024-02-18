@@ -6,11 +6,10 @@ const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
 const Mustache = require('mustache');
-const FormData = require('form-data');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { forOwn, extend, each, get, compact } = require('lodash');
+const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -26,8 +25,10 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
+const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -71,21 +72,7 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
-const getSize = (data) => {
-  if (!data) {
-    return 0;
-  }
-
-  if (typeof data === 'string') {
-    return Buffer.byteLength(data, 'utf8');
-  }
-
-  if (typeof data === 'object') {
-    return Buffer.byteLength(safeStringifyJSON(data), 'utf8');
-  }
-
-  return 0;
-};
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const configureRequest = async (
   collectionUid,
@@ -95,9 +82,24 @@ const configureRequest = async (
   processEnvVars,
   collectionPath
 ) => {
-  const httpsAgentRequestFields = {};
+  if (!protocolRegex.test(request.url)) {
+    request.url = `http://${request.url}`;
+  }
+
+  /**
+   * @see https://github.com/usebruno/bruno/issues/211 set keepAlive to true, this should fix socket hang up errors
+   * @see https://github.com/nodejs/node/pull/43522 keepAlive was changed to true globally on Node v19+
+   */
+  const httpsAgentRequestFields = { keepAlive: true };
   if (!preferencesUtil.shouldVerifyTls()) {
     httpsAgentRequestFields['rejectUnauthorized'] = false;
+  }
+
+  if (preferencesUtil.shouldUseCustomCaCertificate()) {
+    const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
+    if (caCertFilePath) {
+      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+    }
   }
 
   const brunoConfig = getBrunoConfig(collectionUid);
@@ -142,7 +144,7 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', false);
+  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
   if (proxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
@@ -155,20 +157,23 @@ const configureRequest = async (
     const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
     const socksEnabled = proxyProtocol.includes('socks');
 
+    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
     let proxyUri;
     if (proxyAuthEnabled) {
       const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
       const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
     } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}:${proxyPort}`;
+      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
@@ -190,7 +195,19 @@ const configureRequest = async (
     delete request.awsv4config;
   }
 
+  if (request.digestConfig) {
+    addDigestInterceptor(axiosInstance, request);
+  }
+
   request.timeout = preferencesUtil.getRequestTimeout();
+
+  // add cookies to request
+  if (preferencesUtil.shouldSendCookies()) {
+    const cookieString = getCookieStringForUrl(request.url);
+    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+      request.headers['cookie'] = cookieString;
+    }
+  }
 
   return axiosInstance;
 };
@@ -198,10 +215,10 @@ const configureRequest = async (
 const parseDataFromResponse = (response) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charset = /charset=([^()<>@,;:\"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
+  const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
   // Overwrite the original data for backwards compatability
   let data = dataBuffer.toString(charset || 'utf-8');
-  // Try to parse response to JSON, this can quitly fail
+  // Try to parse response to JSON, this can quietly fail
   try {
     data = JSON.parse(response.data);
   } catch {}
@@ -254,10 +271,11 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
+    let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runRequestScript(
+      scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
         envVars,
@@ -269,8 +287,8 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
@@ -279,10 +297,18 @@ const registerNetworkIpc = (mainWindow) => {
     // interpolate variables inside request
     interpolateVars(request, envVars, collectionVariables, processEnvVars);
 
+    // if this is a graphql request, parse the variables, only after interpolation
+    // https://github.com/usebruno/bruno/issues/884
+    if (request.mode === 'graphql') {
+      request.data.variables = JSON.parse(request.data.variables);
+    }
+
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
     }
+
+    return scriptResult;
   };
 
   const runPostResponse = async (
@@ -322,12 +348,13 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    let scriptResult;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
-      const result = await scriptRuntime.runResponseScript(
+      scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
         response,
@@ -340,12 +367,13 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: result.envVariables,
-        collectionVariables: result.collectionVariables,
+        envVariables: scriptResult.envVariables,
+        collectionVariables: scriptResult.collectionVariables,
         requestUid,
         collectionUid
       });
     }
+    return scriptResult;
   };
 
   // handler for sending http request
@@ -365,16 +393,16 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot);
+    const request = prepareRequest(_request, collectionRoot, collectionPath);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     try {
-      const cancelToken = axios.CancelToken.source();
-      request.cancelToken = cancelToken.token;
-      saveCancelToken(cancelTokenUid, cancelToken);
+      const controller = new AbortController();
+      request.signal = controller.signal;
+      saveCancelToken(cancelTokenUid, controller);
 
       await runPreRequest(
         request,
@@ -388,9 +416,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      // todo:
-      // i have no clue why electron can't send the request object
-      // without safeParseJSON(safeStringifyJSON(request.data))
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -449,6 +474,28 @@ const registerNetworkIpc = (mainWindow) => {
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
+
+      response.responseTime = responseTime;
+
+      // save cookies
+      if (preferencesUtil.shouldStoreCookies()) {
+        let setCookieHeaders = [];
+        if (response.headers['set-cookie']) {
+          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+            ? response.headers['set-cookie']
+            : [response.headers['set-cookie']];
+
+          for (let setCookieHeader of setCookieHeaders) {
+            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+              addCookieToJar(setCookieHeader, request.url);
+            }
+          }
+        }
+      }
+
+      // send domain cookies to renderer
+      const domainsWithCookies = await getDomainsWithCookies();
+      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
         request,
@@ -539,7 +586,7 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
-        cancelTokens[cancelTokenUid].cancel();
+        cancelTokens[cancelTokenUid].abort();
         deleteCancelToken(cancelTokenUid);
         resolve();
       } else {
@@ -632,9 +679,13 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
+
+      const abortController = new AbortController();
+      saveCancelToken(cancelTokenUid, abortController);
 
       if (!folder) {
         folder = collection;
@@ -644,7 +695,8 @@ const registerNetworkIpc = (mainWindow) => {
         type: 'testrun-started',
         isRecursive: recursive,
         collectionUid,
-        folderUid
+        folderUid,
+        cancelTokenUid
       });
 
       try {
@@ -667,7 +719,18 @@ const registerNetworkIpc = (mainWindow) => {
           });
         }
 
-        for (let item of folderRequests) {
+        let currentRequestIndex = 0;
+        let nJumps = 0; // count the number of jumps to avoid infinite loops
+        while (currentRequestIndex < folderRequests.length) {
+          // user requested to cancel runner
+          if (abortController.signal.aborted) {
+            let error = new Error('Runner execution cancelled');
+            error.isCancel = true;
+            throw error;
+          }
+
+          const item = folderRequests[currentRequestIndex];
+          let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
             collectionUid,
@@ -684,12 +747,12 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot);
+          const request = prepareRequest(_request, collectionRoot, collectionPath);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
-            await runPreRequest(
+            const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
               envVars,
@@ -700,6 +763,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (preRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = preRequestScriptResult.nextRequestName;
+            }
 
             // todo:
             // i have no clue why electron can't send the request object
@@ -715,6 +782,7 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
+            request.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
               request,
@@ -739,7 +807,7 @@ const registerNetworkIpc = (mainWindow) => {
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -748,7 +816,7 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
             } catch (error) {
-              if (error?.response) {
+              if (error?.response && !axios.isCancel(error)) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
@@ -756,7 +824,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
@@ -776,7 +844,7 @@ const registerNetworkIpc = (mainWindow) => {
               }
             }
 
-            await runPostResponse(
+            const postRequestScriptResult = await runPostResponse(
               request,
               response,
               requestUid,
@@ -788,6 +856,10 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               scriptingConfig
             );
+
+            if (postRequestScriptResult?.nextRequestName !== undefined) {
+              nextRequestName = postRequestScriptResult.nextRequestName;
+            }
 
             // run assertions
             const assertions = get(item, 'request.assertions');
@@ -849,17 +921,39 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
+          if (nextRequestName !== undefined) {
+            nJumps++;
+            if (nJumps > 10000) {
+              throw new Error('Too many jumps, possible infinite loop');
+            }
+            if (nextRequestName === null) {
+              break;
+            }
+            const nextRequestIdx = folderRequests.findIndex((request) => request.name === nextRequestName);
+            if (nextRequestIdx >= 0) {
+              currentRequestIndex = nextRequestIdx;
+            } else {
+              console.error("Could not find request with name '" + nextRequestName + "'");
+              currentRequestIndex++;
+            }
+          } else {
+            currentRequestIndex++;
+          }
         }
 
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid
         });
       } catch (error) {
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
-          type: 'error',
-          error
+          type: 'testrun-ended',
+          collectionUid,
+          folderUid,
+          error: error && !error.isCancel ? error : null
         });
       }
     }
@@ -869,8 +963,10 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
     try {
       const getHeaderValue = (headerName) => {
-        if (response.headers) {
-          const header = response.headers.find((header) => header[0] === headerName);
+        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+
+        if (headersArray.length > 0) {
+          const header = headersArray.find((header) => header[0] === headerName);
           if (header && header.length > 1) {
             return header[1];
           }
@@ -912,3 +1008,4 @@ const registerNetworkIpc = (mainWindow) => {
 };
 
 module.exports = registerNetworkIpc;
+module.exports.configureRequest = configureRequest;

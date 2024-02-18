@@ -1,22 +1,22 @@
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { showPreferences, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
 import {
+  brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
   collectionAddFileEvent,
   collectionChangeFileEvent,
-  collectionUnlinkFileEvent,
+  collectionRenamedEvent,
   collectionUnlinkDirectoryEvent,
   collectionUnlinkEnvFileEvent,
-  scriptEnvironmentUpdateEvent,
+  collectionUnlinkFileEvent,
   processEnvUpdateEvent,
-  collectionRenamedEvent,
-  runRequestEvent,
   runFolderEvent,
-  brunoConfigUpdateEvent
+  runRequestEvent,
+  scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { showPreferences, updatePreferences } from 'providers/ReduxStore/slices/app';
+import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
-import { openCollectionEvent, collectionAddEnvFileEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
 
 const useIpcEvents = () => {
@@ -80,6 +80,7 @@ const useIpcEvents = () => {
     };
 
     ipcRenderer.invoke('renderer:ready');
+
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
     const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
@@ -127,12 +128,16 @@ const useIpcEvents = () => {
       dispatch(brunoConfigUpdateEvent(val))
     );
 
-    const showPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
+    const removeShowPreferencesListener = ipcRenderer.on('main:open-preferences', () => {
       dispatch(showPreferences(true));
     });
 
     const removePreferencesUpdatesListener = ipcRenderer.on('main:load-preferences', (val) => {
       dispatch(updatePreferences(val));
+    });
+
+    const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
+      dispatch(updateCookies(val));
     });
 
     return () => {
@@ -147,8 +152,9 @@ const useIpcEvents = () => {
       removeProcessEnvUpdatesListener();
       removeConsoleLogListener();
       removeConfigUpdatesListener();
-      showPreferencesListener();
+      removeShowPreferencesListener();
       removePreferencesUpdatesListener();
+      removeCookieUpdateListener();
     };
   }, [isElectron]);
 };

@@ -1,6 +1,33 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter, extend } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+
+const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item.value;
+    const name = item.name;
+    if (item.type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+
+        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(name, value);
+    }
+  });
+  return form;
+};
 
 // Authentication
 // A request can override the collection auth with another auth
@@ -29,6 +56,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(collectionAuth, 'digest.username'),
+          password: get(collectionAuth, 'digest.password')
+        };
+        break;
     }
   }
 
@@ -53,15 +86,21 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
       case 'bearer':
         axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
         break;
+      case 'digest':
+        axiosRequest.digestConfig = {
+          username: get(request, 'auth.digest.username'),
+          password: get(request, 'auth.digest.password')
+        };
     }
   }
 
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
+  let url = request.url;
 
   // collection headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
@@ -83,9 +122,10 @@ const prepareRequest = (request, collectionRoot) => {
   });
 
   let axiosRequest = {
+    mode: request.body.mode,
     method: request.method,
-    url: request.url,
-    headers: headers,
+    url,
+    headers,
     responseType: 'arraybuffer'
   };
 
@@ -133,18 +173,8 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
-
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    const form = new FormData();
-    forOwn(axiosRequest.data, (value, key) => {
-      form.append(key, value);
-    });
+    const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
@@ -152,7 +182,8 @@ const prepareRequest = (request, collectionRoot) => {
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
-      variables: JSON.parse(decomment(get(request, 'body.graphql.variables') || '{}'))
+      // https://github.com/usebruno/bruno/issues/884 - we must only parse the variables after the variable interpolation
+      variables: decomment(get(request, 'body.graphql.variables') || '{}')
     };
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';

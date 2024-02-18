@@ -38,7 +38,7 @@ export const safeParseJSON = (str) => {
 };
 
 export const safeStringifyJSON = (obj, indent = false) => {
-  if (!obj) {
+  if (obj === undefined) {
     return obj;
   }
   try {
@@ -46,6 +46,14 @@ export const safeStringifyJSON = (obj, indent = false) => {
       return JSON.stringify(obj, null, 2);
     }
     return JSON.stringify(obj);
+  } catch (e) {
+    return obj;
+  }
+};
+
+export const convertToCodeMirrorJson = (obj) => {
+  try {
+    return JSON5.stringify(obj).slice(1, -1);
   } catch (e) {
     return obj;
   }
@@ -75,8 +83,10 @@ export const normalizeFileName = (name) => {
 };
 
 export const getContentType = (headers) => {
-  if (headers && headers.length) {
-    let contentType = headers
+  const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
+
+  if (headersArray.length > 0) {
+    let contentType = headersArray
       .filter((header) => header[0].toLowerCase() === 'content-type')
       .map((header) => {
         return header[1];
@@ -95,6 +105,22 @@ export const getContentType = (headers) => {
   return '';
 };
 
-export const sanitizeFilenme = (name) => {
+export const sanitizeFilename = (name) => {
   return name.replace(/[^\w-_.]/g, '_');
+};
+
+export const startsWith = (str, search) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return false;
+  }
+
+  if (!search || !search.length || typeof search !== 'string') {
+    return false;
+  }
+
+  return str.substr(0, search.length) === search;
+};
+
+export const pluralizeWord = (word, count) => {
+  return count === 1 ? word : `${word}s`;
 };

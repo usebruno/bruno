@@ -22,8 +22,10 @@ if (!SERVER_RENDERED) {
   require('codemirror/addon/fold/brace-fold');
   require('codemirror/addon/fold/foldgutter');
   require('codemirror/addon/fold/xml-fold');
+  require('codemirror/addon/hint/javascript-hint');
   require('codemirror/addon/hint/show-hint');
   require('codemirror/addon/lint/lint');
+  require('codemirror/addon/lint/json-lint');
   require('codemirror/addon/mode/overlay');
   require('codemirror/addon/scroll/simplescrollbars');
   require('codemirror/addon/search/jump-to-line');
@@ -38,6 +40,7 @@ if (!SERVER_RENDERED) {
   require('codemirror-graphql/mode');
 
   require('utils/codemirror/brunoVarInfo');
+  require('utils/codemirror/javascript-lint');
 }
 
 export default function Main() {

@@ -5,6 +5,7 @@ class BrunoResponse {
     this.statusText = res ? res.statusText : null;
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
+    this.responseTime = res ? res.responseTime : null;
   }
 
   getStatus() {
@@ -21,6 +22,10 @@ class BrunoResponse {
 
   getBody() {
     return this.res ? this.res.data : null;
+  }
+
+  getResponseTime() {
+    return this.res ? this.res.responseTime : null;
   }
 }
 

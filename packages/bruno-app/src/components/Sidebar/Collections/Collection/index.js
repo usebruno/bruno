@@ -2,7 +2,6 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
-import cloneDeep from 'lodash/cloneDeep';
 import { useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
@@ -15,21 +14,21 @@ import NewFolder from 'components/Sidebar/NewFolder';
 import CollectionItem from './CollectionItem';
 import RemoveCollection from './RemoveCollection';
 import ExportCollection from './ExportCollection';
-import CollectionProperties from './CollectionProperties';
 import { doesCollectionHaveItemsMatchingSearchText } from 'utils/collections/search';
 import { isItemAFolder, isItemARequest, transformCollectionToSaveToExportAsFile } from 'utils/collections';
 import exportCollection from 'utils/collections/export';
 
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
+import CloneCollection from './CloneCollection/index';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
   const [showRenameCollectionModal, setShowRenameCollectionModal] = useState(false);
+  const [showCloneCollectionModalOpen, setShowCloneCollectionModalOpen] = useState(false);
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
-  const [collectionPropertiesModal, setCollectionPropertiesModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
 
@@ -80,9 +79,14 @@ const Collection = ({ collection, searchText }) => {
     }
   };
 
-  const handleExportClick = () => {
-    const collectionCopy = cloneDeep(collection);
-    exportCollection(transformCollectionToSaveToExportAsFile(collectionCopy));
+  const viewCollectionSettings = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
   };
 
   const [{ isOver }, drop] = useDrop({
@@ -131,8 +135,8 @@ const Collection = ({ collection, searchText }) => {
       {showExportCollectionModal && (
         <ExportCollection collection={collection} onClose={() => setShowExportCollectionModal(false)} />
       )}
-      {collectionPropertiesModal && (
-        <CollectionProperties collection={collection} onClose={() => setCollectionPropertiesModal(false)} />
+      {showCloneCollectionModalOpen && (
+        <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
@@ -174,6 +178,15 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
+                setShowCloneCollectionModalOpen(true);
+              }}
+            >
+              Clone
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
                 handleRun();
               }}
             >
@@ -201,19 +214,19 @@ const Collection = ({ collection, searchText }) => {
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setCollectionPropertiesModal(true);
+                setShowRemoveCollectionModal(true);
               }}
             >
-              Properties
+              Close
             </div>
             <div
               className="dropdown-item"
               onClick={(e) => {
                 menuDropdownTippyRef.current.hide();
-                setShowRemoveCollectionModal(true);
+                viewCollectionSettings();
               }}
             >
-              Remove
+              Settings
             </div>
           </Dropdown>
         </div>

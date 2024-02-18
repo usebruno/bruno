@@ -1,4 +1,5 @@
-**English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md)
+**English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
+| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
 
 ## Let's make bruno better, together !!
 
@@ -27,10 +28,6 @@ You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) an
 
 Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
-### Dependencies
-
-- NodeJS v18
-
 ### Local Development
 
 ```bash
@@ -40,11 +37,10 @@ nvm use
 # install deps
 npm i --legacy-peer-deps
 
-# build graphql docs
+# build packages
 npm run build:graphql-docs
-
-# build bruno query
 npm run build:bruno-query
+npm run build:bruno-common
 
 # run next app (terminal 1)
 npm run dev:web

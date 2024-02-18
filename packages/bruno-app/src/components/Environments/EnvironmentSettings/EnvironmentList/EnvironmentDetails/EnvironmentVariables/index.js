@@ -10,6 +10,7 @@ import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
+import { variableNameRegex } from 'utils/common/regex';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -23,12 +24,15 @@ const EnvironmentVariables = ({ environment, collection }) => {
         enabled: Yup.boolean(),
         name: Yup.string()
           .required('Name cannot be empty')
-          .matches(/^(?!\d)\w*$/, 'Name contains invalid characters')
+          .matches(
+            variableNameRegex,
+            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
+          )
           .trim(),
         secret: Yup.boolean(),
         type: Yup.string(),
         uid: Yup.string(),
-        value: Yup.string().trim()
+        value: Yup.string().trim().nullable()
       })
     ),
     onSubmit: (values) => {
@@ -48,7 +52,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
-    console.log(name, meta);
     if (!meta.error) {
       return null;
     }
@@ -110,7 +113,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   className="mousetrap"
                   id={`${index}.name`}
                   name={`${index}.name`}
-                  value={formik.values[index].name}
+                  value={variable.name}
                   onChange={formik.handleChange}
                 />
                 <ErrorMessage name={`${index}.name`} />
