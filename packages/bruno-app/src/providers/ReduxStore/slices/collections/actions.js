@@ -87,10 +87,11 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
 export const saveMultipleRequests = (items) => (dispatch, getState) => {
   const state = getState();
   const { collections } = state.collections;
+  const clonedItems = cloneDeep(items);
 
   return new Promise((resolve, reject) => {
     const itemsToSave = [];
-    each(items, (item) => {
+    each(clonedItems, (item) => {
       const collection = findCollectionByUid(collections, item.collectionUid);
       if (collection) {
         const itemToSave = transformRequestToSaveToFilesystem(item);
