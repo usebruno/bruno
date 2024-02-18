@@ -7,7 +7,7 @@ const { isUndefined, isNull, each, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
-const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime, runScript } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, runScript } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
 const { getOptions } = require('../utils/bru');
 const https = require('https');
@@ -55,43 +55,23 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
-    // TODO: Add feature Flag
-    if (false) {
-      const variables = {
-        envVariables,
-        collectionVariables,
-        processEnvVars
-      };
-      const result = await runScript(
-        decomment(requestScriptFile),
-        request,
-        null,
-        variables,
-        false,
-        collectionPath,
-        scriptingConfig,
-        null
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
-    } else {
-      if (requestScriptFile?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runRequestScript(
-          decomment(requestScriptFile),
-          request,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars,
-          scriptingConfig
-        );
-        if (result?.nextRequestName !== undefined) {
-          nextRequestName = result.nextRequestName;
-        }
-      }
+    const variables = {
+      envVariables,
+      collectionVariables,
+      processEnvVars
+    };
+    const requestScriptResult = await runScript(
+      decomment(requestScriptFile),
+      request,
+      null,
+      variables,
+      false,
+      collectionPath,
+      scriptingConfig,
+      null
+    );
+    if (requestScriptResult?.nextRequestName !== undefined) {
+      nextRequestName = requestScriptResult.nextRequestName;
     }
 
     // interpolate variables inside request
@@ -263,44 +243,22 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.res'),
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
-    // TODO: Add feature flag
-    if (false) {
-      const variables = {
+    const result = await runScript(
+      decomment(responseScriptFile),
+      request,
+      response,
+      {
         envVariables,
         collectionVariables,
         processEnvVars
-      };
-      const result = await runScript(
-        decomment(responseScriptFile),
-        request,
-        response,
-        variables,
-        false,
-        collectionPath,
-        scriptingConfig,
-        null
-      );
-      if (result?.nextRequestName !== undefined) {
-        nextRequestName = result.nextRequestName;
-      }
-    } else {
-      if (responseScriptFile?.length) {
-        const scriptRuntime = new ScriptRuntime();
-        const result = await scriptRuntime.runResponseScript(
-          decomment(responseScriptFile),
-          request,
-          response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars,
-          scriptingConfig
-        );
-        if (result?.nextRequestName !== undefined) {
-          nextRequestName = result.nextRequestName;
-        }
-      }
+      },
+      false,
+      collectionPath,
+      scriptingConfig,
+      null
+    );
+    if (result?.nextRequestName !== undefined) {
+      nextRequestName = result.nextRequestName;
     }
 
     // run assertions
@@ -328,42 +286,22 @@ const runSingleRequest = async function (
     }
 
     // run tests
-    let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
-
-    if (false) {
-      const result = await runScript(
-        decomment(testFile),
-        request,
-        null,
-        {
-          envVariables,
-          collectionVariables,
-          processEnvVars
-        },
-        true,
-        collectionPath,
-        scriptingConfig,
-        null
-      );
-      testResults = get(result, 'results', []);
-    } else {
-      if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
-        const result = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVariables,
-          collectionVariables,
-          collectionPath,
-          null,
-          processEnvVars,
-          scriptingConfig
-        );
-        testResults = get(result, 'results', []);
-      }
-    }
+    const testScriptResult = await runScript(
+      decomment(testFile),
+      request,
+      null,
+      {
+        envVariables,
+        collectionVariables,
+        processEnvVars
+      },
+      true,
+      collectionPath,
+      scriptingConfig,
+      null
+    );
+    const testResults = get(testScriptResult, 'results', []);
 
     if (testResults?.length) {
       each(testResults, (testResult) => {
