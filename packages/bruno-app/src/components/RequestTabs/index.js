@@ -4,11 +4,15 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import ConfirmRequestClose from './RequestTab/ConfirmRequestClose/index';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections/index';
+import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { findItemInCollection } from 'utils/collections/index';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -19,7 +23,9 @@ const RequestTabs = () => {
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [item, setItem] = useState(null);
+  const [tab, setTab] = useState(null);
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
       active: tab.uid === activeTabUid,
@@ -33,6 +39,23 @@ const RequestTabs = () => {
         uid: tab.uid
       })
     );
+  };
+
+  const handleMouseUp = (e, tab) => {
+    const item = findItemInCollection(activeCollection, tab.uid);
+    setItem(item);
+    setTab(tab);
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (e.button === 1) {
+      if (item?.draft) return setShowConfirmClose(true);
+      dispatch(
+        closeTabs({
+          tabUids: [tab.uid]
+        })
+      );
+    }
   };
 
   const createNewTab = () => setNewRequestModalOpen(true);
@@ -79,6 +102,39 @@ const RequestTabs = () => {
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
+      {showConfirmClose && (
+        <ConfirmRequestClose
+          onCancel={() => setShowConfirmClose(false)}
+          onCloseWithoutSave={() => {
+            dispatch(
+              deleteRequestDraft({
+                itemUid: item.uid,
+                collectionUid: activeCollection.uid
+              })
+            );
+            dispatch(
+              closeTabs({
+                tabUids: [tab.uid]
+              })
+            );
+            setShowConfirmClose(false);
+          }}
+          onSaveAndClose={() => {
+            dispatch(saveRequest(item.uid, activeCollection.uid))
+              .then(() => {
+                dispatch(
+                  closeTabs({
+                    tabUids: [tab.uid]
+                  })
+                );
+                setShowConfirmClose(false);
+              })
+              .catch((err) => {
+                console.log('err', err);
+              });
+          }}
+        />
+      )}
       {newRequestModalOpen && (
         <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
       )}
@@ -106,6 +162,7 @@ const RequestTabs = () => {
                 ? collectionRequestTabs.map((tab, index) => {
                     return (
                       <li
+                        onMouseUp={(e) => handleMouseUp(e, tab)}
                         key={tab.uid}
                         className={getTabClassname(tab, index)}
                         role="tab"
