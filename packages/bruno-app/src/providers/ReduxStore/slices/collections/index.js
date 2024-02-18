@@ -1290,7 +1290,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, isRecursive, error } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -1306,6 +1306,7 @@ export const collectionsSlice = createSlice({
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
           info.isRecursive = isRecursive;
+          info.cancelTokenUid = cancelTokenUid;
           info.status = 'started';
         }
 
