@@ -1,5 +1,6 @@
+const FormData = require('form-data');
+const { each, forOwn, cloneDeep, extend } = require('lodash');
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -78,6 +79,16 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
+  } else if (request.mode === 'multipartForm') {
+    // make axios work in node using form data
+    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+    const form = new FormData();
+    forOwn(request.data, (value, name) => {
+      form.append(_interpolate(name), _interpolate(value));
+    });
+
+    extend(request.headers, form.getHeaders());
+    request.data = form;
   } else {
     request.data = _interpolate(request.data);
   }

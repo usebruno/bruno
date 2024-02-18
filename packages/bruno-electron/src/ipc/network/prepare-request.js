@@ -1,4 +1,4 @@
-const { get, each, filter, extend } = require('lodash');
+const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -174,9 +174,11 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
 
   if (request.body.mode === 'multipartForm') {
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = parseFormData(enabledParams, collectionPath);
-    extend(axiosRequest.headers, form.getHeaders());
-    axiosRequest.data = form;
+
+    const params = {};
+    each(enabledParams, (p) => (params[p.name] = p.value));
+    axiosRequest.data = params;
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
   }
 
   if (request.body.mode === 'graphql') {

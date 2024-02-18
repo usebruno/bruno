@@ -25,6 +25,7 @@ For the release notes please see https://github.com/usebruno/bruno/releases
 ## 1.2.0
 
 - Support for `bru.setNextRequest()`
+  > > > > > > > main
 
 ## 1.1.0
 
