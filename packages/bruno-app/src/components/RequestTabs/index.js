@@ -104,6 +104,7 @@ const RequestTabs = () => {
     <StyledWrapper className={getRootClassname()}>
       {showConfirmClose && (
         <ConfirmRequestClose
+          item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             dispatch(
