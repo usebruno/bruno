@@ -7,9 +7,6 @@
     "src",
     "package.json"
   ],
-  "peerDependencies": {
-    "@n8n/vm2": "^3.9.23"
-  },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js"
   },

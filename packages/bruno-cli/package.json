@@ -40,7 +40,6 @@
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
-    "vm2": "^3.9.13",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
   }
