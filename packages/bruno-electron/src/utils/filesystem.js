@@ -151,13 +151,15 @@ const sanitizeFilename = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
 };
 
-const fileExistsWithCase = (newFilePath, oldFilePath) => {
-  const newFileName = path.basename(newFilePath);
-  const oldFileName = path.basename(oldFilePath);
-  if (newFileName.toLowerCase() === oldFileName.toLowerCase()) {
-    return false;
+const canRenameFile = (newFilePath, oldFilePath) => {
+  const newFileExists = fs.existsSync(newFilePath);
+  if (!newFileExists) {
+    // File does not exists, so wen can safely rename
+    return true;
   }
-  return fs.existsSync(newFilePath);
+
+  // Try to resolve both paths, if they reference the same file. We are on a case-insentive filesystem like NTFS and are trying to rename a file
+  return fs.statSync(newFilePath).ino === fs.statSync(oldFilePath).ino;
 };
 
 module.exports = {
@@ -179,5 +181,5 @@ module.exports = {
   searchForBruFiles,
   sanitizeDirectoryName,
   sanitizeFilename,
-  fileExistsWithCase
+  canRenameFile
 };

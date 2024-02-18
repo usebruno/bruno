@@ -14,7 +14,7 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName,
   sanitizeFilename,
-  fileExistsWithCase
+  canRenameFile
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -284,7 +284,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.join(envDirPath, `${sanitizeFilename(newName)}.bru`);
-      if (fileExistsWithCase(newEnvFilePath, envFilePath)) {
+      if (!canRenameFile(newEnvFilePath, envFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -329,9 +329,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!fs.existsSync(oldPathFull)) {
         throw new Error(`path: ${oldPathFull} does not exist`);
       }
-      if (fileExistsWithCase(newPath, oldPathFull)) {
-        throw new Error(`path: ${newPath} already exists`);
-      }
 
       // if its directory, rename and return
       if (isDirectory(oldPathFull)) {
@@ -355,7 +352,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newSanitizedPath = path.join(newPath, sanitizeFilename(newName) + '.bru');
-      if (fs.existsSync(newSanitizedPath) && newSanitizedPath !== oldPathFull) {
+      if (!canRenameFile(newSanitizedPath, oldPathFull)) {
         throw new Error(`path: ${newSanitizedPath} already exists`);
       }
 
