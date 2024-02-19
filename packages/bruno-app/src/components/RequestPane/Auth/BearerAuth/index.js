@@ -11,7 +11,9 @@ const BearerAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken =
+  const bearerToken = item.draft
+    ? get(item, 'draft.request.auth.bearer.token', '')
+    : get(item, 'request.auth.bearer.token', '');
     (item.draft ? get(item, 'draft.request.auth.bearer.token') : get(item, 'request.auth.bearer.token')) ?? '';
 
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
