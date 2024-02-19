@@ -7,6 +7,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { shellOpenCollectionPath } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -77,6 +78,14 @@ const Collection = ({ collection, searchText }) => {
       }
       _menuDropdown[menuDropdownBehavior]();
     }
+  };
+
+  const handleShellRevealCollection = () => {
+    dispatch(shellOpenCollectionPath(collection.pathname, true, false));
+  };
+
+  const handleShellEditCollection = () => {
+    dispatch(shellOpenCollectionPath(collection.pathname, true, true));
   };
 
   const viewCollectionSettings = () => {
@@ -227,6 +236,24 @@ const Collection = ({ collection, searchText }) => {
               }}
             >
               Settings
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                handleShellRevealCollection();
+              }}
+            >
+              Open Location
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                handleShellEditCollection();
+              }}
+            >
+              Edit bruno.json
             </div>
           </Dropdown>
         </div>

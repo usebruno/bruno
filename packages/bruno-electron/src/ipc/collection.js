@@ -560,6 +560,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:shell-open', async (event, itemPath, isCollection, edit) => {
+    if (isCollection) {
+      itemPath = path.join(itemPath, 'bruno.json');
+    }
+
+    if (fs.existsSync(itemPath)) {
+      const isDir = fs.statSync(itemPath).isDirectory();
+
+      if (edit && !isDir) {
+        shell.openPath(itemPath);
+      } else {
+        shell.showItemInFolder(itemPath);
+      }
+    }
+  });
+
   ipcMain.handle('renderer:update-bruno-config', async (event, brunoConfig, collectionPath, collectionUid) => {
     try {
       const brunoConfigPath = path.join(collectionPath, 'bruno.json');
