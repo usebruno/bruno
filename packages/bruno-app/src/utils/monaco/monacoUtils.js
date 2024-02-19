@@ -280,23 +280,14 @@ export const setCustomLanguage = (monaco) => {
       ]
     }
   });
-
-  monaco.editor.defineTheme('customTheme', {
-    base: 'vs',
-    inherit: false,
-    rules: [
-      { token: 'defined-variable', foreground: '#75A99C' },
-      { token: 'undefined-variable', foreground: '#FC0117' }
-    ]
-  });
 };
 
 let oldHoverProvider = null;
 
-export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQuery) => {
+export const setMonacoVariables = (monaco, variables, mode = 'javascript', isQuery) => {
   const allVariables = Object.entries(variables ?? {});
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-    diagnosticCodesToIgnore: [1109]
+    diagnosticCodesToIgnore: [1109, 2580, 2451, 80005, 1375, 1378]
   });
   monaco.languages.setLanguageConfiguration(mode, {
     autoClosingPairs: [{ open: '{{', close: '}}' }]
@@ -327,7 +318,7 @@ export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQue
       ]
     }
   });
-  const newHoverProvider = monaco.languages.registerHoverProvider('typescript', {
+  const newHoverProvider = monaco.languages.registerHoverProvider('javascript', {
     provideHover: (model, position) => {
       // Rebuild the hoverProvider to avoid memory leaks
       const word = getWordAtPosition(model, position);
@@ -348,7 +339,7 @@ export const setMonacoVariables = (monaco, variables, mode = 'typescript', isQue
   oldHoverProvider?.dispose();
   oldHoverProvider = newHoverProvider;
   const typedVariables = Object.entries(variables ?? {}).map(([key, value]) => `declare const ${key}: string`);
-  monaco.languages.typescript.typescriptDefaults.addExtraLib(typedVariables.join('\n'));
+  monaco.languages.typescript.javascriptDefaults.setExtraLibs([{content: typedVariables.join('\n')}]);
 };
 
 export const initMonaco = (monaco) => {
@@ -385,7 +376,7 @@ export const initMonaco = (monaco) => {
         token: 'EnvVariables',
         foreground: '#15803d',
         fontStyle: 'medium'
-      }
+      },
     ],
     colors: {
       'editor.background': '#00000000'
@@ -443,7 +434,10 @@ export const initMonaco = (monaco) => {
   });
   // javascript is solely used for the query editor
   monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-    diagnosticCodesToIgnore: [1109]
+    diagnosticCodesToIgnore: [1109, 2580, 2451, 80005, 1375, 1378]
+  });
+  monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+    diagnosticCodesToIgnore: [1109, 2580, 2451, 80005, 1375, 1378]
   });
 };
 

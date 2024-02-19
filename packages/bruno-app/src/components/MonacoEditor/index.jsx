@@ -34,7 +34,6 @@ export const MonacoEditor = ({
     javascript: 'typescript'
   };
   const [cachedValue, setCachedValue] = useState(value ?? '');
-  const [hoverProvider, setHoverProvider] = useState(null);
   const debounceChanges = debounce((newValue) => {
     onChange(newValue);
   }, 300);
@@ -72,7 +71,7 @@ export const MonacoEditor = ({
   const allVariables = getAllVariables(collection);
   useEffect(() => {
     if (allVariables && withVariables) {
-      setMonacoVariables(monaco, allVariables);
+      setMonacoVariables(monaco, allVariables, "javascript");
     }
   }, [allVariables, withVariables]);
   const singleLineOptions = singleLine
@@ -117,7 +116,7 @@ export const MonacoEditor = ({
       height={singleLine ? '20px' : height}
       className="rounded-md h-full w-full flex bg-dark"
       theme={finalTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
-      language={withVariables ? 'typescript' : languages[mode]}
+      language={withVariables ? 'javascript' : languages[mode]}
       value={cachedValue}
       onMount={onMount}
       onChange={!readOnly ? handleEditorChange : () => {}}
