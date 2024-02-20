@@ -1,8 +1,14 @@
 require('dotenv').config({ path: process.env.DOTENV_PATH });
 
+// TAG_NAME is set inside the CI-Pipeline
+const isNightly = process.env.RELEASE_TAG_NAME !== undefined;
+// Add Nightly-Suffix to the version for nightly builds
+const artifactName =
+  '${name}_${version}' + (isNightly ? `-${process.env.RELEASE_TAG_NAME}` : '') + '_${arch}_${os}.${ext}';
+
 const config = {
-  appId: 'com.usebruno.app',
-  productName: 'Bruno',
+  appId: `com.usebruno${isNightly ? '-nightly' : ''}.app`,
+  productName: 'Bruno' + (isNightly ? ' Nightly' : ''),
   electronVersion: '21.1.1',
   directories: {
     buildResources: 'resources',
@@ -11,7 +17,7 @@ const config = {
   files: ['**/*'],
   afterSign: 'notarize.js',
   mac: {
-    artifactName: '${name}_${version}_${arch}_${os}.${ext}',
+    artifactName,
     category: 'public.app-category.developer-tools',
     target: [
       {
@@ -30,15 +36,15 @@ const config = {
     entitlementsInherit: 'resources/entitlements.mac.plist'
   },
   linux: {
-    artifactName: '${name}_${version}_${arch}_linux.${ext}',
+    artifactName,
     icon: 'resources/icons/png',
     target: ['AppImage', 'deb', 'snap', 'rpm']
   },
   win: {
-    artifactName: '${name}_${version}_${arch}_win.${ext}',
+    artifactName,
     icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
+    certificateFile: process.env.WIN_CERT_FILEPATH ? `${process.env.WIN_CERT_FILEPATH}` : undefined,
+    certificatePassword: process.env.WIN_CERT_PASSWORD ? `${process.env.WIN_CERT_PASSWORD}` : undefined
   }
 };
 
