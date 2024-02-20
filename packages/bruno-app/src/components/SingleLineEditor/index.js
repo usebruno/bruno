@@ -122,7 +122,7 @@ class SingleLineEditor extends Component {
         }
       });
     }
-    this.editor.setValue(this.props.value || '');
+    this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay();
   }
@@ -151,8 +151,8 @@ class SingleLineEditor extends Component {
       this.editor.setOption('theme', this.props.theme === 'dark' ? 'monokai' : 'default');
     }
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
-      this.cachedValue = this.props.value;
-      this.editor.setValue(this.props.value || '');
+      this.cachedValue = String(this.props.value);
+      this.editor.setValue(String(this.props.value) || '');
     }
     this.ignoreChangeEvent = false;
   }

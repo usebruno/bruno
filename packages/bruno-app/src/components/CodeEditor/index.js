@@ -60,7 +60,8 @@ if (!SERVER_RENDERED) {
     'bru.getEnvVar(key)',
     'bru.setEnvVar(key,value)',
     'bru.getVar(key)',
-    'bru.setVar(key,value)'
+    'bru.setVar(key,value)',
+    'bru.setNextRequest(requestName)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -103,6 +104,12 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
   }
 
   componentDidMount() {
@@ -118,7 +125,7 @@ export default class CodeEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-      lint: { esversion: 11 },
+      lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -209,7 +216,7 @@ export default class CodeEditor extends React.Component {
       return found;
     });
     if (editor) {
-      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -299,7 +306,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

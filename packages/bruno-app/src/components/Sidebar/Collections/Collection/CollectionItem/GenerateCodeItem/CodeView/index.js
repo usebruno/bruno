@@ -8,12 +8,20 @@ import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
+import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
 
 const CodeView = ({ language, item }) => {
   const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { target, client, language: lang } = language;
-  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const collection = findCollectionByItemUid(
+    useSelector((state) => state.collections.collections),
+    item.uid
+  );
+
+  const headers = [...(collection?.root?.request?.headers || []), ...(requestHeaders || [])];
+
   let snippet = '';
 
   try {

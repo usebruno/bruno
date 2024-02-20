@@ -147,8 +147,9 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
             each(i.request.body.formdata, (param) => {
-              brunoRequestItem.request.body.formUrlEncoded.push({
+              brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
+                type: 'text',
                 name: param.key,
                 value: param.value,
                 description: param.description,
