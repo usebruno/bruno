@@ -1,8 +1,8 @@
 require('dotenv').config({ path: process.env.DOTENV_PATH });
 
 const config = {
-  appId: 'com.usebruno.app',
-  productName: 'Bruno',
+  appId: 'com.usebruno-lazer.app',
+  productName: 'Bruno lazer',
   electronVersion: '21.1.1',
   directories: {
     buildResources: 'resources',
@@ -11,7 +11,7 @@ const config = {
   files: ['**/*'],
   afterSign: 'notarize.js',
   mac: {
-    artifactName: '${name}_${version}_${arch}_${os}.${ext}',
+    artifactName: 'bruno-lazer_nightly_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
     target: [
       {
@@ -30,16 +30,16 @@ const config = {
     entitlementsInherit: 'resources/entitlements.mac.plist'
   },
   linux: {
-    artifactName: '${name}_${version}_${arch}_linux.${ext}',
+    artifactName: 'bruno-lazer_nightly_${arch}_linux.${ext}',
     icon: 'resources/icons/png',
     target: ['AppImage', 'deb', 'snap', 'rpm']
   },
   win: {
-    artifactName: '${name}_${version}_${arch}_win.${ext}',
-    icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
-  }
+    target: 'msi',
+    artifactName: 'bruno-lazer_nightly_${arch}_win.${ext}',
+    icon: 'resources/icons/png'
+  },
+  publish: []
 };
 
 module.exports = config;
