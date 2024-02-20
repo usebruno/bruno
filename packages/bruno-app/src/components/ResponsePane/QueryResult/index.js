@@ -51,7 +51,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -132,7 +132,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             collection={collection}
             allowedPreviewModes={allowedPreviewModes}
             disableRunEventListener={disableRunEventListener}
-            storedTheme={storedTheme}
+            displayedTheme={displayedTheme}
           />
           {queryFilterEnabled && <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} />}
         </>
