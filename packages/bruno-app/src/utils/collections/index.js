@@ -417,7 +417,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
   });
 
   if (itemToSave.request.body.mode === 'json') {
-    const copyItemToSave = JSON.parse(itemToSave);
+    const copyItemToSave = cloneDeep(itemToSave);
     copyItemToSave.request.body.json = replaceTabsWithSpaces(copyItemToSave.request.body.json);
     return copyItemToSave;
   }
