@@ -54,7 +54,7 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, enableTranslation) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
 
@@ -78,7 +78,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, enableTranslation);
       }
     } else {
       if (i.request) {
@@ -266,7 +266,7 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = (collection) => {
+const importPostmanV2Collection = (collection, enableTranslation) => {
   const brunoCollection = {
     name: collection.info.name,
     uid: uuid(),
@@ -275,12 +275,13 @@ const importPostmanV2Collection = (collection) => {
     environments: []
   };
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, enableTranslation);
 
   return brunoCollection;
 };
 
-const parsePostmanCollection = (str) => {
+const parsePostmanCollection = (str, enableTranslation) => {
+  console.log('PITIE PITIT SVP')
   return new Promise((resolve, reject) => {
     try {
       let collection = JSON.parse(str);
@@ -292,7 +293,7 @@ const parsePostmanCollection = (str) => {
       ];
 
       if (v2Schemas.includes(schema)) {
-        return resolve(importPostmanV2Collection(collection));
+        return resolve(importPostmanV2Collection(collection, enableTranslation));
       }
 
       throw new BrunoError('Unknown postman schema');

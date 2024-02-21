@@ -80,6 +80,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               Browse
             </span>
           </div>
+          <span>wesh alors</span>
         </div>
       </form>
     </Modal>
