@@ -16,6 +16,7 @@ const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
+const addFormats = require('ajv-formats');
 const atob = require('atob');
 const btoa = require('btoa');
 const lodash = require('lodash');
@@ -102,6 +103,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
@@ -194,6 +196,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
