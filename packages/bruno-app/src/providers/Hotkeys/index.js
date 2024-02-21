@@ -18,6 +18,7 @@ export const HotkeysProvider = (props) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
@@ -43,16 +44,20 @@ export const HotkeysProvider = (props) => {
   // save hotkey
   useEffect(() => {
     Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
-      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-      if (activeTab) {
-        const collection = findCollectionByUid(collections, activeTab.collectionUid);
-        if (collection) {
-          const item = findItemInCollection(collection, activeTab.uid);
-          if (item && item.uid) {
-            dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
-          } else {
-            // todo: when ephermal requests go live
-            // setShowSaveRequestModal(true);
+      if (isEnvironmentSettingsModalOpen) {
+        console.log('todo: save environment settings');
+      } else {
+        const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+        if (activeTab) {
+          const collection = findCollectionByUid(collections, activeTab.collectionUid);
+          if (collection) {
+            const item = findItemInCollection(collection, activeTab.uid);
+            if (item && item.uid) {
+              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+            } else {
+              // todo: when ephermal requests go live
+              // setShowSaveRequestModal(true);
+            }
           }
         }
       }
@@ -63,7 +68,7 @@ export const HotkeysProvider = (props) => {
     return () => {
       Mousetrap.unbind(['command+s', 'ctrl+s']);
     };
-  }, [activeTabUid, tabs, saveRequest, collections]);
+  }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {

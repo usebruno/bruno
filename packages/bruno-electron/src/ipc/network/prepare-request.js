@@ -15,11 +15,12 @@ const parseFormData = (datas, collectionPath) => {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
+
         if (!path.isAbsolute(trimmedFilePath)) {
           trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
-        const file = fs.readFileSync(trimmedFilePath);
-        form.append(name, file, path.basename(trimmedFilePath));
+
+        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
       });
     } else {
       form.append(name, value);

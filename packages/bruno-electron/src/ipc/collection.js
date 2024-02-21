@@ -617,6 +617,7 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   ipcMain.on('main:collection-opened', (win, pathname, uid, brunoConfig) => {
     watcher.addWatcher(win, pathname, uid, brunoConfig);
     lastOpenedCollections.add(pathname);
+    app.addRecentDocument(pathname);
   });
 
   // The app listen for this event and allows the user to save unsaved requests before closing the app
