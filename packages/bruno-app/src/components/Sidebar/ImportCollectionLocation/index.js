@@ -4,6 +4,8 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { browseDirectory } from 'providers/ReduxStore/slices/collections/actions';
 import Modal from 'components/Modal';
+import { Input } from 'components/ui/input';
+import { Button } from 'components/ui/button';
 
 const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => {
   const inputRef = useRef();
@@ -45,7 +47,11 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
   const onSubmit = () => formik.handleSubmit();
 
   return (
-    <Modal size="sm" title="Import Collection" confirmText="Import" handleConfirm={onSubmit} handleCancel={onClose}>
+    <Modal
+      size="sm"
+      title="Import Collection"
+      confirmText="Import"
+      handleConfirm={onSubmit} handleCancel={onClose}>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div>
           <label htmlFor="collectionName" className="block font-semibold">
@@ -57,12 +63,13 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
             <label htmlFor="collectionLocation" className="block font-semibold mt-3">
               Location
             </label>
-            <input
+            <div className="flex w-full max-w-sm items-center space-x-2 mt-1">
+            <Input
               id="collection-location"
               type="text"
               name="collectionLocation"
               readOnly={true}
-              className="block textbox mt-2 w-full"
+              placeholder="Select a location"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
@@ -70,17 +77,12 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName }) => 
               value={formik.values.collectionLocation || ''}
               onClick={browse}
             />
+              <Button onClick={browse}>Browse</Button>
+            </div>
           </>
           {formik.touched.collectionLocation && formik.errors.collectionLocation ? (
             <div className="text-red-500">{formik.errors.collectionLocation}</div>
           ) : null}
-
-          <div className="mt-1">
-            <span className="text-link cursor-pointer hover:underline" onClick={browse}>
-              Browse
-            </span>
-          </div>
-          <span>wesh alors</span>
         </div>
       </form>
     </Modal>

@@ -54,7 +54,7 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, enableTranslation) => {
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
 
@@ -78,7 +78,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, enableTran
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
-        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, enableTranslation);
+        importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
       }
     } else {
       if (i.request) {
@@ -123,10 +123,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, enableTran
               }
               if (Array.isArray(event.script.exec)) {
                 brunoRequestItem.request.script.req = event.script.exec
-                  .map((line) => postmanTranslation(line))
-                  .join('\n');
+                  .map((line) => options.enablePostmanTranslations.enabled ?
+                    postmanTranslation(line) : `// ${line}`).join('\n')
               } else {
-                brunoRequestItem.request.script.req = postmanTranslation(event.script.exec[0]);
+                brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled ?
+                  postmanTranslation(event.script.exec[0]) :
+                  `// ${event.script.exec[0]} `;
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
@@ -134,9 +136,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, enableTran
                 brunoRequestItem.request.tests = {};
               }
               if (Array.isArray(event.script.exec)) {
-                brunoRequestItem.request.tests = event.script.exec.map((line) => postmanTranslation(line)).join('\n');
+                brunoRequestItem.request.tests = event.script.exec
+                  .map((line) => options.enablePostmanTranslations.enabled ?
+                    postmanTranslation(line) : `// ${line}`).join('\n');
               } else {
-                brunoRequestItem.request.tests = postmanTranslation(event.script.exec[0]);
+                brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled ?
+                  postmanTranslation(event.script.exec[0]) :
+                  `// ${event.script.exec[0]} `;
               }
             }
           });
@@ -266,7 +272,7 @@ const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-const importPostmanV2Collection = (collection, enableTranslation) => {
+const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
     name: collection.info.name,
     uid: uuid(),
@@ -275,13 +281,12 @@ const importPostmanV2Collection = (collection, enableTranslation) => {
     environments: []
   };
 
-  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, enableTranslation);
+  importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
 
   return brunoCollection;
 };
 
-const parsePostmanCollection = (str, enableTranslation) => {
-  console.log('PITIE PITIT SVP')
+const parsePostmanCollection = (str, options) => {
   return new Promise((resolve, reject) => {
     try {
       let collection = JSON.parse(str);
@@ -293,7 +298,7 @@ const parsePostmanCollection = (str, enableTranslation) => {
       ];
 
       if (v2Schemas.includes(schema)) {
-        return resolve(importPostmanV2Collection(collection, enableTranslation));
+        return resolve(importPostmanV2Collection(collection, options));
       }
 
       throw new BrunoError('Unknown postman schema');
@@ -308,11 +313,11 @@ const parsePostmanCollection = (str, enableTranslation) => {
   });
 };
 
-const importCollection = () => {
+const importCollection = (options) => {
   return new Promise((resolve, reject) => {
     fileDialog({ accept: 'application/json' })
       .then(readFile)
-      .then(parsePostmanCollection)
+      .then((str) => parsePostmanCollection(str, options))
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
