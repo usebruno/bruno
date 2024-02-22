@@ -22,7 +22,7 @@
 
 📢 شاهد حديثنا الأخير في مؤتمر India FOSS 3.0 [هنا](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
-![bruno](assets/images/landing-2.png) <br /><br />
+![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/landing-2.png) <br /><br />
 
 ### الطبعة الذهبية ✨
 
@@ -66,13 +66,13 @@ sudo apt
 ```
 ### التشغيل عبر منصات متعددة 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/run-anywhere.png) <br /><br />
 
 ### التعاون عبر Git 👩‍💻🧑‍💻
 
 أو أي نظام تحكم في الإصدار الذي تفضله
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](https://github.com/usebruno/bruno/blob/main/assets/images/version-control.png) <br /><br />
 
 ### الروابط المهمة 📌
 
