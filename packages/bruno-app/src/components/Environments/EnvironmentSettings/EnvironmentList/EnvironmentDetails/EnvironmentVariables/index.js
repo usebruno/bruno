@@ -1,7 +1,7 @@
 import React from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconEye, IconEyeOff } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -15,6 +15,7 @@ import { variableNameRegex } from 'utils/common/regex';
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const [showSecret, setShowSecret] = React.useState(false);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -118,14 +119,21 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 />
                 <ErrorMessage name={`${index}.name`} />
               </td>
-              <td>
+              <td className="flex">
                 <SingleLineEditor
                   theme={storedTheme}
                   collection={collection}
                   name={`${index}.value`}
-                  value={variable.value}
+                  value={
+                    showSecret ? variable.value : variable.secret ? '#'.repeat(variable.value.length) : variable.value
+                  }
                   onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                 />
+                {variable.secret && (
+                  <button className="ml-2" onClick={() => setShowSecret(!showSecret)}>
+                    {showSecret ? <IconEye strokeWidth={1.5} size={20} /> : <IconEyeOff strokeWidth={1.5} size={20} />}
+                  </button>
+                )}
               </td>
               <td>
                 <input
