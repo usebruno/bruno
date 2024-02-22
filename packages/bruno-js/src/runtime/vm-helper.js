@@ -130,6 +130,7 @@ const defaultModuleWhiteList = [
   'zlib',
   // Pre-installed 3rd libs
   'ajv',
+  'ajv-formats',
   'atob',
   'btoa',
   'lodash',
