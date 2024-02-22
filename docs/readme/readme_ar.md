@@ -1,5 +1,6 @@
 <br />
-(https://github.com/usebruno/bruno/blob/main/assets/images/logo-transparent.png)
+![logo-transparent](https://github.com/mejbass/bruno/assets/130122304/08a0a99e-c384-4f87-858f-3a841efe0eba)
+
 
 ### برونو - بيئة تطوير مفتوحة المصدر لاستكشاف واختبار واجهات برمجة التطبيقات (APIs).
 
