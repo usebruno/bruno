@@ -1,5 +1,5 @@
 <br />
-<img src="assets/images/logo-transparent.png" width="80"/>
+(https://github.com/usebruno/bruno/blob/main/assets/images/logo-transparent.png)
 
 ### برونو - بيئة تطوير مفتوحة المصدر لاستكشاف واختبار واجهات برمجة التطبيقات (APIs).
 
