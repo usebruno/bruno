@@ -115,7 +115,7 @@ export const MonacoEditor = ({
         ...singleLineOptions
       }}
       height={singleLine ? '20px' : height}
-      className="rounded-md h-full w-full flex border border-zinc-200 dark:border-zinc-700 overflow-hidden"
+      className="rounded-md h-full w-full flex border border-zinc-200 dark:border-zinc-700"
       theme={finalTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
       language={withVariables ? 'javascript' : languages[mode]}
       value={cachedValue}

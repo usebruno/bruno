@@ -326,6 +326,7 @@ export const setMonacoVariables = (monaco, variables, mode = 'javascript', isQue
       const word = getWordAtPosition(model, position);
       const variable = allVariables.find(([key, _]) => key === word);
       if (variable) {
+        console.log('hey look what i found !!!', variable[0])
         return {
           range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
           contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]

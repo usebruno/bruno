@@ -64,6 +64,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       >
         <CodeEditor
           singleLine
+          withVariables
           value={url}
           onSave={onSave}
           theme={storedTheme}
