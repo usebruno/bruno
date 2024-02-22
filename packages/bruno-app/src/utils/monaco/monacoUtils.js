@@ -1,3 +1,5 @@
+import colors from 'tailwindcss/colors';
+
 const buildSuggestions = (monaco) => [
   {
     label: 'res',
@@ -239,7 +241,7 @@ export const getWordAtPosition = (model, position) => {
         endColumn: startPos
       })
     )
-  ) {
+    ) {
     startPos--;
   }
 
@@ -253,7 +255,7 @@ export const getWordAtPosition = (model, position) => {
         endColumn: endPos + 1
       })
     )
-  ) {
+    ) {
     endPos++;
   }
 
@@ -324,6 +326,7 @@ export const setMonacoVariables = (monaco, variables, mode = 'javascript', isQue
       const word = getWordAtPosition(model, position);
       const variable = allVariables.find(([key, _]) => key === word);
       if (variable) {
+        console.log('hey look what i found !!!', variable[0])
         return {
           range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
           contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
@@ -356,11 +359,13 @@ export const initMonaco = (monaco) => {
         token: 'EnvVariables',
         foreground: '#4ade80',
         fontStyle: 'medium'
-      }
+      },
+      { background: colors.zinc[800] }
     ],
     colors: {
       'editor.background': '#00000000',
-      'editor.foreground': '#ffffff'
+      'editor.foreground': '#ffffff',
+      'editorGutter.background': colors.zinc[800],
     }
   });
   monaco.editor.defineTheme('bruno-light', {
@@ -377,9 +382,11 @@ export const initMonaco = (monaco) => {
         foreground: '#15803d',
         fontStyle: 'medium'
       },
+      { background: colors.zinc[50] }
     ],
     colors: {
-      'editor.background': '#00000000'
+      'editor.background': '#00000000',
+      'editorGutter.background': colors.zinc[50],
     }
   });
   monaco.languages.typescript.typescriptDefaults.addExtraLib(`

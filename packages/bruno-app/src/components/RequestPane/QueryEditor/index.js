@@ -5,13 +5,21 @@
  *  LICENSE file in the root directory of this source tree.
  */
 
-/* import React from 'react';
+import React from 'react';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
 import { getAllVariables } from 'utils/collections';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
+
+let CodeMirror;
+const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+
+if (!SERVER_RENDERED) {
+  CodeMirror = require('codemirror');
+}
 
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
@@ -38,7 +46,7 @@ export default class QueryEditor extends React.Component {
         variables: getAllVariables(this.props.collection)
       },
       theme: this.props.editorTheme || 'graphiql',
-      theme: this.props.theme === 'dark' ? 'monokai' : 'default',
+      // theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -98,7 +106,6 @@ export default class QueryEditor extends React.Component {
           }
         },
         /* Shift-Ctrl-P is hard coded in Firefox for private browsing so adding an alternative to Pretiffy */
-/*
         'Shift-Ctrl-F': () => {
           if (this.props.onPrettifyQuery) {
             this.props.onPrettifyQuery();
@@ -214,7 +221,6 @@ export default class QueryEditor extends React.Component {
    * Render a custom UI for CodeMirror's hint which includes additional info
    * about the type and description for the selected context.
    */
-/*
   _onHasCompletion = (cm, data) => {
     onHasCompletion(cm, data, this.props.onHintInformationRender);
   };
@@ -238,4 +244,3 @@ export default class QueryEditor extends React.Component {
     }
   }
 }
-*/

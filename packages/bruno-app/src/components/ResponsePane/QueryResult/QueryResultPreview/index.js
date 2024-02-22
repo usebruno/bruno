@@ -1,3 +1,4 @@
+import CodeEditor from 'components/CodeEditor';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -6,7 +7,6 @@ import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryResultPreview = ({
   previewTab,
@@ -19,7 +19,7 @@ const QueryResultPreview = ({
   collection,
   mode,
   disableRunEventListener,
-  storedTheme
+  displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -39,6 +39,7 @@ const QueryResultPreview = ({
     }
     dispatch(sendRequest(item, collection.uid));
   };
+
   switch (previewTab) {
     case 'preview-web': {
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
@@ -67,12 +68,11 @@ const QueryResultPreview = ({
     default:
     case 'raw': {
       return (
-        <MonacoEditor
+        <CodeEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
-          theme={storedTheme}
+          theme={displayedTheme}
           onRun={onRun}
-          height={'50vh'}
           value={formattedData}
           mode={mode}
           readOnly

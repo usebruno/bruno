@@ -9,9 +9,9 @@ import {
   updateMultipartFormParam,
   deleteMultipartFormParam
 } from 'providers/ReduxStore/slices/collections';
+import CodeEditor from 'src/components/CodeEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 import FilePickerEditor from 'components/FilePickerEditor';
 
 const MultipartFormParams = ({ item, collection }) => {
@@ -121,7 +121,7 @@ const MultipartFormParams = ({ item, collection }) => {
                           collection={collection}
                         />
                       ) : (
-                        <MonacoEditor
+                        <CodeEditor
                           singleLine
                           onSave={onSave}
                           theme={storedTheme}

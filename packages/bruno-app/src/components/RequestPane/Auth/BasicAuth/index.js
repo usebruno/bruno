@@ -2,10 +2,10 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const BasicAuth = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -48,7 +48,7 @@ const BasicAuth = ({ item, collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Username</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={basicAuth.username || ''}
           theme={storedTheme}
@@ -61,7 +61,7 @@ const BasicAuth = ({ item, collection }) => {
 
       <label className="block font-medium mb-2">Password</label>
       <div className="single-line-editor-wrapper">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={basicAuth.password || ''}
           theme={storedTheme}

@@ -1,18 +1,18 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import CodeEditor from 'components/CodeEditor';
 import { updateRequestScript, updateResponseScript } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onRequestScriptEdit = (value) => {
@@ -41,11 +41,11 @@ const Script = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
-        <h3 className="title text-xs mb-2">Pre Request</h3>
-        <MonacoEditor
+        <div className="mb-1 title text-xs">Pre Request</div>
+        <CodeEditor
           collection={collection}
           value={requestScript || ''}
-          theme={storedTheme}
+          theme={displayedTheme}
           height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onChange={onRequestScriptEdit}
@@ -54,12 +54,12 @@ const Script = ({ item, collection }) => {
           onSave={onSave}
         />
       </div>
-      <div className="flex-1 pb-6 mt-2">
-        <h3 className="mb-2 title text-xs">Post Response</h3>
-        <MonacoEditor
+      <div className="flex-1 mt-6">
+        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+        <CodeEditor
           collection={collection}
           value={responseScript || ''}
-          theme={storedTheme}
+          theme={displayedTheme}
           height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
           onChange={onResponseScriptEdit}

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
@@ -24,14 +24,26 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
 
+  // ref for the runner output body
+  const runnerBodyRef = useRef();
+
+  const autoScrollRunnerBody = () => {
+    if (runnerBodyRef?.current) {
+      // mimicks the native terminal scroll style
+      runnerBodyRef.current.scrollTo(0, 100000);
+    }
+  };
+
   useEffect(() => {
     if (!collection.runnerResult) {
       setSelectedItem(null);
     }
+    autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -81,6 +93,10 @@ export default function RunnerResults({ collection }) {
     );
   };
 
+  const cancelExecution = () => {
+    dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
+  };
+
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
   const passedRequests = items.filter((item) => {
     return item.status !== 'error' && item.testStatus === 'pass' && item.assertionStatus === 'pass';
@@ -91,12 +107,11 @@ export default function RunnerResults({ collection }) {
 
   if (!items || !items.length) {
     return (
-      <StyledWrapper className="px-4">
+      <StyledWrapper className="px-4 pb-4">
         <div className="font-medium mt-6 title flex items-center">
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
-
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
@@ -114,13 +129,24 @@ export default function RunnerResults({ collection }) {
 
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
-      <div className="font-medium mt-6 mb-4 title flex items-center">
-        Runner
-        <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+      <div className="flex flex-row">
+        <div className="font-medium my-6 title flex items-center">
+          Runner
+          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+        </div>
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
+          <button className="btn ml-6 my-4 btn-sm btn-danger" onClick={cancelExecution}>
+            Cancel Execution
+          </button>
+        )}
       </div>
-      <div className="flex flex-1">
+      <div
+        className="flex flex-col overflow-y-auto"
+        ref={runnerBodyRef}
+        style={{ height: 'calc(100vh - 12rem)', maxHeight: 'calc(100vh - 12rem)' }}
+      >
         <div className="flex flex-col flex-1">
-          <div className="py-2 font-medium test-summary">
+          <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
           {items.map((item) => {
@@ -195,7 +221,6 @@ export default function RunnerResults({ collection }) {
               </div>
             );
           })}
-
           {runnerInfo.status === 'ended' ? (
             <div className="mt-2 mb-4">
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>

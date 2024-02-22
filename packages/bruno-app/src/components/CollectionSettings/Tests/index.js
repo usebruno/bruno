@@ -1,17 +1,17 @@
 import React from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
+import CodeEditor from 'components/CodeEditor';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const Tests = ({ collection }) => {
   const dispatch = useDispatch();
   const tests = get(collection, 'root.request.tests', '');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -27,10 +27,10 @@ const Tests = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
-      <MonacoEditor
+      <CodeEditor
         collection={collection}
         value={tests || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         onChange={onEdit}
         mode="javascript"
         onSave={handleSave}

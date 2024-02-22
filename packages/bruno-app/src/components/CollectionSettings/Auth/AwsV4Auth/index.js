@@ -2,10 +2,10 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const AwsV4Auth = ({ collection }) => {
   const dispatch = useDispatch();
@@ -121,7 +121,7 @@ const AwsV4Auth = ({ collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Access Key ID</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
@@ -133,7 +133,7 @@ const AwsV4Auth = ({ collection }) => {
 
       <label className="block font-medium mb-2">Secret Access Key</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
@@ -145,8 +145,7 @@ const AwsV4Auth = ({ collection }) => {
 
       <label className="block font-medium mb-2">Session Token</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
-          singleLine
+        <CodeEditor
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -157,8 +156,7 @@ const AwsV4Auth = ({ collection }) => {
 
       <label className="block font-medium mb-2">Service</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
-          singleLine
+        <CodeEditor
           value={awsv4Auth.service || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -169,7 +167,7 @@ const AwsV4Auth = ({ collection }) => {
 
       <label className="block font-medium mb-2">Region</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={awsv4Auth.region || ''}
           theme={storedTheme}
@@ -181,7 +179,7 @@ const AwsV4Auth = ({ collection }) => {
 
       <label className="block font-medium mb-2">Profile Name</label>
       <div className="single-line-editor-wrapper mb-2">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}

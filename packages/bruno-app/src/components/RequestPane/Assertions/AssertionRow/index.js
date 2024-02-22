@@ -1,8 +1,8 @@
 import React from 'react';
 import { IconTrash } from '@tabler/icons';
+import CodeEditor from 'src/components/CodeEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 /**
  * Assertion operators
@@ -169,7 +169,7 @@ const AssertionRow = ({
       </td>
       <td>
         {!isUnaryOperator(operator) ? (
-          <MonacoEditor
+          <CodeEditor
             singleLine
             value={value}
             theme={storedTheme}

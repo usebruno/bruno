@@ -5,15 +5,15 @@ import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
 import StyledWrapper from './StyledWrapper';
-import { useMonaco } from '@monaco-editor/react';
 import { initMonaco } from 'utils/monaco/monacoUtils';
+import { useMonaco } from '@monaco-editor/react';
 
 export const AppContext = React.createContext();
 
 export const AppProvider = (props) => {
   useTelemetry();
   useIpcEvents();
-  // useCollectionNextAction();
+
   const monaco = useMonaco();
   const dispatch = useDispatch();
 

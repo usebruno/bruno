@@ -1,6 +1,7 @@
+import CodeEditor from 'components/CodeEditor';
 import get from 'lodash/get';
 import { HTTPSnippet } from 'httpsnippet';
-import { useTheme } from 'providers/Theme/index';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { useSelector } from 'react-redux';
@@ -8,10 +9,9 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const CodeView = ({ language, item }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { target, client, language: lang } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
@@ -41,11 +41,11 @@ const CodeView = ({ language, item }) => {
         >
           <IconCopy size={25} strokeWidth={1.5} />
         </CopyToClipboard>
-        <MonacoEditor
+        <CodeEditor
           readOnly
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
-          theme={storedTheme}
+          theme={displayedTheme}
           mode={lang}
         />
       </StyledWrapper>

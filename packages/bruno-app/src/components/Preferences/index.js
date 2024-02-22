@@ -7,6 +7,7 @@ import Font from './Font';
 import Theme from './Theme';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
+import EditorPreferences from 'components/Preferences/Editor';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -34,6 +35,9 @@ const Preferences = ({ onClose }) => {
       case 'support': {
         return <Support />;
       }
+      case 'editor': {
+        return <EditorPreferences close={onClose} />;
+      }
 
       case 'font': {
         return <Font close={onClose} />;
@@ -59,6 +63,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support
+          </div>
+          <div className={getTabClassname('editor')} role="tab" onClick={() => setTab('editor')}>
+            Editor
           </div>
         </div>
         <section className="flex flex-grow px-2 mt-4 tab-panel">{getTabPanel(tab)}</section>

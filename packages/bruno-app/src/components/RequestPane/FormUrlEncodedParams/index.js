@@ -9,9 +9,9 @@ import {
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam
 } from 'providers/ReduxStore/slices/collections';
+import CodeEditor from 'src/components/CodeEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const FormUrlEncodedParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -92,7 +92,7 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <MonacoEditor
+                      <CodeEditor
                         singleLine
                         value={param.value}
                         theme={storedTheme}

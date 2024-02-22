@@ -2,10 +2,10 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const BearerAuth = ({ collection }) => {
   const dispatch = useDispatch();
@@ -31,7 +31,7 @@ const BearerAuth = ({ collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
       <div className="single-line-editor-wrapper">
-        <MonacoEditor
+        <CodeEditor
           singleLine
           value={bearerToken}
           theme={storedTheme}

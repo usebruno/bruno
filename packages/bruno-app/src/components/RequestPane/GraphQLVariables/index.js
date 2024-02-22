@@ -5,12 +5,12 @@ import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/colle
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
+import CodeEditor from 'components/CodeEditor';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -28,10 +28,10 @@ const GraphQLVariables = ({ variables, item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <MonacoEditor
+      <CodeEditor
         collection={collection}
         value={variables || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
         onChange={onEdit}
         mode="javascript"

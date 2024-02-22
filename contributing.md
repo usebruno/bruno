@@ -28,10 +28,6 @@ You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) an
 
 Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
-### Dependencies
-
-- NodeJS v18
-
 ### Local Development
 
 ```bash

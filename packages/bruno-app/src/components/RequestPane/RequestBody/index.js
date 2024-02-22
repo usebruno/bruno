@@ -7,13 +7,13 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
+import CodeEditor from 'components/CodeEditor';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
   const body = item.draft ? get(item, 'draft.request.body') : get(item, 'request.body');
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -46,9 +46,9 @@ const RequestBody = ({ item, collection }) => {
 
     return (
       <StyledWrapper className="w-full">
-        <MonacoEditor
+        <CodeEditor
           collection={collection}
-          theme={storedTheme}
+          theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           value={bodyContent[bodyMode] || ''}
           onChange={onEdit}

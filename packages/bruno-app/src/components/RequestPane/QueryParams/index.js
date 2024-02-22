@@ -5,15 +5,15 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
+import CodeEditor from 'src/components/CodeEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const params = item?.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
+  const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
 
   const handleAddParam = () => {
     dispatch(
@@ -91,7 +91,7 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <MonacoEditor
+                      <CodeEditor
                         singleLine
                         value={param.value}
                         theme={storedTheme}

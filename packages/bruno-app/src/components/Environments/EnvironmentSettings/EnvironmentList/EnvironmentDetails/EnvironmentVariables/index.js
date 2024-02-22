@@ -5,12 +5,12 @@ import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -119,7 +119,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 <ErrorMessage name={`${index}.name`} />
               </td>
               <td>
-                <MonacoEditor
+                <CodeEditor
                   singleLine
                   theme={storedTheme}
                   collection={collection}

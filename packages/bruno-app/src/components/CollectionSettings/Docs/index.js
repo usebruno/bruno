@@ -7,11 +7,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
+import CodeEditor from 'components/CodeEditor';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const docs = get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
@@ -38,9 +38,9 @@ const Docs = ({ collection }) => {
       </div>
 
       {isEditing ? (
-        <MonacoEditor
+        <CodeEditor
           collection={collection}
-          theme={storedTheme}
+          theme={displayedTheme}
           value={docs || ''}
           onChange={onEdit}
           onSave={onSave}

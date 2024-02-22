@@ -6,9 +6,9 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
+import CodeEditor from 'src/components/CodeEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
-import { MonacoEditor } from 'components/MonacoEditor';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -48,6 +48,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       })
     );
   };
+
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
@@ -61,10 +62,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           maxWidth: `calc(100% - ${methodSelectorWidth}px)`
         }}
       >
-        <MonacoEditor
+        <CodeEditor
           singleLine
           withVariables
-          mode={'javascript'}
           value={url}
           onSave={onSave}
           theme={storedTheme}

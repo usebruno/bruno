@@ -10,9 +10,9 @@ import {
   deleteCollectionHeader
 } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
-import { MonacoEditor } from 'components/MonacoEditor';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
@@ -78,7 +78,7 @@ const Headers = ({ collection }) => {
                 return (
                   <tr key={header.uid}>
                     <td>
-                      <MonacoEditor
+                      <CodeEditor
                         singleLine
                         value={header.name}
                         theme={storedTheme}
@@ -99,7 +99,7 @@ const Headers = ({ collection }) => {
                       />
                     </td>
                     <td>
-                      <MonacoEditor
+                      <CodeEditor
                         singleLine
                         value={header.value}
                         theme={storedTheme}

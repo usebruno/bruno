@@ -17,7 +17,7 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Documentation from 'components/Documentation/index';
 import GraphQLSchemaActions from '../GraphQLSchemaActions/index';
-import { MonacoEditor } from 'components/MonacoEditor';
+import CodeEditor from 'components/CodeEditor';
 
 const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, toggleDocs, handleGqlClickReference }) => {
   const dispatch = useDispatch();
@@ -59,7 +59,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     switch (tab) {
       case 'query': {
         return (
-          <MonacoEditor
+          <CodeEditor
             collection={collection}
             theme={storedTheme}
             schema={schema}
