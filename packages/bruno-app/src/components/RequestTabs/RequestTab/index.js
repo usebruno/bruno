@@ -33,7 +33,6 @@ const RequestTab = ({ tab, collection }) => {
       e.stopPropagation();
       e.preventDefault();
 
-      //if (item?.draft) return setShowConfirmClose(true);
       dispatch(
         closeTabs({
           tabUids: [tab.uid]
