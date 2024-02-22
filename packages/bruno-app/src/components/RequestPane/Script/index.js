@@ -46,8 +46,9 @@ const Script = ({ item, collection }) => {
           collection={collection}
           value={requestScript || ''}
           theme={displayedTheme}
+          height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
+          onChange={onRequestScriptEdit}
           mode="javascript"
           onRun={onRun}
           onSave={onSave}
@@ -59,8 +60,9 @@ const Script = ({ item, collection }) => {
           collection={collection}
           value={responseScript || ''}
           theme={displayedTheme}
+          height={'25vh'}
           font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onResponseScriptEdit}
+          onChange={onResponseScriptEdit}
           mode="javascript"
           onRun={onRun}
           onSave={onSave}

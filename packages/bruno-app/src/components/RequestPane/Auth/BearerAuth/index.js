@@ -2,7 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -35,7 +35,8 @@ const BearerAuth = ({ item, collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Token</label>
       <div className="single-line-editor-wrapper">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={bearerToken}
           theme={storedTheme}
           onSave={handleSave}

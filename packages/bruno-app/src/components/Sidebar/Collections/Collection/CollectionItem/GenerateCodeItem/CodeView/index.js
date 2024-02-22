@@ -1,7 +1,7 @@
-import CodeEditor from 'components/CodeEditor/index';
+import CodeEditor from 'components/CodeEditor';
 import get from 'lodash/get';
 import { HTTPSnippet } from 'httpsnippet';
-import { useTheme } from 'providers/Theme/index';
+import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
 import { buildHarRequest } from 'utils/codegenerator/har';
 import { useSelector } from 'react-redux';

@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
@@ -78,7 +78,8 @@ const RequestHeaders = ({ item, collection }) => {
                 return (
                   <tr key={header.uid}>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={header.name}
                         theme={storedTheme}
                         onSave={onSave}
@@ -99,7 +100,8 @@ const RequestHeaders = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={header.value}
                         theme={storedTheme}
                         onSave={onSave}

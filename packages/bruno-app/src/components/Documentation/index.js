@@ -48,7 +48,7 @@ const Documentation = ({ item, collection }) => {
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           value={docs || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onSave={onSave}
           mode="application/text"
         />

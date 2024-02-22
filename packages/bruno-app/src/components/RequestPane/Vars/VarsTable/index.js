@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
@@ -115,7 +115,8 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={_var.value}
                         theme={storedTheme}
                         onSave={onSave}

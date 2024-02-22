@@ -2,7 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import SingleLineEditor from 'src/components/CodeEditor';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';

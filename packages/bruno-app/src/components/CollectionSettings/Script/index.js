@@ -12,7 +12,7 @@ const Script = ({ collection }) => {
   const requestScript = get(collection, 'root.request.script.req', '');
   const responseScript = get(collection, 'root.request.script.res', '');
 
-  const { displayedTheme } = useTheme();
+  const { storedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onRequestScriptEdit = (value) => {
@@ -44,9 +44,10 @@ const Script = ({ collection }) => {
         <CodeEditor
           collection={collection}
           value={requestScript || ''}
-          theme={displayedTheme}
-          onEdit={onRequestScriptEdit}
+          theme={storedTheme}
+          onChange={onRequestScriptEdit}
           mode="javascript"
+          height={'25vh'}
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
         />
@@ -56,8 +57,9 @@ const Script = ({ collection }) => {
         <CodeEditor
           collection={collection}
           value={responseScript || ''}
-          theme={displayedTheme}
-          onEdit={onResponseScriptEdit}
+          theme={storedTheme}
+          onChange={onResponseScriptEdit}
+          height={'25vh'}
           mode="javascript"
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}

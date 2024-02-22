@@ -1,4 +1,4 @@
-import CodeEditor from 'components/CodeEditor/index';
+import CodeEditor from 'components/CodeEditor';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';

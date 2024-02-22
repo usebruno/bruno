@@ -51,7 +51,7 @@ const RequestBody = ({ item, collection }) => {
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           value={bodyContent[bodyMode] || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onRun={onRun}
           onSave={onSave}
           mode={codeMirrorMode[bodyMode]}

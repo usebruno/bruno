@@ -42,7 +42,7 @@ const Docs = ({ collection }) => {
           collection={collection}
           theme={displayedTheme}
           value={docs || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onSave={onSave}
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}

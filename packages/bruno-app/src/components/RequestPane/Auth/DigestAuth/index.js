@@ -2,7 +2,7 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -48,7 +48,8 @@ const DigestAuth = ({ item, collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Username</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={digestAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -60,7 +61,8 @@ const DigestAuth = ({ item, collection }) => {
 
       <label className="block font-medium mb-2">Password</label>
       <div className="single-line-editor-wrapper">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={digestAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}

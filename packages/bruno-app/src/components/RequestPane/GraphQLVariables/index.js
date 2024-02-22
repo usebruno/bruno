@@ -33,7 +33,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         value={variables || ''}
         theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
-        onEdit={onEdit}
+        onChange={onEdit}
         mode="javascript"
         onRun={onRun}
         onSave={onSave}
