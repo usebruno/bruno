@@ -48,10 +48,6 @@ const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRun
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
 
-  const debouncedResultFilterOnChange = debounce((e) => {
-    setFilter(e.target.value);
-  }, 250);
-
   const allowedPreviewModes = useMemo(() => {
     // Always show raw
     const allowedPreviewModes = ['raw'];
@@ -103,21 +99,19 @@ const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRun
       <div className="flex justify-end gap-2 text-xs" role="tablist">
         {tabs}
       </div>
-      <>
-        <QueryResultPreview
-          previewTab={previewTab}
-          data={data}
-          dataBuffer={dataBuffer}
-          formattedData={formattedData}
-          item={item}
-          contentType={contentType}
-          mode={mode}
-          collection={collection}
-          allowedPreviewModes={allowedPreviewModes}
-          disableRunEventListener={disableRunEventListener}
-        />
-        {queryFilterEnabled && <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} />}
-      </>
+      <QueryResultPreview
+        previewTab={previewTab}
+        data={data}
+        dataBuffer={dataBuffer}
+        formattedData={formattedData}
+        item={item}
+        contentType={contentType}
+        mode={mode}
+        collection={collection}
+        allowedPreviewModes={allowedPreviewModes}
+        disableRunEventListener={disableRunEventListener}
+      />
+      {queryFilterEnabled && <QueryResultFilter onChange={setFilter} mode={mode} />}
     </StyledWrapper>
   );
 };

@@ -1,6 +1,7 @@
 import { IconFilter } from '@tabler/icons';
 import React, { useMemo } from 'react';
 import { Tooltip as ReactTooltip } from 'react-tooltip';
+import { debounce } from 'lodash';
 
 const QueryResultFilter = ({ onChange, mode }) => {
   const tooltipText = useMemo(() => {
@@ -27,6 +28,10 @@ const QueryResultFilter = ({ onChange, mode }) => {
     return null;
   }, [mode]);
 
+  const debouncedOnChange = debounce((e) => {
+    onChange(e.target.value);
+  }, 250);
+
   return (
     <div className={'response-filter relative'}>
       <div className="absolute inset-y-0 left-0 pl-4 flex items-center">
@@ -47,7 +52,7 @@ const QueryResultFilter = ({ onChange, mode }) => {
         autoCapitalize="off"
         spellCheck="false"
         className="block w-full pl-10 py-1 sm:text-sm"
-        onChange={onChange}
+        onChange={debouncedOnChange}
       />
     </div>
   );
