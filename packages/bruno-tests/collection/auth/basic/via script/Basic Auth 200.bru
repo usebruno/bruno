@@ -10,10 +10,6 @@ post {
   auth: none
 }
 
-body:json {
-  {"x":1}
-}
-
 assert {
   res.status: eq 200
   res.body.message: Authentication successful

@@ -15,10 +15,6 @@ auth:basic {
   password: {{basic_auth_password}}
 }
 
-body:json {
-  {"x":1}
-}
-
 assert {
   res.status: 200
   res.body.message: Authentication successful
