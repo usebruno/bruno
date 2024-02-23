@@ -1,13 +1,17 @@
 meta {
-  name: ping
+  name: query
   type: http
-  seq: 1
+  seq: 2
 }
 
 get {
-  url: {{host}}/ping
+  url: {{host}}/query?foo={{pong}}
   body: none
   auth: none
+}
+
+query {
+  foo: {{pong}}
 }
 
 auth:awsv4 {
@@ -41,7 +45,7 @@ script:pre-request {
     project_roles.push("\""+project+"_"+roles[i]+"\"");
   }
   
-  bru.setEnvVar("roles", 1);
+  bru.setVar("pong", JSON.stringify([1,2,3,4]));
 }
 
 tests {

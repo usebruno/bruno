@@ -6,6 +6,7 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import StyledWrapper from './StyledWrapper';
+import OAuth2 from './OAuth2/index';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
@@ -23,6 +24,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
+      }
+      case 'oauth2': {
+        return <OAuth2 collection={collection} item={item} />;
       }
     }
   };

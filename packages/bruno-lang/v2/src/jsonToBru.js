@@ -126,6 +126,42 @@ ${indentString(`password: ${auth.digest.password}`)}
 `;
   }
 
+  if (auth && auth.oauth2) {
+    switch (auth?.oauth2?.grantType) {
+      case 'password':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: password`)}
+${indentString(`username: ${auth.oauth2.username}`)}
+${indentString(`password: ${auth.oauth2.password}`)}
+}
+
+`;
+        break;
+      case 'authorization_code':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: authorization_code`)}
+${indentString(`callback_url: ${auth.oauth2.callbackUrl}`)}
+${indentString(`authorization_url: ${auth.oauth2.authorizationUrl}`)}
+${indentString(`access_token_url: ${auth.oauth2.accessTokenUrl}`)}
+${indentString(`client_id: ${auth.oauth2.clientId}`)}
+${indentString(`client_secret: ${auth.oauth2.clientSecret}`)}
+${indentString(`scope: ${auth.oauth2.scope}`)}
+}
+
+`;
+        break;
+      case 'client_credentials':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: client_credentials`)}
+${indentString(`client_id: ${auth.oauth2.clientId}`)}
+${indentString(`client_secret: ${auth.oauth2.clientSecret}`)}
+}
+
+`;
+        break;
+    }
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}

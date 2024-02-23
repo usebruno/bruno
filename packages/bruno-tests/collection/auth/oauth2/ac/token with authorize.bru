@@ -1,0 +1,25 @@
+meta {
+  name: token with authorize
+  type: http
+  seq: 4
+}
+
+post {
+  url: 
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: {{callback_url}}
+  authorization_url: {{auth_url}}
+  access_token_url: {{access_token_url}}
+  client_id: {{client_id}}
+  client_secret: {{client_secret}}
+  scope: 
+}
+
+script:post-response {
+  bru.setEnvVar('ac_access_token', res.body.access_token);
+}
