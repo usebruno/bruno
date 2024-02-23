@@ -11,7 +11,7 @@ const Tests = ({ collection }) => {
   const dispatch = useDispatch();
   const tests = get(collection, 'root.request.tests', '');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -30,7 +30,7 @@ const Tests = ({ collection }) => {
       <CodeEditor
         collection={collection}
         value={tests || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         onEdit={onEdit}
         mode="javascript"
         onSave={handleSave}

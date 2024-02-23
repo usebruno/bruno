@@ -11,7 +11,7 @@ import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
 
 const CodeView = ({ language, item }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { target, client, language: lang } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
@@ -46,7 +46,7 @@ const CodeView = ({ language, item }) => {
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.fontSize', 14)}
-          theme={storedTheme}
+          theme={displayedTheme}
           mode={lang}
         />
       </StyledWrapper>

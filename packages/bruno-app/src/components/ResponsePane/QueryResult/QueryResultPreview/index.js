@@ -19,7 +19,7 @@ const QueryResultPreview = ({
   collection,
   mode,
   disableRunEventListener,
-  storedTheme
+  displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -72,7 +72,7 @@ const QueryResultPreview = ({
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.fontSize', 14)}
-          theme={storedTheme}
+          theme={displayedTheme}
           onRun={onRun}
           value={formattedData}
           mode={mode}
