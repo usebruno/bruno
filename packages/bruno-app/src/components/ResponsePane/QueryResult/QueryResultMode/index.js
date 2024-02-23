@@ -9,6 +9,12 @@ import QueryResultPreview from 'components/ResponsePane/QueryResult/QueryResultV
 import QueryResultFilter from 'components/ResponsePane/QueryResult/QueryResultFilter';
 import { JSONPath } from 'jsonpath-plus';
 
+/**
+ * @param {string|object|undefined} data
+ * @param {string} mode
+ * @param {string} filter
+ * @returns {string}
+ */
 const formatResponse = (data, mode, filter) => {
   if (data === undefined) {
     return '';
@@ -45,12 +51,16 @@ const formatResponse = (data, mode, filter) => {
 const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers }) => {
   const contentType = getContentType(headers);
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
-  const [filter, setFilter] = useState(null);
+  const [filter, setFilter] = useState('');
   const formattedData = formatResponse(data, mode, filter);
 
   const allowedPreviewModes = useMemo(() => {
     // Always show raw
     const allowedPreviewModes = ['raw'];
+
+    if (formattedData !== atob(dataBuffer) && formattedData !== '') {
+      allowedPreviewModes.unshift('pretty');
+    }
 
     if (mode.includes('html') && typeof data === 'string') {
       allowedPreviewModes.unshift('preview-web');

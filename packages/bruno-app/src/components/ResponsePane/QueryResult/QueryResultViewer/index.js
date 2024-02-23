@@ -66,6 +66,19 @@ const QueryResultPreview = ({
         </div>
       );
     }
+    case 'pretty': {
+      return (
+        <CodeEditor
+          collection={collection}
+          font={get(preferences, 'font.codeFont', 'default')}
+          theme={displayedTheme}
+          onRun={onRun}
+          value={formattedData}
+          mode={mode}
+          readOnly
+        />
+      );
+    }
     default:
     case 'raw': {
       return (
@@ -74,7 +87,7 @@ const QueryResultPreview = ({
           font={get(preferences, 'font.codeFont', 'default')}
           theme={displayedTheme}
           onRun={onRun}
-          value={formattedData}
+          value={atob(dataBuffer)}
           mode={mode}
           readOnly
         />
