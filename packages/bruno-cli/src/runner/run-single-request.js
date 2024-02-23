@@ -192,6 +192,18 @@ const runSingleRequest = async function (
       const axiosInstance = makeAxiosInstance();
 
       if (request.awsv4config) {
+        // todo: make this happen in prepare-request.js
+        // interpolate the aws v4 config
+        request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
+        request.awsv4config.secretAccessKey = interpolateString(
+          request.awsv4config.secretAccessKey,
+          interpolationOptions
+        );
+        request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
+        request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
+        request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
+        request.awsv4config.profileName = interpolateString(request.awsv4config.profileName, interpolationOptions);
+
         request.awsv4config = await resolveAwsV4Credentials(request);
         addAwsV4Interceptor(axiosInstance, request);
         delete request.awsv4config;
