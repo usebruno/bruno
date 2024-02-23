@@ -29,21 +29,6 @@ assert {
   ~res.body: eq {{pong}}
 }
 
-script:pre-request {
-  const project = 'foo'
-  const roles = ('abc, xyz'.split(",")).map(element => {
-    return element.trim();
-  });
-  
-  var project_roles = [];
-  
-  for (let i in roles) {
-    project_roles.push("\""+project+"_"+roles[i]+"\"");
-  }
-  
-  bru.setEnvVar("roles", 1);
-}
-
 tests {
   test("should ping pong", function() {
     const data = res.getBody();
