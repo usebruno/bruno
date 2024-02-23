@@ -142,9 +142,11 @@ const RequestTab = ({ tab, collection }) => {
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
 
-          e.stopPropagation();
-          e.preventDefault();
-          setShowConfirmClose(true);
+          if (e.button === 1) {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowConfirmClose(true);
+          }
         }}
       >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
