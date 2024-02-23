@@ -29,6 +29,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     : get(item, 'request.body.graphql.variables');
   const { storedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
+  const preferences = useSelector((state) => state.app.preferences);
 
   useEffect(() => {
     onSchemaLoad(schema);
@@ -65,6 +66,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             schema={schema}
             width={leftPaneWidth}
             onSave={onSave}
+            fontSize={get(preferences, 'font.fontSize', 14)}
             value={query}
             onRun={onRun}
             onEdit={onQueryChange}

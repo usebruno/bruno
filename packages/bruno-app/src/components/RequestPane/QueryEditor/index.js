@@ -192,6 +192,7 @@ export default class QueryEditor extends React.Component {
       <StyledWrapper
         className="h-full w-full"
         aria-label="Query Editor"
+        fontSize={this.props.fontSize}
         ref={(node) => {
           this._node = node;
         }}

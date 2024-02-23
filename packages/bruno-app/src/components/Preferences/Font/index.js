@@ -48,7 +48,7 @@ const Font = ({ close }) => {
           autoCapitalize="off"
           spellCheck="false"
           onChange={handleFontStyleChange}
-          defaultValue={codeFont}
+          defaultValue={codeFont ? codeFont : 'Default'}
         />
       </div>
 
@@ -66,7 +66,7 @@ const Font = ({ close }) => {
           autoCapitalize="off"
           spellCheck="false"
           onChange={handleFontSizeChange}
-          defaultValue={fontSize}
+          defaultValue={fontSize ? fontSize : 14}
         />
       </div>
 
