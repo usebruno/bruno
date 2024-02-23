@@ -380,7 +380,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
     uid: _item.uid,
     type: _item.type,
     name: _item.name,
-    seq: _item.seq,
+    seq: item.seq,
     request: {
       method: _item.request.method,
       url: _item.request.url,
@@ -539,6 +539,8 @@ export const deleteUidsInItem = (item) => {
 export const areItemsTheSameExceptSeqUpdate = (_item1, _item2) => {
   let item1 = cloneDeep(_item1);
   let item2 = cloneDeep(_item2);
+
+  if (item1.seq === item2.seq) return false;
 
   // remove seq from both items
   delete item1.seq;
