@@ -518,7 +518,8 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
       const itemsToResequence2 = getItemsToResequence(targetItem, collectionCopy);
 
       return ipcRenderer
-        .invoke('renderer:move-file-item', draggedItemPathname, targetItem.pathname)
+        .invoke('renderer:save-request', draggedItemPathname, transformRequestToSaveToFilesystem(draggedItem))
+        .then(() => ipcRenderer.invoke('renderer:move-file-item', draggedItemPathname, targetItem.pathname))
         .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
         .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
         .then(resolve)
