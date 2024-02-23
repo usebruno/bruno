@@ -7,6 +7,7 @@ import { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
+import { useTheme } from 'providers/Theme';
 
 const QueryResultPreview = ({
   previewTab,
@@ -18,9 +19,9 @@ const QueryResultPreview = ({
   contentType,
   collection,
   mode,
-  disableRunEventListener,
-  displayedTheme
+  disableRunEventListener
 }) => {
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
