@@ -15,6 +15,7 @@ const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
@@ -189,6 +190,12 @@ const runSingleRequest = async function (
     try {
       // run request
       const axiosInstance = makeAxiosInstance();
+
+      if (request.awsv4config) {
+        request.awsv4config = await resolveAwsV4Credentials(request);
+        addAwsV4Interceptor(axiosInstance, request);
+        delete request.awsv4config;
+      }
 
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);

@@ -2,6 +2,8 @@
   "name": "@usebruno/test-collection",
   "version": "0.0.1",
   "dependencies": {
-    "@faker-js/faker": "^8.4.0"
+    "@faker-js/faker": "^8.4.0",
+    "jsonwebtoken": "^9.0.2",
+    "lru-map-cache": "^0.1.0"
   }
 }
