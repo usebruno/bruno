@@ -1,5 +1,6 @@
 const os = require('os');
 const fs = require('fs');
+const fsPromise = require('fs/promises');
 const qs = require('qs');
 const https = require('https');
 const axios = require('axios');
@@ -8,7 +9,7 @@ const decomment = require('decomment');
 const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
-const { ipcMain } = require('electron');
+const { ipcMain, app } = require('electron');
 const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, runScript } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
@@ -486,6 +487,9 @@ const registerNetworkIpc = (mainWindow) => {
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
 
+      const responsePath = path.join(app.getPath('userData'), 'responseCache', item.uid);
+      await fsPromise.writeFile(responsePath, dataBuffer);
+
       response.responseTime = responseTime;
 
       // save cookies
@@ -582,8 +586,6 @@ const registerNetworkIpc = (mainWindow) => {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data,
-        dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
         duration: responseTime ?? 0
       };
@@ -813,6 +815,12 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
 
+              try {
+                await fsPromise.mkdir(path.join(app.getPath('userData'), 'responseCache'));
+              } catch {}
+              const responsePath = path.join(app.getPath('userData'), 'responseCache', item.uid);
+              await fsPromise.writeFile(responsePath, dataBuffer);
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
@@ -820,9 +828,7 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: response.statusText,
                   headers: response.headers,
                   duration: timeEnd - timeStart,
-                  dataBuffer: dataBuffer.toString('base64'),
-                  size: Buffer.byteLength(dataBuffer),
-                  data: response.data
+                  size: Buffer.byteLength(dataBuffer)
                 },
                 ...eventData
               });
@@ -831,15 +837,16 @@ const registerNetworkIpc = (mainWindow) => {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
+                const responsePath = path.join(app.getPath('userData'), 'responseCache', item.uid);
+                await fsPromise.writeFile(responsePath, dataBuffer);
+
                 timeEnd = Date.now();
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
                   headers: error.response.headers,
                   duration: timeEnd - timeStart,
-                  dataBuffer: dataBuffer.toString('base64'),
-                  size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data
+                  size: Buffer.byteLength(dataBuffer)
                 };
 
                 // if we get a response from the server, we consider it as a success
@@ -968,6 +975,37 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
   );
+
+  // Ensure the response dir directory exists
+  const responseCacheDir = path.join(app.getPath('userData'), 'responseCache');
+  try {
+    fs.mkdirSync(responseCacheDir);
+  } catch {}
+  // Delete old files
+  fs.readdir(responseCacheDir, (err, files) => {
+    if (err) {
+      throw err;
+    }
+
+    for (const file of files) {
+      fs.rmSync(path.join(responseCacheDir, file));
+    }
+  });
+
+  ipcMain.handle('renderer:get-response-body', async (_event, requestId) => {
+    const responsePath = path.join(app.getPath('userData'), 'responseCache', requestId);
+
+    const rawData = await fsPromise.readFile(responsePath);
+    let data;
+    try {
+      // TODO: Load encoding conditionally
+      data = JSON.parse(rawData.toString('utf-8'));
+    } catch {
+      data = rawData.toString('utf-8');
+    }
+
+    return { data, dataBuffer: rawData.toString('base64') };
+  });
 
   // save response to file
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {

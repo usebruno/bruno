@@ -7,9 +7,6 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
         .then((response) => {
           resolve({
             state: 'success',
-            data: response.data,
-            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
-            dataBuffer: response.dataBuffer,
             headers: response.headers,
             size: response.size,
             status: response.status,
@@ -31,6 +28,10 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
       .then(resolve)
       .catch(reject);
   });
+};
+
+export const getResponseBody = async (requestId) => {
+  return await window.ipcRenderer.invoke('renderer:get-response-body', requestId);
 };
 
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
