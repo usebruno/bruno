@@ -10,7 +10,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
     return <QueryResultError error={error} width={width} />;
   }
 
-  console.log(item.response);
   if (item.response?.size > 5_000_000 && !dismissedSizeWarning) {
     const dismissWarning = () => {
       setDismissedSizeWarning(true);
