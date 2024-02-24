@@ -404,17 +404,22 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = controller.signal;
       saveCancelToken(cancelTokenUid, controller);
 
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        collectionVariables,
-        processEnvVars,
-        scriptingConfig
-      );
+      try {
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collectionRoot,
+          collectionUid,
+          collectionVariables,
+          processEnvVars,
+          scriptingConfig
+        );
+      } catch (err) {
+        // The request context cannot be setup due to scripting errors - request lifecycle is stopped immediately
+        throw 'An error occured while setting up the pre-request scripting context (Vars, Script...): ' + err;
+      }
 
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
@@ -471,6 +476,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
+      let scriptingError = undefined;
 
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
@@ -497,18 +503,23 @@ const registerNetworkIpc = (mainWindow) => {
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        collectionVariables,
-        processEnvVars,
-        scriptingConfig
-      );
+      try {
+        await runPostResponse(
+          request,
+          response,
+          requestUid,
+          envVars,
+          collectionPath,
+          collectionRoot,
+          collectionUid,
+          collectionVariables,
+          processEnvVars,
+          scriptingConfig
+        );
+      } catch (err) {
+        scriptingError =
+          'An error occured while evaluating the post-request scripting context (Vars, Script...): ' + err;
+      }
 
       // run assertions
       const assertions = get(request, 'assertions');
@@ -538,33 +549,37 @@ const registerNetworkIpc = (mainWindow) => {
         item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
       ]).join(os.EOL);
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
-        const testResults = await testRuntime.runTests(
-          decomment(testFile),
-          request,
-          response,
-          envVars,
-          collectionVariables,
-          collectionPath,
-          onConsoleLog,
-          processEnvVars,
-          scriptingConfig
-        );
+        try {
+          const testRuntime = new TestRuntime();
+          const testResults = await testRuntime.runTests(
+            decomment(testFile),
+            request,
+            response,
+            envVars,
+            collectionVariables,
+            collectionPath,
+            onConsoleLog,
+            processEnvVars,
+            scriptingConfig
+          );
 
-        mainWindow.webContents.send('main:run-request-event', {
-          type: 'test-results',
-          results: testResults.results,
-          itemUid: item.uid,
-          requestUid,
-          collectionUid
-        });
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'test-results',
+            results: testResults.results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
 
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: testResults.envVariables,
-          collectionVariables: testResults.collectionVariables,
-          requestUid,
-          collectionUid
-        });
+          mainWindow.webContents.send('main:script-environment-update', {
+            envVariables: testResults.envVariables,
+            collectionVariables: testResults.collectionVariables,
+            requestUid,
+            collectionUid
+          });
+        } catch (err) {
+          scriptingError = 'An error occured while evaluating the request testing context: ' + err;
+        }
       }
 
       return {
@@ -574,7 +589,8 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
+        duration: responseTime ?? 0,
+        error: scriptingError
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
