@@ -235,7 +235,7 @@ export default function RunnerResults({ collection }) {
           ) : null}
         </div>
         {selectedItem ? (
-          <div className="flex flex-1" style={{ width: '50%' }}>
+          <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.relativePath}</span>
