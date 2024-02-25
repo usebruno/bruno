@@ -177,6 +177,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // check if there are any stale requests (persisted requests in redux) versus the filesystem
+  ipcMain.handle('renderer:check-stale-requests', async (event, pathnames) => {
+    try {
+      let staleRequestsFlags = pathnames.map((p) => ({ stale: !fs.existsSync(p), pathname: p }));
+      return Promise.resolve(staleRequestsFlags);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // save request
   ipcMain.handle('renderer:save-request', async (event, pathname, request) => {
     try {

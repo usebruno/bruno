@@ -4,7 +4,8 @@ import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 
-import ReduxStore from 'providers/ReduxStore';
+import { store as ReduxStore, persistor } from 'providers/ReduxStore';
+import { PersistGate } from 'redux-persist/integration/react';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -58,15 +59,17 @@ function MyApp({ Component, pageProps }) {
       <SafeHydrate>
         <NoSsr>
           <Provider store={ReduxStore}>
-            <ThemeProvider>
-              <ToastProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </AppProvider>
-              </ToastProvider>
-            </ThemeProvider>
+            <PersistGate loading={null} persistor={persistor}>
+              <ThemeProvider>
+                <ToastProvider>
+                  <AppProvider>
+                    <HotkeysProvider>
+                      <Component {...pageProps} />
+                    </HotkeysProvider>
+                  </AppProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            </PersistGate>
           </Provider>
         </NoSsr>
       </SafeHydrate>

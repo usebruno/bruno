@@ -66,6 +66,8 @@
     "react-pdf": "^7.5.1",
     "react-redux": "^7.2.6",
     "react-tooltip": "^5.5.2",
+    "redux": "^5.0.1",
+    "redux-persist": "^6.0.0",
     "sass": "^1.46.0",
     "strip-json-comments": "^5.0.1",
     "styled-components": "^5.3.3",

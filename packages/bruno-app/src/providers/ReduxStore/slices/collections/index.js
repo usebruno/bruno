@@ -1098,6 +1098,7 @@ export const collectionsSlice = createSlice({
           currentSubItems = childItem.items;
         }
 
+        // The below if condition is always true, VERIFY once again
         if (!currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
           // the add event might get triggered first, before the unlink event
@@ -1183,6 +1184,17 @@ export const collectionsSlice = createSlice({
             item.pathname = file.meta.pathname;
             item.draft = null;
           }
+        }
+      }
+    },
+    collectionDeleteStaleRequestItem: (state, action) => {
+      const { pathname, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        const item = findItemInCollectionByPathname(collection, pathname);
+
+        if (item) {
+          deleteItemInCollectionByPathname(pathname, collection);
         }
       }
     },
@@ -1443,6 +1455,7 @@ export const {
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,
+  collectionDeleteStaleRequestItem,
   collectionUnlinkFileEvent,
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,

@@ -30,6 +30,7 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  collectionDeleteStaleRequestItem,
   requestCancelled,
   resetRunResults,
   responseReceived,
@@ -40,6 +41,7 @@ import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { findItemInFolderByFilename, flattenItems } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -411,6 +413,25 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
   });
 };
 
+export const checkAndDeleteStaleItems = () => (dispatch, getState) => {
+  const state = getState();
+  const collections = state.collections.collections;
+  const { ipcRenderer } = window;
+
+  collections.forEach(async (collection) => {
+    const items = flattenItems(collection.items);
+    let pathnames = items?.map((i) => i?.pathname);
+    let flags = await ipcRenderer.invoke('renderer:check-stale-requests', pathnames);
+    flags
+      .filter((f) => f.stale)
+      .forEach((f) => {
+        if (f.stale) {
+          dispatch(collectionDeleteStaleRequestItem({ pathname: f.pathname, collectionUid: collection.uid }));
+        }
+      });
+  });
+};
+
 export const deleteItem = (itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -493,6 +514,14 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
     // file item dragged onto another file item and both are in different folders
     if (isItemARequest(draggedItem) && isItemARequest(targetItem) && !sameParent) {
       const draggedItemPathname = draggedItem.pathname;
+      const doesItemWithSameFilenameExistInTargetItemParent = findItemInFolderByFilename(
+        targetItemParent,
+        draggedItem.filename
+      );
+      if (doesItemWithSameFilenameExistInTargetItemParent) {
+        toast.error('Item with same filename already exists');
+        return resolve();
+      }
       moveCollectionItem(collectionCopy, draggedItem, targetItem);
       const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
       const itemsToResequence2 = getItemsToResequence(targetItemParent, collectionCopy);

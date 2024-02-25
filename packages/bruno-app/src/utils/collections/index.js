@@ -101,10 +101,20 @@ export const findItemByPathname = (items = [], pathname) => {
   return find(items, (i) => i.pathname === pathname);
 };
 
+export const findItemByFilename = (items = [], filename) => {
+  return find(items, (i) => i.filename === filename);
+};
+
 export const findItemInCollectionByPathname = (collection, pathname) => {
   let flattenedItems = flattenItems(collection.items);
 
   return findItemByPathname(flattenedItems, pathname);
+};
+
+export const findItemInFolderByFilename = (folder, filename) => {
+  let flattenedItems = flattenItems(folder.items);
+
+  return findItemByFilename(flattenedItems, filename);
 };
 
 export const findItemInCollection = (collection, itemUid) => {

@@ -10,8 +10,15 @@
  * lose the request's draft state if the user has made some changes
  */
 
-const requestUids = new Map();
+const Store = require('electron-store');
 const { uuid } = require('../utils/common');
+
+// Using a electron-store object to avoid cache reset on every app launch.
+// And to avoid with the persisted redux state.
+let requestUids = new Store({
+  name: 'requestUids',
+  clearInvalidConfig: true
+});
 
 const getRequestUid = (pathname) => {
   let uid = requestUids.get(pathname);
