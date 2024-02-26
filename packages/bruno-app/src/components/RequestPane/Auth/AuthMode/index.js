@@ -75,6 +75,15 @@ const AuthMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('oauth2');
+            }}
+          >
+            OAuth 2.0
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('none');
             }}
           >

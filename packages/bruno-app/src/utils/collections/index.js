@@ -505,6 +505,30 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'oauth2': {
+      label = 'OAuth 2.0';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeGrantType = (mode) => {
+  let label = 'No Auth';
+  switch (mode) {
+    case 'password': {
+      label = 'Resource Owner Password Credentials';
+      break;
+    }
+    case 'authorization_code': {
+      label = 'Authorization Code';
+      break;
+    }
+    case 'client_credentials': {
+      label = 'Client Credentials';
+      break;
+    }
   }
 
   return label;
