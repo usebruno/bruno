@@ -66,11 +66,12 @@
     },
     "oauth2": {
       "grantType": "authorization_code",
-      "client_id": "client_id_1",
-      "client_secret": "client_secret_1",
-      "auth_url": "http://localhost:8080/api/auth/oauth2/ac/authorize",
-      "callback_url": "http://localhost:8080/api/auth/oauth2/ac/callback",
-      "access_token_url": "http://localhost:8080/api/auth/oauth2/ac/token"
+      "clientId": "client_id_1",
+      "clientSecret": "client_secret_1",
+      "authorizationUrl": "http://localhost:8080/api/auth/oauth2/ac/authorize",
+      "callbackUrl": "http://localhost:8080/api/auth/oauth2/ac/callback",
+      "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/ac/token",
+      "scope": "read write"
     }
   },
   "body": {
