@@ -26,7 +26,7 @@ const QueryResult = ({ item, collection, width, disableRunEventListener, headers
       abortController.abort();
       setData({ data: null, dataBuffer: null });
     };
-  }, [item, showSizeWarning]);
+  }, [item.response, showSizeWarning]);
 
   if (error) {
     return <QueryResultError error={error} width={width} />;
