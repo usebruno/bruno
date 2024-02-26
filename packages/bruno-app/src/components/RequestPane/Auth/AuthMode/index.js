@@ -38,16 +38,7 @@ const AuthMode = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
-              onModeChange('inherit');
-            }}
-          >
-            Inherit
-          </div>
-          <div
-            className="dropdown-item"
-            onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               onModeChange('awsv4');
             }}
           >
@@ -56,7 +47,7 @@ const AuthMode = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               onModeChange('basic');
             }}
           >
@@ -65,7 +56,7 @@ const AuthMode = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               onModeChange('bearer');
             }}
           >
@@ -74,7 +65,7 @@ const AuthMode = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
               onModeChange('digest');
             }}
           >
@@ -83,7 +74,16 @@ const AuthMode = ({ item, collection }) => {
           <div
             className="dropdown-item"
             onClick={() => {
-              dropdownTippyRef.current.hide();
+              dropdownTippyRef?.current?.hide();
+              onModeChange('inherit');
+            }}
+          >
+            Inherit
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
               onModeChange('none');
             }}
           >
