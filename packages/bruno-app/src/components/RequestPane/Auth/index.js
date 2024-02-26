@@ -34,12 +34,13 @@ const Auth = ({ item, collection }) => {
       }
       case 'inherit': {
         return (
-          <div className="flex flex-row w-full mt-2 gap-4">
+          <div className="flex flex-row w-full mt-2 gap-2">
             <div>Auth inherited from the Collection: </div>
             <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
           </div>
         );
       }
+    }
   };
 
   return (
@@ -51,4 +52,5 @@ const Auth = ({ item, collection }) => {
     </StyledWrapper>
   );
 };
+
 export default Auth;
