@@ -119,15 +119,20 @@ const authDigestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authApiKeySchema = Yup.object({
+  key: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  placement: Yup.string().oneOf(['headers', 'queryparams']).nullable()
+});
+
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest']).required('mode is required'),
+  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest', 'apikey']).required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
-  digest: authDigestSchema.nullable()
-})
-  .noUnknown(true)
-  .strict();
+  digest: authDigestSchema.nullable(),
+  apikey: authApiKeySchema.nullable()
+});
 
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support

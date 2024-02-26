@@ -402,6 +402,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
               break;
+            case 'apikey':
+              item.draft.request.auth.mode = 'apikey';
+              item.draft.request.auth.apikey = action.payload.content;
+              break;
           }
         }
       }
@@ -993,6 +997,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'apikey':
+            set(collection, 'root.request.auth.apikey', action.payload.content);
             break;
         }
       }

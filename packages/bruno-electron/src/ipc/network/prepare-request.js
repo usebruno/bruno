@@ -62,6 +62,14 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'apikey':
+        const key = get(collectionAuth, 'apikey.key');
+        const value = get(collectionAuth, 'apikey.value');
+        const placement = get(collectionAuth, 'apikey.placement');
+        if (placement === 'headers') {
+          axiosRequest.headers[key] = value;
+        }
+        break;
     }
   }
 
@@ -91,6 +99,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           username: get(request, 'auth.digest.username'),
           password: get(request, 'auth.digest.password')
         };
+        break;
+      case 'apikey':
+        const key = get(request, 'auth.apikey.key');
+        const value = get(request, 'auth.apikey.value');
+        const placement = get(request, 'auth.apikey.placement');
+        if (placement === 'headers') {
+          axiosRequest.headers[key] = value;
+        }
+        break;
     }
   }
 

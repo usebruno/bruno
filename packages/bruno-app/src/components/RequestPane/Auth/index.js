@@ -5,6 +5,7 @@ import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
+import ApiKeyAuth from './ApiKeyAuth/index';
 import StyledWrapper from './StyledWrapper';
 
 const Auth = ({ item, collection }) => {
@@ -23,6 +24,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
+      }
+      case 'apikey': {
+        return <ApiKeyAuth collection={collection} item={item} />;
       }
     }
   };

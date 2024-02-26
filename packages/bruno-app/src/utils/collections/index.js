@@ -505,6 +505,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
   }
 
   return label;
