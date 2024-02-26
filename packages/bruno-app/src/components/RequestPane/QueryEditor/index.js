@@ -8,8 +8,11 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import MD from 'markdown-it';
+import { format } from 'prettier/standalone';
+import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 
 import onHasCompletion from './onHasCompletion';
@@ -178,6 +181,19 @@ export default class QueryEditor extends React.Component {
     }
   }
 
+  beautifyRequestBody = () => {
+    try {
+      const prettyQuery = format(this.props.value, {
+        parser: 'graphql',
+        plugins: [prettierPluginGraphql]
+      });
+
+      this.editor.setValue(prettyQuery);
+    } catch (e) {
+      toast.error('Error occurred while prettifying GraphQL query');
+    }
+  };
+
   // Todo: Overlay is messing up with schema hint
   // Fix this
   addOverlay = () => {
@@ -189,13 +205,19 @@ export default class QueryEditor extends React.Component {
 
   render() {
     return (
-      <StyledWrapper
-        className="h-full w-full"
-        aria-label="Query Editor"
-        ref={(node) => {
-          this._node = node;
-        }}
-      />
+      <>
+        <StyledWrapper
+          className="h-full w-full"
+          aria-label="Query Editor"
+          ref={(node) => {
+            this._node = node;
+          }}
+        >
+          <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={this.beautifyRequestBody}>
+            Prettify GraphQL
+          </button>
+        </StyledWrapper>
+      </>
     );
   }
 
