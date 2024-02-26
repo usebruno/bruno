@@ -120,7 +120,7 @@ const authDigestSchema = Yup.object({
   .strict();
 
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest']).required('mode is required'),
+  mode: Yup.string().oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest']).required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),

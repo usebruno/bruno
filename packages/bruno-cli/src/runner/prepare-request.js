@@ -36,7 +36,7 @@ const prepareRequest = (request, collectionRoot) => {
   // But it cannot override the collection auth with no auth
   // We will provide support for disabling the auth via scripting in the future
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && request.auth.mode == 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),

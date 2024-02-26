@@ -489,6 +489,10 @@ export const humanizeRequestBodyMode = (mode) => {
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
+    case 'inherit': {
+      label = 'Inherit';
+      break;
+    }
     case 'awsv4': {
       label = 'AWS Sig V4';
       break;

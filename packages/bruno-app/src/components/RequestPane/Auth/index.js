@@ -6,9 +6,13 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import StyledWrapper from './StyledWrapper';
+import { humanizeRequestAuthMode } from 'utils/collections/index';
 
 const Auth = ({ item, collection }) => {
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
+
+  const collectionRoot = get(collection, 'root', {});
+  const collectionAuth = get(collectionRoot, 'request.auth');
 
   const getAuthView = () => {
     switch (authMode) {
@@ -23,6 +27,14 @@ const Auth = ({ item, collection }) => {
       }
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
+      }
+      case 'inherit': {
+        return (
+          <div className="flex flex-row w-full mt-2 gap-4">
+            <div>Auth inherited from the Collection: </div>
+            <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
+          </div>
+        );
       }
     }
   };
