@@ -57,6 +57,17 @@ const prepareRequest = (request, collectionRoot) => {
       };
     }
 
+    if (request.auth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+        secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+        sessionToken: get(request, 'auth.awsv4.sessionToken'),
+        service: get(request, 'auth.awsv4.service'),
+        region: get(request, 'auth.awsv4.region'),
+        profileName: get(request, 'auth.awsv4.profileName')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
