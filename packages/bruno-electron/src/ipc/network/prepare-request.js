@@ -35,7 +35,7 @@ const parseFormData = (datas, collectionPath) => {
 // We will provide support for disabling the auth via scripting in the future
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && request.auth.mode == 'inherit') {
     switch (collectionAuth.mode) {
       case 'awsv4':
         axiosRequest.awsv4config = {
