@@ -168,7 +168,9 @@ const oauth2Schema = Yup.object({
   .strict();
 
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2']).required('mode is required'),
+  mode: Yup.string()
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2'])
+    .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
