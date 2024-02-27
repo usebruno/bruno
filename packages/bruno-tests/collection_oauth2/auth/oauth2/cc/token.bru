@@ -1,0 +1,21 @@
+meta {
+  name: token
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/oauth2/cc/token
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: client_credentials
+  client_id: {{client_id}}
+  client_secret: {{client_secret}}
+}
+
+script:post-response {
+  bru.setEnvVar('cc_access_token', res.body.access_token);
+}

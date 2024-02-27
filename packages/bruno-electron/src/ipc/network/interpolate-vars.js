@@ -109,15 +109,51 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   }
 
   // todo: we have things happening in two places w.r.t basic auth
-  //       need to refactor this in the future
+  // need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
   if (request.auth) {
     const username = _interpolate(request.auth.username) || '';
     const password = _interpolate(request.auth.password) || '';
-
     // use auth header based approach and delete the request.auth object
     request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.auth;
+  }
+
+  if (request?.oauth2?.grantType) {
+    switch (request.oauth2.grantType) {
+      case 'password':
+        let username = _interpolate(request.oauth2.username) || '';
+        let password = _interpolate(request.oauth2.password) || '';
+        request.oauth2.username = username;
+        request.oauth2.password = password;
+        request.data = {
+          grant_type: 'password',
+          username,
+          password
+        };
+        break;
+      case 'authorization_code':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        break;
+      case 'client_credentials':
+        let clientId = _interpolate(request.oauth2.clientId) || '';
+        let clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientId = clientId;
+        request.oauth2.clientSecret = clientSecret;
+        request.data = {
+          grant_type: 'client_credentials',
+          client_id: clientId,
+          client_secret: clientSecret
+        };
+        break;
+      default:
+        break;
+    }
   }
 
   // interpolate vars for aws sigv4 auth

@@ -10,8 +10,8 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain, app } = require('electron');
-const { isUndefined, isNull, each, get, compact } = require('lodash');
 const { VarsRuntime, AssertRuntime, runScript } = require('@usebruno/js');
+const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
@@ -30,6 +30,7 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const { resolveOAuth2AuthorizationCodecessToken } = require('./oauth2-authorization-code-helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -189,6 +190,16 @@ const configureRequest = async (
   }
 
   const axiosInstance = makeAxiosInstance();
+
+  if (request.oauth2) {
+    if (request?.oauth2?.grantType == 'authorization_code') {
+      let requestCopy = cloneDeep(request);
+      interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+      const { data, url } = await resolveOAuth2AuthorizationCodecessToken(requestCopy);
+      request.data = data;
+      request.url = url;
+    }
+  }
 
   if (request.awsv4config) {
     request.awsv4config = await resolveAwsV4Credentials(request);
@@ -499,7 +510,6 @@ const registerNetworkIpc = (mainWindow) => {
           setCookieHeaders = Array.isArray(response.headers['set-cookie'])
             ? response.headers['set-cookie']
             : [response.headers['set-cookie']];
-
           for (let setCookieHeader of setCookieHeaders) {
             if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
               addCookieToJar(setCookieHeader, request.url);
@@ -510,6 +520,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // send domain cookies to renderer
       const domainsWithCookies = await getDomainsWithCookies();
+
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
