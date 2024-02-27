@@ -14,6 +14,7 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import { IconWand } from '@tabler/icons';
 
 import onHasCompletion from './onHasCompletion';
 
@@ -207,14 +208,17 @@ export default class QueryEditor extends React.Component {
     return (
       <>
         <StyledWrapper
-          className="h-full w-full"
+          className="h-full w-full relative"
           aria-label="Query Editor"
           ref={(node) => {
             this._node = node;
           }}
         >
-          <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={this.beautifyRequestBody}>
-            Prettify GraphQL
+          <button
+            className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
+            onClick={this.beautifyRequestBody}
+          >
+            <IconWand />
           </button>
         </StyledWrapper>
       </>
