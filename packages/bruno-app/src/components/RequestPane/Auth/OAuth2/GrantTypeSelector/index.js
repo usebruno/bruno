@@ -6,6 +6,7 @@ import StyledWrapper from './StyledWrapper';
 import { IconCaretDown } from '@tabler/icons';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { humanizeGrantType } from 'utils/collections';
+import { useEffect } from 'react';
 
 const GrantTypeSelector = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -35,10 +36,26 @@ const GrantTypeSelector = ({ item, collection }) => {
     );
   };
 
+  useEffect(() => {
+    // initalize redux state with a default oauth2 auth type
+    // authorization_code - default option
+    !oAuth?.grantType &&
+      dispatch(
+        updateAuth({
+          mode: 'oauth2',
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          content: {
+            grantType: 'authorization_code'
+          }
+        })
+      );
+  }, [oAuth]);
+
   return (
     <StyledWrapper>
       <label className="block font-medium mb-2">Grant Type</label>
-      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-full">
+      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"

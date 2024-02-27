@@ -9,7 +9,7 @@ const safeParseJson = (json) => {
 
 const indentString = (str) => {
   if (!str || !str.length) {
-    return str;
+    return str || '';
   }
 
   return str
@@ -20,7 +20,7 @@ const indentString = (str) => {
 
 const outdentString = (str) => {
   if (!str || !str.length) {
-    return str;
+    return str || '';
   }
 
   return str

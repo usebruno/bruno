@@ -40,7 +40,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
       {inputsConfig.map((input) => {
         const { key, label } = input;
         return (
-          <div className="flex flex-col w-full gap-1">
+          <div className="flex flex-col w-full gap-1" key={`input-${key}`}>
             <label className="block font-medium">{label}</label>
             <div className="single-line-editor-wrapper">
               <SingleLineEditor
