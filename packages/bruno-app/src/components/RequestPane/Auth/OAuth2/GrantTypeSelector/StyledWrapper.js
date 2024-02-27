@@ -10,24 +10,24 @@ const Wrapper = styled.div`
     background-color: ${(props) => props.theme.input.bg};
 
     .dropdown {
-      width: 100%;
+      width: fit-content;
 
       div[data-tippy-root] {
-        width: 100%;
+        width: fit-content;
       }
       .tippy-box {
-        width: 100%;
+        width: fit-content;
         max-width: none !important;
 
         .tippy-content: {
-          width: 100%;
+          width: fit-content;
           max-width: none !important;
         }
       }
     }
 
     .grant-type-label {
-      width: 100%;
+      width: fit-content;
       color: ${(props) => props.theme.colors.text.yellow};
       justify-content: space-between;
       padding: 0 0.5rem;
