@@ -75,19 +75,19 @@ const AuthMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
-              onModeChange('inherit');
+              onModeChange('oauth2');
             }}
           >
-            Inherit
+            OAuth 2.0
           </div>
           <div
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
-              onModeChange('oauth2');
+              onModeChange('inherit');
             }}
           >
-            OAuth 2.0
+            Inherit
           </div>
           <div
             className="dropdown-item"
