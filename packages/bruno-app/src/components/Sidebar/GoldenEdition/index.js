@@ -110,7 +110,6 @@ const GoldenEdition = ({ onClose }) => {
   const handlePricingOptionChange = (option) => {
     setPricingOption(option);
   };
-  console.log(displayedTheme);
 
   const themeBasedContainerClassNames = displayedTheme === 'light' ? 'text-gray-900' : 'text-white';
   const themeBasedTabContainerClassNames = displayedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
