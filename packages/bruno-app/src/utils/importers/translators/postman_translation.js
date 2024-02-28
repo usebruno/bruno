@@ -6,17 +6,22 @@ const replacements = {
 };
 
 export const postmanTranslation = (script) => {
-  const modifiedScript = Object.entries(replacements)
-    .map(([pattern, replacement]) => {
-      const regex = new RegExp(pattern, 'g');
-      return script.replace(regex, replacement);
-    })
-    .find((modified) => modified !== script);
-  if (modifiedScript) {
-    // translation successful
-    return modifiedScript;
-  } else {
+  try {
+    const modifiedScript = Object.entries(replacements || {})
+      .map(([pattern, replacement]) => {
+        const regex = new RegExp(pattern, 'g');
+        return script?.replace(regex, replacement);
+      })
+      .find((modified) => modified !== script);
+    if (modifiedScript) {
+      // translation successful
+      return modifiedScript;
+    } else {
+      // non-translatable script
+      return script?.includes('pm.') ? `// ${script}` : script;
+    }
+  } catch (e) {
     // non-translatable script
-    return script.includes('pm.') ? `// ${script}` : script;
+    return script?.includes('pm.') ? `// ${script}` : script;
   }
 };
