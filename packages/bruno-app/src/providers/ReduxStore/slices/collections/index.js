@@ -402,6 +402,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
               break;
+            case 'oauth2':
+              item.draft.request.auth.mode = 'oauth2';
+              item.draft.request.auth.oauth2 = action.payload.content;
+              break;
           }
         }
       }

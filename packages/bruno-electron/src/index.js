@@ -23,7 +23,8 @@ const contentSecurityPolicy = [
   "script-src * 'unsafe-inline' 'unsafe-eval'",
   "connect-src * 'unsafe-inline'",
   "font-src 'self' https:",
-  "form-action 'none'",
+  // this has been commented out to make oauth2 work
+  // "form-action 'none'",
   "img-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];

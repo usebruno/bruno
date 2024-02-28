@@ -3,7 +3,7 @@ headers {
 }
 
 auth {
-  mode: none
+  mode: bearer
 }
 
 auth:basic {
@@ -12,7 +12,7 @@ auth:basic {
 }
 
 auth:bearer {
-  token: {{bearerAuthToken}}
+  token: {{bearer_auth_token}}
 }
 
 docs {

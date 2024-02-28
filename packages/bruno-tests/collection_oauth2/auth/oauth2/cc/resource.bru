@@ -1,0 +1,15 @@
+meta {
+  name: resource
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/auth/oauth2/cc/resource?token={{cc_access_token}}
+  body: none
+  auth: none
+}
+
+query {
+  token: {{cc_access_token}}
+}

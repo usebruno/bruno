@@ -89,12 +89,12 @@ const jsonToBru = (json) => {
 
   if (auth && auth.awsv4) {
     bru += `auth:awsv4 {
-${indentString(`accessKeyId: ${auth.awsv4.accessKeyId}`)}
-${indentString(`secretAccessKey: ${auth.awsv4.secretAccessKey}`)}
-${indentString(`sessionToken: ${auth.awsv4.sessionToken}`)}
-${indentString(`service: ${auth.awsv4.service}`)}
-${indentString(`region: ${auth.awsv4.region}`)}
-${indentString(`profileName: ${auth.awsv4.profileName}`)}
+${indentString(`accessKeyId: ${auth?.awsv4?.accessKeyId || ''}`)}
+${indentString(`secretAccessKey: ${auth?.awsv4?.secretAccessKey || ''}`)}
+${indentString(`sessionToken: ${auth?.awsv4?.sessionToken || ''}`)}
+${indentString(`service: ${auth?.awsv4?.service || ''}`)}
+${indentString(`region: ${auth?.awsv4?.region || ''}`)}
+${indentString(`profileName: ${auth?.awsv4?.profileName || ''}`)}
 }
 
 `;
@@ -102,8 +102,8 @@ ${indentString(`profileName: ${auth.awsv4.profileName}`)}
 
   if (auth && auth.basic) {
     bru += `auth:basic {
-${indentString(`username: ${auth.basic.username}`)}
-${indentString(`password: ${auth.basic.password}`)}
+${indentString(`username: ${auth?.basic?.username || ''}`)}
+${indentString(`password: ${auth?.basic?.password || ''}`)}
 }
 
 `;
@@ -111,7 +111,7 @@ ${indentString(`password: ${auth.basic.password}`)}
 
   if (auth && auth.bearer) {
     bru += `auth:bearer {
-${indentString(`token: ${auth.bearer.token}`)}
+${indentString(`token: ${auth?.bearer?.token || ''}`)}
 }
 
 `;
@@ -119,11 +119,47 @@ ${indentString(`token: ${auth.bearer.token}`)}
 
   if (auth && auth.digest) {
     bru += `auth:digest {
-${indentString(`username: ${auth.digest.username}`)}
-${indentString(`password: ${auth.digest.password}`)}
+${indentString(`username: ${auth?.digest?.username || ''}`)}
+${indentString(`password: ${auth?.digest?.password || ''}`)}
 }
 
 `;
+  }
+
+  if (auth && auth.oauth2) {
+    switch (auth?.oauth2?.grantType) {
+      case 'password':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: password`)}
+${indentString(`username: ${auth?.oauth2?.username || ''}`)}
+${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+}
+
+`;
+        break;
+      case 'authorization_code':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: authorization_code`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+}
+
+`;
+        break;
+      case 'client_credentials':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: client_credentials`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+}
+
+`;
+        break;
+    }
   }
 
   if (body && body.json && body.json.length) {
@@ -332,3 +368,5 @@ ${indentString(docs)}
 };
 
 module.exports = jsonToBru;
+
+// alternative to writing the below code to avoif undefined
