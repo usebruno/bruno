@@ -10,7 +10,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   const [options, setOptions] = useState({
     enablePostmanTranslations: {
       enabled: true,
-      label: 'Enable Postman translations',
+      label: 'Auto translate postman scripts',
+      subLabel: "When enabled, Bruno will try as best to translate the scripts from the imported collection to Bruno's format."
     }
   })
   const handleImportBrunoCollection = () => {
@@ -50,25 +51,37 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         enabled: !options[optionKey].enabled
       } });
   };
+  const CollectionButton = ({ children, className, onClick }) => {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`rounded bg-white px-2.5 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50
+        ${className}`}
+      >
+        {children}
+      </button>
+    )
+  }
   return (
     <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
       <div className="flex flex-col">
         <h3 className="text-sm">Select the type of your existing collection :</h3>
         <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
-          <button variant="outline" className="" onClick={handleImportBrunoCollection}>
+          <CollectionButton onClick={handleImportBrunoCollection}>
             Bruno Collection
-          </button>
-          <button variant="outline" onClick={handleImportPostmanCollection}>
+          </CollectionButton>
+          <CollectionButton onClick={handleImportPostmanCollection}>
             Postman Collection
-          </button>
-          <button variant="outline" className="" onClick={handleImportInsomniaCollection}>
+          </CollectionButton>
+          <CollectionButton onClick={handleImportInsomniaCollection}>
             Insomnia Collection
-          </button>
-          <button variant="outline" className="" onClick={handleImportOpenapiCollection}>
+          </CollectionButton>
+          <CollectionButton onClick={handleImportOpenapiCollection}>
             OpenAPI V3 Spec
-          </button>
+          </CollectionButton>
         </div>
-        <div className="flex justify-end w-full mt-4">
+        <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (
             <div className="relative flex items-start">
               <div className="flex h-6 items-center">
@@ -77,17 +90,17 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                   aria-describedby="comments-description"
                   name="comments"
                   type="checkbox"
-                  value={option.enabled}
+                  checked={option.enabled}
                   onChange={(e) => toggleOptions(e,key)}
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                 />
               </div>
-              <div className="ml-3 text-sm leading-6">
+              <div className="ml-2 text-sm leading-6">
                 <label htmlFor="comments" className="font-medium text-gray-900">
                   {option.label}
                 </label>
-                <p id="comments-description" className="text-gray-500">
-                  Get notified when someones posts a comment on a posting.
+                <p id="comments-description" className="text-gray-500 text-xs">
+                  {option.subLabel}
                 </p>
               </div>
             </div>
