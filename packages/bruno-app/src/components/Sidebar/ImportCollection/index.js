@@ -56,7 +56,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       <button
         type="button"
         onClick={onClick}
-        className={`rounded bg-white px-2.5 py-1 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50
+        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-slate-900 dark:text-slate-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
       >
         {children}
@@ -92,14 +92,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
                   type="checkbox"
                   checked={option.enabled}
                   onChange={(e) => toggleOptions(e,key)}
-                  className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                  className="h-3.5 w-3.5 rounded border-zinc-300 dark:ring-offset-zinc-800 bg-transparent text-indigo-600 dark:text-indigo-500 focus:ring-indigo-600 dark:focus:ring-indigo-500"
                 />
               </div>
               <div className="ml-2 text-sm leading-6">
-                <label htmlFor="comments" className="font-medium text-gray-900">
+                <label htmlFor="comments" className="font-medium text-gray-900 dark:text-zinc-50">
                   {option.label}
                 </label>
-                <p id="comments-description" className="text-gray-500 text-xs">
+                <p id="comments-description" className="text-zinc-500 text-xs dark:text-zinc-400">
                   {option.subLabel}
                 </p>
               </div>
