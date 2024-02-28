@@ -2,7 +2,7 @@ import React from 'react';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
-import importOpenapiCollection from 'utils/importers/openapi-collection';
+import importOpenapiCollections from 'utils/importers/openapi-collections';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
@@ -31,8 +31,8 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       .catch((err) => toastError(err, 'Insomnia Import collection failed'));
   };
 
-  const handleImportOpenapiCollection = () => {
-    importOpenapiCollection()
+  const handleImportOpenapiCollections = () => {
+    importOpenapiCollections()
       .then((collection) => {
         handleSubmit(collection);
       })
@@ -51,7 +51,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportInsomniaCollection}>
           Insomnia Collection
         </div>
-        <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportOpenapiCollection}>
+        <div className="text-link hover:underline cursor-pointer mt-2" onClick={handleImportOpenapiCollections}>
           OpenAPI V3 Spec
         </div>
       </div>

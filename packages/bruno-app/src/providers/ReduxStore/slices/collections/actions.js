@@ -1016,7 +1016,15 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
 export const importCollection = (collection, collectionLocation) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-
-    ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+    if (Array.isArray(collection)) {
+      console.log('collection is an array.');
+      each(collection, (item) => {
+        collectionLocation = collectionLocation || item.name;
+        ipcRenderer.invoke('renderer:import-collection', item, collectionLocation).then(resolve).catch(reject);
+      });
+    } else {
+      console.log('collection is not an array.');
+      ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+    }
   });
 };
