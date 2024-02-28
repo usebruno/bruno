@@ -109,16 +109,21 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   }
 
   if (request?.oauth2?.grantType) {
+    let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
-        let username = _interpolate(request.oauth2.username) || '';
-        let password = _interpolate(request.oauth2.password) || '';
+        username = _interpolate(request.oauth2.username) || '';
+        password = _interpolate(request.oauth2.password) || '';
+        scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.username = username;
         request.oauth2.password = password;
+        request.oauth2.scope = scope;
         request.data = {
           grant_type: 'password',
           username,
-          password
+          password,
+          scope
         };
         break;
       case 'authorization_code':
@@ -130,14 +135,18 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         break;
       case 'client_credentials':
-        let clientId = _interpolate(request.oauth2.clientId) || '';
-        let clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        clientId = _interpolate(request.oauth2.clientId) || '';
+        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.clientId = clientId;
         request.oauth2.clientSecret = clientSecret;
+        request.oauth2.scope = scope;
         request.data = {
           grant_type: 'client_credentials',
           client_id: clientId,
-          client_secret: clientSecret
+          client_secret: clientSecret,
+          scope
         };
         break;
       default:

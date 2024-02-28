@@ -5,13 +5,13 @@ meta {
 }
 
 post {
-  url: {{host}}/api/auth/oauth2/ac/resource?token={{ac_access_token}}
+  url: {{host}}/api/auth/oauth2/authorization_code/resource?token={{authorization_code_access_token}}
   body: json
   auth: none
 }
 
 query {
-  token: {{ac_access_token}}
+  token: {{authorization_code_access_token}}
 }
 
 auth:bearer {

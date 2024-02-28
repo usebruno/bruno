@@ -64,7 +64,7 @@ const GrantTypeSelector = ({ item, collection }) => {
               onGrantTypeChange('password');
             }}
           >
-            Resource Owner Password Credentials
+            Password Credentials
           </div>
           <div
             className="dropdown-item"

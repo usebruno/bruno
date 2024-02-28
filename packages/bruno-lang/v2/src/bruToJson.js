@@ -398,8 +398,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           grantTypeKey?.value && grantTypeKey?.value == 'password'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
-                password: passwordKey ? passwordKey.value : ''
+                password: passwordKey ? passwordKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -414,8 +416,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : ''
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
               }
             : {}
       }

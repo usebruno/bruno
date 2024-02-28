@@ -29,7 +29,11 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
-const { resolveOAuth2AuthorizationCodecessToken } = require('./oauth2-authorization-code-helper');
+const {
+  resolveOAuth2AuthorizationCodecessToken,
+  transformClientCredentialsRequest,
+  transformPasswordCredentialsRequest
+} = require('./oauth2-helper');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -190,14 +194,36 @@ const configureRequest = async (
 
   const axiosInstance = makeAxiosInstance();
 
-  if (request.oauth2) {
-    if (request?.oauth2?.grantType == 'authorization_code') {
+  try {
+    if (request.oauth2) {
       let requestCopy = cloneDeep(request);
-      interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-      const { data, url } = await resolveOAuth2AuthorizationCodecessToken(requestCopy);
-      request.data = data;
-      request.url = url;
+      switch (request?.oauth2?.grantType) {
+        case 'authorization_code':
+          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+          const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
+            await resolveOAuth2AuthorizationCodecessToken(requestCopy);
+          request.data = authorizationCodeData;
+          request.url = authorizationCodeAccessTokenUrl;
+          break;
+        case 'client_credentials':
+          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+          const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
+            await transformClientCredentialsRequest(requestCopy);
+          request.data = clientCredentialsData;
+          request.url = clientCredentialsAccessTokenUrl;
+          break;
+        case 'password':
+          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+          const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
+            requestCopy
+          );
+          request.data = passwordData;
+          request.url = passwordAccessTokenUrl;
+          break;
+      }
     }
+  } catch (err) {
+    console.log('error configuring oauth2', err.message);
   }
 
   if (request.awsv4config) {
@@ -212,12 +238,16 @@ const configureRequest = async (
 
   request.timeout = preferencesUtil.getRequestTimeout();
 
-  // add cookies to request
-  if (preferencesUtil.shouldSendCookies()) {
-    const cookieString = getCookieStringForUrl(request.url);
-    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
+  try {
+    // add cookies to request
+    if (preferencesUtil.shouldSendCookies()) {
+      const cookieString = getCookieStringForUrl(request.url);
+      if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+        request.headers['cookie'] = cookieString;
+      }
     }
+  } catch (err) {
+    console.error('error adding cookies', err.message, request.url);
   }
 
   return axiosInstance;

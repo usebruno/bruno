@@ -27,7 +27,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          grantType: 'authorization_code',
+          grantType: 'password',
           ...oAuth,
           [key]: value
         }

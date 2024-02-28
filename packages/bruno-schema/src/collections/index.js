@@ -144,7 +144,7 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   accessTokenUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -159,7 +159,7 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   scope: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   })
