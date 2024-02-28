@@ -1019,7 +1019,9 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     if (Array.isArray(collection)) {
       console.log('collection is an array.');
       each(collection, (item) => {
-        collectionLocation = collectionLocation || item.name;
+        if (collection.length > 1) {
+          collectionLocation = collectionLocation || item.name;
+        }
         ipcRenderer.invoke('renderer:import-collection', item, collectionLocation).then(resolve).catch(reject);
       });
     } else {
