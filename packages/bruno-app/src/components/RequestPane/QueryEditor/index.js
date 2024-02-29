@@ -217,8 +217,9 @@ export default class QueryEditor extends React.Component {
           <button
             className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
             onClick={this.beautifyRequestBody}
+            title="prettify"
           >
-            <IconWand />
+            <IconWand size={20} strokeWidth={1.5} />
           </button>
         </StyledWrapper>
       </>

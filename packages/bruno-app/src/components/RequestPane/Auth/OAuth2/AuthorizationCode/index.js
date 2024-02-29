@@ -56,7 +56,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         );
       })}
       <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Authorization Code
+        Get Access Token
       </button>
     </StyledWrapper>
   );

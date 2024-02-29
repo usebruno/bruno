@@ -20,6 +20,8 @@ You can use Git or any version control of your choice to collaborate over your A
 
 Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We value your data privacy and believe it should stay on your device. Read our long-term vision [here](https://github.com/usebruno/bruno/discussions/269)
 
+[Download Bruno](https://www.usebruno.com/downloads)
+
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
 ![bruno](assets/images/landing-2.png) <br /><br />
@@ -29,8 +31,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon at ~~$19~~ **$9** ! <br/>
-[Sign up here](https://usebruno.ck.page/4c65576bd4) to get notified when we launch.
+You can Pre-Orders the [Golden Edition](https://www.usebruno.com/pricing) at ~~$19~~ **$9** ! <br/>
 
 ### Installation
 
