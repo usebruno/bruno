@@ -40,7 +40,7 @@ import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
-import { sendCollectionHttpRequest } from 'utils/network/index';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -139,7 +139,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const sendCollectionRequest = (collectionUid) => (dispatch, getState) => {
+export const sendCollectionOauth2Request = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -152,7 +152,7 @@ export const sendCollectionRequest = (collectionUid) => (dispatch, getState) => 
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    sendCollectionHttpRequest(collection, environment, collectionCopy.collectionVariables)
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.collectionVariables)
       .then((response) => {
         if (response?.data?.error) {
           toast.error(response?.data?.error);

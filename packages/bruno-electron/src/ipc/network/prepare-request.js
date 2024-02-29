@@ -69,42 +69,6 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
-      case 'oauth2':
-        if (!request.auth.mode == 'inherit') {
-          const grantType = get(collectionAuth, 'oauth2.grantType');
-          switch (grantType) {
-            case 'password':
-              axiosRequest.oauth2 = {
-                grantType: grantType,
-                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-                username: get(collectionAuth, 'oauth2.username'),
-                password: get(collectionAuth, 'oauth2.password'),
-                scope: get(collectionAuth, 'oauth2.scope')
-              };
-              break;
-            case 'authorization_code':
-              axiosRequest.oauth2 = {
-                grantType: grantType,
-                callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
-                authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
-                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-                clientId: get(collectionAuth, 'oauth2.clientId'),
-                clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-                scope: get(collectionAuth, 'oauth2.scope')
-              };
-              break;
-            case 'client_credentials':
-              axiosRequest.oauth2 = {
-                grantType: grantType,
-                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
-                clientId: get(collectionAuth, 'oauth2.clientId'),
-                clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
-                scope: get(collectionAuth, 'oauth2.scope')
-              };
-              break;
-          }
-        }
-        break;
     }
   }
 
@@ -155,7 +119,8 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
-              scope: get(request, 'auth.oauth2.scope')
+              scope: get(request, 'auth.oauth2.scope'),
+              pkce: get(request, 'auth.oauth2.pkce')
             };
             break;
           case 'client_credentials':

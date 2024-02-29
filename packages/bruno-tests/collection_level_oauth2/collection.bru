@@ -7,16 +7,19 @@ auth {
 }
 
 auth:oauth2 {
-  grant_type: client_credentials
-  access_token_url: {{client_credentials_access_token_url}}
-  client_id: {{client_credentials_client_id}}
-  client_secret: {{client_credentials_client_secret}}
-  scope: {{client_credentials_scope}}
+  grant_type: authorization_code
+  callback_url: {{authorization_code_callback_url}}
+  authorization_url: {{authorization_code_authorize_url}}
+  access_token_url: {{authorization_code_access_token_url}}
+  client_id: {{client_id}}
+  client_secret: {{client_secret}}
+  scope: 
+  pkce: true
 }
 
 script:post-response {
   if(req.getAuthMode() == 'oauth2' && res.body.access_token) {
-   bru.setEnvVar('common_access_token',res.body.access_token) 
+   bru.setEnvVar('access_token_set_by_collection',res.body.access_token) 
   }
 }
 

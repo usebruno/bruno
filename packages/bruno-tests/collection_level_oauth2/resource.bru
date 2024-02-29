@@ -4,12 +4,12 @@ meta {
   seq: 2
 }
 
-get {
-  url: {{host}}/api/auth/oauth2/client_credentials/resource?token={{common_access_token}}
-  body: none
+post {
+  url: {{host}}/api/auth/oauth2/authorization_code/resource?token={{access_token_set_by_collection}}
+  body: json
   auth: none
 }
 
 query {
-  token: {{common_access_token}}
+  token: {{access_token_set_by_collection}}
 }

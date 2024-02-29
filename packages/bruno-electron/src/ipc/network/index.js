@@ -31,7 +31,7 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-ut
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
-  resolveOAuth2AuthorizationCodecessToken,
+  resolveOAuth2AuthorizationCodeAccessToken,
   transformClientCredentialsRequest,
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
@@ -195,36 +195,32 @@ const configureRequest = async (
 
   const axiosInstance = makeAxiosInstance();
 
-  try {
-    if (request.oauth2) {
-      let requestCopy = cloneDeep(request);
-      switch (request?.oauth2?.grantType) {
-        case 'authorization_code':
-          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-          const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-            await resolveOAuth2AuthorizationCodecessToken(requestCopy);
-          request.data = authorizationCodeData;
-          request.url = authorizationCodeAccessTokenUrl;
-          break;
-        case 'client_credentials':
-          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-          const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
-            await transformClientCredentialsRequest(requestCopy);
-          request.data = clientCredentialsData;
-          request.url = clientCredentialsAccessTokenUrl;
-          break;
-        case 'password':
-          interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-          const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
-            requestCopy
-          );
-          request.data = passwordData;
-          request.url = passwordAccessTokenUrl;
-          break;
-      }
+  if (request.oauth2) {
+    let requestCopy = cloneDeep(request);
+    switch (request?.oauth2?.grantType) {
+      case 'authorization_code':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
+          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy);
+        request.data = authorizationCodeData;
+        request.url = authorizationCodeAccessTokenUrl;
+        break;
+      case 'client_credentials':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
+          await transformClientCredentialsRequest(requestCopy);
+        request.data = clientCredentialsData;
+        request.url = clientCredentialsAccessTokenUrl;
+        break;
+      case 'password':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
+          requestCopy
+        );
+        request.data = passwordData;
+        request.url = passwordAccessTokenUrl;
+        break;
     }
-  } catch (err) {
-    console.log('error configuring oauth2', err.message);
   }
 
   if (request.awsv4config) {
@@ -239,18 +235,13 @@ const configureRequest = async (
 
   request.timeout = preferencesUtil.getRequestTimeout();
 
-  try {
-    // add cookies to request
-    if (preferencesUtil.shouldSendCookies()) {
-      const cookieString = getCookieStringForUrl(request.url);
-      if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-        request.headers['cookie'] = cookieString;
-      }
+  // add cookies to request
+  if (preferencesUtil.shouldSendCookies()) {
+    const cookieString = getCookieStringForUrl(request.url);
+    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+      request.headers['cookie'] = cookieString;
     }
-  } catch (err) {
-    console.error('error adding cookies', err.message, request.url);
   }
-
   return axiosInstance;
 };
 
@@ -625,7 +616,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('send-collection-http-request', async (event, collection, environment, collectionVariables) => {
+  ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, collectionVariables) => {
     try {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;

@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveCollectionRoot, sendCollectionRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
@@ -15,10 +15,12 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   const oAuth = get(collection, 'root.request.auth.oauth2', {});
 
   const handleRun = async () => {
-    dispatch(sendCollectionRequest(collection.uid));
+    dispatch(sendCollectionOauth2Request(collection.uid));
   };
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+
+  const { accessTokenUrl, username, password, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -27,7 +29,10 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         collectionUid: collection.uid,
         content: {
           grantType: 'password',
-          ...oAuth,
+          accessTokenUrl,
+          username,
+          password,
+          scope,
           [key]: value
         }
       })

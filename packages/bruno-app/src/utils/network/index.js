@@ -33,11 +33,11 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
   });
 };
 
-export const sendCollectionHttpRequest = async (collection, environment, collectionVariables) => {
+export const sendCollectionOauth2Request = async (collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer
-      .invoke('send-collection-http-request', collection, environment, collectionVariables)
+      .invoke('send-collection-oauth2-request', collection, environment, collectionVariables)
       .then(resolve)
       .catch(reject);
   });

@@ -1,7 +1,7 @@
 const { get, each } = require('lodash');
 const { setAuthHeaders } = require('./prepare-request');
 
-const prepareCollectionRequest = (request, collectionRoot, collectionPath) => {
+const prepareCollectionRequest = (request, collectionRoot) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;

@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveCollectionRoot, sendCollectionRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
@@ -15,10 +15,12 @@ const OAuth2AuthorizationCode = ({ collection }) => {
   const oAuth = get(collection, 'root.request.auth.oauth2', {});
 
   const handleRun = async () => {
-    dispatch(sendCollectionRequest(collection.uid));
+    dispatch(sendCollectionOauth2Request(collection.uid));
   };
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, pkce } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -27,8 +29,33 @@ const OAuth2AuthorizationCode = ({ collection }) => {
         collectionUid: collection.uid,
         content: {
           grantType: 'authorization_code',
-          ...oAuth,
+          callbackUrl,
+          authorizationUrl,
+          accessTokenUrl,
+          clientId,
+          clientSecret,
+          scope,
+          pkce,
           [key]: value
+        }
+      })
+    );
+  };
+
+  const handlePKCEToggle = (e) => {
+    dispatch(
+      updateCollectionAuth({
+        mode: 'oauth2',
+        collectionUid: collection.uid,
+        content: {
+          grantType: 'authorization_code',
+          callbackUrl,
+          authorizationUrl,
+          accessTokenUrl,
+          clientId,
+          clientSecret,
+          scope,
+          pkce: !Boolean(oAuth?.['pkce'])
         }
       })
     );
@@ -54,6 +81,15 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           </div>
         );
       })}
+      <div className="flex flex-row w-full gap-4" key="pkce">
+        <label className="block font-medium">Use PKCE</label>
+        <input
+          className="cursor-pointer"
+          type="checkbox"
+          checked={Boolean(oAuth?.['pkce'])}
+          onChange={handlePKCEToggle}
+        />
+      </div>
       <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
         Get Access Token
       </button>

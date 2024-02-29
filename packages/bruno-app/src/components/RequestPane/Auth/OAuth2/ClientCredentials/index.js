@@ -20,6 +20,8 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
+
   const handleChange = (key, value) => {
     dispatch(
       updateAuth({
@@ -28,7 +30,10 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
         itemUid: item.uid,
         content: {
           grantType: 'client_credentials',
-          ...oAuth,
+          accessTokenUrl,
+          clientId,
+          clientSecret,
+          scope,
           [key]: value
         }
       })

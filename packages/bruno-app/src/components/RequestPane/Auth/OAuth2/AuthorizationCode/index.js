@@ -20,6 +20,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, pkce } = oAuth;
+
   const handleChange = (key, value) => {
     dispatch(
       updateAuth({
@@ -28,8 +30,34 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         itemUid: item.uid,
         content: {
           grantType: 'authorization_code',
-          ...oAuth,
+          callbackUrl,
+          authorizationUrl,
+          accessTokenUrl,
+          clientId,
+          clientSecret,
+          scope,
+          pkce,
           [key]: value
+        }
+      })
+    );
+  };
+
+  const handlePKCEToggle = (e) => {
+    dispatch(
+      updateAuth({
+        mode: 'oauth2',
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        content: {
+          grantType: 'authorization_code',
+          callbackUrl,
+          authorizationUrl,
+          accessTokenUrl,
+          clientId,
+          clientSecret,
+          scope,
+          pkce: !Boolean(oAuth?.['pkce'])
         }
       })
     );
@@ -55,6 +83,15 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           </div>
         );
       })}
+      <div className="flex flex-row w-full gap-4" key="pkce">
+        <label className="block font-medium">Use PKCE</label>
+        <input
+          className="cursor-pointer"
+          type="checkbox"
+          checked={Boolean(oAuth?.['pkce'])}
+          onChange={handlePKCEToggle}
+        />
+      </div>
       <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
         Get Access Token
       </button>

@@ -20,6 +20,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
+  const { accessTokenUrl, username, password, scope } = oAuth;
+
   const handleChange = (key, value) => {
     dispatch(
       updateAuth({
@@ -28,7 +30,10 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         itemUid: item.uid,
         content: {
           grantType: 'password',
-          ...oAuth,
+          accessTokenUrl,
+          username,
+          password,
+          scope,
           [key]: value
         }
       })
