@@ -1,6 +1,6 @@
 {
   "version": "1",
-  "name": "collection_oauth2",
+  "name": "collection_level_oauth2",
   "type": "collection",
   "scripts": {
     "moduleWhitelist": ["crypto"],

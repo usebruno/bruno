@@ -104,7 +104,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     const username = _interpolate(request.auth.username) || '';
     const password = _interpolate(request.auth.password) || '';
     // use auth header based approach and delete the request.auth object
-    request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.auth;
   }
 

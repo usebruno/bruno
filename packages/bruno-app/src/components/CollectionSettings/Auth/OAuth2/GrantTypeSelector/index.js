@@ -7,13 +7,14 @@ import { IconCaretDown } from '@tabler/icons';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
+import { updateCollectionAuth, updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections/index';
 
-const GrantTypeSelector = ({ item, collection }) => {
+const GrantTypeSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
+  const oAuth = get(collection, 'root.request.auth.oauth2', {});
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -25,10 +26,9 @@ const GrantTypeSelector = ({ item, collection }) => {
 
   const onGrantTypeChange = (grantType) => {
     dispatch(
-      updateAuth({
+      updateCollectionAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
-        itemUid: item.uid,
         content: {
           grantType
         }
@@ -41,10 +41,16 @@ const GrantTypeSelector = ({ item, collection }) => {
     // authorization_code - default option
     !oAuth?.grantType &&
       dispatch(
-        updateAuth({
+        updateCollectionAuthMode({
+          mode: 'oauth2',
+          collectionUid: collection.uid
+        })
+      );
+    !oAuth?.grantType &&
+      dispatch(
+        updateCollectionAuth({
           mode: 'oauth2',
           collectionUid: collection.uid,
-          itemUid: item.uid,
           content: {
             grantType: 'authorization_code'
           }

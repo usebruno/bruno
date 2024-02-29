@@ -61,7 +61,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -70,37 +70,39 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'oauth2':
-        const grantType = get(collectionAuth, 'auth.oauth2.grantType');
-        switch (grantType) {
-          case 'password':
-            axiosRequest.oauth2 = {
-              grantType: grantType,
-              accessTokenUrl: get(collectionAuth, 'auth.oauth2.accessTokenUrl'),
-              username: get(collectionAuth, 'auth.oauth2.username'),
-              password: get(collectionAuth, 'auth.oauth2.password'),
-              scope: get(collectionAuth, 'auth.oauth2.scope')
-            };
-            break;
-          case 'authorization_code':
-            axiosRequest.oauth2 = {
-              grantType: grantType,
-              callbackUrl: get(collectionAuth, 'auth.oauth2.callbackUrl'),
-              authorizationUrl: get(collectionAuth, 'auth.oauth2.authorizationUrl'),
-              accessTokenUrl: get(collectionAuth, 'auth.oauth2.accessTokenUrl'),
-              clientId: get(collectionAuth, 'auth.oauth2.clientId'),
-              clientSecret: get(collectionAuth, 'auth.oauth2.clientSecret'),
-              scope: get(collectionAuth, 'auth.oauth2.scope')
-            };
-            break;
-          case 'client_credentials':
-            axiosRequest.oauth2 = {
-              grantType: grantType,
-              accessTokenUrl: get(collectionAuth, 'auth.oauth2.accessTokenUrl'),
-              clientId: get(collectionAuth, 'auth.oauth2.clientId'),
-              clientSecret: get(collectionAuth, 'auth.oauth2.clientSecret'),
-              scope: get(collectionAuth, 'auth.oauth2.scope')
-            };
-            break;
+        if (!request.auth.mode == 'inherit') {
+          const grantType = get(collectionAuth, 'oauth2.grantType');
+          switch (grantType) {
+            case 'password':
+              axiosRequest.oauth2 = {
+                grantType: grantType,
+                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+                username: get(collectionAuth, 'oauth2.username'),
+                password: get(collectionAuth, 'oauth2.password'),
+                scope: get(collectionAuth, 'oauth2.scope')
+              };
+              break;
+            case 'authorization_code':
+              axiosRequest.oauth2 = {
+                grantType: grantType,
+                callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+                authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+                clientId: get(collectionAuth, 'oauth2.clientId'),
+                clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+                scope: get(collectionAuth, 'oauth2.scope')
+              };
+              break;
+            case 'client_credentials':
+              axiosRequest.oauth2 = {
+                grantType: grantType,
+                accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+                clientId: get(collectionAuth, 'oauth2.clientId'),
+                clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+                scope: get(collectionAuth, 'oauth2.scope')
+              };
+              break;
+          }
         }
         break;
     }
@@ -125,7 +127,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {

@@ -12,6 +12,7 @@ const { ipcMain } = require('electron');
 const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
+const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
@@ -620,6 +621,79 @@ const registerNetworkIpc = (mainWindow) => {
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
 
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('send-collection-http-request', async (event, collection, environment, collectionVariables) => {
+    try {
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const requestUid = uuid();
+
+      const collectionRoot = get(collection, 'root', {});
+      const _request = collectionRoot?.request;
+      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      const axiosInstance = await configureRequest(
+        collection.uid,
+        request,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
+      try {
+        response = await axiosInstance(request);
+      } catch (error) {
+        if (error?.response) {
+          response = error.response;
+        } else {
+          return Promise.reject(error);
+        }
+      }
+
+      const { data } = parseDataFromResponse(response);
+      response.data = data;
+
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      };
+    } catch (error) {
       return Promise.reject(error);
     }
   });

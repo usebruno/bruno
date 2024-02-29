@@ -33,6 +33,16 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
   });
 };
 
+export const sendCollectionHttpRequest = async (collection, environment, collectionVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('send-collection-http-request', collection, environment, collectionVariables)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;

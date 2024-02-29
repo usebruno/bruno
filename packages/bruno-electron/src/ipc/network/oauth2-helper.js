@@ -68,7 +68,6 @@ const transformPasswordCredentialsRequest = async (request) => {
     password,
     scope
   };
-  console.log('passssss', requestCopy.oauth2);
   const url = requestCopy?.oauth2?.accessTokenUrl;
   return {
     data,
