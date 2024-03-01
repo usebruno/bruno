@@ -195,6 +195,7 @@ const configureRequest = async (
       let requestCopy = cloneDeep(request);
       interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
       const { data, url } = await resolveOAuth2AuthorizationCodecessToken(requestCopy);
+      request.headers['content-type'] = 'application/x-www-form-urlencoded';
       request.data = data;
       request.url = url;
     }
