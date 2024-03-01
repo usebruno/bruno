@@ -1006,13 +1006,10 @@ const registerNetworkIpc = (mainWindow) => {
       };
 
       const getFileNameBasedOnContentTypeHeader = () => {
-        const contentType = getHeaderValue('content-type');
         return `response.${getFileExtension(contentType)}`;
       };
 
       const getFormattedResponseIfJson = () => {
-        const contentType = getHeaderValue('content-type');
-
         if (getFileExtension(contentType) === 'json') {
           return Buffer.from(JSON.stringify(response.data, null, 2), 'utf8');
         }
