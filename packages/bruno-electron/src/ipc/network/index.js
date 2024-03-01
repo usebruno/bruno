@@ -999,10 +999,25 @@ const registerNetworkIpc = (mainWindow) => {
         }
       };
 
+      const contentType = getHeaderValue('content-type');
+
+      const getFileExtension = () => {
+        return (contentType && mime.extension(contentType)) || 'txt';
+      };
+
       const getFileNameBasedOnContentTypeHeader = () => {
         const contentType = getHeaderValue('content-type');
-        const extension = (contentType && mime.extension(contentType)) || 'txt';
-        return `response.${extension}`;
+        return `response.${getFileExtension(contentType)}`;
+      };
+
+      const getFormattedResponseIfJson = () => {
+        const contentType = getHeaderValue('content-type');
+
+        if (getFileExtension(contentType) === 'json') {
+          return Buffer.from(JSON.stringify(response.data, null, 2), 'utf8');
+        }
+
+        return Buffer.from(response.dataBuffer, 'base64');
       };
 
       const fileName =
@@ -1010,7 +1025,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+        await writeBinaryFile(filePath, getFormattedResponseIfJson());
       }
     } catch (error) {
       return Promise.reject(error);
