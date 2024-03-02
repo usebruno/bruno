@@ -62,8 +62,8 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
-  const isRunningFromConsole = !app.isPackaged;
-  const url = isRunningFromConsole
+  const appIsNotPackaged = !app.isPackaged;
+  const url = appIsNotPackaged
     ? 'http://localhost:3000'
     : format({
         pathname: path.join(__dirname, '../web/index.html'),
@@ -74,7 +74,7 @@ app.on('ready', async () => {
   mainWindow.loadURL(url).catch((reason) => {
     console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
     console.error('Original message:', reason);
-    if (isRunningFromConsole) {
+    if (appIsNotPackaged) {
       console.error(
         'Could not connect to Next.Js dev server, is it running?' +
           ' Start the dev server using "npm run dev:web" and restart electron'
