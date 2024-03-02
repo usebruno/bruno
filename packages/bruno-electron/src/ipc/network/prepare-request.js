@@ -1,5 +1,6 @@
 const { get, each, filter, extend } = require('lodash');
 const decomment = require('decomment');
+var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -204,8 +205,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      // axiosRequest.data = JSON.parse(request.body.json);
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
