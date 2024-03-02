@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
@@ -129,7 +129,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <label className="block font-medium mb-2">Access Key ID</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.accessKeyId || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -141,7 +142,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
       <label className="block font-medium mb-2">Secret Access Key</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.secretAccessKey || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -153,7 +155,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
       <label className="block font-medium mb-2">Session Token</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.sessionToken || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -165,7 +168,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
       <label className="block font-medium mb-2">Service</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.service || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -177,7 +181,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
       <label className="block font-medium mb-2">Region</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.region || ''}
           theme={storedTheme}
           onSave={handleSave}
@@ -189,7 +194,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
 
       <label className="block font-medium mb-2">Profile Name</label>
       <div className="single-line-editor-wrapper mb-2">
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
           value={awsv4Auth.profileName || ''}
           theme={storedTheme}
           onSave={handleSave}

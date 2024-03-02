@@ -2,11 +2,11 @@ import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import SingleLineEditor from 'components/SingleLineEditor';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import SingleLineEditor from 'components/CodeEditor/Codemirror/SingleLineEditor';
 
 const OAuth2AuthorizationCode = ({ item, collection }) => {
   const dispatch = useDispatch();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { IconTrash } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
 
@@ -169,7 +169,8 @@ const AssertionRow = ({
       </td>
       <td>
         {!isUnaryOperator(operator) ? (
-          <SingleLineEditor
+          <CodeEditor
+            singleLine
             value={value}
             theme={storedTheme}
             readOnly={true}

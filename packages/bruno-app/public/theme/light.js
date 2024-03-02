@@ -13,8 +13,6 @@ const lightTheme = {
   'tab-inactive': 'rgb(155 155 155)',
   'tab-active-border': '#546de5',
   'layout-border': '#dedede',
-  'codemirror-border': '#efefef',
-  'codemirror-background': 'rgb(243, 243, 243)',
   'text-link': '#1663bb',
   'text-danger': 'rgb(185, 28, 28)',
   'background-danger': '#dc3545',

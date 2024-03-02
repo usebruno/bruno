@@ -1,6 +1,5 @@
 import React from 'react';
 import get from 'lodash/get';
-import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
 import { useDispatch, useSelector } from 'react-redux';
@@ -8,6 +7,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor from 'components/CodeEditor';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -30,7 +30,7 @@ const RequestBody = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   if (['json', 'xml', 'text', 'sparql'].includes(bodyMode)) {
-    let codeMirrorMode = {
+    let mode = {
       json: 'application/ld+json',
       text: 'application/text',
       xml: 'application/xml',
@@ -51,10 +51,10 @@ const RequestBody = ({ item, collection }) => {
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           value={bodyContent[bodyMode] || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onRun={onRun}
           onSave={onSave}
-          mode={codeMirrorMode[bodyMode]}
+          mode={mode[bodyMode]}
         />
       </StyledWrapper>
     );

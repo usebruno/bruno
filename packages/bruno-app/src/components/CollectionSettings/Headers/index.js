@@ -10,7 +10,7 @@ import {
   deleteCollectionHeader
 } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
@@ -78,7 +78,8 @@ const Headers = ({ collection }) => {
                 return (
                   <tr key={header.uid}>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={header.name}
                         theme={storedTheme}
                         onSave={handleSave}
@@ -98,7 +99,8 @@ const Headers = ({ collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={header.value}
                         theme={storedTheme}
                         onSave={handleSave}

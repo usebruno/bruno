@@ -5,7 +5,7 @@ import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -119,7 +119,8 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 <ErrorMessage name={`${index}.name`} />
               </td>
               <td>
-                <SingleLineEditor
+                <CodeEditor
+                  singleLine
                   theme={storedTheme}
                   collection={collection}
                   name={`${index}.value`}

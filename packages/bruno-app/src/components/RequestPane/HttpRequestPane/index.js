@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import find from 'lodash/find';
 import classnames from 'classnames';
 import { useSelector, useDispatch } from 'react-redux';
@@ -17,6 +17,18 @@ import StyledWrapper from './StyledWrapper';
 import { get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 
+const componentMap = (item, collection) => ({
+  params: <QueryParams item={item} collection={collection} />,
+  body: <RequestBody item={item} collection={collection} />,
+  headers: <RequestHeaders item={item} collection={collection} />,
+  auth: <Auth item={item} collection={collection} />,
+  vars: <Vars item={item} collection={collection} />,
+  assert: <Assertions item={item} collection={collection} />,
+  script: <Script item={item} collection={collection} />,
+  tests: <Tests item={item} collection={collection} />,
+  docs: <Documentation item={item} collection={collection} />
+});
+
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -31,41 +43,6 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     );
   };
 
-  const getTabPanel = (tab) => {
-    switch (tab) {
-      case 'params': {
-        return <QueryParams item={item} collection={collection} />;
-      }
-      case 'body': {
-        return <RequestBody item={item} collection={collection} />;
-      }
-      case 'headers': {
-        return <RequestHeaders item={item} collection={collection} />;
-      }
-      case 'auth': {
-        return <Auth item={item} collection={collection} />;
-      }
-      case 'vars': {
-        return <Vars item={item} collection={collection} />;
-      }
-      case 'assert': {
-        return <Assertions item={item} collection={collection} />;
-      }
-      case 'script': {
-        return <Script item={item} collection={collection} />;
-      }
-      case 'tests': {
-        return <Tests item={item} collection={collection} />;
-      }
-      case 'docs': {
-        return <Documentation item={item} collection={collection} />;
-      }
-      default: {
-        return <div className="mt-4">404 | Not found</div>;
-      }
-    }
-  };
-
   if (!activeTabUid) {
     return <div>Something went wrong</div>;
   }
@@ -74,6 +51,14 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   if (!focusedTab || !focusedTab.uid || !focusedTab.requestPaneTab) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
+  const tabPanel = useMemo(() => {
+    const getTabPanel = (tab, item, collection) => {
+      const components = componentMap(item, collection);
+      return components[tab] || <div className="mt-4">404 | Not found</div>;
+    };
+
+    return getTabPanel(focusedTab.requestPaneTab, item, collection);
+  }, [focusedTab.requestPaneTab, item, collection]);
 
   const getTabClassname = (tabName) => {
     return classnames(`tab select-none ${tabName}`, {
@@ -136,11 +121,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${
+        className={`flex w-full flex-grow ${
           ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
         }`}
       >
-        {getTabPanel(focusedTab.requestPaneTab)}
+        {tabPanel}
       </section>
     </StyledWrapper>
   );

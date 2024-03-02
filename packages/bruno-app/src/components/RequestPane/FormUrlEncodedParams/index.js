@@ -9,7 +9,7 @@ import {
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam
 } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 
@@ -92,7 +92,8 @@ const FormUrlEncodedParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}

@@ -6,7 +6,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
 import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
 
@@ -62,7 +62,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           maxWidth: `calc(100% - ${methodSelectorWidth}px)`
         }}
       >
-        <SingleLineEditor
+        <CodeEditor
+          singleLine
+          withVariables
           value={url}
           onSave={onSave}
           theme={storedTheme}

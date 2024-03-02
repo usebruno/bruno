@@ -5,7 +5,7 @@ import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
+import CodeEditor from 'src/components/CodeEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
@@ -91,7 +91,8 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <CodeEditor
+                        singleLine
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}

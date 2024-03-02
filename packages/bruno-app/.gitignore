@@ -7,6 +7,7 @@ node_modules
 pnpm-lock.yaml
 package-lock.json
 yarn.lock
+bun.lockb
 
 # testing
 coverage

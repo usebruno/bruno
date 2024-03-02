@@ -31,7 +31,7 @@ const Tests = ({ collection }) => {
         collection={collection}
         value={tests || ''}
         theme={displayedTheme}
-        onEdit={onEdit}
+        onChange={onEdit}
         mode="javascript"
         onSave={handleSave}
         font={get(preferences, 'font.codeFont', 'default')}

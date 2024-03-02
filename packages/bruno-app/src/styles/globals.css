@@ -66,3 +66,7 @@ body::-webkit-scrollbar-thumb,
  * transform: scale(1.1);
  * }
  */
+
+.monaco-editor .lines-content {
+  padding-left: 5px;
+}

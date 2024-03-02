@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -41,46 +41,6 @@ const RequestTab = ({ tab, collection }) => {
     }
   };
 
-  const getMethodColor = (method = '') => {
-    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
-
-    let color = '';
-    method = method.toLocaleLowerCase();
-
-    switch (method) {
-      case 'get': {
-        color = theme.request.methods.get;
-        break;
-      }
-      case 'post': {
-        color = theme.request.methods.post;
-        break;
-      }
-      case 'put': {
-        color = theme.request.methods.put;
-        break;
-      }
-      case 'delete': {
-        color = theme.request.methods.delete;
-        break;
-      }
-      case 'patch': {
-        color = theme.request.methods.patch;
-        break;
-      }
-      case 'options': {
-        color = theme.request.methods.options;
-        break;
-      }
-      case 'head': {
-        color = theme.request.methods.head;
-        break;
-      }
-    }
-
-    return color;
-  };
-
   if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
@@ -100,7 +60,8 @@ const RequestTab = ({ tab, collection }) => {
   }
 
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-
+  const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
+  const color = useMemo(() => theme.request.methods[method], [method]);
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
@@ -149,7 +110,7 @@ const RequestTab = ({ tab, collection }) => {
           }
         }}
       >
-        <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
+        <span className="tab-method uppercase" style={{ color, fontSize: 12 }}>
           {method}
         </span>
         <span className="ml-1 tab-name" title={item.name}>

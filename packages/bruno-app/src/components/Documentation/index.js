@@ -6,8 +6,8 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
-import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import CodeEditor from 'components/CodeEditor';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -48,7 +48,7 @@ const Documentation = ({ item, collection }) => {
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
           value={docs || ''}
-          onEdit={onEdit}
+          onChange={onEdit}
           onSave={onSave}
           mode="application/text"
         />

@@ -1,12 +1,11 @@
 import { getContentType, safeParseXML, safeStringifyJSON } from 'utils/common';
 import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTheme } from 'providers/Theme';
-import { debounce } from 'lodash';
 import classnames from 'classnames';
 import StyledWrapper from 'components/ResponsePane/QueryResult/QueryResultMode/StyledWrapper';
 import QueryResultPreview from 'components/ResponsePane/QueryResult/QueryResultViewer';
 import QueryResultFilter from 'components/ResponsePane/QueryResult/QueryResultFilter';
+import { getMonacoModeFromContent } from 'utils/monaco/monacoUtils';
 import { JSONPath } from 'jsonpath-plus';
 
 /**
@@ -50,7 +49,7 @@ const formatResponse = (data, mode, filter) => {
 
 const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
+  const mode = getMonacoModeFromContent(contentType, data);
   const [filter, setFilter] = useState('');
   const formattedData = formatResponse(data, mode, filter);
 

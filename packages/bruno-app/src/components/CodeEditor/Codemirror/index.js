@@ -217,7 +217,7 @@ export default class CodeEditor extends React.Component {
     });
     if (editor) {
       editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
-      editor.on('change', this._onEdit);
+      editor.on('change', this._onChange);
       this.addOverlay();
     }
     if (this.props.mode == 'javascript') {
@@ -274,7 +274,7 @@ export default class CodeEditor extends React.Component {
 
   componentWillUnmount() {
     if (this.editor) {
-      this.editor.off('change', this._onEdit);
+      this.editor.off('change', this._onChange);
       this.editor = null;
     }
   }
@@ -304,12 +304,12 @@ export default class CodeEditor extends React.Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
-  _onEdit = () => {
+  _onChange = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
-      if (this.props.onEdit) {
-        this.props.onEdit(this.cachedValue);
+      if (this.props.onChange) {
+        this.props.onChange(this.cachedValue);
       }
     }
   };

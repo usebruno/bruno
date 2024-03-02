@@ -1,7 +1,6 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
@@ -123,11 +122,11 @@ class SingleLineEditor extends Component {
       });
     }
     this.editor.setValue(String(this.props.value) || '');
-    this.editor.on('change', this._onEdit);
+    this.editor.on('change', this._onChange);
     this.addOverlay();
   }
 
-  _onEdit = () => {
+  _onChange = () => {
     if (!this.ignoreChangeEvent && this.editor) {
       this.cachedValue = this.editor.getValue();
       if (this.props.onChange) {
@@ -165,7 +164,7 @@ class SingleLineEditor extends Component {
     let variables = getAllVariables(this.props.collection);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
+    // defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'brunovariables');
   };
 

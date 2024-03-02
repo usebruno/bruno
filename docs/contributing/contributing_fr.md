@@ -11,7 +11,7 @@ Bruno est basé sur NextJs et React. Nous utilisons aussi Electron pour embarque
 Les librairies que nous utilisons :
 
 - CSS - Tailwind
-- Code Editors - Codemirror
+- Code Editors - Monaco Editor
 - State Management - Redux
 - Icons - Tabler Icons
 - Forms - formik
