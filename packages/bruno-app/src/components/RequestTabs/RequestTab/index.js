@@ -28,19 +28,6 @@ const RequestTab = ({ tab, collection }) => {
     );
   };
 
-  const handleMouseUp = (e) => {
-    if (e.button === 1) {
-      e.stopPropagation();
-      e.preventDefault();
-
-      dispatch(
-        closeTabs({
-          tabUids: [tab.uid]
-        })
-      );
-    }
-  };
-
   const getMethodColor = (method = '') => {
     const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
 
@@ -101,8 +88,25 @@ const RequestTab = ({ tab, collection }) => {
 
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
+  const handleMouseUp = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (e.button !== 1) return;
+    if (item.draft) {
+      setShowConfirmClose(true);
+      return;
+    }
+
+    dispatch(
+      closeTabs({
+        tabUids: [tab.uid]
+      })
+    );
+  };
+
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper onMouseUp={handleMouseUp} className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}
@@ -137,18 +141,7 @@ const RequestTab = ({ tab, collection }) => {
           }}
         />
       )}
-      <div
-        className="flex items-baseline tab-label pl-2"
-        onMouseUp={(e) => {
-          if (!item.draft) return handleMouseUp(e);
-
-          if (e.button === 1) {
-            e.stopPropagation();
-            e.preventDefault();
-            setShowConfirmClose(true);
-          }
-        }}
-      >
+      <div className="flex items-baseline tab-label pl-2">
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
         </span>
