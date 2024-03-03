@@ -283,6 +283,7 @@ const handler = async function (argv) {
       const envBruContent = fs.readFileSync(envFile, 'utf8');
       const envJson = bruToEnvJson(envBruContent);
       envVariables = getEnvVars(envJson);
+      envVariables.__name__ = env;
     }
 
     if (envVar) {
