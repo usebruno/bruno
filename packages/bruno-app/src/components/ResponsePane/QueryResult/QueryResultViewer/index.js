@@ -64,6 +64,7 @@ const QueryResultPreview = ({
           onRun={onRun}
           value={formattedData}
           mode={mode}
+          height={'100%'}
           readOnly
         />
       );
@@ -78,6 +79,7 @@ const QueryResultPreview = ({
           onRun={onRun}
           value={atob(dataBuffer)}
           mode={mode}
+          height={'100%'}
           readOnly
         />
       );

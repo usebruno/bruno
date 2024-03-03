@@ -18,6 +18,7 @@ const lastOpenedCollections = new LastOpenedCollections();
 const contentSecurityPolicy = [
   "default-src 'self'",
   "script-src * 'unsafe-inline' 'unsafe-eval'",
+  'worker-src blob:',
   "connect-src * 'unsafe-inline'",
   "font-src 'self' https:",
   // this has been commented out to make oauth2 work
@@ -25,7 +26,6 @@ const contentSecurityPolicy = [
   "img-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];
-
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);

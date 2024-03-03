@@ -61,7 +61,7 @@ const RequestTab = ({ tab, collection }) => {
 
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
   const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
-  const color = useMemo(() => theme.request.methods[method], [method]);
+  const color = useMemo(() => theme.request.methods[method.toLowerCase()], [method]);
   return (
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (

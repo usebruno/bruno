@@ -10,9 +10,9 @@ import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
 import ConfirmRequestClose from './RequestTab/ConfirmRequestClose/index';
-import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections/index';
+import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { findItemInCollection } from 'utils/collections/index';
+import { findItemInCollection } from 'utils/collections';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();

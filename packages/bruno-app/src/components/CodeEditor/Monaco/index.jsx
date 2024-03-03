@@ -71,7 +71,7 @@ export const MonacoEditor = ({
   const allVariables = getAllVariables(collection);
   useEffect(() => {
     if (allVariables && withVariables) {
-      setMonacoVariables(monaco, allVariables, 'javascript');
+      setMonacoVariables(monaco, allVariables, languages[mode] ?? 'plaintext');
     }
   }, [allVariables, withVariables]);
   const singleLineOptions = singleLine
@@ -99,7 +99,6 @@ export const MonacoEditor = ({
       options={{
         fontSize: font,
         readOnly: readOnly,
-        minimap: { enabled: !singleLine },
         wordWrap: 'off',
         wrappingIndent: 'indent',
         autoIndent: 'keep',
@@ -114,10 +113,10 @@ export const MonacoEditor = ({
         renderLineHighlight: 'none',
         ...singleLineOptions
       }}
-      height={singleLine ? '20px' : height}
+      height={singleLine ? '21px' : height}
       className="rounded-md h-full w-full flex border border-zinc-200 dark:border-zinc-700"
       theme={finalTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
-      language={withVariables ? 'javascript' : languages[mode]}
+      language={languages[mode] ?? 'plaintext'}
       value={cachedValue}
       onMount={onMount}
       onChange={!readOnly ? handleEditorChange : () => {}}

@@ -96,6 +96,7 @@ const QueryParams = ({ item, collection }) => {
                         value={param.value}
                         theme={storedTheme}
                         onSave={onSave}
+                        withVariables
                         onChange={(newValue) =>
                           handleParamChange(
                             {

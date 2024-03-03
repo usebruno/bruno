@@ -1,5 +1,4 @@
 import { getContentType, safeParseXML, safeStringifyJSON } from 'utils/common';
-import { getCodeMirrorModeBasedOnContentType } from 'utils/common/codemirror';
 import React, { useEffect, useMemo, useState } from 'react';
 import classnames from 'classnames';
 import StyledWrapper from 'components/ResponsePane/QueryResult/QueryResultMode/StyledWrapper';

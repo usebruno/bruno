@@ -286,7 +286,7 @@ export const setCustomLanguage = (monaco) => {
 
 let oldHoverProvider = null;
 
-export const setMonacoVariables = (monaco, variables, mode = 'javascript', isQuery) => {
+export const setMonacoVariables = (monaco, variables, mode = '*') => {
   const allVariables = Object.entries(variables ?? {});
   monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
     diagnosticCodesToIgnore: [1109, 2580, 2451, 80005, 1375, 1378]
@@ -320,13 +320,12 @@ export const setMonacoVariables = (monaco, variables, mode = 'javascript', isQue
       ]
     }
   });
-  const newHoverProvider = monaco.languages.registerHoverProvider('javascript', {
+  const newHoverProvider = monaco.languages.registerHoverProvider(mode, {
     provideHover: (model, position) => {
       // Rebuild the hoverProvider to avoid memory leaks
       const word = getWordAtPosition(model, position);
       const variable = allVariables.find(([key, _]) => key === word);
       if (variable) {
-        console.log('hey look what i found !!!', variable[0]);
         return {
           range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
           contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
