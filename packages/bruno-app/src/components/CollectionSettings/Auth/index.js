@@ -8,6 +8,7 @@ import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import OAuth2 from './OAuth2';
 
 const Auth = ({ collection }) => {
   const authMode = get(collection, 'root.request.auth.mode');
@@ -29,6 +30,9 @@ const Auth = ({ collection }) => {
       case 'digest': {
         return <DigestAuth collection={collection} />;
       }
+      case 'oauth2': {
+        return <OAuth2 collection={collection} />;
+      }
     }
   };
 
@@ -38,7 +42,6 @@ const Auth = ({ collection }) => {
         <AuthMode collection={collection} />
       </div>
       {getAuthView()}
-
       <div className="mt-6">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
           Save

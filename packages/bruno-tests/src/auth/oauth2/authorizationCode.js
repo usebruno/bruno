@@ -17,8 +17,16 @@ function generateUniqueString() {
   return crypto.randomBytes(16).toString('hex');
 }
 
+const generateCodeChallenge = (codeVerifier) => {
+  const hash = crypto.createHash('sha256');
+  hash.update(codeVerifier);
+  const base64Hash = hash.digest('base64');
+  return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+};
+
 router.get('/authorize', (req, res) => {
-  const { response_type, client_id, redirect_uri } = req.query;
+  const { response_type, client_id, redirect_uri, code_challenge } = req.query;
+  console.log('authorization code authorize', req.query);
   if (response_type !== 'code') {
     return res.status(401).json({ error: 'Invalid Response type, expected "code"' });
   }
@@ -37,7 +45,8 @@ router.get('/authorize', (req, res) => {
   authCodes.push({
     authCode: authorization_code,
     client_id,
-    redirect_uri
+    redirect_uri,
+    code_challenge
   });
 
   const redirectUrl = `${redirect_uri}?code=${authorization_code}`;
@@ -72,6 +81,7 @@ router.get('/authorize', (req, res) => {
 
 // Handle the authorization callback
 router.get('/callback', (req, res) => {
+  console.log('authorization code callback', req.query);
   const { code } = req.query;
 
   // Check if the authCode is valid.
@@ -85,13 +95,15 @@ router.get('/callback', (req, res) => {
 });
 
 router.post('/token', (req, res) => {
-  let grant_type, code, redirect_uri, client_id, client_secret;
+  console.log('authorization code token', req.body, req.headers);
+  let grant_type, code, redirect_uri, client_id, client_secret, code_verifier;
   if (req?.body?.grant_type) {
     grant_type = req?.body?.grant_type;
     code = req?.body?.code;
     redirect_uri = req?.body?.redirect_uri;
     client_id = req?.body?.client_id;
     client_secret = req?.body?.client_secret;
+    code_verifier = req?.body?.code_verifier;
   }
   if (req?.headers?.grant_type) {
     grant_type = req?.headers?.grant_type;
@@ -99,6 +111,7 @@ router.post('/token', (req, res) => {
     redirect_uri = req?.headers?.redirect_uri;
     client_id = req?.headers?.client_id;
     client_secret = req?.headers?.client_secret;
+    code_verifier = req?.headers?.code_verifier;
   }
 
   if (grant_type !== 'authorization_code') {
@@ -110,7 +123,13 @@ router.post('/token', (req, res) => {
   //   return res.status(401).json({ error: 'Invalid client credentials' });
   // }
 
-  const storedAuthCode = authCodes.find((t) => t.authCode === code);
+  const storedAuthCode = authCodes.find((t) => {
+    if (!t?.code_challenge) {
+      return t.authCode === code;
+    } else {
+      return t.authCode === code && t.code_challenge === generateCodeChallenge(code_verifier);
+    }
+  });
 
   if (!storedAuthCode) {
     return res.status(401).json({ error: 'Invalid Authorization Code' });
@@ -127,6 +146,7 @@ router.post('/token', (req, res) => {
 
 router.post('/resource', (req, res) => {
   try {
+    console.log('authorization code resource', req.query, tokens);
     const { token } = req.query;
     const storedToken = tokens.find((t) => t.accessToken === token);
     if (!storedToken) {

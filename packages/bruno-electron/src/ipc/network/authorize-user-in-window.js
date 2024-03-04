@@ -30,7 +30,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
           const callbackUrlWithCode = new URL(finalUrl);
           const authorizationCode = callbackUrlWithCode.searchParams.get('code');
 
-          return resolve(authorizationCode);
+          return resolve({ authorizationCode });
         } catch (error) {
           return reject(error);
         }

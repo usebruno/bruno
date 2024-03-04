@@ -392,14 +392,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
+    const pkceKey = _.find(auth, { name: 'pkce' });
     return {
       auth: {
         oauth2:
           grantTypeKey?.value && grantTypeKey?.value == 'password'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
-                password: passwordKey ? passwordKey.value : ''
+                password: passwordKey ? passwordKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -409,13 +412,16 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
-                scope: scopeKey ? scopeKey.value : ''
+                scope: scopeKey ? scopeKey.value : '',
+                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
-                clientSecret: clientSecretKey ? clientSecretKey.value : ''
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
               }
             : {}
       }
