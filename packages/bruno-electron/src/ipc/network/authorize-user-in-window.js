@@ -10,10 +10,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
     // get all other windows
     let windowsExcludingMain = allOpenWindows.filter((w) => w.id != 1);
     windowsExcludingMain.forEach((w) => {
-      // close all stale windows
-      if (w.id != 1) {
-        w.close();
-      }
+      w.close();
     });
 
     const window = new BrowserWindow({
