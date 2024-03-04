@@ -52,7 +52,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -76,7 +76,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
   }
 

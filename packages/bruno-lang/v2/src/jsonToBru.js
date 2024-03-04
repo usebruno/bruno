@@ -131,8 +131,10 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
       case 'password':
         bru += `auth:oauth2 {
 ${indentString(`grant_type: password`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 }
 
 `;
@@ -146,6 +148,7 @@ ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
 }
 
 `;
@@ -153,8 +156,10 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
       case 'client_credentials':
         bru += `auth:oauth2 {
 ${indentString(`grant_type: client_credentials`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 }
 
 `;

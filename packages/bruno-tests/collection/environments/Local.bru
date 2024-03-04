@@ -4,11 +4,11 @@ vars {
   basic_auth_password: della
   client_id: client_id_1
   client_secret: client_secret_1
-  auth_url: http://localhost:8080/api/auth/oauth2/ac/authorize
-  callback_url: http://localhost:8080/api/auth/oauth2/ac/callback
-  access_token_url: http://localhost:8080/api/auth/oauth2/ac/token
-  ropc_username: foo
-  ropc_password: bar
+  auth_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  passwordCredentials_username: foo
+  passwordCredentials_password: bar
   github_authorize_url: https://github.com/login/oauth/authorize
   github_access_token_url: https://github.com/login/oauth/access_token
   google_auth_url: https://accounts.google.com/o/oauth2/auth
@@ -21,8 +21,8 @@ vars:secret [
   google_client_id,
   google_client_secret,
   github_authorization_code,
-  ropc_access_token,
-  cc_access_token,
-  ac_access_token,
+  passwordCredentials_access_token,
+  client_credentials_access_token,
+  authorization_code_access_token,
   github_access_token
 ]

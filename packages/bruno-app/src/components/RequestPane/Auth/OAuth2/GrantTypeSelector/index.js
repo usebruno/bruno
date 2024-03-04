@@ -37,7 +37,7 @@ const GrantTypeSelector = ({ item, collection }) => {
   };
 
   useEffect(() => {
-    // initalize redux state with a default oauth2 auth type
+    // initalize redux state with a default oauth2 grant type
     // authorization_code - default option
     !oAuth?.grantType &&
       dispatch(
@@ -64,7 +64,7 @@ const GrantTypeSelector = ({ item, collection }) => {
               onGrantTypeChange('password');
             }}
           >
-            Resource Owner Password Credentials
+            Password Credentials
           </div>
           <div
             className="dropdown-item"
