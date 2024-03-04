@@ -51,6 +51,13 @@ router.get('/authorize', (req, res) => {
 
   const redirectUrl = `${redirect_uri}?code=${authorization_code}`;
 
+  try {
+    // validating redirect URL
+    const url = new URL(redirectUrl);
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid redirect URI' });
+  }
+
   const _res = `
     <html>
       <script>

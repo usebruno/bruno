@@ -4,6 +4,18 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
 
+    let allOpenWindows = BrowserWindow.getAllWindows();
+
+    // main window id is '1'
+    // get all other windows
+    let windowsExcludingMain = allOpenWindows.filter((w) => w.id != 1);
+    windowsExcludingMain.forEach((w) => {
+      // close all stale windows
+      if (w.id != 1) {
+        w.close();
+      }
+    });
+
     const window = new BrowserWindow({
       webPreferences: {
         nodeIntegration: false
@@ -16,11 +28,24 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
       // check if the url contains an authorization code
       if (url.match(/(code=).*/)) {
         finalUrl = url;
-        if (url && finalUrl.includes(callbackUrl)) {
-          window.close();
-        } else {
+        if (!url || !finalUrl.includes(callbackUrl)) {
           reject(new Error('Invalid Callback Url'));
         }
+        window.close();
+      }
+      if (url.match(/(error=).*/) || url.match(/(error_description=).*/) || url.match(/(error_uri=).*/)) {
+        const _url = new URL(url);
+        const error = _url.searchParams.get('error');
+        const errorDescription = _url.searchParams.get('error_description');
+        const errorUri = _url.searchParams.get('error_uri');
+        let errorData = {
+          message: 'Authorization Failed!',
+          error,
+          errorDescription,
+          errorUri
+        };
+        reject(new Error(JSON.stringify(errorData)));
+        window.close();
       }
     }
 
