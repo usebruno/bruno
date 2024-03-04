@@ -202,7 +202,8 @@ const configureRequest = async (
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = authorizationCodeData;
         request.url = authorizationCodeAccessTokenUrl;
         break;

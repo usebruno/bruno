@@ -48,10 +48,13 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, pkce } = oauth2;
 
-    let authorizationUrlWithQueryParams = `${authorizationUrl}?client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&scope=${scope}`;
+    let oauth2QueryParams =
+      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') +
+      `client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&scope=${scope}`;
     if (pkce) {
-      authorizationUrlWithQueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
     }
+    const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
     try {
       const oauth2Store = Oauth2Store(collectionUid);
       const { authorizationCode } = await authorizeUserInWindow({
