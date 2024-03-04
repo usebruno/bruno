@@ -35,6 +35,7 @@ const {
   transformClientCredentialsRequest,
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
+const Oauth2Store = require('../../store/oauth2');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -201,7 +202,7 @@ const configureRequest = async (
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy);
+          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
         request.data = authorizationCodeData;
         request.url = authorizationCodeAccessTokenUrl;
         break;
@@ -687,6 +688,18 @@ const registerNetworkIpc = (mainWindow) => {
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = Oauth2Store(uid);
+        oauth2Store.clearSession();
+        resolve();
+      } catch (err) {
+        reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
   });
 
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {

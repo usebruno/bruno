@@ -1,6 +1,6 @@
 const { BrowserWindow } = require('electron');
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
 
@@ -15,7 +15,8 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
 
     const window = new BrowserWindow({
       webPreferences: {
-        nodeIntegration: false
+        nodeIntegration: false,
+        partition: session
       },
       show: false
     });

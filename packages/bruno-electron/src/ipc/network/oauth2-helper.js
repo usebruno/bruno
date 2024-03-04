@@ -1,6 +1,7 @@
 const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('./authorize-user-in-window');
+const Oauth2Store = require('../../store/oauth2');
 
 const generateCodeVerifier = () => {
   return crypto.randomBytes(16).toString('hex');
@@ -15,12 +16,12 @@ const generateCodeChallenge = (codeVerifier) => {
 
 // AUTHORIZATION CODE
 
-const resolveOAuth2AuthorizationCodeAccessToken = async (request) => {
+const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
   let requestCopy = cloneDeep(request);
-  const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge);
+  const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
   const data = {
@@ -42,7 +43,7 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request) => {
   };
 };
 
-const getOAuth2AuthorizationCode = (request, codeChallenge) => {
+const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, pkce } = oauth2;
@@ -52,9 +53,11 @@ const getOAuth2AuthorizationCode = (request, codeChallenge) => {
       authorizationUrlWithQueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
     }
     try {
+      const oauth2Store = Oauth2Store(collectionUid);
       const { authorizationCode } = await authorizeUserInWindow({
         authorizeUrl: authorizationUrlWithQueryParams,
-        callbackUrl
+        callbackUrl,
+        session: oauth2Store.getSession()
       });
       resolve({ authorizationCode });
     } catch (err) {

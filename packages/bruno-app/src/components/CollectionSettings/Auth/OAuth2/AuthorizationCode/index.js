@@ -7,6 +7,8 @@ import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/Redux
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
+import { clearOauth2Cache } from 'utils/network/index';
+import toast from 'react-hot-toast';
 
 const OAuth2AuthorizationCode = ({ collection }) => {
   const dispatch = useDispatch();
@@ -61,6 +63,16 @@ const OAuth2AuthorizationCode = ({ collection }) => {
     );
   };
 
+  const handleClearCache = (e) => {
+    clearOauth2Cache(collection?.uid)
+      .then(() => {
+        toast.success('cleared cache successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  };
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
@@ -90,9 +102,14 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           onChange={handlePKCEToggle}
         />
       </div>
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
+      <div className="flex flex-row gap-4">
+        <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
+          Get Access Token
+        </button>
+        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+          Clear Cache
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

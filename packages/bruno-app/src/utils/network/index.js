@@ -43,6 +43,13 @@ export const sendCollectionOauth2Request = async (collection, environment, colle
   });
 };
 
+export const clearOauth2Cache = async (uid) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
+  });
+};
+
 export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
