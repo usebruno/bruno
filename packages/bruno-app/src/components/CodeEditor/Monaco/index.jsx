@@ -1,8 +1,22 @@
 import { Editor, useMonaco } from '@monaco-editor/react';
 import { useEffect, useState } from 'react';
 import { debounce } from 'lodash';
-import { addMonacoCommands, getWordAtPosition, setMonacoVariables } from 'utils/monaco/monacoUtils';
+import { addMonacoCommands, setMonacoVariables } from 'utils/monaco/monacoUtils';
 import { getAllVariables } from 'utils/collections';
+
+const languages = {
+  text: 'text',
+  plaintext: 'plaintext',
+  graphql: 'graphql',
+  sparql: 'graphql',
+  'graphql-query': 'graphql',
+  'application/sparql-query': 'sparql',
+  'application/ld+json': 'json',
+  'application/text': 'text',
+  'application/xml': 'xml',
+  'application/javascript': 'typescript',
+  javascript: 'typescript'
+};
 
 export const MonacoEditor = ({
   collection,
@@ -19,21 +33,7 @@ export const MonacoEditor = ({
   height = '60vh'
 }) => {
   const monaco = useMonaco();
-  // monaco.editor.defineTheme('darkTheme', darkTheme);
-  const languages = {
-    text: 'text',
-    plaintext: 'plaintext',
-    graphql: 'graphql',
-    sparql: 'graphql',
-    'graphql-query': 'graphql',
-    'application/sparql-query': 'sparql',
-    'application/ld+json': 'json',
-    'application/text': 'text',
-    'application/xml': 'xml',
-    'application/javascript': 'typescript',
-    javascript: 'typescript'
-  };
-  const [cachedValue, setCachedValue] = useState(value ?? '');
+
   const debounceChanges = debounce((newValue) => {
     onChange(newValue);
   }, 300);
@@ -42,27 +42,29 @@ export const MonacoEditor = ({
   };
   const finalTheme =
     theme === 'system' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
-  // const finalTheme = theme ?? storedTheme;
+
   const onMount = (editor) => {
     if (editor && monaco) {
       addMonacoCommands({ monaco, editor, onChange, onSave, onRun });
       if (singleLine) {
         editor.onKeyDown((e) => {
-          if (e.keyCode == monaco.KeyCode.Enter) {
+          if (e.keyCode === monaco.KeyCode.Enter) {
             // We only prevent enter when the suggest model is not active
             if (editor.getContribution('editor.contrib.suggestController').model.state == 0) {
               e.preventDefault();
             }
           }
         });
+
         editor.onDidPaste((e) => {
+          // Remove all newlines for the singleline editor
           if (e.range.endLineNumber > 1) {
             let newContent = '';
-            let lineCount = cachedValue.getLineCount();
+            let lineCount = editor.getModel().getLineCount();
             for (let i = 0; i < lineCount; i++) {
-              newContent += cachedValue.getLineContent(i + 1);
+              newContent += editor.getModel().getLineContent(i + 1);
             }
-            cachedValue.setValue(newContent);
+            editor.getModel().setValue(newContent);
           }
         });
       }
@@ -88,6 +90,8 @@ export const MonacoEditor = ({
         overviewRulerBorder: false,
         hideCursorInOverviewRuler: true,
         scrollBeyondLastColumn: 0,
+        showFoldingControls: 'never',
+        selectionHighlight: false,
         scrollbar: { horizontal: 'hidden', vertical: 'hidden' },
         find: { addExtraSpaceOnTop: false, autoFindInSelection: 'never', seedSearchStringFromSelection: false },
         minimap: { enabled: false }
@@ -113,11 +117,11 @@ export const MonacoEditor = ({
         renderLineHighlight: 'none',
         ...singleLineOptions
       }}
-      height={singleLine ? '21px' : height}
-      className="rounded-md h-full w-full flex border border-zinc-200 dark:border-zinc-700"
+      height={singleLine ? '22px' : height}
+      className={!singleLine ? 'rounded-md border border-zinc-200 dark:border-zinc-700' : undefined}
       theme={finalTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
       language={languages[mode] ?? 'plaintext'}
-      value={cachedValue}
+      value={value}
       onMount={onMount}
       onChange={!readOnly ? handleEditorChange : () => {}}
     />

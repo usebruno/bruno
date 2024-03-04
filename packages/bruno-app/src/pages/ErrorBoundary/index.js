@@ -9,11 +9,12 @@ class ErrorBoundary extends React.Component {
   componentDidMount() {
     // Add a global error event listener to capture client-side errors
     window.onerror = (message, source, lineno, colno, error) => {
-      this.setState({ hasError: true, error });
+      console.error('Trigger onerror', { error, source, message, lineno, colno });
+      this.setState({ hasError: true, error: error });
     };
   }
   componentDidCatch(error, errorInfo) {
-    console.log({ error, errorInfo });
+    console.error('Triggered error boundary', { error, errorInfo });
   }
   render() {
     if (this.state.hasError) {
