@@ -4,25 +4,37 @@ const { uuid } = require('../utils/common');
 
 const Oauth2Store = (uid) => {
   let _store = new Store({
-    name: `oauth2-${uid}`,
+    name: `preferences`,
     clearInvalidConfig: true
   });
 
   return {
-    getSession: () => {
+    getSessionId: () => {
       try {
-        let session = _store.get('session');
-        if (session) return session;
-        let newSession = uuid();
-        _store.set('session', `oauth2-${newSession}`);
-        return newSession;
+        let oauth2Data = _store.get('oauth2');
+        if (!Array.isArray(oauth2Data)) oauth2Data = [];
+        let oauth2DataForCollection = oauth2Data.find((d) => d?.collectionUid == uid);
+        if (oauth2DataForCollection) return oauth2DataForCollection?.sessionId;
+        let newSessionId = uuid();
+        let newOauth2Data = [
+          ...oauth2Data,
+          {
+            collectionUid: uid,
+            sessionId: newSessionId
+          }
+        ];
+        _store.set('oauth2', newOauth2Data);
+        return newSessionId;
       } catch (err) {
-        console.log('error retrieving session from cache', err);
+        console.log('error retrieving session id from cache', err);
       }
     },
-    clearSession: () => {
+    clearSessionId: () => {
       try {
-        _store.set('session', null);
+        let oauth2Data = _store.get('oauth2');
+        if (!Array.isArray(oauth2Data)) oauth2Data = [];
+        let filteredOauth2Data = oauth2Data.filter((d) => d?.collectionUid !== uid);
+        _store.set('oauth2', filteredOauth2Data);
         return true;
       } catch (err) {
         console.log('error while clearing the oauth2 session cache', err);

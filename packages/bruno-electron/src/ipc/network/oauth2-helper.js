@@ -60,7 +60,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       const { authorizationCode } = await authorizeUserInWindow({
         authorizeUrl: authorizationUrlWithQueryParams,
         callbackUrl,
-        session: oauth2Store.getSession()
+        session: oauth2Store.getSessionId()
       });
       resolve({ authorizationCode });
     } catch (err) {
