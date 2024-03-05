@@ -4,7 +4,6 @@ import toast from 'react-hot-toast';
 
 const initialState = {
   isDragging: false,
-  idbConnectionReady: false,
   leftSidebarWidth: 222,
   screenWidth: 500,
   showHomePage: false,
@@ -31,9 +30,6 @@ export const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
-    idbConnectionReady: (state) => {
-      state.idbConnectionReady = true;
-    },
     refreshScreenWidth: (state) => {
       state.screenWidth = window.innerWidth;
     },
@@ -74,7 +70,6 @@ export const appSlice = createSlice({
 });
 
 export const {
-  idbConnectionReady,
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,

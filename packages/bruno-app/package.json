@@ -39,7 +39,6 @@
     "graphql": "^16.6.0",
     "graphql-request": "^3.7.0",
     "httpsnippet": "^3.0.1",
-    "idb": "^7.0.0",
     "immer": "^9.0.15",
     "jsesc": "^3.0.2",
     "jshint": "^2.13.6",
