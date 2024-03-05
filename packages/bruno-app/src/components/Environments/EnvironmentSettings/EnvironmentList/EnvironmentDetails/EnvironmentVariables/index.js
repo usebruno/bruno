@@ -120,12 +120,13 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   <ErrorMessage name={`${index}.name`} />
                 </td>
                 <td>
-                  <SingleLineEditor
+                  <CodeEditor
                     theme={storedTheme}
                     collection={collection}
                     name={`${index}.value`}
                     value={variable.value}
                     onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                    singleLine
                   />
                 </td>
                 <td>

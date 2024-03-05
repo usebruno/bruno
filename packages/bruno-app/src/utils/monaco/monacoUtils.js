@@ -225,7 +225,7 @@ const buildSuggestions = (monaco) => [
   }
 ];
 
-export const getWordAtPosition = (model, position) => {
+export const ___getWordAtPosition = (model, position) => {
   const wordAtPos = model.getWordUntilPosition(position);
   let word = wordAtPos.word;
   let startPos = wordAtPos.startColumn;
@@ -269,6 +269,74 @@ export const getWordAtPosition = (model, position) => {
   function isAllowedChar(char) {
     return /[a-zA-Z0-9._]/.test(char); // Allow letters, numbers, dots, and underscores
   }
+};
+
+// This function will check if we hover over a variable by first going the left and then to right to find the
+// opening and closing curly brackets
+export const getWordAtPosition = (model, position) => {
+  const range = {
+    startColumn: position.column,
+    endColumn: position.column,
+    startLineNumber: position.lineNumber,
+    endLineNumber: position.lineNumber
+  };
+
+  // Check for the beginning {{ of a variable
+  for (let i = 0; true; i++) {
+    // Reached left char limit, just break here
+    if (i > 32) {
+      return null;
+    }
+
+    range.startColumn--;
+    // Reached the end of the line
+    if (range.startColumn === 0) {
+      return null;
+    }
+
+    const foundWord = model.getValueInRange(range);
+
+    // If we hover over the start of the variable go to the right and check if anything is there
+    if (foundWord === '{') {
+      range.startColumn++;
+      range.endColumn++;
+      continue;
+    }
+
+    // We reached the beginning of another variable
+    // e.g. example {{test}} here {{test}}
+    //                       ^^^^ cursor hovers here
+    //                     ^ This will be caught
+    if (foundWord.charAt(0) === '}') {
+      return null;
+    }
+
+    // Check if we reached the end of the
+    if (foundWord.charAt(0) === '{' && foundWord.charAt(1) === '{') {
+      break;
+    }
+  }
+
+  // Check for the ending }} of a variable
+  for (let i; true; i++) {
+    // Reached left char limit, just break here
+    if (i > 32) {
+      return null;
+    }
+
+    range.endColumn++;
+    const foundWord = model.getValueInRange(range);
+
+    // Check if we found the end of the variable
+    const wordLength = foundWord.length;
+    if (foundWord.charAt(wordLength - 1) === '}' && foundWord.charAt(wordLength - 2) === '}') {
+      break;
+    }
+  }
+
+  const foundWord = model.getValueInRange(range);
+  // Trim {{, }} and any other spaces, then return the variable
+  return foundWord.substring(2, foundWord.length - 2).trim();
 };
 
 export const setCustomLanguage = (monaco) => {
@@ -324,11 +392,15 @@ export const setMonacoVariables = (monaco, variables, mode = '*') => {
     provideHover: (model, position) => {
       // Rebuild the hoverProvider to avoid memory leaks
       const word = getWordAtPosition(model, position);
+      if (word === null) {
+        return null;
+      }
+
       const variable = allVariables.find(([key, _]) => key === word);
       if (variable) {
         return {
           range: new monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-          contents: [{ value: `**${variable[0]}**` }, { value: variable[1] }]
+          contents: [{ value: `**${variable[0]}**` }, { value: variable[1].substring(0, 255) }]
         };
       } else {
         return {
