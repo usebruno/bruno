@@ -6,7 +6,6 @@ const https = require('https');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
-const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain, app } = require('electron');
@@ -37,11 +36,6 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
-};
-
 const safeStringifyJSON = (data) => {
   try {
     return JSON.stringify(data);
@@ -69,7 +63,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = Mustache.escape(variable.value);
+      envVars[variable.name] = variable.value;
     }
   });
 
