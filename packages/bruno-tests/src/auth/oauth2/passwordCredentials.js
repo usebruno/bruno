@@ -9,23 +9,10 @@ const users = [
   }
 ];
 
-// P
-// {
-// grant_type: 'password',
-// username: 'foo',
-// password: 'bar'
-// }
-
-// I
-// {
-//   grant_type: 'password',
-//   username: 'foo',
-//   password: 'bar',
-//   client_id: 'client_id_1',
-//   client_secret: 'client_secret_1'
-// }
 router.post('/token', (req, res) => {
-  const { grant_type, username, password, client_id, client_secret } = req.body;
+  const { grant_type, username, password, scope } = req.body;
+
+  console.log('password_credentials', username, password, scope);
 
   if (grant_type !== 'password') {
     return res.status(401).json({ error: 'Invalid Grant Type' });

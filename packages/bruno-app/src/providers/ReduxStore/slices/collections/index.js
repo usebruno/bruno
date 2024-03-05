@@ -681,6 +681,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          item.draft.request.auth = {};
           item.draft.request.auth.mode = action.payload.mode;
         }
       }
@@ -981,6 +982,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
         set(collection, 'root.request.auth.mode', action.payload.mode);
       }
     },
@@ -988,6 +990,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
+        set(collection, 'root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
@@ -1000,6 +1004,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'oauth2':
+            set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
         }
       }
