@@ -69,7 +69,7 @@ const runSingleRequest = async function (
       false,
       collectionPath,
       scriptingConfig,
-      null
+      console.log
     );
     if (requestScriptResult?.nextRequestName !== undefined) {
       nextRequestName = requestScriptResult.nextRequestName;
@@ -274,7 +274,7 @@ const runSingleRequest = async function (
       false,
       collectionPath,
       scriptingConfig,
-      null
+      console.log
     );
     if (result?.nextRequestName !== undefined) {
       nextRequestName = result.nextRequestName;
@@ -318,7 +318,7 @@ const runSingleRequest = async function (
       true,
       collectionPath,
       scriptingConfig,
-      null
+      console.log
     );
     const testResults = get(testScriptResult, 'results', []);
 

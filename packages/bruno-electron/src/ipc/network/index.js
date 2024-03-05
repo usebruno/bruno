@@ -598,7 +598,7 @@ const registerNetworkIpc = (mainWindow) => {
         true,
         collectionPath,
         scriptingConfig,
-        null
+        onConsoleLog
       );
 
       mainWindow.webContents.send('main:run-request-event', {

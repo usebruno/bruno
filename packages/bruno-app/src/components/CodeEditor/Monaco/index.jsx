@@ -92,6 +92,7 @@ export const MonacoEditor = ({
         scrollBeyondLastColumn: 0,
         showFoldingControls: 'never',
         selectionHighlight: false,
+        occurrencesHighlight: 'off',
         scrollbar: { horizontal: 'hidden', vertical: 'hidden' },
         find: { addExtraSpaceOnTop: false, autoFindInSelection: 'never', seedSearchStringFromSelection: false },
         minimap: { enabled: false }
