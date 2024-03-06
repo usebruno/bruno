@@ -9,6 +9,11 @@ class ErrorBoundary extends React.Component {
   componentDidMount() {
     // Add a global error event listener to capture client-side errors
     window.onerror = (message, source, lineno, colno, error) => {
+      // This is caused by the monace editor during resizing
+      if (message === 'ResizeObserver loop limit exceeded') {
+        console.info('Ignoring "ResizeObserver loop limit exceeded" error');
+        return;
+      }
       console.error('Trigger onerror', { error, source, message, lineno, colno });
       this.setState({ hasError: true, error: error });
     };

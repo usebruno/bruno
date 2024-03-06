@@ -1,8 +1,9 @@
 import { Editor, useMonaco } from '@monaco-editor/react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { debounce } from 'lodash';
-import { addMonacoCommands, setMonacoVariables } from 'utils/monaco/monacoUtils';
+import { addMonacoCommands, addMonacoSingleLineActions, setMonacoVariables } from 'utils/monaco/monacoUtils';
 import { getAllVariables } from 'utils/collections';
+import { useTheme } from 'providers/Theme';
 
 const languages = {
   text: 'text',
@@ -26,13 +27,13 @@ export const MonacoEditor = ({
   onRun,
   onSave,
   readOnly,
-  theme,
   value,
   singleLine,
   withVariables = false,
   height = '60vh'
 }) => {
   const monaco = useMonaco();
+  const { displayedTheme } = useTheme();
 
   const debounceChanges = debounce((newValue) => {
     onChange(newValue);
@@ -40,42 +41,21 @@ export const MonacoEditor = ({
   const handleEditorChange = (value, event) => {
     debounceChanges(value);
   };
-  const finalTheme =
-    theme === 'system' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : theme;
 
-  const onMount = (editor) => {
-    if (editor && monaco) {
-      addMonacoCommands({ monaco, editor, onChange, onSave, onRun });
-      if (singleLine) {
-        editor.onKeyDown((e) => {
-          if (e.keyCode === monaco.KeyCode.Enter) {
-            // We only prevent enter when the suggest model is not active
-            if (editor.getContribution('editor.contrib.suggestController').model.state == 0) {
-              e.preventDefault();
-            }
-          }
-        });
-
-        editor.onDidPaste((e) => {
-          // Remove all newlines for the singleline editor
-          if (e.range.endLineNumber > 1) {
-            let newContent = '';
-            let lineCount = editor.getModel().getLineCount();
-            for (let i = 0; i < lineCount; i++) {
-              newContent += editor.getModel().getLineContent(i + 1);
-            }
-            editor.getModel().setValue(newContent);
-          }
-        });
-      }
+  const onMount = (editor, monaco) => {
+    addMonacoCommands({ monaco, editor, onChange, onSave, onRun });
+    if (singleLine) {
+      addMonacoSingleLineActions(editor);
     }
   };
+
   const allVariables = getAllVariables(collection);
   useEffect(() => {
     if (allVariables && withVariables) {
       setMonacoVariables(monaco, allVariables, languages[mode] ?? 'plaintext');
     }
-  }, [allVariables, withVariables]);
+  }, [allVariables, withVariables, mode]);
+
   const singleLineOptions = singleLine
     ? {
         folding: false,
@@ -120,7 +100,7 @@ export const MonacoEditor = ({
       }}
       height={singleLine ? '22px' : height}
       className={!singleLine ? 'rounded-md border border-zinc-200 dark:border-zinc-700' : undefined}
-      theme={finalTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
+      theme={displayedTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
       language={languages[mode] ?? 'plaintext'}
       value={value}
       onMount={onMount}

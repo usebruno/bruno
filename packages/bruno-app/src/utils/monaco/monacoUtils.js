@@ -544,8 +544,34 @@ export const addMonacoCommands = ({ monaco, editor, onChange, onSave, onRun }) =
       editor.trigger('fold', 'editor.unfoldAll');
     })
   ];
-  editorActions.map((action) => {
-    editor.addAction(action);
+  editorActions.forEach((action) => editor.addAction(action));
+};
+
+export const addMonacoSingleLineActions = (editor) => {
+  editor.onKeyDown((e) => {
+    if (e.keyCode === monaco.KeyCode.Enter) {
+      // We only prevent enter when the suggest model is not active
+      if (editor.getContribution('editor.contrib.suggestController').model.state == 0) {
+        e.preventDefault();
+      }
+    }
+  });
+
+  editor.onDidPaste((e) => {
+    // Remove all newlines for the singleline editor
+    if (e.range.endLineNumber > 1) {
+      let newContent = '';
+      let lineCount = editor.getModel().getLineCount();
+      for (let i = 0; i < lineCount; i++) {
+        newContent += editor.getModel().getLineContent(i + 1);
+      }
+      editor.getModel().setValue(newContent);
+    }
+  });
+
+  // This will remove the highlighting of hovered words
+  editor.onDidBlurEditorText(() => {
+    editor.setPosition({ column: 1, lineNumber: 1 });
   });
 };
 
