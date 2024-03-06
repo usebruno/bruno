@@ -694,8 +694,8 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
     return new Promise((resolve, reject) => {
       try {
-        const oauth2Store = Oauth2Store(uid);
-        oauth2Store.clearSessionId();
+        const oauth2Store = new Oauth2Store();
+        oauth2Store.clearSessionIdOfCollection(uid);
         resolve();
       } catch (err) {
         reject(new Error('Could not clear oauth2 cache'));
