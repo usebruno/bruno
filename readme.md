@@ -76,6 +76,16 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
+### Sponsors
+
+#### Gold Sponsors
+
+<img src="assets/images/sponsors/samagata.png" width="150"/>
+
+#### Silver Sponsors
+
+<img src="assets/images/sponsors/commit-company.png" width="70"/>
+
 ### Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
