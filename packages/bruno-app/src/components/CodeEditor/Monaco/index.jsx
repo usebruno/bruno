@@ -1,5 +1,5 @@
 import { Editor, useMonaco } from '@monaco-editor/react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { debounce } from 'lodash';
 import { addMonacoCommands, addMonacoSingleLineActions, setMonacoVariables } from 'utils/monaco/monacoUtils';
 import { getAllVariables } from 'utils/collections';
@@ -34,6 +34,15 @@ export const MonacoEditor = ({
 }) => {
   const monaco = useMonaco();
   const { displayedTheme } = useTheme();
+  const callbackRefs = useRef({});
+
+  useEffect(() => {
+    // Save the reference to the callback so the callbacks always update
+    // OnMount is only executed once
+    callbackRefs.current.onRun = onRun;
+    callbackRefs.current.onSave = onSave;
+    callbackRefs.current.onChange = onChange;
+  }, [onRun, onSave, onChange]);
 
   const debounceChanges = debounce((newValue) => {
     onChange(newValue);
@@ -43,7 +52,7 @@ export const MonacoEditor = ({
   };
 
   const onMount = (editor, monaco) => {
-    addMonacoCommands({ monaco, editor, onChange, onSave, onRun });
+    addMonacoCommands(monaco, editor, callbackRefs.current);
     if (singleLine) {
       addMonacoSingleLineActions(editor);
     }
@@ -101,6 +110,7 @@ export const MonacoEditor = ({
       height={singleLine ? '22px' : height}
       className={!singleLine ? 'rounded-md border border-zinc-200 dark:border-zinc-700' : undefined}
       theme={displayedTheme === 'dark' ? 'bruno-dark' : 'bruno-light'}
+      loading={singleLine ? null : undefined}
       language={languages[mode] ?? 'plaintext'}
       value={value}
       onMount={onMount}

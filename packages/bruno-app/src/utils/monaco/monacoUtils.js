@@ -528,14 +528,14 @@ const createEditorAction = (id, keybindings, label, run) => {
   };
 };
 
-export const addMonacoCommands = ({ monaco, editor, onChange, onSave, onRun }) => {
+export const addMonacoCommands = (monaco, editor, callbacks) => {
   const editorActions = [
     createEditorAction('save', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS], 'Save', () => {
-      onChange(editor.getValue());
-      onSave();
+      callbacks.onChange(editor.getValue());
+      callbacks.onSave();
     }),
     createEditorAction('run', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter], 'Run', () => {
-      onRun ? onRun() : null;
+      callbacks.onRun && callbacks.onRun();
     }),
     createEditorAction('foldAll', [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY], 'FoldAll', () => {
       editor.trigger('fold', 'editor.foldAll');
