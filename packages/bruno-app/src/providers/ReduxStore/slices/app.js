@@ -84,7 +84,6 @@ export const appSlice = createSlice({
 
       // App installed date
       let appInstalledOnDate = getAppInstallDate();
-      appInstalledOnDate.setDate(appInstalledOnDate.getDate() - 10);
 
       // date 5 days before
       let dateFiveDaysBefore = new Date();
