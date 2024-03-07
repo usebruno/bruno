@@ -32,7 +32,6 @@
     "content-disposition": "^0.5.4",
     "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
-    "electron-is-dev": "^2.0.0",
     "electron-notarize": "^1.2.2",
     "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
@@ -58,7 +57,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
+    "electron": "29.1.0",
     "electron-builder": "23.0.2",
     "electron-icon-maker": "^0.0.5"
   }

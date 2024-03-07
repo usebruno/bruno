@@ -8,11 +8,8 @@ const Wrapper = styled.div`
     margin: 0;
     display: flex;
     position: relative;
-    overflow: scroll;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
+    overflow-x: scroll;
+    scrollbar-width: none;
 
     li {
       display: inline-flex;

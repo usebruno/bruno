@@ -165,7 +165,6 @@ const GlobalStyle = createGlobalStyle`
   // (macos scrollbar styling is the ideal style reference)
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-width: thin;
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
     
@@ -176,6 +175,7 @@ const GlobalStyle = createGlobalStyle`
     *::-webkit-scrollbar-track {
       background: transparent;
       border-radius: 5px;
+      scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
     
     *::-webkit-scrollbar-thumb {

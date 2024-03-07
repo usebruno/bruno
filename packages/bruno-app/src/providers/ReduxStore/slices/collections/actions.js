@@ -39,6 +39,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { uuid, waitForNextTick } from 'utils/common';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { parseQueryParams, splitOnFirst } from 'utils/url';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -700,7 +701,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         if (!reqWithSameNameExists) {
           const { ipcRenderer } = window;
 
-          const newPath = await ipcRenderer.invoke('renderer:new-request', fullName, item);
+          const newPath = await ipcRenderer.invoke('renderer:new-request', currentItem.pathname, item);
 
           // the useCollectionNextAction() will track this and open the new request in a new tab
           // once the request is created
