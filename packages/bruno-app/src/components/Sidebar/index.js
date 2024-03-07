@@ -11,6 +11,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconSettings, IconCookie, IconHeart } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
+import Notifications from 'components/Notifications/index';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
@@ -112,6 +113,7 @@ const Sidebar = () => {
                   className="mr-2 hover:text-gray-700"
                   onClick={() => setGoldenEditonOpen(true)}
                 />
+                <Notifications />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 {/* This will get moved to home page */}

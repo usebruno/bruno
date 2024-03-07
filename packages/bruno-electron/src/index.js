@@ -12,6 +12,7 @@ const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const registerNotificationsIpc = require('./ipc/notifications');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -120,6 +121,7 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNotificationsIpc(mainWindow, watcher);
 });
 
 // Quit the app once all windows are closed
