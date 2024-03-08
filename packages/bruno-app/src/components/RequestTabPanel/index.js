@@ -19,8 +19,8 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
 
-const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 350;
+const MIN_LEFT_PANE_WIDTH = 100;
+const MIN_RIGHT_PANE_WIDTH = 220;
 const DEFAULT_PADDING = 5;
 
 const RequestTabPanel = () => {
@@ -68,6 +68,8 @@ const RequestTabPanel = () => {
 
   const handleMouseMove = (e) => {
     if (dragging) {
+      console.log(asideWidth + DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH);
+      console.log(e.clientX + 2);
       e.preventDefault();
       let leftPaneXPosition = e.clientX + 2;
       if (
