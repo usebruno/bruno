@@ -56,7 +56,7 @@ Thank you for using Bruno CLI!
 
 ## Changelog
 
-See [here](packages/bruno-cli/changelog.md)
+See [here](changelog.md)
 
 ## License
 
