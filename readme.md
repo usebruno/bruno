@@ -50,6 +50,9 @@ choco install bruno
 scoop bucket add extras
 scoop install bruno
 
+# On Windows via winget
+winget install Bruno.Bruno
+
 # On Linux via Snap
 snap install bruno
 
