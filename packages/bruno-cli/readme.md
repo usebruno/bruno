@@ -56,7 +56,8 @@ Thank you for using Bruno CLI!
 
 ## Changelog
 
-See [here](changelog.md)
+<!-- An absolute link is used here because npm treats links differently -->
+See [here](https://github.com/grantwforsythe/bruno/blob/main/packages/bruno-cli/changelog.md)
 
 ## License
 
