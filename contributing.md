@@ -1,9 +1,9 @@
 **English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
 | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
 
-## Let's make bruno better, together !!
+## Let's make Bruno better, together !!
 
-We are happy that you are looking to improve bruno. Below are the guidelines to get started bringing up bruno on your computer.
+We are happy that you are looking to improve Bruno. Below are the guidelines to get started bringing up Bruno on your computer.
 
 ### Technology Stack
 
@@ -73,7 +73,7 @@ npm test --workspace=packages/bruno-schema
 npm test --workspace=packages/bruno-lang
 ```
 
-### Raising Pull Request
+### Raising Pull Requests
 
 - Please keep the PR's small and focused on one thing
 - Please follow the format of creating branches
