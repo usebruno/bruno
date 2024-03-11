@@ -79,13 +79,13 @@ Oder einer Versionskontrolle deiner Wahl
 
 ![bruno](/assets/images/version-control.png) <br /><br />
 
-### Sponsors
+### Sponsoren
 
-#### Gold Sponsors
+#### Gold Sponsoren
 
 <img src="/assets/images/sponsors/samagata.png" width="150"/>
 
-#### Silver Sponsors
+#### Silber Sponsoren
 
 <img src="/assets/images/sponsors/commit-company.png" width="70"/>
 
