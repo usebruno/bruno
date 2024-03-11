@@ -141,6 +141,18 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  @keyframes fade-and-pulse {
+    0% {
+      scale: 1;
+    }
+    20% {
+      scale: 1.5;
+    }
+    100% {
+      scale: 1;
+    }
+  }
+
   @keyframes rotateClockwise {
     0% {
       transform: scaleY(-1) rotate(0deg);
