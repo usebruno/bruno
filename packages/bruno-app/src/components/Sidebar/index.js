@@ -11,7 +11,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { IconSettings, IconCookie, IconHeart } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
-import Notifications from 'components/Notifications/index';
+import Notifications from 'components/Notifications';
 
 const MIN_LEFT_SIDEBAR_WIDTH = 221;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;

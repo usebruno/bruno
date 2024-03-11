@@ -138,32 +138,16 @@ const darkTheme = {
 
   notifications: {
     bg: '#3D3D3D',
-    settings: {
-      bg: '#3D3D3D',
-      sidebar: {
-        bg: '#3D3D3D',
-        borderRight: '#4f4f4f'
-      },
-      item: {
+    list: {
+      bg: '3D3D3D',
+      borderRight: '#4f4f4f',
+      borderBottom: '#545454',
+      hoverBg: '#434343',
+      active: {
         border: '#569cd6',
-        hoverBg: 'transparent',
-        borderBottom: '#4f4f4f99',
-        active: {
-          bg: '#4f4f4f',
-          hoverBg: '#4f4f4f'
-        },
-        read: {
-          bg: '#4f4f4f55',
-          hoverBg: '#4f4f4f'
-        },
-        date: {
-          color: '#ccc9'
-        }
-      },
-      gridBorder: '#4f4f4f'
-    },
-    bell: {
-      count: '#cc7b1b55'
+        bg: '#4f4f4f',
+        hoverBg: '#4f4f4f'
+      }
     }
   },
 
