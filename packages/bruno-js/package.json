@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/js",
-  "version": "0.9.4",
+  "version": "0.10.1",
   "license": "MIT",
   "main": "src/index.js",
   "files": [
@@ -8,7 +8,7 @@
     "package.json"
   ],
   "peerDependencies": {
-    "vm2": "^3.9.13"
+    "@n8n/vm2": "^3.9.23"
   },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js"
@@ -16,6 +16,7 @@
   "dependencies": {
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
     "atob": "^2.1.2",
     "axios": "^1.5.1",
     "btoa": "^1.2.1",
@@ -28,7 +29,7 @@
     "moment": "^2.29.4",
     "nanoid": "3.3.4",
     "node-fetch": "2.*",
-    "uuid": "^9.0.0",
-    "node-vault": "^0.10.2"
+    "node-vault": "^0.10.2",
+    "uuid": "^9.0.0"
   }
 }

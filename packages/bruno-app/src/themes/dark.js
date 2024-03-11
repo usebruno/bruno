@@ -136,6 +136,37 @@ const darkTheme = {
     }
   },
 
+  notifications: {
+    bg: '#3D3D3D',
+    settings: {
+      bg: '#3D3D3D',
+      sidebar: {
+        bg: '#3D3D3D',
+        borderRight: '#4f4f4f'
+      },
+      item: {
+        border: '#569cd6',
+        hoverBg: 'transparent',
+        borderBottom: '#4f4f4f99',
+        active: {
+          bg: '#4f4f4f',
+          hoverBg: '#4f4f4f'
+        },
+        read: {
+          bg: '#4f4f4f55',
+          hoverBg: '#4f4f4f'
+        },
+        date: {
+          color: '#ccc9'
+        }
+      },
+      gridBorder: '#4f4f4f'
+    },
+    bell: {
+      count: '#cc7b1b55'
+    }
+  },
+
   modal: {
     title: {
       color: '#ccc',
@@ -173,6 +204,11 @@ const darkTheme = {
       color: '#a5a5a5',
       bg: '#626262',
       border: '#626262'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 
@@ -233,6 +269,10 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
+  },
+
+  scrollbar: {
+    color: 'rgb(52 51 49)'
   }
 };
 

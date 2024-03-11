@@ -37,8 +37,11 @@ const varsSchema = Yup.object({
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
   description: Yup.string().nullable(),
-  local: Yup.boolean(),
-  enabled: Yup.boolean()
+  enabled: Yup.boolean(),
+
+  // todo
+  // anoop(4 feb 2023) - nobody uses this, and it needs to be removed
+  local: Yup.boolean()
 })
   .noUnknown(true)
   .strict();
@@ -55,6 +58,21 @@ const graphqlBodySchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const multipartFormSchema = Yup.object({
+  uid: uidSchema,
+  type: Yup.string().oneOf(['file', 'text']).required('type is required'),
+  name: Yup.string().nullable(),
+  value: Yup.mixed().when('type', {
+    is: 'file',
+    then: Yup.array().of(Yup.string().nullable()).nullable(),
+    otherwise: Yup.string().nullable()
+  }),
+  description: Yup.string().nullable(),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
 const requestBodySchema = Yup.object({
   mode: Yup.string()
     .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
@@ -64,7 +82,7 @@ const requestBodySchema = Yup.object({
   xml: Yup.string().nullable(),
   sparql: Yup.string().nullable(),
   formUrlEncoded: Yup.array().of(keyValueSchema).nullable(),
-  multipartForm: Yup.array().of(keyValueSchema).nullable(),
+  multipartForm: Yup.array().of(multipartFormSchema).nullable(),
   graphql: graphqlBodySchema.nullable()
 })
   .noUnknown(true)
@@ -101,12 +119,68 @@ const authDigestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const oauth2Schema = Yup.object({
+  grantType: Yup.string()
+    .oneOf(['client_credentials', 'password', 'authorization_code'])
+    .required('grantType is required'),
+  username: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  password: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  callbackUrl: Yup.string().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  authorizationUrl: Yup.string().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  accessTokenUrl: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  clientId: Yup.string().when('grantType', {
+    is: (val) => ['authorization_code', 'client_credentials'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  clientSecret: Yup.string().when('grantType', {
+    is: (val) => ['authorization_code', 'client_credentials'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  scope: Yup.string().when('grantType', {
+    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
+  pkce: Yup.boolean().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.boolean().defined(),
+    otherwise: Yup.boolean()
+  })
+})
+  .noUnknown(true)
+  .strict();
+
 const authSchema = Yup.object({
-  mode: Yup.string().oneOf(['none', 'awsv4', 'basic', 'bearer', 'digest']).required('mode is required'),
+  mode: Yup.string()
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2'])
+    .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
-  digest: authDigestSchema.nullable()
+  digest: authDigestSchema.nullable(),
+  oauth2: oauth2Schema.nullable()
 })
   .noUnknown(true)
   .strict();

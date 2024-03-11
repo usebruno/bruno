@@ -1,30 +1,29 @@
-import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import forOwn from 'lodash/forOwn';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import get from 'lodash/get';
-import set from 'lodash/set';
 import { createSlice } from '@reduxjs/toolkit';
-import { splitOnFirst } from 'utils/url';
+import cloneDeep from 'lodash/cloneDeep';
+import concat from 'lodash/concat';
+import each from 'lodash/each';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import forOwn from 'lodash/forOwn';
+import get from 'lodash/get';
+import map from 'lodash/map';
+import set from 'lodash/set';
 import {
-  findCollectionByUid,
-  findCollectionByPathname,
-  findItemInCollection,
-  findEnvironmentInCollection,
-  findItemInCollectionByPathname,
   addDepth,
+  areItemsTheSameExceptSeqUpdate,
   collapseCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
-  isItemARequest,
-  areItemsTheSameExceptSeqUpdate
+  findCollectionByPathname,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  isItemARequest
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { uuid } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
+import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 
 const initialState = {
   collections: [],
@@ -49,10 +48,6 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
-
-      // an improvement over the above approach.
-      // this defines an action that need to be performed next and is executed vy the useCollectionNextAction()
-      collection.nextAction = null;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -98,14 +93,6 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.lastAction = lastAction;
-      }
-    },
-    updateNextAction: (state, action) => {
-      const { collectionUid, nextAction } = action.payload;
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.nextAction = nextAction;
       }
     },
     updateSettingsSelectedTab: (state, action) => {
@@ -415,6 +402,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
               break;
+            case 'oauth2':
+              item.draft.request.auth.mode = 'oauth2';
+              item.draft.request.auth.oauth2 = action.payload.content;
+              break;
           }
         }
       }
@@ -630,6 +621,7 @@ export const collectionsSlice = createSlice({
           item.draft.request.body.multipartForm = item.draft.request.body.multipartForm || [];
           item.draft.request.body.multipartForm.push({
             uid: uuid(),
+            type: action.payload.type,
             name: '',
             value: '',
             description: '',
@@ -650,6 +642,7 @@ export const collectionsSlice = createSlice({
           }
           const param = find(item.draft.request.body.multipartForm, (p) => p.uid === action.payload.param.uid);
           if (param) {
+            param.type = action.payload.param.type;
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
@@ -685,6 +678,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          item.draft.request.auth = {};
           item.draft.request.auth.mode = action.payload.mode;
         }
       }
@@ -985,6 +979,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
         set(collection, 'root.request.auth.mode', action.payload.mode);
       }
     },
@@ -992,6 +987,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
+        set(collection, 'root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
@@ -1004,6 +1001,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'oauth2':
+            set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
         }
       }
@@ -1301,7 +1301,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, isRecursive, error } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -1317,6 +1317,7 @@ export const collectionsSlice = createSlice({
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
           info.isRecursive = isRecursive;
+          info.cancelTokenUid = cancelTokenUid;
           info.status = 'started';
         }
 
@@ -1394,7 +1395,6 @@ export const {
   removeCollection,
   sortCollections,
   updateLastAction,
-  updateNextAction,
   updateSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,

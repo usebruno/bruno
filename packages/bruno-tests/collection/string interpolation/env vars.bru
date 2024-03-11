@@ -1,0 +1,41 @@
+meta {
+  name: env vars
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "envVar1": "{{env.var1}}",
+    "envVar2": "{{env-var2}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return json", function() {
+    expect(res.getBody()).to.eql({
+      "envVar1": "envVar1",
+      "envVar2": "envVar2"
+    });
+  });
+  
+}

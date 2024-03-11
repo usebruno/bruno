@@ -12,6 +12,9 @@ import * as querystring from 'query-string';
 import yargs from 'yargs-parser';
 
 const parseCurlCommand = (curlCommand) => {
+  // catch escape sequences (e.g. -H $'cookie: it=\'\'')
+  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+
   // Remove newlines (and from continuations)
   curlCommand = curlCommand.replace(/\\\r|\\\n/g, '');
 

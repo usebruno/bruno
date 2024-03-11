@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Modal from 'components/Modal/index';
 import { PostHog } from 'posthog-node';
 import { uuid } from 'utils/common';
-import { IconHeart, IconUser, IconUsers } from '@tabler/icons';
+import { IconHeart, IconUser, IconUsers, IconPlus } from '@tabler/icons';
 import platformLib from 'platform';
 import StyledWrapper from './StyledWrapper';
+import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
 const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
@@ -58,6 +59,8 @@ const CheckIcon = () => {
 };
 
 const GoldenEdition = ({ onClose }) => {
+  const { displayedTheme } = useTheme();
+
   useEffect(() => {
     const anonymousId = getAnonymousTrackingId();
     const client = getPosthogClient();
@@ -82,11 +85,10 @@ const GoldenEdition = ({ onClose }) => {
     });
   };
 
-  const goldenEditon = [
+  const goldenEditonIndividuals = [
     'Inbuilt Bru File Explorer',
     'Visual Git (Like Gitlens for Vscode)',
     'GRPC, Websocket, SocketIO, MQTT',
-    'Intergration with Secret Managers',
     'Load Data from File for Collection Run',
     'Developer Tools',
     'OpenAPI Designer',
@@ -95,16 +97,29 @@ const GoldenEdition = ({ onClose }) => {
     'Custom Themes'
   ];
 
+  const goldenEditonOrganizations = [
+    'Centralized License Management',
+    'Intergration with Secret Managers',
+    'Private Collection Registry',
+    'Request Forms',
+    'Priority Support'
+  ];
+
   const [pricingOption, setPricingOption] = useState('individuals');
 
   const handlePricingOptionChange = (option) => {
     setPricingOption(option);
   };
 
+  const themeBasedContainerClassNames = displayedTheme === 'light' ? 'text-gray-900' : 'text-white';
+  const themeBasedTabContainerClassNames = displayedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
+  const themeBasedActiveTabClassNames =
+    displayedTheme === 'light' ? 'bg-white text-gray-900 font-medium' : 'bg-gray-700 text-white font-medium';
+
   return (
     <StyledWrapper>
       <Modal size="sm" title={'Golden Edition'} handleCancel={onClose} hideFooter={true}>
-        <div className="flex flex-col text-gray-900 bg-white w-full">
+        <div className={`flex flex-col w-full ${themeBasedContainerClassNames}`}>
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Golden Edition</h3>
             <a
@@ -115,8 +130,7 @@ const GoldenEdition = ({ onClose }) => {
               target="_blank"
               className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg text-sm px-4 py-2 text-center cursor-pointer"
             >
-              <IconHeart size={18} strokeWidth={1.5} />{' '}
-              <span className="ml-2">{pricingOption === 'individuals' ? 'Buy' : 'Subscribe'}</span>
+              <IconHeart size={18} strokeWidth={1.5} /> <span className="ml-2">Buy</span>
             </a>
           </div>
           {pricingOption === 'individuals' ? (
@@ -124,24 +138,26 @@ const GoldenEdition = ({ onClose }) => {
               <div className="my-4">
                 <span className="text-3xl font-extrabold">$19</span>
               </div>
-              <p className="bg-yellow-200 rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
               <p className="text-sm">perpetual license for 2 devices, with 2 years of updates</p>
             </div>
           ) : (
             <div>
               <div className="my-4">
-                <span className="text-3xl font-extrabold">$2</span>
+                <span className="text-3xl font-extrabold">$49</span>
+                <span className="ml-2">/&nbsp;user</span>
               </div>
-              <p>/user/month</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
+              <p className="text-sm">perpetual license with 2 years of updates</p>
             </div>
           )}
           <div
-            className="flex items-center justify-between my-8 w-40 bg-gray-200 rounded-full p-1"
+            className={`flex items-center justify-between my-8 w-40 rounded-full p-1 ${themeBasedTabContainerClassNames}`}
             style={{ width: '24rem' }}
           >
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'individuals' ? 'bg-white text-gray-900 font-medium' : 'text-gray-500'
+                pricingOption === 'individuals' ? themeBasedActiveTabClassNames : 'text-gray-500'
               }`}
               onClick={() => handlePricingOptionChange('individuals')}
             >
@@ -149,7 +165,7 @@ const GoldenEdition = ({ onClose }) => {
             </div>
             <div
               className={`cursor-pointer w-1/2 h-8 flex items-center justify-center rounded-full ${
-                pricingOption === 'organizations' ? 'bg-white text-gray-900 font-medium' : 'text-gray-500'
+                pricingOption === 'organizations' ? themeBasedActiveTabClassNames : 'text-gray-500'
               }`}
               onClick={() => handlePricingOptionChange('organizations')}
             >
@@ -161,12 +177,29 @@ const GoldenEdition = ({ onClose }) => {
               <HeartIcon />
               <span>Support Bruno's Development</span>
             </li>
-            {goldenEditon.map((item, index) => (
-              <li className="flex items-center space-x-3" key={index}>
-                <CheckIcon />
-                <span>{item}</span>
-              </li>
-            ))}
+            {pricingOption === 'individuals' ? (
+              <>
+                {goldenEditonIndividuals.map((item, index) => (
+                  <li className="flex items-center space-x-3" key={index}>
+                    <CheckIcon />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </>
+            ) : (
+              <>
+                <li className="flex items-center space-x-3 pb-4">
+                  <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
+                  <span>Everything in the Individual Plan</span>
+                </li>
+                {goldenEditonOrganizations.map((item, index) => (
+                  <li className="flex items-center space-x-3" key={index}>
+                    <CheckIcon />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
         </div>
       </Modal>

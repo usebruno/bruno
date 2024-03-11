@@ -140,6 +140,40 @@ const lightTheme = {
     }
   },
 
+  notifications: {
+    bg: '#efefef',
+    settings: {
+      bg: 'white',
+      sidebar: {
+        bg: '#eaeaea',
+        borderRight: 'transparent'
+      },
+      item: {
+        border: '#546de5',
+        borderBottom: '#4f4f4f44',
+        hoverBg: '#e4e4e4',
+        active: {
+          bg: '#dcdcdc',
+          hoverBg: '#dcdcdc'
+        },
+        read: {
+          bg: '#dcdcdc55',
+          hoverBg: '#dcdcdc'
+        },
+        date: {
+          color: '#5f5f5f'
+        }
+      },
+      gridBorder: '#f4f4f4'
+    },
+    sidebar: {
+      bg: '#eaeaea'
+    },
+    bell: {
+      count: '#cc7b1b55'
+    }
+  },
+
   modal: {
     title: {
       color: 'rgb(86 86 86)',
@@ -177,6 +211,11 @@ const lightTheme = {
       color: '#9f9f9f',
       bg: '#efefef',
       border: 'rgb(234, 234, 234)'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 
@@ -237,6 +276,10 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
   }
 };
 
