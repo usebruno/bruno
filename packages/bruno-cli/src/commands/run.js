@@ -423,7 +423,6 @@ const handler = async function (argv) {
         brunoConfig,
         collectionRoot
       );
-      ({ collectionVariables, envVariables } = result);
 
       results.push({
         ...result,
