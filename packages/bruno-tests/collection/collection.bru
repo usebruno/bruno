@@ -3,7 +3,11 @@ headers {
 }
 
 auth {
-  mode: none
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{bearer_auth_token}}
 }
 
 docs {
