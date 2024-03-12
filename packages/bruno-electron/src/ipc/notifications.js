@@ -15,15 +15,11 @@ const registerNotificationsIpc = (mainWindow, watcher) => {
 
 module.exports = registerNotificationsIpc;
 
-const fetchNotifications = async (props) => {
+const fetchNotifications = async () => {
   try {
-    const { lastNotificationId } = props || {};
-    let url = process.env.BRUNO_INFO_ENDPOINT;
-    if (!url) {
-      return Promise.reject('Invalid notifications endpoint', error);
-    }
-    if (lastNotificationId) url += `?lastNotificationId=${lastNotificationId}`;
+    let url = process.env.BRUNO_INFO_ENDPOINT || 'https://appinfo.usebruno.com';
     const data = await fetch(url).then((res) => res.json());
+
     return data?.notifications || [];
   } catch (error) {
     return Promise.reject('Error while fetching notifications!', error);
