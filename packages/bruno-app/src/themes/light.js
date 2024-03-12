@@ -140,6 +140,21 @@ const lightTheme = {
     }
   },
 
+  notifications: {
+    bg: 'white',
+    list: {
+      bg: '#eaeaea',
+      borderRight: 'transparent',
+      borderBottom: '#d3d3d3',
+      hoverBg: '#e4e4e4',
+      active: {
+        border: '#546de5',
+        bg: '#dcdcdc',
+        hoverBg: '#dcdcdc'
+      }
+    }
+  },
+
   modal: {
     title: {
       color: 'rgb(86 86 86)',
@@ -242,6 +257,10 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
   }
 };
 

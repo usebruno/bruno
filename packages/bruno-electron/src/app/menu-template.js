@@ -32,7 +32,13 @@ const template = [
         }
       },
       { type: 'separator' },
-      { role: 'quit' }
+      { role: 'quit' },
+      {
+        label: 'Force Quit',
+        click() {
+          process.exit();
+        }
+      }
     ]
   },
   {

@@ -120,3 +120,39 @@ export const startsWith = (str, search) => {
 export const pluralizeWord = (word, count) => {
   return count === 1 ? word : `${word}s`;
 };
+
+export const relativeDate = (dateString) => {
+  const date = new Date(dateString);
+  const currentDate = new Date();
+
+  const difference = currentDate - date;
+  const secondsDifference = Math.floor(difference / 1000);
+  const minutesDifference = Math.floor(secondsDifference / 60);
+  const hoursDifference = Math.floor(minutesDifference / 60);
+  const daysDifference = Math.floor(hoursDifference / 24);
+  const weeksDifference = Math.floor(daysDifference / 7);
+  const monthsDifference = Math.floor(daysDifference / 30);
+
+  if (secondsDifference < 60) {
+    return 'Few seconds ago';
+  } else if (minutesDifference < 60) {
+    return `${minutesDifference} minute${minutesDifference > 1 ? 's' : ''} ago`;
+  } else if (hoursDifference < 24) {
+    return `${hoursDifference} hour${hoursDifference > 1 ? 's' : ''} ago`;
+  } else if (daysDifference < 7) {
+    return `${daysDifference} day${daysDifference > 1 ? 's' : ''} ago`;
+  } else if (weeksDifference < 4) {
+    return `${weeksDifference} week${weeksDifference > 1 ? 's' : ''} ago`;
+  } else {
+    return `${monthsDifference} month${monthsDifference > 1 ? 's' : ''} ago`;
+  }
+};
+
+export const humanizeDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};

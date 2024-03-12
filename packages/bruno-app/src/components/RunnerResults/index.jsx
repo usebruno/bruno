@@ -22,13 +22,23 @@ const getRelativePath = (fullPath, pathname) => {
 
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
-  const listWrapperRef = useRef();
   const [selectedItem, setSelectedItem] = useState(null);
+
+  // ref for the runner output body
+  const runnerBodyRef = useRef();
+
+  const autoScrollRunnerBody = () => {
+    if (runnerBodyRef?.current) {
+      // mimicks the native terminal scroll style
+      runnerBodyRef.current.scrollTo(0, 100000);
+    }
+  };
 
   useEffect(() => {
     if (!collection.runnerResult) {
       setSelectedItem(null);
     }
+    autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
 
   const collectionCopy = cloneDeep(collection);
@@ -67,11 +77,6 @@ export default function RunnerResults({ collection }) {
     })
     .filter(Boolean);
 
-  useEffect(() => {
-    if (listWrapperRef.current) {
-      listWrapperRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
-    }
-  }, [items]);
   const runCollection = () => {
     dispatch(runCollectionFolder(collection.uid, null, true));
   };
@@ -102,12 +107,11 @@ export default function RunnerResults({ collection }) {
 
   if (!items || !items.length) {
     return (
-      <StyledWrapper className="px-4">
+      <StyledWrapper className="px-4 pb-4">
         <div className="font-medium mt-6 title flex items-center">
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
-
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
         </div>
@@ -124,21 +128,24 @@ export default function RunnerResults({ collection }) {
   }
 
   return (
-    <StyledWrapper ref={listWrapperRef} className="px-4 pb-4 flex flex-grow flex-col relative">
-      <div className="flex flex-row mt-6 mb-4">
-        <div className="font-medium title flex items-center">
+    <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
+      <div className="flex flex-row">
+        <div className="font-medium my-6 title flex items-center">
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
         {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
-          <button className="btn ml-6 btn-sm btn-danger" onClick={cancelExecution}>
+          <button className="btn ml-6 my-4 btn-sm btn-danger" onClick={cancelExecution}>
             Cancel Execution
           </button>
         )}
       </div>
-      <div className="flex flex-1">
-        <div className="flex flex-col flex-1">
-          <div className="py-2 font-medium test-summary">
+      <div className="flex flex-row gap-4">
+        <div
+          className="flex flex-col flex-1 overflow-y-auto h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)] w-full"
+          ref={runnerBodyRef}
+        >
+          <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
           {items.map((item) => {
@@ -227,8 +234,8 @@ export default function RunnerResults({ collection }) {
             </div>
           ) : null}
         </div>
-        <div className="flex flex-1" style={{ width: '50%' }}>
-          {selectedItem ? (
+        {selectedItem ? (
+          <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.relativePath}</span>
@@ -243,8 +250,8 @@ export default function RunnerResults({ collection }) {
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </StyledWrapper>
   );
