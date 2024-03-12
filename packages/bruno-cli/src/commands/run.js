@@ -268,8 +268,8 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    let collectionVariables = {};
-    let envVariables = {};
+    const collectionVariables = {};
+    let envVars = {};
 
     if (env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
@@ -282,8 +282,8 @@ const handler = async function (argv) {
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
       const envJson = bruToEnvJson(envBruContent);
-      envVariables = getEnvVars(envJson);
-      envVariables.__name__ = env;
+      envVars = getEnvVars(envJson);
+      envVars.__name__ = env;
     }
 
     if (envVar) {
@@ -307,7 +307,7 @@ const handler = async function (argv) {
             );
             return;
           }
-          envVariables[match[1]] = match[2];
+          envVars[match[1]] = match[2];
         }
       }
     }
@@ -418,7 +418,7 @@ const handler = async function (argv) {
         bruJson,
         collectionPath,
         collectionVariables,
-        envVariables,
+        envVars,
         processEnvVars,
         brunoConfig,
         collectionRoot
