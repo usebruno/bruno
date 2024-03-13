@@ -43,6 +43,7 @@ if (!SERVER_RENDERED) {
     'req.getUrl()',
     'req.setUrl(url)',
     'req.getMethod()',
+    'req.getAuthMode()',
     'req.setMethod(method)',
     'req.getHeader(name)',
     'req.getHeaders()',

@@ -35,8 +35,20 @@ const Auth = ({ item, collection }) => {
       case 'inherit': {
         return (
           <div className="flex flex-row w-full mt-2 gap-2">
-            <div>Auth inherited from the Collection: </div>
-            <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
+            {collectionAuth?.mode === 'oauth2' ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-row gap-1">
+                  <div>Collection level auth is: </div>
+                  <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
+                </div>
+                <div className="text-sm opacity-50">Cannot inherit Oauth2 from collection.</div>
+              </div>
+            ) : (
+              <>
+                <div>Auth inherited from the Collection: </div>
+                <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
+              </>
+            )}
           </div>
         );
       }

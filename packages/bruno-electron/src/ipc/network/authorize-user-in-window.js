@@ -1,12 +1,22 @@
 const { BrowserWindow } = require('electron');
 
-const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
+const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
 
+    let allOpenWindows = BrowserWindow.getAllWindows();
+
+    // main window id is '1'
+    // get all other windows
+    let windowsExcludingMain = allOpenWindows.filter((w) => w.id != 1);
+    windowsExcludingMain.forEach((w) => {
+      w.close();
+    });
+
     const window = new BrowserWindow({
       webPreferences: {
-        nodeIntegration: false
+        nodeIntegration: false,
+        partition: session
       },
       show: false
     });
@@ -16,11 +26,24 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
       // check if the url contains an authorization code
       if (url.match(/(code=).*/)) {
         finalUrl = url;
-        if (url && finalUrl.includes(callbackUrl)) {
-          window.close();
-        } else {
+        if (!url || !finalUrl.includes(callbackUrl)) {
           reject(new Error('Invalid Callback Url'));
         }
+        window.close();
+      }
+      if (url.match(/(error=).*/) || url.match(/(error_description=).*/) || url.match(/(error_uri=).*/)) {
+        const _url = new URL(url);
+        const error = _url.searchParams.get('error');
+        const errorDescription = _url.searchParams.get('error_description');
+        const errorUri = _url.searchParams.get('error_uri');
+        let errorData = {
+          message: 'Authorization Failed!',
+          error,
+          errorDescription,
+          errorUri
+        };
+        reject(new Error(JSON.stringify(errorData)));
+        window.close();
       }
     }
 
@@ -30,7 +53,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl }) => {
           const callbackUrlWithCode = new URL(finalUrl);
           const authorizationCode = callbackUrlWithCode.searchParams.get('code');
 
-          return resolve(authorizationCode);
+          return resolve({ authorizationCode });
         } catch (error) {
           return reject(error);
         }
