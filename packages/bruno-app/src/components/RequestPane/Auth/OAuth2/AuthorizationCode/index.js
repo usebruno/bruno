@@ -6,7 +6,8 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import SingleLineEditor from 'components/CodeEditor/Codemirror/SingleLineEditor';
+import { clearOauth2Cache } from 'utils/network';
+import toast from 'react-hot-toast';
 
 const OAuth2AuthorizationCode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -63,6 +64,16 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
     );
   };
 
+  const handleClearCache = (e) => {
+    clearOauth2Cache(collection?.uid)
+      .then(() => {
+        toast.success('cleared cache successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  };
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
@@ -71,13 +82,14 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           <div className="flex flex-col w-full gap-1" key={`input-${key}`}>
             <label className="block font-medium">{label}</label>
             <div className="single-line-editor-wrapper">
-              <SingleLineEditor
+              <CodeEditor
                 value={oAuth[key] || ''}
                 theme={storedTheme}
                 onSave={handleSave}
                 onChange={(val) => handleChange(key, val)}
                 onRun={handleRun}
                 collection={collection}
+                singleLine
               />
             </div>
           </div>
@@ -92,9 +104,14 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           onChange={handlePKCEToggle}
         />
       </div>
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
+      <div className="flex flex-row gap-4">
+        <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
+          Get Access Token
+        </button>
+        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+          Clear Cache
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

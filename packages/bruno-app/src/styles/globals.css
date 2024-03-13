@@ -58,7 +58,7 @@ body::-webkit-scrollbar-thumb,
   border-radius: 5rem;
 }
 
-/* 
+/*
  * todo: this will be supported in the future to be changed via applying a theme
  * making all the checkboxes and radios bigger
  * input[type='checkbox'],

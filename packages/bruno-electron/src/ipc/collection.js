@@ -434,7 +434,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
+  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, enableTranslation) => {
     try {
       let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);

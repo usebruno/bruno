@@ -1,9 +1,9 @@
 {
   "name": "bruno-lazer",
+  "version": "v1.11.0",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
   "private": true,
-  "version": "1.10.0",
   "main": ".vite/build/index.js",
   "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
   "scripts": {
@@ -17,7 +17,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.425.0",
     "@usebruno/common": "workspace:*",
     "@usebruno/js": "workspace:*",
     "@usebruno/lang": "workspace:*",

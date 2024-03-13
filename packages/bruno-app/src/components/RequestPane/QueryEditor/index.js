@@ -190,6 +190,7 @@ export default class QueryEditor extends React.Component {
       });
 
       this.editor.setValue(prettyQuery);
+      toast.success('Query prettified');
     } catch (e) {
       toast.error('Error occurred while prettifying GraphQL query');
     }

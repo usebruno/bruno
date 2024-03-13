@@ -35,6 +35,7 @@ const {
   transformClientCredentialsRequest,
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
+const Oauth2Store = require('../../store/oauth2');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -196,7 +197,7 @@ const configureRequest = async (
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy);
+          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
         request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = authorizationCodeData;
         request.url = authorizationCodeAccessTokenUrl;
@@ -695,6 +696,18 @@ const registerNetworkIpc = (mainWindow) => {
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = new Oauth2Store();
+        oauth2Store.clearSessionIdOfCollection(uid);
+        resolve();
+      } catch (err) {
+        reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
   });
 
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
