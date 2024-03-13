@@ -29,8 +29,8 @@ const Welcome = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
+  const handleImportCollectionLocation = (collectionLocation, enableTRanslation = true) => {
+    dispatch(importCollection(importedCollection, collectionLocation, enableTranslation));
     setImportCollectionLocationModalOpen(false);
     setImportedCollection(null);
     toast.success('Collection imported successfully');
@@ -84,13 +84,13 @@ const Welcome = () => {
             <span className="label ml-2">Documentation</span>
           </a>
         </div>
-        <div className="mt-2">
+        <div className="flex items-center mt-2">
           <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
             <IconSpeakerphone size={18} strokeWidth={2} />
             <span className="label ml-2">Report Issues</span>
           </a>
         </div>
-        <div className="mt-2">
+        <div className="flex items-center mt-2">
           <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
             <IconBrandGithub size={18} strokeWidth={2} />
             <span className="label ml-2">GitHub</span>

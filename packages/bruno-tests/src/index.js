@@ -5,7 +5,7 @@ const cors = require('cors');
 const multer = require('multer');
 
 const app = new express();
-const port = process.env.PORT || 80;
+const port = process.env.PORT || 8080;
 const upload = multer();
 
 app.use(cors());
