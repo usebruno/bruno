@@ -214,7 +214,7 @@ const builder = async (yargs) => {
     })
     .option('tests-only', {
       type: 'boolean',
-      description: 'Only run requests that have a test'
+      description: 'Only run requests that have a test or active assertion'
     })
     .option('bail', {
       type: 'boolean',
