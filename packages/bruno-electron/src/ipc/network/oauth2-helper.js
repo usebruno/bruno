@@ -4,7 +4,7 @@ const { authorizeUserInWindow } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
 
 const generateCodeVerifier = () => {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(22).toString('hex');
 };
 
 const generateCodeChallenge = (codeVerifier) => {
