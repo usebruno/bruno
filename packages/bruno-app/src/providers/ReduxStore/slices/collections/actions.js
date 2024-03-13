@@ -1046,7 +1046,6 @@ export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
 export const importCollection = (collection, collectionLocation) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
   });
 };
@@ -1054,7 +1053,6 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
 export const shellOpenCollectionPath = (itemPath, isCollection, edit) => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-
     ipcRenderer.invoke('renderer:shell-open', itemPath, isCollection, edit).then(resolve).catch(reject);
   });
 };
