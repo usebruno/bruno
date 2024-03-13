@@ -1,5 +1,6 @@
 const { get, each, filter } = require('lodash');
 const fs = require('fs');
+var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
 const prepareRequest = (request, collectionRoot) => {
@@ -31,12 +32,19 @@ const prepareRequest = (request, collectionRoot) => {
     headers: headers
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
+  /**
+   * 27 Feb 2024:
+   * ['inherit', 'none'].includes(request.auth.mode)
+   * We are mainitaining the old behavior where 'none' used to inherit the collection auth.
+   *
+   * Very soon, 'none' will be treated as no auth and 'inherit' will be the only way to inherit collection auth.
+   * We will request users to update their collection files to use 'inherit' instead of 'none'.
+   * Don't want to break ongoing CI pipelines.
+   *
+   * Hoping to remove this by 1 April 2024.
+   */
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && ['inherit', 'none'].includes(request.auth.mode)) {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -45,7 +53,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -69,7 +77,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
   }
 
@@ -80,7 +88,7 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }

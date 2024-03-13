@@ -4,7 +4,7 @@
 ### Bruno - Opensource IDE for exploring and testing APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
@@ -20,6 +20,8 @@ You can use Git or any version control of your choice to collaborate over your A
 
 Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We value your data privacy and believe it should stay on your device. Read our long-term vision [here](https://github.com/usebruno/bruno/discussions/269)
 
+[Download Bruno](https://www.usebruno.com/downloads)
+
 📢 Watch our recent talk at India FOSS 3.0 Conference [here](https://www.youtube.com/watch?v=7bSMFpbcPiY)
 
 ![bruno](assets/images/landing-2.png) <br /><br />
@@ -29,8 +31,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-Pre-Orders for [Golden Edition](https://www.usebruno.com/pricing) launching soon at ~~$19~~ **$9** ! <br/>
-[Sign up here](https://usebruno.ck.page/4c65576bd4) to get notified when we launch.
+You can Pre-Orders the [Golden Edition](https://www.usebruno.com/pricing) at ~~$19~~ **$9** ! <br/>
 
 ### Installation
 
@@ -48,6 +49,9 @@ choco install bruno
 # On Windows via Scoop
 scoop bucket add extras
 scoop install bruno
+
+# On Windows via winget
+winget install Bruno.Bruno
 
 # On Linux via Snap
 snap install bruno
@@ -74,6 +78,16 @@ sudo apt install bruno
 Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
+
+### Sponsors
+
+#### Gold Sponsors
+
+<img src="assets/images/sponsors/samagata.png" width="150"/>
+
+#### Silver Sponsors
+
+<img src="assets/images/sponsors/commit-company.png" width="70"/>
 
 ### Important Links 📌
 
