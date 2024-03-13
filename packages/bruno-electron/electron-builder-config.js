@@ -3,7 +3,6 @@ require('dotenv').config({ path: process.env.DOTENV_PATH });
 const config = {
   appId: 'com.usebruno-lazer.app',
   productName: 'Bruno lazer',
-  electronVersion: '21.1.1',
   directories: {
     buildResources: 'resources',
     output: 'out'
@@ -35,7 +34,7 @@ const config = {
     target: ['AppImage', 'deb', 'snap', 'rpm']
   },
   win: {
-    target: 'msi',
+    target: ['msi', 'portable'],
     artifactName: 'bruno-lazer_nightly_${arch}_win.${ext}',
     icon: 'resources/icons/png'
   },

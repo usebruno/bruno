@@ -1,23 +1,8 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES6",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "jsx": "react",
-    "module": "ESNext",
-    "declaration": true,
-    "declarationDir": "types",
-    "sourceMap": true,
-    "outDir": "dist",
-    "moduleResolution": "node",
-    "emitDeclarationOnly": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true
+    "outDir": "./dist",
+    "module": "CommonJS"
   },
-  "exclude": [
-    "dist",
-    "node_modules",
-    "tests"
-  ],
+  "include": ["src/**/*"]
 }

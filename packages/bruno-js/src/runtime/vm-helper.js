@@ -10,6 +10,10 @@ const BrunoResponse = require('../bruno-response');
 const TestResults = require('../test-results');
 const Test = require('../test');
 
+// Save the original require inside an "alias" variable so the "vite-plugin-commonjs" does not complain about the
+// intentional dynamic require
+const dynamicRequire = require;
+
 /**
  * @param {string} script
  * @param {object} request
@@ -172,14 +176,14 @@ function createCustomRequire(scriptingConfig, collectionPath) {
     // Remove the "node:" prefix, to make sure "node:fs" and "fs" can be required, and we only need to whitelist one
     if (whitelistedModules.includes(moduleName.replace(/^node:/, ''))) {
       try {
-        return require(moduleName);
+        return dynamicRequire(moduleName);
       } catch {
         // This can happen, if it s module installed by the user under additionalContextRoots
         // So now we check if the user installed it themselves
         let modulePath;
         try {
           modulePath = require.resolve(moduleName, { paths: additionalContextRootsAbsolute });
-          return require(modulePath);
+          return dynamicRequire(modulePath);
         } catch (error) {
           throw new Error(`Could not resolve module "${moduleName}": ${error}
           This most likely means you did not install the module under "additionalContextRoots" using a package manger like npm.
@@ -195,7 +199,7 @@ function createCustomRequire(scriptingConfig, collectionPath) {
     for (const contextRoot of additionalContextRootsAbsolute) {
       const fullScriptPath = path.join(contextRoot, moduleName);
       try {
-        return require(fullScriptPath);
+        return dynamicRequire(fullScriptPath);
       } catch (error) {
         triedPaths.push({ fullScriptPath, error });
       }

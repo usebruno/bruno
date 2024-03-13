@@ -2,38 +2,44 @@
   "name": "@usebruno/graphql-docs",
   "version": "0.1.0",
   "license": "MIT",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
   "files": [
-    "dist",
-    "package.json"
+    "dist"
   ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./dist/style.css": "./dist/style.css"
+  },
   "scripts": {
-    "build": "rollup -c"
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "graphql": "^16.6.0",
+    "markdown-it": "^13.0.1"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^9.0.2",
-    "@rollup/plugin-terser": "^0.4.4",
     "@types/markdown-it": "^12.2.3",
     "@types/react": "^18.0.25",
     "graphql": "^16.6.0",
     "markdown-it": "^13.0.1",
-    "postcss": "^8.4.18",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "rollup": "3.2.5",
-    "rollup-plugin-dts": "^5.0.0",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-postcss": "^4.0.2",
-    "typescript": "^4.8.4"
-  },
-  "peerDependencies": {
-    "graphql": "^16.6.0",
-    "markdown-it": "^13.0.1"
-  },
-  "overrides": {
-    "rollup": "3.2.5"
+    "rimraf": "^5.0.5",
+    "vite": "^5.1.5",
+    "vite-plugin-dts": "^3.7.3",
+    "@vitejs/plugin-react": "^4.2.1"
   }
 }

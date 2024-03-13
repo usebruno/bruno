@@ -2,15 +2,32 @@
   "name": "@usebruno/schema",
   "version": "0.6.0",
   "license": "MIT",
-  "main": "src/index.js",
+  "private": true,
   "files": [
-    "src",
-    "package.json"
+    "dist"
   ],
+  "main": "dist/index.umd.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.umd.cjs"
+    }
+  },
   "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "clean": "rimraf dist",
     "test": "jest"
   },
-  "peerDependencies": {
+  "dependencies": {
     "yup": "^0.32.11"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.5",
+    "vite": "^5.1.6",
+    "vite-plugin-dts": "^3.7.3",
+    "vite-plugin-commonjs": "^0.10.1"
   }
 }

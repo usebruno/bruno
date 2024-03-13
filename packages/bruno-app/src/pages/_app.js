@@ -13,7 +13,7 @@ import '../styles/globals.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 import 'react-tooltip/dist/react-tooltip.css';
-import '@usebruno/graphql-docs/dist/esm/index.css';
+import '@usebruno/graphql-docs/dist/style.css';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';

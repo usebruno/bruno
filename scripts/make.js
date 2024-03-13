@@ -2,12 +2,9 @@ const os = require('os');
 const fs = require('fs-extra');
 const spawn = require('child_process').spawn;
 
-function log(...args) {
-  console.log('-> ', ...args);
-}
-function error(...args) {
-  console.log('!> ', ...args);
-}
+/// Helper function
+const log = (...args) => console.log('-> ', ...args);
+const error = (...args) => console.log('!> ', ...args);
 
 async function deleteFileIfExists(filePath) {
   try {
@@ -37,21 +34,6 @@ async function copyFolderIfExists(srcPath, destPath) {
   }
 }
 
-async function removeSourceMapFiles(directory) {
-  try {
-    const files = await fs.readdir(directory);
-    for (const file of files) {
-      if (file.endsWith('.map')) {
-        const filePath = path.join(directory, file);
-        await fs.remove(filePath);
-        log(`${filePath} has been successfully deleted.`);
-      }
-    }
-  } catch (error) {
-    error(`Error while deleting .map files: ${error}`);
-  }
-}
-
 /**
  * @param {String} command
  * @param {String[]} args
@@ -76,30 +58,53 @@ async function execCommandWithOutput(command, args) {
   });
 }
 
+// This maps the os to electron-builder
+function determineOs() {
+  const platform = os.platform();
+  switch (platform) {
+    case 'win32':
+      return 'win';
+    case 'linux':
+      return 'linux';
+    case 'darwin':
+      return 'macos';
+  }
+
+  throw new Error(`Could not determine OS for your platform: "${platform}"!`);
+}
+
+// This maps the arch to electron-builder
+function determineArchitecture() {
+  const platform = os.arch();
+  switch (platform) {
+    case 'x64':
+    case 'ia32':
+    case 'arm64':
+      return platform;
+    case 'arm':
+      return 'armv71';
+  }
+
+  throw new Error(`Could not determine architecture for your architecture: "${platform}"!`);
+}
+
 /**
  * @param {String[]} args
  * @returns {Promise<number>}
  */
 async function main(args) {
-  let target = args[args.length - 1];
-  if (!target) {
-    // Auto detect target
-    if (os.platform() === 'win32') {
-      target = 'win';
-    } else if (os.platform() === 'darwin') {
-      target = 'mac';
-    } else {
-      target = 'linux';
-    }
-    log('Target automatically set to ', target);
-  }
+  log('Starting Bruno build');
+
+  const os = determineOs();
+  const arch = determineArchitecture();
+  log(`Building for operating system: "${os}" and architecture: "${arch}"`);
 
   log('Clean up old build artifacts');
-  await deleteFileIfExists('packages/bruno-electron/web');
-  await deleteFileIfExists('packages/bruno-app/out');
+  await execCommandWithOutput('pnpm', ['run', 'clean']);
 
-  log('Building web');
-  await execCommandWithOutput('npm', ['run', 'build:web']);
+  log('Building packages');
+  await execCommandWithOutput('pnpm', ['run', 'build']);
+  // Copy the output of bruno-app into electron
   await fs.ensureDir('packages/bruno-electron/web');
   await copyFolderIfExists('packages/bruno-app/out', 'packages/bruno-electron/web');
 
@@ -114,9 +119,10 @@ async function main(args) {
   }
 
   // Run npm dist command
-  log(`Building the Electron app for target: ${target}`);
-  await execCommandWithOutput('npm', ['run', `dist:${target}`, '--workspace=packages/bruno-electron']);
+  log(`Building the Electron app for: ${os}/${arch}`);
+  await execCommandWithOutput('pnpm', ['run', '--filter', 'bruno-lazer', 'dist', '--', `--${arch}`, `--${os}`]);
   log('Build complete');
+
   return 0;
 }
 

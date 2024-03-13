@@ -55,25 +55,47 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Fetch dependencies
-        run: npm i
-
-      - name: Build packages
         run: |
-          npm run build:graphql-docs
-          npm run build:bruno-query
-          npm run build:bruno-common
-
-      - name: Build electron
+          npm i -g pnpm
+          pnpm i
+      - name: Make
         run: |
-          npm run build:electron -- win
+          pnpm run make
           ls ./packages/bruno-electron/out/
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build-windows
           path: |
-            ./packages/bruno-electron/out/bruno-lazer_nightly_x64_win.msi
+            ./packages/bruno-electron/out/bruno-*
           retention-days: 1
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Fetch dependencies
+        run: |
+          npm i -g pnpm
+          pnpm i
+      - name: Make
+        run: |
+          pnpm run make
+          ls ./packages/bruno-electron/out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-macos
+          path: |
+            ./packages/bruno-electron/out/bruno-*
+          retention-days: 1
+          if-no-files-found: error
 
   linux:
     runs-on: ubuntu-latest
@@ -87,31 +109,25 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Fetch dependencies
-        run: npm i
-
-      - name: Build packages
         run: |
-          npm run build:graphql-docs
-          npm run build:bruno-query
-          npm run build:bruno-common
-
-      - name: Build AppImage
+          npm i -g pnpm
+          pnpm i
+      - name: Make
         run: |
-          npm run build:electron -- linux
-          npm run build:electron -- deb
+          pnpm run make
           ls ./packages/bruno-electron/out/
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: build-linux
           path: |
-            ./packages/bruno-electron/out/bruno-lazer_nightly_amd64_linux.deb
-            ./packages/bruno-electron/out/bruno-lazer_nightly_x86_64_linux.AppImage
+            ./packages/bruno-electron/out/bruno-*
           retention-days: 1
+          if-no-files-found: error
 
   publish:
     if: github.event_name != 'pull_request'
-    needs: [linux, windows]
+    needs: [linux, windows, macos]
     runs-on: ubuntu-latest
     env:
       GH_REPO: ${{ github.repository }}
@@ -123,7 +139,7 @@ jobs:
       # before running, and would therefore delete the downloaded artifacts
       - uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
 
       - if: github.event_name == 'workflow_dispatch'
         run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
@@ -138,18 +154,18 @@ jobs:
 
       - if: env.TAG_NAME == 'nightly'
         run: |
-          (echo 'SUBJECT=Lapce development build';
+          (echo 'SUBJECT=Bruno development build';
            echo 'PRERELEASE=--prerelease') >> $GITHUB_ENV
           gh release delete nightly --yes || true
           git push origin :nightly || true
 
       - if: env.TAG_NAME != 'nightly'
         run: |
-          (echo 'SUBJECT=Lapce release build';
+          (echo 'SUBJECT=Bruno release build';
            echo 'PRERELEASE=') >> $GITHUB_ENV
 
       - name: Publish release
         env:
           DEBUG: api
         run: |
-          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA build-linux/* build-windows/*
+          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA build-linux/* build-windows/* build-macos/*

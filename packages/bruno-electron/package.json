@@ -4,26 +4,24 @@
   "homepage": "https://www.usebruno.com",
   "private": true,
   "version": "1.10.0",
-  "main": "src/index.js",
+  "main": ".vite/build/index.js",
   "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
   "scripts": {
-    "clean": "rimraf dist",
-    "dev": "electron .",
-    "dist:mac": "electron-builder --mac --config electron-builder-config.js",
-    "dist:win": "electron-builder --win --config electron-builder-config.js",
-    "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
-    "dist:deb": "electron-builder --linux deb --config electron-builder-config.js",
-    "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
-    "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
-    "pack": "electron-builder --dir",
+    "build": "vite build -c vite.main.config.ts && vite build -c vite.preload.config.ts",
+    "predev": "pnpm run build",
+    "dev": "vite build -c vite.main.config.ts --watch",
+    "preelectron": "pnpm run build",
+    "electron": "electron .",
+    "dist": "electron-builder --config electron-builder-config.js",
+    "clean": "rimraf out web .vite",
     "test": "jest"
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "^3.425.0",
-    "@usebruno/common": "0.1.0",
-    "@usebruno/js": "0.10.1",
-    "@usebruno/lang": "0.10.0",
-    "@usebruno/schema": "0.6.0",
+    "@usebruno/common": "workspace:*",
+    "@usebruno/js": "workspace:*",
+    "@usebruno/lang": "workspace:*",
+    "@usebruno/schema": "workspace:*",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
     "axios": "^1.5.1",
@@ -57,8 +55,15 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.1.1",
+    "@typescript-eslint/parser": "^7.1.1",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.2",
+    "ts-node": "^10.0.0",
     "electron": "29.1.0",
     "electron-builder": "23.0.2",
-    "electron-icon-maker": "^0.0.5"
+    "electron-icon-maker": "^0.0.5",
+    "vite": "^5.1.5",
+    "vite-plugin-commonjs": "^0.10.1"
   }
 }

@@ -32,6 +32,7 @@ const menu = Menu.buildFromTemplate(menuTemplate);
 
 let mainWindow;
 let watcher;
+let launchFailed = false;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
@@ -62,30 +63,33 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
-  const appIsNotPackaged = !app.isPackaged;
-  const url = appIsNotPackaged
-    ? 'http://localhost:3000'
-    : format({
-        pathname: path.join(__dirname, '../web/index.html'),
-        protocol: 'file:',
-        slashes: true
-      });
-
-  mainWindow.loadURL(url).catch((reason) => {
-    console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
-    console.error('Original message:', reason);
-    if (appIsNotPackaged) {
-      console.error(
-        'Could not connect to Next.Js dev server, is it running?' +
-          ' Start the dev server using "npm run dev:web" and restart electron'
-      );
-    } else {
+  if (app.isPackaged) {
+    const url = path.join(__dirname, '../../web/index.html');
+    mainWindow.loadFile(url).catch((reason) => {
+      console.error(`Error: Failed to load URL: "${url}" (Electron shows a blank screen because of this).`);
+      console.error('Original message:', reason);
       console.error(
         'If you are using an official production build: the above error is most likely a bug! ' +
           ' Please report this under: https://github.com/usebruno/bruno/issues'
       );
-    }
-  });
+      mainWindow.loadURL(`data:text/html;charset=utf,Failed to load: ${reason}`);
+      launchFailed = true;
+    });
+  } else {
+    mainWindow.loadURL('http://localhost:3000').catch((reason) => {
+      console.error(
+        `Error: Failed to load URL: "http://localhost:3000" (Electron shows a blank screen because of this).`
+      );
+      console.error('Original message:', reason);
+      console.error(
+        'Could not connect to Next.Js dev server, is it running?' +
+          ' Start the dev server using "npm run dev:web" and restart electron'
+      );
+      mainWindow.loadURL(`data:text/html;charset=utf,Failed to load: ${reason}`);
+      launchFailed = true;
+    });
+  }
+
   watcher = new Watcher();
 
   const handleBoundsChange = () => {
@@ -100,6 +104,9 @@ app.on('ready', async () => {
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
   mainWindow.on('close', (e) => {
+    if (launchFailed) {
+      return;
+    }
     e.preventDefault();
     ipcMain.emit('main:start-quit-flow');
   });

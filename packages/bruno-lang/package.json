@@ -2,14 +2,17 @@
   "name": "@usebruno/lang",
   "version": "0.10.0",
   "license": "MIT",
-  "main": "src/index.js",
+  "private": true,
   "files": [
-    "src",
-    "v1",
-    "v2",
-    "package.json"
+    "dist"
   ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
   "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "clean": "rimraf dist",
     "test": "jest"
   },
   "dependencies": {
@@ -17,5 +20,13 @@
     "dotenv": "^16.3.1",
     "lodash": "^4.17.21",
     "ohm-js": "^16.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.25",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.2",
+    "vite": "^5.1.5",
+    "vite-plugin-dts": "^3.7.3",
+    "vite-plugin-commonjs": "^0.10.1"
   }
 }
