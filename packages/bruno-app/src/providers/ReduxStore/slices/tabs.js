@@ -101,6 +101,23 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    cloneRequest: (state, action) => {
+      const { requestId, collectionId } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === requestId && t.collectionUid === collectionId);
+      
+      if (tab) {
+        const clonedTab = { ...tab, uid: action.payload.uid };
+        state.tabs.push(clonedTab);
+      }
+    },
+    renameRequest: (state, action) => {
+      const { requestId, collectionId, newName } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === requestId && t.collectionUid === collectionId);
+      
+      if (tab) {
+        tab.name = newName;
+      }
     }
   }
 });
@@ -112,7 +129,9 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  cloneRequest,
+  renameRequest
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
