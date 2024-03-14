@@ -29,8 +29,8 @@ const Welcome = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
+  const handleImportCollectionLocation = (collectionLocation, enableTRanslation = true) => {
+    dispatch(importCollection(importedCollection, collectionLocation, enableTranslation));
     setImportCollectionLocationModalOpen(false);
     setImportedCollection(null);
     toast.success('Collection imported successfully');
