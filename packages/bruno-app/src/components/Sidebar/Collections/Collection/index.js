@@ -244,7 +244,7 @@ const Collection = ({ collection, searchText }) => {
                 handleShellRevealCollection();
               }}
             >
-              Open Location
+              Open in Explorer
             </div>
             <div
               className="dropdown-item"

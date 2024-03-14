@@ -362,7 +362,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   handleShellRevealItem();
                 }}
               >
-                Open Location
+                Open in Explorer
               </div>
               {!isFolder && (
                 <div
@@ -372,7 +372,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                     handleShellEditItem();
                   }}
                 >
-                  Edit
+                  Open in Editor
                 </div>
               )}
             </Dropdown>
