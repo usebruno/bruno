@@ -1,5 +1,6 @@
 const { get, each, filter } = require('lodash');
 const fs = require('fs');
+var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
 const prepareRequest = (request, collectionRoot) => {
@@ -52,7 +53,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -76,7 +77,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
   }
 
@@ -87,7 +88,7 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }

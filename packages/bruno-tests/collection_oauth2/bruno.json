@@ -1,19 +1,7 @@
 {
   "version": "1",
-  "name": "bruno-testbench",
+  "name": "collection_oauth2",
   "type": "collection",
-  "proxy": {
-    "enabled": false,
-    "protocol": "http",
-    "hostname": "{{proxyHostname}}",
-    "port": 4000,
-    "auth": {
-      "enabled": false,
-      "username": "anoop",
-      "password": "password"
-    },
-    "bypassProxy": ""
-  },
   "scripts": {
     "moduleWhitelist": ["crypto"],
     "filesystemAccess": {
@@ -25,7 +13,6 @@
     "certs": []
   },
   "presets": {
-    "requestType": "http",
-    "requestUrl": "http://localhost:6000"
+    "requestType": "http"
   }
 }

@@ -40,6 +40,7 @@ import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -138,6 +139,35 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const sendCollectionOauth2Request = (collectionUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.collectionVariables)
+      .then((response) => {
+        if (response?.data?.error) {
+          toast.error(response?.data?.error);
+        } else {
+          toast.success('Request made successfully');
+        }
+        return response;
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -147,7 +177,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    const itemCopy = cloneDeep(item);
+    const itemCopy = cloneDeep(item || {});
     const collectionCopy = cloneDeep(collection);
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);

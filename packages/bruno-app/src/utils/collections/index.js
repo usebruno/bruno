@@ -522,7 +522,7 @@ export const humanizeGrantType = (mode) => {
   let label = 'No Auth';
   switch (mode) {
     case 'password': {
-      label = 'Resource Owner Password Credentials';
+      label = 'Password Credentials';
       break;
     }
     case 'authorization_code': {
