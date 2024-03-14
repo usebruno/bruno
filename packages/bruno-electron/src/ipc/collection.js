@@ -448,11 +448,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            const sanitizedFilename = sanitizeFilename(item.name);
+            const filePath = path.join(currentPath, `${sanitizedFilename}.bru`);
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
+            const sanitizedFolderName = sanitizeDirectoryName(item.name);
+            const folderPath = path.join(currentPath, sanitizedFolderName);
             fs.mkdirSync(folderPath);
 
             if (item.items && item.items.length) {

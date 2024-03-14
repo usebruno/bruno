@@ -70,18 +70,6 @@ export const safeParseXML = (str, options) => {
   }
 };
 
-// Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
-export const normalizeFileName = (name) => {
-  if (!name) {
-    return name;
-  }
-
-  const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
-
-  return formattedName;
-};
-
 export const getContentType = (headers) => {
   const headersArray = typeof headers === 'object' ? Object.entries(headers) : [];
 
