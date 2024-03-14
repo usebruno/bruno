@@ -20,7 +20,6 @@
     "@monaco-editor/react": "^4.6.0",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
-    "@tailwindcss/forms": "^0.5.7",
     "@tippyjs/react": "^4.2.6",
     "@usebruno/common": "workspace:*",
     "@usebruno/graphql-docs": "workspace:*",
