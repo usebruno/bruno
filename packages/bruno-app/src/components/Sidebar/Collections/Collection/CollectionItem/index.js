@@ -9,6 +9,7 @@ import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { shellOpenCollectionPath } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -103,6 +104,14 @@ const CollectionItem = ({ item, collection, searchText }) => {
         duration: 5000
       })
     );
+  };
+
+  const handleShellRevealItem = () => {
+    dispatch(shellOpenCollectionPath(item.pathname, false, false));
+  };
+
+  const handleShellEditItem = () => {
+    dispatch(shellOpenCollectionPath(item.pathname, false, true));
   };
 
   const handleClick = (event) => {
@@ -346,6 +355,26 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Delete
               </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShellRevealItem();
+                }}
+              >
+                Open Location
+              </div>
+              {!isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    handleShellEditItem();
+                  }}
+                >
+                  Edit
+                </div>
+              )}
             </Dropdown>
           </div>
         </div>
