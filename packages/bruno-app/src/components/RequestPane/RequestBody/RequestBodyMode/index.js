@@ -3,10 +3,9 @@ import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
-import { updateRequestBodyMode } from 'providers/ReduxStore/slices/collections';
+import { updateRequestBodyMode, updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
-import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
 import jsonBigint from 'json-bigint';
 
@@ -38,8 +37,27 @@ const RequestBodyMode = ({ item, collection }) => {
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const bodyJson = jsonBigint.parse(body.json);
-        const prettyBodyJson = jsonBigint.stringify(bodyJson, null, 2);
+        // Create a map to store the variables and their corresponding dummy values
+        let variableMap = new Map();
+        let tempBodyJson = body.json;
+        let variableCounter = 0;
+
+        // Replace each variable with a unique dummy value
+        tempBodyJson = tempBodyJson.replace(/{{\w+}}/g, (match) => {
+          let dummyValue = `"dummyValue${variableCounter++}"`;
+          variableMap.set(dummyValue, match);
+          return dummyValue;
+        });
+
+        // Parse and prettify the JSON
+        const bodyJson = jsonBigint.parse(tempBodyJson);
+        let prettyBodyJson = jsonBigint.stringify(bodyJson, null, 2);
+
+        // Replace each dummy value back with its corresponding variable
+        variableMap.forEach((value, key) => {
+          prettyBodyJson = prettyBodyJson.replace(new RegExp(key, 'g'), value);
+        });
+
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,
