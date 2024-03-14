@@ -31,8 +31,9 @@ const importPostmanEnvironmentVariables = (brunoEnvironment, values) => {
 };
 
 const importPostmanEnvironment = (environment) => {
+  const sanitizedEnvironmentName = environment.name.replace(/\//g, '_');
   const brunoEnvironment = {
-    name: environment.name,
+    name: sanitizedEnvironmentName,
     variables: []
   };
 
