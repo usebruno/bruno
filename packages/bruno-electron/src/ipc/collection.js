@@ -482,7 +482,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const uid = generateUidBasedOnHash(collectionPath);
       const brunoConfig = {
         version: '1',
-        name: collectionName,
+        name: collection.name,
         type: 'collection',
         ignore: ['node_modules', '.git']
       };
