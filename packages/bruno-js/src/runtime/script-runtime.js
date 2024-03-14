@@ -8,11 +8,12 @@ const zlib = require('zlib');
 const url = require('url');
 const punycode = require('punycode');
 const fs = require('fs');
-const { get } = require('lodash');
+const { get, forOwn } = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const { cleanJson } = require('../utils');
+const { interpolateString } = require('../interpolate-string');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -122,6 +123,23 @@ class ScriptRuntime {
     });
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
+
+    const interpolationContext = {
+      collectionVariables: context.bru.collectionVariables,
+      envVariables: context.bru.envVariables,
+      processEnvVars: context.bru.processEnvVars
+    };
+
+    /**
+     * Update collectionVariables object in case there are variable values needed to interpolate.
+     * This is done in script-runtime instead of vars-runtime to be able to use bru variables
+     * created in scripts for interpolation.
+     */
+    forOwn(collectionVariables, (value, key) => {
+      const interpolatedValue = interpolateString(value, interpolationContext);
+      collectionVariables[key] = interpolatedValue;
+    });
+
     return {
       request,
       envVariables: cleanJson(envVariables),
