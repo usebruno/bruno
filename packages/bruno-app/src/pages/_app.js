@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
@@ -18,6 +19,8 @@ import '@fontsource/inter/400.css';
 import '@fontsource/inter/500.css';
 import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
+
+const queryClient = new QueryClient();
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -61,17 +64,19 @@ function MyApp({ Component, pageProps }) {
     <ErrorBoundary>
       <SafeHydrate>
         <NoSsr>
-          <Provider store={ReduxStore}>
-            <ThemeProvider>
-              <ToastProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </AppProvider>
-              </ToastProvider>
-            </ThemeProvider>
-          </Provider>
+          <QueryClientProvider client={queryClient}>
+            <Provider store={ReduxStore}>
+              <ThemeProvider>
+                <ToastProvider>
+                  <AppProvider>
+                    <HotkeysProvider>
+                      <Component {...pageProps} />
+                    </HotkeysProvider>
+                  </AppProvider>
+                </ToastProvider>
+              </ThemeProvider>
+            </Provider>
+          </QueryClientProvider>
         </NoSsr>
       </SafeHydrate>
     </ErrorBoundary>
