@@ -34,8 +34,8 @@ const importCollection = () => {
       .then(validateSchema)
       .then((collection) => resolve(collection))
       .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import collection failed'));
+        console.error(err);
+        reject(new BrunoError(`Import collection failed: ${err.message}`));
       });
   });
 };

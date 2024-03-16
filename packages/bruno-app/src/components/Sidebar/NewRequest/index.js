@@ -12,6 +12,7 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import toast from 'components/Toast';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -42,9 +43,9 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
           })
         );
-        onClose();
         return;
       }
+
       switch (values.requestType) {
         case 'from-curl':
           const request = getRequestFromCurlCommand(values.curlCommand);
@@ -60,7 +61,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               body: request.body
             })
           );
-          onClose();
           return;
         case 'http-request':
           await dispatch(
@@ -73,11 +73,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               itemUid: item ? item.uid : null
             })
           );
-          onClose();
           return;
         default:
           throw new Error(`Unknown request type: "${values.requestType}"`);
       }
+    },
+    onSuccess: () => {
+      onClose();
+      toast.success(`New request created`);
     }
   });
 
