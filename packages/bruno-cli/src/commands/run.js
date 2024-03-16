@@ -1,7 +1,6 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
-const minimatch = require('minimatch');
 const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -9,6 +8,7 @@ const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
+const { cleanResults } = require('../utils/report');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const command = 'run [filename]';
@@ -91,46 +91,6 @@ const printRunSummary = (results) => {
     passedTests,
     failedTests
   };
-};
-
-const cleanResults = (results, opts) => {
-  if (opts.skipSensitiveData || opts.omitRequestBodies) {
-    results.filter((res) => !!res.request.data).forEach((res) => (res.request.data = '[REDACTED]'));
-  }
-  if (opts.skipSensitiveData || opts.omitResponseBodies) {
-    results.filter((res) => !!res.response.data).forEach((res) => (res.response.data = '[REDACTED]'));
-  }
-  if (opts.hideRequestBody) {
-    results
-      .filter((res) => !!res.request.data)
-      .filter((res) => opts.hideRequestBody.find((path) => minimatch(res.test.filename, path)))
-      .forEach((res) => (res.request.data = '[REDACTED]'));
-  }
-  if (opts.hideResponseBody) {
-    results
-      .filter((res) => !!res.response.data)
-      .filter((res) => opts.hideResponseBody.find((path) => minimatch(res.test.filename, path)))
-      .forEach((res) => (res.response.data = '[REDACTED]'));
-  }
-  if (opts.skipSensitiveData || opts.omitHeaders) {
-    results.forEach((res) => {
-      res.request.headers = null;
-      res.response.headers = null;
-    });
-  }
-  if (opts.skipHeaders) {
-    results.forEach((res) => {
-      opts.skipHeaders.forEach((header) => {
-        if (res.request.headers && res.request.headers[header]) {
-          res.request.headers[header] = '[REDACTED]';
-        }
-        if (res.response.headers && res.response.headers[header]) {
-          res.response.headers[header] = '[REDACTED]';
-        }
-      });
-    });
-  }
-  return results;
 };
 
 const getBruFilesRecursively = (dir, testsOnly) => {
@@ -273,13 +233,13 @@ const builder = async (yargs) => {
       type: 'array',
       default: [],
       description:
-        'Exclude certain Request Bodies from the final report. Enter the minimatch pattern for the request file name you wish to hide'
+        'Exclude certain Request Bodies from the final report. Enter the minimatch pattern for the suitename you wish to hide'
     })
     .option('reporter-hideResponseBody', {
       type: 'array',
       default: [],
       description:
-        'Exclude certain Response Bodies from the final report. Enter the minimatch pattern for the request file name you wish to hide'
+        'Exclude certain Response Bodies from the final report. Enter the minimatch pattern for the suitename you wish to hide'
     })
     .option('reporter-omitHeaders', {
       type: 'boolean',
@@ -330,7 +290,7 @@ const builder = async (yargs) => {
       'Run a request and write the results to results.html in html format in the current directory'
     )
     .example(
-      '$0 run folder --output results.html --format html --reporter-html-title "Any running test" --reporter-skipHeaders Authorization Cookies Set-Cookies --reporter-hideRequestBody **/Login.bru folder1/Secret.bru --reporter-hideResponseBody Login.bru',
+      '$0 run folder --output results.html --format html --reporter-html-title "Any running test" --reporter-skipHeaders Authorization Cookies Set-Cookies --reporter-hideRequestBody **/Login folder1/Secret --reporter-hideResponseBody Login',
       'Run a request and write the results to results.html in html format in the current directory, but customize the output by deleting certain sensitive data.'
     )
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test');
