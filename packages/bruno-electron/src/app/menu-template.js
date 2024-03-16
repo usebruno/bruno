@@ -1,7 +1,8 @@
 const { ipcMain } = require('electron');
 const os = require('os');
-const openAboutWindow = require('about-window').default;
 const { join } = require('path');
+// prettier-ignore
+const openAboutWindow = (require('about-window')).default;
 
 const template = [
   {
@@ -80,8 +81,8 @@ const template = [
         click: () =>
           openAboutWindow({
             product_name: 'Bruno',
-            icon_path: join(__dirname, '../about/256x256.png'),
-            css_path: join(__dirname, '../about/about.css'),
+            icon_path: join(__dirname, './about/256x256.png'),
+            css_path: join(__dirname, './about/about.css'),
             homepage: 'https://www.usebruno.com/',
             package_json_dir: join(__dirname, '../..')
           })

@@ -19,7 +19,8 @@ export function getBuildConfig(env: ConfigEnv): UserConfig {
       emptyOutDir: false,
       // 🚧 Multiple builds may conflict.
       outDir: '.vite/build',
-      minify: false
+      minify: false,
+      sourcemap: true
     },
     clearScreen: false
   };
