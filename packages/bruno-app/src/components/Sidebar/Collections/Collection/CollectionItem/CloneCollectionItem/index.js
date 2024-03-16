@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import toast from 'react-hot-toast';
 import { useFormik } from 'formik';
+import { useMutation } from '@tanstack/react-query';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -10,7 +11,17 @@ import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
 const CloneCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
-  const inputRef = useRef();
+
+  const clone = useMutation({
+    mutationFn: async (values) => {
+      await dispatch(cloneItem(values.name, item.uid, collection.uid));
+    },
+    onSuccess: (_, values) => {
+      onClose();
+      toast.success(`Cloned "${item.name}" to "${values.name}"`);
+    }
+  });
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -18,35 +29,23 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .required('name is required')
+        .trim()
+        .min(1, 'Name must be at least 1 character')
+        .max(250, 'Name must be 250 characters or less')
+        .required('Name is required')
     }),
     onSubmit: (values) => {
-      dispatch(cloneItem(values.name, item.uid, collection.uid))
-        .then(() => {
-          onClose();
-        })
-        .catch((err) => {
-          toast.error(err ? err.message : 'An error occurred while cloning the request');
-        });
+      clone.mutate(values);
     }
   });
-
-  useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [inputRef]);
-
-  const onSubmit = () => formik.handleSubmit();
 
   return (
     <Modal
       size="sm"
-      title={`Clone ${isFolder ? 'Folder' : 'Request'}`}
+      title={`Clone "${item.name}"`}
       confirmText="Clone"
-      handleConfirm={onSubmit}
+      errorMessage={clone.isError ? clone.error.message : null}
+      handleConfirm={() => formik.handleSubmit()}
       handleCancel={onClose}
     >
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
@@ -55,10 +54,10 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
             {isFolder ? 'Folder' : 'Request'} Name
           </label>
           <input
+            autoFocus
             id="collection-item-name"
             type="text"
             name="name"
-            ref={inputRef}
             className="block textbox mt-2 w-full"
             autoComplete="off"
             autoCorrect="off"
