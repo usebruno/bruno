@@ -1,6 +1,7 @@
 const fs = require('fs');
 const chalk = require('chalk');
 const path = require('path');
+const minimatch = require('minimatch');
 const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
@@ -90,6 +91,46 @@ const printRunSummary = (results) => {
     passedTests,
     failedTests
   };
+};
+
+const cleanResults = (results, opts) => {
+  if (opts.skipSensitiveData || opts.omitRequestBodies) {
+    results.filter((res) => !!res.request.data).forEach((res) => (res.request.data = '[REDACTED]'));
+  }
+  if (opts.skipSensitiveData || opts.omitResponseBodies) {
+    results.filter((res) => !!res.response.data).forEach((res) => (res.response.data = '[REDACTED]'));
+  }
+  if (opts.hideRequestBody) {
+    results
+      .filter((res) => !!res.request.data)
+      .filter((res) => opts.hideRequestBody.find((path) => minimatch(res.test.filename, path)))
+      .forEach((res) => (res.request.data = '[REDACTED]'));
+  }
+  if (opts.hideResponseBody) {
+    results
+      .filter((res) => !!res.response.data)
+      .filter((res) => opts.hideResponseBody.find((path) => minimatch(res.test.filename, path)))
+      .forEach((res) => (res.response.data = '[REDACTED]'));
+  }
+  if (opts.skipSensitiveData || opts.omitHeaders) {
+    results.forEach((res) => {
+      res.request.headers = null;
+      res.response.headers = null;
+    });
+  }
+  if (opts.skipHeaders) {
+    results.forEach((res) => {
+      opts.skipHeaders.forEach((header) => {
+        if (res.request.headers && res.request.headers[header]) {
+          res.request.headers[header] = '[REDACTED]';
+        }
+        if (res.response.headers && res.response.headers[header]) {
+          res.response.headers[header] = '[REDACTED]';
+        }
+      });
+    });
+  }
+  return results;
 };
 
 const getBruFilesRecursively = (dir, testsOnly) => {
@@ -208,6 +249,54 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-html-template', {
+      describe: 'Specify a path to the custom template which will be used to render the HTML report.',
+      type: 'string'
+    })
+    .option('reporter-html-title', {
+      describe:
+        'Give your report a different main Title in the centre of the report. If this is not set, the report will show "Bruno run dashboard".',
+      default: 'Bruno run dashboard',
+      type: 'string'
+    })
+    .option('reporter-omitRequestBodies', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Request Bodies from the final report'
+    })
+    .option('reporter-omitResponseBodies', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Response Bodies from the final report'
+    })
+    .option('reporter-hideRequestBody', {
+      type: 'array',
+      default: [],
+      description:
+        'Exclude certain Request Bodies from the final report. Enter the minimatch pattern for the request file name you wish to hide'
+    })
+    .option('reporter-hideResponseBody', {
+      type: 'array',
+      default: [],
+      description:
+        'Exclude certain Response Bodies from the final report. Enter the minimatch pattern for the request file name you wish to hide'
+    })
+    .option('reporter-omitHeaders', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Headers from the final report'
+    })
+    .option('reporter-skipHeaders', {
+      type: 'array',
+      default: [],
+      description: 'Exclude the given Headers from the final report. Enter the header names you wish to redact.'
+    })
+    .option('reporter-skipSensitiveData', {
+      type: 'boolean',
+      default: false,
+      description:
+        'Exclude all the Request/Response Headers and the Request/Response bodies, from each request in the final report. This will only show the main request info and the Test Results.'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -239,6 +328,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
+    )
+    .example(
+      '$0 run folder --output results.html --format html --reporter-html-title "Any running test" --reporter-skipHeaders Authorization Cookies Set-Cookies --reporter-hideRequestBody **/Login.bru folder1/Secret.bru --reporter-hideResponseBody Login.bru',
+      'Run a request and write the results to results.html in html format in the current directory, but customize the output by deleting certain sensitive data.'
     )
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test');
 };
@@ -480,6 +573,15 @@ const handler = async function (argv) {
         process.exit(1);
       }
 
+      results = cleanResults(results, {
+        omitRequestBodies: argv.reporterOmitRequestBodies,
+        omitResponseBodies: argv.reporterOmitResponseBodies,
+        hideRequestBody: argv.reporterHideRequestBody,
+        hideResponseBody: argv.reporterHideResponseBody,
+        omitHeaders: argv.reporterOmitHeaders,
+        skipHeaders: argv.reporterSkipHeaders,
+        skipSensitiveData: argv.reporterSkipSensitiveData
+      });
       const outputJson = {
         summary,
         results
@@ -490,7 +592,7 @@ const handler = async function (argv) {
       } else if (format === 'junit') {
         makeJUnitOutput(results, outputPath);
       } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+        makeHtmlOutput(outputJson, outputPath, argv.reporterHtmlTemplate, argv.reporterHtmlTitle);
       }
 
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
