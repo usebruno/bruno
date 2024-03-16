@@ -54,7 +54,7 @@ const ModalFooter = ({
 
 const ErrorCallout = ({ message }) => {
   return (
-    <div className="my-4 rounded-md bg-red-50 dark:bg-red-600/10 p-3 ring-1 ring-inset ring-red-400/30">
+    <div className="mt-4 rounded-md bg-red-50 dark:bg-red-600/10 p-3 ring-1 ring-inset ring-red-400/30">
       <div className="flex">
         <div className="flex">
           <IconAlertTriangle className="h-5 w-5 text-red-400 dark:text-red-400" aria-hidden="true" />

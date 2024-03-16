@@ -1,5 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { useFormik } from 'formik';
+import { useMutation } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -10,7 +12,17 @@ import { dirnameRegex } from 'utils/common/regex';
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
   const isFolder = isItemAFolder(item);
-  const inputRef = useRef();
+
+  const rename = useMutation({
+    mutationFn: async (values) => {
+      await dispatch(renameItem(values.name, item.uid, collection.uid));
+    },
+    onSuccess: (_, values) => {
+      onClose();
+      toast.success(`Renamed from "${item.name}" to "${values.name}"`);
+    }
+  });
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -18,32 +30,24 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(250, 'must be 250 characters or less')
         .trim()
-        .matches(isFolder ? dirnameRegex : /.*/g, `${isFolder ? 'folder' : 'request'} name contains invalid characters`)
-        .required('name is required')
+        .min(1, 'Name must be at least 1 character long')
+        .max(250, 'Name must be 250 characters or less')
+        .matches(isFolder ? dirnameRegex : /.*/g, 'Name contains invalid characters')
+        .required('Name is required')
     }),
     onSubmit: (values) => {
-      dispatch(renameItem(values.name, item.uid, collection.uid));
-      onClose();
+      rename.mutate(values);
     }
   });
-
-  useEffect(() => {
-    if (inputRef && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [inputRef]);
-
-  const onSubmit = () => formik.handleSubmit();
 
   return (
     <Modal
       size="sm"
-      title={`Rename ${isFolder ? 'Folder' : 'Request'}`}
+      title={`Rename "${item.name}"`}
       confirmText="Rename"
-      handleConfirm={onSubmit}
+      errorMessage={rename.isError ? String(rename.error) : null}
+      handleConfirm={() => formik.handleSubmit()}
       handleCancel={onClose}
     >
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
@@ -52,10 +56,10 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
             {isFolder ? 'Folder' : 'Request'} Name
           </label>
           <input
+            autoFocus
             id="collection-item-name"
             type="text"
             name="name"
-            ref={inputRef}
             className="block textbox mt-2 w-full"
             autoComplete="off"
             autoCorrect="off"

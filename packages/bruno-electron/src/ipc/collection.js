@@ -327,7 +327,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPathFull, newPath, newName) => {
     try {
       if (!fs.existsSync(oldPathFull)) {
-        throw new Error(`path: ${oldPathFull} does not exist`);
+        throw new Error(`Old file "${oldPathFull}" does not exist`);
       }
 
       // if its directory, rename and return
@@ -336,7 +336,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
         const newPathFull = path.join(newPath, newName);
         if (fs.existsSync(newPathFull)) {
-          throw new Error(`path: ${newPathFull} already exists`);
+          throw new Error(`Directory "${newPathFull}" already exists`);
         }
 
         for (let bruFile of bruFilesAtSource) {
@@ -348,12 +348,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const isBru = hasBruExtension(oldPathFull);
       if (!isBru) {
-        throw new Error(`path: ${oldPathFull} is not a bru file`);
+        throw new Error(`"${oldPathFull}" is not a bru file`);
       }
 
       const newSanitizedPath = path.join(newPath, sanitizeFilename(newName) + '.bru');
       if (!canRenameFile(newSanitizedPath, oldPathFull)) {
-        throw new Error(`path: ${newSanitizedPath} already exists`);
+        throw new Error(`File "${newSanitizedPath}" already exists`);
       }
 
       // update name in file and save new copy, then delete old copy
