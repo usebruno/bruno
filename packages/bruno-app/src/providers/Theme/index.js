@@ -25,15 +25,15 @@ export const ThemeProvider = (props) => {
   }, []);
 
   useEffect(() => {
-    const root = window.document.documentElement
-    root.classList.remove("light", "dark");
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
     if (storedTheme === 'system') {
       const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
       setDisplayedTheme(isBrowserThemeLight ? 'light' : 'dark');
-      root.classList.add(isBrowserThemeLight ? 'light' : 'dark')
+      root.classList.add(isBrowserThemeLight ? 'light' : 'dark');
     } else {
       setDisplayedTheme(storedTheme);
-      root.classList.add(storedTheme)
+      root.classList.add(storedTheme);
     }
   }, [storedTheme, setDisplayedTheme, window.matchMedia]);
 
