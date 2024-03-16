@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import toast from 'react-hot-toast';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
@@ -20,23 +20,75 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     brunoConfig: { presets: collectionPresets = {} }
   } = collection;
 
-  const getRequestType = (collectionPresets) => {
-    if (!collectionPresets || !collectionPresets.requestType) {
-      return 'http-request';
+  const createRequest = useMutation({
+    mutationFn: async (values) => {
+      // TODO: Is always false, remove?
+      if (isEphemeral) {
+        const uid = uuid();
+        await dispatch(
+          newEphemeralHttpRequest({
+            uid: uid,
+            requestName: values.requestName,
+            requestType: values.requestType,
+            requestUrl: values.requestUrl,
+            requestMethod: values.requestMethod,
+            collectionUid: collection.uid
+          })
+        );
+        await dispatch(
+          addTab({
+            uid: uid,
+            collectionUid: collection.uid,
+            requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
+          })
+        );
+        onClose();
+        return;
+      }
+      switch (values.requestType) {
+        case 'from-curl':
+          const request = getRequestFromCurlCommand(values.curlCommand);
+          dispatch(
+            newHttpRequest({
+              requestName: values.requestName,
+              requestType: 'http-request',
+              requestUrl: request.url,
+              requestMethod: request.method,
+              collectionUid: collection.uid,
+              itemUid: item ? item.uid : null,
+              headers: request.headers,
+              body: request.body
+            })
+          );
+          onClose();
+          return;
+        case 'http-request':
+          await dispatch(
+            newHttpRequest({
+              requestName: values.requestName,
+              requestType: values.requestType,
+              requestUrl: values.requestUrl,
+              requestMethod: values.requestMethod,
+              collectionUid: collection.uid,
+              itemUid: item ? item.uid : null
+            })
+          );
+          onClose();
+          return;
+        default:
+          throw new Error(`Unknown request type: "${values.requestType}"`);
+      }
     }
+  });
 
+  const getInitialRequestType = (collectionPresets = {}) => {
     // Note: Why different labels for the same thing?
     // http-request and graphql-request are used inside the app's json representation of a request
     // http and graphql are used in Bru DSL as well as collection exports
     // We need to eventually standardize the app's DSL to use the same labels as bru DSL
-    if (collectionPresets.requestType === 'http') {
-      return 'http-request';
-    }
-
     if (collectionPresets.requestType === 'graphql') {
       return 'graphql-request';
     }
-
     return 'http-request';
   };
 
@@ -44,7 +96,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     enableReinitialize: true,
     initialValues: {
       requestName: '',
-      requestType: getRequestType(collectionPresets),
+      requestType: getInitialRequestType(collectionPresets),
       requestUrl: collectionPresets.requestUrl || '',
       requestMethod: 'GET',
       curlCommand: ''
@@ -52,8 +104,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
     validationSchema: Yup.object({
       requestName: Yup.string()
         .trim()
-        .min(1, 'must be at least 1 character')
-        .required('name is required')
+        .min(1, 'Name must be at least 1 character long')
+        .required('Name is required')
         .test({
           name: 'requestName',
           message: `The request names - collection and folder is reserved in bruno`,
@@ -74,61 +126,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           })
       })
     }),
-    onSubmit: (values) => {
-      if (isEphemeral) {
-        const uid = uuid();
-        dispatch(
-          newEphemeralHttpRequest({
-            uid: uid,
-            requestName: values.requestName,
-            requestType: values.requestType,
-            requestUrl: values.requestUrl,
-            requestMethod: values.requestMethod,
-            collectionUid: collection.uid
-          })
-        )
-          .then(() => {
-            dispatch(
-              addTab({
-                uid: uid,
-                collectionUid: collection.uid,
-                requestPaneTab: getDefaultRequestPaneTab({ type: values.requestType })
-              })
-            );
-            onClose();
-          })
-          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-      } else if (values.requestType === 'from-curl') {
-        const request = getRequestFromCurlCommand(values.curlCommand);
-        dispatch(
-          newHttpRequest({
-            requestName: values.requestName,
-            requestType: 'http-request',
-            requestUrl: request.url,
-            requestMethod: request.method,
-            collectionUid: collection.uid,
-            itemUid: item ? item.uid : null,
-            headers: request.headers,
-            body: request.body
-          })
-        )
-          .then(() => onClose())
-          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-      } else {
-        dispatch(
-          newHttpRequest({
-            requestName: values.requestName,
-            requestType: values.requestType,
-            requestUrl: values.requestUrl,
-            requestMethod: values.requestMethod,
-            collectionUid: collection.uid,
-            itemUid: item ? item.uid : null
-          })
-        )
-          .then(() => onClose())
-          .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
-      }
-    }
+    onSubmit: createRequest.mutate
   });
 
   useEffect(() => {
@@ -160,7 +158,14 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
 
   return (
     <StyledWrapper>
-      <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
+      <Modal
+        size="md"
+        title="New Request"
+        confirmText="Create"
+        errorMessage={createRequest.isError ? String(createRequest.error) : null}
+        handleConfirm={onSubmit}
+        handleCancel={onClose}
+      >
         <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">

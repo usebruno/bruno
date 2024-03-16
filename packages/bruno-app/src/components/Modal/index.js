@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
+import { IconAlertTriangle } from '@tabler/icons';
 
 const ModalHeader = ({ title, handleCancel, customHeader }) => (
   <div className="bruno-modal-header">
@@ -51,12 +52,30 @@ const ModalFooter = ({
   );
 };
 
+const ErrorCallout = ({ message }) => {
+  return (
+    <div className="px-4 py-4 bruno-modal-content">
+      <div className="rounded-md bg-red-50 dark:bg-red-600/10 p-3 ring-1 ring-inset ring-red-400/30">
+        <div className="flex">
+          <div className="flex">
+            <IconAlertTriangle className="h-5 w-5 text-red-400 dark:text-red-400" aria-hidden="true" />
+          </div>
+          <div className="ml-2 flex-1 md:flex md:justify-between">
+            <p className="text-sm text-red-700 dark:text-red-400">{message}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Modal = ({
   size,
   title,
   customHeader,
   confirmText,
   cancelText,
+  errorMessage,
   handleCancel,
   handleConfirm,
   children,
@@ -102,6 +121,7 @@ const Modal = ({
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} customHeader={customHeader} />
         <ModalContent>{children}</ModalContent>
+        {!!errorMessage ? <ErrorCallout message={errorMessage} /> : null}
         <ModalFooter
           confirmText={confirmText}
           cancelText={cancelText}
