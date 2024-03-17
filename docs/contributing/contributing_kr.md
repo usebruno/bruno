@@ -81,4 +81,4 @@ npm test --workspace=packages/bruno-lang
   - feature/[feature name]: 이 브랜치는 특정 기능에 대한 변경사항이 포함되어야합니다.
     - 예시: feature/dark-mode
   - bugfix/[bug name]: 이 브랜치는 특정 버그에 대한 버그 수정만 포함되어야합니다.
-    - Example bugfix/bug-1
+    - 예시: bugfix/bug-1
