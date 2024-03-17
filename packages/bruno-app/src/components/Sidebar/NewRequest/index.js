@@ -53,6 +53,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       requestName: Yup.string()
         .trim()
         .min(1, 'must be at least 1 character')
+        .max(50, 'must be 50 characters or less')
         .required('name is required')
         .test({
           name: 'requestName',
