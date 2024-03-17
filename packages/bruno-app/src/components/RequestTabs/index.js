@@ -141,7 +141,7 @@ const RequestTabs = () => {
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
-          <CollectionToolBar collection={activeCollection} />
+          <CollectionToolBar collection={activeCollection} activeTabUid={activeTabUid} />
           <div className="flex items-center pl-4">
             <ul role="tablist">
               {showChevrons ? (

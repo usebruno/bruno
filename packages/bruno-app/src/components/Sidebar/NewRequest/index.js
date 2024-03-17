@@ -63,6 +63,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           );
           return;
         case 'http-request':
+        case 'graphql-request':
           await dispatch(
             newHttpRequest({
               requestName: values.requestName,
