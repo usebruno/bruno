@@ -43,10 +43,10 @@ const RequestBodyMode = ({ item, collection }) => {
         let variableCounter = 0;
 
         // Replace each variable with a unique dummy value
-        tempBodyJson = tempBodyJson.replace(/{{\w+}}/g, (match) => {
+        tempBodyJson = tempBodyJson.replace(/"{{([^}]+)}}"|{{([^}]+)}}/g, (match, p1, p2) => {
           let dummyValue = `"dummyValue${variableCounter++}"`;
           variableMap.set(dummyValue, match);
-          return dummyValue;
+          return p1 ? dummyValue : dummyValue.slice(1, -1); // remove quotes if not inside quotes
         });
 
         // Parse and prettify the JSON
@@ -55,7 +55,7 @@ const RequestBodyMode = ({ item, collection }) => {
 
         // Replace each dummy value back with its corresponding variable
         variableMap.forEach((value, key) => {
-          prettyBodyJson = prettyBodyJson.replace(new RegExp(key, 'g'), value);
+          prettyBodyJson = prettyBodyJson.replace(new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), value);
         });
 
         dispatch(
