@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
 
-const VarsTable = ({ item, collection, vars, varType }) => {
+const VarsTable = ({ item, collection, vars, varType, readOnly = false }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -94,7 +94,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                 </div>
               </td>
             )}
-            <td></td>
+            {!readOnly && <td></td>}
           </tr>
         </thead>
         <tbody>
@@ -103,60 +103,74 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                 return (
                   <tr key={_var.uid}>
                     <td>
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        value={_var.name}
-                        className="mousetrap"
-                        onChange={(e) => handleVarChange(e, _var, 'name')}
-                      />
-                    </td>
-                    <td>
-                      <SingleLineEditor
-                        value={_var.value}
-                        theme={storedTheme}
-                        onSave={onSave}
-                        onChange={(newValue) =>
-                          handleVarChange(
-                            {
-                              target: {
-                                value: newValue
-                              }
-                            },
-                            _var,
-                            'value'
-                          )
-                        }
-                        onRun={handleRun}
-                        collection={collection}
-                      />
-                    </td>
-                    <td>
-                      <div className="flex items-center">
+                      {readOnly ? (
+                        <span>{_var.name}</span>
+                      ) : (
                         <input
-                          type="checkbox"
-                          checked={_var.enabled}
-                          tabIndex="-1"
-                          className="mr-3 mousetrap"
-                          onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          type="text"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck="false"
+                          value={_var.name}
+                          readOnly={readOnly}
+                          className="mousetrap"
+                          onChange={(e) => handleVarChange(e, _var, 'name')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
-                      </div>
+                      )}
                     </td>
+                    <td>
+                      {readOnly ? (
+                        <span>{_var.value}</span>
+                      ) : (
+                        <SingleLineEditor
+                          value={_var.value}
+                          theme={storedTheme}
+                          onSave={onSave}
+                          onChange={(newValue) =>
+                            handleVarChange(
+                              {
+                                target: {
+                                  value: newValue
+                                }
+                              },
+                              _var,
+                              'value'
+                            )
+                          }
+                          onRun={handleRun}
+                          readOnly={readOnly}
+                          collection={collection}
+                        />
+                      )}
+                    </td>
+                    {!readOnly && (
+                      <td>
+                        <div className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={_var.enabled}
+                            tabIndex="-1"
+                            className="mr-3 mousetrap"
+                            onChange={(e) => handleVarChange(e, _var, 'enabled')}
+                          />
+                          <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
+                            <IconTrash strokeWidth={1.5} size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })
             : null}
         </tbody>
       </table>
-      <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
-        + Add
-      </button>
+      {!readOnly && (
+        <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
+          + Add
+        </button>
+      )}
     </StyledWrapper>
   );
 };

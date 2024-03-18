@@ -6,7 +6,6 @@ import StyledWrapper from './StyledWrapper';
 const Vars = ({ item, collection }) => {
   const requestVars = item.draft ? get(item, 'draft.request.vars.req') : get(item, 'request.vars.req');
   const responseVars = item.draft ? get(item, 'draft.request.vars.res') : get(item, 'request.vars.res');
-
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
