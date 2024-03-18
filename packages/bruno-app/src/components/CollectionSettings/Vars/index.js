@@ -17,10 +17,10 @@ const Vars = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col">
       <div className="flex-1 mt-2">
-        {mappedVariables.length > 100 ? (
+        {mappedVariables.length > 0 ? (
           <VarsTable collection={collection} vars={mappedVariables} varType="request" readOnly />
         ) : (
-          <div className="mb-1 title text-xs">You </div>
+          <div className="mb-1 title text-xs">No Collection Variables</div>
         )}
       </div>
     </StyledWrapper>
