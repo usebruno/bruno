@@ -42,11 +42,10 @@ const CollectionToolBar = ({ collection, activeTabUid }) => {
     );
   };
 
-  const item = findItemInCollection(collection, activeTabUid);
-
   let tabInfo = null;
   switch (activeTab.type) {
     case 'request':
+      const item = findItemInCollection(collection, activeTabUid);
       if (item) {
         tabInfo = item.name;
         if (item.draft) {
@@ -64,7 +63,7 @@ const CollectionToolBar = ({ collection, activeTabUid }) => {
       tabInfo = 'Runner';
       break;
     default:
-      console.log(activeTab.type);
+      console.error('No tab type case for: ', activeTab.type);
   }
 
   return (
