@@ -136,7 +136,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${
+        className={`flex w-full h-full ${
           ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
         }`}
       >

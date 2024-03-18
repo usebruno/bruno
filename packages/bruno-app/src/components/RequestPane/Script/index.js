@@ -40,7 +40,7 @@ const Script = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
+      <div className="h-fit mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
         <CodeEditor
           collection={collection}
@@ -53,7 +53,7 @@ const Script = ({ item, collection }) => {
           onSave={onSave}
         />
       </div>
-      <div className="flex-1 mt-6">
+      <div className="h-fit mt-6">
         <div className="mt-1 mb-1 title text-xs">Post Response</div>
         <CodeEditor
           collection={collection}

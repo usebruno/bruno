@@ -37,7 +37,7 @@ const Documentation = ({ item, collection }) => {
   }
 
   return (
-    <StyledWrapper className="mt-1 h-full w-full relative">
+    <StyledWrapper className="mt-1 flex-1 flex flex-col w-full relative">
       <div className="editing-mode mb-2" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>

@@ -27,7 +27,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="w-full h-full">
       <CodeEditor
         collection={collection}
         value={variables || ''}

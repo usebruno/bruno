@@ -156,7 +156,7 @@ const RequestTabPanel = () => {
             className="px-4"
             style={{
               width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
-              height: `calc(100% - ${DEFAULT_PADDING}px)`
+              height: `100%`
             }}
           >
             {item.type === 'graphql-request' ? (
