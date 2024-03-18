@@ -55,6 +55,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
                 onChange={(val) => handleChange(key, val)}
                 onRun={handleRun}
                 collection={collection}
+                singleLine
               />
             </div>
           </div>

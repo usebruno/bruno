@@ -8,6 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import { clearOauth2Cache } from 'utils/network';
 import toast from 'react-hot-toast';
+import CodeEditor from 'components/CodeEditor';
 
 const OAuth2AuthorizationCode = ({ item, collection }) => {
   const dispatch = useDispatch();
