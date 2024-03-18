@@ -30,6 +30,7 @@ const GrantTypeSelector = ({ item, collection }) => {
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
+          ...oAuth,
           grantType
         }
       })
