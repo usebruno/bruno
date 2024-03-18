@@ -45,6 +45,17 @@ auth:digest {
   password: secret
 }
 
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  authorization_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  client_id: client_id_1
+  client_secret: client_secret_1
+  scope: read write
+  pkce: false
+}
+
 body:json {
   {
     "hello": "world"

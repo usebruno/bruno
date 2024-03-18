@@ -140,12 +140,11 @@ export default function RunnerResults({ collection }) {
           </button>
         )}
       </div>
-      <div
-        className="flex flex-col overflow-y-auto"
-        ref={runnerBodyRef}
-        style={{ height: 'calc(100vh - 12rem)', maxHeight: 'calc(100vh - 12rem)' }}
-      >
-        <div className="flex flex-col flex-1">
+      <div className="flex flex-row gap-4">
+        <div
+          className="flex flex-col flex-1 overflow-y-auto h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)] w-full"
+          ref={runnerBodyRef}
+        >
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
@@ -235,8 +234,8 @@ export default function RunnerResults({ collection }) {
             </div>
           ) : null}
         </div>
-        <div className="flex flex-1" style={{ width: '50%' }}>
-          {selectedItem ? (
+        {selectedItem ? (
+          <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.relativePath}</span>
@@ -251,8 +250,8 @@ export default function RunnerResults({ collection }) {
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </StyledWrapper>
   );
