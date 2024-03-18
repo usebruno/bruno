@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import JSONbig from 'json-bigint';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -43,9 +44,9 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
   try {
     if (indent) {
-      return JSON.stringify(obj, null, 2);
+      return JSONbig.stringify(obj, null, 2);
     }
-    return JSON.stringify(obj);
+    return JSONbig.stringify(obj);
   } catch (e) {
     return obj;
   }
