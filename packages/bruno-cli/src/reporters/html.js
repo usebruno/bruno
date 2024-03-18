@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const makeHtmlOutput = async (results, outputPath, templatePath, title) => {
-  const resultsJson = JSON.stringify(results, null, 2);
+  // Encode to base64 to manage binary bodies in results
+  const resultsJson = btoa(encodeURIComponent(JSON.stringify(results)));
 
   const reportPath = templatePath || path.join(__dirname, 'html-template.html');
   const template = fs.readFileSync(reportPath, 'utf8');

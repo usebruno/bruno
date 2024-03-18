@@ -363,7 +363,8 @@
 
       const App = {
         setup() {
-          const res = __RESULTS_JSON__;
+          // Receive base64 to manage binary bodies in results
+          const res = JSON.parse(decodeURIComponent(atob('__RESULTS_JSON__')));
 
           const darkMode = ref(false);
           const theme = computed(() => {
