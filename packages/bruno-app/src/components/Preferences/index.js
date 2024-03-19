@@ -3,11 +3,9 @@ import classnames from 'classnames';
 import React, { useState } from 'react';
 import Support from './Support';
 import General from './General';
-import Font from './Font';
-import Theme from './Theme';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
-import EditorPreferences from 'components/Preferences/Editor';
+import Interface from 'components/Preferences/Interface';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -24,23 +22,16 @@ const Preferences = ({ onClose }) => {
         return <General close={onClose} />;
       }
 
+      case 'interface': {
+        return <Interface close={onClose} />;
+      }
+
       case 'proxy': {
         return <Proxy close={onClose} />;
       }
 
-      case 'theme': {
-        return <Theme close={onClose} />;
-      }
-
       case 'support': {
         return <Support />;
-      }
-      case 'editor': {
-        return <EditorPreferences close={onClose} />;
-      }
-
-      case 'font': {
-        return <Font close={onClose} />;
       }
     }
   };
@@ -52,20 +43,14 @@ const Preferences = ({ onClose }) => {
           <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
             General
           </div>
-          <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
-            Theme
-          </div>
-          <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
-            Font
+          <div className={getTabClassname('interface')} role="tab" onClick={() => setTab('interface')}>
+            Interface
           </div>
           <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
             Proxy
           </div>
           <div className={getTabClassname('support')} role="tab" onClick={() => setTab('support')}>
             Support
-          </div>
-          <div className={getTabClassname('editor')} role="tab" onClick={() => setTab('editor')}>
-            Editor
           </div>
         </div>
         <section className="flex flex-grow px-2 mt-4 tab-panel">{getTabPanel(tab)}</section>
