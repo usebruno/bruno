@@ -103,8 +103,7 @@ const Sidebar = () => {
                   onClick={() => setCookiesOpen(true)}
                 />
               </div>
-              <div className="pl-1" style={{ position: 'relative', top: '3px' }}></div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.10.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.0-lazer</div>
             </div>
           </div>
         </div>
