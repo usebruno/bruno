@@ -74,7 +74,9 @@ class PatchedHttpsProxyAgent extends HttpsProxyAgent {
   }
 
   async connect(req, opts) {
-    const combinedOpts = { ...this.constructorOpts, ...opts };
+    const url = parseUrl(req.path);
+    url.port = Number(url.port) || (url.protocol.includes('https') ? 443 : 80);
+    const combinedOpts = { ...this.constructorOpts, ...opts, ...url };
     return super.connect(req, combinedOpts);
   }
 }
