@@ -29,7 +29,7 @@ const Welcome = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation, enableTRanslation = true) => {
+  const handleImportCollectionLocation = (collectionLocation, enableTranslation = true) => {
     dispatch(importCollection(importedCollection, collectionLocation, enableTranslation));
     setImportCollectionLocationModalOpen(false);
     setImportedCollection(null);
