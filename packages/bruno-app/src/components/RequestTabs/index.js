@@ -13,6 +13,7 @@ import ConfirmRequestClose from './RequestTab/ConfirmRequestClose/index';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findItemInCollection } from 'utils/collections';
+import get from 'lodash/get';
 
 const RequestTabs = () => {
   const dispatch = useDispatch();
@@ -23,6 +24,7 @@ const RequestTabs = () => {
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+  const hideTabs = useSelector((state) => get(state.app.preferences, 'hideTabs', false));
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [item, setItem] = useState(null);
   const [tab, setTab] = useState(null);
@@ -139,75 +141,67 @@ const RequestTabs = () => {
       {newRequestModalOpen && (
         <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
       )}
-      {collectionRequestTabs && collectionRequestTabs.length ? (
-        <>
-          <CollectionToolBar collection={activeCollection} activeTabUid={activeTabUid} />
-          <div className="flex items-center pl-4">
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={leftSlide}>
-                  <div className="flex items-center">
-                    <IconChevronLeft size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
-                <div className="flex items-center home-icon-container">
-                  <IconHome2 size={18} strokeWidth={1.5}/>
-                </div>
-              </li> */}
-            </ul>
-            <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
-              {collectionRequestTabs && collectionRequestTabs.length
-                ? collectionRequestTabs.map((tab, index) => {
-                    return (
-                      <li
-                        onMouseUp={(e) => handleMouseUp(e, tab)}
-                        key={tab.uid}
-                        className={getTabClassname(tab, index)}
-                        role="tab"
-                        onClick={() => handleClick(tab)}
-                      >
-                        <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
-                      </li>
-                    );
-                  })
-                : null}
-            </ul>
-
-            <ul role="tablist">
-              {showChevrons ? (
-                <li className="select-none short-tab" onClick={rightSlide}>
-                  <div className="flex items-center">
-                    <IconChevronRight size={18} strokeWidth={1.5} />
-                  </div>
-                </li>
-              ) : null}
-              <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
+      <CollectionToolBar collection={activeCollection} activeTabUid={activeTabUid} />
+      {collectionRequestTabs?.length && !hideTabs ? (
+        <div className="flex items-center pl-4">
+          <ul role="tablist">
+            {showChevrons ? (
+              <li className="select-none short-tab" onClick={leftSlide}>
                 <div className="flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="22"
-                    height="22"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
-                  </svg>
+                  <IconChevronLeft size={18} strokeWidth={1.5} />
                 </div>
               </li>
-              {/* Moved to post mvp */}
-              {/* <li className="select-none new-tab choose-request">
+            ) : null}
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab mr-1" onClick={createNewTab}>
+              <div className="flex items-center home-icon-container">
+                <IconHome2 size={18} strokeWidth={1.5}/>
+              </div>
+            </li> */}
+          </ul>
+          <ul role="tablist" style={{ maxWidth: maxTablistWidth }} ref={tabsRef}>
+            {collectionRequestTabs && collectionRequestTabs.length
+              ? collectionRequestTabs.map((tab, index) => {
+                  return (
+                    <li
+                      onMouseUp={(e) => handleMouseUp(e, tab)}
+                      key={tab.uid}
+                      className={getTabClassname(tab, index)}
+                      role="tab"
+                      onClick={() => handleClick(tab)}
+                    >
+                      <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
+                    </li>
+                  );
+                })
+              : null}
+          </ul>
+
+          <ul role="tablist">
+            {showChevrons ? (
+              <li className="select-none short-tab" onClick={rightSlide}>
                 <div className="flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-                  </svg>
+                  <IconChevronRight size={18} strokeWidth={1.5} />
                 </div>
-              </li> */}
-            </ul>
-          </div>
-        </>
+              </li>
+            ) : null}
+            <li className="select-none short-tab" id="create-new-tab" onClick={createNewTab}>
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z" />
+                </svg>
+              </div>
+            </li>
+            {/* Moved to post mvp */}
+            {/* <li className="select-none new-tab choose-request">
+              <div className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
+                </svg>
+              </div>
+            </li> */}
+          </ul>
+        </div>
       ) : null}
     </StyledWrapper>
   );
