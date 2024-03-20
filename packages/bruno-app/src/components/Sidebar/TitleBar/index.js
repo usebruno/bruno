@@ -26,7 +26,7 @@ const TitleBar = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation, useTranslation) => {
+  const handleImportCollectionLocation = (collectionLocation) => {
     dispatch(importCollection(importedCollection, collectionLocation));
     setImportCollectionLocationModalOpen(false);
     setImportedCollection(null);
