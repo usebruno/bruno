@@ -11,7 +11,7 @@
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
 
-[English](/readme.md) | [Українська](/readme_ua.md) | [Русский](/readme_ru.md) | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | **Français** | [বাংলা](docs/readme/readme_bn.md)
+[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | **Français** | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
 
 Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
 
@@ -21,7 +21,41 @@ Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler d
 
 Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
+
+📢 Regarder notre présentation récente lors de la conférence  India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
+
+
 ![bruno](/assets/images/landing-2.png) <br /><br />
+
+### Installation
+
+Bruno est disponible au téléchargement [sur notre site web](https://www.usebruno.com/downloads), pour Mac, Windows et Linux.
+
+Vous pouvez aussi installer Bruno via un gestionnaire de paquets, comme  Homebrew, Chocolatey, Scoop, Snap et Apt.
+
+```sh
+# Mac via Homebrew
+brew install bruno
+
+# Windows via Chocolatey
+choco install bruno
+
+# Windows via Scoop
+scoop bucket add extras
+scoop install bruno
+
+# Linux via Snap
+snap install bruno
+
+# Linux via Apt
+sudo mkdir -p /etc/apt/keyrings
+sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
+
+echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+
+sudo apt update
+sudo apt install bruno
+```
 
 ### Fonctionne sur de multiples platformes 🖥️
 
@@ -41,6 +75,7 @@ Ou n'importe quel système de gestion de sources
 - [Site web](https://www.usebruno.com)
 - [Prix](https://www.usebruno.com/pricing)
 - [Téléchargement](https://www.usebruno.com/downloads)
+- [Sponsors Github](https://github.com/sponsors/helloanoop)
 
 ### Showcase 🎥
 
