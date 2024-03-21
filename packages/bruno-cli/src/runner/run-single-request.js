@@ -1,5 +1,6 @@
 const os = require('os');
 const qs = require('qs');
+const path = require('path');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
@@ -30,6 +31,13 @@ const runSingleRequest = async function (
   brunoConfig,
   collectionRoot
 ) {
+  collectionVariables['currentItem'] = {
+    ...bruJson,
+    filename: filename.replace(/^.*[\\/]/, ''),
+    pathname: path.join(collectionPath, filename)
+  };
+  collectionVariables['executionMode'] = 'cli';
+
   try {
     let request;
     let nextRequestName;
