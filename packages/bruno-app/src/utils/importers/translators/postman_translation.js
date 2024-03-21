@@ -1,10 +1,13 @@
 const replacements = {
-  'pm\\.environment\\.get\\(([\'"])([^\'"]*)\\1\\)': 'bru.getEnvVar($1$2$1)',
-  'pm\\.environment\\.set\\(([\'"])([^\'"]*)\\1, ([\'"])([^\'"]*)\\3\\)': 'bru.setEnvVar($1$2$1, $3$4$3)',
-  'pm\\.variables\\.get\\(([\'"])([^\'"]*)\\1\\)': 'bru.getVar($1$2$1)',
-  'pm\\.variables\\.set\\(([\'"])([^\'"]*)\\1, ([\'"])([^\'"]*)\\3\\)': 'bru.setVar($1$2$1, $3$4$3)',
-  'pm\\.collectionVariables\\.get\\(([\'"])([^\'"]*)\\1\\)': 'bru.getVar($1$2$1)',
-  'pm\\.collectionVariables\\.set\\(([\'"])([^\'"]*)\\1, ([\'"])([^\'"]*)\\3\\)': 'bru.setVar($1$2$1, $3$4$3)'
+  'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
+  'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
+  'pm\\.variables\\.get\\(': 'bru.getVar(',
+  'pm\\.variables\\.set\\(': 'bru.setVar(',
+  'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
+  'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
+  'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
+  'pm\\.test\\(': 'test(',
+  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal('
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({
@@ -15,12 +18,18 @@ const compiledReplacements = Object.entries(replacements).map(([pattern, replace
 export const postmanTranslation = (script) => {
   try {
     let modifiedScript = script;
+    let modified = false;
     for (const { regex, replacement } of compiledReplacements) {
-      modifiedScript = modifiedScript.replace(regex, replacement);
+      if (regex.test(modifiedScript)) {
+        modifiedScript = modifiedScript.replace(regex, replacement);
+        modified = true;
+      }
     }
-
-    return modifiedScript !== script ? modifiedScript : `// ${script}`;
+    if (modified && modifiedScript.includes('pm.')) {
+      modifiedScript = modifiedScript.replace(/^(.*pm\..*)$/gm, '// $1');
+    }
+    return modifiedScript;
   } catch (e) {
-    return `// ${script}`;
+    return script;
   }
 };
