@@ -92,7 +92,7 @@ Or any version control system of your choice
 #### Bronze Sponsors
 
 <a href="https://zuplo.link/bruno">
-    <img src="assets/images/sponsors/zuplo.png" width="70"/>
+    <img src="assets/images/sponsors/zuplo.png" width="120"/>
 </a>
 
 ### Important Links 📌
