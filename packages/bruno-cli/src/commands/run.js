@@ -240,7 +240,7 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
-    .example('$0 run request.bru --test-only', 'Run all requests that have a test');
+    .example('$0 run request.bru --tests-only', 'Run all requests that have a test');
 };
 
 const handler = async function (argv) {
