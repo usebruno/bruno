@@ -89,6 +89,15 @@ Or any version control system of your choice
 
 <img src="assets/images/sponsors/commit-company.png" width="70"/>
 
+#### Bronze Sponsors
+
+<a href="https://zuplo.link/vacuum">
+<picture width="100">
+  <source media="(prefers-color-scheme: dark)" srcset=".github/sponsors/zuplo-dark.png">
+  <img alt="scalar" src=".github/sponsors/zuplo-light.png">
+</picture>
+</a>
+
 ### Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
