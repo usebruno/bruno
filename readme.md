@@ -91,11 +91,8 @@ Or any version control system of your choice
 
 #### Bronze Sponsors
 
-<a href="https://zuplo.link/vacuum">
-<picture width="100">
-  <source media="(prefers-color-scheme: dark)" srcset=".github/sponsors/zuplo-dark.png">
-  <img alt="scalar" src=".github/sponsors/zuplo-light.png">
-</picture>
+<a href="https://zuplo.link/bruno">
+    <img src="assets/images/sponsors/zuplo.png" width="70"/>
 </a>
 
 ### Important Links 📌
