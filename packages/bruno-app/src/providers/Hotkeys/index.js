@@ -9,7 +9,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, cloneRequest, renameRequest } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -153,6 +153,50 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind(['command+w', 'ctrl+w']);
     };
   }, [activeTabUid]);
+
+  // clone request (ctrl/cmd + d)
+useEffect(() => {
+  Mousetrap.bind(['command+d', 'ctrl+d'], (e) => {
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if (activeTab) {
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+      if (collection) {
+        const item = findItemInCollection(collection, activeTab.uid);
+        if (item && item.uid) {
+          dispatch(cloneRequest(item.uid, activeTab.collectionUid));
+        }
+      }
+    }
+
+    return false; // this stops the event bubbling
+  });
+
+  return () => {
+    Mousetrap.unbind(['command+d', 'ctrl+d']);
+  };
+}, [activeTabUid, tabs, collections]);
+
+// rename request (ctrl/cmd + e)
+useEffect(() => {
+  Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
+    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+    if (activeTab) {
+      const collection = findCollectionByUid(collections, activeTab.collectionUid);
+      if (collection) {
+        const item = findItemInCollection(collection, activeTab.uid);
+        if (item && item.uid) {
+          dispatch(renameRequest(item.uid, activeTab.collectionUid));
+        }
+      }
+    }
+
+    return false; // this stops the event bubbling
+  });
+
+  return () => {
+    Mousetrap.unbind(['command+e', 'ctrl+e']);
+  };
+}, [activeTabUid, tabs, collections]);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
