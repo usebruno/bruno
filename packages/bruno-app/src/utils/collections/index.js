@@ -639,3 +639,9 @@ export const getAllVariables = (collection) => {
     }
   };
 };
+
+export const maskInputValue = (value) =>
+  value
+    .split('')
+    .map(() => '*')
+    .join('');
