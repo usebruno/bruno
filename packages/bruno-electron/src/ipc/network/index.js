@@ -208,6 +208,7 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
           await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        request.method = 'POST';
         request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = authorizationCodeData;
         request.url = authorizationCodeAccessTokenUrl;
@@ -216,6 +217,7 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
+        request.method = 'POST';
         request.data = clientCredentialsData;
         request.url = clientCredentialsAccessTokenUrl;
         break;
@@ -224,6 +226,7 @@ const configureRequest = async (
         const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
           requestCopy
         );
+        request.method = 'POST';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
         break;
