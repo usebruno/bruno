@@ -50,7 +50,7 @@ const Welcome = () => {
         />
       ) : null}
 
-      <div className="">
+      <div aria-hidden className="">
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
@@ -58,41 +58,51 @@ const Welcome = () => {
 
       <div className="uppercase font-semibold heading mt-10">Collections</div>
       <div className="mt-4 flex items-center collection-options select-none">
-        <div className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
-          <IconPlus size={18} strokeWidth={2} />
+        <button className="flex items-center" onClick={() => setCreateCollectionModalOpen(true)}>
+          <IconPlus aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2" id="create-collection">
             Create Collection
           </span>
-        </div>
-        <div className="flex items-center ml-6" onClick={handleOpenCollection}>
-          <IconFolders size={18} strokeWidth={2} />
+        </button>
+        <button className="flex items-center ml-6" onClick={handleOpenCollection}>
+          <IconFolders aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2">Open Collection</span>
-        </div>
-        <div className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
-          <IconDownload size={18} strokeWidth={2} />
+        </button>
+        <button className="flex items-center ml-6" onClick={() => setImportCollectionModalOpen(true)}>
+          <IconDownload aria-hidden size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
             Import Collection
           </span>
-        </div>
+        </button>
       </div>
 
       <div className="uppercase font-semibold heading mt-10 pt-6">Links</div>
       <div className="mt-4 flex flex-col collection-options select-none">
         <div className="flex items-center mt-2">
-          <a href="https://docs.usebruno.com" target="_blank" className="inline-flex items-center">
-            <IconBook size={18} strokeWidth={2} />
+          <a
+            href="https://docs.usebruno.com"
+            aria-label="Read documentation"
+            target="_blank"
+            className="inline-flex items-center"
+          >
+            <IconBook aria-hidden size={18} strokeWidth={2} />
             <span className="label ml-2">Documentation</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
           <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
-            <IconSpeakerphone size={18} strokeWidth={2} />
+            <IconSpeakerphone aria-hidden size={18} strokeWidth={2} />
             <span className="label ml-2">Report Issues</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
-          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
-            <IconBrandGithub size={18} strokeWidth={2} />
+          <a
+            href="https://github.com/usebruno/bruno"
+            aria-label="goto github"
+            target="_blank"
+            className="flex items-center"
+          >
+            <IconBrandGithub aria-hidden size={18} strokeWidth={2} />
             <span className="label ml-2">GitHub</span>
           </a>
         </div>
