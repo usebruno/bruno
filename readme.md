@@ -89,6 +89,12 @@ Or any version control system of your choice
 
 <img src="assets/images/sponsors/commit-company.png" width="70"/>
 
+#### Bronze Sponsors
+
+<a href="https://zuplo.link/bruno">
+    <img src="assets/images/sponsors/zuplo.png" width="120"/>
+</a>
+
 ### Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)

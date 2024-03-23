@@ -3,6 +3,7 @@ const fs = require('fs');
 const fsPromise = require('fs/promises');
 const qs = require('qs');
 const https = require('https');
+const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
@@ -100,7 +101,11 @@ const configureRequest = async (
   if (preferencesUtil.shouldUseCustomCaCertificate()) {
     const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
     if (caCertFilePath) {
-      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+      let caCertBuffer = fs.readFileSync(caCertFilePath);
+      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
+        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+      }
+      httpsAgentRequestFields['ca'] = caCertBuffer;
     }
   }
 
@@ -207,6 +212,7 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
+        request.method = 'POST';
         request.data = clientCredentialsData;
         request.url = clientCredentialsAccessTokenUrl;
         break;
@@ -215,6 +221,7 @@ const configureRequest = async (
         const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
           requestCopy
         );
+        request.method = 'POST';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
         break;

@@ -11,6 +11,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
+import { maskInputValue } from 'utils/collections';
 
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
@@ -120,14 +121,18 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   <ErrorMessage name={`${index}.name`} />
                 </td>
                 <td>
-                  <CodeEditor
-                    theme={storedTheme}
-                    collection={collection}
-                    name={`${index}.value`}
-                    value={variable.value}
-                    onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                    singleLine
-                  />
+                  {variable.secret ? (
+                    <div>{maskInputValue(variable.value)}</div>
+                  ) : (
+                    <CodeEditor
+                      theme={storedTheme}
+                      collection={collection}
+                      name={`${index}.value`}
+                      value={variable.value}
+                      onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                      singleLine
+                    />
+                  )}
                 </td>
                 <td>
                   <input

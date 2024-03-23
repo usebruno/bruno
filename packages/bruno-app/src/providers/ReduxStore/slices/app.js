@@ -16,6 +16,9 @@ const initialState = {
         enabled: false,
         filePath: null
       },
+      keepDefaultCaCertificates: {
+        enabled: false
+      },
       timeout: 0
     },
     font: {
