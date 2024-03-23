@@ -10,7 +10,6 @@ const replacements = {
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
   'pm\\.response\\.json': 'res.getBody',
   'pm\\.expect\\(': 'expect(',
-  'pm\\.response\\.to\\.have\\.status': 'expect(res.getStatus()).to.equal'
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({

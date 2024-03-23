@@ -40,7 +40,7 @@ describe('postmanTranslation function', () => {
     const expectedOutput = "// test('random test', () => pm.globals.get('token'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
-
+  
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnv(var); bru.setEnvVar(var, 'value');";
