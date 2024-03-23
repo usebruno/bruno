@@ -23,7 +23,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
         <IconRefresh size={24} className="loading-icon" />
         <button
           onClick={handleCancelRequest}
-          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150"
+          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150 relative z-50"
           type="button"
         >
           Cancel Request
