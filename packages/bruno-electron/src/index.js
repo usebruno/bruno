@@ -1,6 +1,6 @@
 const path = require('path');
 const { format } = require('url');
-const { BrowserWindow, app, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain, shell } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -113,15 +113,8 @@ app.on('ready', async () => {
     ipcMain.emit('main:start-quit-flow');
   });
 
-  mainWindow.webContents.on('will-redirect', (event, url) => {
-    event.preventDefault();
-    if (/^(http:\/\/|https:\/\/)/.test(url)) {
-      require('electron').shell.openExternal(url);
-    }
-  });
-
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    require('electron').shell.openExternal(details.url);
+    shell.openExternal(details.url);
     return { action: 'deny' };
   });
 
