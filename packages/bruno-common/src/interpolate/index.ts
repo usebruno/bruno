@@ -13,19 +13,26 @@
 
 import { flattenObject } from '../utils';
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
+const interpolate = (str: string, obj: Record<string, any>, isJsonBody = false): string => {
   if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
     return str;
   }
 
   const patternRegex = /\{\{([^}]+)\}\}/g;
   const flattenedObj = flattenObject(obj);
-  const result = str.replace(patternRegex, (match, placeholder) => {
-    const replacement = flattenedObj[placeholder];
-    return replacement !== undefined ? replacement : match;
-  });
+  return str.replace(patternRegex, (match, placeholder) => {
+    const replacement = flattenedObj[placeholder] || obj[placeholder];
+    // Return the original string so nothing gets replaced
+    if (replacement === undefined) {
+      return match;
+    }
 
-  return result;
+    // When inside json body everything must be encoded so string get double quotes
+    if (isJsonBody || typeof replacement === 'object') {
+      return JSON.stringify(replacement);
+    }
+    return replacement;
+  });
 };
 
 export default interpolate;
