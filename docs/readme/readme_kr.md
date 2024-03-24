@@ -4,7 +4,7 @@
 ### Bruno - API 탐색 및 테스트를 위한 오픈소스 IDE.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
@@ -50,13 +50,13 @@ sudo apt install bruno
 
 ### 여러 플랫폼에서 실행하세요. 🖥️
 
-![bruno](assets/images/run-anywhere.png) <br /><br />
+![bruno](/assets/images/run-anywhere.png) <br /><br />
 
 ### Git과 연동하세요.  👩‍💻🧑‍💻
 
 또는 원하는 버전 관리 시스템을 선택하세요.
 
-![bruno](assets/images/version-control.png) <br /><br />
+![bruno](/assets/images/version-control.png) <br /><br />
 
 ### 중요 링크 📌
 
