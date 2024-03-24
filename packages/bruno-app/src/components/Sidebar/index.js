@@ -6,7 +6,7 @@ import Cookies from 'components/Cookies';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings } from '@tabler/icons';
+import { IconSettings, IconCookie } from '@tabler/icons';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 
@@ -101,7 +101,9 @@ const Sidebar = () => {
                   title="Cookies"
                   className="mr-2 cursor-pointer hover:text-gray-700"
                   onClick={() => setCookiesOpen(true)}
-                />
+                >
+                  <IconCookie size={18} strokeWidth={1.5} />
+                </a>
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.2-lazer</div>
             </div>
