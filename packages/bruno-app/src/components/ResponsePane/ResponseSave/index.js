@@ -10,8 +10,11 @@ const ResponseSave = ({ item }) => {
 
   const saveResponseToFile = () => {
     return new Promise((resolve, reject) => {
+      // Convert the response data to a string in UTF-8 format
+      const data = Buffer.from(response.dataBuffer).toString('utf-8');
+
       ipcRenderer
-        .invoke('renderer:save-response-to-file', response, item.requestSent.url)
+        .invoke('renderer:save-response-to-file', data, item.requestSent.url)
         .then(resolve)
         .catch((err) => {
           toast.error(get(err, 'error.message') || 'Something went wrong!');
