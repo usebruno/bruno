@@ -12,7 +12,23 @@
  */
 
 import { flattenObject } from '../utils';
-import cancelTokens from '@usebruno/app/src/utils/network/cancelTokens';
+
+function serializeObject(obj: Object) {
+  // Check if the object has a `toString` method like `Moment`
+  // Don't do it with arrays they serialize weirdly
+  if (typeof obj.toString === 'function' && !Array.isArray(obj)) {
+    try {
+      const result = obj.toString();
+      // The default object becomes '[object Object]' string
+      if (result !== '[object Object]') {
+        return result;
+      }
+    } catch {}
+  }
+
+  // Everything else will be json encoded
+  return JSON.stringify(obj);
+}
 
 const interpolate = (str: string, obj: Record<string, any>): string => {
   if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
@@ -30,13 +46,7 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
 
     // Objects must be either JSON encoded or convert to a String via `toString`
     if (typeof replacement === 'object') {
-      // Check if the object has a `toString` method like `Moment`
-      if (typeof replacement.toString === 'function') {
-        try {
-          return replacement.toString();
-        } catch {}
-      }
-      return JSON.stringify(replacement);
+      return serializeObject(replacement);
     }
 
     return replacement;
