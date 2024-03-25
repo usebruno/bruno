@@ -5,10 +5,12 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 
 class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
-    const enabledVars = _.filter(vars, (v) => v.enabled);
-    if (!enabledVars.length) {
+    if (!vars.length) {
       return;
     }
+
+    const disabledVars = _.filter(vars, (v) => !v.enabled);
+    const enabledVars = _.filter(vars, (v) => v.enabled);
 
     const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
@@ -29,16 +31,22 @@ class VarsRuntime {
       bru.setVar(v.name, value);
     });
 
+    _.each(disabledVars, (v) => {
+      bru.deleteVar(v.name);
+    });
+
     return {
       collectionVariables
     };
   }
 
   runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
-    const enabledVars = _.filter(vars, (v) => v.enabled);
-    if (!enabledVars.length) {
+    if (!vars.length) {
       return;
     }
+
+    const disabledVars = _.filter(vars, (v) => !v.enabled);
+    const enabledVars = _.filter(vars, (v) => v.enabled);
 
     const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
@@ -59,6 +67,10 @@ class VarsRuntime {
     _.each(enabledVars, (v) => {
       const value = evaluateJsExpression(v.value, context);
       bru.setVar(v.name, value);
+    });
+
+    _.each(disabledVars, (v) => {
+      bru.deleteVar(v.name);
     });
 
     return {
