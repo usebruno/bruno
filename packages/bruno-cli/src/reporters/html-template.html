@@ -6,7 +6,11 @@
     <!-- Would use latest version, you'd better specify a version -->
     <script src="https://unpkg.com/naive-ui"></script>
 
-    <title>Bruno</title>
+    <link rel="stylesheet" href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/default.min.css" />
+    <script src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <script src="https://unpkg.com/@highlightjs/vue-plugin@2.1.0/dist/highlightjs-vue.min.js"></script>
+
+    <title>__TITLE__</title>
     <style>
       .error > .status {
         color: red;
@@ -33,7 +37,7 @@
         <n-layout embedded position="absolute" content-style="padding: 24px;">
           <n-card>
             <n-flex>
-              <n-page-header title="Bruno run dashboard">
+              <n-page-header title="__TITLE__">
                 <template #avatar>
                   <n-avatar size="large" style="background-color: transparent">
                     <svg id="emoji" width="34" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
@@ -313,7 +317,7 @@
           <n-alert v-if="hasError" title="Error" type="error">
             {{result.error}}
           </n-alert>
-          <n-card title="REQUEST HEADERS">
+          <n-card v-if="result.request.headers"  title="REQUEST HEADERS">
             <n-data-table
               :columns="headerColumns"
               :data="headerDataRequest"
@@ -323,9 +327,9 @@
             v-if="result.request.data"
             title="REQUEST BODY"
           >
-            <pre>{{result.request.data}}</pre>
+            <highlightjs autodetect :code="formattedRequestData" />
           </n-card>
-          <n-card title="RESPONSE HEADERS">
+          <n-card v-if="result.response.headers" title="RESPONSE HEADERS">
             <n-data-table
               :columns="headerColumns"
               :data="headerDataResponse"
@@ -335,7 +339,7 @@
             v-if="result.response.data"
             title="RESPONSE BODY"
           >
-            <pre>{{result.response.data}}</pre>
+            <highlightjs autodetect :code="formattedResponseData" />
           </n-card>
           <n-card title="ASSERTIONS INFORMATION">
             <n-data-table
@@ -359,7 +363,8 @@
 
       const App = {
         setup() {
-          const res = __RESULTS_JSON__;
+          // Receive base64 to manage binary bodies in results
+          const res = JSON.parse(decodeURIComponent(atob('__RESULTS_JSON__')));
 
           const darkMode = ref(false);
           const theme = computed(() => {
@@ -606,6 +611,68 @@
             return props.result.testResults.length + props.result.assertionResults.length;
           });
 
+          function isJSON(data) {
+            var ret = true;
+            try {
+              JSON.parse(data);
+            } catch (e) {
+              ret = false;
+            }
+            return ret;
+          }
+          // see https://gist.github.com/sente/1083506/d2834134cd070dbcc08bf42ee27dabb746a1c54d#gistcomment-2254622
+          function formatXML(data) {
+            const PADDING = ' '.repeat(2); // set desired indent size here
+            const reg = /(>)(<)(\/*)/g;
+            let pad = 0;
+            xml = data.replace(reg, '$1\r\n$2$3');
+
+            return xml
+              .split('\r\n')
+              .map((node, index) => {
+                let indent = 0;
+                if (node.match(/.+<\/\w[^>]*>$/)) {
+                  indent = 0;
+                } else if (node.match(/^<\/\w/) && pad > 0) {
+                  pad -= 1;
+                } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+                  indent = 1;
+                } else {
+                  indent = 0;
+                }
+
+                pad += indent;
+                return PADDING.repeat(pad - indent) + node;
+              })
+              .join('\r\n');
+          }
+
+          function isXML(data) {
+            return data.length > 0 && data[0] === '<';
+          }
+
+          function formatData(data) {
+            if (!data) {
+              return data;
+            }
+            if (typeof data === 'object') {
+              return JSON.stringify(data, null, 2);
+            }
+            if (isJSON(data)) {
+              const obj = JSON.parse(data);
+              return JSON.stringify(obj, null, 2);
+            } else if (isXML(data)) {
+              return formatXML(data);
+            }
+            return data;
+          }
+          const formattedRequestData = computed(() => {
+            return formatData(props.result.request.data);
+          });
+          const formattedResponseData = computed(() => {
+            return formatData(props.result.response.data);
+          });
+
           const hasError = computed(() => !!props.result.error);
           const hasFailure = computed(() => total.value !== totalPassed.value);
           const suitename = computed(() => props.result.suitename.replace(props.group + '/', ''));
@@ -626,11 +693,14 @@
             result: props.result,
             suitename,
             testDuration,
+            formattedRequestData,
+            formattedResponseData,
             name
           };
         }
       });
       app.use(naive);
+      app.use(hljsVuePlugin);
       app.mount('#app');
     </script>
   </body>

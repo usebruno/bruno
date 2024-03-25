@@ -8,6 +8,7 @@ const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
+const { cleanResults } = require('../utils/report');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const command = 'run [filename]';
@@ -208,6 +209,54 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-html-template', {
+      describe: 'Specify a path to the custom template which will be used to render the HTML report.',
+      type: 'string'
+    })
+    .option('reporter-html-title', {
+      describe:
+        'Give your report a different main Title in the centre of the report. If this is not set, the report will show "Bruno run dashboard".',
+      default: 'Bruno run dashboard',
+      type: 'string'
+    })
+    .option('reporter-omitRequestBodies', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Request Bodies from the final report'
+    })
+    .option('reporter-omitResponseBodies', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Response Bodies from the final report'
+    })
+    .option('reporter-hideRequestBody', {
+      type: 'array',
+      default: [],
+      description:
+        'Exclude certain Request Bodies from the final report. Enter the minimatch pattern for the suitename you wish to hide'
+    })
+    .option('reporter-hideResponseBody', {
+      type: 'array',
+      default: [],
+      description:
+        'Exclude certain Response Bodies from the final report. Enter the minimatch pattern for the suitename you wish to hide'
+    })
+    .option('reporter-omitHeaders', {
+      type: 'boolean',
+      default: false,
+      description: 'Exclude all Headers from the final report'
+    })
+    .option('reporter-skipHeaders', {
+      type: 'array',
+      default: [],
+      description: 'Exclude the given Headers from the final report. Enter the header names you wish to redact.'
+    })
+    .option('reporter-skipSensitiveData', {
+      type: 'boolean',
+      default: false,
+      description:
+        'Exclude all the Request/Response Headers and the Request/Response bodies, from each request in the final report. This will only show the main request info and the Test Results.'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -239,6 +288,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
+    )
+    .example(
+      '$0 run folder --output results.html --format html --reporter-html-title "Any running test" --reporter-skipHeaders Authorization Cookies Set-Cookies --reporter-hideRequestBody **/Login folder1/Secret --reporter-hideResponseBody Login',
+      'Run a request and write the results to results.html in html format in the current directory, but customize the output by deleting certain sensitive data.'
     )
     .example('$0 run request.bru --test-only', 'Run all requests that have a test');
 };
@@ -480,6 +533,15 @@ const handler = async function (argv) {
         process.exit(1);
       }
 
+      results = cleanResults(results, {
+        omitRequestBodies: argv.reporterOmitRequestBodies,
+        omitResponseBodies: argv.reporterOmitResponseBodies,
+        hideRequestBody: argv.reporterHideRequestBody,
+        hideResponseBody: argv.reporterHideResponseBody,
+        omitHeaders: argv.reporterOmitHeaders,
+        skipHeaders: argv.reporterSkipHeaders,
+        skipSensitiveData: argv.reporterSkipSensitiveData
+      });
       const outputJson = {
         summary,
         results
@@ -490,7 +552,7 @@ const handler = async function (argv) {
       } else if (format === 'junit') {
         makeJUnitOutput(results, outputPath);
       } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+        makeHtmlOutput(outputJson, outputPath, argv.reporterHtmlTemplate, argv.reporterHtmlTitle);
       }
 
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
