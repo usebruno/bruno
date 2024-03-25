@@ -12,6 +12,7 @@
  */
 
 import { flattenObject } from '../utils';
+import cancelTokens from '@usebruno/app/src/utils/network/cancelTokens';
 
 const interpolate = (str: string, obj: Record<string, any>): string => {
   if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
@@ -27,10 +28,17 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
       return match;
     }
 
-    // When inside json body everything must be encoded so string get double quotes
+    // Objects must be either JSON encoded or convert to a String via `toString`
     if (typeof replacement === 'object') {
+      // Check if the object has a `toString` method like `Moment`
+      if (typeof replacement.toString === 'function') {
+        try {
+          return replacement.toString();
+        } catch {}
+      }
       return JSON.stringify(replacement);
     }
+
     return replacement;
   });
 };
