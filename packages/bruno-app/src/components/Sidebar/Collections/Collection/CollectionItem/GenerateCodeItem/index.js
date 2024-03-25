@@ -86,13 +86,13 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
       return acc;
     }, {});
   }
-
   const interpolatedUrl = interpolateUrl({
     url,
     envVars,
     collectionVariables: collection.collectionVariables,
     processEnvVars: collection.processEnvVariables
   });
+
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -125,11 +125,13 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url: interpolatedUrl
+                          url: interpolatedUrl,
+                          headers: [...(item.request.headers ?? []), ...(collection.root.request?.headers ?? [])]
                         }
                       : {
                           ...item.draft.request,
-                          url: interpolatedUrl
+                          url: interpolatedUrl,
+                          headers: [...(item.draft.request.headers ?? []), ...(collection.root.request?.headers ?? [])]
                         }
                 }}
               />
