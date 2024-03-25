@@ -13,7 +13,7 @@
 
 import { flattenObject } from '../utils';
 
-const interpolate = (str: string, obj: Record<string, any>, isJsonBody = false): string => {
+const interpolate = (str: string, obj: Record<string, any>): string => {
   if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
     return str;
   }
@@ -28,7 +28,7 @@ const interpolate = (str: string, obj: Record<string, any>, isJsonBody = false):
     }
 
     // When inside json body everything must be encoded so string get double quotes
-    if (isJsonBody || typeof replacement === 'object') {
+    if (typeof replacement === 'object') {
       return JSON.stringify(replacement);
     }
     return replacement;
