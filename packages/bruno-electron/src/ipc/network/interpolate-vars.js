@@ -29,7 +29,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     });
   });
 
-  const _interpolate = (str, isJsonBody = false) => {
+  const _interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
@@ -45,7 +45,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       }
     };
 
-    return interpolate(str, combinedVars, isJsonBody);
+    return interpolate(str, combinedVars);
   };
 
   request.url = _interpolate(request.url);
@@ -61,14 +61,14 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed, true);
+        parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
 
     if (typeof request.data === 'string') {
       if (request.data.length) {
-        request.data = _interpolate(request.data, true);
+        request.data = _interpolate(request.data);
       }
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
