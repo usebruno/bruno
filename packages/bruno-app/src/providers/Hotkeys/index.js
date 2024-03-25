@@ -43,7 +43,7 @@ export const HotkeysProvider = (props) => {
 
   // save hotkey
   useEffect(() => {
-    Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
+    Mousetrap.bind(['mod+s'], (e) => {
       if (isEnvironmentSettingsModalOpen) {
         console.log('todo: save environment settings');
       } else {
@@ -66,13 +66,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+s', 'ctrl+s']);
+      Mousetrap.unbind(['mod+s']);
     };
   }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
-    Mousetrap.bind(['command+enter', 'ctrl+enter'], (e) => {
+    Mousetrap.bind(['mod+enter'], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -93,13 +93,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+enter', 'ctrl+enter']);
+      Mousetrap.unbind(['mod+enter']);
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
   // edit environments (ctrl/cmd + e)
   useEffect(() => {
-    Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
+    Mousetrap.bind(['mod+e'], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -113,13 +113,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+e', 'ctrl+e']);
+      Mousetrap.unbind(['mod+e']);
     };
   }, [activeTabUid, tabs, collections, setShowEnvSettingsModal]);
 
   // new request (ctrl/cmd + b)
   useEffect(() => {
-    Mousetrap.bind(['command+b', 'ctrl+b'], (e) => {
+    Mousetrap.bind(['mod+b'], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -133,13 +133,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+b', 'ctrl+b']);
+      Mousetrap.unbind(['mod+b']);
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
   // close tab hotkey
   useEffect(() => {
-    Mousetrap.bind(['command+w', 'ctrl+w'], (e) => {
+    Mousetrap.bind(['mod+w'], (e) => {
       dispatch(
         closeTabs({
           tabUids: [activeTabUid]
@@ -150,7 +150,7 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+w', 'ctrl+w']);
+      Mousetrap.unbind(['mod+w']);
     };
   }, [activeTabUid]);
 
