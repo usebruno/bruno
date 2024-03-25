@@ -30,6 +30,7 @@ const GrantTypeSelector = ({ collection }) => {
         mode: 'oauth2',
         collectionUid: collection.uid,
         content: {
+          ...collection.root.request.auth.oauth2,
           grantType
         }
       })
