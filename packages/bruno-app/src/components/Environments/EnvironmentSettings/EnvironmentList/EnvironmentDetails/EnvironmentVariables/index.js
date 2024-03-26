@@ -122,7 +122,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 </td>
                 <td>
                   {variable.secret ? (
-                    <div>{maskInputValue(variable.value)}</div>
+                    <div className="overflow-hidden text-ellipsis">{maskInputValue(variable.value)}</div>
                   ) : (
                     <SingleLineEditor
                       theme={storedTheme}
