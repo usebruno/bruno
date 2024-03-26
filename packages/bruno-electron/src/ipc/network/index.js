@@ -34,7 +34,8 @@ const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
   transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest
+  transformPasswordCredentialsRequest,
+  getOAuth2ImplicitToken
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 
@@ -231,6 +232,11 @@ const configureRequest = async (
         request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
+        break;
+      case 'implicit':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { accessToken } = await getOAuth2ImplicitToken(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${accessToken}`;
         break;
     }
   }

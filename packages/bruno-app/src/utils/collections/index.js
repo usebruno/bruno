@@ -536,6 +536,10 @@ export const humanizeGrantType = (mode) => {
       label = 'Client Credentials';
       break;
     }
+    case 'implicit': {
+      label = 'Implicit';
+      break;
+    }
   }
 
   return label;

@@ -90,6 +90,15 @@ const GrantTypeSelector = ({ collection }) => {
           >
             Client Credentials
           </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onGrantTypeChange('implicit');
+            }}
+          >
+            Implicit
+          </div>
         </Dropdown>
       </div>
     </StyledWrapper>
