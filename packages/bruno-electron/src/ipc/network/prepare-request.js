@@ -148,7 +148,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
 
   // collection headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled) {
+    if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
@@ -157,7 +157,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   });
 
   each(request.headers, (h) => {
-    if (h.enabled) {
+    if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
