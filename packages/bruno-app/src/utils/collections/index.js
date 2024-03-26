@@ -640,8 +640,13 @@ export const getAllVariables = (collection) => {
   };
 };
 
-export const maskInputValue = (value) =>
-  value
+export const maskInputValue = (value) => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  return value
     .split('')
     .map(() => '*')
     .join('');
+};
