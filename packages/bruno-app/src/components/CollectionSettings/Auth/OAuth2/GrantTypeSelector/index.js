@@ -4,10 +4,9 @@ import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { IconCaretDown } from '@tabler/icons';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
-import { updateCollectionAuth, updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections/index';
+import { updateCollectionAuth, updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';
 
 const GrantTypeSelector = ({ collection }) => {
   const dispatch = useDispatch();
@@ -89,6 +88,15 @@ const GrantTypeSelector = ({ collection }) => {
             }}
           >
             Client Credentials
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onGrantTypeChange('implicit');
+            }}
+          >
+            Implicit
           </div>
         </Dropdown>
       </div>
