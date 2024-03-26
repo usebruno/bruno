@@ -187,6 +187,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
           scope
         };
         break;
+      case 'implicit':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
+        break;
       default:
         break;
     }
