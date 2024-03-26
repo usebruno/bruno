@@ -6,11 +6,9 @@ import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
 
 const EnvironmentSettings = ({ collection, onClose }) => {
-  const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
-
-  if (!environments || !environments.length) {
+  if (!collection.environments?.length) {
     return (
       <StyledWrapper>
         <Modal
