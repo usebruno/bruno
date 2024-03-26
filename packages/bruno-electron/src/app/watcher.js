@@ -415,12 +415,12 @@ class Watcher {
         ignoreInitial: false,
         usePolling: watchPath.startsWith('\\\\') ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = filepath.replace(/\\/g, '/');
-          const relativePath = path.relative(watchPath, normalizedPath);
+          const relativePath = path.relative(watchPath, filepath);
+          const normalizedPath = relativePath.replace(/\\/g, '/');
 
           return ignores.some((ignorePattern) => {
             const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
-            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+            return normalizedPath === normalizedIgnorePattern || normalizedPath.startsWith(normalizedIgnorePattern);
           });
         },
         persistent: true,
