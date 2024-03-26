@@ -99,7 +99,7 @@ const GoldenEdition = ({ onClose }) => {
 
   const goldenEditonOrganizations = [
     'Centralized License Management',
-    'Intergration with Secret Managers',
+    'Integration with Secret Managers',
     'Private Collection Registry',
     'Request Forms',
     'Priority Support'
