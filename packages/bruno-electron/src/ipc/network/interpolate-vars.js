@@ -60,8 +60,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        // Write the interpolated body into data, so one can see his values even if parsing fails
+        request.data = _interpolate(parsed);
+        request.data = JSON.parse(request.data);
       } catch (err) {}
     }
 
