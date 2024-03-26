@@ -33,7 +33,7 @@ Bruno jest rozwijane jako aplikacja desktopowa. Musisz załadować aplikację, u
 
 ### Lokalny Rozwój
 
-```bash
+````bash
 # użyj wersji nodejs 18
 nvm use
 
@@ -66,7 +66,7 @@ done
 # Usuń package-lock w podkatalogach
 find . -type f -name "package-lock.json" -delete
 
-```
+````
 
 ### Testowanie
 

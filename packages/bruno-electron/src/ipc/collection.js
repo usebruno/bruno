@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell, dialog, app } = require('electron');
+const { ipcMain, shell, dialog, app, BrowserWindow, Menu } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -599,6 +599,30 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('renderer:show-tab-context-menu', (event, tab) => {
+    const template = [
+      {
+        label: 'New Request',
+        click: () => {
+          event.sender.send('main:tab-context-menu-commands', 'new-request', tab);
+        }
+      },
+      {
+        label: 'Clone',
+        click: () => {
+          event.sender.send('main:tab-context-menu-commands', 'clone-request', tab);
+        }
+      }
+      // { type: 'separator' },
+      // {
+      //   label: 'Close Tab',
+      //   click: () => { event.sender.send('main:tab-context-menu-commands', 'close-tab', tab) }
+      // },
+    ];
+    const menu = Menu.buildFromTemplate(template);
+    menu.popup({ window: BrowserWindow.fromWebContents(event.sender) });
   });
 };
 

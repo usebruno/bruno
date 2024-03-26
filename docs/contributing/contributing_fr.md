@@ -27,7 +27,6 @@ Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org
 
 Bruno est développé comme une application _client lourd_. Vous devrez charger l'application en démarrant nextjs dans un premier terminal, puis démarre l'application Electron dans un second.
 
-
 ### Dépendances
 
 - NodeJS v18
@@ -68,7 +67,6 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
-
 ### Tests
 
 ```bash
@@ -78,7 +76,6 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
-
 
 ### Ouvrir une Pull Request
 

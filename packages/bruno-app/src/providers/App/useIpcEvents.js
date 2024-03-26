@@ -18,6 +18,7 @@ import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxS
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { showCloneRequest, showNewRequest } from 'providers/ReduxStore/slices/tabs';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -140,6 +141,20 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
+    const tabContextMenuCommands = ipcRenderer.on('main:tab-context-menu-commands', (event, tab) => {
+      switch (event) {
+        case 'close-tab':
+          // TODO: close tab
+          break;
+        case 'clone-request':
+          dispatch(showCloneRequest(tab));
+          break;
+        case 'new-request':
+          dispatch(showNewRequest(true));
+          break;
+      }
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -155,6 +170,7 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
+      tabContextMenuCommands();
     };
   }, [isElectron]);
 };

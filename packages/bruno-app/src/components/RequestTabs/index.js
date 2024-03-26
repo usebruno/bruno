@@ -4,13 +4,16 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab, showCloneRequest, showNewRequest } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
 import StyledWrapper from './StyledWrapper';
+import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
+import { findItemInCollection } from 'utils/collections/index';
 
 const RequestTabs = () => {
+  const { ipcRenderer } = window;
   const dispatch = useDispatch();
   const tabsRef = useRef();
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
@@ -19,6 +22,9 @@ const RequestTabs = () => {
   const collections = useSelector((state) => state.collections.collections);
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+
+  const cloneRequestOpen = useSelector((state) => state.tabs.showCloneRequest);
+  const showNewRequestOpen = useSelector((state) => state.tabs.showNewRequest);
 
   const getTabClassname = (tab, index) => {
     return classnames('request-tab select-none', {
@@ -76,11 +82,25 @@ const RequestTabs = () => {
     });
   };
 
+  const handleRightClick = (event, tab) => {
+    event.preventDefault();
+    if (tab.type === 'request') ipcRenderer.invoke('renderer:show-tab-context-menu', tab);
+  };
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
       {newRequestModalOpen && (
         <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
+      )}
+      {cloneRequestOpen && (
+        <CloneCollectionItem
+          item={findItemInCollection(activeCollection, cloneRequestOpen.uid)}
+          collection={activeCollection}
+          onClose={() => dispatch(showCloneRequest(null))}
+        />
+      )}
+      {showNewRequestOpen && (
+        <NewRequest collection={activeCollection} onClose={() => dispatch(showNewRequest(false))} />
       )}
       {collectionRequestTabs && collectionRequestTabs.length ? (
         <>
@@ -110,6 +130,7 @@ const RequestTabs = () => {
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
+                        onContextMenu={(event) => handleRightClick(event, tab)}
                       >
                         <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
                       </li>

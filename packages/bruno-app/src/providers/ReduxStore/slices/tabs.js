@@ -7,7 +7,10 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  showCloneRequest: null,
+  showNewRequest: false,
+  showCloseTabs: []
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -101,6 +104,12 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    showCloneRequest: (state, action) => {
+      state.showCloneRequest = action.payload;
+    },
+    showNewRequest: (state, action) => {
+      state.showNewRequest = action.payload;
     }
   }
 });
@@ -112,7 +121,9 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  showCloneRequest,
+  showNewRequest
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
