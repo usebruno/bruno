@@ -105,6 +105,7 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchResultsCountElementId = 'search-results-count';
 
     this.lintOptions = {
       esversion: 11,
@@ -151,8 +152,16 @@ export default class CodeEditor extends React.Component {
             this.props.onSave();
           }
         },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
+        'Cmd-F': (cm) => {
+          cm.execCommand('findPersistent');
+          this._bindSearchHandler();
+          this._appendSearchResultsCount();
+        },
+        'Ctrl-F': (cm) => {
+          cm.execCommand('findPersistent');
+          this._bindSearchHandler();
+          this._appendSearchResultsCount();
+        },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
         Tab: function (cm) {
@@ -278,6 +287,8 @@ export default class CodeEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor = null;
     }
+
+    this._unbindSearchHandler();
   }
 
   render() {
@@ -312,6 +323,64 @@ export default class CodeEditor extends React.Component {
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
+    }
+  };
+
+  /**
+   * Bind handler to search input to count number of search results
+   */
+  _bindSearchHandler = () => {
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', this._countSearchResults);
+    }
+  };
+
+  /**
+   * Unbind handler to search input to count number of search results
+   */
+  _unbindSearchHandler = () => {
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput) {
+      searchInput.removeEventListener('input', this._countSearchResults);
+    }
+  };
+
+  /**
+   * Append search results count to search dialog
+   */
+  _appendSearchResultsCount = () => {
+    const dialog = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+
+    if (dialog) {
+      const searchResultsCount = document.createElement('span');
+      searchResultsCount.id = this.searchResultsCountElementId;
+      dialog.appendChild(searchResultsCount);
+
+      this._countSearchResults();
+    }
+  };
+
+  /**
+   * Count search results and update state
+   */
+  _countSearchResults = () => {
+    let count = 0;
+
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput && searchInput.value.length > 0) {
+      const text = new RegExp(searchInput.value, 'gi');
+      const matches = this.editor.getValue().match(text);
+      count = matches ? matches.length : 0;
+    }
+
+    const searchResultsCountElement = document.querySelector(`#${this.searchResultsCountElementId}`);
+
+    if (searchResultsCountElement) {
+      searchResultsCountElement.innerText = `${count} results`;
     }
   };
 }
