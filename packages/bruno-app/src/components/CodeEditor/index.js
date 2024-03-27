@@ -58,10 +58,16 @@ if (!SERVER_RENDERED) {
     'bru.cwd()',
     'bru.getEnvName(key)',
     'bru.getProcessEnv(key)',
+    'bru.clearEnvVars()',
+    'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.unsetEnvVar(key)',
+    'bru.clearVars()',
     'bru.getVar(key)',
+    'bru.hasVar(key)',
     'bru.setVar(key,value)',
+    'bru.unsetVar(key)',
     'bru.setNextRequest(requestName)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
