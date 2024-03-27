@@ -27,7 +27,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const variables = item.draft
     ? get(item, 'draft.request.body.graphql.variables')
     : get(item, 'request.body.graphql.variables');
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         return (
           <QueryEditor
             collection={collection}
-            theme={storedTheme}
+            theme={displayedTheme}
             schema={schema}
             width={leftPaneWidth}
             onSave={onSave}
