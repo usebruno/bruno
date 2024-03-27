@@ -19,6 +19,11 @@ const Timeline = ({ request, response }) => {
 
   let requestData = safeStringifyJSON(request.data);
 
+  let responseData = response.data;
+  if (typeof responseData === 'object') {
+    responseData = safeStringifyJSON(response.data, true);
+  }
+
   return (
     <StyledWrapper className="pb-4 w-full">
       <div>
@@ -53,6 +58,22 @@ const Timeline = ({ request, response }) => {
           );
         })}
       </div>
+
+      {response.error ? (
+        <div className="mt-4">
+          <pre className="line error text-red-500 font-bold">{response.error}</pre>
+        </div>
+      ) : null}
+
+      {responseData ? (
+        <div className="mt-4">
+          <pre className="line response font-bold">
+            <span className="arrow">{'<'}</span> DATA
+          </pre>
+
+          <pre className="line response">{responseData}</pre>
+        </div>
+      ) : null}
     </StyledWrapper>
   );
 };
