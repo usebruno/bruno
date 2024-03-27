@@ -7,8 +7,7 @@ import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 
-const KeyValueExplorer = ({ data, theme }) => {
-  data = data || {};
+const KeyValueExplorer = ({ data = [], theme }) => {
   const [showSecret, setShowSecret] = useState(false);
 
   return (
@@ -66,11 +65,17 @@ const EnvVariables = ({ collection, theme }) => {
 const CollectionVariables = ({ collection, theme }) => {
   const collectionVariablesFound = Object.keys(collection.collectionVariables).length > 0;
 
+  const collectionVariableArray = Object.entries(collection.collectionVariables).map(([name, value]) => ({
+    name,
+    value,
+    secret: false
+  }));
+
   return (
     <>
       <h1 className="font-semibold mb-2">Collection Variables</h1>
       {collectionVariablesFound ? (
-        <KeyValueExplorer data={collection.collectionVariables} theme={theme} />
+        <KeyValueExplorer data={collectionVariableArray} theme={theme} />
       ) : (
         <div className="muted text-xs">No collection variables found</div>
       )}
