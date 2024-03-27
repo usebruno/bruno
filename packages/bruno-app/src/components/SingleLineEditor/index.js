@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import { usePreferences } from 'providers/Preferences/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -54,6 +55,7 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+    this.autoSaveInterval = null;
   }
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
@@ -125,6 +127,7 @@ class SingleLineEditor extends Component {
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay();
+    this.startAutosave();
   }
 
   _onEdit = () => {
@@ -136,6 +139,25 @@ class SingleLineEditor extends Component {
     }
   };
 
+  startAutosave = () => {
+    if (this.props.autoSave && this.props.onSave) {
+      this.autoSaveInterval = setInterval(this.saveEditorContent, this.props.autoSaveInterval || 15000); // Default to 15 sec
+    }
+  };
+
+  clearAutosave = () => {
+    if (this.autoSaveInterval) {
+      clearInterval(this.autoSaveInterval);
+    }
+  };
+
+  saveEditorContent = () => {
+    if (this.props.onSave) {
+      const content = this.editor.getValue();
+      console.log(content);
+      this.props.onSave(content, 0);
+    }
+  };
   componentDidUpdate(prevProps) {
     // Ensure the changes caused by this update are not interpreted as
     // user-input changes which could otherwise result in an infinite
@@ -158,6 +180,7 @@ class SingleLineEditor extends Component {
   }
 
   componentWillUnmount() {
+    this.clearAutosave();
     this.editor.getWrapperElement().remove();
   }
 
