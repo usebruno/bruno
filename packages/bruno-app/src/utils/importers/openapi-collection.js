@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
   // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  return url.replace(/([^:]\/)\/+/g, '$1');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -324,7 +323,46 @@ const parseOpenApiCollection = (data) => {
       // TODO what if info.title not defined?
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+
+      let defaultProtocol = '';
+      let defaultHost = '';
+      if (servers[0]) {
+        let fullUrl = getDefaultUrl(servers[0]);
+        let parts = fullUrl.split('://');
+        // if there is only one part after splitting, presume it is the host
+        if (parts.length > 1) {
+          defaultProtocol = parts[0];
+          defaultHost = parts[1];
+        } else {
+          defaultProtocol = 'http';
+          defaultHost = parts[0];
+        }
+      }
+
+      brunoCollection.environments = [
+        {
+          uid: uuid(),
+          name: 'default',
+          variables: [
+            {
+              uid: uuid(),
+              name: 'protocol',
+              value: defaultProtocol,
+              type: 'text',
+              enabled: true,
+              secret: false
+            },
+            {
+              uid: uuid(),
+              name: 'host',
+              value: defaultHost,
+              type: 'text',
+              enabled: true,
+              secret: false
+            }
+          ]
+        }
+      ];
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
@@ -341,7 +379,7 @@ const parseOpenApiCollection = (data) => {
                 path: path,
                 operationObject: operationObject,
                 global: {
-                  server: baseUrl,
+                  server: '{{protocol}}://{{host}}',
                   security: securityConfig
                 }
               };
