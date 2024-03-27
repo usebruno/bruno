@@ -1,5 +1,4 @@
-import interpolate from './interpolate';
+export * from './request/index';
+export * from './request/types';
 
-export default {
-  interpolate
-};
+export { default as interpolate } from './interpolate';

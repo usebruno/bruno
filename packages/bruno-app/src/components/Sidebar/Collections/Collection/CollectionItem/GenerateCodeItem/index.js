@@ -6,10 +6,7 @@ import { isValidUrl } from 'utils/url/index';
 import get from 'lodash/get';
 import { findEnvironmentInCollection } from 'utils/collections';
 
-// Todo: Fix this
-// import { interpolate } from '@usebruno/common';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
+import { interpolate } from '@usebruno/common';
 
 const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
