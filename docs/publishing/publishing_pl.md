@@ -1,4 +1,4 @@
-[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Türkçe](/docs/publishing/publishing_tr.md) | **Polski** | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md)
+[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Türkçe](/docs/publishing/publishing_tr.md) | **Polski** | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md) | [简体中文](docs/publishing/publishing_cn.md) | [正體中文](docs/publishing/publishing_zhtw.md)
 
 ### Publikowanie Bruno w nowym menedżerze pakietów
 
