@@ -13,7 +13,8 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  fileExistsWithCase
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -274,7 +275,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)) {
+      if (fileExistsWithCase(newEnvFilePath, envFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -306,10 +307,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
+      // the file existing is checked with case insensitive file name. I want to check with case sensitive
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
+      if (fileExistsWithCase(newPath, oldPath)) {
         throw new Error(`path: ${oldPath} already exists`);
       }
 
@@ -338,8 +340,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
     } catch (error) {
       return Promise.reject(error);
     }
