@@ -404,6 +404,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', collection.pathname, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -423,6 +432,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', pathname, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
