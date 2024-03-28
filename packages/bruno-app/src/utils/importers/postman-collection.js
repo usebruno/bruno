@@ -57,7 +57,8 @@ const convertV21Auth = (array) => {
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
-
+  const requestMap = {};
+  
   each(item, (i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name;
@@ -82,6 +83,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
       }
     } else {
       if (i.request) {
+        const baseRequestName = i.name;
+        let requestName = baseRequestName;        
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
+        }
+        
         let url = '';
         if (typeof i.request.url === 'string') {
           url = i.request.url;
@@ -91,7 +101,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
@@ -252,6 +262,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         });
 
         brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
       }
     }
   });
