@@ -40,19 +40,18 @@ snap install bruno
 
 # On Linux via Apt
 sudo mkdir -p /etc/apt/keyrings
+sudo apt-get update && sudo apt-get install gpg
+sudo gpg --list-keys
 sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-
 echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
-
-sudo apt update
-sudo apt install bruno
+sudo apt-get update && sudo apt-get install bruno
 ```
 
 ### 여러 플랫폼에서 실행하세요. 🖥️
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
 
-### Git과 연동하세요.  👩‍💻🧑‍💻
+### Git과 연동하세요. 👩‍💻🧑‍💻
 
 또는 원하는 버전 관리 시스템을 선택하세요.
 

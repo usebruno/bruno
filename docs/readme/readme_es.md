@@ -58,12 +58,11 @@ flatpak install com.usebruno.Bruno
 
 # En Linux con Apt
 sudo mkdir -p /etc/apt/keyrings
+sudo apt-get update && sudo apt-get install gpg
+sudo gpg --list-keys
 sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
-
 echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
-
-sudo apt update
-sudo apt install bruno
+sudo apt-get update && sudo apt-get install bruno
 ```
 
 ### Ejecútalo en múltiples plataformas 🖥️
@@ -85,7 +84,7 @@ O cualquier otro sistema de control de versiones que prefieras
 - [Precios](https://www.usebruno.com/pricing)
 - [Descargas](https://www.usebruno.com/downloads)
 
-### Casos de uso 🎥 
+### Casos de uso 🎥
 
 - [Testimonios](https://github.com/usebruno/bruno/discussions/343)
 - [Centro de Conocimiento](https://github.com/usebruno/bruno/discussions/386)
