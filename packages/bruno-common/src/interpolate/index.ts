@@ -35,6 +35,20 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
     return str;
   }
 
+  // Interpolate the variable as often as anything changes but no more than 3 times
+  let last = str;
+  for (let i = 0; i < 3; i++) {
+    const interpolated = doInterpolate(last, obj);
+    // Check if interpolated and last is the same and we can interpolate everything
+    if (interpolated === last) {
+      return interpolated;
+    }
+    last = interpolated;
+  }
+  return last;
+};
+
+function doInterpolate(str: string, obj: Record<string, any>) {
   const patternRegex = /\{\{([^}]+)\}\}/g;
   const flattenedObj = flattenObject(obj);
   return str.replace(patternRegex, (match, placeholder) => {
@@ -51,6 +65,6 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
 
     return replacement;
   });
-};
+}
 
 export default interpolate;

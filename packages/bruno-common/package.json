@@ -16,6 +16,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@usebruno/js": "workspace:*",
     "lossless-json": "^4.0.1",
     "undici": "^6.10.1"
   },

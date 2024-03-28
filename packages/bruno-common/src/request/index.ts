@@ -1,7 +1,9 @@
 import { DebugLogger } from './DebugLogger';
 import { Timings } from './Timings';
 import { Collection, CollectionEnvironment, RequestContext, RequestItem } from './types';
-import { VarsRuntime, AssertRuntime, runScript } from '@usebruno/js';
+import { preRequestVars } from './preRequest/preRequestVars';
+import { preRequestScript } from './preRequest/preRequestScript';
+import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
 
 export async function request(requestItem: RequestItem, collection: Collection, environment?: CollectionEnvironment) {
   // Convert the EnvVariables into a Record
@@ -17,7 +19,12 @@ export async function request(requestItem: RequestItem, collection: Collection, 
     requestItem,
     variables: {
       // TODO: .env variables
-      process: process.env,
+      process: {
+        process: {
+          // @ts-ignore
+          env: process.env
+        }
+      },
       environment: environmentVariableRecord,
       collection: collection.collectionVariables
     },
@@ -37,6 +44,12 @@ export async function request(requestItem: RequestItem, collection: Collection, 
 
 async function doRequest(context: RequestContext): Promise<RequestContext> {
   context.timings.startMeasure('total');
+  context.debug.addStage('pre-request');
+
+  // TODO: IPC -> `main:run-request-event`
+  applyCollectionSettings(context);
+  preRequestVars(context);
+  preRequestScript(context);
 
   context.timings.stopMeasure('total');
   return context;

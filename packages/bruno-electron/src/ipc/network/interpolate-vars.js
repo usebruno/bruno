@@ -109,6 +109,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     }
   }
 
+  console.log(request);
+
   // todo: we have things happening in two places w.r.t basic auth
   // need to refactor this in the future
   // the request.auth (basic auth) object gets set inside the prepare-request.js file
