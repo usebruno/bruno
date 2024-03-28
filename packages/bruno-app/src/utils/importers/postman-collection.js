@@ -54,7 +54,11 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
-const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
+function sanitizeName(name) {
+  return name.replace(/\[|\]/g, ''); // This will remove square brackets
+}
+
+const importPostmanV2CollectionItem = (brunoParent, item, parentAuth) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
 
@@ -274,7 +278,7 @@ const searchLanguageByHeader = (headers) => {
 
 const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
-    name: collection.info.name,
+    name: sanitizeName(collection.info.name),
     uid: uuid(),
     version: '1',
     items: [],
