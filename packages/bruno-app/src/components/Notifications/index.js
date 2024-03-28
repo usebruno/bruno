@@ -84,8 +84,9 @@ const Notifications = () => {
 
   return (
     <StyledWrapper>
-      <div
-        className="relative"
+      <a
+        title="Notifications"
+        className="relative cursor-pointer"
         onClick={() => {
           dispatch(fetchNotifications());
           setShowNotificationsModal(true);
@@ -97,9 +98,9 @@ const Notifications = () => {
           className={`mr-2 hover:text-gray-700 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
         />
         {unreadNotifications.length > 0 && (
-          <div className="notification-count text-xs">{unreadNotifications.length}</div>
+          <span className="notification-count text-xs">{unreadNotifications.length}</span>
         )}
-      </div>
+      </a>
 
       {showNotificationsModal && (
         <Modal
