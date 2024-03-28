@@ -7,7 +7,9 @@ const replacements = {
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
-  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal('
+  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
+  'pm\\.response\\.json': 'res.getBody',
+  'pm\\.expect\\(': 'expect(',
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({

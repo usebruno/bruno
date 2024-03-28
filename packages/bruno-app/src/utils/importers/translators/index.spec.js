@@ -36,10 +36,11 @@ describe('postmanTranslation function', () => {
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => pm.response.json());";
-    const expectedOutput = "// test('random test', () => pm.response.json());";
+    const inputScript = "pm.test('random test', () => pm.globals.get('token'));";
+    const expectedOutput = "// test('random test', () => pm.globals.get('token'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+  
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
     const expectedOutput = "bru.getEnv(var); bru.setEnvVar(var, 'value');";
