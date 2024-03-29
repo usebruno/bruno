@@ -2,8 +2,11 @@ import React from 'react';
 import forOwn from 'lodash/forOwn';
 import { safeStringifyJSON } from 'utils/common';
 import StyledWrapper from './StyledWrapper';
+import { useSelector } from 'react-redux';
 
 const Timeline = ({ request, response }) => {
+  const preferences = useSelector((state) => state.app.preferences);
+  console.log(preferences);
   const requestHeaders = [];
   const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
 
@@ -18,10 +21,23 @@ const Timeline = ({ request, response }) => {
   });
 
   let requestData = safeStringifyJSON(request.data);
-
-  let responseData = response.data;
-  if (typeof responseData === 'object') {
-    responseData = safeStringifyJSON(response.data, true);
+  let responseData = undefined;
+  if (
+    preferences.response.showInTimeline &&
+    (preferences.response.sizeLimit == 0 || response.size / 1024 <= preferences.response.sizeLimit)
+  ) {
+    let contentType = (response.headers['content-type'] || '').split(';')[0];
+    if (
+      preferences.response.mimeTypes === undefined ||
+      preferences.response.mimeTypes === '' ||
+      preferences.response.mimeTypes === '*' ||
+      preferences.response.mimeTypes.includes(contentType)
+    ) {
+      responseData = response.data;
+      if (typeof responseData === 'object') {
+        responseData = safeStringifyJSON(response.data, true);
+      }
+    }
   }
 
   return (

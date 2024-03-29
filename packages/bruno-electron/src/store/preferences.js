@@ -5,7 +5,6 @@ const { get } = require('lodash');
 /**
  * The preferences are stored in the electron store 'preferences.json'.
  * The electron process uses this module to get the preferences.
- *
  */
 
 const defaultPreferences = {
@@ -21,6 +20,11 @@ const defaultPreferences = {
     storeCookies: true,
     sendCookies: true,
     timeout: 0
+  },
+  response: {
+    showInTimeline: true,
+    sizeLimit: 1024,
+    mimeTypes: 'text/plain, text/xml, application/json, application/xml'
   },
   font: {
     codeFont: 'default'
@@ -52,6 +56,11 @@ const preferencesSchema = Yup.object().shape({
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.number()
+  }),
+  response: Yup.object().shape({
+    showInTimeLine: Yup.boolean(),
+    sizeLimit: Yup.number(),
+    mimeTypes: Yup.string().nullable()
   }),
   font: Yup.object().shape({
     codeFont: Yup.string().nullable()
