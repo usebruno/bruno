@@ -75,7 +75,7 @@ Ou n'importe quel système de gestion de sources
 - [Site web](https://www.usebruno.com)
 - [Prix](https://www.usebruno.com/pricing)
 - [Téléchargement](https://www.usebruno.com/downloads)
-- [Sponsors Github](https://github.com/sponsors/helloanoop)
+- [Sponsors GitHub](https://github.com/sponsors/helloanoop)
 
 ### Showcase 🎥
 
@@ -89,7 +89,7 @@ Ouaf! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
 
 ### Partage de témoignages 📣
 
-Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de penser à partager votre témoignage sur la [page discussion Github dédiée](https://github.com/usebruno/bruno/discussions/343)
+Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de penser à partager votre témoignage sur la [page discussion GitHub dédiée](https://github.com/usebruno/bruno/discussions/343)
 
 ### Publier Bruno sur un nouveau gestionnaire de paquets
 

@@ -104,7 +104,7 @@ Or any version control system of your choice
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [Github Sponsors](https://github.com/sponsors/helloanoop).
+- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Showcase 🎥
 
@@ -114,7 +114,7 @@ Or any version control system of your choice
 
 ### Support ❤️
 
-If you like Bruno and want to support our opensource work, consider sponsoring us via [Github Sponsors](https://github.com/sponsors/helloanoop).
+If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Share Testimonials 📣
 
