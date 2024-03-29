@@ -259,7 +259,7 @@ const parseDataFromResponse = (response) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
-  // Overwrite the original data for backwards compatability
+  // Overwrite the original data for backwards compatibility
   let data = dataBuffer.toString(charset || 'utf-8');
   // Try to parse response to JSON, this can quietly fail
   try {
