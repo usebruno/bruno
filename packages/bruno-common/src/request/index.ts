@@ -4,6 +4,8 @@ import { Collection, CollectionEnvironment, RequestContext, RequestItem } from '
 import { preRequestVars } from './preRequest/preRequestVars';
 import { preRequestScript } from './preRequest/preRequestScript';
 import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
+import { createUndiciRequest } from './preRequest/createUndiciRequest';
+import { undiciRequest } from './undiciRequest';
 
 export async function request(requestItem: RequestItem, collection: Collection, environment?: CollectionEnvironment) {
   // Convert the EnvVariables into a Record
@@ -49,7 +51,16 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   // TODO: IPC -> `main:run-request-event`
   applyCollectionSettings(context);
   preRequestVars(context);
-  preRequestScript(context);
+  await preRequestScript(context);
+  createUndiciRequest(context);
+
+  context.debug.addStage('request');
+  context.timings.startMeasure('request');
+  await undiciRequest(context);
+  context.timings.stopMeasure('request');
+
+  context.debug.addStage('post-request');
+  // TODO: Collect cookies from headers
 
   context.timings.stopMeasure('total');
   return context;

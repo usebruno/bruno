@@ -1,4 +1,4 @@
-import { RequestInit } from 'undici';
+import { Dispatcher } from 'undici';
 import { Timings } from './Timings';
 import { DebugLogger } from './DebugLogger';
 
@@ -74,7 +74,7 @@ export type RequestItem = {
   type: RequestType;
   seq: number;
   request: {
-    method: string;
+    method: Dispatcher.HttpMethod;
     url: string;
     // TODO
     params: {
@@ -176,6 +176,7 @@ export type Collection = {
       req?: string;
       res?: string;
     };
+    tests?: string;
   };
 };
 
@@ -219,7 +220,7 @@ export type RequestContext = {
   };
   timings: Timings;
   debug: DebugLogger;
-  undiciRequest?: RequestInit;
+  undiciRequest?: Dispatcher.RequestOptions;
   response?: any;
   error?: Error;
 };
