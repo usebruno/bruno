@@ -7,6 +7,7 @@ import { cloneCollection } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import Tooltip from 'components/Tooltip';
 import Modal from 'components/Modal';
+import { collectionClicked } from 'providers/ReduxStore/slices/collections/index';
 
 const CloneCollection = ({ onClose, collection }) => {
   const inputRef = useRef();
@@ -41,6 +42,7 @@ const CloneCollection = ({ onClose, collection }) => {
         )
       )
         .then(() => {
+          dispatch(collectionClicked(collection.uid));
           toast.success('Collection created');
           onClose();
         })
