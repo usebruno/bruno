@@ -13,13 +13,13 @@
 
 [English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | **Français** | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
 
-Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
+Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _statu quo_ que représente Postman et les autres outils.
 
 Bruno sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
 
 Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler de manière collaborative sur vos collections d'APIs.
 
-Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
+Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
 
 📢 Regarder notre présentation récente lors de la conférence  India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
@@ -125,7 +125,7 @@ Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hé
 **Logo**
 
 Le logo est issu de [OpenMoji](https://openmoji.org/library/emoji-1F436/).
-Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+Licence : CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 
