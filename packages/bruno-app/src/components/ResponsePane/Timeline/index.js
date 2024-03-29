@@ -6,7 +6,6 @@ import { useSelector } from 'react-redux';
 
 const Timeline = ({ request, response }) => {
   const preferences = useSelector((state) => state.app.preferences);
-  console.log(preferences);
   const requestHeaders = [];
   const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
 
