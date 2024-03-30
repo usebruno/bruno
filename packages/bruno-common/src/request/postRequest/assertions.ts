@@ -1,5 +1,4 @@
-import { get } from 'lodash';
-import { AssertRuntime } from '@usebruno/js';
+import { AssertRuntime } from '../runtime/assert-runtime';
 import { RequestContext } from '../types';
 
 export function assertions(context: RequestContext) {
@@ -8,7 +7,7 @@ export function assertions(context: RequestContext) {
     const assertRuntime = new AssertRuntime();
     const results = assertRuntime.runAssertions(
       assertions,
-      context.requestItem.request,
+      context.requestItem,
       context.response,
       context.variables.environment,
       context.variables.collection,

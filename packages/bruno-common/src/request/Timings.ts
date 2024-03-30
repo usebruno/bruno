@@ -13,11 +13,11 @@ export class Timings {
     if (!measurement) {
       throw new Error(`No measurement started for "${name}"`);
     }
-    this.timings[name] = performance.now() - measurement;
+    this.timings[name] = Math.round(performance.now() - measurement);
   }
 
   public stopAll(): void {
-    for (const [name, measurement] of Object.entries(this.timings)) {
+    for (const [name, measurement] of Object.entries(this.startTimings)) {
       if (!this.timings[name]) {
         this.timings[name] = performance.now() - measurement;
       }

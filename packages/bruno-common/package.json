@@ -16,15 +16,21 @@
     "test": "jest"
   },
   "dependencies": {
-    "@usebruno/js": "workspace:*",
+    "@usebruno/query": "workspace:*",
+    "chai": "^4.3.7",
+    "chai-string": "^1.5.0",
     "lossless-json": "^4.0.1",
+    "json-query": "^2.2.2",
+    "nanoid": "3.3.4",
     "undici": "^6.10.1"
   },
   "devDependencies": {
     "@types/node": "^20.11.25",
+    "@types/chai": "^4.3.14",
+    "@types/chai-string": "^1.4.5",
+    "@types/json-query": "^2.2.6",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.2",
-    "vite": "^5.1.5",
-    "vite-plugin-dts": "^3.7.3"
+    "vite": "^5.1.5"
   }
 }

@@ -1,9 +1,9 @@
 import { RequestContext } from '../types';
-import { runScript } from '@usebruno/js';
+import { runScript } from '../runtime/script-runner';
 import { EOL } from 'node:os';
 
 export async function postRequestScript(context: RequestContext) {
-  const collectionPostRequestScript = context.collection.request.script.res ?? '';
+  const collectionPostRequestScript = context.collection.request?.script.res ?? '';
   const requestPostRequestScript = context.requestItem.request.script.res ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
 
@@ -18,13 +18,9 @@ export async function postRequestScript(context: RequestContext) {
   try {
     scriptResult = await runScript(
       postRequestScript,
-      context.requestItem.request,
+      context.requestItem,
       context.response,
-      {
-        envVariables: context.variables.environment,
-        collectionVariables: context.variables.collection,
-        processEnvVars: context.variables.process
-      },
+      context.variables,
       false,
       context.collection.pathname,
       context.collection.brunoConfig.scripts,

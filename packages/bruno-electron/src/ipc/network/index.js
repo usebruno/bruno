@@ -37,6 +37,8 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
+const { request: newRequest } = require('@usebruno/common');
+const { RequestItem, Collection, CollectionEnvironment } = require('@usebruno/common/dist');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -427,7 +429,10 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
-    console.log(item, collection, environment, collectionVariables);
+    const res = await newRequest(item, collection, environment);
+    console.log(JSON.stringify(res, null, 2));
+    console.error(res.error);
+    return;
 
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;

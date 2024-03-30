@@ -1,16 +1,17 @@
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
-import dts from 'vite-plugin-dts';
 
 export default defineConfig({
-  plugins: [dts()],
   build: {
     minify: false,
     sourcemap: true,
+    ssr: true,
+    target: ['node18'],
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      formats: ['cjs', 'es'],
-      fileName: 'index'
+      name: 'index',
+      fileName: 'index',
+      formats: ['es', 'cjs']
     }
   },
   clearScreen: false

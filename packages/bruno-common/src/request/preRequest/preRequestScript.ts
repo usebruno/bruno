@@ -1,11 +1,11 @@
 import { RequestContext } from '../types';
-import { runScript } from '@usebruno/js';
-import { EOL } from 'node:os';
+import { runScript } from '../runtime/script-runner';
+import os from 'node:os';
 
 export async function preRequestScript(context: RequestContext) {
-  const collectionPreRequestScript = context.collection.request.script.req ?? '';
+  const collectionPreRequestScript = context.collection.request?.script.req ?? '';
   const requestPreRequestScript = context.requestItem.request.script.req ?? '';
-  const preRequestScript = collectionPreRequestScript + EOL + requestPreRequestScript;
+  const preRequestScript = collectionPreRequestScript + os.EOL + requestPreRequestScript;
 
   context.debug.log('preRequestScript', {
     collectionPreRequestScript,
@@ -18,13 +18,9 @@ export async function preRequestScript(context: RequestContext) {
   try {
     scriptResult = await runScript(
       preRequestScript,
-      context.requestItem.request,
+      context.requestItem,
       null,
-      {
-        envVariables: context.variables.environment,
-        collectionVariables: context.variables.collection,
-        processEnvVars: context.variables.process
-      },
+      context.variables,
       false,
       context.collection.pathname,
       context.collection.brunoConfig.scripts,

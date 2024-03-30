@@ -1,5 +1,5 @@
 import { RequestContext } from '../types';
-import { VarsRuntime } from '@usebruno/js';
+import { VarsRuntime } from '../runtime/vars-runtime';
 
 export function preRequestVars(context: RequestContext) {
   const preRequestVars = context.requestItem.request.vars.req;
@@ -15,7 +15,7 @@ export function preRequestVars(context: RequestContext) {
   // This will update context.variables.collection by reference inside the 'Bru' class
   varsRuntime.runPreRequestVars(
     preRequestVars,
-    context.requestItem.request,
+    context.requestItem,
     context.variables.environment,
     context.variables.collection,
     context.collection.pathname,

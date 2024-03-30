@@ -6,6 +6,11 @@ import { preRequestScript } from './preRequest/preRequestScript';
 import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
 import { createUndiciRequest } from './preRequest/createUndiciRequest';
 import { undiciRequest } from './undiciRequest';
+import { postRequestVars } from './postRequest/postRequestVars';
+import { postRequestScript } from './postRequest/postRequestScript';
+import { assertions } from './postRequest/assertions';
+import { tests } from './postRequest/tests';
+import { interpolateRequest } from './preRequest/interpolateRequest';
 
 export async function request(requestItem: RequestItem, collection: Collection, environment?: CollectionEnvironment) {
   // Convert the EnvVariables into a Record
@@ -38,6 +43,7 @@ export async function request(requestItem: RequestItem, collection: Collection, 
     return await doRequest(context);
   } catch (error) {
     context.error = error instanceof Error ? error : new Error(String(error));
+  } finally {
     context.timings.stopAll();
   }
 
@@ -52,6 +58,7 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   applyCollectionSettings(context);
   preRequestVars(context);
   await preRequestScript(context);
+  interpolateRequest(context);
   createUndiciRequest(context);
 
   context.debug.addStage('request');
@@ -61,7 +68,12 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
 
   context.debug.addStage('post-request');
   // TODO: Collect cookies from headers
+  postRequestVars(context);
+  await postRequestScript(context);
+  assertions(context);
+  await tests(context);
 
   context.timings.stopMeasure('total');
+
   return context;
 }

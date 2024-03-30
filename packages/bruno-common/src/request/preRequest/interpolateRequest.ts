@@ -6,6 +6,12 @@ function interpolateBody(context: RequestContext, combinedVars: Record<string, u
   const preInterpolation = structuredClone(context.requestItem.request.data);
   const bodyType = typeof context.requestItem.request.data;
 
+  switch (context.requestItem.request.body.mode) {
+    case 'text':
+      context.requestItem.request.body.text = interpolate(context.requestItem.request.body.text, combinedVars);
+      break;
+  }
+
   switch (typeof context.requestItem.request.data) {
     case 'string':
       context.requestItem.request.data = interpolate(context.requestItem.request.data, combinedVars);

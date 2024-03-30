@@ -1,6 +1,7 @@
 import { Dispatcher } from 'undici';
 import { Timings } from './Timings';
 import { DebugLogger } from './DebugLogger';
+import { Timeline } from './Timeline';
 
 export type RequestType = 'http-request' | 'graphql-request';
 
@@ -67,6 +68,18 @@ export type AuthMode =
       scope: string;
     };
 
+export type RequestBody =
+  | {
+      mode: 'none';
+    }
+  | {
+      mode: 'json';
+    }
+  | {
+      mode: 'text';
+      text: string;
+    };
+
 // This is the request Item from the App/.bru file
 export type RequestItem = {
   uid: string;
@@ -89,9 +102,7 @@ export type RequestItem = {
     }[];
     auth: AuthMode;
     // TODO: Own type
-    body: {
-      mode: 'none' | 'json';
-    };
+    body: RequestBody;
     data: unknown;
     script: {
       req?: string;
@@ -101,10 +112,15 @@ export type RequestItem = {
       req?: RequestVariable[];
       res?: RequestVariable[];
     };
-    // TODO
-    assertions: [];
+    assertions: {
+      enabled: boolean;
+      name: string;
+      value: string;
+    }[];
     tests: string;
     docs: string;
+    maxRedirects: number;
+    timeout: number;
   };
   // e.g `my-requests.bru`
   filename: string;
@@ -112,6 +128,12 @@ export type RequestItem = {
   pathname: string;
   draft: null | RequestItem;
   depth: number;
+};
+
+export type Response = {
+  statusCode: number;
+  header: Record<string, string>;
+  data: any;
 };
 
 export type FolderItem = {
@@ -162,11 +184,9 @@ export type Collection = {
   lastAction: null | any;
   collapsed: boolean;
   environments: CollectionEnvironment[];
-  request: {
+  request?: {
     // TODO: Own types to sync with request
-    auth: {
-      mode: AuthMode;
-    };
+    auth: AuthMode;
     headers: {
       name: string;
       value: string;
@@ -198,6 +218,7 @@ export type BrunoConfig = {
     bypassProxy: string;
   };
   scripts: {
+    additionalContextRoots: string[];
     moduleWhitelist: string[];
     filesystemAccess: {
       allow: boolean;
@@ -220,7 +241,18 @@ export type RequestContext = {
   };
   timings: Timings;
   debug: DebugLogger;
-  undiciRequest?: Dispatcher.RequestOptions;
-  response?: any;
+  undiciRequest?: {
+    url: string;
+    options: Dispatcher.RequestOptions;
+  };
+  responseTimeline?: Timeline;
+  response?: {
+    // Last/Final response headers
+    headers: Record<string, string | string[] | undefined>;
+    statusCode: number;
+    encoding: string;
+    // Absolute path to response file
+    path: string;
+  };
   error?: Error;
 };
