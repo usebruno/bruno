@@ -21,6 +21,7 @@ import exportCollection from 'utils/collections/export';
 import RenameCollection from './RenameCollection';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from './CloneCollection/index';
+import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 
 const Collection = ({ collection, searchText }) => {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
@@ -31,6 +32,7 @@ const Collection = ({ collection, searchText }) => {
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
+  const { ipcRenderer } = window;
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -66,6 +68,19 @@ const Collection = ({ collection, searchText }) => {
 
   const handleClick = (event) => {
     dispatch(collectionClicked(collection.uid));
+
+    // if collection doesn't have any active environment
+    // try to load last selected environment
+    if (!collection.activeEnvironmentUid) {
+      ipcRenderer.invoke('renderer:get-last-selected-environment', collection.uid).then((lastSelectedEnvName) => {
+        const collectionEnvironments = collection.environments || [];
+        const lastSelectedEnvironment = collectionEnvironments.find((env) => env.name === lastSelectedEnvName);
+
+        if (lastSelectedEnvironment) {
+          dispatch(selectEnvironment(lastSelectedEnvironment.uid, collection.uid));
+        }
+      });
+    }
   };
 
   const handleRightClick = (event) => {

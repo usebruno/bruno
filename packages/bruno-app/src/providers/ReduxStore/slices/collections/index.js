@@ -128,15 +128,19 @@ export const collectionsSlice = createSlice({
       const { environmentUid, collectionUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
+      const { ipcRenderer } = window;
+
       if (collection) {
         if (environmentUid) {
           const environment = findEnvironmentInCollection(collection, environmentUid);
 
           if (environment) {
             collection.activeEnvironmentUid = environmentUid;
+            ipcRenderer.invoke('renderer:update-last-selected-environment', collectionUid, environment.name);
           }
         } else {
           collection.activeEnvironmentUid = null;
+          ipcRenderer.invoke('renderer:update-last-selected-environment', collectionUid, null);
         }
       }
     },
