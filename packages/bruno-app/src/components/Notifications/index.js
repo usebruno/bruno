@@ -85,6 +85,7 @@ const Notifications = () => {
   return (
     <StyledWrapper>
       <a
+        role="menuitem"
         title="Notifications"
         className="relative cursor-pointer"
         onClick={() => {

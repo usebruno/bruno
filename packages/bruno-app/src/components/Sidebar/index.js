@@ -95,22 +95,37 @@ const Sidebar = () => {
 
             <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center select-none">
               <ul role="menubar" className="flex items-center ml-1 text-xs ">
-                <li role="menuitem" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a title="Preferences" aria-label="Goto settings" onClick={() => dispatch(showPreferences(true))}>
+                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
+                  <a
+                    role="menuitem"
+                    title="Preferences"
+                    aria-label="Goto settings"
+                    onClick={() => dispatch(showPreferences(true))}
+                  >
                     <IconSettings aria-hidden size={18} strokeWidth={1.5} />
                   </a>
                 </li>
-                <li role="menuitem" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a title="Cookies" aria-label="see cookies saved" onClick={() => setCookiesOpen(true)}>
+                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
+                  <a
+                    role="menuitem"
+                    title="Cookies"
+                    aria-label="see cookies saved"
+                    onClick={() => setCookiesOpen(true)}
+                  >
                     <IconCookie aria-hidden size={18} strokeWidth={1.5} />
                   </a>
                 </li>
-                <li role="menuitem" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a title="Golden Edition" aria-label="Get Golden Edition" onClick={() => setGoldenEditonOpen(true)}>
+                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
+                  <a
+                    role="menuitem"
+                    title="Golden Edition"
+                    aria-label="Get Golden Edition"
+                    onClick={() => setGoldenEditonOpen(true)}
+                  >
                     <IconHeart aria-hidden size={18} strokeWidth={1.5} />
                   </a>
                 </li>
-                <li role="menuitem">
+                <li role="none">
                   <Notifications />
                 </li>
               </ul>
@@ -125,7 +140,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.2</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.3</div>
             </div>
           </div>
         </div>
