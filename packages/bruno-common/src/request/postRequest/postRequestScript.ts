@@ -19,7 +19,7 @@ export async function postRequestScript(context: RequestContext) {
     scriptResult = await runScript(
       postRequestScript,
       context.requestItem,
-      context.response,
+      context.response!,
       context.variables,
       false,
       context.collection.pathname,

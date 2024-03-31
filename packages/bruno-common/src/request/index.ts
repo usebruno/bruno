@@ -25,7 +25,6 @@ export async function request(requestItem: RequestItem, collection: Collection, 
     collection,
     requestItem,
     variables: {
-      // TODO: .env variables
       process: {
         process: {
           // @ts-ignore
@@ -59,7 +58,7 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   preRequestVars(context);
   await preRequestScript(context);
   interpolateRequest(context);
-  createUndiciRequest(context);
+  await createUndiciRequest(context);
 
   context.debug.addStage('request');
   context.timings.startMeasure('request');

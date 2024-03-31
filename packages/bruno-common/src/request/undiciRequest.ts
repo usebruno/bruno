@@ -29,10 +29,12 @@ function mustRedirect(
   originalHost: string,
   originalPath: string
 ): false | [string, string] {
+  // Should only be counted with one of these status codes
   if (![300, 301, 302, 303, 307, 308].includes(statusCode)) {
     return false;
   }
 
+  // Check if we got an Location header
   const newLocation = Array.isArray(headers['location']) ? headers['location'][0] : headers['location'];
   if (!newLocation) {
     return false;

@@ -432,7 +432,14 @@ const registerNetworkIpc = (mainWindow) => {
     const res = await newRequest(item, collection, environment);
     console.log(JSON.stringify(res, null, 2));
     console.error(res.error);
-    return;
+
+    return {
+      status: res.response.statusCode,
+      statusText: 'OK',
+      headers: res.response.headers,
+      size: 1,
+      duration: 0
+    };
 
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;

@@ -16,7 +16,7 @@ export function postRequestVars(context: RequestContext) {
   varsRuntime.runPostResponseVars(
     postRequestVars,
     context.requestItem,
-    context.response,
+    context.response!,
     context.variables.environment,
     context.variables.collection,
     context.collection.pathname,

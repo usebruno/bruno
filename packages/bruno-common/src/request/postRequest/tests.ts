@@ -19,7 +19,7 @@ export async function tests(context: RequestContext) {
     scriptResult = await runScript(
       postRequestScript,
       context.requestItem,
-      context.response,
+      context.response!,
       context.variables,
       true,
       context.collection.pathname,

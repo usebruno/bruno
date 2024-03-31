@@ -74,10 +74,31 @@ export type RequestBody =
     }
   | {
       mode: 'json';
+      json: string | Record<string, unknown>;
     }
   | {
       mode: 'text';
       text: string;
+    }
+  | {
+      mode: 'multipartForm';
+      multipartForm: (
+        | {
+            name: string;
+            value: string;
+            enabled: boolean;
+            type: 'text';
+            uid: string;
+          }
+        | {
+            name: string;
+            value: string[];
+            enabled: boolean;
+            type: 'file';
+            description: string;
+            uid: string;
+          }
+      )[];
     };
 
 // This is the request Item from the App/.bru file
@@ -89,7 +110,6 @@ export type RequestItem = {
   request: {
     method: Dispatcher.HttpMethod;
     url: string;
-    // TODO
     params: {
       name: string;
       value: string;
@@ -101,9 +121,7 @@ export type RequestItem = {
       enabled: boolean;
     }[];
     auth: AuthMode;
-    // TODO: Own type
     body: RequestBody;
-    data: unknown;
     script: {
       req?: string;
       res?: string;
@@ -131,9 +149,12 @@ export type RequestItem = {
 };
 
 export type Response = {
+  // Last/Final response headers
+  headers: Record<string, string | string[] | undefined>;
   statusCode: number;
-  header: Record<string, string>;
-  data: any;
+  encoding: string;
+  // Absolute path to response file
+  path: string;
 };
 
 export type FolderItem = {
@@ -246,13 +267,6 @@ export type RequestContext = {
     options: Dispatcher.RequestOptions;
   };
   responseTimeline?: Timeline;
-  response?: {
-    // Last/Final response headers
-    headers: Record<string, string | string[] | undefined>;
-    statusCode: number;
-    encoding: string;
-    // Absolute path to response file
-    path: string;
-  };
+  response?: Response;
   error?: Error;
 };

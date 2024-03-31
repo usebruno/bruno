@@ -3,41 +3,28 @@ import interpolate from '../../interpolate';
 import { parse, stringify } from 'lossless-json';
 
 function interpolateBody(context: RequestContext, combinedVars: Record<string, unknown>) {
-  const preInterpolation = structuredClone(context.requestItem.request.data);
-  const bodyType = typeof context.requestItem.request.data;
-
   switch (context.requestItem.request.body.mode) {
     case 'text':
       context.requestItem.request.body.text = interpolate(context.requestItem.request.body.text, combinedVars);
       break;
-  }
-
-  switch (typeof context.requestItem.request.data) {
-    case 'string':
-      context.requestItem.request.data = interpolate(context.requestItem.request.data, combinedVars);
-      break;
-    case 'object':
-      // TODO: Check what happens to files in multipart form
-      const asString = stringify(context.requestItem.request.data) ?? '';
-      context.requestItem.request.data = interpolate(asString, combinedVars);
-      try {
-        context.requestItem.request.data = parse(context.requestItem.request.data as string);
-      } catch (error) {
-        // A users JSON body is allowed to fail, because its user input.
-        // Everything else like Multipart form should fail here
-        if (context.requestItem.request.body.mode !== 'json') {
-          throw new Error(`Failed to parse interpolated body: "${error}"`);
-        }
+    case 'json':
+      if (typeof context.requestItem.request.body.json === 'object') {
+        context.requestItem.request.body.json = stringify(context.requestItem.request.body.json)!;
       }
+      context.requestItem.request.body.json = interpolate(context.requestItem.request.body.json, combinedVars);
+      try {
+        // @ts-ignore
+        context.requestItem.request.body.json = parse(context.requestItem.request.body.json);
+      } catch {}
       break;
+    case 'multipartForm':
+      for (const item of context.requestItem.request.body.multipartForm) {
+        if (item.type === 'text') {
+          item.value = interpolate(item.value, combinedVars);
+        }
+        item.name = interpolate(item.name, combinedVars);
+      }
   }
-
-  context.debug.log('interpolateBody', {
-    preInterpolation,
-    pastInterpolation: context.requestItem.request.data,
-    bodyType,
-    mode: context.requestItem.request.body.mode
-  });
 }
 
 export function interpolateRequest(context: RequestContext) {

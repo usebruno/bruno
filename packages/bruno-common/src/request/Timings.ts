@@ -18,8 +18,8 @@ export class Timings {
 
   public stopAll(): void {
     for (const [name, measurement] of Object.entries(this.startTimings)) {
-      if (!this.timings[name]) {
-        this.timings[name] = performance.now() - measurement;
+      if (this.timings[name] === undefined) {
+        this.timings[name] = Math.round(performance.now() - measurement);
       }
     }
   }
