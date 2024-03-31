@@ -351,6 +351,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Delete
               </div>
+              <div
+                className="dropdown-item delete-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setIgnoreItemModalOpen(true);
+                }}
+              >
+                Ignore
+              </div>
             </Dropdown>
           </div>
         </div>
