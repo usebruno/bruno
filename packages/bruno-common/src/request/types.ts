@@ -99,6 +99,23 @@ export type RequestBody =
             uid: string;
           }
       )[];
+    }
+  | {
+      mode: 'formUrlEncoded';
+      formUrlEncoded: {
+        name: string;
+        value: string;
+        enabled: boolean;
+        uid: string;
+      }[];
+    }
+  | {
+      mode: 'xml';
+      xml: string;
+    }
+  | {
+      mode: 'sparql';
+      sparql: string;
     };
 
 // This is the request Item from the App/.bru file

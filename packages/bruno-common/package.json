@@ -22,13 +22,15 @@
     "lossless-json": "^4.0.1",
     "json-query": "^2.2.2",
     "nanoid": "3.3.4",
-    "undici": "^6.10.1"
+    "undici": "^6.10.1",
+    "qs": "^6.12.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.25",
     "@types/chai": "^4.3.14",
     "@types/chai-string": "^1.4.5",
     "@types/json-query": "^2.2.6",
+    "@types/qs": "^6.9.14",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.2",
     "vite": "^5.1.5"

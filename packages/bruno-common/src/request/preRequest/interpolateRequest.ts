@@ -24,6 +24,19 @@ function interpolateBody(context: RequestContext, combinedVars: Record<string, u
         }
         item.name = interpolate(item.name, combinedVars);
       }
+      break;
+    case 'formUrlEncoded':
+      for (const item of context.requestItem.request.body.formUrlEncoded) {
+        item.value = interpolate(item.value, combinedVars);
+        item.name = interpolate(item.name, combinedVars);
+      }
+      break;
+    case 'xml':
+      context.requestItem.request.body.xml = interpolate(context.requestItem.request.body.xml, combinedVars);
+      break;
+    case 'sparql':
+      context.requestItem.request.body.sparql = interpolate(context.requestItem.request.body.sparql, combinedVars);
+      break;
   }
 }
 
