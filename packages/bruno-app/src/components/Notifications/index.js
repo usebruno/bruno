@@ -91,8 +91,10 @@ const Notifications = () => {
           dispatch(fetchNotifications());
           setShowNotificationsModal(true);
         }}
+        aria-label="check all Notifications"
       >
         <IconBell
+          aria-hidden
           size={18}
           strokeWidth={1.5}
           className={`mr-2 hover:text-gray-700 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
