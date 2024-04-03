@@ -20,25 +20,34 @@ export type AuthMode =
     }
   | {
       mode: 'basic';
-      username: string;
-      password: string;
+      basic: {
+        username: string;
+        password: string;
+      };
     }
   | {
       mode: 'bearer';
-      token: string;
+      bearer: {
+        token: string;
+      };
     }
   | {
       mode: 'digest';
-      token: string;
+      digest: {
+        username: string;
+        password: string;
+      };
     }
   | {
       mode: 'awsv4';
-      accessKeyId: string;
-      secretAccessKey: string;
-      sessionToken: string;
-      service: string;
-      region: string;
-      profileName: string;
+      awsv4: {
+        accessKeyId: string;
+        secretAccessKey: string;
+        sessionToken: string;
+        service: string;
+        region: string;
+        profileName: string;
+      };
     }
   | {
       mode: 'oauth2';
@@ -287,3 +296,5 @@ export type RequestContext = {
   response?: Response;
   error?: Error;
 };
+
+export type UndiciRequest = Exclude<RequestContext['undiciRequest'], undefined>;

@@ -5,7 +5,7 @@ import { preRequestVars } from './preRequest/preRequestVars';
 import { preRequestScript } from './preRequest/preRequestScript';
 import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
 import { createUndiciRequest } from './preRequest/createUndiciRequest';
-import { undiciRequest } from './undiciRequest';
+import { undiciRequest } from './undiciRequest/undiciRequest';
 import { postRequestVars } from './postRequest/postRequestVars';
 import { postRequestScript } from './postRequest/postRequestScript';
 import { assertions } from './postRequest/assertions';

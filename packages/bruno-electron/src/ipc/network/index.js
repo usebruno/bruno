@@ -38,7 +38,6 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const { request: newRequest } = require('@usebruno/common');
-const { RequestItem, Collection, CollectionEnvironment } = require('@usebruno/common/dist');
 
 const safeStringifyJSON = (data) => {
   try {

@@ -5,17 +5,35 @@ import { stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Blob } from 'node:buffer';
+import { Blob, Buffer } from 'node:buffer';
 import qs from 'qs';
 
-const bodyContentTypeMap: Record<RequestBody['mode'], string | null> = {
-  multipartForm: null, // Undici will automatically create the correct header with the FormData object
+function createAuthHeader(requestItem: RequestItem): Record<string, string> {
+  const auth = requestItem.request.auth;
+
+  switch (auth.mode) {
+    case 'basic':
+      const credentials = Buffer.from(`${auth.basic.username}:${auth.basic.password}`).toString('base64');
+      return {
+        authorization: `Basic ${credentials}`
+      };
+    case 'bearer':
+      return {
+        authorization: `Bearer ${auth.bearer.token}`
+      };
+    default:
+      return {};
+  }
+}
+
+const bodyContentTypeMap: Record<RequestBody['mode'], string | undefined> = {
+  multipartForm: undefined, // Undici will automatically create the correct header with the FormData object
   formUrlEncoded: 'application/x-www-form-urlencoded',
   json: 'application/json',
   xml: 'text/xml',
   text: 'text/plain',
   sparql: 'application/sparql-query',
-  none: null
+  none: undefined
 };
 
 type HeaderMetadata = {
@@ -30,7 +48,8 @@ export function createDefaultRequestHeader(requestItem: RequestItem, meta: Heade
       meta.isCli ? 'CLI' : 'Electron'
     }; Lazer; ${platform()}/${arch()}) undici/${meta.undiciVersion}`,
     accept: '*/*',
-    'content-type': bodyContentTypeMap[requestItem.request.body.mode]!
+    'content-type': bodyContentTypeMap[requestItem.request.body.mode]!,
+    ...createAuthHeader(requestItem)
   };
 }
 
@@ -41,6 +60,7 @@ function getRequestHeaders(context: RequestContext): Record<string, string> {
     brunoVersion: '1.12.3'
   });
 
+  // Go through user header and merge them together with default header
   const headers = context.requestItem.request.headers.reduce<Record<string, string>>((acc, header) => {
     if (header.enabled) {
       acc[header.name.toLowerCase()] = header.value;
