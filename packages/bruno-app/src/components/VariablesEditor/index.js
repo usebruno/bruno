@@ -16,12 +16,18 @@ const KeyValueExplorer = ({ data, theme }) => {
       <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
-          {data.map((envVar) => (
-            <tr key={envVar.name}>
-              <td className="px-2 py-1">{envVar.name}</td>
+          {Object.entries(data).map(([key, envVar]) => (
+            <tr key={typeof envVar === 'string' ? key : envVar.name}>
+              <td className="px-2 py-1">{typeof envVar === 'string' ? key : envVar.name}</td>
               <td className="px-2 py-1">
                 <Inspector
-                  data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
+                  data={
+                    !showSecret && envVar.secret
+                      ? maskInputValue(envVar.value)
+                      : typeof envVar === 'string'
+                      ? envVar
+                      : envVar.value
+                  }
                   theme={theme}
                 />
               </td>
