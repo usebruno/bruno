@@ -178,9 +178,10 @@ export type Response = {
   // Last/Final response headers
   headers: Record<string, string | string[] | undefined>;
   statusCode: number;
-  encoding: string;
+  responseTime: number;
   // Absolute path to response file
   path: string;
+  encoding: BufferEncoding;
 };
 
 export type FolderItem = {

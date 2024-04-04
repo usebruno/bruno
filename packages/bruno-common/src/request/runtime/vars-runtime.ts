@@ -18,8 +18,8 @@ export class VarsRuntime {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
-    const req = new BrunoRequest(request);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath, 'the-env');
+    const req = new BrunoRequest(request, true);
 
     const combinedVariables = {
       ...envVariables,
@@ -52,8 +52,8 @@ export class VarsRuntime {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
-    const req = new BrunoRequest(request);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath, 'the-env');
+    const req = new BrunoRequest(request, true);
     const res = createResponseParser(response);
 
     const context = {

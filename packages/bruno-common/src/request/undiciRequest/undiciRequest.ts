@@ -98,6 +98,8 @@ async function doRequest(
   context: Readonly<RequestContext>
 ): Promise<RequestContext['response']> {
   return new Promise(async (resolve, reject) => {
+    const startTime = performance.now();
+
     let finalRequestHeaders: Record<string, string>;
     const headerInterceptor = createFinalHeaderInterceptor(undiciRequest.url, (h) => (finalRequestHeaders = h));
 
@@ -106,7 +108,7 @@ async function doRequest(
       interceptors.unshift(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
     }
 
-    const client = new Client(undiciRequest.url).compose(...interceptors);
+    const client = new Client(undiciRequest.url).compose(interceptors);
 
     await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
       const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
@@ -131,7 +133,8 @@ async function doRequest(
         headers,
         statusCode,
         encoding,
-        path: targetPath
+        path: targetPath,
+        responseTime: Math.round(startTime - performance.now())
       });
 
       return createWriteStream(targetPath, { autoClose: true, encoding });

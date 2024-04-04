@@ -72,9 +72,9 @@ function buildScriptContext(
   } = {
     require: createCustomRequire(scriptingConfig, collectionPath),
     console: createCustomConsole(onConsoleLog),
-    req: new BrunoRequest(request),
+    req: new BrunoRequest(request, response !== null),
     res: null,
-    bru: new Bru(variables.environment, variables.collection, variables.process, collectionPath),
+    bru: new Bru(variables.environment, variables.collection, variables.process, collectionPath, ''),
     expect: null,
     assert: null,
     brunoTestResults: null,

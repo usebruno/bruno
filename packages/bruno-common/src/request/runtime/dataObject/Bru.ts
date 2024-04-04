@@ -9,7 +9,8 @@ export class Bru {
     public envVariables: any,
     public collectionVariables: any,
     public processEnvVars: any,
-    private collectionPath: any
+    private collectionPath: string,
+    private environmentName: string
   ) {}
 
   cwd() {

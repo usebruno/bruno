@@ -215,8 +215,8 @@ export class AssertRuntime {
       return [];
     }
 
-    const bru = new Bru(envVariables, collectionVariables, collectionPath, {});
-    const req = new BrunoRequest(request);
+    const bru = new Bru(envVariables, collectionVariables, {}, collectionPath, 'the-env');
+    const req = new BrunoRequest(request, true);
     const res = createResponseParser(response);
 
     const bruContext = {

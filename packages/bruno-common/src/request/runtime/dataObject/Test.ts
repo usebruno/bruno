@@ -8,7 +8,6 @@ export const Test =
       brunoTestResults.addResult({ description, status: 'pass' });
     } catch (error) {
       if (error instanceof chai.AssertionError) {
-        // TODO: Better typing
         // @ts-expect-error Should work but actual & expected are not in the type
         const { message, actual, expected } = error;
         brunoTestResults.addResult({
@@ -26,6 +25,6 @@ export const Test =
           error: errorMessage
         });
       }
-      console.log(error);
+      console.log(`Error in your test: "${description}":`, error);
     }
   };
