@@ -7,7 +7,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest, moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
-import { collectionFolderClicked, deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
+import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -24,7 +24,6 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import ConfirmRequestClose from 'components/RequestTabs/RequestTab/ConfirmRequestClose/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,7 +39,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
-  const [showConfirmRequestClose, setShowConfirmRequestClose] = useState(false);
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -195,32 +193,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   return (
     <StyledWrapper className={className}>
-      {showConfirmRequestClose && (
-        <ConfirmRequestClose
-          item={item}
-          onCancel={() => setShowConfirmRequestClose(false)}
-          onCloseWithoutSave={() => {
-            dispatch(
-              deleteRequestDraft({
-                itemUid: item.uid,
-                collectionUid: collection.uid
-              })
-            );
-
-            setShowConfirmRequestClose(false);
-            setRenameItemModalOpen(true);
-          }}
-          onSaveAndClose={() => {
-            dispatch(saveRequest(item.uid, collection.uid))
-              .then(() => {
-                setShowConfirmRequestClose(false);
-              })
-              .catch(() => {});
-
-            setRenameItemModalOpen(true);
-          }}
-        />
-      )}
       {renameItemModalOpen && (
         <RenameCollectionItem item={item} collection={collection} onClose={() => setRenameItemModalOpen(false)} />
       )}
@@ -328,12 +300,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 className="dropdown-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
-                  // if there is unsaved changes, show confirmation modal
+                  // if there is unsaved changes,
+                  // save them before opening the rename modal
                   if (item.draft) {
-                    setShowConfirmRequestClose(true);
-                  } else {
-                    setRenameItemModalOpen(true);
+                    dispatch(saveRequest(item.uid, collection.uid, true));
                   }
+
+                  setRenameItemModalOpen(true);
                 }}
               >
                 Rename
