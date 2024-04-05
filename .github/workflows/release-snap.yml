@@ -21,13 +21,14 @@ jobs:
           node-version: 18
 
       - name: Check package-lock.json
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
       - name: Build Electron app
         run: |
+          npm run build:bruno-common
           npm run build:bruno-query
           npm run build:graphql-docs
           npm run build:web

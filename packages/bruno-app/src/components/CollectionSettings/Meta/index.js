@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Meta = ({ collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const docs = get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
@@ -61,7 +61,7 @@ const Meta = ({ collection }) => {
           {isEditing ? (
             <CodeEditor
               collection={collection}
-              theme={storedTheme}
+              theme={displayedTheme}
               value={docs || ''}
               onEdit={onEdit}
               onSave={onSave}

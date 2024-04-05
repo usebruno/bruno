@@ -57,6 +57,18 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  .btn-danger {
+    color: ${(props) => props.theme.button.danger.color};
+    background: ${(props) => props.theme.button.danger.bg};
+    border: solid 1px ${(props) => props.theme.button.danger.border};
+
+    &:hover,
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
   .btn-secondary {
     color: ${(props) => props.theme.button.secondary.color};
     background: ${(props) => props.theme.button.secondary.bg};
@@ -146,6 +158,33 @@ const GlobalStyle = createGlobalStyle`
       transform: scaleY(-1) rotate(0deg);
     }
   }
+
+
+  // scrollbar styling
+  // the below media query target non-macos devices
+  // (macos scrollbar styling is the ideal style reference)
+  @media not all and (pointer: coarse) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: ${(props) => props.theme.scrollbar.color};
+    }
+    
+    *::-webkit-scrollbar {
+      width: 5px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 5px;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background-color: ${(props) => props.theme.scrollbar.color};
+      border-radius: 14px;
+      border: 3px solid ${(props) => props.theme.scrollbar.color};
+    }
+  }
+
 
   // codemirror
   .CodeMirror {

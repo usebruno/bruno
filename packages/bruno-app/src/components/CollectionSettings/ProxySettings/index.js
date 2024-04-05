@@ -164,7 +164,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              http
+              HTTP
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -175,18 +175,18 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              https
+              HTTPS
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
                 name="protocol"
-                value="socks5"
+                value="socks4"
                 checked={formik.values.protocol === 'socks4'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks4
+              SOCKS4
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -197,7 +197,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks5
+              SOCKS5
             </label>
           </div>
         </div>

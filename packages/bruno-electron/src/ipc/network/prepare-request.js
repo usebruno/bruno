@@ -1,14 +1,49 @@
-const { get, each, filter, forOwn, extend } = require('lodash');
+const { get, each, filter, extend } = require('lodash');
 const decomment = require('decomment');
+var JSONbig = require('json-bigint');
 const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
 
-// Authentication
-// A request can override the collection auth with another auth
-// But it cannot override the collection auth with no auth
-// We will provide support for disabling the auth via scripting in the future
+const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item.value;
+    const name = item.name;
+    if (item.type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+
+        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(name, value);
+    }
+  });
+  return form;
+};
+
+/**
+ * 27 Feb 2024:
+ * ['inherit', 'none'].includes(request.auth.mode)
+ * We are mainitaining the old behavior where 'none' used to inherit the collection auth.
+ *
+ * Very soon, 'none' will be treated as no auth and 'inherit' will be the only way to inherit collection auth.
+ * We will request users to update their collection files to use 'inherit' instead of 'none'.
+ * Don't want to break ongoing CI pipelines.
+ *
+ * Hoping to remove this by 1 April 2024.
+ */
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && ['inherit', 'none'].includes(request.auth.mode)) {
     switch (collectionAuth.mode) {
       case 'awsv4':
         axiosRequest.awsv4config = {
@@ -27,7 +62,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
@@ -57,20 +92,56 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'bearer':
-        axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+        axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
         break;
       case 'digest':
         axiosRequest.digestConfig = {
           username: get(request, 'auth.digest.username'),
           password: get(request, 'auth.digest.password')
         };
+        break;
+      case 'oauth2':
+        const grantType = get(request, 'auth.oauth2.grantType');
+        switch (grantType) {
+          case 'password':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              username: get(request, 'auth.oauth2.username'),
+              password: get(request, 'auth.oauth2.password'),
+              scope: get(request, 'auth.oauth2.scope')
+            };
+            break;
+          case 'authorization_code':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
+              authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
+              accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              clientId: get(request, 'auth.oauth2.clientId'),
+              clientSecret: get(request, 'auth.oauth2.clientSecret'),
+              scope: get(request, 'auth.oauth2.scope'),
+              pkce: get(request, 'auth.oauth2.pkce')
+            };
+            break;
+          case 'client_credentials':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
+              clientId: get(request, 'auth.oauth2.clientId'),
+              clientSecret: get(request, 'auth.oauth2.clientSecret'),
+              scope: get(request, 'auth.oauth2.scope')
+            };
+            break;
+        }
+        break;
     }
   }
 
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -109,8 +180,7 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      // axiosRequest.data = JSON.parse(request.body.json);
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
@@ -146,18 +216,8 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
-
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    const form = new FormData();
-    forOwn(axiosRequest.data, (value, key) => {
-      form.append(key, value);
-    });
+    const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }

@@ -10,7 +10,7 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             data: response.data,
             // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
             dataBuffer: response.dataBuffer,
-            headers: Object.entries(response.headers),
+            headers: response.headers,
             size: response.size,
             status: response.status,
             statusText: response.statusText,
@@ -30,6 +30,23 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
       .invoke('send-http-request', item, collection, environment, collectionVariables)
       .then(resolve)
       .catch(reject);
+  });
+};
+
+export const sendCollectionOauth2Request = async (collection, environment, collectionVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('send-collection-oauth2-request', collection, environment, collectionVariables)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const clearOauth2Cache = async (uid) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
   });
 };
 
