@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { saveRequest, moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -300,12 +300,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 className="dropdown-item"
                 onClick={(e) => {
                   dropdownTippyRef.current.hide();
-                  // if there is unsaved changes,
-                  // save them before opening the rename modal
-                  if (item.draft) {
-                    dispatch(saveRequest(item.uid, collection.uid, true));
-                  }
-
                   setRenameItemModalOpen(true);
                 }}
               >
