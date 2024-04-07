@@ -140,11 +140,11 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
         </div>
+        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+          Docs
+        </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
-        </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
-          Documentation
         </div>
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>
