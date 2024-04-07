@@ -52,7 +52,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             ))}
       </ul>
 
-      <h1 className="font-semibold mt-8 mb-2">Add Client Certicate</h1>
+      <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
