@@ -15,7 +15,6 @@ const Docs = ({ collection }) => {
   const docs = get(collection, 'root.docs', null);
 
   const onEdit = (value) => {
-    console.log('onEdit', value);
     dispatch(
       updateCollectionDocs({
         collectionUid: collection.uid,
@@ -25,7 +24,6 @@ const Docs = ({ collection }) => {
   };
 
   const onSave = () => {
-    console.log('onSave');
     dispatch(saveCollectionRoot(collection.uid));
   };
 
