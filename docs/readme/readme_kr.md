@@ -79,11 +79,11 @@ sudo apt install bruno
 
 ### 후기 공유 📣
 
-Bruno가 여러분과 여러분의 팀에 도움이 되었다면, 잊지 말고 공유해 주세요. [Github discussion 공유 링크](https://github.com/usebruno/bruno/discussions/343)
+Bruno가 여러분과 여러분의 팀에 도움이 되었다면, 잊지 말고 공유해 주세요. [GitHub discussion 공유 링크](https://github.com/usebruno/bruno/discussions/343)
 
 ### 새 패키지 관리자에게 게시
 
-더 많은 정보를 확인하시려명 링크를 클릭해 주세요.[배포 가이드](publishing.md)
+더 많은 정보를 확인하시려면 링크를 클릭해 주세요. [배포 가이드](../../publishing.md)
 
 ### 컨트리뷰트 👩‍💻🧑‍💻
 
