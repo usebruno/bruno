@@ -83,6 +83,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
       <div className="h-[50vh] overflow-y-auto w-full">
+        {/* here's the actual table being displayed */}
         <table>
           <thead>
             <tr>

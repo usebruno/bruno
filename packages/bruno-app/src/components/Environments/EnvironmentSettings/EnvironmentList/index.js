@@ -46,9 +46,38 @@ const EnvironmentList = ({ collection }) => {
     }
   }, [envUids, environments, prevEnvUids]);
 
-  if (!selectedEnvironment) {
-    return null;
-  }
+  // if (!selectedEnvironment) {
+  //   return null;
+  // }
+  // Update changesMade state when selectedEnvironment changes
+  useEffect(() => {
+    if (selectedEnvironment && selectedEnvironment.variables) {
+      setChangesMade(false);
+    }
+  }, [selectedEnvironment]);
+
+  // Show changes made warning if changes have been made
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (changesMade) {
+        event.preventDefault();
+        event.returnValue = ''; // For some browsers
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [changesMade]);
+
+  // Function to handle opening create modal
+  const handleOpenCreateModal = () => {
+    if (!changesMade) {
+      setOpenCreateModal(true);
+    }
+  };
 
   return (
     <StyledWrapper>
@@ -86,6 +115,7 @@ const EnvironmentList = ({ collection }) => {
           </div>
         </div>
         <EnvironmentDetails environment={selectedEnvironment} collection={collection} />
+        {changesMade && <p className="text-red-500">Please save before changing environments.</p>}
       </div>
     </StyledWrapper>
   );
