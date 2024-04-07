@@ -11,9 +11,9 @@ import { createAwsV4AuthInterceptor } from './awsSig4vAuth';
 
 const DELETE_ME_RESPONSE_CACHE_PATH = 'C:\\Users\\Timon\\AppData\\Roaming\\bruno-lazer\\responseCache';
 
-function createFinalHeaderInterceptor(
+function createFinalDataInterceptor(
   url: string,
-  callback: (finalHeader: Record<string, string>) => void
+  callback: (method: string, finalHeader: Record<string, string>) => void
 ): Dispatcher.DispatcherInterceptor {
   return (dispatch) => {
     return (opts, handler) => {
@@ -25,7 +25,7 @@ function createFinalHeaderInterceptor(
         opts.headers['host'] = hostname;
       }
 
-      callback(opts.headers as Record<string, string>);
+      callback(opts.method, opts.headers as Record<string, string>);
 
       return dispatch(opts, handler);
     };
@@ -101,11 +101,16 @@ async function doRequest(
     const startTime = performance.now();
 
     let finalRequestHeaders: Record<string, string>;
-    const headerInterceptor = createFinalHeaderInterceptor(undiciRequest.url, (h) => (finalRequestHeaders = h));
+    let finalMethod: string;
+    const headerInterceptor = createFinalDataInterceptor(undiciRequest.url, (method, finalHeader) => {
+      finalMethod = method;
+      finalRequestHeaders = finalHeader;
+    });
 
+    // Not that interceptors are executed in reverse order
     const interceptors = [headerInterceptor];
     if (context.requestItem.request.auth.mode === 'awsv4') {
-      interceptors.unshift(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
+      interceptors.push(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
     }
 
     const client = new Client(undiciRequest.url).compose(interceptors);
@@ -114,6 +119,8 @@ async function doRequest(
       const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
 
       timeline.add({
+        requestMethod: finalMethod,
+        requestUrl: undiciRequest.url + undiciRequest.options.path,
         requestHeaders: finalRequestHeaders,
         responseHeader: headers,
         statusCode,
@@ -149,10 +156,10 @@ export async function undiciRequest(context: RequestContext) {
   const targetPath = join(DELETE_ME_RESPONSE_CACHE_PATH, context.requestItem.uid);
   await rm(targetPath, { force: true });
 
-  context.responseTimeline = new Timeline();
+  context.timeline = new Timeline();
 
   if (!context.undiciRequest) {
     throw new Error('undiciRequest is not set, but should be at this point');
   }
-  context.response = await doRequest(context.undiciRequest, targetPath, context.responseTimeline, context);
+  context.response = await doRequest(context.undiciRequest, targetPath, context.timeline, context);
 }

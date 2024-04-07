@@ -1,4 +1,6 @@
 import React from 'react';
+import { Switch } from '@mantine/core';
+import { useLocalStorage } from '@mantine/hooks';
 import { uuid } from 'utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
@@ -66,6 +68,11 @@ const CollectionToolBar = ({ collection, activeTabUid }) => {
       console.error('No tab type case for: ', activeTab.type);
   }
 
+  const [useNewRequest, setNewRequest] = useLocalStorage({
+    key: 'new-request',
+    defaultValue: 'false'
+  });
+
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
@@ -82,6 +89,15 @@ const CollectionToolBar = ({ collection, activeTabUid }) => {
           ) : null}
         </div>
         <div className="flex flex-1 items-center justify-end">
+          <span className="mr-2">
+            <Switch
+              label={'New request method'}
+              onClick={(evt) => {
+                setNewRequest(evt.currentTarget.checked ? 'true' : 'false');
+              }}
+              checked={useNewRequest === 'true'}
+            />
+          </span>
           <span className="mr-2">
             <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>

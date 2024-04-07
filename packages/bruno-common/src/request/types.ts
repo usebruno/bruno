@@ -294,7 +294,7 @@ export type RequestContext = {
     url: string;
     options: Dispatcher.RequestOptions;
   };
-  responseTimeline?: Timeline;
+  timeline?: Timeline;
   response?: Response;
   error?: Error;
 };

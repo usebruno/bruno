@@ -426,8 +426,7 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
+  async function executeNewRequest(event, item, collection, environment, collectionVariables) {
     const res = await newRequest(item, collection, environment, {
       updateScriptEnvironment: (payload) => {
         mainWindow.webContents.send('main:script-environment-update', payload);
@@ -451,214 +450,226 @@ const registerNetworkIpc = (mainWindow) => {
       statusText: 'OK',
       headers: res.response.headers,
       size: 1,
-      duration: 0
+      duration: 0,
+      isNew: true,
+      timeline: res.timeline
     };
+  }
 
-    const collectionUid = collection.uid;
-    const collectionPath = collection.pathname;
-    const cancelTokenUid = uuid();
-    const requestUid = uuid();
+  // handler for sending http request
+  ipcMain.handle(
+    'send-http-request',
+    async (event, item, collection, environment, collectionVariables, useNewRequest) => {
+      if (useNewRequest) {
+        return await executeNewRequest(event, item, collection, environment, collectionVariables);
+      }
 
-    mainWindow.webContents.send('main:run-request-event', {
-      type: 'request-queued',
-      requestUid,
-      collectionUid,
-      itemUid: item.uid,
-      cancelTokenUid
-    });
-
-    const collectionRoot = get(collection, 'root', {});
-    const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot, collectionPath);
-    const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
-    const brunoConfig = getBrunoConfig(collectionUid);
-    const scriptingConfig = get(brunoConfig, 'scripts', {});
-
-    try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
-
-      await runPreRequest(
-        request,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        collectionVariables,
-        processEnvVars,
-        scriptingConfig
-      );
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const cancelTokenUid = uuid();
+      const requestUid = uuid();
 
       mainWindow.webContents.send('main:run-request-event', {
-        type: 'request-sent',
-        requestSent: {
-          url: request.url,
-          method: request.method,
-          headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
-          timestamp: Date.now()
-        },
+        type: 'request-queued',
+        requestUid,
         collectionUid,
         itemUid: item.uid,
-        requestUid,
         cancelTokenUid
       });
 
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
+      const collectionRoot = get(collection, 'root', {});
+      const _request = item.draft ? item.draft.request : item.request;
+      const request = prepareRequest(_request, collectionRoot, collectionPath);
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
 
-      let response, responseTime;
       try {
-        /** @type {import('axios').AxiosResponse} */
-        response = await axiosInstance(request);
+        const controller = new AbortController();
+        request.signal = controller.signal;
+        saveCancelToken(cancelTokenUid, controller);
 
-        // Prevents the duration on leaking to the actual result
-        responseTime = response.headers.get('request-duration');
-        response.headers.delete('request-duration');
-      } catch (error) {
-        deleteCancelToken(cancelTokenUid);
+        await runPreRequest(
+          request,
+          requestUid,
+          envVars,
+          collectionPath,
+          collectionRoot,
+          collectionUid,
+          collectionVariables,
+          processEnvVars,
+          scriptingConfig
+        );
 
-        // if it's a cancel request, don't continue
-        if (axios.isCancel(error)) {
-          let error = new Error('Request cancelled');
-          error.isCancel = true;
-          return Promise.reject(error);
-        }
+        mainWindow.webContents.send('main:run-request-event', {
+          type: 'request-sent',
+          requestSent: {
+            url: request.url,
+            method: request.method,
+            headers: request.headers,
+            data: safeParseJSON(safeStringifyJSON(request.data)),
+            timestamp: Date.now()
+          },
+          collectionUid,
+          itemUid: item.uid,
+          requestUid,
+          cancelTokenUid
+        });
 
-        if (error?.response) {
-          response = error.response;
+        const axiosInstance = await configureRequest(
+          collectionUid,
+          request,
+          envVars,
+          collectionVariables,
+          processEnvVars,
+          collectionPath
+        );
+
+        let response, responseTime;
+        try {
+          /** @type {import('axios').AxiosResponse} */
+          response = await axiosInstance(request);
 
           // Prevents the duration on leaking to the actual result
           responseTime = response.headers.get('request-duration');
           response.headers.delete('request-duration');
-        } else {
-          // if it's not a network error, don't continue
-          return Promise.reject(error);
+        } catch (error) {
+          deleteCancelToken(cancelTokenUid);
+
+          // if it's a cancel request, don't continue
+          if (axios.isCancel(error)) {
+            let error = new Error('Request cancelled');
+            error.isCancel = true;
+            return Promise.reject(error);
+          }
+
+          if (error?.response) {
+            response = error.response;
+
+            // Prevents the duration on leaking to the actual result
+            responseTime = response.headers.get('request-duration');
+            response.headers.delete('request-duration');
+          } else {
+            // if it's not a network error, don't continue
+            return Promise.reject(error);
+          }
         }
-      }
 
-      // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
+        // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response);
-      response.data = data;
+        const { data, dataBuffer } = parseDataFromResponse(response);
+        response.data = data;
 
-      const responsePath = path.join(app.getPath('userData'), 'responseCache', item.uid);
-      await fsPromise.writeFile(responsePath, dataBuffer);
+        const responsePath = path.join(app.getPath('userData'), 'responseCache', item.uid);
+        await fsPromise.writeFile(responsePath, dataBuffer);
 
-      response.responseTime = responseTime;
+        response.responseTime = responseTime;
 
-      // save cookies
-      if (preferencesUtil.shouldStoreCookies()) {
-        let setCookieHeaders = [];
-        if (response.headers['set-cookie']) {
-          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-            ? response.headers['set-cookie']
-            : [response.headers['set-cookie']];
-          for (let setCookieHeader of setCookieHeaders) {
-            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
+        // save cookies
+        if (preferencesUtil.shouldStoreCookies()) {
+          let setCookieHeaders = [];
+          if (response.headers['set-cookie']) {
+            setCookieHeaders = Array.isArray(response.headers['set-cookie'])
+              ? response.headers['set-cookie']
+              : [response.headers['set-cookie']];
+            for (let setCookieHeader of setCookieHeaders) {
+              if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+                addCookieToJar(setCookieHeader, request.url);
+              }
             }
           }
         }
-      }
 
-      // send domain cookies to renderer
-      const domainsWithCookies = await getDomainsWithCookies();
+        // send domain cookies to renderer
+        const domainsWithCookies = await getDomainsWithCookies();
 
-      mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+        mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
-      await runPostResponse(
-        request,
-        response,
-        requestUid,
-        envVars,
-        collectionPath,
-        collectionRoot,
-        collectionUid,
-        collectionVariables,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      // run assertions
-      const assertions = get(request, 'assertions');
-      if (assertions) {
-        const assertRuntime = new AssertRuntime();
-        const results = assertRuntime.runAssertions(
-          assertions,
+        await runPostResponse(
           request,
           response,
+          requestUid,
           envVars,
+          collectionPath,
+          collectionRoot,
+          collectionUid,
           collectionVariables,
-          collectionPath
+          processEnvVars,
+          scriptingConfig
+        );
+
+        // run assertions
+        const assertions = get(request, 'assertions');
+        if (assertions) {
+          const assertRuntime = new AssertRuntime();
+          const results = assertRuntime.runAssertions(
+            assertions,
+            request,
+            response,
+            envVars,
+            collectionVariables,
+            collectionPath
+          );
+
+          mainWindow.webContents.send('main:run-request-event', {
+            type: 'assertion-results',
+            results: results,
+            itemUid: item.uid,
+            requestUid,
+            collectionUid
+          });
+        }
+
+        // run tests
+        const testFile = compact([
+          get(collectionRoot, 'request.tests'),
+          item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+        ]).join(os.EOL);
+        const testResults = await runScript(
+          decomment(testFile),
+          request,
+          response,
+          {
+            envVariables: envVars,
+            collectionVariables,
+            processEnvVars
+          },
+          true,
+          collectionPath,
+          scriptingConfig,
+          onConsoleLog
         );
 
         mainWindow.webContents.send('main:run-request-event', {
-          type: 'assertion-results',
-          results: results,
+          type: 'test-results',
+          results: testResults.results,
           itemUid: item.uid,
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: testResults.envVariables,
+          collectionVariables: testResults.collectionVariables,
+          requestUid,
+          collectionUid
+        });
+
+        return {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+          size: Buffer.byteLength(dataBuffer),
+          duration: responseTime ?? 0
+        };
+      } catch (error) {
+        deleteCancelToken(cancelTokenUid);
+
+        return Promise.reject(error);
       }
-
-      // run tests
-      const testFile = compact([
-        get(collectionRoot, 'request.tests'),
-        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
-      ]).join(os.EOL);
-      const testResults = await runScript(
-        decomment(testFile),
-        request,
-        response,
-        {
-          envVariables: envVars,
-          collectionVariables,
-          processEnvVars
-        },
-        true,
-        collectionPath,
-        scriptingConfig,
-        onConsoleLog
-      );
-
-      mainWindow.webContents.send('main:run-request-event', {
-        type: 'test-results',
-        results: testResults.results,
-        itemUid: item.uid,
-        requestUid,
-        collectionUid
-      });
-
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: testResults.envVariables,
-        collectionVariables: testResults.collectionVariables,
-        requestUid,
-        collectionUid
-      });
-
-      return {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-        size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
-      };
-    } catch (error) {
-      deleteCancelToken(cancelTokenUid);
-
-      return Promise.reject(error);
     }
-  });
+  );
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, collectionVariables) => {
     try {

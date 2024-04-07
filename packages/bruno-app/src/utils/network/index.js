@@ -11,7 +11,9 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             size: response.size,
             status: response.status,
             statusText: response.statusText,
-            duration: response.duration
+            duration: response.duration,
+            isNew: response.isNew ?? false,
+            timeline: response.timeline
           });
         })
         .catch((err) => reject(err));
@@ -24,7 +26,14 @@ const sendHttpRequest = async (item, collection, environment, collectionVariable
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('send-http-request', item, collection, environment, collectionVariables)
+      .invoke(
+        'send-http-request',
+        item,
+        collection,
+        environment,
+        collectionVariables,
+        localStorage.getItem('new-request') === '"true"'
+      )
       .then(resolve)
       .catch(reject);
   });

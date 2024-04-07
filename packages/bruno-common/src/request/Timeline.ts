@@ -1,18 +1,14 @@
 export type RequestTimeline = {
+  requestMethod: string;
+  requestUrl: string;
   requestHeaders: Record<string, string>;
   responseHeader: Record<string, string | string[] | undefined>;
   statusCode: number;
   info: string;
 };
 
-export class Timeline {
-  private requests: RequestTimeline[] = [];
-
+export class Timeline extends Array {
   public add(request: RequestTimeline) {
-    this.requests.push(request);
-  }
-
-  public toJSON() {
-    return this.requests;
+    this.push(request);
   }
 }

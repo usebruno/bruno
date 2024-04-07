@@ -1,4 +1,5 @@
 import Document, { Html, Head, Main, NextScript } from 'next/document';
+import { ColorSchemeScript } from '@mantine/core';
 import { ServerStyleSheet } from 'styled-components';
 
 export default class MyDocument extends Document {
@@ -30,7 +31,9 @@ export default class MyDocument extends Document {
   render() {
     return (
       <Html>
-        <Head />
+        <Head>
+          <ColorSchemeScript defaultColorScheme="auto" />
+        </Head>
         <body id="bruno-app-body">
           <Main />
           <NextScript />

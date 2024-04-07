@@ -16,6 +16,7 @@ import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import { TimelineNew } from 'components/ResponsePane/TimelineNew';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -52,7 +53,12 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={response.headers} />;
       }
       case 'timeline': {
-        return <Timeline request={item.requestSent} response={item.response} />;
+        console.log(item);
+        return item.response.isNew ? (
+          <TimelineNew timeline={item.response.timeline} maxWidth={rightPaneWidth} />
+        ) : (
+          <Timeline request={item.requestSent} response={item.response} />
+        );
       }
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
