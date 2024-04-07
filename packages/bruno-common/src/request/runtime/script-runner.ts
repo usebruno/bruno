@@ -22,7 +22,7 @@ export async function runScript(
   useTests: boolean,
   collectionPath: string,
   scriptingConfig: BrunoConfig['scripts'],
-  onConsoleLog?: (any: any) => any
+  onConsoleLog?: (type: string, payload: any) => void
 ) {
   const scriptContext = buildScriptContext(
     request,
@@ -57,7 +57,7 @@ function buildScriptContext(
   useTests: boolean,
   collectionPath: string,
   scriptingConfig: BrunoConfig['scripts'],
-  onConsoleLog?: (any: any) => void
+  onConsoleLog?: (type: string, payload: any) => void
 ) {
   const context: {
     require: (module: string) => unknown;
@@ -184,9 +184,10 @@ ${triedPathsFormatted}`);
   };
 }
 
-function createCustomConsole(onConsoleLog?: (type: string, data: any) => void) {
+function createCustomConsole(onConsoleLog?: (type: string, payload: any) => void) {
   const customLogger = (type: string) => {
     return (...args: any[]) => {
+      console.log('cleanResult', args, cleanJson(args));
       onConsoleLog && onConsoleLog(type, cleanJson(args));
     };
   };

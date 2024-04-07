@@ -6,16 +6,17 @@ export class BrunoResponse {
   constructor(private _res: Response) {}
 
   get status() {
+    console.log(this.getStatus());
     return this.getStatus();
   }
   getStatus(): number {
     return this._res.statusCode;
   }
 
-  getHeader(name: string): string | null {
+  getHeader(name: string): string | undefined {
     const header = this._res.headers[name];
 
-    return (Array.isArray(header) ? header[0] : header) ?? null;
+    return Array.isArray(header) ? header[0] : header;
   }
 
   get headers() {

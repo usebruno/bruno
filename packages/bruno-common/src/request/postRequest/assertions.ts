@@ -12,9 +12,8 @@ export function assertions(context: RequestContext) {
       context.variables.environment,
       context.variables.collection,
       context.collection.pathname
-      // TODO: Why does this not need process variables????
     );
 
-    // TODO: IPC Call
+    context.callback.assertionResults(context, results);
   }
 }

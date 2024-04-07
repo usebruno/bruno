@@ -24,7 +24,7 @@ export async function preRequestScript(context: RequestContext) {
       false,
       context.collection.pathname,
       context.collection.brunoConfig.scripts,
-      (...args) => console.warn('TODO: Implement console.log callback', args)
+      (type: string, payload: any) => context.callback.consoleLog(type, payload)
     );
   } catch (error) {
     context.debug.log('preRequestScript Error', { error });
@@ -34,7 +34,7 @@ export async function preRequestScript(context: RequestContext) {
     context.timings.stopMeasure('pre-script');
   }
 
-  // TODO: IPC -> `main:script-environment-update`
+  context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);
 
   context.debug.log('preRequestScript Finished', scriptResult);
 

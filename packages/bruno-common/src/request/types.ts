@@ -2,6 +2,7 @@ import { Dispatcher } from 'undici';
 import { Timings } from './Timings';
 import { DebugLogger } from './DebugLogger';
 import { Timeline } from './Timeline';
+import { Callbacks } from './Callbacks';
 
 export type RequestType = 'http-request' | 'graphql-request';
 
@@ -223,7 +224,6 @@ export type Collection = {
   items: (RequestItem | FolderItem)[];
   collectionVariables: CollectionVariables;
   // Config json
-  // TODO: Own type
   brunoConfig: BrunoConfig;
   settingsSelectedTab: string;
   // Unix timestamp in milliseconds
@@ -233,7 +233,6 @@ export type Collection = {
   collapsed: boolean;
   environments: CollectionEnvironment[];
   request?: {
-    // TODO: Own types to sync with request
     auth: AuthMode;
     headers: {
       name: string;
@@ -276,8 +275,10 @@ export type BrunoConfig = {
 
 // TODO: add nextRequestName
 export type RequestContext = {
+  uid: string;
   requestItem: RequestItem;
   collection: Collection;
+  callback: Callbacks;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;

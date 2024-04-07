@@ -24,7 +24,7 @@ export async function tests(context: RequestContext) {
       true,
       context.collection.pathname,
       context.collection.brunoConfig.scripts,
-      (...args) => console.warn('TODO: Implement console.log callback', args)
+      (type: string, payload: any) => context.callback.consoleLog(type, payload)
     );
   } catch (error) {
     context.debug.log('test Error', { error });
@@ -34,9 +34,8 @@ export async function tests(context: RequestContext) {
     context.timings.stopMeasure('test');
   }
 
-  // TODO: IPC -> `main:script-environment-update`
+  context.callback.testResults(context, scriptResult.results);
+  context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);
 
   context.debug.log('test Finished', scriptResult);
-
-  // TODO: Updates to env variables are ignored here?
 }

@@ -1,5 +1,5 @@
 import { get } from '@usebruno/query';
-import { stringify, parse } from 'lossless-json';
+import { stringify, parse, LosslessNumber } from 'lossless-json';
 import jsonQuery from 'json-query';
 
 const JS_KEYWORDS = `
@@ -137,7 +137,11 @@ export const createResponseParser = (response: any = {}) => {
  */
 export const cleanJson = (data: any) => {
   try {
-    return parse(stringify(data)!);
+    return parse(stringify(data)!, null, (value) => {
+      // By default, this will return the LosslessNumber object, but because it's passed into ipc we
+      // need to convert it into a number because LosslessNumber is converted into a weird object
+      return new LosslessNumber(value).valueOf();
+    });
   } catch (e) {
     return data;
   }

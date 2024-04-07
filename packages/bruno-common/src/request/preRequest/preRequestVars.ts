@@ -13,7 +13,7 @@ export function preRequestVars(context: RequestContext) {
 
   const varsRuntime = new VarsRuntime();
   // This will update context.variables.collection by reference inside the 'Bru' class
-  varsRuntime.runPreRequestVars(
+  const varsResult = varsRuntime.runPreRequestVars(
     preRequestVars,
     context.requestItem,
     context.variables.environment,
@@ -21,6 +21,10 @@ export function preRequestVars(context: RequestContext) {
     context.collection.pathname,
     context.variables.process
   );
+
+  if (varsResult) {
+    context.callback.updateScriptEnvironment(context, undefined, varsResult.collectionVariables);
+  }
 
   context.debug.log('preRequestVars', { before, after: context.variables.collection });
 }

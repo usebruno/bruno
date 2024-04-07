@@ -428,9 +428,23 @@ const registerNetworkIpc = (mainWindow) => {
 
   // handler for sending http request
   ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
-    const res = await newRequest(item, collection, environment);
-    console.log(JSON.stringify(res, null, 2));
+    const res = await newRequest(item, collection, environment, {
+      updateScriptEnvironment: (payload) => {
+        mainWindow.webContents.send('main:script-environment-update', payload);
+      },
+      cookieUpdated: (payload) => {
+        mainWindow.webContents.send('main:cookies-update', payload);
+      },
+      requestEvent: (payload) => {
+        mainWindow.webContents.send('main:run-request-event', payload);
+      },
+      consoleLog: (payload) => {
+        mainWindow.webContents.send('main:console-log', payload);
+      }
+    });
     console.error(res.error);
+
+    res.new = true;
 
     return {
       status: res.response.statusCode,

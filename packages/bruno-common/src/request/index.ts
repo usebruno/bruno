@@ -11,8 +11,15 @@ import { postRequestScript } from './postRequest/postRequestScript';
 import { assertions } from './postRequest/assertions';
 import { tests } from './postRequest/tests';
 import { interpolateRequest } from './preRequest/interpolateRequest';
+import { Callbacks, RawCallbacks } from './Callbacks';
+import { nanoid } from 'nanoid';
 
-export async function request(requestItem: RequestItem, collection: Collection, environment?: CollectionEnvironment) {
+export async function request(
+  requestItem: RequestItem,
+  collection: Collection,
+  environment?: CollectionEnvironment,
+  rawCallbacks: Partial<RawCallbacks> = {}
+) {
   // Convert the EnvVariables into a Record
   const environmentVariableRecord = (environment?.variables ?? []).reduce<Record<string, unknown>>((acc, env) => {
     if (env.enabled) {
@@ -22,8 +29,10 @@ export async function request(requestItem: RequestItem, collection: Collection, 
   }, {});
 
   const context: RequestContext = {
+    uid: nanoid(),
     collection,
     requestItem,
+    callback: new Callbacks(rawCallbacks),
     variables: {
       process: {
         process: {
@@ -53,12 +62,15 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   context.timings.startMeasure('total');
   context.debug.addStage('pre-request');
 
-  // TODO: IPC -> `main:run-request-event`
+  context.callback.requestQueued(context);
+
   applyCollectionSettings(context);
   preRequestVars(context);
   await preRequestScript(context);
   interpolateRequest(context);
   await createUndiciRequest(context);
+
+  context.callback.requestSend(context);
 
   context.debug.addStage('request');
   context.timings.startMeasure('request');

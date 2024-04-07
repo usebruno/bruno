@@ -3,9 +3,8 @@ import { VarsRuntime } from '../runtime/vars-runtime';
 
 export function postRequestVars(context: RequestContext) {
   const postRequestVars = context.requestItem.request.vars.res;
-  // TODO: Always set postRequestVars
   if (postRequestVars === undefined) {
-    context.debug.log('preRequestVars Skipped');
+    context.debug.log('postRequestVars Skipped');
     return;
   }
 
@@ -13,7 +12,7 @@ export function postRequestVars(context: RequestContext) {
 
   const varsRuntime = new VarsRuntime();
   // This will update context.variables.collection by reference inside the 'Bru' class
-  varsRuntime.runPostResponseVars(
+  const varsResult = varsRuntime.runPostResponseVars(
     postRequestVars,
     context.requestItem,
     context.response!,
@@ -23,5 +22,9 @@ export function postRequestVars(context: RequestContext) {
     context.variables.process
   );
 
-  context.debug.log('preRequestVars', { before, after: context.variables.collection });
+  if (varsResult) {
+    context.callback.updateScriptEnvironment(context, undefined, varsResult.collectionVariables);
+  }
+
+  context.debug.log('postRequestVars', { before, after: context.variables.collection });
 }

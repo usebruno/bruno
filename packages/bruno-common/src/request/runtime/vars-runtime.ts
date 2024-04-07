@@ -71,7 +71,6 @@ export class VarsRuntime {
     });
 
     return {
-      envVariables,
       collectionVariables
     };
   }
