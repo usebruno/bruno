@@ -30,13 +30,13 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   };
 
   return (
-    <StyledWrapper>
-      <div className="flex items-center font-semibold mt-4 mb-2">
-        <IconCertificate className="mr-1 certificate-icon" size={24} strokeWidth={1.5} /> Client Certificates
-      </div>
+    <StyledWrapper className="w-full h-full">
+      <div className="text-sm mb-6">Add client certificates to be used for specific domains.</div>
+
+      <h1 className="font-semibold">Client Certificates</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
-          ? 'None'
+          ? 'No client certificates added'
           : clientCertConfig.map((clientCert) => (
               <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
                 <div className="flex items-center w-full justify-between">
