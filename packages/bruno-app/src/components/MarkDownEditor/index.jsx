@@ -70,7 +70,13 @@ const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave })
               mode="application/text"
             />
           </div>
-          <ButtonBar text="Save" handleClick={() => setIsEditing(false)}>
+          <ButtonBar
+            text="Save"
+            handleClick={() => {
+              setIsEditing(false);
+              onSave();
+            }}
+          >
             <IconCheck size={18} strokeWidth={2} className="ml-1" />
           </ButtonBar>
         </>
