@@ -921,7 +921,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            let response;
+            let response,responseTime;
             try {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
@@ -929,6 +929,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
+              response.responseTime = response.headers.get('request-duration')
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
@@ -939,7 +940,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: response.data
+                  data: response.data,
+                  responseTime : response.headers.get('request-duration')
                 },
                 ...eventData
               });
@@ -956,7 +958,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data
+                  data: error.response.data,
+                  responseTime: response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success
