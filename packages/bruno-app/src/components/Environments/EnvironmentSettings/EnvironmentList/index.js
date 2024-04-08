@@ -1,4 +1,5 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
@@ -7,8 +8,10 @@ import { IconDownload, IconShieldLock } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
+import { toastError } from 'utils/common/error';
 
-const EnvironmentList = ({ collection }) => {
+const EnvironmentList = ({ collection, isModified, setIsModified }) => {
+  // Pass isModified as a prop
   const { environments } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -46,36 +49,45 @@ const EnvironmentList = ({ collection }) => {
     }
   }, [envUids, environments, prevEnvUids]);
 
-  // if (!selectedEnvironment) {
-  //   return null;
-  // }
-  // Update changesMade state when selectedEnvironment changes
-  useEffect(() => {
-    if (selectedEnvironment && selectedEnvironment.variables) {
-      setChangesMade(false);
+  // Prevent switching to another environment if isModified is true
+  const handleEnvironmentClick = (env) => {
+    console.log(isModified);
+    if (!isModified) {
+      //if not modified, let user switch to the environment.
+      setSelectedEnvironment(env);
+    } else {
+      toast.error('You have unsaved changes in this environment.');
     }
-  }, [selectedEnvironment]);
+  };
 
-  // Show changes made warning if changes have been made
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (changesMade) {
-        event.preventDefault();
-        event.returnValue = ''; // For some browsers
-      }
-    };
+  if (!selectedEnvironment) {
+    return null;
+  }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [changesMade]);
-
-  // Function to handle opening create modal
-  const handleOpenCreateModal = () => {
-    if (!changesMade) {
+  const handleCreateEnvClick = () => {
+    if (!isModified) {
       setOpenCreateModal(true);
+    } else {
+      //setOpenCreateModal(false);
+      toast.error('You have unsaved changes in this environment.');
+    }
+  };
+
+  const handleImportClick = () => {
+    if (!isModified) {
+      setOpenImportModal(true);
+    } else {
+      //setOpenCreateModal(false);
+      toast.error('You have unsaved changes in this environment.');
+    }
+  };
+
+  const handleSecretsClick = () => {
+    if (!isModified) {
+      setOpenManageSecretsModal(true);
+    } else {
+      //setOpenCreateModal(false);
+      toast.error('You have unsaved changes in this environment.');
     }
   };
 
@@ -93,29 +105,34 @@ const EnvironmentList = ({ collection }) => {
                 <div
                   key={env.uid}
                   className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                  onClick={() => setSelectedEnvironment(env)}
+                  onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                 >
                   <span className="break-all">{env.name}</span>
                 </div>
               ))}
-            <div className="btn-create-environment" onClick={() => setOpenCreateModal(true)}>
+            <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
             </div>
 
             <div className="mt-auto btn-import-environment">
-              <div className="flex items-center" onClick={() => setOpenImportModal(true)}>
+              <div className="flex items-center" onClick={() => handleImportClick()}>
                 <IconDownload size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Import</span>
               </div>
-              <div className="flex items-center mt-2" onClick={() => setOpenManageSecretsModal(true)}>
+              <div className="flex items-center mt-2" onClick={() => handleSecretsClick()}>
                 <IconShieldLock size={12} strokeWidth={2} />
                 <span className="label ml-1 text-xs">Managing Secrets</span>
               </div>
             </div>
           </div>
         </div>
-        <EnvironmentDetails environment={selectedEnvironment} collection={collection} />
-        {changesMade && <p className="text-red-500">Please save before changing environments.</p>}
+        {/* <EnvironmentDetails environment={selectedEnvironment} collection={collection} /> */}
+        <EnvironmentDetails
+          environment={selectedEnvironment}
+          collection={collection}
+          isModified={isModified} // Pass isModified prop
+          setIsModified={setIsModified} // Pass setIsModified prop
+        />
       </div>
     </StyledWrapper>
   );

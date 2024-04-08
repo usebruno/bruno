@@ -6,6 +6,8 @@ import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
 
 const EnvironmentSettings = ({ collection, onClose }) => {
+  const [isModified, setIsModified] = useState(false); // Added this here, since this is the "parent" component
+
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
@@ -48,7 +50,12 @@ const EnvironmentSettings = ({ collection, onClose }) => {
 
   return (
     <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
-      <EnvironmentList collection={collection} />
+      {/* Pass isModified as a prop */}
+      <EnvironmentList
+        collection={collection}
+        isModified={isModified} // Pass isModified to EnvironmentList
+        setIsModified={setIsModified} // Pass setIsModified to EnvironmentList
+      />
     </Modal>
   );
 };

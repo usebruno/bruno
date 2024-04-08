@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -13,7 +13,7 @@ import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
 import { maskInputValue } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, collection }) => {
+const EnvironmentVariables = ({ environment, collection, isModified, setIsModified }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -46,10 +46,24 @@ const EnvironmentVariables = ({ environment, collection }) => {
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
+          // toast.success('(modified set to false)');
+          setIsModified(false); //added to say we don't have changes compared old (we saved, so new = old.)
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  // Effect to track modifications.
+  React.useEffect(() => {
+    setIsModified(formik.dirty);
+    // Comments/prints for testing purposes.
+    // if (isModified == 1) {
+    //   toast.success("Modified");
+    // }
+    // else {
+    //   toast.success("Same as original");
+    // }
+  }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
@@ -83,7 +97,6 @@ const EnvironmentVariables = ({ environment, collection }) => {
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
       <div className="h-[50vh] overflow-y-auto w-full">
-        {/* here's the actual table being displayed */}
         <table>
           <thead>
             <tr>
