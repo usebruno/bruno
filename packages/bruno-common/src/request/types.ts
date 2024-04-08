@@ -279,6 +279,7 @@ export type RequestContext = {
   requestItem: RequestItem;
   collection: Collection;
   callback: Callbacks;
+  dataDir: string;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;

@@ -25,9 +25,7 @@ import '@mantine/core/styles.css';
 const queryClient = new QueryClient();
 
 const theme = createTheme({
-  /** Put your mantine theme override here */
   focusRing: 'never',
-  forceColorScheme: 'dark',
 
   defaultRadius: 'xs'
 });
@@ -72,9 +70,9 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <ErrorBoundary>
-      <SafeHydrate>
-        <NoSsr>
-          <MantineProvider theme={theme}>
+      <MantineProvider theme={theme} defaultColorScheme={'dark'}>
+        <SafeHydrate>
+          <NoSsr>
             <QueryClientProvider client={queryClient}>
               <Provider store={ReduxStore}>
                 <ThemeProvider>
@@ -88,9 +86,9 @@ function MyApp({ Component, pageProps }) {
                 </ThemeProvider>
               </Provider>
             </QueryClientProvider>
-          </MantineProvider>
-        </NoSsr>
-      </SafeHydrate>
+          </NoSsr>
+        </SafeHydrate>
+      </MantineProvider>
     </ErrorBoundary>
   );
 }

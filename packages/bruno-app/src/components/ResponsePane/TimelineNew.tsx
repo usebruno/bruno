@@ -22,7 +22,7 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
       data.push(`${name}: ${value}`);
     }
     return data;
-  }, []);
+  }, [item.requestHeaders]);
 
   const responseData: string[] = useMemo(() => {
     const data = [`${item.statusCode} ${statusCodesToPhrases[item.statusCode] ?? ''}`];
@@ -36,19 +36,19 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
       }
     }
     return data;
-  }, []);
+  }, [item.responseHeader]);
 
   return (
     <div>
-      {requestData.map((item) => (
-        <Text c={'green'} style={{ overflowWrap: 'anywhere' }}>
+      {requestData.map((item, i) => (
+        <Text key={item + i} c={'green'} style={{ overflowWrap: 'anywhere' }}>
           <span>&gt; </span>
           {item}
         </Text>
       ))}
-      <Space h={'md'} />
-      {responseData.map((item) => (
-        <Text c={'grape'} style={{ overflowWrap: 'anywhere' }}>
+      <Space h={'xs'} />
+      {responseData.map((item, i) => (
+        <Text key={item + i} c={'grape'} style={{ overflowWrap: 'anywhere' }}>
           <span>&lt; </span>
           {item}
         </Text>

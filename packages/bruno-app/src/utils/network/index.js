@@ -13,7 +13,8 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             statusText: response.statusText,
             duration: response.duration,
             isNew: response.isNew ?? false,
-            timeline: response.timeline
+            timeline: response.timeline,
+            debug: response.debug
           });
         })
         .catch((err) => reject(err));

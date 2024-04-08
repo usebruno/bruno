@@ -1,6 +1,8 @@
 import { get } from '@usebruno/query';
 import { stringify, parse, LosslessNumber } from 'lossless-json';
 import jsonQuery from 'json-query';
+import { Response } from '../types';
+import fs from 'node:fs';
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -106,19 +108,31 @@ export const evaluateJsTemplateLiteral = (templateLiteral: string, context: any)
   return evaluateJsExpression(templateLiteral, context);
 };
 
-export const createResponseParser = (response: any = {}) => {
-  const res = (expr: string, ...fns: any[]) => {
-    return get(response.data, expr, ...fns);
+type ResponseParser = ((expr: string, ...fns: any) => any) & {
+  body: any;
+  status: number;
+  headers: Record<string, string | string[] | undefined>;
+  responseTime: number;
+  jq: (expr: string) => unknown;
+};
+
+export const createResponseParser = (response: Response) => {
+  let bodyData: any = fs.readFileSync(response.path, { encoding: response.encoding }).toString();
+  try {
+    bodyData = parse(bodyData);
+  } catch {}
+
+  const res: ResponseParser = (expr: string, ...fns: any[]) => {
+    return get(bodyData, expr, ...fns);
   };
 
-  res.status = response.status;
-  res.statusText = response.statusText;
+  res.body = bodyData;
+  res.status = response.statusCode;
   res.headers = response.headers;
-  res.body = response.data;
   res.responseTime = response.responseTime;
 
   res.jq = (expr: string) => {
-    const output = jsonQuery(expr, { data: response.data });
+    const output = jsonQuery(expr, { data: res.body });
     return output ? output.value : null;
   };
 
@@ -133,7 +147,6 @@ export const createResponseParser = (response: any = {}) => {
  * How to reproduce
  *    Remove the cleanJson fix and execute the below post response script
  *    bru.setVar("a", {b:3});
- * Todo: Find a better fix
  */
 export const cleanJson = (data: any) => {
   try {

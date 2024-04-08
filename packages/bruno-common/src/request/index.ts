@@ -13,10 +13,13 @@ import { tests } from './postRequest/tests';
 import { interpolateRequest } from './preRequest/interpolateRequest';
 import { Callbacks, RawCallbacks } from './Callbacks';
 import { nanoid } from 'nanoid';
+import { safeParseJSON } from '@usebruno/app/src/utils/common';
+import { cleanJson } from './runtime/utils';
 
 export async function request(
   requestItem: RequestItem,
   collection: Collection,
+  dataDir: string,
   environment?: CollectionEnvironment,
   rawCallbacks: Partial<RawCallbacks> = {}
 ) {
@@ -33,6 +36,7 @@ export async function request(
     collection,
     requestItem,
     callback: new Callbacks(rawCallbacks),
+    dataDir,
     variables: {
       process: {
         process: {
@@ -55,7 +59,7 @@ export async function request(
     context.timings.stopAll();
   }
 
-  return context;
+  return cleanJson(context);
 }
 
 async function doRequest(context: RequestContext): Promise<RequestContext> {

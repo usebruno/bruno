@@ -187,7 +187,6 @@ ${triedPathsFormatted}`);
 function createCustomConsole(onConsoleLog?: (type: string, payload: any) => void) {
   const customLogger = (type: string) => {
     return (...args: any[]) => {
-      console.log('cleanResult', args, cleanJson(args));
       onConsoleLog && onConsoleLog(type, cleanJson(args));
     };
   };

@@ -14,7 +14,7 @@ function applyCollectionHeader(context: RequestContext) {
 
 function applyCollectionAuth(context: RequestContext) {
   if (context.requestItem.request.auth.mode !== 'inherit') {
-    context.debug.log('applyCollectionHeader', {
+    context.debug.log('applyCollectionAuth', {
       requestMode: context.requestItem.request.auth.mode,
       collectionMode: context.collection.request?.auth.mode,
       finalAuth: context.requestItem.request.auth,
@@ -25,7 +25,7 @@ function applyCollectionAuth(context: RequestContext) {
 
   context.requestItem.request.auth = context.collection.request?.auth || { mode: 'none' };
 
-  context.debug.log('applyCollectionHeader', {
+  context.debug.log('applyCollectionAuth', {
     requestMode: 'inherit', // Its always inherit at this point
     collectionMode: context.requestItem.request.auth.mode,
     finalAuth: context.requestItem.request.auth,

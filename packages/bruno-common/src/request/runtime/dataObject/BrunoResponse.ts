@@ -6,7 +6,6 @@ export class BrunoResponse {
   constructor(private _res: Response) {}
 
   get status() {
-    console.log(this.getStatus());
     return this.getStatus();
   }
   getStatus(): number {

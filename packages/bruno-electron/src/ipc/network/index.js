@@ -426,8 +426,9 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  async function executeNewRequest(event, item, collection, environment, collectionVariables) {
-    const res = await newRequest(item, collection, environment, {
+  async function executeNewRequest(event, item, collection, environment) {
+    const dataDir = path.join(app.getPath('userData'), 'responseCache');
+    const res = await newRequest(item, collection, dataDir, environment, {
       updateScriptEnvironment: (payload) => {
         mainWindow.webContents.send('main:script-environment-update', payload);
       },
@@ -441,7 +442,6 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:console-log', payload);
       }
     });
-    console.error(res.error);
 
     res.new = true;
 
@@ -450,9 +450,10 @@ const registerNetworkIpc = (mainWindow) => {
       statusText: 'OK',
       headers: res.response.headers,
       size: 1,
-      duration: 0,
+      duration: res.response.responseTime,
       isNew: true,
-      timeline: res.timeline
+      timeline: res.timeline,
+      debug: res.debug
     };
   }
 
@@ -461,7 +462,7 @@ const registerNetworkIpc = (mainWindow) => {
     'send-http-request',
     async (event, item, collection, environment, collectionVariables, useNewRequest) => {
       if (useNewRequest) {
-        return await executeNewRequest(event, item, collection, environment, collectionVariables);
+        return await executeNewRequest(event, item, collection, environment);
       }
 
       const collectionUid = collection.uid;

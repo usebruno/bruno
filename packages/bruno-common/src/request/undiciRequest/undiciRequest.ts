@@ -9,8 +9,6 @@ import os from 'node:os';
 import { handleDigestAuth } from './digestAuth';
 import { createAwsV4AuthInterceptor } from './awsSig4vAuth';
 
-const DELETE_ME_RESPONSE_CACHE_PATH = 'C:\\Users\\Timon\\AppData\\Roaming\\bruno-lazer\\responseCache';
-
 function createFinalDataInterceptor(
   url: string,
   callback: (method: string, finalHeader: Record<string, string>) => void
@@ -113,7 +111,9 @@ async function doRequest(
       interceptors.push(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
     }
 
-    const client = new Client(undiciRequest.url).compose(interceptors);
+    const client = new Client(undiciRequest.url, {
+      strictContentLength: false
+    }).compose(interceptors);
 
     await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
       const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
@@ -141,7 +141,7 @@ async function doRequest(
         statusCode,
         encoding,
         path: targetPath,
-        responseTime: Math.round(startTime - performance.now())
+        responseTime: Math.round(performance.now() - startTime)
       });
 
       return createWriteStream(targetPath, { autoClose: true, encoding });
@@ -153,7 +153,7 @@ export async function undiciRequest(context: RequestContext) {
   // TODO: Handle redirects in a way that allow to collect all headers
   // TODO: Pass timeout here
   // TODO: Proxy and CA-Cert config
-  const targetPath = join(DELETE_ME_RESPONSE_CACHE_PATH, context.requestItem.uid);
+  const targetPath = join(context.dataDir, context.requestItem.uid);
   await rm(targetPath, { force: true });
 
   context.timeline = new Timeline();
