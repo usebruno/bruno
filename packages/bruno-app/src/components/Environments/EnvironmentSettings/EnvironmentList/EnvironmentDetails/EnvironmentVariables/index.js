@@ -13,45 +13,11 @@ import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
 import { maskInputValue } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, collection, isModified, setIsModified }) => {
+const EnvironmentVariables = ({ collection, isModified, setIsModified, formik }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const formik = useFormik({
-    enableReinitialize: true,
-    initialValues: environment.variables || [],
-    validationSchema: Yup.array().of(
-      Yup.object({
-        enabled: Yup.boolean(),
-        name: Yup.string()
-          .required('Name cannot be empty')
-          .matches(
-            variableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
-          )
-          .trim(),
-        secret: Yup.boolean(),
-        type: Yup.string(),
-        uid: Yup.string(),
-        value: Yup.string().trim().nullable()
-      })
-    ),
-    onSubmit: (values) => {
-      if (!formik.dirty) {
-        toast.error('Nothing to save');
-        return;
-      }
-
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
-        .then(() => {
-          toast.success('Changes saved successfully');
-          formik.resetForm({ values });
-          // toast.success('(modified set to false)');
-          setIsModified(false); //added to say we don't have changes compared old (we saved, so new = old.)
-        })
-        .catch(() => toast.error('An error occurred while saving the changes'));
-    }
-  });
+  //Defining formik in EnvironmentSettings instead.
 
   // Effect to track modifications.
   React.useEffect(() => {

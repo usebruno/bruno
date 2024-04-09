@@ -10,16 +10,44 @@ import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import { toastError } from 'utils/common/error';
 
-const EnvironmentList = ({ collection, isModified, setIsModified }) => {
+import ConfirmSwitchEnv from './ConfirmSwitchEnv';
+// import ConfirmSwitchEnv from './ConfirmSwitchEnv';
+
+//need some sort of state that tracks if we should open or close the modal.
+//
+//When to set true?? when user tries clicking AND isModified, then yes show the box!!
+//(hm so maybe don't even need this state)
+//if true
+//in calling confirmSwitchEnv, define what onCloseSave is when passing it in, like a anonymous function
+
+const EnvironmentList = ({
+  selectedEnvironment,
+  setSelectedEnvironment,
+  collection,
+  isModified,
+  setIsModified,
+  formik
+}) => {
   // Pass isModified as a prop
   const { environments } = collection;
-  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
+  //const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
 
+  const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
+  const [tempSelectedEnvironment, setTempSelectedEnvironment] = useState(null);
+  const [clickedCreateEnv, setClickedCreateEnv] = useState(false);
+  const [clickedImport, setClickedImport] = useState(false);
+
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
+
+  // // Define handleSaveChanges function
+  // const handleSaveChanges = () => {
+  //   // Call formik.handleSubmit directly
+  //   formik.handleSubmit();
+  // };
 
   useEffect(() => {
     if (selectedEnvironment) {
@@ -51,12 +79,11 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
 
   // Prevent switching to another environment if isModified is true
   const handleEnvironmentClick = (env) => {
-    console.log(isModified);
     if (!isModified) {
-      //if not modified, let user switch to the environment.
       setSelectedEnvironment(env);
     } else {
-      toast.error('You have unsaved changes in this environment.');
+      setTempSelectedEnvironment(env); // Store the selected environment temporarily
+      setSwitchEnvConfirmClose(true);
     }
   };
 
@@ -68,8 +95,17 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
     if (!isModified) {
       setOpenCreateModal(true);
     } else {
+      if (tempSelectedEnvironment == null) {
+        setTempSelectedEnvironment(selectedEnvironment); //the curr env
+      }
+      //setTempSelectedEnvironment(env);
+      setClickedCreateEnv(true);
+      //setClickedImport(false);
+      // setTempSelectedEnvironment(null);
+      setSwitchEnvConfirmClose(true);
       //setOpenCreateModal(false);
-      toast.error('You have unsaved changes in this environment.');
+      //otherConfirmClose(true);
+      //toast.error('You have unsaved changes in this environment.');
     }
   };
 
@@ -77,18 +113,66 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
     if (!isModified) {
       setOpenImportModal(true);
     } else {
+      setClickedImport(true);
+      //setClickedCreateEnv(false);
+      // setTempSelectedEnvironment(null);
+      setSwitchEnvConfirmClose(true);
       //setOpenCreateModal(false);
-      toast.error('You have unsaved changes in this environment.');
+      //otherConfirmClose(true);
+      //toast.error('You have unsaved changes in this environment.');
     }
   };
 
+  // Opening secrets does not accidentally discard changes.
   const handleSecretsClick = () => {
-    if (!isModified) {
-      setOpenManageSecretsModal(true);
-    } else {
-      //setOpenCreateModal(false);
-      toast.error('You have unsaved changes in this environment.');
+    // if (!isModified) {
+    setOpenManageSecretsModal(true);
+    // } else {
+    //   setTempSelectedEnvironment(null);
+    //   setSwitchEnvConfirmClose(true);
+    //   //setOpenCreateModal(false);
+    //   //toast.error('You have unsaved changes in this environment.');
+    // }
+  };
+
+  const handleConfirmSwitch = (saveChanges) => {
+    if (saveChanges) {
+      formik.handleSubmit();
+      setSwitchEnvConfirmClose(false);
+      if (clickedCreateEnv) {
+        setOpenCreateModal(true);
+        setClickedCreateEnv(false); //set back
+      } else if (clickedImport) {
+        setOpenImportModal(true);
+        setClickedImport(false); //set back
+      }
     }
+    //close without save
+    else {
+      setSwitchEnvConfirmClose(false);
+
+      // if (!saveChanges) {
+      //   setSelectedEnvironment(tempSelectedEnvironment);
+      //   setTempSelectedEnvironment(null); //set back to null
+      // }
+
+      if (clickedCreateEnv) {
+        setOpenCreateModal(true);
+        setClickedCreateEnv(false); //set back
+      } else if (clickedImport) {
+        setOpenImportModal(true);
+        setClickedImport(false); //set back
+      } else {
+        //switch env
+        setSelectedEnvironment(tempSelectedEnvironment);
+      }
+
+      //FOR NOW, BUT ALSO GOTTA HANDLE CREATE, AND IMPORT
+    }
+    // close the dialog box
+    // if (tempSelectedEnvironment != null) { //switch if not null (bc if closew/osave, switch. if saveandclose, switch too)
+    //   setSelectedEnvironment(tempSelectedEnvironment);
+    // }
   };
 
   return (
@@ -96,6 +180,37 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
       {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
+
+      {switchEnvConfirmClose && (
+        <ConfirmSwitchEnv
+          onCancel={() => setSwitchEnvConfirmClose(false)}
+          onCloseWithoutSave={() => handleConfirmSwitch(false)}
+          onSaveAndClose={() => handleConfirmSwitch(true)}
+        />
+      )}
+
+      {/* {switchEnvConfirmClose && (
+      <ConfirmSwitchEnv 
+      //1. onCancel
+      onCancel={() => setSwitchEnvConfirmClose(false)}
+      
+      //2. onCloseWithoutSave
+      onCloseWithoutSave={() => {
+        setSwitchEnvConfirmClose(false);
+        setSelectedEnvironment(env); //go to the selected envrionment right?
+      }}
+      
+      //3. onSaveAndClose 
+      onSaveAndClose={() => {
+        //insert the save button logic here
+        formik.handleSubmit();
+        //set dialog to close
+        setSwitchEnvConfirmClose(false);
+        //switch to new env
+        setSelectedEnvironment(env);
+      }}
+      />)} */}
+
       <div className="flex">
         <div>
           <div className="environments-sidebar flex flex-col">
@@ -132,6 +247,7 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
           collection={collection}
           isModified={isModified} // Pass isModified prop
           setIsModified={setIsModified} // Pass setIsModified prop
+          formik={formik}
         />
       </div>
     </StyledWrapper>
