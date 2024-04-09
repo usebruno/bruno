@@ -8,6 +8,7 @@ import { humanizeRequestBodyMode } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
+import { format, applyEdits } from 'jsonc-parser';
 import { parse, stringify } from 'lossless-json';
 import xmlFormat from 'xml-formatter';
 
@@ -39,8 +40,8 @@ const RequestBodyMode = ({ item, collection }) => {
   const onPrettify = () => {
     if (body?.json && bodyMode === 'json') {
       try {
-        const bodyJson = parse(body.json);
-        const prettyBodyJson = stringify(bodyJson, null, 2);
+        const edits = format(body.json, undefined, { tabSize: 2, insertSpaces: true });
+        const prettyBodyJson = applyEdits(body.json, edits);
         dispatch(
           updateRequestBody({
             content: prettyBodyJson,
