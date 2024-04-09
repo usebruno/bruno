@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  .current-enviroment {
+  .current-environment {
     background-color: ${(props) => props.theme.sidebar.badge.bg};
     border-radius: 15px;
 
