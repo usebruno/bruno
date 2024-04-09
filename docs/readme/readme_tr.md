@@ -73,7 +73,7 @@ Veya seçtiğiniz herhangi bir sürüm kontrol sistemi
 - [Web sitesi](https://www.usebruno.com)
 - [Fiyatlandırma](https://www.usebruno.com/pricing)
 - [İndir](https://www.usebruno.com/downloads)
-- [Github Sponsorları](https://github.com/sponsors/helloanoop).
+- [GitHub Sponsorları](https://github.com/sponsors/helloanoop).
 
 ### Vitrin 🎥
 
@@ -83,7 +83,7 @@ Veya seçtiğiniz herhangi bir sürüm kontrol sistemi
 
 ### Destek ❤️
 
-Bruno'yu seviyorsanız ve açık kaynak çalışmalarımızı desteklemek istiyorsanız, [Github Sponsorları](https://github.com/sponsors/helloanoop) aracılığıyla bize sponsor olmayı düşünün.
+Bruno'yu seviyorsanız ve açık kaynak çalışmalarımızı desteklemek istiyorsanız, [GitHub Sponsorları](https://github.com/sponsors/helloanoop) aracılığıyla bize sponsor olmayı düşünün.
 
 ### Referansları Paylaşın 📣
 

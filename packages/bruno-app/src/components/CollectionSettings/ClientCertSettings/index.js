@@ -30,13 +30,13 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   };
 
   return (
-    <StyledWrapper>
-      <div className="flex items-center font-semibold mt-4 mb-2">
-        <IconCertificate className="mr-1 certificate-icon" size={24} strokeWidth={1.5} /> Client Certificates
-      </div>
+    <StyledWrapper className="w-full h-full">
+      <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
+
+      <h1 className="font-semibold">Client Certificates</h1>
       <ul className="mt-4">
         {!clientCertConfig.length
-          ? 'None'
+          ? 'No client certificates added'
           : clientCertConfig.map((clientCert) => (
               <li key={uuid()} className="flex items-center available-certificates p-2 rounded-lg mb-2">
                 <div className="flex items-center w-full justify-between">
@@ -52,7 +52,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             ))}
       </ul>
 
-      <h1 className="font-semibold mt-8 mb-2">Add Client Certicate</h1>
+      <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">

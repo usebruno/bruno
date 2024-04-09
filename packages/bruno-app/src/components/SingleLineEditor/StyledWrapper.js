@@ -49,6 +49,10 @@ const StyledWrapper = styled.div`
       padding-left: 0;
       padding-right: 0;
     }
+
+    .CodeMirror-selected {
+      background-color: rgba(212, 125, 59, 0.3);
+    }
   }
 `;
 

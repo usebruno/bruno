@@ -25,6 +25,7 @@ const contentSecurityPolicy = [
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
   "img-src 'self' blob: data: https:",
+  "media-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];
 

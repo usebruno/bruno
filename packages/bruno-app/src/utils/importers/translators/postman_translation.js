@@ -1,27 +1,35 @@
 const replacements = {
-  'pm\\.environment\\.get\\(([\'"])([^\'"]*)\\1\\)': 'bru.getEnvVar($1$2$1)',
-  'pm\\.environment\\.set\\(([\'"])([^\'"]*)\\1, ([\'"])([^\'"]*)\\3\\)': 'bru.setEnvVar($1$2$1, $3$4$3)',
-  'pm\\.variables\\.get\\(([\'"])([^\'"]*)\\1\\)': 'bru.getVar($1$2$1)',
-  'pm\\.variables\\.set\\(([\'"])([^\'"]*)\\1, ([\'"])([^\'"]*)\\3\\)': 'bru.setVar($1$2$1, $3$4$3)'
+  'pm\\.environment\\.get\\(': 'bru.getEnvVar(',
+  'pm\\.environment\\.set\\(': 'bru.setEnvVar(',
+  'pm\\.variables\\.get\\(': 'bru.getVar(',
+  'pm\\.variables\\.set\\(': 'bru.setVar(',
+  'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
+  'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
+  'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
+  'pm\\.test\\(': 'test(',
+  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal('
 };
+
+const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({
+  regex: new RegExp(pattern, 'g'),
+  replacement
+}));
 
 export const postmanTranslation = (script) => {
   try {
-    const modifiedScript = Object.entries(replacements || {})
-      .map(([pattern, replacement]) => {
-        const regex = new RegExp(pattern, 'g');
-        return script?.replace(regex, replacement);
-      })
-      .find((modified) => modified !== script);
-    if (modifiedScript) {
-      // translation successful
-      return modifiedScript;
-    } else {
-      // non-translatable script
-      return script?.includes('pm.') ? `// ${script}` : script;
+    let modifiedScript = script;
+    let modified = false;
+    for (const { regex, replacement } of compiledReplacements) {
+      if (regex.test(modifiedScript)) {
+        modifiedScript = modifiedScript.replace(regex, replacement);
+        modified = true;
+      }
     }
+    if (modified && modifiedScript.includes('pm.')) {
+      modifiedScript = modifiedScript.replace(/^(.*pm\..*)$/gm, '// $1');
+    }
+    return modifiedScript;
   } catch (e) {
-    // non-translatable script
-    return script?.includes('pm.') ? `// ${script}` : script;
+    return script;
   }
 };

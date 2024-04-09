@@ -65,6 +65,16 @@ const QueryResultPreview = ({
         </div>
       );
     }
+    case 'preview-audio': {
+      return (
+        <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
+    case 'preview-video': {
+      return (
+        <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
     default:
     case 'raw': {
       return (
