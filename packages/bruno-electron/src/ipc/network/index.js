@@ -218,6 +218,7 @@ const configureRequest = async (
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
         request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = clientCredentialsData;
         request.url = clientCredentialsAccessTokenUrl;
         break;
