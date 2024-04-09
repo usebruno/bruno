@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "fast-xml-parser": "^4.3.5",
-    "json-bigint": "^1.0.0"
+    "json-bigint": "^1.0.0",
+    "lossless-json": "^4.0.1"
   }
 }

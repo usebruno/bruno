@@ -63,7 +63,10 @@ const Headers = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="h-full w-full">
+      <div className="text-xs mb-4 text-muted">
+        Add request headers that will be sent with every request in this collection.
+      </div>
       <table>
         <thead>
           <tr>

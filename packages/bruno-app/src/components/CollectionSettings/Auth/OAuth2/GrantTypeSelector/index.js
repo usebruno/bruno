@@ -37,7 +37,7 @@ const GrantTypeSelector = ({ collection }) => {
   };
 
   useEffect(() => {
-    // initalize redux state with a default oauth2 grant type
+    // initialize redux state with a default oauth2 grant type
     // authorization_code - default option
     !oAuth?.grantType &&
       dispatch(

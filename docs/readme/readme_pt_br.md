@@ -94,7 +94,7 @@ Ou qualquer sistema de controle de versão de sua escolha.
 - [Website](https://www.usebruno.com)
 - [Preços](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [Github Sponsors](https://github.com/sponsors/helloanoop)
+- [GitHub Sponsors](https://github.com/sponsors/helloanoop)
 
 ### Showcase 🎥
 
@@ -104,7 +104,7 @@ Ou qualquer sistema de controle de versão de sua escolha.
 
 ### Apoie ❤️
 
-Au-au! Se você gosta do projeto e deseja apoiar nosso trabalho, considere nos ajudando via [Github Sponsors](https://github.com/sponsors/helloanoop).
+Au-au! Se você gosta do projeto e deseja apoiar nosso trabalho, considere nos ajudando via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Compartilhe sua experiência 📣
 

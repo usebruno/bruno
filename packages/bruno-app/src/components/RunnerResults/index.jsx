@@ -29,7 +29,7 @@ export default function RunnerResults({ collection }) {
 
   const autoScrollRunnerBody = () => {
     if (runnerBodyRef?.current) {
-      // mimicks the native terminal scroll style
+      // mimics the native terminal scroll style
       runnerBodyRef.current.scrollTo(0, 100000);
     }
   };

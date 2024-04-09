@@ -38,7 +38,10 @@ const Script = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col h-full">
+      <div className="text-xs mb-4 text-muted">
+        Write pre and post-request scripts that will run before and after any request in this collection is sent.
+      </div>
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
         <CodeEditor
