@@ -37,7 +37,11 @@ const Auth = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-2">
+    <StyledWrapper className="w-full h-full">
+      <div className="text-sm mb-6">
+        Configures authentication for the entire collection. This applies to all requests using the 'Inherit' option in
+        the 'Auth' tab, as well as any new requests added to this collection.
+      </div>
       <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} />
       </div>
