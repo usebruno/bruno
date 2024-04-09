@@ -117,7 +117,7 @@ type ResponseParser = ((expr: string, ...fns: any) => any) & {
 };
 
 export const createResponseParser = (response: Response) => {
-  let bodyData: any = fs.readFileSync(response.path, { encoding: response.encoding }).toString();
+  let bodyData: any = fs.readFileSync(response.path, { encoding: response.encoding });
   try {
     bodyData = parse(bodyData);
   } catch {}

@@ -59,7 +59,7 @@ export async function request(
     context.timings.stopAll();
   }
 
-  return cleanJson(context);
+  return context;
 }
 
 async function doRequest(context: RequestContext): Promise<RequestContext> {

@@ -3,7 +3,7 @@ import { runScript } from '../runtime/script-runner';
 import os from 'node:os';
 
 export async function preRequestScript(context: RequestContext) {
-  const collectionPreRequestScript = context.collection.request?.script.req ?? '';
+  const collectionPreRequestScript = context.collection.root.request?.script.req ?? '';
   const requestPreRequestScript = context.requestItem.request.script.req ?? '';
   const preRequestScript = collectionPreRequestScript + os.EOL + requestPreRequestScript;
 

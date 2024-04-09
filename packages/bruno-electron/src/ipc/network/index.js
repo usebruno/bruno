@@ -443,14 +443,18 @@ const registerNetworkIpc = (mainWindow) => {
       }
     });
 
+    if (res.error) {
+      console.error(res.error);
+    }
+
     res.new = true;
 
     return {
-      status: res.response.statusCode,
+      status: res.response?.statusCode,
       statusText: 'OK',
-      headers: res.response.headers,
+      headers: res.response?.headers,
       size: 1,
-      duration: res.response.responseTime,
+      duration: res.response?.responseTime,
       isNew: true,
       timeline: res.timeline,
       debug: res.debug
@@ -1154,7 +1158,12 @@ const registerNetworkIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:get-response-body', async (_event, requestId) => {
-    const responsePath = path.join(app.getPath('userData'), 'responseCache', requestId);
+    let responsePath;
+    try {
+      responsePath = path.join(app.getPath('userData'), 'responseCache', requestId);
+    } catch (e) {
+      return null;
+    }
 
     const rawData = await fsPromise.readFile(responsePath);
     let data;

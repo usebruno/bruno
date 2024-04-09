@@ -70,7 +70,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       case 'tests': {
         return <TestResults results={item.testResults} assertionResults={item.assertionResults} />;
       }
-
       default: {
         return <div>404 | Not found</div>;
       }

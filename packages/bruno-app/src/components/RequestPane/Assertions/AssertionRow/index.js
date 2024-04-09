@@ -173,7 +173,6 @@ const AssertionRow = ({
             singleLine
             value={value}
             theme={storedTheme}
-            readOnly={true}
             onSave={onSave}
             onChange={(newValue) =>
               handleAssertionChange(

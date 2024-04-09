@@ -232,18 +232,21 @@ export type Collection = {
   lastAction: null | any;
   collapsed: boolean;
   environments: CollectionEnvironment[];
-  request?: {
-    auth: AuthMode;
-    headers: {
-      name: string;
-      value: string;
-      enabled: boolean;
-    }[];
-    script: {
-      req?: string;
-      res?: string;
+  root: {
+    request?: {
+      auth: AuthMode;
+      headers: {
+        name: string;
+        value: string;
+        enabled: boolean;
+      }[];
+      script: {
+        req?: string;
+        res?: string;
+      };
+      tests?: string;
     };
-    tests?: string;
+    docs: string;
   };
 };
 

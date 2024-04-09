@@ -1,4 +1,4 @@
-import { RequestContext, UndiciRequest } from '../types';
+import { RequestContext, Response, UndiciRequest } from '../types';
 import { Client, Dispatcher } from 'undici';
 import { createWriteStream } from 'node:fs';
 import { rm } from 'node:fs/promises';
@@ -95,58 +95,66 @@ async function doRequest(
   timeline: Timeline,
   context: Readonly<RequestContext>
 ): Promise<RequestContext['response']> {
-  return new Promise(async (resolve, reject) => {
-    const startTime = performance.now();
+  const startTime = performance.now();
 
-    let finalRequestHeaders: Record<string, string>;
-    let finalMethod: string;
-    const headerInterceptor = createFinalDataInterceptor(undiciRequest.url, (method, finalHeader) => {
-      finalMethod = method;
-      finalRequestHeaders = finalHeader;
+  let finalRequestHeaders: Record<string, string>;
+  let finalMethod: string;
+  const headerInterceptor = createFinalDataInterceptor(undiciRequest.url, (method, finalHeader) => {
+    finalMethod = method;
+    finalRequestHeaders = finalHeader;
+  });
+
+  // Not that interceptors are executed in reverse order
+  const interceptors = [headerInterceptor];
+  if (context.requestItem.request.auth.mode === 'awsv4') {
+    interceptors.push(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
+  }
+
+  const client = new Client(undiciRequest.url, {
+    strictContentLength: false
+  }).compose(interceptors);
+
+  // The stream callback fires when the first response bytes are received.
+  // And we have to wait for all other callbacks and the stream to resolve
+  let resolve: (response: Response) => void, reject: (e: unknown) => void;
+  const responseDataPromise = new Promise<Response>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
+    const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
+
+    timeline.add({
+      requestMethod: finalMethod,
+      requestUrl: undiciRequest.url + undiciRequest.options.path,
+      requestHeaders: finalRequestHeaders,
+      responseHeader: headers,
+      statusCode,
+      info
     });
 
-    // Not that interceptors are executed in reverse order
-    const interceptors = [headerInterceptor];
-    if (context.requestItem.request.auth.mode === 'awsv4') {
-      interceptors.push(createAwsV4AuthInterceptor(undiciRequest.url, context.requestItem.request.auth));
+    if (nextRequest !== null) {
+      doRequest(nextRequest, targetPath, timeline, context).then(resolve).catch(reject);
+      // TODO: In the future we could write the start of the response into the timeline
+      // Write this response to /dev/null
+      return createWriteStream(os.devNull);
     }
 
-    const client = new Client(undiciRequest.url, {
-      strictContentLength: false
-    }).compose(interceptors);
+    const encoding = parseEncodingFromResponseHeaders(headers);
 
-    await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
-      const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
-
-      timeline.add({
-        requestMethod: finalMethod,
-        requestUrl: undiciRequest.url + undiciRequest.options.path,
-        requestHeaders: finalRequestHeaders,
-        responseHeader: headers,
-        statusCode,
-        info
-      });
-
-      if (nextRequest !== null) {
-        doRequest(nextRequest, targetPath, timeline, context).then(resolve).catch(reject);
-        // TODO: In the future we could write the start of the response into the timeline
-        // Write this response to /dev/null
-        return createWriteStream(os.devNull);
-      }
-
-      const encoding = parseEncodingFromResponseHeaders(headers);
-
-      resolve({
-        headers,
-        statusCode,
-        encoding,
-        path: targetPath,
-        responseTime: Math.round(performance.now() - startTime)
-      });
-
-      return createWriteStream(targetPath, { autoClose: true, encoding });
+    resolve({
+      headers,
+      statusCode,
+      encoding,
+      path: targetPath,
+      responseTime: Math.round(performance.now() - startTime)
     });
+
+    return createWriteStream(targetPath, { autoClose: true, encoding });
   });
+
+  return await responseDataPromise;
 }
 
 export async function undiciRequest(context: RequestContext) {

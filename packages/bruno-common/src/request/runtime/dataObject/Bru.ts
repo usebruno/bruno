@@ -18,7 +18,7 @@ export class Bru {
   }
 
   getEnvName() {
-    return this.envVariables.__name__;
+    return this.environmentName;
   }
 
   getProcessEnv(key: string): unknown {

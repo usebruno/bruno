@@ -17,7 +17,7 @@ const QueryResult = ({ item, collection, width, disableRunEventListener, headers
     const abortController = new AbortController();
     (async () => {
       const data = await getResponseBody(item.uid);
-      if (!abortController.signal.aborted) {
+      if (!abortController.signal.aborted && data !== null) {
         setData(data);
       }
     })();
