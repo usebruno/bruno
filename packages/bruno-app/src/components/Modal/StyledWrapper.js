@@ -21,7 +21,7 @@ const Wrapper = styled.div`
     align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
-    z-index: 11;
+    z-index: 20;
     background-color: rgba(0, 0, 0, 0.5);
   }
 
