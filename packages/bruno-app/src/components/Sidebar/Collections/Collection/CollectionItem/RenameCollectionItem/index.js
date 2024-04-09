@@ -6,8 +6,8 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem } from 'providers/ReduxStore/slices/collections/actions';
 import { dirnameRegex } from 'utils/common/regex';
+import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -15,7 +15,13 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
 
   const rename = useMutation({
     mutationFn: async (values) => {
-      await dispatch(renameItem(values.name, item.uid, collection.uid));
+      // if there is unsaved changes in the request,
+      // save them before renaming the request
+      if (!isFolder && item.draft) {
+        await dispatch(saveRequest(item.uid, collection.uid, true));
+      }
+      dispatch(renameItem(values.name, item.uid, collection.uid));
+      onClose();
     },
     onSuccess: (_, values) => {
       onClose();

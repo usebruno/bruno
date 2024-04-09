@@ -75,6 +75,11 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     try {
       await window.loadURL(authorizeUrl);
     } catch (error) {
+      // If browser redirects before load finished, loadURL throws an error with code ERR_ABORTED. This should be ignored.
+      if (error.code === 'ERR_ABORTED') {
+        console.debug('Ignoring ERR_ABORTED during authorizeUserInWindow');
+        return;
+      }
       reject(error);
       window.close();
     }

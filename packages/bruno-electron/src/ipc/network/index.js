@@ -213,6 +213,7 @@ const configureRequest = async (
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
         request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = clientCredentialsData;
         request.url = clientCredentialsAccessTokenUrl;
         break;
@@ -928,7 +929,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            let response;
+            let response, responseTime;
             try {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
@@ -936,6 +937,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
+              response.responseTime = response.headers.get('request-duration');
 
               try {
                 await fsPromise.mkdir(path.join(app.getPath('userData'), 'responseCache'));
@@ -950,7 +952,8 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: response.statusText,
                   headers: response.headers,
                   duration: timeEnd - timeStart,
-                  size: Buffer.byteLength(dataBuffer)
+                  size: Buffer.byteLength(dataBuffer),
+                  responseTime: response.headers.get('request-duration')
                 },
                 ...eventData
               });
@@ -968,7 +971,8 @@ const registerNetworkIpc = (mainWindow) => {
                   statusText: error.response.statusText,
                   headers: error.response.headers,
                   duration: timeEnd - timeStart,
-                  size: Buffer.byteLength(dataBuffer)
+                  size: Buffer.byteLength(dataBuffer),
+                  responseTime: error.response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success

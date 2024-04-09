@@ -9,6 +9,9 @@ const GlobalStyle = createGlobalStyle`
   .text-link {
     color: ${(props) => props.theme.textLink};
   }
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 
   .btn {
     text-align: center;
