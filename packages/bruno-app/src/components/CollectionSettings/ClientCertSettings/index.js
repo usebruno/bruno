@@ -31,7 +31,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
 
   return (
     <StyledWrapper className="w-full h-full">
-      <div className="text-sm mb-6">Add client certificates to be used for specific domains.</div>
+      <div className="text-xs mb-4 text-muted">Add client certificates to be used for specific domains.</div>
 
       <h1 className="font-semibold">Client Certificates</h1>
       <ul className="mt-4">

@@ -96,7 +96,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   return (
     <StyledWrapper className="h-full w-full">
-      <div className="text-sm mb-6">Configure proxy settings for this collection.</div>
+      <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
