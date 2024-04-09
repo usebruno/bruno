@@ -1,5 +1,6 @@
 import React, { useEffect, useState, forwardRef, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { toastError } from 'utils/common/error';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
@@ -8,17 +9,8 @@ import { IconDownload, IconShieldLock } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
-import { toastError } from 'utils/common/error';
 
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
-// import ConfirmSwitchEnv from './ConfirmSwitchEnv';
-
-//need some sort of state that tracks if we should open or close the modal.
-//
-//When to set true?? when user tries clicking AND isModified, then yes show the box!!
-//(hm so maybe don't even need this state)
-//if true
-//in calling confirmSwitchEnv, define what onCloseSave is when passing it in, like a anonymous function
 
 const EnvironmentList = ({
   selectedEnvironment,
@@ -42,12 +34,6 @@ const EnvironmentList = ({
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
-
-  // // Define handleSaveChanges function
-  // const handleSaveChanges = () => {
-  //   // Call formik.handleSubmit directly
-  //   formik.handleSubmit();
-  // };
 
   useEffect(() => {
     if (selectedEnvironment) {
@@ -98,14 +84,8 @@ const EnvironmentList = ({
       if (tempSelectedEnvironment == null) {
         setTempSelectedEnvironment(selectedEnvironment); //the curr env
       }
-      //setTempSelectedEnvironment(env);
       setClickedCreateEnv(true);
-      //setClickedImport(false);
-      // setTempSelectedEnvironment(null);
       setSwitchEnvConfirmClose(true);
-      //setOpenCreateModal(false);
-      //otherConfirmClose(true);
-      //toast.error('You have unsaved changes in this environment.');
     }
   };
 
@@ -114,25 +94,13 @@ const EnvironmentList = ({
       setOpenImportModal(true);
     } else {
       setClickedImport(true);
-      //setClickedCreateEnv(false);
-      // setTempSelectedEnvironment(null);
       setSwitchEnvConfirmClose(true);
-      //setOpenCreateModal(false);
-      //otherConfirmClose(true);
-      //toast.error('You have unsaved changes in this environment.');
     }
   };
 
   // Opening secrets does not accidentally discard changes.
   const handleSecretsClick = () => {
-    // if (!isModified) {
     setOpenManageSecretsModal(true);
-    // } else {
-    //   setTempSelectedEnvironment(null);
-    //   setSwitchEnvConfirmClose(true);
-    //   //setOpenCreateModal(false);
-    //   //toast.error('You have unsaved changes in this environment.');
-    // }
   };
 
   const handleConfirmSwitch = (saveChanges) => {
@@ -151,11 +119,6 @@ const EnvironmentList = ({
     else {
       setSwitchEnvConfirmClose(false);
 
-      // if (!saveChanges) {
-      //   setSelectedEnvironment(tempSelectedEnvironment);
-      //   setTempSelectedEnvironment(null); //set back to null
-      // }
-
       if (clickedCreateEnv) {
         setOpenCreateModal(true);
         setClickedCreateEnv(false); //set back
@@ -166,13 +129,7 @@ const EnvironmentList = ({
         //switch env
         setSelectedEnvironment(tempSelectedEnvironment);
       }
-
-      //FOR NOW, BUT ALSO GOTTA HANDLE CREATE, AND IMPORT
     }
-    // close the dialog box
-    // if (tempSelectedEnvironment != null) { //switch if not null (bc if closew/osave, switch. if saveandclose, switch too)
-    //   setSelectedEnvironment(tempSelectedEnvironment);
-    // }
   };
 
   return (
@@ -181,38 +138,17 @@ const EnvironmentList = ({
       {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
 
-      {switchEnvConfirmClose && (
-        <ConfirmSwitchEnv
-          onCancel={() => setSwitchEnvConfirmClose(false)}
-          onCloseWithoutSave={() => handleConfirmSwitch(false)}
-          onSaveAndClose={() => handleConfirmSwitch(true)}
-        />
-      )}
-
-      {/* {switchEnvConfirmClose && (
-      <ConfirmSwitchEnv 
-      //1. onCancel
-      onCancel={() => setSwitchEnvConfirmClose(false)}
-      
-      //2. onCloseWithoutSave
-      onCloseWithoutSave={() => {
-        setSwitchEnvConfirmClose(false);
-        setSelectedEnvironment(env); //go to the selected envrionment right?
-      }}
-      
-      //3. onSaveAndClose 
-      onSaveAndClose={() => {
-        //insert the save button logic here
-        formik.handleSubmit();
-        //set dialog to close
-        setSwitchEnvConfirmClose(false);
-        //switch to new env
-        setSelectedEnvironment(env);
-      }}
-      />)} */}
-
       <div className="flex">
         <div>
+          {switchEnvConfirmClose && (
+            <div className="flex items-center justify-between tab-container px-1">
+              <ConfirmSwitchEnv
+                onCancel={() => setSwitchEnvConfirmClose(false)}
+                onCloseWithoutSave={() => handleConfirmSwitch(false)}
+                onSaveAndClose={() => handleConfirmSwitch(true)}
+              />
+            </div>
+          )}
           <div className="environments-sidebar flex flex-col">
             {environments &&
               environments.length &&
