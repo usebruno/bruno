@@ -9,6 +9,8 @@ import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
+import { parse, stringify } from 'lossless-json';
+import xmlFormat from 'xml-formatter';
 
 const RequestBodyMode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -49,6 +51,19 @@ const RequestBodyMode = ({ item, collection }) => {
         );
       } catch (e) {
         toastError(new Error('Unable to prettify. Invalid JSON format.'));
+      }
+    } else if (body?.xml && bodyMode === 'xml') {
+      try {
+        const prettyBodyXML = xmlFormat(body.xml, { collapseContent: true });
+        dispatch(
+          updateRequestBody({
+            content: prettyBodyXML,
+            itemUid: item.uid,
+            collectionUid: collection.uid
+          })
+        );
+      } catch (e) {
+        toastError(new Error('Unable to prettify. Invalid XML format.'));
       }
     }
   };
@@ -125,7 +140,7 @@ const RequestBodyMode = ({ item, collection }) => {
           </div>
         </Dropdown>
       </div>
-      {bodyMode === 'json' && (
+      {(bodyMode === 'json' || bodyMode === 'xml') && (
         <button className="ml-1" onClick={onPrettify}>
           Prettify
         </button>
