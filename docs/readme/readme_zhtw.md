@@ -73,7 +73,7 @@ sudo apt install bruno
 - [網站](https://www.usebruno.com)
 - [定價](https://www.usebruno.com/pricing)
 - [下載](https://www.usebruno.com/downloads)
-- [Github 贊助](https://github.com/sponsors/helloanoop).
+- [GitHub 贊助](https://github.com/sponsors/helloanoop).
 
 ### 展示 🎥
 
@@ -83,7 +83,7 @@ sudo apt install bruno
 
 ### 贊助支持 ❤️
 
-如果您喜歡 Bruno 和希望支持我們在開源上的工作，請考慮使用 [Github Sponsors](https://github.com/sponsors/helloanoop) 來贊助我們。
+如果您喜歡 Bruno 和希望支持我們在開源上的工作，請考慮使用 [GitHub Sponsors](https://github.com/sponsors/helloanoop) 來贊助我們。
 
 ### 分享感想 📣
 

@@ -21,6 +21,9 @@ const General = ({ close }) => {
       enabled: Yup.boolean(),
       filePath: Yup.string().nullable()
     }),
+    keepDefaultCaCertificates: Yup.object({
+      enabled: Yup.boolean()
+    }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.mixed()
@@ -42,6 +45,9 @@ const General = ({ close }) => {
       customCaCertificate: {
         enabled: get(preferences, 'request.customCaCertificate.enabled', false),
         filePath: get(preferences, 'request.customCaCertificate.filePath', null)
+      },
+      keepDefaultCaCertificates: {
+        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', false)
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
@@ -67,6 +73,9 @@ const General = ({ close }) => {
           customCaCertificate: {
             enabled: newPreferences.customCaCertificate.enabled,
             filePath: newPreferences.customCaCertificate.filePath
+          },
+          keepDefaultCaCertificates: {
+            enabled: newPreferences.keepDefaultCaCertificates.enabled
           },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
@@ -158,6 +167,23 @@ const General = ({ close }) => {
             </button>
           </div>
         )}
+        <div className="flex items-center mt-2">
+          <input
+            id="keepDefaultCaCertificatesEnabled"
+            type="checkbox"
+            name="keepDefaultCaCertificates.enabled"
+            checked={formik.values.keepDefaultCaCertificates.enabled}
+            onChange={formik.handleChange}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled ? false : true}
+          />
+          <label
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            htmlFor="keepDefaultCaCertificatesEnabled"
+          >
+            Keep default CA Certificates
+          </label>
+        </div>
         <div className="flex items-center mt-2">
           <input
             id="storeCookies"
