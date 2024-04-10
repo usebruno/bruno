@@ -44,16 +44,16 @@ If you need to collect the results of your API tests, you can specify the `--out
 bru run folder --output results.json
 ```
 
-If you need to specify a custom CA certificate to validate the request peer, you can specify the `--cacert` option:
+If you need to run a set of requests that connect to peers with both publicly and privately signed certificates respectively, you can add private CA certificates via the `--cacert` option. By default, these certificates will be used in addition to the default truststore:
 
 ```bash
-bru run request.bru --cacert myCustomCA.pem
+bru run folder --cacert myCustomCA.pem
 ```
 
-If you need to run a set of requests that connect to peers with both publicly and privately signed certificates respectively, you can specify the `--extend-truststore` option in addition to the `--cacert` option:
+If you need to limit the trusted CA to a specified set when validating the request peer, provide them via `--cacert` and in addition use `--ignore-truststore` to disable the default truststore:
 
 ```bash
-bru run folder --cacert myCustomCA.pem --extend-truststore
+bru run request.bru --cacert myCustomCA.pem --ignore-truststore
 ```
 
 ## Demo

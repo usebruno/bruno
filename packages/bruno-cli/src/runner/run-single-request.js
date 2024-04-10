@@ -105,10 +105,10 @@ const runSingleRequest = async function (
     } else {
       const caCertArray = [options['cacert'], process.env.SSL_CERT_FILE, process.env.NODE_EXTRA_CA_CERTS];
       const caCert = caCertArray.find((el) => el);
-      if (options['cacert'] && caCert && caCert.length > 1) {
+      if (caCert && caCert.length > 1) {
         try {
           let caCertBuffer = fs.readFileSync(caCert);
-          if (options['extendTruststore']) {
+          if (!options['ignoreTruststore']) {
             caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
           }
           httpsAgentRequestFields['ca'] = caCertBuffer;

@@ -189,11 +189,11 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'CA certificate to verify peer against'
     })
-    .option('extend-truststore', {
+    .option('ignore-truststore', {
       type: 'boolean',
       default: false,
       description:
-        'The specified custom CA certificate (--cacert) will be used in addition to the default truststore, if this option is specified. Evaluated in combination with "--cacert" only.'
+        'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
     })
     .option('env', {
       describe: 'Environment variables',
@@ -246,14 +246,15 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
+
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
       '$0 run request.bru --cacert myCustomCA.pem',
-      'Use a custom CA certificate when validating the peer of this request.'
+      'Use a custom CA certificate in combination with the default truststore when validating the peer of this request.'
     )
     .example(
-      '$0 run folder --cacert myCustomCA.pem --extend-truststore',
-      'Use a custom CA certificate in combination with the default truststore when validating the peers of the requests in the specified folder.'
+      '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
+      'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     );
 };
 
@@ -262,7 +263,7 @@ const handler = async function (argv) {
     let {
       filename,
       cacert,
-      extendTruststore,
+      ignoreTruststore,
       env,
       envVar,
       insecure,
@@ -362,7 +363,7 @@ const handler = async function (argv) {
         }
       }
     }
-    options['extendTruststore'] = extendTruststore;
+    options['ignoreTruststore'] = ignoreTruststore;
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
