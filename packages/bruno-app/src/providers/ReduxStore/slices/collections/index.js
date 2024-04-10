@@ -360,7 +360,7 @@ export const collectionsSlice = createSlice({
             urlParam.uid = existingParam ? existingParam.uid : uuid();
             urlParam.enabled = true;
 
-            // once found, remove it - trying our best here to accomodate duplicate query params
+            // once found, remove it - trying our best here to accommodate duplicate query params
             if (existingParam) {
               enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
             }
@@ -401,6 +401,10 @@ export const collectionsSlice = createSlice({
             case 'digest':
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
+              break;
+            case 'oauth2':
+              item.draft.request.auth.mode = 'oauth2';
+              item.draft.request.auth.oauth2 = action.payload.content;
               break;
           }
         }
@@ -674,6 +678,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          item.draft.request.auth = {};
           item.draft.request.auth.mode = action.payload.mode;
         }
       }
@@ -974,6 +979,7 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
         set(collection, 'root.request.auth.mode', action.payload.mode);
       }
     },
@@ -981,6 +987,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
+        set(collection, 'root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
@@ -993,6 +1001,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'oauth2':
+            set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
         }
       }

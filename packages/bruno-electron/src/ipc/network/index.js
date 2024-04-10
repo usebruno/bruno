@@ -2,6 +2,7 @@ const os = require('os');
 const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
+const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
@@ -9,9 +10,10 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact } = require('lodash');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, runScript } = require('@usebruno/js');
+const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
+const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
@@ -29,6 +31,12 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const {
+  resolveOAuth2AuthorizationCodeAccessToken,
+  transformClientCredentialsRequest,
+  transformPasswordCredentialsRequest
+} = require('./oauth2-helper');
+const Oauth2Store = require('../../store/oauth2');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -98,7 +106,11 @@ const configureRequest = async (
   if (preferencesUtil.shouldUseCustomCaCertificate()) {
     const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
     if (caCertFilePath) {
-      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+      let caCertBuffer = fs.readFileSync(caCertFilePath);
+      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
+        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+      }
+      httpsAgentRequestFields['ca'] = caCertBuffer;
     }
   }
 
@@ -189,6 +201,40 @@ const configureRequest = async (
 
   const axiosInstance = makeAxiosInstance();
 
+  if (request.oauth2) {
+    let requestCopy = cloneDeep(request);
+    switch (request?.oauth2?.grantType) {
+      case 'authorization_code':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
+          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = authorizationCodeData;
+        request.url = authorizationCodeAccessTokenUrl;
+        break;
+      case 'client_credentials':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
+          await transformClientCredentialsRequest(requestCopy);
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = clientCredentialsData;
+        request.url = clientCredentialsAccessTokenUrl;
+        break;
+      case 'password':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
+          requestCopy
+        );
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = passwordData;
+        request.url = passwordAccessTokenUrl;
+        break;
+    }
+  }
+
   if (request.awsv4config) {
     request.awsv4config = await resolveAwsV4Credentials(request);
     addAwsV4Interceptor(axiosInstance, request);
@@ -208,7 +254,6 @@ const configureRequest = async (
       request.headers['cookie'] = cookieString;
     }
   }
-
   return axiosInstance;
 };
 
@@ -216,7 +261,7 @@ const parseDataFromResponse = (response) => {
   const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
-  // Overwrite the original data for backwards compatability
+  // Overwrite the original data for backwards compatibility
   let data = dataBuffer.toString(charset || 'utf-8');
   // Try to parse response to JSON, this can quietly fail
   try {
@@ -463,6 +508,15 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -477,15 +531,6 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         cancelTokenUid
       });
-
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
 
       let response, responseTime;
       try {
@@ -531,7 +576,6 @@ const registerNetworkIpc = (mainWindow) => {
           setCookieHeaders = Array.isArray(response.headers['set-cookie'])
             ? response.headers['set-cookie']
             : [response.headers['set-cookie']];
-
           for (let setCookieHeader of setCookieHeaders) {
             if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
               addCookieToJar(setCookieHeader, request.url);
@@ -542,6 +586,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // send domain cookies to renderer
       const domainsWithCookies = await getDomainsWithCookies();
+
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
@@ -647,6 +692,91 @@ const registerNetworkIpc = (mainWindow) => {
 
       return Promise.reject(error);
     }
+  });
+
+  ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, collectionVariables) => {
+    try {
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const requestUid = uuid();
+
+      const collectionRoot = get(collection, 'root', {});
+      const _request = collectionRoot?.request;
+      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      const axiosInstance = await configureRequest(
+        collection.uid,
+        request,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
+      try {
+        response = await axiosInstance(request);
+      } catch (error) {
+        if (error?.response) {
+          response = error.response;
+        } else {
+          return Promise.reject(error);
+        }
+      }
+
+      const { data } = parseDataFromResponse(response);
+      response.data = data;
+
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = new Oauth2Store();
+        oauth2Store.clearSessionIdOfCollection(uid);
+        resolve();
+      } catch (err) {
+        reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
   });
 
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
@@ -859,7 +989,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            let response;
+            let response, responseTime;
             try {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
@@ -867,6 +997,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
+              response.responseTime = response.headers.get('request-duration');
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
@@ -877,7 +1008,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: response.data
+                  data: response.data,
+                  responseTime: response.headers.get('request-duration')
                 },
                 ...eventData
               });
@@ -894,7 +1026,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data
+                  data: error.response.data,
+                  responseTime: error.response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success

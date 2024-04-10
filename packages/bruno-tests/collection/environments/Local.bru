@@ -1,8 +1,28 @@
 vars {
-  host: http://localhost:80
+  host: http://localhost:8080
   bearer_auth_token: your_secret_token
   basic_auth_password: della
-  env.var1: envVar1
-  env-var2: envVar2
-  bark: {{process.env.PROC_ENV_VAR}}
+  client_id: client_id_1
+  client_secret: client_secret_1
+  auth_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  passwordCredentials_username: foo
+  passwordCredentials_password: bar
+  github_authorize_url: https://github.com/login/oauth/authorize
+  github_access_token_url: https://github.com/login/oauth/access_token
+  google_auth_url: https://accounts.google.com/o/oauth2/auth
+  google_access_token_url: https://accounts.google.com/o/oauth2/token
+  google_scope: https://www.googleapis.com/auth/userinfo.email
 }
+vars:secret [
+  github_client_secret,
+  github_client_id,
+  google_client_id,
+  google_client_secret,
+  github_authorization_code,
+  passwordCredentials_access_token,
+  client_credentials_access_token,
+  authorization_code_access_token,
+  github_access_token
+]

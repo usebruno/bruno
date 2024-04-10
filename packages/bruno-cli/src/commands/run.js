@@ -6,6 +6,7 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
+const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
@@ -203,7 +204,7 @@ const builder = async (yargs) => {
     })
     .option('format', {
       alias: 'f',
-      describe: 'Format of the file results; available formats are "json" (default) or "junit"',
+      describe: 'Format of the file results; available formats are "json" (default), "junit" or "html"',
       default: 'json',
       type: 'string'
     })
@@ -235,7 +236,11 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.xml --format junit',
       'Run a request and write the results to results.xml in junit format in the current directory'
     )
-    .example('$0 run request.bru --test-only', 'Run all requests that have a test');
+    .example(
+      '$0 run request.bru --output results.html --format html',
+      'Run a request and write the results to results.html in html format in the current directory'
+    )
+    .example('$0 run request.bru --tests-only', 'Run all requests that have a test');
 };
 
 const handler = async function (argv) {
@@ -283,6 +288,7 @@ const handler = async function (argv) {
       const envBruContent = fs.readFileSync(envFile, 'utf8');
       const envJson = bruToEnvJson(envBruContent);
       envVars = getEnvVars(envJson);
+      envVars.__name__ = env;
     }
 
     if (envVar) {
@@ -331,8 +337,8 @@ const handler = async function (argv) {
       }
     }
 
-    if (['json', 'junit'].indexOf(format) === -1) {
-      console.error(chalk.red(`Format must be one of "json" or "junit"`));
+    if (['json', 'junit', 'html'].indexOf(format) === -1) {
+      console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
       return;
     }
 
@@ -483,6 +489,8 @@ const handler = async function (argv) {
         fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
       } else if (format === 'junit') {
         makeJUnitOutput(results, outputPath);
+      } else if (format === 'html') {
+        makeHtmlOutput(outputJson, outputPath);
       }
 
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));

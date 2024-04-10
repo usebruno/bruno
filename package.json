@@ -49,5 +49,9 @@
   },
   "overrides": {
     "rollup": "3.2.5"
+  },
+  "dependencies": {
+    "json-bigint": "^1.0.0",
+    "lossless-json": "^4.0.1"
   }
 }

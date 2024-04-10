@@ -8,7 +8,7 @@ const lightTheme = {
     text: {
       green: '#047857',
       danger: 'rgb(185, 28, 28)',
-      muted: '#4b5563',
+      muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
     },
@@ -137,6 +137,21 @@ const lightTheme = {
 
     sidebar: {
       bg: '#eaeaea'
+    }
+  },
+
+  notifications: {
+    bg: 'white',
+    list: {
+      bg: '#eaeaea',
+      borderRight: 'transparent',
+      borderBottom: '#d3d3d3',
+      hoverBg: '#e4e4e4',
+      active: {
+        border: '#546de5',
+        bg: '#dcdcdc',
+        hoverBg: '#dcdcdc'
+      }
     }
   },
 

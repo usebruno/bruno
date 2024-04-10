@@ -12,6 +12,7 @@ const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const registerNotificationsIpc = require('./ipc/notifications');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -21,8 +22,10 @@ const contentSecurityPolicy = [
   "script-src * 'unsafe-inline' 'unsafe-eval'",
   "connect-src * 'unsafe-inline'",
   "font-src 'self' https:",
-  "form-action 'none'",
+  // this has been commented out to make oauth2 work
+  // "form-action 'none'",
   "img-src 'self' blob: data: https:",
+  "media-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];
 
@@ -119,6 +122,7 @@ app.on('ready', async () => {
   registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNotificationsIpc(mainWindow, watcher);
 });
 
 // Quit the app once all windows are closed

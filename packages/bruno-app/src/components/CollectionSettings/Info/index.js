@@ -23,6 +23,7 @@ function countRequests(items) {
 const Info = ({ collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
+      <div className="text-xs mb-4 text-muted">General information about the collection.</div>
       <table className="w-full border-collapse">
         <tbody>
           <tr className="">

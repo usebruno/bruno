@@ -105,11 +105,20 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     const password = _interpolate(request.auth.password) || '';
 
     // use auth header based approach and delete the request.auth object
-    request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.auth;
   }
 
-  return request;
+  if (request.awsv4config) {
+    request.awsv4config.accessKeyId = _interpolate(request.awsv4config.accessKeyId) || '';
+    request.awsv4config.secretAccessKey = _interpolate(request.awsv4config.secretAccessKey) || '';
+    request.awsv4config.sessionToken = _interpolate(request.awsv4config.sessionToken) || '';
+    request.awsv4config.service = _interpolate(request.awsv4config.service) || '';
+    request.awsv4config.region = _interpolate(request.awsv4config.region) || '';
+    request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
+  }
+
+  if (request) return request;
 };
 
 module.exports = interpolateVars;
