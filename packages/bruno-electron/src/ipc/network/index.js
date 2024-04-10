@@ -228,6 +228,7 @@ const configureRequest = async (
           requestCopy
         );
         request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
         break;
@@ -460,6 +461,15 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -474,15 +484,6 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         cancelTokenUid
       });
-
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
 
       let response, responseTime;
       try {
