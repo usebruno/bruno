@@ -73,7 +73,7 @@ Lub dowolny inny system kontroli wersji, który wybierzesz
 - [Strona Internetowa](https://www.usebruno.com)
 - [Cennik](https://www.usebruno.com/pricing)
 - [Pobieranie](https://www.usebruno.com/downloads)
-- [Sponsorzy Github](https://github.com/sponsors/helloanoop).
+- [Sponsorzy GitHub](https://github.com/sponsors/helloanoop).
 
 ### Zobacz 🎥
 
@@ -83,7 +83,7 @@ Lub dowolny inny system kontroli wersji, który wybierzesz
 
 ### Wsparcie ❤️
 
-Jeśli podoba Ci się Bruno i chcesz wspierać naszą pracę opensource, rozważ sponsorowanie nas przez [Sponsorzy Github](https://github.com/sponsors/helloanoop).
+Jeśli podoba Ci się Bruno i chcesz wspierać naszą pracę opensource, rozważ sponsorowanie nas przez [Sponsorzy GitHub](https://github.com/sponsors/helloanoop).
 
 ### Udostępnij Opinie 📣
 
