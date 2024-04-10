@@ -31,6 +31,7 @@
     "file": "^0.2.2",
     "file-dialog": "^0.0.8",
     "file-saver": "^2.0.5",
+    "flat": "^6.0.1",
     "formik": "^2.2.9",
     "github-markdown-css": "^5.2.0",
     "graphiql": "^1.5.9",
