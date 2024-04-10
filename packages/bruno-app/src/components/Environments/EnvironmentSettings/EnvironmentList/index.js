@@ -22,21 +22,20 @@ const EnvironmentList = ({
 }) => {
   // Pass isModified as a prop
   const { environments } = collection;
-  //const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [tempSelectedEnvironment, setTempSelectedEnvironment] = useState(null);
-  const [clickedCreateEnv, setClickedCreateEnv] = useState(false);
-  const [clickedImport, setClickedImport] = useState(false);
+  const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
     if (selectedEnvironment) {
+      setOriginalEnvironmentVariables(selectedEnvironment.variables);
       return;
     }
 
@@ -84,7 +83,6 @@ const EnvironmentList = ({
       if (tempSelectedEnvironment == null) {
         setTempSelectedEnvironment(selectedEnvironment); //the curr env
       }
-      setClickedCreateEnv(true);
       setSwitchEnvConfirmClose(true);
     }
   };
@@ -93,7 +91,6 @@ const EnvironmentList = ({
     if (!isModified) {
       setOpenImportModal(true);
     } else {
-      setClickedImport(true);
       setSwitchEnvConfirmClose(true);
     }
   };
@@ -107,28 +104,11 @@ const EnvironmentList = ({
     if (saveChanges) {
       formik.handleSubmit();
       setSwitchEnvConfirmClose(false);
-      if (clickedCreateEnv) {
-        setOpenCreateModal(true);
-        setClickedCreateEnv(false); //set back
-      } else if (clickedImport) {
-        setOpenImportModal(true);
-        setClickedImport(false); //set back
-      }
     }
     //close without save
     else {
       setSwitchEnvConfirmClose(false);
-
-      if (clickedCreateEnv) {
-        setOpenCreateModal(true);
-        setClickedCreateEnv(false); //set back
-      } else if (clickedImport) {
-        setOpenImportModal(true);
-        setClickedImport(false); //set back
-      } else {
-        //switch env
-        setSelectedEnvironment(tempSelectedEnvironment);
-      }
+      formik.resetForm({ originalEnvironmentVariables });
     }
   };
 
