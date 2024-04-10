@@ -1,35 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import cloneDeep from 'lodash/cloneDeep';
+import React from 'react';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
 import { uuid } from 'utils/common';
-import { variableNameRegex } from 'utils/common/regex';
 import { maskInputValue } from 'utils/collections';
 
-const EnvironmentVariables = ({ collection, isModified, setIsModified, formik }) => {
+const EnvironmentVariables = ({ collection, formik }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-
-  //Defining formik in EnvironmentSettings instead.
-
-  // Effect to track modifications.
-  React.useEffect(() => {
-    setIsModified(formik.dirty);
-    // Comments/prints for testing purposes.
-    // if (isModified == 1) {
-    //   toast.success("Modified");
-    // }
-    // else {
-    //   toast.success("Same as original");
-    // }
-  }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);

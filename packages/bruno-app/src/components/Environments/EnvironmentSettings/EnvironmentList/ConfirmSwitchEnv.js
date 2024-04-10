@@ -1,9 +1,10 @@
 import React from 'react';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
+import { createPortal } from 'react-dom';
 
 const ConfirmSwitchEnv = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
-  return (
+  return createPortal(
     <Modal
       size="md"
       title="Unsaved changes"
@@ -40,7 +41,8 @@ const ConfirmSwitchEnv = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
           </button>
         </div>
       </div>
-    </Modal>
+    </Modal>,
+    document.body
   );
 };
 

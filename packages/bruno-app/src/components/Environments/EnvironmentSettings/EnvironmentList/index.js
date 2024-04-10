@@ -1,6 +1,4 @@
-import React, { useEffect, useState, forwardRef, useRef } from 'react';
-import toast from 'react-hot-toast';
-import { toastError } from 'utils/common/error';
+import React, { useEffect, useState } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
@@ -9,25 +7,15 @@ import { IconDownload, IconShieldLock } from '@tabler/icons';
 import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
-
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 
-const EnvironmentList = ({
-  selectedEnvironment,
-  setSelectedEnvironment,
-  collection,
-  isModified,
-  setIsModified,
-  formik
-}) => {
-  // Pass isModified as a prop
+const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, formik }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
 
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
-  const [tempSelectedEnvironment, setTempSelectedEnvironment] = useState(null);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
   const envUids = environments ? environments.map((env) => env.uid) : [];
@@ -48,7 +36,6 @@ const EnvironmentList = ({
   }, [collection, environments, selectedEnvironment]);
 
   useEffect(() => {
-    // check env add
     if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
@@ -56,18 +43,15 @@ const EnvironmentList = ({
       }
     }
 
-    // check env delete
     if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
       setSelectedEnvironment(environments && environments.length ? environments[0] : null);
     }
   }, [envUids, environments, prevEnvUids]);
 
-  // Prevent switching to another environment if isModified is true
   const handleEnvironmentClick = (env) => {
-    if (!isModified) {
+    if (!formik.dirty) {
       setSelectedEnvironment(env);
     } else {
-      setTempSelectedEnvironment(env); // Store the selected environment temporarily
       setSwitchEnvConfirmClose(true);
     }
   };
@@ -77,25 +61,21 @@ const EnvironmentList = ({
   }
 
   const handleCreateEnvClick = () => {
-    if (!isModified) {
+    if (!formik.dirty) {
       setOpenCreateModal(true);
     } else {
-      if (tempSelectedEnvironment == null) {
-        setTempSelectedEnvironment(selectedEnvironment); //the curr env
-      }
       setSwitchEnvConfirmClose(true);
     }
   };
 
   const handleImportClick = () => {
-    if (!isModified) {
+    if (!formik.dirty) {
       setOpenImportModal(true);
     } else {
       setSwitchEnvConfirmClose(true);
     }
   };
 
-  // Opening secrets does not accidentally discard changes.
   const handleSecretsClick = () => {
     setOpenManageSecretsModal(true);
   };
@@ -104,9 +84,7 @@ const EnvironmentList = ({
     if (saveChanges) {
       formik.handleSubmit();
       setSwitchEnvConfirmClose(false);
-    }
-    //close without save
-    else {
+    } else {
       setSwitchEnvConfirmClose(false);
       formik.resetForm({ originalEnvironmentVariables });
     }
@@ -157,14 +135,7 @@ const EnvironmentList = ({
             </div>
           </div>
         </div>
-        {/* <EnvironmentDetails environment={selectedEnvironment} collection={collection} /> */}
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          collection={collection}
-          isModified={isModified} // Pass isModified prop
-          setIsModified={setIsModified} // Pass setIsModified prop
-          formik={formik}
-        />
+        <EnvironmentDetails environment={selectedEnvironment} collection={collection} formik={formik} />
       </div>
     </StyledWrapper>
   );

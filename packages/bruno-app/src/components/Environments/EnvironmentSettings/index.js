@@ -14,18 +14,14 @@ import toast from 'react-hot-toast';
 
 const EnvironmentSettings = ({ collection, onClose }) => {
   const dispatch = useDispatch();
-
-  const [isModified, setIsModified] = useState(false); // Added this here, since this is the "parent" component
-
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
 
-  //Putting formik here instead of in environment variables (so formik can be passed to envlist, envdetail, then envvarables)
   const formik = useFormik({
     enableReinitialize: true,
-    initialValues: selectedEnvironment ? selectedEnvironment.variables : [], //removed this: selectedEnvironment.variables || []; changed from environment to selectedEnvironment
+    initialValues: selectedEnvironment ? selectedEnvironment.variables : [],
     validationSchema: Yup.array().of(
       Yup.object({
         enabled: Yup.boolean(),
@@ -52,8 +48,6 @@ const EnvironmentSettings = ({ collection, onClose }) => {
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
-          // toast.success('(modified set to false)');
-          setIsModified(false); //added to say we don't have changes compared old (we saved, so new = old.)
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
@@ -97,13 +91,10 @@ const EnvironmentSettings = ({ collection, onClose }) => {
 
   return (
     <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
-      {/* Pass isModified as a prop */}
       <EnvironmentList
         selectedEnvironment={selectedEnvironment}
         setSelectedEnvironment={setSelectedEnvironment}
         collection={collection}
-        isModified={isModified} // Pass isModified to EnvironmentList
-        setIsModified={setIsModified} // Pass setIsModified to EnvironmentList
         formik={formik}
       />
     </Modal>
