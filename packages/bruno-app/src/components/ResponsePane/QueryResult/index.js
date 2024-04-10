@@ -114,7 +114,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       </div>
       {error ? (
         <div>
-          <div className="text-red-500">{error}</div>
+          <pre className="text-red-500 whitespace-pre-wrap">{error}</pre>
 
           {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
             <div className="mt-6 muted text-xs">

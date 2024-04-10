@@ -139,7 +139,8 @@ const defaultModuleWhiteList = [
   'axios',
   'chai',
   'crypto-js',
-  'node-vault'
+  'node-vault',
+  'node-fetch'
 ];
 
 /**
@@ -155,7 +156,6 @@ function createCustomRequire(scriptingConfig, collectionPath) {
 
   const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
   if (allowScriptFilesystemAccess) {
-    // TODO: Allow other modules like os, child_process etc too?
     whitelistedModules.push('fs');
   }
 
@@ -167,7 +167,7 @@ function createCustomRequire(scriptingConfig, collectionPath) {
   additionalContextRootsAbsolute.push(collectionPath);
 
   return (moduleName) => {
-    // First check If we want to require a native node module or
+    // First check If we want to require a native node module or an internal node module
     // Remove the "node:" prefix, to make sure "node:fs" and "fs" can be required, and we only need to whitelist one
     if (whitelistedModules.includes(moduleName.replace(/^node:/, ''))) {
       try {
@@ -195,12 +195,12 @@ function createCustomRequire(scriptingConfig, collectionPath) {
       const fullScriptPath = path.join(contextRoot, moduleName);
       try {
         return require(fullScriptPath);
-      } catch (error) {
-        triedPaths.push({ fullScriptPath, error });
+      } catch {
+        triedPaths.push({ fullScriptPath });
       }
     }
 
-    const triedPathsFormatted = triedPaths.map((i) => `- "${i.fullScriptPath}": ${i.error}\n`);
+    const triedPathsFormatted = triedPaths.map((i) => `- ${i.fullScriptPath}\n`);
     throw new Error(`Failed to require "${moduleName}"!
 
 If you tried to require a internal node module / external package, make sure its whitelisted in the "bruno.json" under "scriptConfig".
@@ -218,7 +218,7 @@ ${triedPathsFormatted}`);
 function createCustomConsole(onConsoleLog) {
   const customLogger = (type) => {
     return (...args) => {
-      onConsoleLog(type, cleanJson(args));
+      onConsoleLog && onConsoleLog(type, cleanJson(args));
     };
   };
   return {

@@ -72,18 +72,16 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
-    // TODO: Add feature Flag
-    if (false) {
-      const variables = {
-        envVariables,
-        collectionVariables,
-        processEnvVars
-      };
+    if (scriptingConfig?.runtime === 'node') {
       const result = await runScript(
         decomment(requestScriptFile),
         request,
         null,
-        variables,
+        {
+          envVariables,
+          collectionVariables,
+          processEnvVars
+        },
         false,
         collectionPath,
         scriptingConfig,
@@ -298,18 +296,16 @@ const runSingleRequest = async function (
       get(collectionRoot, 'request.script.res'),
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
-    // TODO: Add feature flag
-    if (false) {
-      const variables = {
-        envVariables,
-        collectionVariables,
-        processEnvVars
-      };
+    if (scriptingConfig?.runtime === 'node') {
       const result = await runScript(
         decomment(responseScriptFile),
         request,
         response,
-        variables,
+        {
+          envVariables,
+          collectionVariables,
+          processEnvVars
+        },
         false,
         collectionPath,
         scriptingConfig,
@@ -366,11 +362,11 @@ const runSingleRequest = async function (
     let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
 
-    if (false) {
+    if (scriptingConfig?.runtime === 'node') {
       const result = await runScript(
         decomment(testFile),
         request,
-        null,
+        response,
         {
           envVariables,
           collectionVariables,

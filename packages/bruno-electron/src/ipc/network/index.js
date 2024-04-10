@@ -11,7 +11,7 @@ const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
-const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
+const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime, runScript } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
@@ -320,10 +320,9 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run pre-request script
-    let scriptResult, nextRequestName;
+    let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
-    // TODO: Add feature flags
-    if (false) {
+    if (scriptingConfig?.runtime === 'node') {
       scriptResult = await runScript(
         decomment(requestScript),
         request,
@@ -415,17 +414,16 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    let scriptResult, nextRequestName;
+    let scriptResult;
     const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
       os.EOL
     );
 
-    // TODO: Add feature flag
-    if (false) {
+    if (scriptingConfig?.runtime === 'node') {
       scriptResult = await runScript(
         decomment(responseScript),
         request,
-        null,
+        response,
         {
           envVariables: envVars,
           collectionVariables,
@@ -436,10 +434,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig,
         onConsoleLog
       );
-      if (scriptResult?.nextRequestName !== undefined) {
-        nextRequestName = scriptResult.nextRequestName;
-      }
-
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
         collectionVariables: scriptResult.collectionVariables,
@@ -460,9 +454,12 @@ const registerNetworkIpc = (mainWindow) => {
           processEnvVars,
           scriptingConfig
         );
-        if (scriptResult?.nextRequestName !== undefined) {
-          nextRequestName = scriptResult.nextRequestName;
-        }
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: scriptResult.envVariables,
+          collectionVariables: scriptResult.collectionVariables,
+          requestUid,
+          collectionUid
+        });
       }
     }
     return scriptResult;
@@ -631,12 +628,11 @@ const registerNetworkIpc = (mainWindow) => {
       ]).join(os.EOL);
       if (typeof testFile === 'string') {
         let testResults;
-        // TODO: Add feature flag
-        if (false) {
+        if (scriptingConfig?.runtime === 'node') {
           testResults = await runScript(
             decomment(testFile),
             request,
-            null,
+            response,
             {
               envVariables: envVars,
               collectionVariables,
@@ -645,7 +641,7 @@ const registerNetworkIpc = (mainWindow) => {
             true,
             collectionPath,
             scriptingConfig,
-            null
+            onConsoleLog
           );
         } else {
           const testRuntime = new TestRuntime();
@@ -1088,12 +1084,11 @@ const registerNetworkIpc = (mainWindow) => {
             ]).join(os.EOL);
             if (typeof testFile === 'string') {
               let testResults;
-              // TODO: Add feature flag
-              if (false) {
+              if (scriptingConfig?.runtime === 'node') {
                 testResults = await runScript(
                   decomment(testFile),
                   request,
-                  null,
+                  response,
                   {
                     envVariables: envVars,
                     collectionVariables,
@@ -1102,7 +1097,7 @@ const registerNetworkIpc = (mainWindow) => {
                   true,
                   collectionPath,
                   scriptingConfig,
-                  null
+                  onConsoleLog
                 );
               } else {
                 const testRuntime = new TestRuntime();
