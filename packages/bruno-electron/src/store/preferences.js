@@ -16,7 +16,7 @@ const defaultPreferences = {
       filePath: null
     },
     keepDefaultCaCertificates: {
-      enabled: false
+      enabled: true
     },
     storeCookies: true,
     sendCookies: true,
@@ -118,7 +118,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
   },
   shouldKeepDefaultCaCertificates: () => {
-    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', false);
+    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', true);
   },
   getCustomCaCertificateFilePath: () => {
     return get(getPreferences(), 'request.customCaCertificate.filePath', null);
