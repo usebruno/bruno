@@ -7,7 +7,11 @@ const replacements = {
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
-  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal('
+  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
+  'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
+  'pm\\.response\\.json\\(': 'res.getBody(',
+  'pm\\.expect\\(': 'expect(',
+  'pm\\.environment\\.has\\(([^)]+)\\)': 'bru.getEnvVar($1) !== undefined && bru.getEnvVar($1) !== null'
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({
