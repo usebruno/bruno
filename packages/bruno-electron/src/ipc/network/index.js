@@ -32,10 +32,10 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-ut
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
-  getOAuth2AuthorizationCodeAccessToken,
-  getOAuth2ClientCredentialsAccessToken,
-  getOAuth2PasswordCredentialsAccessToken,
-  getOAuth2ImplicitAccessToken
+  oauth2AuthorizeWithAuthorizationCode,
+  oauth2AuthorizeWithClientCredentials,
+  oauth2AuthorizeWithPasswordCredentials,
+  oauth2AuthorizeWithImplicitFlow
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 
@@ -207,26 +207,26 @@ const configureRequest = async (
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { accessToken } = await getOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'client_credentials': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { accessToken } = await getOAuth2ClientCredentialsAccessToken(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'password': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { accessToken } = await getOAuth2PasswordCredentialsAccessToken(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'implicit': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { accessToken } = await getOAuth2ImplicitAccessToken(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithImplicitFlow(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
     }

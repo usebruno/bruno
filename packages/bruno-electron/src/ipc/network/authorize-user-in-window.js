@@ -132,8 +132,12 @@ const authorizeUserInWindowImplicit = ({ authorizeUrl, session }) => {
       if (finalUrl) {
         try {
           const uriFragmentWithToken = new URLSearchParams(new URL(finalUrl).hash.slice(1));
-          const accessToken = uriFragmentWithToken.get('access_token');
-          return resolve({ accessToken });
+          const credentials = {
+            access_token: uriFragmentWithToken.get('access_token'),
+            token_type: uriFragmentWithToken.get('token_type'),
+            expires_in: uriFragmentWithToken.get('expires_in')
+          };
+          return resolve({ credentials });
         } catch (error) {
           return reject(error);
         }
