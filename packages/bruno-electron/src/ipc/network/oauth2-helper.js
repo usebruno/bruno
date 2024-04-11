@@ -2,6 +2,7 @@ const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow, authorizeUserInWindowImplicit } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
+const { makeAxiosInstance } = require('./axios-instance');
 
 const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
@@ -16,7 +17,7 @@ const generateCodeChallenge = (codeVerifier) => {
 
 // AUTHORIZATION CODE
 
-const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
+const getOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -37,10 +38,16 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
   }
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = url;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+  return { accessToken };
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
@@ -76,7 +83,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const transformClientCredentialsRequest = async (request) => {
+const getOAuth2ClientCredentialsAccessToken = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, scope } = oAuth;
@@ -86,18 +93,22 @@ const transformClientCredentialsRequest = async (request) => {
     client_secret: clientSecret,
     scope
   };
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = requestCopy?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+
+  return { accessToken };
 };
 
 // PASSWORD CREDENTIALS
 
-const transformPasswordCredentialsRequest = async (request) => {
-  let requestCopy = cloneDeep(request);
-  const oAuth = get(requestCopy, 'oauth2', {});
+const getOAuth2PasswordCredentialsAccessToken = async (request) => {
+  const oAuth = get(request, 'oauth2', {});
   const { username, password, clientId, clientSecret, scope } = oAuth;
   const data = {
     grant_type: 'password',
@@ -107,16 +118,20 @@ const transformPasswordCredentialsRequest = async (request) => {
     client_secret: clientSecret,
     scope
   };
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = request?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+  return { accessToken };
 };
 
 // IMPLICIT
 
-const getOAuth2ImplicitToken = async (request, collectionUid) => {
+const getOAuth2ImplicitAccessToken = async (request, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, authorizationUrl, clientId, scope } = oauth2;
@@ -143,9 +158,8 @@ const getOAuth2ImplicitToken = async (request, collectionUid) => {
 };
 
 module.exports = {
-  resolveOAuth2AuthorizationCodeAccessToken,
-  getOAuth2AuthorizationCode,
-  transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest,
-  getOAuth2ImplicitToken
+  getOAuth2AuthorizationCodeAccessToken,
+  getOAuth2ClientCredentialsAccessToken,
+  getOAuth2PasswordCredentialsAccessToken,
+  getOAuth2ImplicitAccessToken
 };

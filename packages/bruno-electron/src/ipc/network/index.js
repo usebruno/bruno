@@ -32,10 +32,10 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-ut
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
-  resolveOAuth2AuthorizationCodeAccessToken,
-  transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest,
-  getOAuth2ImplicitToken
+  getOAuth2AuthorizationCodeAccessToken,
+  getOAuth2ClientCredentialsAccessToken,
+  getOAuth2PasswordCredentialsAccessToken,
+  getOAuth2ImplicitAccessToken
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 
@@ -205,39 +205,30 @@ const configureRequest = async (
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     switch (request?.oauth2?.grantType) {
-      case 'authorization_code':
+      case 'authorization_code': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = authorizationCodeData;
-        request.url = authorizationCodeAccessTokenUrl;
-        break;
-      case 'client_credentials':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
-          await transformClientCredentialsRequest(requestCopy);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = clientCredentialsData;
-        request.url = clientCredentialsAccessTokenUrl;
-        break;
-      case 'password':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
-          requestCopy
-        );
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = passwordData;
-        request.url = passwordAccessTokenUrl;
-        break;
-      case 'implicit':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { accessToken } = await getOAuth2ImplicitToken(requestCopy, collectionUid);
+        const { accessToken } = await getOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
         request.headers['Authorization'] = `Bearer ${accessToken}`;
         break;
+      }
+      case 'client_credentials': {
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { accessToken } = await getOAuth2ClientCredentialsAccessToken(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        break;
+      }
+      case 'password': {
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { accessToken } = await getOAuth2PasswordCredentialsAccessToken(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        break;
+      }
+      case 'implicit': {
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { accessToken } = await getOAuth2ImplicitAccessToken(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        break;
+      }
     }
   }
 
