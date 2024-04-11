@@ -6,7 +6,7 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
       sendHttpRequest(item, collection, environment, collectionVariables)
         .then((response) => {
           resolve({
-            state: 'success',
+            state: response.error ? 'Error' : 'success',
             headers: response.headers,
             size: response.size,
             status: response.status,
@@ -14,7 +14,10 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
             duration: response.duration,
             isNew: response.isNew ?? false,
             timeline: response.timeline,
-            debug: response.debug
+            timings: response.timings,
+            debug: response.debug,
+            error: response.error,
+            isError: response.error ? true : undefined
           });
         })
         .catch((err) => reject(err));

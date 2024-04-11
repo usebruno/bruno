@@ -449,17 +449,16 @@ const registerNetworkIpc = (mainWindow) => {
       console.error(res.error);
     }
 
-    res.new = true;
-
     return {
       status: res.response?.statusCode,
-      statusText: 'OK',
       headers: res.response?.headers,
-      size: 1,
-      duration: res.response?.responseTime,
+      size: res.response?.headers['content-length'] ?? 0,
+      duration: res.response?.responseTime ?? 0,
       isNew: true,
       timeline: res.timeline,
-      debug: res.debug
+      debug: res.debug.getClean(),
+      timings: res.timings.getClean(),
+      error: res.error ? String(res.error) : undefined
     };
   }
 

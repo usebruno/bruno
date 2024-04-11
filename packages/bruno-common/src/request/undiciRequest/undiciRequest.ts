@@ -41,14 +41,14 @@ function handleRedirect(
     return false;
   }
 
-  // Check if we got an Location header
+  // Check if we got a Location header
   const newLocation = Array.isArray(headers['location']) ? headers['location'][0] : headers['location'];
   if (!newLocation) {
     return false;
   }
 
   // This will first build the Original request URL and then merge it with the location header.
-  // URL will automatically handle a relative Location header e.g. /new-site or a absolute location
+  // URL will automatically handle a relative Location header e.g. /new-site or an absolute location
   // e.g. https://my-new-site.net
   const newLocationUrl = new URL(newLocation, new URL(originalRequest.options.path, originalRequest.url));
   originalRequest.url = newLocationUrl.origin;
@@ -116,8 +116,8 @@ async function doRequest(
 
   // The stream callback fires when the first response bytes are received.
   // And we have to wait for all other callbacks and the stream to resolve
-  let resolve: (response: Response) => void, reject: (e: unknown) => void;
-  const responseDataPromise = new Promise<Response>((res, rej) => {
+  let resolve: (response: Response | undefined) => void, reject: (e: unknown) => void;
+  const responseDataPromise = new Promise<Response | undefined>((res, rej) => {
     resolve = res;
     reject = rej;
   });

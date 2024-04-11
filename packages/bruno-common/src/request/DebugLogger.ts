@@ -1,3 +1,5 @@
+import { cleanJson } from './runtime/utils';
+
 type Logs = { title: string; data: unknown; date: number }[];
 type LogStages = { stage: string; logs: Logs }[];
 
@@ -12,7 +14,7 @@ export class DebugLogger extends Array {
     this.push({ stage, logs: [] });
   }
 
-  toJSON() {
-    return this;
+  getClean() {
+    return cleanJson(this);
   }
 }

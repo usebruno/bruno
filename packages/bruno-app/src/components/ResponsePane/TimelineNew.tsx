@@ -65,6 +65,10 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
 };
 
 export const TimelineNew: React.FC<{ timeline: RequestTimeline[]; maxWidth: number }> = ({ timeline, maxWidth }) => {
+  if (!timeline) {
+    return <div>No timeline data available</div>;
+  }
+
   const items = timeline.map((item) => {
     return <TimelineItem item={item} />;
   });

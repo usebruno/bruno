@@ -1,3 +1,5 @@
+import { cleanJson } from './runtime/utils';
+
 type TimingName = 'request' | 'pre-script' | 'post-script' | 'test' | 'total';
 
 export class Timings {
@@ -24,7 +26,7 @@ export class Timings {
     }
   }
 
-  public toJSON() {
-    return this.timings;
+  public getClean() {
+    return cleanJson(this.timings);
   }
 }
