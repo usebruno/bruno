@@ -264,6 +264,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
                 password: passwordKey ? passwordKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : ''
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'

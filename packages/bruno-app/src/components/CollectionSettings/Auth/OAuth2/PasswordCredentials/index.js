@@ -20,7 +20,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
-  const { accessTokenUrl, username, password, scope } = oAuth;
+  const { accessTokenUrl, username, password, clientId, clientSecret, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -32,6 +32,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           username,
           password,
+          clientId,
+          clientSecret,
           scope,
           [key]: value
         }

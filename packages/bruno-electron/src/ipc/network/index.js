@@ -224,6 +224,7 @@ const configureRequest = async (
           requestCopy
         );
         request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
         break;
@@ -474,6 +475,15 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionPath = collection.pathname;
       const cancelTokenUid = uuid();
       const requestUid = uuid();
+
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
 
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-queued',
