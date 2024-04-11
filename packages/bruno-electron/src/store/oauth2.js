@@ -85,6 +85,7 @@ class Oauth2Store {
 
       let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
       delete oauth2DataForCollection.sessionId;
+      delete oauth2DataForCollection.credentials;
 
       let updatedOauth2Data = oauth2Data.filter((d) => d.collectionUid !== collectionUid);
       updatedOauth2Data.push({ ...oauth2DataForCollection });

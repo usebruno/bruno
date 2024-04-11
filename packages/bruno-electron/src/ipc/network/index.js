@@ -268,22 +268,22 @@ const configureRequest = async (
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-    let accessToken;
+    let credentials;
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
-        ({ accessToken } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
+        ({ credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
         break;
       }
       case 'client_credentials': {
-        ({ accessToken } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
+        ({ credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
         break;
       }
       case 'password': {
-        ({ accessToken } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
+        ({ credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
         break;
       }
     }
-    request.headers['Authorization'] = `Bearer ${accessToken}`;
+    request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
   }
 
   if (request.awsv4config) {
