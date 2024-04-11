@@ -212,20 +212,20 @@ const configureRequest = async (
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { accessToken } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'client_credentials': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { accessToken } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'password': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { accessToken } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
-        request.headers['Authorization'] = `Bearer ${accessToken}`;
+        const { credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
+        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
     }
