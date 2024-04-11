@@ -2,6 +2,7 @@ const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
+const { makeAxiosInstance } = require('./axios-instance');
 
 const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
@@ -16,14 +17,14 @@ const generateCodeChallenge = (codeVerifier) => {
 
 // AUTHORIZATION CODE
 
-const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
+const oauth2AuthorizeWithAuthorizationCode = async (request, collectionUid) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
   let requestCopy = cloneDeep(request);
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
+  const { clientId, clientSecret, callbackUrl, pkce } = oAuth;
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
@@ -36,10 +37,16 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
   }
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = url;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+  return { accessToken };
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
@@ -79,7 +86,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const transformClientCredentialsRequest = async (request) => {
+const oauth2AuthorizeWithClientCredentials = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, scope } = oAuth;
@@ -91,18 +98,23 @@ const transformClientCredentialsRequest = async (request) => {
   if (scope) {
     data.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = requestCopy?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+
+  return { accessToken };
 };
 
 // PASSWORD CREDENTIALS
 
-const transformPasswordCredentialsRequest = async (request) => {
-  let requestCopy = cloneDeep(request);
-  const oAuth = get(requestCopy, 'oauth2', {});
+const oauth2AuthorizeWithPasswordCredentials = async (request) => {
+  const oAuth = get(request, 'oauth2', {});
   const { username, password, clientId, clientSecret, scope } = oAuth;
   const data = {
     grant_type: 'password',
@@ -114,16 +126,19 @@ const transformPasswordCredentialsRequest = async (request) => {
   if (scope) {
     data.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
-};
 
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = request?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let accessToken = JSON.parse(response.data).access_token;
+  return { accessToken };
+};
 module.exports = {
-  resolveOAuth2AuthorizationCodeAccessToken,
-  getOAuth2AuthorizationCode,
-  transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest
+  oauth2AuthorizeWithAuthorizationCode,
+  oauth2AuthorizeWithClientCredentials,
+  oauth2AuthorizeWithPasswordCredentials
 };

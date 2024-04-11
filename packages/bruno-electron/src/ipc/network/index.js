@@ -31,9 +31,9 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-ut
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
-  resolveOAuth2AuthorizationCodeAccessToken,
-  transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest
+  oauth2AuthorizeWithAuthorizationCode,
+  oauth2AuthorizeWithClientCredentials,
+  oauth2AuthorizeWithPasswordCredentials
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
@@ -267,36 +267,23 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
+    interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+    let accessToken;
     switch (request?.oauth2?.grantType) {
-      case 'authorization_code':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = authorizationCodeData;
-        request.url = authorizationCodeAccessTokenUrl;
+      case 'authorization_code': {
+        ({ accessToken } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
         break;
-      case 'client_credentials':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
-          await transformClientCredentialsRequest(requestCopy);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = clientCredentialsData;
-        request.url = clientCredentialsAccessTokenUrl;
+      }
+      case 'client_credentials': {
+        ({ accessToken } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
         break;
-      case 'password':
-        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
-          requestCopy
-        );
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = passwordData;
-        request.url = passwordAccessTokenUrl;
+      }
+      case 'password': {
+        ({ accessToken } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
         break;
+      }
     }
+    request.headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
   if (request.awsv4config) {
