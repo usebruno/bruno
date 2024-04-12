@@ -24,7 +24,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
 
     function onWindowRedirect(url) {
       // check if the url contains an authorization code
-      if (url.match(/(code=).*/)) {
+      if (new URL(url).searchParams.has('code')) {
         finalUrl = url;
         if (!url || !finalUrl.includes(callbackUrl)) {
           reject(new Error('Invalid Callback Url'));
@@ -75,6 +75,11 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     try {
       await window.loadURL(authorizeUrl);
     } catch (error) {
+      // If browser redirects before load finished, loadURL throws an error with code ERR_ABORTED. This should be ignored.
+      if (error.code === 'ERR_ABORTED') {
+        console.debug('Ignoring ERR_ABORTED during authorizeUserInWindow');
+        return;
+      }
       reject(error);
       window.close();
     }

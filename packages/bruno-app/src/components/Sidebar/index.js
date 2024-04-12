@@ -93,26 +93,29 @@ const Sidebar = () => {
               <Collections />
             </div>
 
-            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center cursor-pointer select-none">
+            <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center select-none">
               <div className="flex items-center ml-1 text-xs ">
-                <IconSettings
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
+                <a
+                  title="Preferences"
+                  className="mr-2 cursor-pointer hover:text-gray-700"
                   onClick={() => dispatch(showPreferences(true))}
-                />
-                <IconCookie
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
+                >
+                  <IconSettings size={18} strokeWidth={1.5} />
+                </a>
+                <a
+                  title="Cookies"
+                  className="mr-2 cursor-pointer hover:text-gray-700"
                   onClick={() => setCookiesOpen(true)}
-                />
-                <IconHeart
-                  size={18}
-                  strokeWidth={1.5}
-                  className="mr-2 hover:text-gray-700"
+                >
+                  <IconCookie size={18} strokeWidth={1.5} />
+                </a>
+                <a
+                  title="Golden Edition"
+                  className="mr-2 cursor-pointer hover:text-gray-700"
                   onClick={() => setGoldenEditonOpen(true)}
-                />
+                >
+                  <IconHeart size={18} strokeWidth={1.5} />
+                </a>
                 <Notifications />
               </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
@@ -126,7 +129,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.11.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.3</div>
             </div>
           </div>
         </div>

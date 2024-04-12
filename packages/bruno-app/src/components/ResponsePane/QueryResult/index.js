@@ -67,6 +67,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift('preview-image');
     } else if (contentType.includes('pdf')) {
       allowedPreviewModes.unshift('preview-pdf');
+    } else if (contentType.includes('audio')) {
+      allowedPreviewModes.unshift('preview-audio');
+    } else if (contentType.includes('video')) {
+      allowedPreviewModes.unshift('preview-video');
     }
 
     return allowedPreviewModes;
