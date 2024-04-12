@@ -72,11 +72,10 @@ const parseCurlCommand = (curlCommand) => {
     parsedArguments.header.forEach((header) => {
       if (header.indexOf('Cookie') !== -1) {
         cookieString = header;
-      } else {
-        const components = header.split(/:(.*)/);
-        if (components[1]) {
-          headers[components[0]] = components[1].trim();
-        }
+      }
+      const components = header.split(/:(.*)/);
+      if (components[1]) {
+        headers[components[0]] = components[1].trim();
       }
     });
   }
