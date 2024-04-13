@@ -4,7 +4,7 @@ import { AppProvider } from 'providers/App';
 import { ToastProvider } from 'providers/Toaster';
 import { HotkeysProvider } from 'providers/Hotkeys';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createTheme, MantineProvider } from '@mantine/core';
+import { createTheme, MantineProvider, Timeline } from '@mantine/core';
 
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
@@ -26,8 +26,15 @@ const queryClient = new QueryClient();
 
 const theme = createTheme({
   focusRing: 'never',
+  defaultRadius: 'xs',
 
-  defaultRadius: 'xs'
+  components: {
+    Timeline: Timeline.extend({
+      defaultProps: {
+        radius: 'xs'
+      }
+    })
+  }
 });
 
 function SafeHydrate({ children }) {

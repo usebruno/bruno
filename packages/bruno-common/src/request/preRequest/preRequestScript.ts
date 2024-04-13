@@ -12,7 +12,7 @@ export async function preRequestScript(context: RequestContext) {
     requestPreRequestScript,
     preRequestScript
   });
-  context.timings.startMeasure('pre-script');
+  context.timings.startMeasure('preScript');
 
   let scriptResult;
   try {
@@ -31,7 +31,7 @@ export async function preRequestScript(context: RequestContext) {
 
     throw error;
   } finally {
-    context.timings.stopMeasure('pre-script');
+    context.timings.stopMeasure('preScript');
   }
 
   context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);

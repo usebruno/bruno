@@ -64,7 +64,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
       case 'debug': {
         return item.response.isNew ? (
-          <DebugTab debugInfo={item.response.debug} maxWidth={rightPaneWidth} />
+          <DebugTab debugInfo={item.response.debug} timings={item.response.timings} maxWidth={rightPaneWidth} />
         ) : (
           'Only with new Request method'
         );

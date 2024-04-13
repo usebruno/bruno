@@ -12,7 +12,7 @@ export async function postRequestScript(context: RequestContext) {
     requestPostRequestScript,
     postRequestScript
   });
-  context.timings.startMeasure('post-script');
+  context.timings.startMeasure('postScript');
 
   let scriptResult;
   try {
@@ -31,7 +31,7 @@ export async function postRequestScript(context: RequestContext) {
 
     throw error;
   } finally {
-    context.timings.stopMeasure('post-script');
+    context.timings.stopMeasure('postScript');
   }
 
   context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);

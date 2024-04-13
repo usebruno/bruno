@@ -46,7 +46,7 @@ const formatResponse = (data, mode, filter) => {
   return safeStringifyJSON(data);
 };
 
-const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers }) => {
+const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
   const mode = getMonacoModeFromContent(contentType, data);
   const [filter, setFilter] = useState('');
@@ -70,6 +70,10 @@ const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRun
       allowedPreviewModes.unshift('preview-audio');
     } else if (contentType.includes('video')) {
       allowedPreviewModes.unshift('preview-video');
+    }
+
+    if (error) {
+      allowedPreviewModes.unshift('error');
     }
 
     return allowedPreviewModes;
@@ -116,6 +120,7 @@ const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRun
         data={data}
         dataBuffer={dataBuffer}
         formattedData={formattedData}
+        error={error}
         item={item}
         contentType={contentType}
         mode={mode}

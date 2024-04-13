@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { statusCodesToPhrases } from 'know-your-http-well';
 import { Stack, Divider, Group, Text, Space, ThemeIcon } from '@mantine/core';
 import { IconInfoCircle } from '@tabler/icons';
+import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
 
 type RequestTimeline = {
   requestMethod: string;
@@ -64,7 +65,12 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
   );
 };
 
-export const TimelineNew: React.FC<{ timeline: RequestTimeline[]; maxWidth: number }> = ({ timeline, maxWidth }) => {
+type TimelineNewProps = {
+  timeline: RequestTimeline[];
+  maxWidth: number;
+};
+
+export const TimelineNew: React.FC<TimelineNewProps> = ({ timeline, maxWidth }) => {
   if (!timeline) {
     return <div>No timeline data available</div>;
   }

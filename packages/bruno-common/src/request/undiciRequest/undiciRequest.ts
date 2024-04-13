@@ -8,9 +8,11 @@ import { URL } from 'node:url';
 import os from 'node:os';
 import { handleDigestAuth } from './digestAuth';
 import { createAwsV4AuthInterceptor } from './awsSig4vAuth';
+import { DebugLogger } from '../DebugLogger';
 
 function createFinalDataInterceptor(
   url: string,
+  debugLogger: DebugLogger,
   callback: (method: string, finalHeader: Record<string, string>) => void
 ): Dispatcher.DispatcherInterceptor {
   return (dispatch) => {
@@ -18,12 +20,15 @@ function createFinalDataInterceptor(
       // The type for the headers is waaaaaay to broad, we only use Record<string, string>
       opts.headers = opts.headers as Record<string, string>;
 
-      if (!opts.headers['host']) {
-        const { hostname } = new URL(url);
-        opts.headers['host'] = hostname;
-      }
+      const { hostname } = new URL(url);
+      opts.headers['host'] = hostname;
 
       callback(opts.method, opts.headers as Record<string, string>);
+
+      debugLogger.log('finalRequestOptions', {
+        options: opts,
+        url
+      });
 
       return dispatch(opts, handler);
     };
@@ -92,14 +97,13 @@ function parseEncodingFromResponseHeaders(headers: Record<string, string | strin
 async function doRequest(
   undiciRequest: Exclude<RequestContext['undiciRequest'], undefined>,
   targetPath: string,
-  timeline: Timeline,
   context: Readonly<RequestContext>
 ): Promise<RequestContext['response']> {
   const startTime = performance.now();
 
   let finalRequestHeaders: Record<string, string>;
   let finalMethod: string;
-  const headerInterceptor = createFinalDataInterceptor(undiciRequest.url, (method, finalHeader) => {
+  const headerInterceptor = createFinalDataInterceptor(undiciRequest.url, context.debug, (method, finalHeader) => {
     finalMethod = method;
     finalRequestHeaders = finalHeader;
   });
@@ -125,7 +129,7 @@ async function doRequest(
   await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
     const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
 
-    timeline.add({
+    context.timeline!.add({
       requestMethod: finalMethod,
       requestUrl: undiciRequest.url + undiciRequest.options.path,
       requestHeaders: finalRequestHeaders,
@@ -135,7 +139,7 @@ async function doRequest(
     });
 
     if (nextRequest !== null) {
-      doRequest(nextRequest, targetPath, timeline, context).then(resolve).catch(reject);
+      doRequest(nextRequest, targetPath, context).then(resolve).catch(reject);
       // TODO: In the future we could write the start of the response into the timeline
       // Write this response to /dev/null
       return createWriteStream(os.devNull);
@@ -162,12 +166,10 @@ export async function undiciRequest(context: RequestContext) {
   // TODO: Pass timeout here
   // TODO: Proxy and CA-Cert config
   const targetPath = join(context.dataDir, context.requestItem.uid);
-  await rm(targetPath, { force: true });
-
   context.timeline = new Timeline();
 
   if (!context.undiciRequest) {
     throw new Error('undiciRequest is not set, but should be at this point');
   }
-  context.response = await doRequest(context.undiciRequest, targetPath, context.timeline, context);
+  context.response = await doRequest(context.undiciRequest, targetPath, context);
 }

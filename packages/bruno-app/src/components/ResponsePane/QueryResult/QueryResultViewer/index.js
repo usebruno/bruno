@@ -3,12 +3,13 @@ import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { Document, Page } from 'react-pdf';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import 'pdfjs-dist/build/pdf.worker';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { useTheme } from 'providers/Theme';
 import PdfResultViewer from 'components/ResponsePane/QueryResult/QueryResultViewer/PdfResultViewer';
+import QueryResultError from 'components/ResponsePane/QueryResult/QueryResultError';
 
 const QueryResultPreview = ({
   previewTab,
@@ -16,6 +17,7 @@ const QueryResultPreview = ({
   data,
   dataBuffer,
   formattedData,
+  error,
   item,
   contentType,
   collection,
@@ -79,15 +81,8 @@ const QueryResultPreview = ({
         <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
       );
     }
-    case 'preview-audio': {
-      return (
-        <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
-      );
-    }
-    case 'preview-video': {
-      return (
-        <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
-      );
+    case 'error': {
+      return <QueryResultError error={error} />;
     }
     default:
     case 'raw': {

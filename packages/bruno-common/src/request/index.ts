@@ -15,6 +15,8 @@ import { Callbacks, RawCallbacks } from './Callbacks';
 import { nanoid } from 'nanoid';
 import { safeParseJSON } from '@usebruno/app/src/utils/common';
 import { cleanJson } from './runtime/utils';
+import { join } from 'node:path';
+import { rm } from 'node:fs/promises';
 
 export async function request(
   requestItem: RequestItem,
@@ -51,6 +53,9 @@ export async function request(
     debug: new DebugLogger()
   };
 
+  const targetPath = join(context.dataDir, context.requestItem.uid);
+  await rm(targetPath, { force: true });
+
   try {
     return await doRequest(context);
   } catch (error) {
@@ -64,7 +69,7 @@ export async function request(
 
 async function doRequest(context: RequestContext): Promise<RequestContext> {
   context.timings.startMeasure('total');
-  context.debug.addStage('pre-request');
+  context.debug.addStage('Pre-Request');
 
   context.callback.requestQueued(context);
 
@@ -76,12 +81,12 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
 
   context.callback.requestSend(context);
 
-  context.debug.addStage('request');
+  context.debug.addStage('Request');
   context.timings.startMeasure('request');
   await undiciRequest(context);
   context.timings.stopMeasure('request');
 
-  context.debug.addStage('post-request');
+  context.debug.addStage('Post-Request');
   // TODO: Collect cookies from headers
   postRequestVars(context);
   await postRequestScript(context);

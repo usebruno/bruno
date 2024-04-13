@@ -475,15 +475,6 @@ const registerNetworkIpc = (mainWindow) => {
       const cancelTokenUid = uuid();
       const requestUid = uuid();
 
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
-
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-queued',
         requestUid,
@@ -1171,15 +1162,16 @@ const registerNetworkIpc = (mainWindow) => {
   });
 
   ipcMain.handle('renderer:get-response-body', async (_event, requestId) => {
-    let responsePath;
+    const responsePath = path.join(app.getPath('userData'), 'responseCache', requestId);
+
+    let rawData;
     try {
-      responsePath = path.join(app.getPath('userData'), 'responseCache', requestId);
+      rawData = await fsPromise.readFile(responsePath);
     } catch (e) {
       return null;
     }
 
-    const rawData = await fsPromise.readFile(responsePath);
-    let data;
+    let data = null;
     try {
       // TODO: Load encoding conditionally
       data = JSON.parse(rawData.toString('utf-8'));

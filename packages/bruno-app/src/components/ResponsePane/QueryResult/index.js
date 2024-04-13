@@ -10,7 +10,7 @@ const QueryResult = ({ item, collection, width, disableRunEventListener, headers
 
   const showSizeWarning = item.response?.size > 5_000_000 && !dismissedSizeWarning;
   useEffect(() => {
-    if (error || showSizeWarning) {
+    if (showSizeWarning) {
       return;
     }
 
@@ -28,7 +28,7 @@ const QueryResult = ({ item, collection, width, disableRunEventListener, headers
     };
   }, [item.response, showSizeWarning]);
 
-  if (error) {
+  if (error && !dataBuffer) {
     return <QueryResultError error={error} width={width} />;
   }
 
@@ -52,6 +52,7 @@ const QueryResult = ({ item, collection, width, disableRunEventListener, headers
       width={width}
       disableRunEventListener={disableRunEventListener}
       headers={headers}
+      error={error}
     />
   );
 };

@@ -16,6 +16,7 @@
     "typescript": "^5.4.2"
   },
   "scripts": {
+    "predev": "pnpm run --sort --recursive --filter !@usebruno/app --if-present build",
     "dev": "pnpm run --parallel --recursive --if-present dev",
     "prettier:web": "pnpm run --filter @usebruno/app prettier",
     "electron": "pnpm run --filter bruno-lazer electron",
