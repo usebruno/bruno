@@ -166,7 +166,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   });
 
   let axiosRequest = {
-    mode: request.body.mode,
+    mode: request?.body?.mode,
     method: request.method,
     url,
     headers,
@@ -175,7 +175,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
-  if (request.body.mode === 'json') {
+  if (request.body?.mode === 'json') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
@@ -186,28 +186,28 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     }
   }
 
-  if (request.body.mode === 'text') {
+  if (request.body?.mode === 'text') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/plain';
     }
     axiosRequest.data = request.body.text;
   }
 
-  if (request.body.mode === 'xml') {
+  if (request.body?.mode === 'xml') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/xml';
     }
     axiosRequest.data = request.body.xml;
   }
 
-  if (request.body.mode === 'sparql') {
+  if (request.body?.mode === 'sparql') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/sparql-query';
     }
     axiosRequest.data = request.body.sparql;
   }
 
-  if (request.body.mode === 'formUrlEncoded') {
+  if (request.body?.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     const params = {};
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
@@ -215,14 +215,14 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     axiosRequest.data = params;
   }
 
-  if (request.body.mode === 'multipartForm') {
+  if (request.body?.mode === 'multipartForm') {
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     const form = parseFormData(enabledParams, collectionPath);
     extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
 
-  if (request.body.mode === 'graphql') {
+  if (request.body?.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
       // https://github.com/usebruno/bruno/issues/884 - we must only parse the variables after the variable interpolation
