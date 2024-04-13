@@ -213,18 +213,21 @@ const configureRequest = async (
       case 'authorization_code': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'client_credentials': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'password': {
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
