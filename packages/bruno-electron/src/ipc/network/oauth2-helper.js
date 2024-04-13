@@ -35,7 +35,7 @@ const oauth2AuthorizeWithAuthorizationCode = async (request, collectionUid) => {
   const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
   if (cachedCredentials?.access_token) {
     console.log('Reusing Stored access token');
-    return { credentials: cachedCredentials };
+    return { credentials: cachedCredentials, response: {} };
   }
 
   let codeVerifier = generateCodeVerifier();
@@ -69,7 +69,7 @@ const oauth2AuthorizeWithAuthorizationCode = async (request, collectionUid) => {
   const response = await axiosInstance(request);
   const credentials = JSON.parse(response.data);
   persistOauth2Credentials(credentials, collectionUid);
-  return { credentials };
+  return { credentials, response };
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
@@ -112,7 +112,7 @@ const oauth2AuthorizeWithClientCredentials = async (request, collectionUid) => {
   const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
   if (cachedCredentials?.access_token) {
     console.log('Reusing Stored access token');
-    return { credentials: cachedCredentials };
+    return { credentials: cachedCredentials, response: {} };
   }
 
   let requestCopy = cloneDeep(request);
@@ -136,7 +136,7 @@ const oauth2AuthorizeWithClientCredentials = async (request, collectionUid) => {
   let response = await axiosInstance(request);
   let credentials = JSON.parse(response.data);
   persistOauth2Credentials(credentials, collectionUid);
-  return { credentials };
+  return { credentials, response };
 };
 
 // PASSWORD CREDENTIALS
@@ -145,7 +145,7 @@ const oauth2AuthorizeWithPasswordCredentials = async (request, collectionUid) =>
   const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
   if (cachedCredentials?.access_token) {
     console.log('Reusing Stored access token');
-    return { credentials: cachedCredentials };
+    return { credentials: cachedCredentials, response: {} };
   }
 
   const oAuth = get(request, 'oauth2', {});
@@ -170,7 +170,7 @@ const oauth2AuthorizeWithPasswordCredentials = async (request, collectionUid) =>
   let response = await axiosInstance(request);
   let credentials = JSON.parse(response.data);
   persistOauth2Credentials(credentials, collectionUid);
-  return { credentials };
+  return { credentials, response };
 };
 
 // IMPLICIT
@@ -179,7 +179,7 @@ const oauth2AuthorizeWithImplicitFlow = async (request, collectionUid) => {
   const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
   if (cachedCredentials?.access_token) {
     console.log('Reusing Stored access token');
-    return { credentials: cachedCredentials };
+    return { credentials: cachedCredentials, response: {} };
   }
 
   return new Promise(async (resolve, reject) => {
@@ -203,7 +203,7 @@ const oauth2AuthorizeWithImplicitFlow = async (request, collectionUid) => {
         callbackUrl: callbackUrl,
         session: oauth2Store.getSessionIdOfCollection(collectionUid)
       });
-      resolve({ credentials });
+      resolve({ credentials, response: {} });
       persistOauth2Credentials(credentials, collectionUid);
     } catch (err) {
       reject(err);
