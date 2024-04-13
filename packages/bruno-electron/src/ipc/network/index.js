@@ -208,24 +208,28 @@ const configureRequest = async (
       case 'authorization_code': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'client_credentials': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'password': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
       case 'implicit': {
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { credentials } = await oauth2AuthorizeWithImplicitFlow(requestCopy, collectionUid);
+        request.credentials = credentials;
         request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
         break;
       }
