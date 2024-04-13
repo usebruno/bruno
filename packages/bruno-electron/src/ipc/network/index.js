@@ -283,6 +283,7 @@ const configureRequest = async (
         break;
       }
     }
+    request.credentials = credentials;
     request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
   }
 
