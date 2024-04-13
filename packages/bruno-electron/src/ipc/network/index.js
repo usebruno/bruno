@@ -12,7 +12,6 @@ const { ipcMain } = require('electron');
 const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
-const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
@@ -268,22 +267,23 @@ const configureRequest = async (
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-    let credentials;
+    let credentials, response;
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
-        ({ credentials } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
+        ({ credentials, response } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
         break;
       }
       case 'client_credentials': {
-        ({ credentials } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
+        ({ credentials, response } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
         break;
       }
       case 'password': {
-        ({ credentials } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
+        ({ credentials, response } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
         break;
       }
     }
     request.credentials = credentials;
+    request.authRequestResponse = response;
     request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
   }
 
@@ -704,7 +704,11 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const request = prepareRequest(_request, collectionRoot, collectionPath);
+
+      // Script from this collection-level pseudo-request should be erased as it duplicates the collection script
+      delete request.script;
+
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -724,7 +728,7 @@ const registerNetworkIpc = (mainWindow) => {
       );
 
       interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
-      const axiosInstance = await configureRequest(
+      await configureRequest(
         collection.uid,
         request,
         envVars,
@@ -733,18 +737,12 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      try {
-        response = await axiosInstance(request);
-      } catch (error) {
-        if (error?.response) {
-          response = error.response;
-        } else {
-          return Promise.reject(error);
-        }
+      const response = request.authRequestResponse;
+      // When credentials are loaded from cache, authRequestResponse has no data
+      if (response.data) {
+        const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+        response.data = data;
       }
-
-      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
-      response.data = data;
 
       await runPostResponse(
         request,
@@ -763,7 +761,8 @@ const registerNetworkIpc = (mainWindow) => {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data
+        data: response.data,
+        credentials: request.credentials
       };
     } catch (error) {
       return Promise.reject(error);
