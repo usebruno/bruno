@@ -245,6 +245,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'oauth2':
+        request.auth = collectionAuth;
+        break;
     }
   }
 
