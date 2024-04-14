@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
+import { useRef } from 'react';
 
 const ModalHeader = ({ title, handleCancel, customHeader }) => (
   <div className="bruno-modal-header">
@@ -69,6 +70,7 @@ const Modal = ({
   closeModalFadeTimeout = 500
 }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const modalRef = useRef(null);
   const escFunction = (event) => {
     const escKeyCode = 27;
     if (event.keyCode === escKeyCode) {
@@ -99,11 +101,11 @@ const Modal = ({
   }
 
   useEffect(() => {
-    document.getElementsByTagName('dialog')[0].showModal();
+    modalRef?.current?.showModal();
   }, []);
 
   return (
-    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
+    <StyledWrapper ref={modalRef} className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} customHeader={customHeader} />
         <ModalContent>{children}</ModalContent>
