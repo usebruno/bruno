@@ -4,11 +4,11 @@ const {
   jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,
-  collectionBruToJson: _collectionBruToJson,
-  jsonToCollectionBru: _jsonToCollectionBru
+  parseCollection: _collectionBruToJson,
+  stringifyCollection: _jsonToCollectionBru
 } = require('@usebruno/lang');
 
-const collectionBruToJson = (bru) => {
+const parseCollection = (bru) => {
   try {
     const json = _collectionBruToJson(bru);
 
@@ -30,7 +30,7 @@ const collectionBruToJson = (bru) => {
   }
 };
 
-const jsonToCollectionBru = (json) => {
+const stringifyCollection = (json) => {
   try {
     const collectionBruJson = {
       query: _.get(json, 'request.params', []),
@@ -54,7 +54,7 @@ const jsonToCollectionBru = (json) => {
   }
 };
 
-const bruToEnvJson = (bru) => {
+const parseEnvironment = (bru) => {
   try {
     const json = bruToEnvJsonV2(bru);
 
@@ -71,7 +71,7 @@ const bruToEnvJson = (bru) => {
   }
 };
 
-const envJsonToBru = (json) => {
+const stringifyEnvironment = (json) => {
   try {
     const bru = envJsonToBruV2(json);
     return bru;
@@ -89,7 +89,7 @@ const envJsonToBru = (json) => {
  * @param {string} bru The BRU file content.
  * @returns {object} The JSON representation of the BRU file.
  */
-const bruToJson = (bru) => {
+const parseRequest = (bru) => {
   try {
     const json = bruToJsonV2(bru);
 
@@ -140,7 +140,7 @@ const bruToJson = (bru) => {
  * @param {object} json The JSON representation of the BRU file.
  * @returns {string} The BRU file content.
  */
-const jsonToBru = (json) => {
+const stringifyRequest = (json) => {
   let type = _.get(json, 'type');
   if (type === 'http-request') {
     type = 'http';
@@ -180,10 +180,10 @@ const jsonToBru = (json) => {
 };
 
 module.exports = {
-  bruToJson,
-  jsonToBru,
-  bruToEnvJson,
-  envJsonToBru,
-  collectionBruToJson,
-  jsonToCollectionBru
+  parseRequest,
+  stringifyRequest,
+  parseEnvironment,
+  stringifyEnvironment,
+  parseCollection,
+  stringifyCollection
 };

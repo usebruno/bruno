@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
+const { stringifyEnvironment, parseRequest, stringifyRequest, stringifyCollection } = require('../bru');
 
 const {
   isValidPathname,
@@ -156,7 +156,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
 
-      const content = jsonToCollectionBru(collectionRoot);
+      const content = stringifyCollection(collectionRoot);
       await writeFile(collectionBruFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -170,7 +170,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} already exists`);
       }
 
-      const content = jsonToBru(request);
+      const content = stringifyRequest(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -184,7 +184,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = jsonToBru(request);
+      const content = stringifyRequest(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -202,7 +202,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = jsonToBru(request);
+        const content = stringifyRequest(request);
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -232,7 +232,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = envJsonToBru(environment);
+      const content = stringifyEnvironment(environment);
 
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -257,7 +257,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = envJsonToBru(environment);
+      const content = stringifyEnvironment(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -331,13 +331,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = fs.readFileSync(oldPath, 'utf8');
-      const jsonData = bruToJson(data);
+      const jsonData = parseRequest(data);
 
       jsonData.name = newName;
 
       moveRequestUid(oldPath, newPath);
 
-      const content = jsonToBru(jsonData);
+      const content = stringifyRequest(jsonData);
       await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
     } catch (error) {
@@ -416,7 +416,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
+            const content = stringifyRequest(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -438,7 +438,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         environments.forEach((env) => {
-          const content = envJsonToBru(env);
+          const content = stringifyEnvironment(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
           fs.writeFileSync(filePath, content);
         });
@@ -479,7 +479,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const parseCollectionItems = (items = [], currentPath) => {
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
+            const content = stringifyRequest(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -507,11 +507,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       for (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = bruToJson(bru);
+        const jsonData = parseRequest(bru);
 
         if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
-          const content = jsonToBru(jsonData);
+          const content = stringifyRequest(jsonData);
           await writeFile(item.pathname, content);
         }
       }
