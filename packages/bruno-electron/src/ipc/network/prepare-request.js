@@ -59,6 +59,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'oauth2':
+        request.auth = collectionAuth;
+        break;
     }
   }
 
