@@ -10,7 +10,7 @@ import { inputsConfig } from './inputsConfig';
 import { clearOauth2Cache } from 'utils/network';
 import toast from 'react-hot-toast';
 
-const OAuth2AuthorizationCode = ({ item, collection }) => {
+const OAuth2PasswordCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -87,4 +87,4 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   );
 };
 
-export default OAuth2AuthorizationCode;
+export default OAuth2PasswordCredentials;
