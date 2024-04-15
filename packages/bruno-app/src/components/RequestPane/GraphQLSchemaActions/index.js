@@ -6,7 +6,7 @@ import { findEnvironmentInCollection } from 'utils/collections';
 import Dropdown from '../../Dropdown';
 
 const GraphQLSchemaActions = ({ item, collection, onSchemaLoad, toggleDocs }) => {
-  const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   const request = item.draft ? item.draft.request : item.request;
 
