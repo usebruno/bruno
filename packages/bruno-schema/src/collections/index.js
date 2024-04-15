@@ -165,7 +165,7 @@ const oauth2Schema = Yup.object({
   }),
   pkce: Yup.boolean().when('grantType', {
     is: (val) => ['authorization_code'].includes(val),
-    then: Yup.boolean().defined(),
+    then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
   })
 })
