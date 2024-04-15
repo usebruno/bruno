@@ -114,15 +114,21 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       case 'password':
         username = _interpolate(request.oauth2.username) || '';
         password = _interpolate(request.oauth2.password) || '';
+        clientId = _interpolate(request.oauth2.clientId) || '';
+        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.username = username;
         request.oauth2.password = password;
+        request.oauth2.clientId = clientId;
+        request.oauth2.clientSecret = clientSecret;
         request.oauth2.scope = scope;
         request.data = {
           grant_type: 'password',
           username,
           password,
+          client_id: clientId,
+          client_secret: clientSecret,
           scope
         };
         break;

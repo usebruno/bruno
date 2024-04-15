@@ -55,7 +55,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -76,7 +76,11 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
-      .then(() => toast.success('Request saved successfully'))
+      .then(() => {
+        if (!saveSilently) {
+          toast.success('Request saved successfully');
+        }
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
