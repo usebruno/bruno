@@ -385,6 +385,25 @@ const parseOpenApiCollection = (data) => {
       let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
       let securityConfig = getSecurity(collectionData);
 
+      if(collectionData['x-bruno-environments']) {
+        collectionData['x-bruno-environments'].forEach(env => {
+          brunoCollection.environments.push({
+            uid: uuid(),
+            name: env.name,
+            variables: env.variables.map(variable => {
+              return {
+                uid: uuid(),
+                name: variable.name,
+                value: variable.value ?? '',
+                type: variable.type ?? 'text',
+                enabled: variable.enabled ?? true,
+                secret: variable.secret ?? false
+              };
+            })
+          });
+        });
+      }
+
       let allRequests = Object.entries(collectionData.paths)
         .map(([path, methods]) => {
           return Object.entries(methods)
