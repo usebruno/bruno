@@ -107,7 +107,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           </label>
           <input
             id="passphrase"
-            type="text"
+            type="password"
             name="passphrase"
             className="block textbox"
             onChange={formik.handleChange}
