@@ -1,6 +1,6 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconFiles, IconEye, IconSettings, IconPlayerPlay } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
@@ -47,13 +47,13 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
-          <span className="mr-2">
-            <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
+          <span className="mr-2 cursor-pointer hover:text-gray-700" title="Run">
+            <IconPlayerPlay className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>
-          <span className="mr-3">
+          <span className="mr-3 cursor-pointer hover:text-gray-700" title="Variables">
             <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
           </span>
-          <span className="mr-3">
+          <span className="mr-3 cursor-pointer hover:text-gray-700" title="Settings">
             <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
           </span>
           <EnvironmentSelector collection={collection} />
