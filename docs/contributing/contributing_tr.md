@@ -1,5 +1,5 @@
-[English](../../contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | **Türkçe** | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
- | [简体中文](docs/contributing/contributing_cn.md)
+[English](../../contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | **Türkçe** | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+
 ## Bruno'yu birlikte daha iyi hale getirelim!!!
 
 bruno'yu geliştirmek istemenizden mutluluk duyuyoruz. Aşağıda, bruno'yu bilgisayarınıza getirmeye başlamak için yönergeler bulunmaktadır.
