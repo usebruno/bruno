@@ -35,12 +35,16 @@ const grammar = ohm.grammar(`Bru {
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
 
+   // Multiline text block surrounded by '''
+  multilinetextblockdelimiter = "'''"
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
   
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -186,6 +190,21 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    try {
+      let isMultiline = chars.sourceString?.includes(`'''`);
+      if (isMultiline) {
+        // const vals = chars.sourceString?.replace(/^'''|'''$/g, '');
+        let trimmedString = chars.sourceString
+          ?.split('\n')
+          .slice(1, -1)
+          .map((line) => line.slice(2))
+          .join('\n');
+        return trimmedString.replace(/'''/g, '');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   assertdictionary(_1, _2, pairlist, _3) {
