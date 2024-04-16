@@ -4,7 +4,7 @@ const StyledWrapper = styled.div`
   width: 100%;
   height: ${(props) => (props.allowNewlines ? 'fit-content' : '30px')};
   max-height: ${(props) => (props.allowNewlines ? '200px' : 'none')};
-  overflow: ${(props) => (props.allowNewlines ? 'scroll' : 'hidden')};
+  overflow: ${(props) => (props.allowNewlines ? 'auto' : 'hidden')};
 
   .CodeMirror {
     background: transparent;
@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      ${'' /* padding-bottom: 50px !important; */}
+      padding-bottom: 50px !important;
     }
 
     .CodeMirror-vscrollbar,
