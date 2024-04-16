@@ -82,11 +82,13 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   };
 
   // get the length of active params, headers, asserts and vars
+  // also get if there is information inside docs tab
   const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
   const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
   const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
   const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
   const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
+  const docs = item.draft ? get(item, 'draft.request.docs', []) : get(item, 'request.docs', []);
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -94,6 +96,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const activeVarsLength =
     requestVars.filter((request) => request.enabled).length +
     responseVars.filter((response) => response.enabled).length;
+  const haveDocs = docs.length > 0;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
@@ -128,6 +131,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
+          {haveDocs && <sup className="ml-1 font-medium">*</sup>}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
