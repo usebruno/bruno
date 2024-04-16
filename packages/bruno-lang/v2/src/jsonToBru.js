@@ -20,10 +20,10 @@ const getValueString = (value) => {
   }
 
   // Add one level of indentation to the contents of the multistring
-  const indentedLines = value.split('\n').map((line) => `${line}`);
+  const indentedLines = value.split('\n').map((line) => `    ${line}`);
 
   // Join the lines back together with newline characters and enclose them in triple single quotes
-  return `'''\n${indentedLines.join('\n')}\n'''`;
+  return `'''\n${indentedLines.join('\n')}\n    '''`;
 };
 
 const jsonToBru = (json) => {

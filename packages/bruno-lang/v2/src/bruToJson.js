@@ -191,15 +191,10 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   value(chars) {
     try {
-      let isMultiline = chars.sourceString?.includes(`'''`);
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
       if (isMultiline) {
-        // const vals = chars.sourceString?.replace(/^'''|'''$/g, '');
-        let trimmedString = chars.sourceString
-          ?.split('\n')
-          .slice(1, -1)
-          .map((line) => line.slice(2))
-          .join('\n');
-        return trimmedString.replace(/'''/g, '');
+        const vals = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return vals;
       }
     } catch (err) {
       console.error(err);
