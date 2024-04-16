@@ -15,7 +15,7 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 50px !important;
+      ${'' /* padding-bottom: 50px !important; */}
     }
 
     .CodeMirror-vscrollbar,
