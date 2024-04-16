@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { useRef } from 'react';
 
 const ModalHeader = ({ title, handleCancel, customHeader }) => (
   <div className="bruno-modal-header">
@@ -81,6 +80,7 @@ const Modal = ({
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
+    modalRef.current.close();
   };
 
   useEffect(() => {
