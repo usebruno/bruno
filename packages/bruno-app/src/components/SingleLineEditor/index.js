@@ -170,7 +170,13 @@ class SingleLineEditor extends Component {
   };
 
   render() {
-    return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
+    return (
+      <StyledWrapper
+        ref={this.editorRef}
+        allowNewlines={this.props.allowNewlines}
+        className="single-line-editor"
+      ></StyledWrapper>
+    );
   }
 }
 export default SingleLineEditor;

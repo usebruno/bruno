@@ -2,31 +2,26 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;
-  height: 30px;
-  overflow-y: hidden;
-  overflow-x: hidden;
+  height: ${(props) => (props.allowNewlines ? 'fit-content' : '30px')};
+  max-height: ${(props) => (props.allowNewlines ? '200px' : 'none')};
+  overflow: ${(props) => (props.allowNewlines ? 'scroll' : 'hidden')};
 
   .CodeMirror {
     background: transparent;
-    height: 34px;
+    height: ${(props) => (props.allowNewlines ? 'fit-content' : '34px')};
     font-size: 14px;
     line-height: 30px;
     overflow: hidden;
 
-    .CodeMirror-vscrollbar {
-      display: none !important;
-    }
-
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 50px !important;
+      ${'' /* padding-bottom: 50px !important; */}
     }
 
-    .CodeMirror-hscrollbar {
-      display: none !important;
-    }
+    .CodeMirror-vscrollbar,
+    .CodeMirror-hscrollbar,
     .CodeMirror-scrollbar-filler {
-      display: none !important;
+      display: none;
     }
 
     .CodeMirror-lines {
@@ -46,8 +41,7 @@ const StyledWrapper = styled.div`
 
     .CodeMirror-line {
       color: ${(props) => props.theme.text};
-      padding-left: 0;
-      padding-right: 0;
+      padding: 0;
     }
 
     .CodeMirror-selected {
