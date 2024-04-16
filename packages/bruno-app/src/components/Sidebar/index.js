@@ -105,7 +105,7 @@ const Sidebar = () => {
                   <IconCookie size={18} strokeWidth={1.5} />
                 </a>
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.3-lazer</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.13.1-lazer</div>
             </div>
           </div>
         </div>

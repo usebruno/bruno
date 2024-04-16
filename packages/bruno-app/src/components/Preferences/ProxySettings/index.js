@@ -242,7 +242,7 @@ const ProxySettings = ({ close }) => {
             </label>
             <input
               id="auth.password"
-              type="text"
+              type="password"
               name="auth.password"
               className="block textbox"
               autoComplete="off"
