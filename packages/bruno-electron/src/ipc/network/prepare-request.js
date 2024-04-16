@@ -24,7 +24,11 @@ const parseFormData = (datas, collectionPath) => {
         form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
       });
     } else {
-      form.append(name, value);
+      if (isJson(value)) {
+        form.append(name, value, { contentType: 'application/json' });
+      } else {
+        form.append(name, value);
+      }
     }
   });
   return form;
@@ -139,6 +143,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   }
 
   return axiosRequest;
+};
+
+/**
+ * Auto detection whether the string passed as parameter is a valid json or not
+ */
+const isJson = (str) => {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
+  }
+  return true;
 };
 
 const prepareRequest = (request, collectionRoot, collectionPath) => {
