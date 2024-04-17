@@ -4,6 +4,7 @@ var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const crypto_js = require('crypto-js');
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -69,6 +70,20 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           username: get(collectionAuth, 'digest.username'),
           password: get(collectionAuth, 'digest.password')
         };
+        break;
+      case 'wsse':
+        var ts = new Date().toISOString();
+        var nonce = crypto_js.lib.WordArray.random(16).toString(crypto_js.enc.Hex);
+        var digest = crypto_js.enc.Base64.stringify(
+          crypto_js.enc.Utf8.parse(
+            crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.secret')).toString(crypto_js.enc.Hex)
+          )
+        );
+
+        axiosRequest.headers['X-WSSE'] = `UsernameToken Username="${get(
+          request,
+          'auth.wsse.user'
+        )}", PasswordDigest="${digest}", Created="${ts}", nonce="${nonce}"`;
         break;
     }
   }
@@ -136,6 +151,20 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             };
             break;
         }
+        break;
+      case 'wsse':
+        var ts = new Date().toISOString();
+        var nonce = crypto_js.lib.WordArray.random(16).toString(crypto_js.enc.Hex);
+        var digest = crypto_js.enc.Base64.stringify(
+          crypto_js.enc.Utf8.parse(
+            crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.secret')).toString(crypto_js.enc.Hex)
+          )
+        );
+
+        axiosRequest.headers['X-WSSE'] = `UsernameToken Username="${get(
+          request,
+          'auth.wsse.user'
+        )}", PasswordDigest="${digest}", Created="${ts}", nonce="${nonce}"`;
         break;
     }
   }
