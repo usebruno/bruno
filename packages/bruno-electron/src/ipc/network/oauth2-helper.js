@@ -7,20 +7,17 @@ const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
 };
 
-const generateCodeChallenge = (codeVerifier) => {
-  const hash = crypto.createHash('sha256');
-  hash.update(codeVerifier);
-  const base64Hash = hash.digest('base64');
-  return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+const generateUniqueHash = (inputString) => {
+  return crypto.createHash('sha256').update(inputString).digest('base64url');
 };
 
 // AUTHORIZATION CODE
 
 const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
   let codeVerifier = generateCodeVerifier();
-  let codeChallenge = generateCodeChallenge(codeVerifier);
-
+  let codeChallenge = generateUniqueHash(codeVerifier);
   let requestCopy = cloneDeep(request);
+
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
@@ -47,9 +44,12 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, pkce } = oauth2;
+    const oauth2Store = new Oauth2Store();
+    const state = generateUniqueHash(oauth2Store.getSessionIdOfCollection(collectionUid));
 
     let oauth2QueryParams =
       (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=code`;
+
     if (callbackUrl) {
       oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
     }
@@ -57,11 +57,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       oauth2QueryParams += `&scope=${scope}`;
     }
     if (pkce) {
-      oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256&state=${state}`;
     }
     const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
     try {
-      const oauth2Store = new Oauth2Store();
       const { authorizationCode } = await authorizeUserInWindow({
         authorizeUrl: authorizationUrlWithQueryParams,
         callbackUrl,
