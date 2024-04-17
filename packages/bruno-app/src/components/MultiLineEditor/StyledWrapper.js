@@ -2,20 +2,24 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   width: 100%;
-  height: 30px;
-  overflow-y: hidden;
-  overflow-x: hidden;
+  height: fit-content;
+  max-height: 200px;
+  overflow: auto;
 
   .CodeMirror {
     background: transparent;
-    height: 34px;
+    height: fit-content;
     font-size: 14px;
     line-height: 30px;
     overflow: hidden;
 
     .CodeMirror-scroll {
       overflow: hidden !important;
-      padding-bottom: 50px !important;
+      ${'' /* padding-bottom: 50px !important; */}
+      position: relative;
+      display: contents;
+      margin: 0px;
+      padding: 0px;
     }
 
     .CodeMirror-vscrollbar,
