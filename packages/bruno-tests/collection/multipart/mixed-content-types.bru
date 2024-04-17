@@ -12,8 +12,8 @@ post {
 
 body:multipart-form {
   param1: test
+  param3: {"test":"i am json"} (contentType: application/json)
   param2: @file(multipart/small.png)
-  param3: {"test":"i am json"}
 }
 
 tests {

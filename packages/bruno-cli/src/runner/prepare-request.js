@@ -1,8 +1,8 @@
 const { get, each, filter, extend } = require('lodash');
-const fs = require('fs');
+const decomment = require('decomment');
 var JSONbig = require('json-bigint');
 const FormData = require('form-data');
-const decomment = require('decomment');
+const fs = require('fs');
 const path = require('path');
 
 const parseFormData = (datas, collectionPath) => {
