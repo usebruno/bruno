@@ -15,3 +15,24 @@ body:multipart-form {
   param2: @file(multipart/small.png)
   param3: {"test":"i am json"}
 }
+
+tests {
+  test("Status code is 200", function () {
+    expect(res.getStatus()).to.equal(200);   
+  });
+  test("param1 has no content-type", function () {
+    var param1 = res.body[0];    
+    expect(param1.name).to.equals('param1');
+    expect(param1.contentType).to.be.undefined;
+  });
+  test("param2 has content-type image/png", function () {
+    var param2 = res.body[1];    
+    expect(param2.name).to.equals('param2');
+    expect(param2.contentType).to.equals('image/png');  
+  });
+  test("param3 has content-type application/json", function () {    
+    var param3 = res.body[2];    
+    expect(param3.name).to.equals('param3');
+    expect(param3.contentType).to.equals('application/json');
+  });
+}
