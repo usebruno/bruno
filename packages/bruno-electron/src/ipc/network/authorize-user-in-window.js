@@ -30,10 +30,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     });
 
     function onWindowRedirect(url) {
+      // The finalUrl should always be the callbackUrl.
+      const hasHitRedirectUrl = url.includes(callbackUrl);
       // check if the url contains an authorization code
-      if (new URL(url).searchParams.has('code')) {
+      if (hasHitRedirectUrl && new URL(url).searchParams.has('code')) {
         finalUrl = url;
-        if (!url || !finalUrl.includes(callbackUrl)) {
+        if (!url) {
           reject(new Error('Invalid Callback Url'));
         }
         window.close();
