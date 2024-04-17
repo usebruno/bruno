@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +11,8 @@ import { useDispatch, useSelector } from 'react-redux';
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const proxySchema = Yup.object({
     enabled: Yup.boolean(),
@@ -240,18 +243,26 @@ const ProxySettings = ({ close }) => {
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
-            <input
-              id="auth.password"
-              type="password"
-              name="auth.password"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.auth.password}
-              onChange={formik.handleChange}
-            />
+            <div className="relative">
+              <input
+                id="auth.password"
+                type={showPassword ? 'text' : 'password'}
+                name="auth.password"
+                className="block textbox pr-4"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.auth.password}
+                onChange={formik.handleChange}
+              />
+              <div
+                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+              </div>
+            </div>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}

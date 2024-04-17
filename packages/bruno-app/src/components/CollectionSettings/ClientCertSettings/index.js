@@ -1,5 +1,5 @@
-import React from 'react';
-import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
+import React, { useState } from 'react';
+import { IconCertificate, IconTrash, IconWorld, IconEye, IconEyeOff } from '@tabler/icons';
 import { useFormik } from 'formik';
 import { uuid } from 'utils/common';
 import * as Yup from 'yup';
@@ -7,6 +7,8 @@ import * as Yup from 'yup';
 import StyledWrapper from './StyledWrapper';
 
 const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
   const formik = useFormik({
     initialValues: {
       domain: '',
@@ -105,14 +107,22 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           <label className="settings-label" htmlFor="passphrase">
             Passphrase
           </label>
-          <input
-            id="passphrase"
-            type="password"
-            name="passphrase"
-            className="block textbox"
-            onChange={formik.handleChange}
-            value={formik.values.passphrase || ''}
-          />
+          <div className="relative">
+            <input
+              id="passphrase"
+              type={showPassword ? 'text' : 'password'}
+              name="passphrase"
+              className="block textbox pr-4"
+              onChange={formik.handleChange}
+              value={formik.values.passphrase || ''}
+            />
+            <div
+              className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+            </div>
+          </div>
           {formik.touched.passphrase && formik.errors.passphrase ? (
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
           ) : null}
