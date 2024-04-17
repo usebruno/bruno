@@ -149,6 +149,9 @@ class MultiLineEditor extends Component {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
     }
+    if (this.editorRef?.current) {
+      this.editorRef.current.scrollTo(0, 10000);
+    }
     this.ignoreChangeEvent = false;
   }
 
