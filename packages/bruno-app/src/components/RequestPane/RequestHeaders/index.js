@@ -7,7 +7,6 @@ import { useTheme } from 'providers/Theme';
 import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import MultiLineEditor from 'components/MultiLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
@@ -100,7 +99,7 @@ const RequestHeaders = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <MultiLineEditor
+                      <SingleLineEditor
                         value={header.value}
                         theme={storedTheme}
                         onSave={onSave}
