@@ -17,6 +17,29 @@ const init = function (app, express) {
   app.use(express.raw({ type: 'multipart/form-data' }));
 };
 
+const parsePart = function (part) {
+  let result = {};
+  const name = extractParam('name', part, '=', '"', '');
+  if (name) {
+    result.name = name;
+  }
+  const filename = extractParam('filename', part, '=', '"', '');
+  if (filename) {
+    result.filename = filename;
+  }
+  const contentType = extractParam('Content-Type', part, ':', '', ';');
+  if (contentType) {
+    result.contentType = contentType;
+  }
+  if (!filename) {
+    result.value = part.substring(part.indexOf('value=') + 'value='.length);
+  }
+  if (contentType === 'application/json') {
+    result.value = JSON.parse(result.value);
+  }
+  return result;
+};
+
 const parse = function (req) {
   const BOUNDARY = 'boundary=';
   const contentType = req.headers['content-type'];
@@ -27,28 +50,7 @@ const parse = function (req) {
   parts = parts.filter((part) => part != '--');
   parts = parts.map((part) => part.replace('\r\n\r\n', ';value='));
   parts = parts.map((part) => part.replace('\r\n', ';'));
-  parts = parts.map((part) => {
-    let result = {};
-    const name = extractParam('name', part, '=', '"', '');
-    if (name) {
-      result.name = name;
-    }
-    const filename = extractParam('filename', part, '=', '"', '');
-    if (filename) {
-      result.filename = filename;
-    }
-    const contentType = extractParam('Content-Type', part, ':', '', ';');
-    if (contentType) {
-      result.contentType = contentType;
-    }
-    if (!filename) {
-      result.value = part.substring(part.indexOf('value=') + 'value='.length);
-    }
-    if (contentType === 'application/json') {
-      result.value = JSON.parse(result.value);
-    }
-    return result;
-  });
+  parts = parts.map((part) => parsePart(part));
   return parts;
 };
 
