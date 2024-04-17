@@ -2,6 +2,7 @@ const { get, each, filter } = require('lodash');
 const fs = require('fs');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
+const crypto_js = require('crypto-js');
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
@@ -78,6 +79,21 @@ const prepareRequest = (request, collectionRoot) => {
 
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+
+    if (request.auth.mode === 'wsse') {
+      var ts = new Date().toISOString();
+      var nonce = crypto_js.lib.WordArray.random(16).toString(crypto_js.enc.Hex);
+      var digest = crypto_js.enc.Base64.stringify(
+        crypto_js.enc.Utf8.parse(
+          crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.secret')).toString(crypto_js.enc.Hex)
+        )
+      );
+
+      axiosRequest.headers['X-WSSE'] = `UsernameToken Username="${get(
+        request,
+        'auth.wsse.user'
+      )}", PasswordDigest="${digest}", Created="${ts}", nonce="${nonce}"`;
     }
   }
 
