@@ -56,7 +56,7 @@ class ErrorBoundary extends React.Component {
 
             <button
               className="bg-red-500 text-white px-4 py-2 mt-4 rounded hover:bg-red-600 transition"
-              onClick={this.returnToApp()}
+              onClick={this.returnToApp}
             >
               Return to App
             </button>
