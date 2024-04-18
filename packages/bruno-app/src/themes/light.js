@@ -8,7 +8,7 @@ const lightTheme = {
     text: {
       green: '#047857',
       danger: 'rgb(185, 28, 28)',
-      muted: '#4b5563',
+      muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
     },

@@ -360,7 +360,7 @@ export const collectionsSlice = createSlice({
             urlParam.uid = existingParam ? existingParam.uid : uuid();
             urlParam.enabled = true;
 
-            // once found, remove it - trying our best here to accomodate duplicate query params
+            // once found, remove it - trying our best here to accommodate duplicate query params
             if (existingParam) {
               enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
             }

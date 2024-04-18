@@ -63,7 +63,7 @@ flatpak install com.usebruno.Bruno
 sudo mkdir -p /etc/apt/keyrings
 sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
 
-echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
 
 sudo apt update
 sudo apt install bruno
@@ -104,7 +104,7 @@ Or any version control system of your choice
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [Github Sponsors](https://github.com/sponsors/helloanoop).
+- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Showcase 🎥
 
@@ -114,7 +114,7 @@ Or any version control system of your choice
 
 ### Support ❤️
 
-If you like Bruno and want to support our opensource work, consider sponsoring us via [Github Sponsors](https://github.com/sponsors/helloanoop).
+If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Share Testimonials 📣
 

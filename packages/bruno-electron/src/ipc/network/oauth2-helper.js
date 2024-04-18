@@ -98,11 +98,13 @@ const transformClientCredentialsRequest = async (request) => {
 const transformPasswordCredentialsRequest = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, scope } = oAuth;
+  const { username, password, clientId, clientSecret, scope } = oAuth;
   const data = {
     grant_type: 'password',
     username,
     password,
+    client_id: clientId,
+    client_secret: clientSecret,
     scope
   };
   const url = requestCopy?.oauth2?.accessTokenUrl;
