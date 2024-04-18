@@ -87,7 +87,7 @@ const MultipartFormParams = ({ item, collection }) => {
           <tr>
             <td>Key</td>
             <td>Value</td>
-            <td>Content Type</td>
+            <td>Content-Type</td>
             <td></td>
           </tr>
         </thead>
@@ -148,7 +148,7 @@ const MultipartFormParams = ({ item, collection }) => {
                       )}
                     </td>
                     <td>
-                      <SingleLineEditor
+                      <MultiLineEditor
                         onSave={onSave}
                         theme={storedTheme}
                         value={param.contentType}
