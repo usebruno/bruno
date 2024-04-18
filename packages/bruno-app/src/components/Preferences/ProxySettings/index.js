@@ -6,6 +6,8 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconEye, IconEyeOff } from '@tabler/icons';
+import { useState } from 'react';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -86,6 +88,11 @@ const ProxySettings = ({ close }) => {
         let errMsg = error.message || 'Preferences validation error';
         toast.error(errMsg);
       });
+  };
+
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const togglePassword = () => {
+    setPasswordVisible(!passwordVisible);
   };
 
   useEffect(() => {
@@ -242,7 +249,7 @@ const ProxySettings = ({ close }) => {
             </label>
             <input
               id="auth.password"
-              type="password"
+              type={passwordVisible ? `text` : 'password'}
               name="auth.password"
               className="block textbox"
               autoComplete="off"
@@ -252,6 +259,9 @@ const ProxySettings = ({ close }) => {
               value={formik.values.auth.password}
               onChange={formik.handleChange}
             />
+            <button type="button" className="btn btn-sm justify-self-end -ms-10" onClick={togglePassword}>
+              {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
+            </button>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}
