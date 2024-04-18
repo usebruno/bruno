@@ -52,6 +52,10 @@ const MultipartFormParams = ({ item, collection }) => {
         param.value = e.target.value;
         break;
       }
+      case 'contentType': {
+        param.contentType = e.target.value;
+        break;
+      }
       case 'enabled': {
         param.enabled = e.target.checked;
         break;
@@ -142,7 +146,26 @@ const MultipartFormParams = ({ item, collection }) => {
                         />
                       )}
                     </td>
-                    <td></td>
+                    <td>
+                      <SingleLineEditor
+                        onSave={onSave}
+                        theme={storedTheme}
+                        value={param.contentType}
+                        onChange={(newValue) =>
+                          handleParamChange(
+                            {
+                              target: {
+                                value: newValue
+                              }
+                            },
+                            param,
+                            'contentType'
+                          )
+                        }
+                        onRun={handleRun}
+                        collection={collection}
+                      />
+                    </td>
                     <td>
                       <div className="flex items-center">
                         <input

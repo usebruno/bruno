@@ -131,10 +131,12 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
 
 const multipartExtractContentType = (pair) => {
   if (_.isString(pair.value)) {
-    const match = pair.value.match(/(.*?)\s*\(Content-Type=(.*?)\)/);
+    const match = pair.value.match(/^(.*?)\s*\(Content-Type=(.*?)\)\s*$/);
     if (match != null && match.length > 2) {
       pair.value = match[1];
       pair.contentType = match[2];
+    } else {
+      pair.contentType = '';
     }
   }
 };
