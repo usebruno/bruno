@@ -1,7 +1,38 @@
-const { get, each, filter } = require('lodash');
-const fs = require('fs');
-var JSONbig = require('json-bigint');
+const { get, each, filter, extend } = require('lodash');
 const decomment = require('decomment');
+var JSONbig = require('json-bigint');
+const FormData = require('form-data');
+const fs = require('fs');
+const path = require('path');
+
+const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item.value;
+    const name = item.name;
+    let options = {};
+    if (item.contentType) {
+      options.contentType = item.contentType;
+    }
+    if (item.type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+        options.filename = path.basename(trimmedFilePath);
+        form.append(name, fs.createReadStream(trimmedFilePath), options);
+      });
+    } else {
+      form.append(name, value, options);
+    }
+  });
+  return form;
+};
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
@@ -124,17 +155,11 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => {
-      if (p.type === 'file') {
-        params[p.name] = p.value.map((path) => fs.createReadStream(path));
-      } else {
-        params[p.name] = p.value;
-      }
-    });
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
+    const collectionPath = process.cwd();
+    const form = parseFormData(enabledParams, collectionPath);
+    extend(axiosRequest.headers, form.getHeaders());
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {

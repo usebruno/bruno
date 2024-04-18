@@ -45,7 +45,7 @@ const grammar = ohm.grammar(`Bru {
   pair = st* key st* ":" st* value st*
   key = keychar*
   value = multilinetextblock | valuechar*
-  
+
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
   assertpairlist = optionalnl* assertpair (~tagend stnl* assertpair)* (~tagend space)*
@@ -133,16 +133,31 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   });
 };
 
+const multipartExtractContentType = (pair) => {
+  if (_.isString(pair.value)) {
+    const match = pair.value.match(/^(.*?)\s*\(Content-Type=(.*?)\)\s*$/);
+    if (match != null && match.length > 2) {
+      pair.value = match[1];
+      pair.contentType = match[2];
+    } else {
+      pair.contentType = '';
+    }
+  }
+};
+
 const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
   const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
 
   return pairs.map((pair) => {
     pair.type = 'text';
+    multipartExtractContentType(pair);
+
     if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
       let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
       pair.type = 'file';
       pair.value = filestr.split('|');
     }
+
     return pair;
   });
 };

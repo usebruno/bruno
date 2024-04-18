@@ -12,6 +12,10 @@ const parseFormData = (datas, collectionPath) => {
   datas.forEach((item) => {
     const value = item.value;
     const name = item.name;
+    let options = {};
+    if (item.contentType) {
+      options.contentType = item.contentType;
+    }
     if (item.type === 'file') {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
@@ -20,11 +24,11 @@ const parseFormData = (datas, collectionPath) => {
         if (!path.isAbsolute(trimmedFilePath)) {
           trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
-
-        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+        options.filename = path.basename(trimmedFilePath);
+        form.append(name, fs.createReadStream(trimmedFilePath), options);
       });
     } else {
-      form.append(name, value);
+      form.append(name, value, options);
     }
   });
   return form;
