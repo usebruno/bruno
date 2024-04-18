@@ -405,8 +405,7 @@ const handler = async function (argv) {
           return aSequence - bSequence;
         });
       } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
-
+        console.warn(chalk.yellow('Running Folder Recursively \n'));
         bruJsons = getBruFilesRecursively(filename, testsOnly);
       }
     }
@@ -460,7 +459,7 @@ const handler = async function (argv) {
         if (nextRequestIdx >= 0) {
           currentRequestIndex = nextRequestIdx;
         } else {
-          console.error("Could not find request with name '" + nextRequestName + "'");
+          console.warn("Could not find request with name '" + nextRequestName + "'");
           currentRequestIndex++;
         }
       } else {
@@ -470,7 +469,7 @@ const handler = async function (argv) {
 
     const summary = printRunSummary(results);
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
-    console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
+    console.error(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
     if (outputPath && outputPath.length) {
       const outputDir = path.dirname(outputPath);
@@ -493,15 +492,14 @@ const handler = async function (argv) {
         makeHtmlOutput(outputJson, outputPath);
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      console.error(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
       process.exit(1);
     }
   } catch (err) {
-    console.log('Something went wrong');
-    console.error(chalk.red(err.message));
+    console.error(chalk.red('Something went wrong: ' + err.message));
     process.exit(1);
   }
 };
