@@ -301,6 +301,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 username: get(si.draft.request, 'auth.basic.username', ''),
                 password: get(si.draft.request, 'auth.basic.password', '')
               },
+              wsse: {
+                username: get(si.draft.request, 'auth.wsse.username', ''),
+                password: get(si.draft.request, 'auth.wsse.password', '')
+              },
               bearer: {
                 token: get(si.draft.request, 'auth.bearer.token', '')
               }
@@ -333,6 +337,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               basic: {
                 username: get(si.request, 'auth.basic.username', ''),
                 password: get(si.request, 'auth.basic.password', '')
+              },
+              wsse: {
+                username: get(si.request, 'auth.wsse.username', ''),
+                password: get(si.request, 'auth.wsse.password', '')
               },
               bearer: {
                 token: get(si.request, 'auth.bearer.token', '')
@@ -511,6 +519,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'oauth2': {
       label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'wsse Auth';
       break;
     }
   }

@@ -73,6 +73,10 @@
       "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
       "scope": "read write",
       "pkce": false
+    },
+    "wsse": {
+      "username": "john",
+      "password": "secret"
     }
   },
   "body": {

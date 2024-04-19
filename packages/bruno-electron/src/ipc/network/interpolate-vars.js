@@ -177,6 +177,12 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
   }
 
+  // interpolate vars for wsse auth
+  if (request.wsseConfig) {
+    request.wsseConfig.user = _interpolate(request.digestConfig.user) || '';
+    request.wsseConfig.secret = _interpolate(request.digestConfig.secret) || '';
+  }
+
   return request;
 };
 

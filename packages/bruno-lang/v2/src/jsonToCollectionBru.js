@@ -97,6 +97,15 @@ ${indentString(`password: ${auth.basic.password}`)}
 `;
   }
 
+  if (auth && auth.wsse) {
+    bru += `auth:wsse {
+${indentString(`user: ${auth.wsse.user}`)}
+${indentString(`secret: ${auth.wsse.secret}`)}
+}
+
+`;
+  }
+
   if (auth && auth.bearer) {
     bru += `auth:bearer {
 ${indentString(`token: ${auth.bearer.token}`)}

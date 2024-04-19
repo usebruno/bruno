@@ -106,6 +106,13 @@ const authBasicSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const authWsseSchema = Yup.object({
+  user: Yup.string().nullable(),
+  secret: Yup.string().nullable()
+})
+  .noUnknown(true)
+  .strict();
+
 const authBearerSchema = Yup.object({
   token: Yup.string().nullable()
 })
@@ -174,13 +181,14 @@ const oauth2Schema = Yup.object({
 
 const authSchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2'])
+    .oneOf(['inherit', 'none', 'awsv4', 'basic', 'bearer', 'digest', 'oauth2', 'wsse'])
     .required('mode is required'),
   awsv4: authAwsV4Schema.nullable(),
   basic: authBasicSchema.nullable(),
   bearer: authBearerSchema.nullable(),
   digest: authDigestSchema.nullable(),
-  oauth2: oauth2Schema.nullable()
+  oauth2: oauth2Schema.nullable(),
+  wsse: authWsseSchema.nullable()
 })
   .noUnknown(true)
   .strict();
