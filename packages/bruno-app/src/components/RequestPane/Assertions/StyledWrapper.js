@@ -21,7 +21,15 @@ const Wrapper = styled.div`
       padding: 6px 10px;
 
       &:nth-child(1) {
-        width: 30%;
+        width: 60%;
+      }
+
+      &:nth-child(2) {
+        width: 130px;
+      }
+
+      &:nth-child(3) {
+        width: 40%;
       }
 
       &:nth-child(4) {
