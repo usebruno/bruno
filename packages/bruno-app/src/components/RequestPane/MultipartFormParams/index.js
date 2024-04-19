@@ -151,6 +151,7 @@ const MultipartFormParams = ({ item, collection }) => {
                       <MultiLineEditor
                         onSave={onSave}
                         theme={storedTheme}
+                        placeholder="Auto"
                         value={param.contentType}
                         onChange={(newValue) =>
                           handleParamChange(
