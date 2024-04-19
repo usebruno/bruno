@@ -16,24 +16,9 @@ body:multipart-form {
   param3: @file(multipart/small.png)
 }
 
-tests {
-  test("Status code is 200", function () {
-    expect(res.getStatus()).to.equal(200);
-  });
-  test("param1 has no content-type", function () {
-    var param1 = res.body.find(p=>p.name === 'param1')
-    expect(param1).to.be.an('object');
-    expect(param1.contentType).to.be.undefined;
-  });
-  test("param2 has content-type application/json", function () {
-    var param2 = res.body.find(p=>p.name === 'param2')
-    expect(param2).to.be.an('object');
-    expect(param2.contentType).to.equals('application/json');
-  });
-  test("param3 has content-type image/png", function () {
-    var param3 = res.body.find(p=>p.name === 'param3')
-    expect(param3).to.be.an('object');
-    expect(param3.contentType).to.equals('image/png');
-  });
-  
+assert {
+  res.status: eq 200
+  res.body.find(p=>p.name === 'param1').contentType: isUndefined 
+  res.body.find(p=>p.name === 'param2').contentType: eq application/json
+  res.body.find(p=>p.name === 'param3').contentType: eq image/png
 }
