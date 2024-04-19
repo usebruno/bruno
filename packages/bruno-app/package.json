@@ -102,6 +102,7 @@
     "postcss": "^8.4.35",
     "postcss-preset-mantine": "^1.13.0",
     "postcss-simple-vars": "^7.0.1",
+    "rimraf": "5.0.5",
     "style-loader": "^3.3.1",
     "tailwindcss": "^3.4.1",
     "webpack": "^5.64.4",

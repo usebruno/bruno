@@ -138,6 +138,7 @@ const MultipartFormParams = ({ item, collection }) => {
                             )
                           }
                           onRun={handleRun}
+                          allowNewlines={true}
                           collection={collection}
                         />
                       )}

@@ -61,7 +61,6 @@ jobs:
       - name: Make
         run: |
           pnpm run make
-          ls ./packages/bruno-electron/out/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -87,7 +86,6 @@ jobs:
       - name: Make
         run: |
           pnpm run make
-          ls ./packages/bruno-electron/out/
 
       - uses: actions/upload-artifact@v4
         with:

@@ -1,6 +1,6 @@
 {
   "name": "bruno-lazer",
-  "version": "v1.12.3",
+  "version": "v1.13.1",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
   "private": true,
@@ -17,6 +17,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@aws-sdk/credential-providers": "3.525.0",
     "@usebruno/common": "workspace:*",
     "@usebruno/js": "workspace:*",
     "@usebruno/lang": "workspace:*",
@@ -43,6 +44,7 @@
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "nanoid": "3.3.4",
+    "node-fetch": "2.*",
     "node-machine-id": "^1.1.12",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
@@ -56,12 +58,12 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.1.1",
     "@typescript-eslint/parser": "^7.1.1",
-    "rimraf": "^5.0.5",
-    "typescript": "^5.4.2",
-    "ts-node": "^10.0.0",
     "electron": "29.1.0",
     "electron-builder": "23.0.2",
     "electron-icon-maker": "^0.0.5",
+    "rimraf": "^5.0.5",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.4.2",
     "vite": "^5.1.5",
     "vite-plugin-commonjs": "^0.10.1"
   }
