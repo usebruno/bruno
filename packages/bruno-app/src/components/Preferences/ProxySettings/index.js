@@ -91,9 +91,6 @@ const ProxySettings = ({ close }) => {
   };
 
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const togglePassword = () => {
-    setPasswordVisible(!passwordVisible);
-  };
 
   useEffect(() => {
     formik.setValues({
@@ -171,6 +168,7 @@ const ProxySettings = ({ close }) => {
             </label>
           </div>
         </div>
+
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="hostname">
             Hostname
@@ -247,21 +245,27 @@ const ProxySettings = ({ close }) => {
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
-            <input
-              id="auth.password"
-              type={passwordVisible ? `text` : 'password'}
-              name="auth.password"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.auth.password}
-              onChange={formik.handleChange}
-            />
-            <button type="button" className="btn btn-sm justify-self-end -ms-10" onClick={togglePassword}>
-              {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
-            </button>
+            <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
+              <input
+                id="auth.password"
+                type={passwordVisible ? `text` : 'password'}
+                name="auth.password"
+                className="outline-none w-[10.5rem] bg-transparent"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.auth.password}
+                onChange={formik.handleChange}
+              />
+              <button
+                type="button"
+                className="btn btn-sm absolute right-0"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+              >
+                {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
+              </button>
+            </div>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}
