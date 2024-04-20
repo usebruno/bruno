@@ -70,7 +70,12 @@ const RequestTabPanel = () => {
     if (dragging) {
       e.preventDefault();
       let leftPaneXPosition = e.clientX + 2;
-
+      if (
+        leftPaneXPosition < asideWidth + DEFAULT_PADDING + MIN_LEFT_PANE_WIDTH ||
+        leftPaneXPosition > screenWidth - MIN_RIGHT_PANE_WIDTH
+      ) {
+        return;
+      }
       setLeftPaneWidth(leftPaneXPosition - asideWidth);
       setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
     }
