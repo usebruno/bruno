@@ -19,17 +19,18 @@
     "@usebruno/query": "workspace:*",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
-    "lossless-json": "^4.0.1",
     "json-query": "^2.2.2",
+    "lodash": "^4.17.21",
+    "lossless-json": "^4.0.1",
     "nanoid": "3.3.4",
-    "undici": "^6.10.1",
-    "qs": "^6.12.0"
+    "qs": "^6.12.0",
+    "undici": "^6.10.1"
   },
   "devDependencies": {
-    "@types/node": "^20.11.25",
     "@types/chai": "^4.3.14",
     "@types/chai-string": "^1.4.5",
     "@types/json-query": "^2.2.6",
+    "@types/node": "^20.11.25",
     "@types/qs": "^6.9.14",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.2",
