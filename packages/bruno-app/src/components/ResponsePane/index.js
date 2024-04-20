@@ -16,6 +16,8 @@ import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
 import ResponseSave from 'src/components/ResponsePane/ResponseSave';
 import ResponseClear from 'src/components/ResponsePane/ResponseClear';
+import ResponseDockBottom from 'src/components/ResponsePane/ResponseDockBottom';
+import ResponseDockRight from 'src/components/ResponsePane/ResponseDockRight';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -117,6 +119,8 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
           <div className="flex flex-grow justify-end items-center">
             <ResponseClear item={item} collection={collection} />
             <ResponseSave item={item} />
+            <ResponseDockBottom />
+            <ResponseDockRight />
             <StatusCode status={response.status} />
             <ResponseTime duration={response.duration} />
             <ResponseSize size={response.size} />
