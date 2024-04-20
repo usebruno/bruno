@@ -276,13 +276,13 @@ export type BrunoConfig = {
   };
 };
 
-// TODO: add nextRequestName
 export type RequestContext = {
   uid: string;
   requestItem: RequestItem;
   collection: Collection;
   callback: Callbacks;
   dataDir: string;
+  nextRequestName?: string;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;

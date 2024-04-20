@@ -276,7 +276,8 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
         collectionCopy,
         environment,
         collectionCopy.collectionVariables,
-        recursive
+        recursive,
+        localStorage.getItem('new-request') === '"true"'
       )
       .then(resolve)
       .catch((err) => {

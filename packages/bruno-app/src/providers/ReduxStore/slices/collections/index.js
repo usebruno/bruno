@@ -1341,12 +1341,16 @@ export const collectionsSlice = createSlice({
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
+          item.isNew = action.payload.isNew || false;
         }
 
         if (type === 'response-received') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
+          item.timeline = action.payload.timeline;
+          item.timings = action.payload.timings;
+          item.debug = action.payload.debug;
         }
 
         if (type === 'test-results') {

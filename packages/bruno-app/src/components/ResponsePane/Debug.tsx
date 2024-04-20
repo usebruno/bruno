@@ -6,8 +6,8 @@ import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
 type Logs = { title: string; data: string; date: number }[];
 type DebugInfo = { stage: string; logs: Logs }[];
 
-export const DebugTab: React.FC<{ debugInfo: DebugInfo; timings: unknown; maxWidth: number }> = ({
-  debugInfo,
+export const DebugTab: React.FC<{ debugInfo: DebugInfo; timings: unknown; maxWidth?: number }> = ({
+  debugInfo = [],
   timings,
   maxWidth
 }) => {

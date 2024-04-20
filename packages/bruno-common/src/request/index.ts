@@ -13,8 +13,6 @@ import { tests } from './postRequest/tests';
 import { interpolateRequest } from './preRequest/interpolateRequest';
 import { Callbacks, RawCallbacks } from './Callbacks';
 import { nanoid } from 'nanoid';
-import { safeParseJSON } from '@usebruno/app/src/utils/common';
-import { cleanJson } from './runtime/utils';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 
@@ -72,6 +70,7 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   context.debug.addStage('Pre-Request');
 
   context.callback.requestQueued(context);
+  context.callback.folderRequestQueued(context);
 
   applyCollectionSettings(context);
   preRequestVars(context);
@@ -94,6 +93,8 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   await tests(context);
 
   context.timings.stopMeasure('total');
+
+  context.callback.folderResponseReceived(context);
 
   return context;
 }

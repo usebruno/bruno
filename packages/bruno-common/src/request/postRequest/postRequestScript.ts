@@ -38,6 +38,7 @@ export async function postRequestScript(context: RequestContext) {
 
   context.debug.log('postRequestScript Finished', scriptResult);
 
+  context.nextRequestName = scriptResult.nextRequestName;
   // The script will use `cleanJson` to remove any weird things before sending to the mainWindow
   // This destroys the references, so we update variables here manually
   context.variables.collection = scriptResult.collectionVariables;

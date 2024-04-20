@@ -428,6 +428,98 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
+  async function executeNewFolder(folder, collection, environment, recursive) {
+    const folderUid = folder ? folder.uid : null;
+    const dataDir = path.join(app.getPath('userData'), 'responseCache');
+
+    // TODO: Refactor this, getAllRequestInForlderRecursive and sortFolder to use items instead of the folder obj
+    if (!folder) {
+      folder = collection;
+    }
+
+    mainWindow.webContents.send('main:run-folder-event', {
+      type: 'testrun-started',
+      isRecursive: recursive,
+      collectionUid: collection.uid,
+      folderUid,
+      cancelTokenUid: ''
+    });
+
+    const folderRequests = [];
+    if (recursive) {
+      folderRequests.push(...getAllRequestsInFolderRecursively(sortFolder(folder)));
+    } else {
+      each(folder.items, (item) => {
+        if (item.request) {
+          folderRequests.push(item);
+        }
+      });
+
+      // sort requests by seq property
+      folderRequests.sort((a, b) => {
+        return a.seq - b.seq;
+      });
+    }
+
+    let currentRequestIndex = 0;
+    let nJumps = 0; // count the number of jumps to avoid infinite loops
+    while (currentRequestIndex < folderRequests.length) {
+      const item = folderRequests[currentRequestIndex];
+
+      const res = await newRequest(item, collection, dataDir, environment, {
+        runFolderEvent: (payload) => {
+          mainWindow.webContents.send('main:run-folder-event', {
+            ...payload,
+            folderUid
+          });
+        },
+        updateScriptEnvironment: (payload) => {
+          mainWindow.webContents.send('main:script-environment-update', payload);
+        },
+        cookieUpdated: (payload) => {
+          mainWindow.webContents.send('main:cookies-update', payload);
+        },
+        consoleLog: (payload) => {
+          mainWindow.webContents.send('main:console-log', payload);
+        }
+      });
+
+      if (res.error) {
+        mainWindow.webContents.send('main:run-folder-event', {
+          type: 'error',
+          error: String(res.error) || 'An unknown error occurred while running the request',
+          responseReceived: {},
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          folderUid
+        });
+      }
+
+      if (typeof res.nextRequestName !== 'string') {
+        currentRequestIndex++;
+        continue;
+      }
+      nJumps++;
+      if (nJumps > 100) {
+        throw new Error('Too many jumps, possible infinite loop');
+      }
+      const nextRequestIdx = folderRequests.findIndex((request) => request.name === res.nextRequestName);
+      if (nextRequestIdx >= 0) {
+        currentRequestIndex = nextRequestIdx;
+      } else {
+        console.error("Could not find request with name '" + res.nextRequestName + "'");
+        currentRequestIndex++;
+      }
+    }
+
+    mainWindow.webContents.send('main:run-folder-event', {
+      type: 'testrun-ended',
+      collectionUid: collection.uid,
+      folderUid,
+      error: null
+    });
+  }
+
   async function executeNewRequest(event, item, collection, environment) {
     const dataDir = path.join(app.getPath('userData'), 'responseCache');
     const res = await newRequest(item, collection, dataDir, environment, {
@@ -854,7 +946,11 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, collectionVariables, recursive) => {
+    async (event, folder, collection, environment, collectionVariables, recursive, newRequestMethod) => {
+      if (newRequestMethod) {
+        return await executeNewFolder(folder, collection, environment, recursive);
+      }
+
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;

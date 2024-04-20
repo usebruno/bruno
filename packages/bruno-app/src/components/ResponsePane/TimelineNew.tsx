@@ -67,7 +67,7 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
 
 type TimelineNewProps = {
   timeline: RequestTimeline[];
-  maxWidth: number;
+  maxWidth?: number;
 };
 
 export const TimelineNew: React.FC<TimelineNewProps> = ({ timeline, maxWidth }) => {

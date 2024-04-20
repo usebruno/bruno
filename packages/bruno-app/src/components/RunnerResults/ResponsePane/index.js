@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import get from 'lodash/get';
 import classnames from 'classnames';
-import { safeStringifyJSON } from 'utils/common';
 import QueryResult from 'components/ResponsePane/QueryResult';
 import ResponseHeaders from 'components/ResponsePane/ResponseHeaders';
 import StatusCode from 'components/ResponsePane/StatusCode';
@@ -11,11 +10,13 @@ import Timeline from 'components/ResponsePane/Timeline';
 import TestResults from 'components/ResponsePane/TestResults';
 import TestResultsLabel from 'components/ResponsePane/TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import { DebugTab } from 'components/ResponsePane/Debug';
+import { TimelineNew } from 'components/ResponsePane/TimelineNew';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
 
-  const { requestSent, responseReceived, testResults, assertionResults } = item;
+  const { requestSent, responseReceived, testResults, assertionResults, isNew, timings, debug, timeline } = item;
 
   const headers = get(item, 'responseReceived.headers', []);
   const status = get(item, 'responseReceived.status', 0);
@@ -42,12 +43,20 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         return <ResponseHeaders headers={headers} />;
       }
       case 'timeline': {
+        if (isNew) {
+          return <TimelineNew timeline={timeline} />;
+        }
         return <Timeline request={requestSent} response={responseReceived} />;
       }
       case 'tests': {
         return <TestResults results={testResults} assertionResults={assertionResults} />;
       }
-
+      case 'debug': {
+        if (isNew) {
+          return <DebugTab debugInfo={debug} timings={timings || {}} />;
+        }
+        return 'Only for new request Method';
+      }
       default: {
         return <div>404 | Not found</div>;
       }
@@ -75,6 +84,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           <TestResultsLabel results={testResults} assertionResults={assertionResults} />
+        </div>
+        <div className={getTabClassname('debug')} role="tab" onClick={() => selectTab('debug')}>
+          Debug
         </div>
         <div className="flex flex-grow justify-end items-center">
           <StatusCode status={status} />

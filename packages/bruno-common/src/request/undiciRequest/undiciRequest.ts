@@ -1,7 +1,6 @@
 import { RequestContext, Response, UndiciRequest } from '../types';
 import { Client, Dispatcher } from 'undici';
 import { createWriteStream } from 'node:fs';
-import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { Timeline } from '../Timeline';
 import { URL } from 'node:url';

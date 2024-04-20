@@ -132,4 +132,6 @@ export async function createUndiciRequest(context: RequestContext) {
       body: await getRequestBody(context)
     }
   };
+
+  context.callback.folderRequestSent(context);
 }
