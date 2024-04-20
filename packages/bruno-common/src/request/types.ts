@@ -278,11 +278,14 @@ export type BrunoConfig = {
 
 export type RequestContext = {
   uid: string;
-  requestItem: RequestItem;
-  collection: Collection;
-  callback: Callbacks;
   dataDir: string;
   nextRequestName?: string;
+  abortController?: AbortController;
+  cancelToken: string;
+  maxRedirects?: number;
+
+  requestItem: RequestItem;
+  collection: Collection;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;
@@ -292,13 +295,16 @@ export type RequestContext = {
       };
     };
   };
+
+  callback: Callbacks;
   timings: Timings;
   debug: DebugLogger;
+  timeline?: Timeline;
+
   undiciRequest?: {
     url: string;
     options: Dispatcher.RequestOptions;
   };
-  timeline?: Timeline;
   response?: Response;
   error?: Error;
 };

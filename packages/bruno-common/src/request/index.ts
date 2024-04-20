@@ -20,6 +20,8 @@ export async function request(
   requestItem: RequestItem,
   collection: Collection,
   dataDir: string,
+  cancelToken: string,
+  abortController: AbortController,
   environment?: CollectionEnvironment,
   rawCallbacks: Partial<RawCallbacks> = {}
 ) {
@@ -33,10 +35,12 @@ export async function request(
 
   const context: RequestContext = {
     uid: nanoid(),
-    collection,
-    requestItem,
-    callback: new Callbacks(rawCallbacks),
     dataDir,
+    cancelToken,
+    abortController,
+
+    requestItem,
+    collection,
     variables: {
       process: {
         process: {
@@ -47,6 +51,8 @@ export async function request(
       environment: environmentVariableRecord,
       collection: collection.collectionVariables
     },
+
+    callback: new Callbacks(rawCallbacks),
     timings: new Timings(),
     debug: new DebugLogger()
   };

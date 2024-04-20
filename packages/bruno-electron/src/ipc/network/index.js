@@ -431,6 +431,9 @@ const registerNetworkIpc = (mainWindow) => {
   async function executeNewFolder(folder, collection, environment, recursive) {
     const folderUid = folder ? folder.uid : null;
     const dataDir = path.join(app.getPath('userData'), 'responseCache');
+    const cancelToken = uuid();
+    const abortController = new AbortController();
+    saveCancelToken(cancelToken, abortController);
 
     // TODO: Refactor this, getAllRequestInForlderRecursive and sortFolder to use items instead of the folder obj
     if (!folder) {
@@ -442,7 +445,7 @@ const registerNetworkIpc = (mainWindow) => {
       isRecursive: recursive,
       collectionUid: collection.uid,
       folderUid,
-      cancelTokenUid: ''
+      cancelTokenUid: cancelToken
     });
 
     const folderRequests = [];
@@ -464,9 +467,20 @@ const registerNetworkIpc = (mainWindow) => {
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < folderRequests.length) {
+      if (abortController.signal.aborted) {
+        deleteCancelToken(cancelToken);
+        mainWindow.webContents.send('main:run-folder-event', {
+          type: 'testrun-ended',
+          collectionUid: collection.uid,
+          folderUid,
+          error: new Error('Request runner cancelled')
+        });
+        return;
+      }
+
       const item = folderRequests[currentRequestIndex];
 
-      const res = await newRequest(item, collection, dataDir, environment, {
+      const res = await newRequest(item, collection, dataDir, cancelToken, abortController, environment, {
         runFolderEvent: (payload) => {
           mainWindow.webContents.send('main:run-folder-event', {
             ...payload,
@@ -483,6 +497,17 @@ const registerNetworkIpc = (mainWindow) => {
           mainWindow.webContents.send('main:console-log', payload);
         }
       });
+      if (abortController.signal.aborted) {
+        mainWindow.webContents.send('main:run-folder-event', {
+          type: 'error',
+          error: 'Aborted',
+          responseReceived: {},
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          folderUid
+        });
+        continue;
+      }
 
       if (res.error) {
         mainWindow.webContents.send('main:run-folder-event', {
@@ -512,6 +537,8 @@ const registerNetworkIpc = (mainWindow) => {
       }
     }
 
+    deleteCancelToken(cancelToken);
+
     mainWindow.webContents.send('main:run-folder-event', {
       type: 'testrun-ended',
       collectionUid: collection.uid,
@@ -522,7 +549,11 @@ const registerNetworkIpc = (mainWindow) => {
 
   async function executeNewRequest(event, item, collection, environment) {
     const dataDir = path.join(app.getPath('userData'), 'responseCache');
-    const res = await newRequest(item, collection, dataDir, environment, {
+    const cancelToken = uuid();
+    const abortController = new AbortController();
+    saveCancelToken(cancelToken, abortController);
+
+    const res = await newRequest(item, collection, dataDir, cancelToken, abortController, environment, {
       updateScriptEnvironment: (payload) => {
         mainWindow.webContents.send('main:script-environment-update', payload);
       },
@@ -537,8 +568,10 @@ const registerNetworkIpc = (mainWindow) => {
       }
     });
 
-    if (res.error) {
-      console.error(res.error);
+    deleteCancelToken(cancelToken);
+
+    if (abortController.signal.aborted) {
+      throw new Error('Request aborted');
     }
 
     return {

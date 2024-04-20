@@ -1,37 +1,39 @@
+import { countReset } from 'console';
 import { RequestContext } from './types';
 import { stringify, parse } from 'lossless-json';
 
+type Callback = (payload: any) => void;
 export type RawCallbacks = {
-  updateScriptEnvironment: (payload: any) => void;
-  cookieUpdated: (payload: any) => void;
-  requestEvent: (payload: any) => void;
-  runFolderEvent: (payload: any) => void;
-  consoleLog: (payload: any) => void;
+  updateScriptEnvironment: Callback;
+  cookieUpdated: Callback;
+  requestEvent: Callback;
+  runFolderEvent: Callback;
+  consoleLog: Callback;
 };
 
 export class Callbacks {
   constructor(private rawCallbacks: Partial<RawCallbacks>) {}
 
-  requestQueued(context: RequestContext) {
-    if (!this.rawCallbacks.requestEvent) {
+  private send(callbackName: keyof RawCallbacks, context: RequestContext, payload: any) {
+    const callback = this.rawCallbacks[callbackName];
+    if (!callback || context.abortController?.signal.aborted === true) {
       return;
     }
+    callback(payload);
+  }
 
-    this.rawCallbacks.requestEvent({
+  requestQueued(context: RequestContext) {
+    this.send('requestEvent', context, {
       type: 'request-queued',
       requestUid: context.requestItem.uid,
       collectionUid: context.collection.uid,
       itemUid: context.requestItem.uid,
-      cancelTokenUid: ''
+      cancelTokenUid: context.cancelToken
     });
   }
 
   requestSend(context: RequestContext) {
-    if (!this.rawCallbacks.requestEvent) {
-      return;
-    }
-
-    this.rawCallbacks.requestEvent({
+    this.send('requestEvent', context, {
       type: 'request-sent',
       requestSent: {
         url: context.requestItem.request.url,
@@ -48,11 +50,7 @@ export class Callbacks {
   }
 
   assertionResults(context: RequestContext, results: any[]) {
-    if (!this.rawCallbacks.requestEvent) {
-      return;
-    }
-
-    this.rawCallbacks.requestEvent({
+    this.send('requestEvent', context, {
       type: 'assertion-results',
       results: results,
       itemUid: context.requestItem.uid,
@@ -62,11 +60,7 @@ export class Callbacks {
   }
 
   testResults(context: RequestContext, results: any[]) {
-    if (!this.rawCallbacks.requestEvent) {
-      return;
-    }
-
-    this.rawCallbacks.requestEvent({
+    this.send('requestEvent', context, {
       type: 'test-results',
       results: results,
       itemUid: context.requestItem.uid,
@@ -76,11 +70,7 @@ export class Callbacks {
   }
 
   updateScriptEnvironment(context: RequestContext, envVariables: any, collectionVariables: any) {
-    if (!this.rawCallbacks.updateScriptEnvironment) {
-      return;
-    }
-
-    this.rawCallbacks.updateScriptEnvironment({
+    this.send('updateScriptEnvironment', context, {
       envVariables,
       collectionVariables,
       requestUid: context.requestItem.uid,
@@ -105,11 +95,7 @@ export class Callbacks {
   }
 
   folderRequestQueued(context: RequestContext) {
-    if (!this.rawCallbacks.runFolderEvent) {
-      return;
-    }
-
-    this.rawCallbacks.runFolderEvent({
+    this.send('runFolderEvent', context, {
       type: 'request-queued',
       itemUid: context.requestItem.uid,
       collectionUid: context.collection.uid
@@ -117,11 +103,7 @@ export class Callbacks {
   }
 
   folderRequestSent(context: RequestContext) {
-    if (!this.rawCallbacks.runFolderEvent) {
-      return;
-    }
-
-    this.rawCallbacks.runFolderEvent({
+    this.send('runFolderEvent', context, {
       type: 'request-sent',
       requestSent: {
         url: context.undiciRequest!.url,
@@ -137,11 +119,7 @@ export class Callbacks {
   }
 
   folderResponseReceived(context: RequestContext) {
-    if (!this.rawCallbacks.runFolderEvent) {
-      return;
-    }
-
-    this.rawCallbacks.runFolderEvent({
+    this.send('runFolderEvent', context, {
       type: 'response-received',
       responseReceived: {
         status: context.response?.statusCode,
@@ -160,11 +138,7 @@ export class Callbacks {
   }
 
   folderAssertionResults(context: RequestContext, results: any[]) {
-    if (!this.rawCallbacks.runFolderEvent) {
-      return;
-    }
-
-    this.rawCallbacks.runFolderEvent({
+    this.send('runFolderEvent', context, {
       type: 'assertion-results',
       assertionResults: results,
       itemUid: context.requestItem.uid,
@@ -173,11 +147,7 @@ export class Callbacks {
   }
 
   folderTestResults(context: RequestContext, results: any[]) {
-    if (!this.rawCallbacks.runFolderEvent) {
-      return;
-    }
-
-    this.rawCallbacks.runFolderEvent({
+    this.send('runFolderEvent', context, {
       type: 'test-results',
       testResults: results,
       itemUid: context.requestItem.uid,

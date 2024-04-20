@@ -1308,6 +1308,7 @@ export const collectionsSlice = createSlice({
       const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
+      console.log(type, collection);
       if (collection) {
         const folder = findItemInCollection(collection, folderUid);
         const request = findItemInCollection(collection, itemUid);

@@ -125,6 +125,9 @@ async function doRequest(
     reject = rej;
   });
 
+  // Write the signal here, because the reference to the signal in undiciOptions is lost after a reqeust
+  undiciRequest.options.signal = context.abortController?.signal;
+
   await client.stream(undiciRequest.options, ({ headers, statusCode }) => {
     const { nextRequest, info } = handleServerResponse(statusCode, headers, structuredClone(undiciRequest), context);
 
