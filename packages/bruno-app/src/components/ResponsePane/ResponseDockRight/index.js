@@ -1,9 +1,13 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { updateResponsePaneDockToBottom } from 'providers/ReduxStore/slices/app';
 
 const ResponseDockRight = ({}) => {
+  const dispatch = useDispatch();
+
   const dockToRight = () => {
-    alert('dock to right');
+    dispatch(updateResponsePaneDockToBottom(false));
   };
 
   return (
@@ -14,7 +18,7 @@ const ResponseDockRight = ({}) => {
           width="16"
           height="16"
           viewBox="0 0 24 24"
-          stroke-width="1.5"
+          strokeWidth="1.5"
           stroke="currentColor"
           fill="none"
         >

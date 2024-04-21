@@ -1,10 +1,12 @@
 import React from 'react';
+import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { updateResponsePaneDockToBottom } from 'providers/ReduxStore/slices/app';
 
 const ResponseDockBottom = ({}) => {
-  const dockToBottom = () => {
-    alert('dock to bottom');
-  };
+  const dispatch = useDispatch();
+
+  const dockToBottom = () => dispatch(updateResponsePaneDockToBottom(true));
 
   return (
     <StyledWrapper className="ml-2 flex items-center">
@@ -14,7 +16,7 @@ const ResponseDockBottom = ({}) => {
           width="16"
           height="16"
           viewBox="0 0 24 24"
-          stroke-width="1.5"
+          strokeWidth="1.5"
           stroke="currentColor"
           fill="none"
         >

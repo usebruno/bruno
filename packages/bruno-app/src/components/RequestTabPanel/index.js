@@ -32,7 +32,7 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
@@ -176,7 +176,10 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+        <div
+          className={`drag-request ${isResponsePaneDockedToBottom ? 'invisible' : ''}`}
+          onMouseDown={handleDragbarMouseDown}
+        >
           <div className="drag-request-border" />
         </div>
 
