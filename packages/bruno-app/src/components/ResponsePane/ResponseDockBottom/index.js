@@ -1,15 +1,18 @@
 import React from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { updateResponsePaneDockToBottom } from 'providers/ReduxStore/slices/app';
 
 const ResponseDockBottom = ({}) => {
   const dispatch = useDispatch();
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
-  const dockToBottom = () => dispatch(updateResponsePaneDockToBottom(true));
+  const dockToBottom = () => {
+    dispatch(updateResponsePaneDockToBottom(true));
+  };
 
   return (
-    <StyledWrapper className="ml-2 flex items-center">
+    <StyledWrapper className={`ml-2 flex items-center ${isResponsePaneDockedToBottom ? 'hidden' : ''}`}>
       <button onClick={dockToBottom} title="Dock to bottom">
         <svg
           xmlns="http://www.w3.org/2000/svg"
