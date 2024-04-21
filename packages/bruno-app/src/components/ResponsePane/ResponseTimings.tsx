@@ -1,4 +1,4 @@
-import { Timeline, Title, Text, Stack } from '@mantine/core';
+import { Title, Text, Stack, Table } from '@mantine/core';
 
 type ResponseTimingsProps = {
   timings: {
@@ -18,34 +18,30 @@ export const ResponseTimings: React.FC<ResponseTimingsProps> = ({ timings }) => 
   return (
     <Stack gap={'xs'}>
       <Title order={3}>Timings</Title>
-      <Text size={'md'} c={'dimmed'}>
-        Total time: {timings.total}ms
-      </Text>
-      <Timeline active={Object.keys(timings).length - 2}>
-        {timings.preScript !== undefined ? (
-          <Timeline.Item title={`Pre-Request script: ${timings.preScript}ms`} />
-        ) : (
-          <Timeline.Item title={`Pre-Request script: Not executed`} />
-        )}
-
-        {timings.request !== undefined ? (
-          <Timeline.Item title={`Request: ${timings.request}ms`} />
-        ) : (
-          <Timeline.Item title={`Request: Not executed`} />
-        )}
-
-        {timings.postScript !== undefined ? (
-          <Timeline.Item title={`Post-Request script: ${timings.postScript}ms`} />
-        ) : (
-          <Timeline.Item title={`Post-Request script: Not executed`} />
-        )}
-
-        {timings.test !== undefined ? (
-          <Timeline.Item title={`Tests: ${timings.test}ms`} />
-        ) : (
-          <Timeline.Item title={`Tests: Not executed`} />
-        )}
-      </Timeline>
+      <Table maw={'20rem'}>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Name</Table.Th>
+            <Table.Th>Duration</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          <TimingRow title="Pre-Request script" timing={timings.postScript} />
+          <TimingRow title="Request" timing={timings.request} />
+          <TimingRow title="Post-Request script" timing={timings.postScript} />
+          <TimingRow title="Test" timing={timings.test} />
+          <TimingRow title="Total" timing={timings.total} />
+        </Table.Tbody>
+      </Table>
     </Stack>
+  );
+};
+
+const TimingRow: React.FC<{ timing?: number; title: string }> = ({ timing, title }) => {
+  return (
+    <Table.Tr>
+      <Table.Td>{title}</Table.Td>
+      <Table.Td>{timing != undefined ? `${timing} ms` : 'Not executed'}</Table.Td>
+    </Table.Tr>
   );
 };

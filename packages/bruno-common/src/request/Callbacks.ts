@@ -1,4 +1,3 @@
-import { countReset } from 'console';
 import { RequestContext } from './types';
 import { stringify, parse } from 'lossless-json';
 

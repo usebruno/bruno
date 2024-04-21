@@ -68,7 +68,7 @@ function getRequestHeaders(context: RequestContext): Record<string, string> {
     return acc;
   }, defaultHeader);
 
-  context.debug.log('requestHeaders', headers);
+  context.debug.log('Request headers', headers);
 
   return headers;
 }

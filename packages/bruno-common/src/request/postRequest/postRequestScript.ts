@@ -7,7 +7,7 @@ export async function postRequestScript(context: RequestContext) {
   const requestPostRequestScript = context.requestItem.request.script.res ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
 
-  context.debug.log('postRequestScript', {
+  context.debug.log('Post request script', {
     collectionPostRequestScript,
     requestPostRequestScript,
     postRequestScript
@@ -27,7 +27,7 @@ export async function postRequestScript(context: RequestContext) {
       (type: string, payload: any) => context.callback.consoleLog(type, payload)
     );
   } catch (error) {
-    context.debug.log('postRequestScript Error', { error });
+    context.debug.log('Post request script error', { error });
 
     throw error;
   } finally {
@@ -36,7 +36,7 @@ export async function postRequestScript(context: RequestContext) {
 
   context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);
 
-  context.debug.log('postRequestScript Finished', scriptResult);
+  context.debug.log('Post request script finished', scriptResult);
 
   context.nextRequestName = scriptResult.nextRequestName;
   // The script will use `cleanJson` to remove any weird things before sending to the mainWindow

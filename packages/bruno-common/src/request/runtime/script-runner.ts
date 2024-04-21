@@ -9,6 +9,7 @@ import { BrunoResponse } from './dataObject/BrunoResponse';
 import { TestResults } from './dataObject/TestResults';
 import { Test } from './dataObject/Test';
 import { BrunoConfig, RequestContext, RequestItem, Response } from '../types';
+import { UserScriptError } from './dataObject/UserScriptError';
 
 // Save the original require inside an "alias" variable so the "vite-plugin-commonjs" does not complain about the
 // intentional dynamic require
@@ -35,11 +36,15 @@ export async function runScript(
   );
 
   if (script.trim().length !== 0) {
-    await vm.runInThisContext(`
-      (async ({ require, console, req, res, bru, expect, assert, test }) => {
-        ${script}
-      });
-    `)(scriptContext);
+    try {
+      await vm.runInThisContext(`
+        (async ({ require, console, req, res, bru, expect, assert, test }) => {
+          ${script}
+        });
+      `)(scriptContext);
+    } catch (error) {
+      throw new UserScriptError(error, script);
+    }
   }
 
   return {

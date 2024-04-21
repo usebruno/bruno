@@ -1,4 +1,4 @@
-import { Stack, Title, Accordion } from '@mantine/core';
+import { Stack, Title, Text } from '@mantine/core';
 import { Inspector } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
 import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
@@ -19,9 +19,9 @@ export const DebugTab: React.FC<{ debugInfo: DebugInfo; timings: unknown; maxWid
           <Title key={stage} order={3} mb={'xs'}>
             {stage}
           </Title>
-          <Accordion multiple order={4} defaultValue={logs.map(({ title }) => title)}>
+          <Stack>
             <LogList logs={logs} />
-          </Accordion>
+          </Stack>
         </div>
       ))}
     </Stack>
@@ -33,14 +33,13 @@ const LogList: React.FC<{ logs: Logs }> = ({ logs }) => {
 
   const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
 
-  return logs.map(({ title, date, data }) => (
-    <Accordion.Item value={title} key={title}>
-      <Accordion.Control>
-        {title} - {new Date(date).toLocaleTimeString()}
-      </Accordion.Control>
-      <Accordion.Panel>
-        <Inspector data={data} table={false} theme={reactInspectorTheme} />
-      </Accordion.Panel>
-    </Accordion.Item>
+  return logs.map(({ title, date, data }, index) => (
+    <div key={`${title}-${index}`}>
+      <Title order={4}>{title}</Title>
+      <Text size={'xs'} c={'dimmed'} mb={'xs'}>
+        Occurred on {new Date(date).toLocaleTimeString()}
+      </Text>
+      <Inspector data={data} table={false} theme={reactInspectorTheme} />
+    </div>
   ));
 };

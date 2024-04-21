@@ -7,7 +7,7 @@ export async function preRequestScript(context: RequestContext) {
   const requestPreRequestScript = context.requestItem.request.script.req ?? '';
   const preRequestScript = collectionPreRequestScript + os.EOL + requestPreRequestScript;
 
-  context.debug.log('preRequestScript', {
+  context.debug.log('Pre request script', {
     collectionPreRequestScript,
     requestPreRequestScript,
     preRequestScript
@@ -27,7 +27,7 @@ export async function preRequestScript(context: RequestContext) {
       (type: string, payload: any) => context.callback.consoleLog(type, payload)
     );
   } catch (error) {
-    context.debug.log('preRequestScript Error', { error });
+    context.debug.log('Pre request script error', { error });
 
     throw error;
   } finally {
@@ -36,7 +36,7 @@ export async function preRequestScript(context: RequestContext) {
 
   context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);
 
-  context.debug.log('preRequestScript Finished', scriptResult);
+  context.debug.log('Pre request script error', scriptResult);
 
   context.nextRequestName = scriptResult.nextRequestName;
   // The script will use `cleanJson` to remove any weird things before sending to the mainWindow

@@ -36,8 +36,6 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   const response = item.response || {};
 
-  console.log(response);
-
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'response': {

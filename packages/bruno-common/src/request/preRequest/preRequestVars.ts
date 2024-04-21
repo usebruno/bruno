@@ -5,7 +5,7 @@ export function preRequestVars(context: RequestContext) {
   const preRequestVars = context.requestItem.request.vars.req;
   // TODO: Always set preRequestVars
   if (preRequestVars === undefined) {
-    context.debug.log('preRequestVars Skipped');
+    context.debug.log('Pre request variables skipped');
     return;
   }
 
@@ -26,5 +26,5 @@ export function preRequestVars(context: RequestContext) {
     context.callback.updateScriptEnvironment(context, undefined, varsResult.collectionVariables);
   }
 
-  context.debug.log('preRequestVars', { before, after: context.variables.collection });
+  context.debug.log('Pre request variables evaluated', { before, after: context.variables.collection });
 }

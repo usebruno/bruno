@@ -7,7 +7,7 @@ export async function tests(context: RequestContext) {
   const requestPostRequestScript = context.requestItem.request.tests ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
 
-  context.debug.log('test', {
+  context.debug.log('Test script', {
     collectionPostRequestScript,
     requestPostRequestScript,
     postRequestScript
@@ -27,7 +27,7 @@ export async function tests(context: RequestContext) {
       (type: string, payload: any) => context.callback.consoleLog(type, payload)
     );
   } catch (error) {
-    context.debug.log('test Error', { error });
+    context.debug.log('Test script error', { error });
 
     throw error;
   } finally {
@@ -38,5 +38,5 @@ export async function tests(context: RequestContext) {
   context.callback.folderTestResults(context, scriptResult.results);
   context.callback.updateScriptEnvironment(context, scriptResult.envVariables, scriptResult.collectionVariables);
 
-  context.debug.log('test Finished', scriptResult);
+  context.debug.log('Test script finished', scriptResult);
 }

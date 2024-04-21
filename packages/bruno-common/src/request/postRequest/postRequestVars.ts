@@ -4,7 +4,7 @@ import { VarsRuntime } from '../runtime/vars-runtime';
 export function postRequestVars(context: RequestContext) {
   const postRequestVars = context.requestItem.request.vars.res;
   if (postRequestVars === undefined) {
-    context.debug.log('postRequestVars Skipped');
+    context.debug.log('Post request variables skipped');
     return;
   }
 
@@ -26,5 +26,5 @@ export function postRequestVars(context: RequestContext) {
     context.callback.updateScriptEnvironment(context, undefined, varsResult.collectionVariables);
   }
 
-  context.debug.log('postRequestVars', { before, after: context.variables.collection });
+  context.debug.log('Post request variables evaluated', { before, after: context.variables.collection });
 }

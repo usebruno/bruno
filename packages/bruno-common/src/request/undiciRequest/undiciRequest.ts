@@ -24,7 +24,7 @@ function createFinalDataInterceptor(
 
       callback(opts.method, opts.headers as Record<string, string>);
 
-      debugLogger.log('finalRequestOptions', {
+      debugLogger.log('Final request options', {
         options: opts,
         url
       });
