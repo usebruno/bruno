@@ -123,6 +123,7 @@ export async function createUndiciRequest(context: RequestContext) {
   const urlObject = new URL(context.requestItem.request.url);
 
   context.undiciRequest = {
+    redirectDepth: 0,
     url: urlObject.origin,
     options: {
       method: context.requestItem.request.method,

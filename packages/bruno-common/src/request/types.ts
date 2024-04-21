@@ -282,7 +282,6 @@ export type RequestContext = {
   nextRequestName?: string;
   abortController?: AbortController;
   cancelToken: string;
-  maxRedirects?: number;
 
   requestItem: RequestItem;
   collection: Collection;
@@ -302,6 +301,7 @@ export type RequestContext = {
   timeline?: Timeline;
 
   undiciRequest?: {
+    redirectDepth: number;
     url: string;
     options: Dispatcher.RequestOptions;
   };

@@ -57,6 +57,7 @@ function handleRedirect(
   const newLocationUrl = new URL(newLocation, new URL(originalRequest.options.path, originalRequest.url));
   originalRequest.url = newLocationUrl.origin;
   originalRequest.options.path = `${newLocationUrl.pathname}${newLocationUrl.search}`;
+  originalRequest.redirectDepth++;
   return originalRequest;
 }
 
@@ -66,9 +67,14 @@ function handleServerResponse(
   originalRequest: UndiciRequest,
   context: RequestContext
 ): { nextRequest: UndiciRequest | null; info: string } {
-  // TODO: Handle max redirects options
   const redirect = handleRedirect(statusCode, header, originalRequest);
   if (redirect !== false) {
+    // Use the users redirect limit or default to 25
+    const redirectLimit = context.requestItem.request.maxRedirects ?? 25;
+    if (redirect.redirectDepth > redirectLimit) {
+      return { nextRequest: null, info: 'Server returned redirect, but redirect limit is reached' };
+    }
+
     return { nextRequest: redirect, info: 'Server returned redirect' };
   }
 
