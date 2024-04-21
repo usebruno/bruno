@@ -21,7 +21,7 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
-const MIN_TOP_PANE_HEIGHT = 150;
+const MIN_TOP_PANE_HEIGHT = 40;
 const MIN_BOTTOM_PANE_HEIGHT = 50;
 
 const DEFAULT_PADDING = 5;
@@ -115,12 +115,6 @@ const RequestTabPanel = () => {
     } else if (draggingHorizontal) {
       e.preventDefault();
       setDraggingHorizontal(false);
-      dispatch(
-        updateRequestPaneTabHeight({
-          uid: activeTabUid,
-          requestPaneHeight: e.clientY - asideHeight - DEFAULT_PADDING
-        })
-      );
     }
   };
   const handleDragbarMouseDown = (e) => {
