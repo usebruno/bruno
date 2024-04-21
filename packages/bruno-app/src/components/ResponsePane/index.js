@@ -101,7 +101,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
+      <div className="flex flex-wrap items-center pr-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
@@ -128,7 +128,9 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+        className={`flex flex-grow relative pr-4 overflow-y-auto overflow-x-hidden ${
+          focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'
+        }`}
       >
         {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {getTabPanel(focusedTab.responsePaneTab)}

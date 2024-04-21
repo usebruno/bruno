@@ -39,32 +39,34 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
-      </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
+    <StyledWrapper className="w-full">
+      <div className="flex flex-col">
+        <div className="flex-1 mt-2">
+          <div className="mb-1 title text-xs">Pre Request</div>
+          <CodeEditor
+            collection={collection}
+            value={requestScript || ''}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
+        <div className="flex-1 mt-6">
+          <div className="mt-1 mb-1 title text-xs">Post Response</div>
+          <CodeEditor
+            collection={collection}
+            value={responseScript || ''}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
       </div>
     </StyledWrapper>
   );

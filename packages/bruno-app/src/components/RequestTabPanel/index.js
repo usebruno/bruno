@@ -7,7 +7,7 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTabWidth, updateRequestPaneTabHeight } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
@@ -115,6 +115,12 @@ const RequestTabPanel = () => {
     } else if (draggingHorizontal) {
       e.preventDefault();
       setDraggingHorizontal(false);
+      dispatch(
+        updateRequestPaneTabHeight({
+          uid: activeTabUid,
+          requestPaneHeight: e.clientY - asideHeight - DEFAULT_PADDING
+        })
+      );
     }
   };
   const handleDragbarMouseDown = (e) => {
@@ -187,7 +193,7 @@ const RequestTabPanel = () => {
       <section className={`main flex flex-grow pb-4 relative ${isResponsePaneDockedToBottom ? 'flex-col' : ''}`}>
         <section className="request-pane">
           <div
-            className="px-4"
+            className="px-4 "
             style={{
               width: `${isResponsePaneDockedToBottom ? '100%' : Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH) + 'px'}`,
               height: `${isResponsePaneDockedToBottom ? Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT) + 'px' : '100%'}`
@@ -225,7 +231,21 @@ const RequestTabPanel = () => {
         </div>
 
         <section className="response-pane flex-grow ">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+          <div
+            className="px-4 "
+            style={{
+              height: `${
+                isResponsePaneDockedToBottom ? screenHeight - asideHeight - topPaneHeight - 30 + 'px' : '100%'
+              }`
+            }}
+          >
+            <ResponsePane
+              item={item}
+              collection={collection}
+              rightPaneWidth={rightPaneWidth}
+              response={item.response}
+            />
+          </div>
         </section>
       </section>
 
