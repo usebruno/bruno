@@ -28,7 +28,7 @@ const StyledWrapper = styled.div`
 
   div.drag-request-horizontal {
     display: flex;
-    align-items: center;
+
     justify-content: center;
     height: 10px;
 
