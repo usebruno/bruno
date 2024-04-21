@@ -11,15 +11,15 @@
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
 
-[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | **Français** | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md)
+[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | **Français** | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md)
 
-Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _status quo_ que représente Postman et les autres outils.
+Bruno est un nouveau client API, innovant, qui a pour but de révolutionner le _statu quo_ que représente Postman et les autres outils.
 
 Bruno sauvegarde vos collections directement sur votre système de fichiers. Nous utilisons un langage de balise de type texte pour décrire les requêtes API.
 
 Vous pouvez utiliser git ou tout autre gestionnaire de version pour travailler de manière collaborative sur vos collections d'APIs.
 
-Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas de d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
+Bruno ne fonctionne qu'en mode déconnecté. Il n'y a pas d'abonnement ou de synchronisation avec le cloud Bruno, il n'y en aura jamais. Nous sommes conscients de la confidentialité de vos données et nous sommes convaincus qu'elles doivent rester sur vos appareils. Vous pouvez lire notre vision à long terme [ici (en anglais)](https://github.com/usebruno/bruno/discussions/269).
 
 
 📢 Regarder notre présentation récente lors de la conférence  India FOSS 3.0 (en anglais) [ici](https://www.youtube.com/watch?v=7bSMFpbcPiY)
@@ -75,7 +75,7 @@ Ou n'importe quel système de gestion de sources
 - [Site web](https://www.usebruno.com)
 - [Prix](https://www.usebruno.com/pricing)
 - [Téléchargement](https://www.usebruno.com/downloads)
-- [Sponsors Github](https://github.com/sponsors/helloanoop)
+- [Sponsors GitHub](https://github.com/sponsors/helloanoop)
 
 ### Showcase 🎥
 
@@ -89,7 +89,7 @@ Ouaf! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
 
 ### Partage de témoignages 📣
 
-Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de penser à partager votre témoignage sur la [page discussion Github dédiée](https://github.com/usebruno/bruno/discussions/343)
+Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de penser à partager votre témoignage sur la [page discussion GitHub dédiée](https://github.com/usebruno/bruno/discussions/343)
 
 ### Publier Bruno sur un nouveau gestionnaire de paquets
 
@@ -125,7 +125,7 @@ Même si vous n'êtes pas en mesure de contribuer directement via du code, n'hé
 **Logo**
 
 Le logo est issu de [OpenMoji](https://openmoji.org/library/emoji-1F436/).
-Licence: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+Licence : CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
 ### Licence 📄
 

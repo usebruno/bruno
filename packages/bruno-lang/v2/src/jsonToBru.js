@@ -12,6 +12,23 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+const getValueString = (value) => {
+  const hasNewLines = value.includes('\n');
+
+  if (!hasNewLines) {
+    return value;
+  }
+
+  // Add one level of indentation to the contents of the multistring
+  const indentedLines = value
+    .split('\n')
+    .map((line) => `  ${line}`)
+    .join('\n');
+
+  // Join the lines back together with newline characters and enclose them in triple single quotes
+  return `'''\n${indentedLines}\n'''`;
+};
+
 const jsonToBru = (json) => {
   const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
@@ -134,6 +151,8 @@ ${indentString(`grant_type: password`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 }
 
@@ -200,24 +219,23 @@ ${indentString(body.sparql)}
   }
 
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
-    bru += `body:form-urlencoded {`;
+    bru += `body:form-urlencoded {\n`;
+
     if (enabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      const enabledValues = enabled(body.formUrlEncoded)
+        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      const disabledValues = disabled(body.formUrlEncoded)
+        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(disabledValues)}\n`;
     }
 
-    bru += '\n}\n\n';
+    bru += '}\n\n';
   }
 
   if (body && body.multipartForm && body.multipartForm.length) {

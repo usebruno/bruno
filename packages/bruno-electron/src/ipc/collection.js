@@ -403,7 +403,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation, enableTranslation) => {
+  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
       let collectionName = sanitizeDirectoryName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
@@ -627,6 +627,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
 
   ipcMain.handle('main:complete-quit-flow', () => {
     mainWindow.destroy();
+  });
+
+  ipcMain.handle('main:force-quit', () => {
+    process.exit();
   });
 };
 

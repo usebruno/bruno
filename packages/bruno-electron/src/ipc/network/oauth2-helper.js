@@ -4,7 +4,7 @@ const { authorizeUserInWindow } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
 
 const generateCodeVerifier = () => {
-  return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(22).toString('hex');
 };
 
 const generateCodeChallenge = (codeVerifier) => {
@@ -49,8 +49,13 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { callbackUrl, clientId, authorizationUrl, scope, pkce } = oauth2;
 
     let oauth2QueryParams =
-      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') +
-      `client_id=${clientId}&redirect_uri=${callbackUrl}&response_type=code&scope=${scope}`;
+      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=code`;
+    if (callbackUrl) {
+      oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
+    }
+    if (scope) {
+      oauth2QueryParams += `&scope=${scope}`;
+    }
     if (pkce) {
       oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
     }
@@ -93,11 +98,13 @@ const transformClientCredentialsRequest = async (request) => {
 const transformPasswordCredentialsRequest = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, scope } = oAuth;
+  const { username, password, clientId, clientSecret, scope } = oAuth;
   const data = {
     grant_type: 'password',
     username,
     password,
+    client_id: clientId,
+    client_secret: clientSecret,
     scope
   };
   const url = requestCopy?.oauth2?.accessTokenUrl;
