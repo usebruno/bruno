@@ -30,12 +30,12 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
     });
 
     function onWindowRedirect(url) {
-      // check if the url contains an authorization code
-      if (new URL(url).searchParams.has('code')) {
-        finalUrl = url;
-        if (!url || !finalUrl.includes(callbackUrl)) {
-          reject(new Error('Invalid Callback Url'));
+      // check if the redirect is to the callback URL and if it contains an authorization code
+      if (url && url.includes(callbackUrl)) {
+        if (!new URL(url).searchParams.has('code')) {
+          reject(new Error('Invalid Callback URL: Does not contain an authorization code'));
         }
+        finalUrl = url;
         window.close();
       }
       if (url.match(/(error=).*/) || url.match(/(error_description=).*/) || url.match(/(error_uri=).*/)) {
