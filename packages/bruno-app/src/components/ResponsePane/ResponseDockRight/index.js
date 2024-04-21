@@ -11,20 +11,21 @@ const ResponseDockRight = ({}) => {
       <button onClick={dockToRight} title="Dock to right">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="xMidYMid meet"
-          viewBox="0 0 29 24"
+          width="16"
           height="16"
-          width="17"
-          version="1.0"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="currentColor"
+          fill="none"
         >
-          <g
-            transform="translate(4,22) scale(0.08,-0.085)"
+          <path fill="none" stroke="none" d="M 0,24 V 0 h 24 v 24 z" />
+          <path d="m 4,20 m 2,0 A 2,2 0 0 1 4,18 V 6 A 2,2 0 0 1 6,4 h 12 a 2,2 0 0 1 2,2 v 12 a 2,2 0 0 1 -2,2 z" />
+          <path d="M 15,20 V 4" />
+          <path
             fill="currentColor"
             stroke="currentColor"
-            stroke-linecap="round"
-          >
-            <path d="M10 120 l0 -110 135 0 135 0 0 110 0 110 -135 0 -135 0 0 -110z m180 0 l0 -90 -80 0 -80 0 0 90 0 90 80 0 80 0 0 -90z" />
-          </g>
+            d="m 19.111502,18.486486 c -0.115516,0.259266 -0.354643,0.491338 -0.639512,0.620643 -0.221702,0.100633 -0.393081,0.114019 -1.474447,0.115163 l -1.223586,0.0013 V 12 4.7764125 h 1.22675 c 1.194609,0 1.234605,0.0039 1.526503,0.14937 0.187285,0.09333 0.363095,0.2407725 0.46858,0.3929775 l 0.168829,0.243606 0.0129,6.373606 c 0.0105,5.212942 -0.0015,6.405822 -0.06597,6.550511 z"
+          />
         </svg>
       </button>
     </StyledWrapper>
