@@ -18,7 +18,7 @@ const Script = ({ item, collection }) => {
 
   useEffect(() => {
     // set code mirror controls height depending on where the response pane is docked (right or bottom)
-    let codeMirrorControls = document.querySelectorAll('#ScriptTab .CodeMirror');
+    let codeMirrorControls = document.querySelectorAll('#RequestScriptTab .CodeMirror');
     let newHeight = isResponsePaneDockedToBottom ? '200px' : 'calc(50vh - 150px)';
     codeMirrorControls.forEach((control) => {
       if (control.style.height !== newHeight) {
@@ -52,7 +52,7 @@ const Script = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full">
-      <div id="ScriptTab" className="flex flex-col">
+      <div id="RequestScriptTab" className="flex flex-col">
         <div className="flex-1 mt-2">
           <div className="mb-1 title text-xs">Pre Request</div>
           <CodeEditor
