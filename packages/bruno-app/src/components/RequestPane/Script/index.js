@@ -19,7 +19,7 @@ const Script = ({ item, collection }) => {
   useEffect(() => {
     // set code mirror controls height depending on where the response pane is docked (right or bottom)
     let codeMirrorControls = document.querySelectorAll('#ScriptTab .CodeMirror');
-    let newHeight = isResponsePaneDockedToBottom ? '150px' : 'calc(50vh - 150px)';
+    let newHeight = isResponsePaneDockedToBottom ? '200px' : 'calc(50vh - 150px)';
     codeMirrorControls.forEach((control) => {
       if (control.style.height !== newHeight) {
         control.style.height = newHeight;

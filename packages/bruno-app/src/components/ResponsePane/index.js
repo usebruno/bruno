@@ -128,7 +128,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         ) : null}
       </div>
       <section
-        className={`flex flex-grow relative pr-4 overflow-y-auto overflow-x-hidden ${
+        className={`flex flex-grow relative pr-4 overflow-y-auto  ${
           focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'
         }`}
       >
