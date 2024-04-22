@@ -1,10 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  div.CodeMirror {
-    /* todo: find a better way */
-    height: calc(100vh - 250px);
-  }
+  font-size: 0.8125rem;
+  color: ${(props) => props.theme.requestTabPanel.responseStatus};
 `;
 
 export default StyledWrapper;

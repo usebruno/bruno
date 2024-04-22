@@ -14,20 +14,22 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="px-3 w-full">
-      <div className="overlay">
-        <div style={{ marginBottom: 15, fontSize: 26 }}>
-          <div style={{ display: 'inline-block', fontSize: 20, marginLeft: 5, marginRight: 5 }}>
-            <StopWatch requestTimestamp={item?.requestSent?.timestamp} />
+      <div className="flex items-center justify-center h-full">
+        <div className="overlay">
+          <div style={{ marginBottom: 15, fontSize: 26 }}>
+            <div style={{ display: 'inline-block', fontSize: 20, marginLeft: 5, marginRight: 5 }}>
+              <StopWatch requestTimestamp={item?.requestSent?.timestamp} />
+            </div>
           </div>
+          <IconRefresh size={24} className="loading-icon" />
+          <button
+            onClick={handleCancelRequest}
+            className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150 relative z-50"
+            type="button"
+          >
+            Cancel Request
+          </button>
         </div>
-        <IconRefresh size={24} className="loading-icon" />
-        <button
-          onClick={handleCancelRequest}
-          className="mt-4 uppercase btn-sm rounded btn-secondary ease-linear transition-all duration-150 relative z-50"
-          type="button"
-        >
-          Cancel Request
-        </button>
       </div>
     </StyledWrapper>
   );

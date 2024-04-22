@@ -26,6 +26,27 @@ const StyledWrapper = styled.div`
     }
   }
 
+  div.drag-request-horizontal {
+    display: flex;
+
+    justify-content: center;
+    height: 10px;
+
+    cursor: row-resize;
+    background: transparent;
+
+    div.drag-request-horizontal-border {
+      display: flex;
+      width: 100%;
+      height: 1px;
+      border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.border};
+    }
+
+    &:hover div.drag-request-horizontal-border {
+      border-top: solid 1px ${(props) => props.theme.requestTabPanel.dragbar.activeBorder};
+    }
+  }
+
   div.graphql-docs-explorer-container {
     background: white;
     outline: none;

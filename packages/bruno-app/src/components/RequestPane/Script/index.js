@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -11,9 +11,21 @@ const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  useEffect(() => {
+    // set code mirror controls height depending on where the response pane is docked (right or bottom)
+    let codeMirrorControls = document.querySelectorAll('#ScriptTab .CodeMirror');
+    let newHeight = isResponsePaneDockedToBottom ? '200px' : 'calc(50vh - 150px)';
+    codeMirrorControls.forEach((control) => {
+      if (control.style.height !== newHeight) {
+        control.style.height = newHeight;
+      }
+    });
+  });
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -39,32 +51,34 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
-      </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onRun={onRun}
-          onSave={onSave}
-        />
+    <StyledWrapper className="w-full">
+      <div id="ScriptTab" className="flex flex-col">
+        <div className="flex-1 mt-2">
+          <div className="mb-1 title text-xs">Pre Request</div>
+          <CodeEditor
+            collection={collection}
+            value={requestScript || ''}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
+        <div className="flex-1 mt-6">
+          <div className="mt-1 mb-1 title text-xs">Post Response</div>
+          <CodeEditor
+            collection={collection}
+            value={responseScript || ''}
+            theme={displayedTheme}
+            font={get(preferences, 'font.codeFont', 'default')}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onRun={onRun}
+            onSave={onSave}
+          />
+        </div>
       </div>
     </StyledWrapper>
   );

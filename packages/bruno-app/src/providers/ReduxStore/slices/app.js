@@ -6,10 +6,12 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
+  topBarHeight: 154,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
   isEnvironmentSettingsModalOpen: false,
+  isResponsePaneDockedToBottom: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -37,8 +39,9 @@ export const appSlice = createSlice({
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
     },
-    refreshScreenWidth: (state) => {
+    refreshScreenWidthAndHeight: (state) => {
       state.screenWidth = window.innerWidth;
+      state.screenHeight = window.innerHeight;
     },
     updateLeftSidebarWidth: (state, action) => {
       state.leftSidebarWidth = action.payload.leftSidebarWidth;
@@ -48,6 +51,9 @@ export const appSlice = createSlice({
     },
     updateEnvironmentSettingsModalVisibility: (state, action) => {
       state.isEnvironmentSettingsModalOpen = action.payload;
+    },
+    updateResponsePaneDockToBottom: (state, action) => {
+      state.isResponsePaneDockedToBottom = action.payload;
     },
     showHomePage: (state) => {
       state.showHomePage = true;
@@ -78,10 +84,11 @@ export const appSlice = createSlice({
 
 export const {
   idbConnectionReady,
-  refreshScreenWidth,
+  refreshScreenWidthAndHeight,
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
+  updateResponsePaneDockToBottom,
   showHomePage,
   hideHomePage,
   showPreferences,
