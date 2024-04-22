@@ -86,7 +86,7 @@ const prepareRequest = (request, collectionRoot) => {
       var nonce = crypto_js.lib.WordArray.random(16).toString(crypto_js.enc.Hex);
       var digest = crypto_js.enc.Base64.stringify(
         crypto_js.enc.Utf8.parse(
-          crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.secret')).toString(crypto_js.enc.Hex)
+          crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.password')).toString(crypto_js.enc.Hex)
         )
       );
 

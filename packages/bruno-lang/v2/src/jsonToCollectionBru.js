@@ -100,7 +100,7 @@ ${indentString(`password: ${auth.basic.password}`)}
   if (auth && auth.wsse) {
     bru += `auth:wsse {
 ${indentString(`user: ${auth.wsse.user}`)}
-${indentString(`secret: ${auth.wsse.secret}`)}
+${indentString(`password: ${auth.wsse.password}`)}
 }
 
 `;

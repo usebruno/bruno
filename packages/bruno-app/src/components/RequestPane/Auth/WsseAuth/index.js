@@ -24,13 +24,13 @@ const WsseAuth = ({ item, collection }) => {
         itemUid: item.uid,
         content: {
           user: user,
-          secret: wsseAuth.secret
+          password: wsseAuth.password
         }
       })
     );
   };
 
-  const handleSecretChange = (secret) => {
+  const handlePasswordChange = (password) => {
     dispatch(
       updateAuth({
         mode: 'wsse',
@@ -38,7 +38,7 @@ const WsseAuth = ({ item, collection }) => {
         itemUid: item.uid,
         content: {
           user: wsseAuth.user,
-          secret: secret
+          password: password
         }
       })
     );
@@ -58,13 +58,13 @@ const WsseAuth = ({ item, collection }) => {
         />
       </div>
 
-      <label className="block font-medium mb-2">Secret</label>
+      <label className="block font-medium mb-2">Password</label>
       <div className="single-line-editor-wrapper">
         <SingleLineEditor
-          value={wsseAuth.secret || ''}
+          value={wsseAuth.password || ''}
           theme={storedTheme}
           onSave={handleSave}
-          onChange={(val) => handleSecretChange(val)}
+          onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
         />
