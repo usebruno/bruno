@@ -4,7 +4,7 @@ import Tooltip from 'components/Tooltip';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
-import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useState } from 'react';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {

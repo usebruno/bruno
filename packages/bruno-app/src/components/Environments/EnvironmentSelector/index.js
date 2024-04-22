@@ -3,7 +3,7 @@ import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
-import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
+import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons-react';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';

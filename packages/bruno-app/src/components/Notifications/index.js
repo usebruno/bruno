@@ -1,4 +1,4 @@
-import { IconBell } from '@tabler/icons';
+import { IconBell } from '@tabler/icons-react';
 import { useState } from 'react';
 import StyledWrapper from './StyleWrapper';
 import Modal from 'components/Modal/index';

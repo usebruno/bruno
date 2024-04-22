@@ -5,9 +5,8 @@ import {
   IconFolders,
   IconArrowsSort,
   IconSortAscendingLetters,
-  IconSortDescendingLetters,
-  IconX
-} from '@tabler/icons';
+  IconSortDescendingLetters
+} from '@tabler/icons-react';
 import Collection from '../Collections/Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
@@ -15,6 +14,7 @@ import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
+import { ActionIcon, CloseButton, Input, Group, Tooltip, rem } from '@mantine/core';
 
 // todo: move this to a separate folder
 // the coding convention is to keep all the components in a folder named after the component
@@ -22,6 +22,7 @@ const CollectionsBadge = () => {
   const dispatch = useDispatch();
   const { collections } = useSelector((state) => state.collections);
   const { collectionSortOrder } = useSelector((state) => state.collections);
+
   const sortCollectionOrder = () => {
     let order;
     switch (collectionSortOrder) {
@@ -37,28 +38,24 @@ const CollectionsBadge = () => {
     }
     dispatch(sortCollections({ order }));
   };
+
   return (
-    <div className="items-center mt-2 relative">
-      <div className="collections-badge flex items-center justify-between px-2">
-        <div className="flex items-center  py-1 select-none">
-          <span className="mr-2">
-            <IconFolders size={18} strokeWidth={1.5} />
-          </span>
-          <span>Collections</span>
-        </div>
-        {collections.length >= 1 && (
-          <button onClick={() => sortCollectionOrder()}>
-            {collectionSortOrder == 'default' ? (
-              <IconArrowsSort size={18} strokeWidth={1.5} />
-            ) : collectionSortOrder == 'alphabetical' ? (
-              <IconSortAscendingLetters size={18} strokeWidth={1.5} />
-            ) : (
-              <IconSortDescendingLetters size={18} strokeWidth={1.5} />
-            )}
-          </button>
+    <Tooltip label="Change collection sorting" openDelay={250}>
+      <ActionIcon
+        size={'input-xs'}
+        variant={'default'}
+        onClick={sortCollectionOrder}
+        aria-label={'Change collection sorting'}
+      >
+        {collectionSortOrder == 'default' ? (
+          <IconArrowsSort style={{ width: rem(16) }} strokeWidth={1.5} />
+        ) : collectionSortOrder == 'alphabetical' ? (
+          <IconSortAscendingLetters style={{ width: rem(16) }} strokeWidth={1.5} />
+        ) : (
+          <IconSortDescendingLetters style={{ width: rem(16) }} strokeWidth={1.5} />
         )}
-      </div>
-    </div>
+      </ActionIcon>
+    </Tooltip>
   );
 };
 
@@ -70,7 +67,6 @@ const Collections = () => {
   if (!collections || !collections.length) {
     return (
       <StyledWrapper>
-        <CollectionsBadge />
         <CreateOrOpenCollection />
       </StyledWrapper>
     );
@@ -80,42 +76,28 @@ const Collections = () => {
     <StyledWrapper>
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
 
-      <CollectionsBadge />
-
-      <div className="mt-4 relative collection-filter px-2">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <span className="text-gray-500 sm:text-sm">
-            <IconSearch size={16} strokeWidth={1.5} />
-          </span>
-        </div>
-        <input
-          type="text"
-          name="search"
-          id="search"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck="false"
-          className="block w-full pl-7 py-1 sm:text-sm"
-          placeholder="search"
+      <Group mx={'xs'} gap={'xs'}>
+        <Input
           value={searchText}
-          onChange={(e) => setSearchText(e.target.value.toLowerCase())}
+          placeholder={'Search for request'}
+          onChange={(evt) => setSearchText(evt.currentTarget.value)}
+          flex={1}
+          size="xs"
+          leftSection={<IconSearch style={{ width: rem(20) }} stroke={1.5} />}
+          rightSectionPointerEvents="all"
+          rightSection={
+            <CloseButton
+              aria-label="Clear search"
+              onClick={() => setSearchText('')}
+              style={{ display: searchText ? undefined : 'none' }}
+            />
+          }
         />
-        {searchText !== '' && (
-          <div className="absolute inset-y-0 right-0 pr-4 flex items-center">
-            <span
-              className="close-icon"
-              onClick={() => {
-                setSearchText('');
-              }}
-            >
-              <IconX size={16} strokeWidth={1.5} className="cursor-pointer" />
-            </span>
-          </div>
-        )}
-      </div>
 
-      <div className="mt-4 flex flex-col overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
+        <CollectionsBadge />
+      </Group>
+
+      <div className="flex flex-col overflow-y-auto absolute bottom-10 left-0 right-0" style={{ top: rem(90) }}>
         {collections && collections.length
           ? collections.map((c) => {
               return (

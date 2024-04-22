@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, forwardRef } from 'react';
 import useGraphqlSchema from './useGraphqlSchema';
-import { IconBook, IconDownload, IconLoader2, IconRefresh } from '@tabler/icons';
+import { IconBook, IconDownload, IconLoader2, IconRefresh } from '@tabler/icons-react';
 import get from 'lodash/get';
 import { findEnvironmentInCollection } from 'utils/collections';
 import Dropdown from '../../Dropdown';

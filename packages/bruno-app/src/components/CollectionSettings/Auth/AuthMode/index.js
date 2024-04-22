@@ -1,6 +1,6 @@
 import React, { useRef, forwardRef } from 'react';
 import get from 'lodash/get';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown } from '@tabler/icons-react';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import { updateCollectionAuthMode } from 'providers/ReduxStore/slices/collections';

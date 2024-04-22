@@ -2,7 +2,7 @@ import React from 'react';
 import { Switch } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons-react';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch, useSelector } from 'react-redux';

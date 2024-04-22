@@ -1,9 +1,9 @@
 import React from 'react';
-import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
+import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons-react';
 import { useFormik } from 'formik';
 import { uuid } from 'utils/common';
 import * as Yup from 'yup';
-import { IconEye, IconEyeOff } from '@tabler/icons';
+import { IconEye, IconEyeOff } from '@tabler/icons-react';
 import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';

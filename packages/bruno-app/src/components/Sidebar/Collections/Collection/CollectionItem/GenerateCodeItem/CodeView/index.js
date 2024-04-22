@@ -7,7 +7,7 @@ import { buildHarRequest } from 'utils/codegenerator/har';
 import { useSelector } from 'react-redux';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
-import { IconCopy } from '@tabler/icons';
+import { IconCopy } from '@tabler/icons-react';
 import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
 
 const CodeView = ({ language, item }) => {

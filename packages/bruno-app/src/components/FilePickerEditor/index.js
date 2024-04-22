@@ -2,7 +2,7 @@ import React from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { browseFiles } from 'providers/ReduxStore/slices/collections/actions';
-import { IconX } from '@tabler/icons';
+import { IconX } from '@tabler/icons-react';
 import { isWindowsOS } from 'utils/common/platform';
 import slash from 'utils/common/slash';
 

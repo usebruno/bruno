@@ -2,7 +2,7 @@ import React from 'react';
 import toast from 'react-hot-toast';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
-import { IconFiles } from '@tabler/icons';
+import { IconFiles } from '@tabler/icons-react';
 import { removeCollection } from 'providers/ReduxStore/slices/collections/actions';
 
 const RemoveCollection = ({ onClose, collection }) => {

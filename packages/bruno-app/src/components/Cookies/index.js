@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Modal from 'components/Modal';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash } from '@tabler/icons-react';
 import { deleteCookiesForDomain } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 

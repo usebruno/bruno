@@ -1,4 +1,4 @@
-import { IconCopy, IconDatabase, IconEdit, IconTrash } from '@tabler/icons';
+import { IconCopy, IconDatabase, IconEdit, IconTrash } from '@tabler/icons-react';
 import { useState } from 'react';
 import CopyEnvironment from '../../CopyEnvironment';
 import DeleteEnvironment from '../../DeleteEnvironment';

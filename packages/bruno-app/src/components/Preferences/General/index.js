@@ -8,7 +8,7 @@ import * as Yup from 'yup';
 import toast from 'react-hot-toast';
 import path from 'path';
 import slash from 'utils/common/slash';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash } from '@tabler/icons-react';
 
 const General = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);

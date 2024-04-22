@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown } from '@tabler/icons-react';
 import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';

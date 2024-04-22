@@ -6,7 +6,7 @@ import Cookies from 'components/Cookies';
 
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { IconSettings, IconCookie } from '@tabler/icons';
+import { IconSettings, IconCookie } from '@tabler/icons-react';
 import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'providers/ReduxStore/slices/app';
 import { useTheme } from 'providers/Theme';
 

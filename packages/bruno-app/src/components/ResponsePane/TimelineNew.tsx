@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { statusCodesToPhrases } from 'know-your-http-well';
 import { Stack, Divider, Group, Text, Space, ThemeIcon } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons';
+import { IconInfoCircle } from '@tabler/icons-react';
 import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
 
 type RequestTimeline = {

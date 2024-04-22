@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { IconAlertTriangle } from '@tabler/icons';
+import { IconAlertTriangle } from '@tabler/icons-react';
 
 const ModalHeader = ({ title, handleCancel, customHeader }) => (
   <div className="bruno-modal-header">

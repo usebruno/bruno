@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconSpeakerphone, IconBrandDiscord } from '@tabler/icons';
+import { IconSpeakerphone, IconBrandDiscord } from '@tabler/icons-react';
 import StyledWrapper from './StyledWrapper';
 
 const Support = () => {

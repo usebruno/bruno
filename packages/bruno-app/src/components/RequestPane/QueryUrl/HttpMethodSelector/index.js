@@ -1,5 +1,5 @@
 import React, { useRef, forwardRef } from 'react';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown } from '@tabler/icons-react';
 import Dropdown from 'components/Dropdown';
 import StyledWrapper from './StyledWrapper';
 

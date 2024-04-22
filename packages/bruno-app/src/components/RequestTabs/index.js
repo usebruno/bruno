@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import find from 'lodash/find';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
-import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
+import { IconChevronRight, IconChevronLeft } from '@tabler/icons-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { focusTab, closeTabs } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';

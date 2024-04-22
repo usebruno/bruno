@@ -8,7 +8,7 @@ import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collect
 import { pluralizeWord } from 'utils/common';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
-import { IconAlertTriangle } from '@tabler/icons';
+import { IconAlertTriangle } from '@tabler/icons-react';
 import Modal from 'components/Modal';
 
 const SaveRequestsModal = ({ onClose }) => {

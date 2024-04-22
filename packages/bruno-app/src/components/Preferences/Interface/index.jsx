@@ -1,7 +1,7 @@
 import { useFormik } from 'formik';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
-import { IconInfoCircle } from '@tabler/icons';
+import { IconInfoCircle } from '@tabler/icons-react';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import get from 'lodash/get';

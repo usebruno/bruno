@@ -14,7 +14,7 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
-import { IconWand } from '@tabler/icons';
+import { IconWand } from '@tabler/icons-react';
 
 import onHasCompletion from './onHasCompletion';
 

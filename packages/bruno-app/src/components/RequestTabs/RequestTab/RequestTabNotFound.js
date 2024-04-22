@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { IconAlertTriangle } from '@tabler/icons';
+import { IconAlertTriangle } from '@tabler/icons-react';
 
 const RequestTabNotFound = ({ handleCloseClick }) => {
   const [showErrorMessage, setShowErrorMessage] = useState(false);

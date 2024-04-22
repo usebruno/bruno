@@ -1,6 +1,6 @@
 import React from 'react';
 import Modal from 'components/Modal/index';
-import { IconSpeakerphone, IconBrandTwitter, IconBrandGithub, IconBrandDiscord, IconBook } from '@tabler/icons';
+import { IconSpeakerphone, IconBrandTwitter, IconBrandGithub, IconBrandDiscord, IconBook } from '@tabler/icons-react';
 import StyledWrapper from './StyledWrapper';
 
 const BrunoSupport = ({ onClose }) => {

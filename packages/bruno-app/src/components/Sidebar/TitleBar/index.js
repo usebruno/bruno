@@ -1,16 +1,15 @@
 import toast from 'react-hot-toast';
 import Bruno from 'components/Bruno';
-import Dropdown from 'components/Dropdown';
 import CreateCollection from '../CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
+import { ActionIcon, Box, rem, Tooltip } from '@mantine/core';
 
-import { IconDots } from '@tabler/icons';
-import { useState, forwardRef, useRef } from 'react';
+import { IconPlus, IconFolderOpen, IconPackageImport } from '@tabler/icons-react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -18,7 +17,6 @@ const TitleBar = () => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
-  const { ipcRenderer } = window;
 
   const handleImportCollection = (collection) => {
     setImportedCollection(collection);
@@ -33,16 +31,6 @@ const TitleBar = () => {
     toast.success('Collection imported successfully');
   };
 
-  const menuDropdownTippyRef = useRef();
-  const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
-  const MenuIcon = forwardRef((props, ref) => {
-    return (
-      <div ref={ref} className="dropdown-icon cursor-pointer">
-        <IconDots size={22} />
-      </div>
-    );
-  });
-
   const handleTitleClick = () => dispatch(showHomePage());
 
   const handleOpenCollection = () => {
@@ -51,12 +39,8 @@ const TitleBar = () => {
     );
   };
 
-  const openDevTools = () => {
-    ipcRenderer.invoke('renderer:open-devtools');
-  };
-
   return (
-    <StyledWrapper className="px-2 py-2">
+    <Box m={'xs'}>
       {createCollectionModalOpen ? <CreateCollection onClose={() => setCreateCollectionModalOpen(false)} /> : null}
       {importCollectionModalOpen ? (
         <ImportCollection onClose={() => setImportCollectionModalOpen(false)} handleSubmit={handleImportCollection} />
@@ -78,50 +62,39 @@ const TitleBar = () => {
           className="flex items-center font-medium select-none cursor-pointer"
           style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
         >
-          bruno
+          Bruno lazer
         </div>
-        <div className="collection-dropdown flex flex-grow items-center justify-end">
-          <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                setCreateCollectionModalOpen(true);
-                menuDropdownTippyRef.current.hide();
-              }}
+        <ActionIcon.Group ml={'auto'}>
+          <Tooltip label="Import collection" openDelay={250}>
+            <ActionIcon
+              variant="default"
+              size={'md'}
+              aria-label={'Import collection'}
+              onClick={() => setImportCollectionModalOpen(true)}
             >
-              Create Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                handleOpenCollection();
-                menuDropdownTippyRef.current.hide();
-              }}
+              <IconPackageImport style={{ width: rem(16) }} stroke={1.5} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip label="Open collection" openDelay={250}>
+            <ActionIcon variant="default" size={'md'} aria-label={'Open collection'} onClick={handleOpenCollection}>
+              <IconFolderOpen style={{ width: rem(16) }} stroke={1.5} />
+            </ActionIcon>
+          </Tooltip>
+
+          <Tooltip label="Create collection" openDelay={250}>
+            <ActionIcon
+              variant="default"
+              size={'md'}
+              aria-label={'Create collection'}
+              onClick={() => setCreateCollectionModalOpen(true)}
             >
-              Open Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                setImportCollectionModalOpen(true);
-              }}
-            >
-              Import Collection
-            </div>
-            <div
-              className="dropdown-item"
-              onClick={(e) => {
-                menuDropdownTippyRef.current.hide();
-                openDevTools();
-              }}
-            >
-              Devtools
-            </div>
-          </Dropdown>
-        </div>
+              <IconPlus style={{ width: rem(16) }} stroke={1.5} />
+            </ActionIcon>
+          </Tooltip>
+        </ActionIcon.Group>
       </div>
-    </StyledWrapper>
+    </Box>
   );
 };
 

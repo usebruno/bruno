@@ -1,4 +1,4 @@
-import { IconFilter, IconX } from '@tabler/icons';
+import { IconFilter, IconX } from '@tabler/icons-react';
 import React, { useMemo } from 'react';
 import { useRef } from 'react';
 import { useState } from 'react';

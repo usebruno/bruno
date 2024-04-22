@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash } from '@tabler/icons-react';
 import CodeEditor from 'src/components/CodeEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
