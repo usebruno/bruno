@@ -1,6 +1,10 @@
 const { BrowserWindow } = require('electron');
 const { preferencesUtil } = require('../../store/preferences');
 
+const matchesCallbackUrl = (url, callbackUrl) => {
+  return url ? new URL(url).host == new URL(callbackUrl).host : false;
+};
+
 const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
   return new Promise(async (resolve, reject) => {
     let finalUrl = null;
@@ -31,7 +35,7 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
 
     function onWindowRedirect(url) {
       // check if the redirect is to the callback URL and if it contains an authorization code
-      if (url && url.includes(callbackUrl)) {
+      if (matchesCallbackUrl(url, callbackUrl)) {
         if (!new URL(url).searchParams.has('code')) {
           reject(new Error('Invalid Callback URL: Does not contain an authorization code'));
         }
@@ -93,4 +97,4 @@ const authorizeUserInWindow = ({ authorizeUrl, callbackUrl, session }) => {
   });
 };
 
-module.exports = { authorizeUserInWindow };
+module.exports = { authorizeUserInWindow, matchesCallbackUrl };
