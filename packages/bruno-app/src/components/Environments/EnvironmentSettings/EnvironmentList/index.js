@@ -1,4 +1,4 @@
-import React, { useEffect, useState, createContext, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
@@ -8,8 +8,6 @@ import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
-
-const FormikContext = createContext();
 
 const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
   const { environments } = collection;
@@ -52,7 +50,6 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   const handleEnvironmentClick = (env) => {
     if (!isModified) {
-      //replaced formik.dirty to isModified
       setSelectedEnvironment(env);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -86,7 +83,6 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   const handleConfirmSwitch = (saveChanges) => {
     if (!saveChanges) {
       setSwitchEnvConfirmClose(false);
-      //     formik.resetForm({ originalEnvironmentVariables });
     }
   };
 
@@ -100,11 +96,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
         <div>
           {switchEnvConfirmClose && (
             <div className="flex items-center justify-between tab-container px-1">
-              <ConfirmSwitchEnv
-                // onCancel={() => setSwitchEnvConfirmClose(false)}
-                onCancel={() => handleConfirmSwitch(false)}
-                // onSaveAndClose={() => handleConfirmSwitch(true)}
-              />
+              <ConfirmSwitchEnv onCancel={() => handleConfirmSwitch(false)} />
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
