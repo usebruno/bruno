@@ -3,7 +3,7 @@ import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 import { createPortal } from 'react-dom';
 
-const ConfirmSwitchEnv = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
+const ConfirmSwitchEnv = ({ onCancel }) => {
   return createPortal(
     <Modal
       size="md"
@@ -28,17 +28,17 @@ const ConfirmSwitchEnv = ({ onCancel, onCloseWithoutSave, onSaveAndClose }) => {
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-danger" onClick={onCloseWithoutSave}>
-            Don't Save
+          <button className="btn btn-sm btn-danger" onClick={onCancel}>
+            Close
           </button>
         </div>
         <div>
-          <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
+          {/* <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
             Cancel
-          </button>
-          <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
+          </button> */}
+          {/* <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
             Save
-          </button>
+          </button> */}
         </div>
       </div>
     </Modal>,
