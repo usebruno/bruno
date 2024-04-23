@@ -127,8 +127,6 @@ const authDigestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-
-
   const authNTLMSchema = Yup.object({
     username: Yup.string().nullable(),
     password: Yup.string().nullable(),
@@ -136,7 +134,7 @@ const authDigestSchema = Yup.object({
 
   })
     .noUnknown(true)
-    .strict();  
+    .strict();
 
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
@@ -200,6 +198,13 @@ const oauth2Schema = Yup.object({
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
   }),
+  clientSecretMethod: Yup.string()
+    .oneOf(['client_credentials_basic', 'client_credentials_post'])
+    .when('clientSecret', {
+      is: (clientSecret) => clientSecret != null,
+      then: Yup.string().default('client_credentials_basic'),
+      otherwise: Yup.string().nullable().strip()
+    }),
   credentialsId: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
     then: Yup.string().nullable(),
@@ -211,13 +216,13 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   tokenPrefix: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) => 
+    is: (grantType, tokenPlacement) =>
       ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'header',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   tokenQueryParamKey: Yup.string().when(['grantType', 'tokenPlacement'], {
-    is: (grantType, tokenPlacement) => 
+    is: (grantType, tokenPlacement) =>
       ['client_credentials', 'password', 'authorization_code'].includes(grantType) && tokenPlacement === 'url',
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
