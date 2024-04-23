@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
@@ -16,6 +16,7 @@ import { maskInputValue } from 'utils/collections';
 const EnvironmentVariables = ({ environment, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const addButtonRef = useRef(null);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -79,6 +80,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
   const handleRemoveVar = (id) => {
     formik.setValues(formik.values.filter((variable) => variable.uid !== id));
   };
+
+  useEffect(() => {
+    addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [formik.values]);
 
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
@@ -151,11 +156,15 @@ const EnvironmentVariables = ({ environment, collection }) => {
             ))}
           </tbody>
         </table>
-      </div>
-      <div>
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addVariable}>
-          + Add Variable
-        </button>
+        <div>
+          <button
+            ref={addButtonRef}
+            className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
+            onClick={addVariable}
+          >
+            + Add Variable
+          </button>
+        </div>
       </div>
 
       <div>
