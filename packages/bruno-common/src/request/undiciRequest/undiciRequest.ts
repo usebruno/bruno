@@ -54,7 +54,16 @@ function handleRedirect(
   // This will first build the Original request URL and then merge it with the location header.
   // URL will automatically handle a relative Location header e.g. /new-site or an absolute location
   // e.g. https://my-new-site.net
-  const newLocationUrl = new URL(newLocation, new URL(originalRequest.options.path, originalRequest.url));
+  let newLocationUrl;
+  try {
+    newLocationUrl = new URL(newLocation, new URL(originalRequest.options.path, originalRequest.url));
+  } catch (error) {
+    throw new Error(
+      'Could not create Url to redirect location! Server returned this location: ' +
+        `"${newLocation}", old Url: "${originalRequest.options.path}" & old path: "${originalRequest.url}". ` +
+        `Original error: ${error}`
+    );
+  }
   originalRequest.url = newLocationUrl.origin;
   originalRequest.options.path = `${newLocationUrl.pathname}${newLocationUrl.search}`;
   originalRequest.redirectDepth++;

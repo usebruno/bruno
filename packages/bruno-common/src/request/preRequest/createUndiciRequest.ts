@@ -120,7 +120,12 @@ async function getRequestBody(context: RequestContext): Promise<string | null | 
 }
 
 export async function createUndiciRequest(context: RequestContext) {
-  const urlObject = new URL(context.requestItem.request.url);
+  let urlObject;
+  try {
+    urlObject = new URL(context.requestItem.request.url);
+  } catch (error) {
+    throw new Error(`Could not your URL: "${context.requestItem.request.url}". Original error: ${error}`);
+  }
 
   context.undiciRequest = {
     redirectDepth: 0,

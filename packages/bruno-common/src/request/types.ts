@@ -232,7 +232,7 @@ export type Collection = {
   lastAction: null | any;
   collapsed: boolean;
   environments: CollectionEnvironment[];
-  root: {
+  root?: {
     request?: {
       auth: AuthMode;
       headers: {

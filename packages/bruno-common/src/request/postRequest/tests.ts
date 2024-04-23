@@ -3,7 +3,7 @@ import { EOL } from 'node:os';
 import { runScript } from '../runtime/script-runner';
 
 export async function tests(context: RequestContext) {
-  const collectionPostRequestScript = context.collection.root.request?.tests ?? '';
+  const collectionPostRequestScript = context.collection.root?.request?.tests ?? '';
   const requestPostRequestScript = context.requestItem.request.tests ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
 

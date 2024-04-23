@@ -26,7 +26,8 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     onSuccess: (_, values) => {
       onClose();
       toast.success(`Renamed from "${item.name}" to "${values.name}"`);
-    }
+    },
+    onError: console.error
   });
 
   const formik = useFormik({
