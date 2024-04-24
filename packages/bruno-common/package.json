@@ -19,6 +19,7 @@
     "@usebruno/query": "workspace:*",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
+    "form-data": "^4.0.0",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
     "lossless-json": "^4.0.1",

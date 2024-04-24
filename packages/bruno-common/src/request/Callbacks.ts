@@ -105,10 +105,10 @@ export class Callbacks {
     this.send('runFolderEvent', context, {
       type: 'request-sent',
       requestSent: {
-        url: context.undiciRequest!.url,
-        method: context.undiciRequest!.options.method,
-        headers: context.undiciRequest!.options.headers,
-        data: context.undiciRequest!.options.body ?? undefined,
+        url: context.requestItem.request.url,
+        method: context.httpRequest!.options.method,
+        headers: context.httpRequest!.options.headers,
+        data: context.httpRequest!.body ?? undefined,
         timestamp: Date.now()
       },
       isNew: true,

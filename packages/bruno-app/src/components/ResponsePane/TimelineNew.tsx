@@ -5,29 +5,45 @@ import { IconInfoCircle } from '@tabler/icons-react';
 import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
 
 type RequestTimeline = {
-  requestMethod: string;
-  requestUrl: string;
-  requestHeaders: Record<string, string>;
-  responseHeader: Record<string, string | string[] | undefined>;
-  statusCode: number;
-  info: string;
+  // RequestInfo
+  finalOptions: {
+    method: string;
+    protocol: string;
+    hostname: string;
+    port: string;
+    path: string;
+    headers: Record<string, string[]>;
+  };
+  requestBody?: string;
+  // Response
+  responseTime?: number;
+  statusCode?: number;
+  statusMessage?: String;
+  headers?: Record<string, string[]>;
+  httpVersion?: string;
+  responseBody?: Buffer;
+  error?: string;
+  info?: string;
 };
 
 const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
   const requestData: string[] = useMemo(() => {
-    const data = [`${item.requestMethod} ${item.requestUrl}`];
-    for (const [name, value] of Object.entries(item.requestHeaders)) {
-      if (value === undefined) {
+    const data = [`${item.finalOptions.method} ${item.finalOptions.hostname}`];
+    for (const [name, value] of Object.entries(item.finalOptions.headers)) {
+      if (Array.isArray(value)) {
+        for (const val of value) {
+          data.push(`${name}: ${val}`);
+        }
         continue;
       }
       data.push(`${name}: ${value}`);
     }
     return data;
-  }, [item.requestHeaders]);
+  }, [item.finalOptions]);
 
   const responseData: string[] = useMemo(() => {
-    const data = [`${item.statusCode} ${statusCodesToPhrases[item.statusCode] ?? ''}`];
-    for (const [name, value] of Object.entries(item.responseHeader)) {
+    const data = [`HTTP/${item.httpVersion} ${item.statusCode}`];
+    for (const [name, value] of Object.entries(item.headers)) {
       if (!Array.isArray(value)) {
         data.push(`${name}: ${value}`);
         continue;
@@ -37,7 +53,7 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
       }
     }
     return data;
-  }, [item.responseHeader]);
+  }, [item.headers]);
 
   return (
     <div>

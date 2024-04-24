@@ -567,6 +567,9 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:console-log', payload);
       }
     });
+    if (res.error) {
+      console.error(res.error);
+    }
 
     deleteCancelToken(cancelToken);
 

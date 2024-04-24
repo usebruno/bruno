@@ -48,6 +48,7 @@ const formatResponse = (data, mode, filter) => {
 
 const QueryResultMode = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
+  console.log(contentType);
   const mode = getMonacoModeFromContent(contentType, data);
   const [filter, setFilter] = useState('');
   const formattedData = formatResponse(data, mode, filter);

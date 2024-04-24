@@ -1,12 +1,12 @@
 import { platform, arch } from 'node:os';
 import { RequestBody, RequestContext, RequestItem } from '../types';
-import { FormData } from 'undici';
 import { stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Blob, Buffer } from 'node:buffer';
 import qs from 'qs';
+import FormData from 'form-data';
 
 function createAuthHeader(requestItem: RequestItem): Record<string, string> {
   const auth = requestItem.request.auth;
@@ -27,7 +27,7 @@ function createAuthHeader(requestItem: RequestItem): Record<string, string> {
 }
 
 const bodyContentTypeMap: Record<RequestBody['mode'], string | undefined> = {
-  multipartForm: undefined, // Undici will automatically create the correct header with the FormData object
+  multipartForm: undefined,
   formUrlEncoded: 'application/x-www-form-urlencoded',
   json: 'application/json',
   xml: 'text/xml',
@@ -39,45 +39,53 @@ const bodyContentTypeMap: Record<RequestBody['mode'], string | undefined> = {
 type HeaderMetadata = {
   brunoVersion: string;
   isCli: boolean;
-  undiciVersion: string;
 };
 
 export function createDefaultRequestHeader(requestItem: RequestItem, meta: HeaderMetadata): Record<string, string> {
-  return {
-    'user-agent': `Bruno/${meta.brunoVersion} (${
-      meta.isCli ? 'CLI' : 'Electron'
-    }; Lazer; ${platform()}/${arch()}) undici/${meta.undiciVersion}`,
+  const defaultHeaders: Record<string, string> = {
+    'user-agent': `Bruno/${meta.brunoVersion} (${meta.isCli ? 'CLI' : 'Electron'}; Lazer; ${platform()}/${arch()})`,
     accept: '*/*',
-    'content-type': bodyContentTypeMap[requestItem.request.body.mode]!,
     ...createAuthHeader(requestItem)
   };
+  const contentType = bodyContentTypeMap[requestItem.request.body.mode]!;
+  if (contentType) {
+    defaultHeaders['content-type'] = contentType;
+  }
+
+  return defaultHeaders;
 }
 
-function getRequestHeaders(context: RequestContext): Record<string, string> {
+function getRequestHeaders(context: RequestContext, extraHeaders: Record<string, string>): Record<string, string> {
   const defaultHeader = createDefaultRequestHeader(context.requestItem, {
     isCli: false,
-    undiciVersion: '6.10.1',
-    brunoVersion: '1.12.3'
+    brunoVersion: '1.14.0'
   });
 
   // Go through user header and merge them together with default header
-  const headers = context.requestItem.request.headers.reduce<Record<string, string>>((acc, header) => {
-    if (header.enabled) {
-      acc[header.name.toLowerCase()] = header.value;
-    }
-    return acc;
-  }, defaultHeader);
+  const headers = context.requestItem.request.headers.reduce<Record<string, string>>(
+    (acc, header) => {
+      if (header.enabled) {
+        acc[header.name.toLowerCase()] = header.value;
+      }
+      return acc;
+    },
+    { ...defaultHeader, ...extraHeaders }
+  );
 
   context.debug.log('Request headers', headers);
 
   return headers;
 }
 
-async function getRequestBody(context: RequestContext): Promise<string | null | FormData> {
-  switch (context.requestItem.request.body.mode) {
+async function getRequestBody(context: RequestContext): Promise<[string | Buffer | undefined, Record<string, string>]> {
+  let bodyData;
+  let extraHeaders: Record<string, string> = {};
+
+  const body = context.requestItem.request.body;
+  switch (body.mode) {
     case 'multipartForm':
       const formData = new FormData();
-      for (const item of context.requestItem.request.body.multipartForm) {
+      for (const item of body.multipartForm) {
         if (!item.enabled) {
           continue;
         }
@@ -91,35 +99,51 @@ async function getRequestBody(context: RequestContext): Promise<string | null | 
             break;
         }
       }
-      return formData;
+
+      bodyData = formData.getBuffer();
+      extraHeaders = formData.getHeaders();
+      break;
     case 'formUrlEncoded':
-      const combined = context.requestItem.request.body.formUrlEncoded.reduce<Record<string, string>>((acc, item) => {
+      const combined = body.formUrlEncoded.reduce<Record<string, string[]>>((acc, item) => {
         if (item.enabled) {
-          acc[item.name] = item.value;
+          if (!acc[item.name]) {
+            acc[item.name] = [];
+          }
+          acc[item.name].push(item.value);
         }
         return acc;
       }, {});
-      return qs.stringify(combined);
+
+      bodyData = qs.stringify(combined);
+      break;
     case 'json':
-      if (typeof context.requestItem.request.body.json !== 'string') {
-        return stringify(context.requestItem.request.body.json) ?? '';
+      if (typeof body.json !== 'string') {
+        bodyData = stringify(body.json) ?? '';
+        break;
       }
-      return context.requestItem.request.body.json;
+      bodyData = body.json;
+      break;
     case 'xml':
-      return context.requestItem.request.body.xml;
+      bodyData = body.xml;
+      break;
     case 'text':
-      return context.requestItem.request.body.text;
+      bodyData = body.text;
+      break;
     case 'sparql':
-      return context.requestItem.request.body.sparql;
+      bodyData = body.sparql;
+      break;
     case 'none':
-      return null;
+      bodyData = undefined;
+      break;
     default:
       // @ts-expect-error body.mode is `never` here because the case should never happen
-      throw new Error(`No case defined for body mode: "${context.requestItem.request.body.mode}"`);
+      throw new Error(`No case defined for body mode: "${body.mode}"`);
   }
+
+  return [bodyData, extraHeaders];
 }
 
-export async function createUndiciRequest(context: RequestContext) {
+export async function createHttpRequest(context: RequestContext) {
   let urlObject;
   try {
     urlObject = new URL(context.requestItem.request.url);
@@ -127,15 +151,17 @@ export async function createUndiciRequest(context: RequestContext) {
     throw new Error(`Could not your URL: "${context.requestItem.request.url}". Original error: ${error}`);
   }
 
-  context.undiciRequest = {
+  const [body, extraHeaders] = await getRequestBody(context);
+  context.httpRequest = {
     redirectDepth: 0,
-    url: urlObject.origin,
+    body,
     options: {
       method: context.requestItem.request.method,
+      protocol: urlObject.protocol,
+      hostname: urlObject.hostname,
+      port: urlObject.port,
       path: `${urlObject.pathname}${urlObject.search}${urlObject.hash}`,
-      maxRedirections: 0, // Don't follow redirects
-      headers: getRequestHeaders(context),
-      body: await getRequestBody(context)
+      headers: getRequestHeaders(context, extraHeaders)
     }
   };
 

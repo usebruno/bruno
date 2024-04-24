@@ -3,6 +3,7 @@ import { Timings } from './Timings';
 import { DebugLogger } from './DebugLogger';
 import { Timeline } from './Timeline';
 import { Callbacks } from './Callbacks';
+import { RequestOptions } from 'node:http';
 
 export type RequestType = 'http-request' | 'graphql-request';
 
@@ -300,13 +301,12 @@ export type RequestContext = {
   debug: DebugLogger;
   timeline?: Timeline;
 
-  undiciRequest?: {
+  httpRequest?: {
+    options: RequestOptions;
+    body?: string | Buffer;
     redirectDepth: number;
-    url: string;
-    options: Dispatcher.RequestOptions;
   };
+
   response?: Response;
   error?: Error;
 };
-
-export type UndiciRequest = Exclude<RequestContext['undiciRequest'], undefined>;

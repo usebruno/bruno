@@ -1,14 +1,9 @@
-export type RequestTimeline = {
-  requestMethod: string;
-  requestUrl: string;
-  requestHeaders: Record<string, string>;
-  responseHeader: Record<string, string | string[] | undefined>;
-  statusCode: number;
-  info: string;
-};
+import { HttpRequestInfo } from './httpRequest/httpRequest';
 
-export class Timeline extends Array {
-  public add(request: RequestTimeline) {
-    this.push(request);
+export class Timeline extends Array<HttpRequestInfo> {
+  public add(request: HttpRequestInfo) {
+    const unref = { ...request };
+    delete unref.responseBody;
+    this.push(unref);
   }
 }

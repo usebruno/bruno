@@ -4,8 +4,7 @@ import { Collection, CollectionEnvironment, RequestContext, RequestItem } from '
 import { preRequestVars } from './preRequest/preRequestVars';
 import { preRequestScript } from './preRequest/preRequestScript';
 import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
-import { createUndiciRequest } from './preRequest/createUndiciRequest';
-import { undiciRequest } from './undiciRequest/undiciRequest';
+import { createHttpRequest } from './preRequest/createHttpRequest';
 import { postRequestVars } from './postRequest/postRequestVars';
 import { postRequestScript } from './postRequest/postRequestScript';
 import { assertions } from './postRequest/assertions';
@@ -15,6 +14,7 @@ import { Callbacks, RawCallbacks } from './Callbacks';
 import { nanoid } from 'nanoid';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
+import { makeHttpRequest } from './httpRequest/requestHandler';
 
 export async function request(
   requestItem: RequestItem,
@@ -82,13 +82,13 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   preRequestVars(context);
   await preRequestScript(context);
   interpolateRequest(context);
-  await createUndiciRequest(context);
+  await createHttpRequest(context);
 
   context.callback.requestSend(context);
 
   context.debug.addStage('Request');
   context.timings.startMeasure('request');
-  await undiciRequest(context);
+  await makeHttpRequest(context);
   context.timings.stopMeasure('request');
 
   context.debug.addStage('Post-Request');

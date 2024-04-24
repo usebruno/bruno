@@ -1,18 +1,17 @@
-import { Dispatcher } from 'undici';
 import { AuthMode } from '../types';
 import crypto from 'node:crypto';
 import { Readable } from 'stream';
 import { FormData } from 'undici';
+import { RequestOptions } from 'node:http';
 
 function createAwsV4AuthHeaders(
-  url: string, // Only https://example.com without path / search params
-  opts: Dispatcher.DispatchOptions,
+  opts: RequestOptions,
+  body: string | Buffer = '',
   authConfig: Extract<AuthMode, { mode: 'awsv4' }>
 ): Record<string, string> {
-  const method = opts.method.toUpperCase();
+  const method = opts.method!.toUpperCase();
   const headers = opts.headers as Record<string, string>;
-  const body = opts.body || '';
-  const { hostname, pathname, searchParams } = new URL(opts.path, url);
+  const { hostname, pathname, searchParams } = new URL(opts.path!, `${opts.protocol}//${opts.hostname}`);
 
   const amzDate = new Date().toISOString().replace(/[:\-]|\.\d{3}/g, '');
   const dateStamp = amzDate.substring(0, 8);
@@ -76,20 +75,15 @@ function createAwsV4AuthHeaders(
   };
 }
 
-export function createAwsV4AuthInterceptor(
-  url: string,
-  authConfig: Extract<AuthMode, { mode: 'awsv4' }>
-): Dispatcher.DispatcherInterceptor {
-  return (dispatch) => {
-    return (opts, handler) => {
-      const authHeaders = createAwsV4AuthHeaders(url, opts, authConfig);
+export function addAwsAuthHeader(
+  authConfig: Extract<AuthMode, { mode: 'awsv4' }>,
+  requestOptions: RequestOptions,
+  body?: string | Buffer
+): void {
+  const authHeaders = createAwsV4AuthHeaders(requestOptions, body, authConfig);
 
-      opts.headers = {
-        ...opts.headers,
-        ...authHeaders
-      };
-
-      return dispatch(opts, handler);
-    };
+  requestOptions.headers = {
+    ...requestOptions.headers,
+    ...authHeaders
   };
 }

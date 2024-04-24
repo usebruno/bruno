@@ -1,6 +1,7 @@
 import crypto from 'crypto';
-import { AuthMode, UndiciRequest } from '../types';
+import { AuthMode } from '../types';
 import { URL } from 'node:url';
+import { RequestOptions } from 'http';
 
 type DigestAuthDetails = {
   algorithm: string;
@@ -15,17 +16,17 @@ function hash(input: string, algo: string) {
 export function handleDigestAuth(
   statusCode: number,
   headers: Record<string, string | string[] | undefined>,
-  originalRequest: UndiciRequest,
+  originalRequest: RequestOptions,
   auth: AuthMode
-): UndiciRequest | null {
+): boolean {
   if (
     auth.mode !== 'digest' || // Only execute if user configured digest as auth mode
     statusCode !== 401 || // Only Apply auth if we really are unauthorized
     !headers['www-authenticate'] || // Check if the Server returned the Auth details
     // @ts-expect-error This header object is set up us, by the type for it is more broad
-    !!originalRequest.options.headers['authorization'] // Check if we already sent the Authorization header
+    !!originalRequest.headers['authorization'] // Check if we already sent the Authorization header
   ) {
-    return null;
+    return false;
   }
 
   const authDetails = String(headers['www-authenticate'])
@@ -35,7 +36,7 @@ export function handleDigestAuth(
 
   const nonceCount = '00000001';
   const cnonce = crypto.randomBytes(24).toString('hex');
-  const uri = new URL(originalRequest.options.path, originalRequest.url).pathname;
+  const uri = new URL(originalRequest.path!, `${originalRequest.protocol}//${originalRequest.hostname}`).pathname;
 
   let algo = 'md5';
   switch (authDetails.algorithm.toLowerCase()) {
@@ -50,15 +51,15 @@ export function handleDigestAuth(
   }
 
   const ha1 = hash(`${auth.digest.username}:${authDetails['Digest realm']}:${auth.digest.password}`, algo);
-  const ha2 = hash(`${originalRequest.options.method}:${uri}`, algo);
+  const ha2 = hash(`${originalRequest.method}:${uri}`, algo);
   const response = hash(`${ha1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${ha2}`, algo);
 
   const authorizationHeader =
     `Digest username="${auth.digest.username}",realm="${authDetails['Digest realm']}",` +
     `nonce="${authDetails.nonce}",uri="${uri}",qop="auth",algorithm="${authDetails.algorithm}",` +
     `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`;
-  // @ts-expect-error
-  originalRequest.options.headers['authorization'] = authorizationHeader;
 
-  return originalRequest;
+  originalRequest.headers!['authorization'] = authorizationHeader;
+
+  return false;
 }

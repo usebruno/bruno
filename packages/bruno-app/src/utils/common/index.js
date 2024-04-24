@@ -86,6 +86,9 @@ export const getContentType = (headers) => {
         return 'application/xml';
       }
 
+      if (Array.isArray(contentType[0])) {
+        return contentType[0][0];
+      }
       return contentType[0];
     }
   }
