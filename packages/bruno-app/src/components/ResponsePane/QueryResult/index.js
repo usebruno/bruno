@@ -55,7 +55,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const isResponsePaneDockedToBottom = useSelector(
-    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
   );
 
   const debouncedResultFilterOnChange = debounce((e) => {

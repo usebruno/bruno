@@ -27,7 +27,7 @@ const initialState = {
       codeFont: 'default'
     },
     userInterface: {
-      isResponsePaneDockedToBottom: false
+      responsePaneDockedToBottom: false
     }
   },
   cookies: [],
@@ -53,9 +53,6 @@ export const appSlice = createSlice({
     },
     updateEnvironmentSettingsModalVisibility: (state, action) => {
       state.isEnvironmentSettingsModalOpen = action.payload;
-    },
-    updateResponsePaneDockToBottom: (state, action) => {
-      state.isResponsePaneDockedToBottom = action.payload;
     },
     showHomePage: (state) => {
       state.showHomePage = true;

@@ -38,7 +38,7 @@ const defaultPreferences = {
     bypassProxy: ''
   },
   userInterface: {
-    isResponsePaneDockedToBottom: false
+    responsePaneDockedToBottom: false
   }
 };
 
@@ -72,7 +72,7 @@ const preferencesSchema = Yup.object().shape({
     bypassProxy: Yup.string().optional().max(1024)
   }),
   userInterface: Yup.object().shape({
-    isResponsePaneDockedToBottom: Yup.boolean()
+    responsePaneDockedToBottom: Yup.boolean()
   })
 });
 

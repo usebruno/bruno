@@ -39,7 +39,7 @@ const RequestTabPanel = () => {
   const screenHeight = useSelector((state) => state.app.screenHeight);
   const preferences = useSelector((state) => state.app.preferences);
   const isResponsePaneDockedToBottom = useSelector(
-    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
   );
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   let asideHeight = useSelector((state) => state.app.topBarHeight);
