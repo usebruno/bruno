@@ -15,20 +15,26 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
-  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelector(parentId + ' .CodeMirror');
     const pane = document.querySelector('.request-pane');
     if (codeMirror !== null && pane !== null) {
-      let newHeight = pane.offsetHeight - offsetTop;
+      let newHeight;
+      if (isResponsePaneDockedToBottom) {
+        newHeight = pane.offsetHeight - offsetTop + 'px';
+      } else {
+        newHeight = dockRightHeight;
+      }
       if (newHeight !== codeMirror.style.height) {
-        codeMirror.style.height = newHeight + 'px';
+        codeMirror.style.height = newHeight;
       }
     }
   };
 
   useEffect(() => {
-    updateCodeMirrorHeight('#request-body', 65);
+    updateCodeMirrorHeight('#request-body', 65, 'calc(100vh - 250px)');
   });
 
   const onEdit = (value) => {

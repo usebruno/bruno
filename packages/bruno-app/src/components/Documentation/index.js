@@ -15,20 +15,26 @@ const Documentation = ({ item, collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
-  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelector(parentId + ' .CodeMirror');
     const pane = document.querySelector('.request-pane');
     if (codeMirror !== null && pane !== null) {
-      let newHeight = pane.offsetHeight - offsetTop;
+      let newHeight;
+      if (isResponsePaneDockedToBottom) {
+        newHeight = pane.offsetHeight - offsetTop + 'px';
+      } else {
+        newHeight = dockRightHeight;
+      }
       if (newHeight !== codeMirror.style.height) {
-        codeMirror.style.height = newHeight + 'px';
+        codeMirror.style.height = newHeight;
       }
     }
   };
 
   useEffect(() => {
-    updateCodeMirrorHeight('#documentation-tab', 80);
+    updateCodeMirrorHeight('#documentation-tab', 80, 'calc(100vh - 260px)');
   });
 
   const toggleViewMode = () => {

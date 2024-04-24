@@ -13,6 +13,7 @@ const Tests = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
   const onEdit = (value) => {
     dispatch(
@@ -24,19 +25,24 @@ const Tests = ({ item, collection }) => {
     );
   };
 
-  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelector(parentId + ' .CodeMirror');
     const pane = document.querySelector('.request-pane');
     if (codeMirror !== null && pane !== null) {
-      let newHeight = pane.offsetHeight - offsetTop;
+      let newHeight;
+      if (isResponsePaneDockedToBottom) {
+        newHeight = pane.offsetHeight - offsetTop + 'px';
+      } else {
+        newHeight = dockRightHeight;
+      }
       if (newHeight !== codeMirror.style.height) {
-        codeMirror.style.height = newHeight + 'px';
+        codeMirror.style.height = newHeight;
       }
     }
   };
 
   useEffect(() => {
-    updateCodeMirrorHeight('#test-tab', 65);
+    updateCodeMirrorHeight('#test-tab', 65, 'calc(100vh - 250px)');
   });
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));

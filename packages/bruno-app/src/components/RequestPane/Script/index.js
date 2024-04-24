@@ -14,22 +14,29 @@ const Script = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
-  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelectorAll(parentId + ' .CodeMirror');
     const pane = document.querySelector('.request-pane');
     if (codeMirror !== null && pane !== null) {
       codeMirror.forEach((control) => {
-        let newHeight = (pane.offsetHeight - offsetTop) / 2;
+        let newHeight;
+
+        if (isResponsePaneDockedToBottom) {
+          newHeight = (pane.offsetHeight - offsetTop) / 2 + 'px';
+        } else {
+          newHeight = dockRightHeight;
+        }
         if (newHeight !== control.style.height) {
-          control.style.height = newHeight + 'px';
+          control.style.height = newHeight;
         }
       });
     }
   };
 
   useEffect(() => {
-    updateCodeMirrorHeight('#request-script-tab', 125);
+    updateCodeMirrorHeight('#request-script-tab', 125, 'calc((100vh - 280px) / 2');
   });
 
   const onRequestScriptEdit = (value) => {
