@@ -1,14 +1,28 @@
 import React from 'react';
+import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { updateResponsePaneDockToBottom } from 'providers/ReduxStore/slices/app';
+import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 const ResponseDockRight = ({}) => {
   const dispatch = useDispatch();
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+  );
 
   const dockToRight = () => {
-    dispatch(updateResponsePaneDockToBottom(false));
+    dispatch(
+      savePreferences(
+        {
+          ...preferences,
+          userInterface: {
+            isResponsePaneDockedToBottom: false
+          }
+        },
+        false
+      )
+    );
   };
 
   return (

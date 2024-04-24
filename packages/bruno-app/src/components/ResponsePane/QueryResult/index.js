@@ -1,4 +1,4 @@
-import { debounce } from 'lodash';
+import { debounce, get } from 'lodash';
 import QueryResultFilter from './QueryResultFilter';
 import { useSelector } from 'react-redux';
 import { JSONPath } from 'jsonpath-plus';
@@ -53,7 +53,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { displayedTheme } = useTheme();
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+  );
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);

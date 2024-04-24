@@ -15,7 +15,9 @@ const Documentation = ({ item, collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+  );
 
   const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelector(parentId + ' .CodeMirror');

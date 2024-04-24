@@ -14,7 +14,9 @@ const Script = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+  );
 
   const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelectorAll(parentId + ' .CodeMirror');

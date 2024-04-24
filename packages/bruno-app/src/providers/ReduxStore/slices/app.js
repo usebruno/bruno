@@ -11,7 +11,6 @@ const initialState = {
   showHomePage: false,
   showPreferences: false,
   isEnvironmentSettingsModalOpen: false,
-  isResponsePaneDockedToBottom: false,
   preferences: {
     request: {
       sslVerification: true,
@@ -26,6 +25,9 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    userInterface: {
+      isResponsePaneDockedToBottom: false
     }
   },
   cookies: [],
@@ -88,7 +90,6 @@ export const {
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
-  updateResponsePaneDockToBottom,
   showHomePage,
   hideHomePage,
   showPreferences,
@@ -99,13 +100,19 @@ export const {
   removeAllTasksFromQueue
 } = appSlice.actions;
 
-export const savePreferences = (preferences) => (dispatch, getState) => {
+export const savePreferences = (preferences, displaySuccessToast) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
+      .then(() => {
+        const shouldDisplaySuccessToast = _.isUndefined(displaySuccessToast) || displaySuccessToast;
+
+        if (shouldDisplaySuccessToast) {
+          toast.success('Preferences saved successfully');
+        }
+      })
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
       .catch((err) => {

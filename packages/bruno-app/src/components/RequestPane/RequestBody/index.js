@@ -15,7 +15,9 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.isResponsePaneDockedToBottom
+  );
 
   const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
     const codeMirror = document.querySelector(parentId + ' .CodeMirror');
