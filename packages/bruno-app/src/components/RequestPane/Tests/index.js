@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -24,11 +24,26 @@ const Tests = ({ item, collection }) => {
     );
   };
 
+  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+    const codeMirror = document.querySelector(parentId + ' .CodeMirror');
+    const pane = document.querySelector('.request-pane');
+    if (codeMirror !== null && pane !== null) {
+      let newHeight = pane.offsetHeight - offsetTop;
+      if (newHeight !== codeMirror.style.height) {
+        codeMirror.style.height = newHeight + 'px';
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateCodeMirrorHeight('#test-tab', 65);
+  });
+
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper id="test-tab" className="w-full">
       <CodeEditor
         collection={collection}
         value={tests || ''}

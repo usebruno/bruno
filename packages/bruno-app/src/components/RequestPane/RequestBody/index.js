@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
@@ -15,6 +15,21 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+
+  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+    const codeMirror = document.querySelector(parentId + ' .CodeMirror');
+    const pane = document.querySelector('.request-pane');
+    if (codeMirror !== null && pane !== null) {
+      let newHeight = pane.offsetHeight - offsetTop;
+      if (newHeight !== codeMirror.style.height) {
+        codeMirror.style.height = newHeight + 'px';
+      }
+    }
+  };
+
+  useEffect(() => {
+    updateCodeMirrorHeight('#request-body', 65);
+  });
 
   const onEdit = (value) => {
     dispatch(
@@ -45,7 +60,7 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper className="w-full">
+      <StyledWrapper id="request-body" className="w-full">
         <CodeEditor
           collection={collection}
           theme={displayedTheme}

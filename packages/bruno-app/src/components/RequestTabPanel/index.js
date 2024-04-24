@@ -218,6 +218,7 @@ const RequestTabPanel = () => {
         </div>
 
         <div
+          id=""
           className={`drag-request-horizontal ${isResponsePaneDockedToBottom ? 'px-4' : 'invisible'}`}
           onMouseDown={handleDragbarHorizontalMouseDown}
         >

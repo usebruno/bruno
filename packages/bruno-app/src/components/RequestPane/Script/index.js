@@ -11,20 +11,25 @@ const Script = ({ item, collection }) => {
   const dispatch = useDispatch();
   const requestScript = item.draft ? get(item, 'draft.request.script.req') : get(item, 'request.script.req');
   const responseScript = item.draft ? get(item, 'draft.request.script.res') : get(item, 'request.script.res');
-  const isResponsePaneDockedToBottom = useSelector((state) => state.app.isResponsePaneDockedToBottom);
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
+  const updateCodeMirrorHeight = (parentId, offsetTop) => {
+    const codeMirror = document.querySelectorAll(parentId + ' .CodeMirror');
+    const pane = document.querySelector('.request-pane');
+    if (codeMirror !== null && pane !== null) {
+      codeMirror.forEach((control) => {
+        let newHeight = (pane.offsetHeight - offsetTop) / 2;
+        if (newHeight !== control.style.height) {
+          control.style.height = newHeight + 'px';
+        }
+      });
+    }
+  };
+
   useEffect(() => {
-    // set code mirror controls height depending on where the response pane is docked (right or bottom)
-    let codeMirrorControls = document.querySelectorAll('#RequestScriptTab .CodeMirror');
-    let newHeight = isResponsePaneDockedToBottom ? '200px' : 'calc(50vh - 150px)';
-    codeMirrorControls.forEach((control) => {
-      if (control.style.height !== newHeight) {
-        control.style.height = newHeight;
-      }
-    });
+    updateCodeMirrorHeight('#request-script-tab', 125);
   });
 
   const onRequestScriptEdit = (value) => {
@@ -51,8 +56,8 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full">
-      <div id="RequestScriptTab" className="flex flex-col">
+    <StyledWrapper id="request-script-tab" className="w-full">
+      <div className="flex flex-col">
         <div className="flex-1 mt-2">
           <div className="mb-1 title text-xs">Pre Request</div>
           <CodeEditor
