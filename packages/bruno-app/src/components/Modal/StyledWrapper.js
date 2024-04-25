@@ -1,7 +1,10 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.div`
+const Wrapper = styled.dialog`
   color: ${(props) => props.theme.text};
+
+  max-width: unset;
+  max-height: unset;
 
   &.modal--animate-out {
     animation: fade-out 0.5s forwards cubic-bezier(0.19, 1, 0.22, 1);
