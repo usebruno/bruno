@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-const Wrapper = styled.dialog`
+const Wrapper = styled.div`
   color: ${(props) => props.theme.text};
 
   &.modal--animate-out {

@@ -114,11 +114,6 @@ const Modal = ({
   if (hideFooter) {
     classes += ' modal-footer-none';
   }
-
-  useEffect(() => {
-    document.getElementsByTagName('dialog')[0].showModal();
-  }, []);
-
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
