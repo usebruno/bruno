@@ -7,6 +7,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2ClientCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +21,7 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -33,6 +34,7 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           [key]: value
         }
@@ -60,6 +62,7 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
           </div>
         );
       })}
+      <ClientCredentialsMethodSelector item={item} collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };

@@ -176,7 +176,7 @@ export const moveCollectionItemToRootOfCollection = (collection, draggedItem) =>
   draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
   collection.items = sortBy(collection.items, (item) => item.seq);
   collection.items.push(draggedItem);
-  if (draggedItem.type == 'folder') {
+  if (draggedItem.type === 'folder') {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.name);
   } else {
     draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
@@ -579,6 +579,22 @@ export const humanizeGrantType = (mode) => {
     }
     case 'implicit': {
       label = 'Implicit';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeOAuth2ClientSecretMethod = (mode) => {
+  let label = 'N/A';
+  switch (mode) {
+    case 'client_credentials_basic': {
+      label = 'As Basic Auth Header';
+      break;
+    }
+    case 'client_credentials_post': {
+      label = 'In Request Body';
       break;
     }
   }
