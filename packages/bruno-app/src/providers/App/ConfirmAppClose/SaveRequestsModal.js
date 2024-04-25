@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import each from 'lodash/each';
+import cloneDeep from 'lodash/cloneDeep';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
 import { useSelector } from 'react-redux';
@@ -45,7 +46,8 @@ const SaveRequestsModal = ({ onClose }) => {
   };
 
   const closeWithSave = () => {
-    dispatch(saveMultipleRequests(currentDrafts))
+    const drafts = cloneDeep(currentDrafts);
+    dispatch(saveMultipleRequests(drafts))
       .then(() => dispatch(completeQuitFlow()))
       .then(() => onClose());
   };
