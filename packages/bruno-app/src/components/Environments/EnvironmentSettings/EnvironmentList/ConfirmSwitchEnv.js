@@ -32,7 +32,14 @@ const ConfirmSwitchEnv = ({ onCancel }) => {
             Close
           </button>
         </div>
-        <div></div>
+        <div>
+          {/* <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
+            Cancel
+          </button> */}
+          {/* <button className="btn btn-secondary btn-sm" onClick={onSaveAndClose}>
+            Save
+          </button> */}
+        </div>
       </div>
     </Modal>,
     document.body

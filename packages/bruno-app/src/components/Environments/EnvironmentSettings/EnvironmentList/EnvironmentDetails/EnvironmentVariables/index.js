@@ -46,7 +46,8 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
-          setIsModified(false);
+          // toast.success('(modified set to false)');
+          setIsModified(false); //added to say we don't have changes compared old (we saved, so new = old.)
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }

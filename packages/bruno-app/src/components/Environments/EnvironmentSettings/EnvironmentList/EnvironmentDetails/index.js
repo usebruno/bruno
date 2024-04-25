@@ -38,7 +38,12 @@ const EnvironmentDetails = ({ environment, collection, setIsModified }) => {
       </div>
 
       <div>
-        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} />
+        <EnvironmentVariables
+          environment={environment}
+          collection={collection}
+          // isModified={isModified} // Pass isModified prop
+          setIsModified={setIsModified} // Pass setIsModified prop
+        />
       </div>
     </div>
   );
