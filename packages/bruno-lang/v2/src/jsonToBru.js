@@ -12,6 +12,23 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+const getValueString = (value) => {
+  const hasNewLines = value.includes('\n');
+
+  if (!hasNewLines) {
+    return value;
+  }
+
+  // Add one level of indentation to the contents of the multistring
+  const indentedLines = value
+    .split('\n')
+    .map((line) => `  ${line}`)
+    .join('\n');
+
+  // Join the lines back together with newline characters and enclose them in triple single quotes
+  return `'''\n${indentedLines}\n'''`;
+};
+
 const jsonToBru = (json) => {
   const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
@@ -89,12 +106,12 @@ const jsonToBru = (json) => {
 
   if (auth && auth.awsv4) {
     bru += `auth:awsv4 {
-${indentString(`accessKeyId: ${auth.awsv4.accessKeyId}`)}
-${indentString(`secretAccessKey: ${auth.awsv4.secretAccessKey}`)}
-${indentString(`sessionToken: ${auth.awsv4.sessionToken}`)}
-${indentString(`service: ${auth.awsv4.service}`)}
-${indentString(`region: ${auth.awsv4.region}`)}
-${indentString(`profileName: ${auth.awsv4.profileName}`)}
+${indentString(`accessKeyId: ${auth?.awsv4?.accessKeyId || ''}`)}
+${indentString(`secretAccessKey: ${auth?.awsv4?.secretAccessKey || ''}`)}
+${indentString(`sessionToken: ${auth?.awsv4?.sessionToken || ''}`)}
+${indentString(`service: ${auth?.awsv4?.service || ''}`)}
+${indentString(`region: ${auth?.awsv4?.region || ''}`)}
+${indentString(`profileName: ${auth?.awsv4?.profileName || ''}`)}
 }
 
 `;
@@ -102,8 +119,8 @@ ${indentString(`profileName: ${auth.awsv4.profileName}`)}
 
   if (auth && auth.basic) {
     bru += `auth:basic {
-${indentString(`username: ${auth.basic.username}`)}
-${indentString(`password: ${auth.basic.password}`)}
+${indentString(`username: ${auth?.basic?.username || ''}`)}
+${indentString(`password: ${auth?.basic?.password || ''}`)}
 }
 
 `;
@@ -111,7 +128,7 @@ ${indentString(`password: ${auth.basic.password}`)}
 
   if (auth && auth.bearer) {
     bru += `auth:bearer {
-${indentString(`token: ${auth.bearer.token}`)}
+${indentString(`token: ${auth?.bearer?.token || ''}`)}
 }
 
 `;
@@ -119,11 +136,54 @@ ${indentString(`token: ${auth.bearer.token}`)}
 
   if (auth && auth.digest) {
     bru += `auth:digest {
-${indentString(`username: ${auth.digest.username}`)}
-${indentString(`password: ${auth.digest.password}`)}
+${indentString(`username: ${auth?.digest?.username || ''}`)}
+${indentString(`password: ${auth?.digest?.password || ''}`)}
 }
 
 `;
+  }
+
+  if (auth && auth.oauth2) {
+    switch (auth?.oauth2?.grantType) {
+      case 'password':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: password`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`username: ${auth?.oauth2?.username || ''}`)}
+${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+}
+
+`;
+        break;
+      case 'authorization_code':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: authorization_code`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
+}
+
+`;
+        break;
+      case 'client_credentials':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: client_credentials`)}
+${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+}
+
+`;
+        break;
+    }
   }
 
   if (body && body.json && body.json.length) {
@@ -159,40 +219,46 @@ ${indentString(body.sparql)}
   }
 
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
-    bru += `body:form-urlencoded {`;
+    bru += `body:form-urlencoded {\n`;
+
     if (enabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${encodeURIComponent(item.value)}`)
-          .join('\n')
-      )}`;
+      const enabledValues = enabled(body.formUrlEncoded)
+        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${encodeURIComponent(item.value)}`)
-          .join('\n')
-      )}`;
+      const disabledValues = disabled(body.formUrlEncoded)
+        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(disabledValues)}\n`;
     }
 
-    bru += '\n}\n\n';
+    bru += '}\n\n';
   }
 
   if (body && body.multipartForm && body.multipartForm.length) {
     bru += `body:multipart-form {`;
-    if (enabled(body.multipartForm).length) {
-      bru += `\n${indentString(
-        enabled(body.multipartForm)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
-    }
+    const multipartForms = enabled(body.multipartForm).concat(disabled(body.multipartForm));
 
-    if (disabled(body.multipartForm).length) {
+    if (multipartForms.length) {
       bru += `\n${indentString(
-        disabled(body.multipartForm)
-          .map((item) => `~${item.name}: ${item.value}`)
+        multipartForms
+          .map((item) => {
+            const enabled = item.enabled ? '' : '~';
+
+            if (item.type === 'text') {
+              return `${enabled}${item.name}: ${item.value}`;
+            }
+
+            if (item.type === 'file') {
+              let filepaths = item.value || [];
+              let filestr = filepaths.join('|');
+              const value = `@file(${filestr})`;
+              return `${enabled}${item.name}: ${value}`;
+            }
+          })
           .join('\n')
       )}`;
     }
@@ -325,3 +391,5 @@ ${indentString(docs)}
 };
 
 module.exports = jsonToBru;
+
+// alternative to writing the below code to avoif undefined

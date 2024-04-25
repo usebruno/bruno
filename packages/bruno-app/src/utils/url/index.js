@@ -33,8 +33,13 @@ export const stringifyQueryParams = (params) => {
 
   let queryString = [];
   each(params, (p) => {
-    if (!isEmpty(trim(p.name)) && !isEmpty(trim(p.value))) {
-      queryString.push(`${p.name}=${p.value}`);
+    const hasEmptyName = isEmpty(trim(p.name));
+    const hasEmptyVal = isEmpty(trim(p.value));
+
+    // query param name must be present
+    if (!hasEmptyName) {
+      // if query param value is missing, push only <param-name>, else push <param-name: param-value>
+      queryString.push(hasEmptyVal ? p.name : `${p.name}=${p.value}`);
     }
   });
 

@@ -117,6 +117,7 @@ const RequestHeaders = ({ item, collection }) => {
                         }
                         onRun={handleRun}
                         autocomplete={MimeTypes}
+                        allowNewlines={true}
                         collection={collection}
                       />
                     </td>

@@ -1,6 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionRequestScript, updateCollectionResponseScript } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -12,7 +12,8 @@ const Script = ({ collection }) => {
   const requestScript = get(collection, 'root.request.script.req', '');
   const responseScript = get(collection, 'root.request.script.res', '');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -37,16 +38,20 @@ const Script = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col">
+    <StyledWrapper className="w-full flex flex-col h-full">
+      <div className="text-xs mb-4 text-muted">
+        Write pre and post-request scripts that will run before and after any request in this collection is sent.
+      </div>
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Pre Request</div>
         <CodeEditor
           collection={collection}
           value={requestScript || ''}
-          theme={storedTheme}
+          theme={displayedTheme}
           onEdit={onRequestScriptEdit}
           mode="javascript"
           onSave={handleSave}
+          font={get(preferences, 'font.codeFont', 'default')}
         />
       </div>
       <div className="flex-1 mt-6">
@@ -54,10 +59,11 @@ const Script = ({ collection }) => {
         <CodeEditor
           collection={collection}
           value={responseScript || ''}
-          theme={storedTheme}
+          theme={displayedTheme}
           onEdit={onResponseScriptEdit}
           mode="javascript"
           onSave={handleSave}
+          font={get(preferences, 'font.codeFont', 'default')}
         />
       </div>
 
