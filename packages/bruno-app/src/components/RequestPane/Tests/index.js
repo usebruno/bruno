@@ -6,6 +6,7 @@ import { updateRequestTests } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import { updateCodeMirrorsHeight } from 'utils/common/codemirror';
 
 const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -13,9 +14,6 @@ const Tests = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
-  const isResponsePaneDockedToBottom = useSelector(
-    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
-  );
 
   const onEdit = (value) => {
     dispatch(
@@ -27,24 +25,8 @@ const Tests = ({ item, collection }) => {
     );
   };
 
-  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
-    const codeMirror = document.querySelector(parentId + ' .CodeMirror');
-    const pane = document.querySelector('.request-pane');
-    if (codeMirror !== null && pane !== null) {
-      let newHeight;
-      if (isResponsePaneDockedToBottom) {
-        newHeight = pane.offsetHeight - offsetTop + 'px';
-      } else {
-        newHeight = dockRightHeight;
-      }
-      if (newHeight !== codeMirror.style.height) {
-        codeMirror.style.height = newHeight;
-      }
-    }
-  };
-
   useEffect(() => {
-    updateCodeMirrorHeight('#test-tab', 65, 'calc(100vh - 250px)');
+    updateCodeMirrorsHeight('#test-tab', 65, 'calc(100vh - 250px)');
   });
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));

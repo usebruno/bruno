@@ -68,3 +68,26 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/text';
   }
 };
+
+export const updateCodeMirrorsHeight = (parentId, offsetTop, dockRightHeight) => {
+  const MIN_HEIGHT = 100;
+  const codeMirrors = document.querySelectorAll(parentId + ' .CodeMirror');
+  const pane = document.querySelector('.request-pane');
+  const isResponsePaneDockedToBottom = document.querySelectorAll('.main .drag-request-horizontal').length;
+  if (codeMirrors !== null && pane !== null) {
+    codeMirrors.forEach((control) => {
+      let newHeight;
+      let numberOfControls = codeMirrors.length;
+      if (isResponsePaneDockedToBottom) {
+        newHeight = (pane.offsetHeight - offsetTop) / numberOfControls;
+        newHeight = Math.max(newHeight, MIN_HEIGHT);
+        newHeight = newHeight + 'px';
+      } else {
+        newHeight = dockRightHeight;
+      }
+      if (newHeight !== control.style.height) {
+        control.style.height = newHeight;
+      }
+    });
+  }
+};

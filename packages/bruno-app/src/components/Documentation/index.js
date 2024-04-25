@@ -8,6 +8,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { updateCodeMirrorsHeight } from 'utils/common/codemirror';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -15,28 +16,9 @@ const Documentation = ({ item, collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
-  const isResponsePaneDockedToBottom = useSelector(
-    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
-  );
-
-  const updateCodeMirrorHeight = (parentId, offsetTop, dockRightHeight) => {
-    const codeMirror = document.querySelector(parentId + ' .CodeMirror');
-    const pane = document.querySelector('.request-pane');
-    if (codeMirror !== null && pane !== null) {
-      let newHeight;
-      if (isResponsePaneDockedToBottom) {
-        newHeight = pane.offsetHeight - offsetTop + 'px';
-      } else {
-        newHeight = dockRightHeight;
-      }
-      if (newHeight !== codeMirror.style.height) {
-        codeMirror.style.height = newHeight;
-      }
-    }
-  };
 
   useEffect(() => {
-    updateCodeMirrorHeight('#documentation-tab', 80, 'calc(100vh - 260px)');
+    updateCodeMirrorsHeight('#documentation-tab', 80, 'calc(100vh - 260px)');
   });
 
   const toggleViewMode = () => {
