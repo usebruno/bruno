@@ -1,55 +1,13 @@
 import React from 'react';
-import toast from 'react-hot-toast';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons-react';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
 import { uuid } from 'utils/common';
-import { variableNameRegex } from 'utils/common/regex';
 import { maskInputValue } from 'utils/collections';
 
-const EnvironmentVariables = ({ environment, collection }) => {
-  const dispatch = useDispatch();
+const EnvironmentVariables = ({ collection, formik }) => {
   const { storedTheme } = useTheme();
-
-  const formik = useFormik({
-    enableReinitialize: true,
-    initialValues: environment.variables || [],
-    validationSchema: Yup.array().of(
-      Yup.object({
-        enabled: Yup.boolean(),
-        name: Yup.string()
-          .required('Name cannot be empty')
-          .matches(
-            variableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
-          )
-          .trim(),
-        secret: Yup.boolean(),
-        type: Yup.string(),
-        uid: Yup.string(),
-        value: Yup.string().trim().nullable()
-      })
-    ),
-    onSubmit: (values) => {
-      if (!formik.dirty) {
-        toast.error('Nothing to save');
-        return;
-      }
-
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
-        .then(() => {
-          toast.success('Changes saved successfully');
-          formik.resetForm({ values });
-        })
-        .catch(() => toast.error('An error occurred while saving the changes'));
-    }
-  });
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
