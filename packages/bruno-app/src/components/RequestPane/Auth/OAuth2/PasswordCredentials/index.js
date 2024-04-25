@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -7,6 +7,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2PasswordCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +21,7 @@ const OAuth2PasswordCredentials = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, username, password, clientId, clientSecret, scope } = oAuth;
+  const { accessTokenUrl, username, password, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -35,6 +36,7 @@ const OAuth2PasswordCredentials = ({ item, collection }) => {
           password,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           [key]: value
         }
@@ -64,6 +66,7 @@ const OAuth2PasswordCredentials = ({ item, collection }) => {
           </div>
         );
       })}
+      <ClientCredentialsMethodSelector item={item} collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };

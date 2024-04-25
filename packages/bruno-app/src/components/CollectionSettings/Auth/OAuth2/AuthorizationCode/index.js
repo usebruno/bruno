@@ -6,7 +6,8 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
+import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2AuthorizationCode = ({ collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +21,8 @@ const OAuth2AuthorizationCode = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce } = oAuth;
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope, state, pkce } =
+    oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -34,6 +36,7 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           state,
           pkce,
@@ -55,6 +58,7 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           state,
           pkce: !Boolean(oAuth?.['pkce'])
@@ -92,6 +96,7 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           onChange={handlePKCEToggle}
         />
       </div>
+      <ClientCredentialsMethodSelector collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };
