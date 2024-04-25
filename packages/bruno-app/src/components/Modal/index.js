@@ -86,7 +86,6 @@ const Modal = ({
   closeModalFadeTimeout = 500
 }) => {
   const [isClosing, setIsClosing] = useState(false);
-  const modalRef = useRef(null);
   const escFunction = (event) => {
     const escKeyCode = 27;
     if (event.keyCode === escKeyCode) {
@@ -97,7 +96,6 @@ const Modal = ({
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
-    modalRef.current.close();
   };
 
   useEffect(() => {
@@ -116,13 +114,8 @@ const Modal = ({
   if (hideFooter) {
     classes += ' modal-footer-none';
   }
-
-  useEffect(() => {
-    modalRef?.current?.showModal();
-  }, []);
-
   return (
-    <StyledWrapper ref={modalRef} className={classes} onClick={onClick ? (e) => onClick(e) : null}>
+    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
         <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} customHeader={customHeader} />
         <ModalContent>
