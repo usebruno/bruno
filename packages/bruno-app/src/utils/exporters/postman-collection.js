@@ -1,5 +1,5 @@
-import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
+import map from 'lodash/map';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
 
 export const exportCollection = (collection) => {
@@ -145,11 +145,18 @@ export const exportCollection = (collection) => {
       case 'bearer':
         return {
           type: 'bearer',
-          bearer: {
-            key: 'token',
-            value: itemAuth.bearer.token,
-            type: 'string'
-          }
+          bearer: [
+            {
+              key: 'prefix',
+              value: itemAuth.bearer.prefix,
+              type: 'string'
+            },
+            {
+              key: 'token',
+              value: itemAuth.bearer.token,
+              type: 'string'
+            }
+          ]
         };
       case 'basic': {
         return {

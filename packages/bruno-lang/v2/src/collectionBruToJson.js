@@ -219,11 +219,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   authbearer(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
     const tokenKey = _.find(auth, { name: 'token' });
+    const prefixKey = _.find(auth, { name: 'prefix' });
     const token = tokenKey ? tokenKey.value : '';
+    const prefix = prefixKey ? prefixKey.value : '';
     return {
       auth: {
         bearer: {
-          token
+          token,
+          prefix
         }
       }
     };

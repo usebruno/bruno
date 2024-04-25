@@ -1,15 +1,15 @@
-import get from 'lodash/get';
+import cloneDeep from 'lodash/cloneDeep';
 import each from 'lodash/each';
+import filter from 'lodash/filter';
 import find from 'lodash/find';
 import findIndex from 'lodash/findIndex';
+import get from 'lodash/get';
+import isEqual from 'lodash/isEqual';
 import isString from 'lodash/isString';
 import map from 'lodash/map';
-import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
-import isEqual from 'lodash/isEqual';
-import cloneDeep from 'lodash/cloneDeep';
-import { uuid } from 'utils/common';
 import path from 'path';
+import { uuid } from 'utils/common';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -302,6 +302,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 password: get(si.draft.request, 'auth.basic.password', '')
               },
               bearer: {
+                preifx: get(si.draft.request, 'auth.bearer.prefix', ''),
                 token: get(si.draft.request, 'auth.bearer.token', '')
               }
             },
@@ -335,6 +336,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 password: get(si.request, 'auth.basic.password', '')
               },
               bearer: {
+                prefix: get(si.request, 'auth.bearer.prefix', ''),
                 token: get(si.request, 'auth.bearer.token', '')
               }
             },
