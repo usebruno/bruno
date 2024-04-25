@@ -1,5 +1,6 @@
 import { RequestContext } from './types';
 import { stringify, parse } from 'lossless-json';
+import { STATUS_CODES } from 'node:http';
 
 type Callback = (payload: any) => void;
 export type RawCallbacks = {
@@ -122,7 +123,7 @@ export class Callbacks {
       type: 'response-received',
       responseReceived: {
         status: context.response?.statusCode,
-        statusText: 'TODO',
+        statusText: STATUS_CODES[context.response?.statusCode || 0] || 'Unknown',
         headers: context.response?.headers,
         duration: context.response?.responseTime,
         size: context.response?.headers['content-size'] ?? 0,

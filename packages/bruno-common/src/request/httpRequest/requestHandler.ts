@@ -21,6 +21,9 @@ export async function makeHttpRequest(context: RequestContext) {
       addAwsAuthHeader(context.requestItem.request.auth, requestOptions, body);
     }
 
+    context.debug.log('Request', {
+      options: requestOptions
+    });
     const response = await execHttpRequest(requestOptions, body, context.abortController?.signal);
 
     const nextRequest = await handleServerResponse(context, requestOptions, response);
@@ -43,7 +46,7 @@ function addMandatoryHeader(requestOptions: RequestOptions, body?: string | Buff
 
   if (body !== undefined) {
     const length = Buffer.isBuffer(body) ? body.length : Buffer.byteLength(body);
-    requestOptions.headers!['content-length'] = length;
+    requestOptions.headers!['content-length'] = String(length);
   }
 }
 

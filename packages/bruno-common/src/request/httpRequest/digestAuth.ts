@@ -29,7 +29,10 @@ export function handleDigestAuth(
     return false;
   }
 
-  const authDetails = String(headers['www-authenticate'])
+  const wwwAuth = Array.isArray(headers['www-authenticate'])
+    ? headers['www-authenticate'][0]
+    : headers['www-authenticate'];
+  const authDetails = String(wwwAuth)
     .split(', ')
     .map((v) => v.split('=').map((str) => str.replace(/"/g, '')))
     .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {}) as DigestAuthDetails;
@@ -61,5 +64,5 @@ export function handleDigestAuth(
 
   originalRequest.headers!['authorization'] = authorizationHeader;
 
-  return false;
+  return true;
 }

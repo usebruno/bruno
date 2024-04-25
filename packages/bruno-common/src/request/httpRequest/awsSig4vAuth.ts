@@ -10,7 +10,7 @@ function createAwsV4AuthHeaders(
   authConfig: Extract<AuthMode, { mode: 'awsv4' }>
 ): Record<string, string> {
   const method = opts.method!.toUpperCase();
-  const headers = opts.headers as Record<string, string>;
+  const headers = opts.headers as Record<string, string | string[]>;
   const { hostname, pathname, searchParams } = new URL(opts.path!, `${opts.protocol}//${opts.hostname}`);
 
   const amzDate = new Date().toISOString().replace(/[:\-]|\.\d{3}/g, '');
@@ -26,7 +26,13 @@ function createAwsV4AuthHeaders(
   const canonicalHeaders = Object.keys(headers)
     .filter((key) => key && headers[key])
     .sort()
-    .map((key) => `${key.toLowerCase()}:${headers[key].trim()}`)
+    .map((key) => {
+      const val = headers[key];
+      if (Array.isArray(val)) {
+        return val.map((headerVal) => `${key.toLowerCase()}:${headerVal.trim()}`).join('\n');
+      }
+      return `${key.toLowerCase()}:${val.trim()}`;
+    })
     .join('\n');
   const signedHeaders = Object.keys(headers)
     .filter((key) => key && headers[key])

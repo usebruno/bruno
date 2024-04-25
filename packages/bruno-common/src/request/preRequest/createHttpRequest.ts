@@ -4,7 +4,7 @@ import { stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Blob, Buffer } from 'node:buffer';
+import { Buffer } from 'node:buffer';
 import qs from 'qs';
 import FormData from 'form-data';
 
@@ -95,7 +95,7 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
             break;
           case 'file':
             const fileData = await fs.readFile(item.value[0]!);
-            formData.append(item.name, new Blob([fileData]), path.basename(item.value[0]!));
+            formData.append(item.name, fileData, path.basename(item.value[0]!));
             break;
         }
       }
@@ -114,7 +114,7 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
         return acc;
       }, {});
 
-      bodyData = qs.stringify(combined);
+      bodyData = qs.stringify(combined, { arrayFormat: 'repeat' });
       break;
     case 'json':
       if (typeof body.json !== 'string') {
