@@ -63,14 +63,66 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
-### Testing
+### Run Unit Tests
 
 ```bash
-# bruno-schema
-npm test --workspace=packages/bruno-schema
-
-# bruno-lang
+npm test --workspace=packages/bruno-query
 npm test --workspace=packages/bruno-lang
+npm test --workspace=packages/bruno-schema
+npm test --workspace=packages/bruno-app
+npm test --workspace=packages/bruno-js
+npm test --workspace=packages/bruno-common
+npm test --workspace=packages/bruno-cli
+npm test --workspace=packages/bruno-electron
+```
+
+### Run CLI Tests
+
+```bash
+cd packages/bruno-tests/collection
+npm install
+node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
+```
+
+### Debugging in Visual Studio Code
+
+Add a file `.vscode/launch.json` with the following configuration:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Electron UI",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/packages/bruno-electron",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron",
+      "windows": {
+        "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/electron.cmd"
+      },
+      "args": ["."],
+      "outputCapture": "std"
+    },
+    {
+      "name": "Debug Cli",
+      "program": "${workspaceFolder}/packages/bruno-cli/bin/bru.js",
+      "request": "launch",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      "cwd": "${workspaceFolder}/packages/bruno-tests/collection/",
+      "args": ["run", "--env", "Local"],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Debug Backend Cli",
+      "command": "npm start",
+      "request": "launch",
+      "type": "node-terminal",
+      "cwd": "${workspaceFolder}/packages/bruno-tests"
+    }
+  ]
+}
 ```
 
 ### Raising Pull Requests
