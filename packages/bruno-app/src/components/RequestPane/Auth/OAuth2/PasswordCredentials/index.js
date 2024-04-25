@@ -7,6 +7,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2AuthorizationCode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +21,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, username, password, clientId, clientSecret, scope } = oAuth;
+  const { accessTokenUrl, username, password, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -35,6 +36,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           password,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           [key]: value
         }
@@ -62,6 +64,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           </div>
         );
       })}
+      <ClientCredentialsMethodSelector item={item} collection={collection} oAuth={oAuth} />
       <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
         Get Access Token
       </button>
