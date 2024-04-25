@@ -1,62 +1,13 @@
 import React from 'react';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
-import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import CodeEditor from 'src/components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { maskInputValue } from 'utils/collections';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { variableNameRegex } from 'utils/common/regex';
-import cloneDeep from 'lodash/cloneDeep';
-import toast from 'react-hot-toast';
 
-const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
-  const dispatch = useDispatch();
+const EnvironmentVariables = ({ collection, formik }) => {
   const { storedTheme } = useTheme();
-
-  const formik = useFormik({
-    enableReinitialize: true,
-    initialValues: environment.variables || [],
-    validationSchema: Yup.array().of(
-      Yup.object({
-        enabled: Yup.boolean(),
-        name: Yup.string()
-          .required('Name cannot be empty')
-          .matches(
-            variableNameRegex,
-            'Name contains invalid characters. Must only contain alphanumeric characters, "-", "_", "." and cannot start with a digit.'
-          )
-          .trim(),
-        secret: Yup.boolean(),
-        type: Yup.string(),
-        uid: Yup.string(),
-        value: Yup.string().trim().nullable()
-      })
-    ),
-    onSubmit: (values) => {
-      if (!formik.dirty) {
-        toast.error('Nothing to save');
-        return;
-      }
-
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
-        .then(() => {
-          toast.success('Changes saved successfully');
-          formik.resetForm({ values });
-          // toast.success('(modified set to false)');
-          setIsModified(false); //added to say we don't have changes compared old (we saved, so new = old.)
-        })
-        .catch(() => toast.error('An error occurred while saving the changes'));
-    }
-  });
-
-  // Effect to track modifications.
-  React.useEffect(() => {
-    setIsModified(formik.dirty);
-  }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
@@ -85,10 +36,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   const handleRemoveVar = (id) => {
     formik.setValues(formik.values.filter((variable) => variable.uid !== id));
-  };
-
-  const handleReset = () => {
-    formik.resetForm({ originalEnvironmentVariables });
   };
 
   return (
@@ -173,9 +120,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       <div>
         <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
           Save
-        </button>
-        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
-          Reset
         </button>
       </div>
     </StyledWrapper>

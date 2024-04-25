@@ -1,4 +1,4 @@
-import React, { useEffect, useState, createContext, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { findEnvironmentInCollection } from 'utils/collections';
 import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
@@ -9,9 +9,7 @@ import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 
-const FormikContext = createContext();
-
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
+const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, formik }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
@@ -51,8 +49,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   }, [envUids, environments, prevEnvUids]);
 
   const handleEnvironmentClick = (env) => {
-    if (!isModified) {
-      //replaced formik.dirty to isModified
+    if (!formik.dirty) {
       setSelectedEnvironment(env);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -64,7 +61,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   }
 
   const handleCreateEnvClick = () => {
-    if (!isModified) {
+    if (!formik.dirty) {
       setOpenCreateModal(true);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -72,7 +69,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   };
 
   const handleImportClick = () => {
-    if (!isModified) {
+    if (!formik.dirty) {
       setOpenImportModal(true);
     } else {
       setSwitchEnvConfirmClose(true);
@@ -84,9 +81,12 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   };
 
   const handleConfirmSwitch = (saveChanges) => {
-    if (!saveChanges) {
+    if (saveChanges) {
+      formik.handleSubmit();
       setSwitchEnvConfirmClose(false);
-      //     formik.resetForm({ originalEnvironmentVariables });
+    } else {
+      setSwitchEnvConfirmClose(false);
+      formik.resetForm({ originalEnvironmentVariables });
     }
   };
 
@@ -101,9 +101,9 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
           {switchEnvConfirmClose && (
             <div className="flex items-center justify-between tab-container px-1">
               <ConfirmSwitchEnv
-                // onCancel={() => setSwitchEnvConfirmClose(false)}
-                onCancel={() => handleConfirmSwitch(false)}
-                // onSaveAndClose={() => handleConfirmSwitch(true)}
+                onCancel={() => setSwitchEnvConfirmClose(false)}
+                onCloseWithoutSave={() => handleConfirmSwitch(false)}
+                onSaveAndClose={() => handleConfirmSwitch(true)}
               />
             </div>
           )}
@@ -135,12 +135,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             </div>
           </div>
         </div>
-        <EnvironmentDetails
-          environment={selectedEnvironment}
-          collection={collection}
-          setIsModified={setIsModified}
-          originalEnvironmentVariables={originalEnvironmentVariables}
-        />
+        <EnvironmentDetails environment={selectedEnvironment} collection={collection} formik={formik} />
       </div>
     </StyledWrapper>
   );
