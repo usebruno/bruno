@@ -110,7 +110,7 @@ Wuff! Wenn du dieses Projekt magst, klick auf den ⭐ Button !!
 
 ### Teile Erfahrungsberichte 📣
 
-Wenn Bruno dir und in deinem Team bei der Arbeit geholfen hat, vergiss bitte nicht, deine [Erfahrungsberichte auf unserer GitHub-Diskussion](https://github.com/usebruno/bruno/discussions/343) zu teilen.
+Wenn Bruno dir und in deinem Team bei der Arbeit geholfen hat, vergiss bitte nicht, deine [Erfahrungsberichte in unserer GitHub-Diskussion](https://github.com/usebruno/bruno/discussions/343) zu teilen.
 
 ### Bereitstellung in neuen Paket-Managern
 
