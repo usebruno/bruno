@@ -167,6 +167,26 @@ const getBruFilesRecursively = (dir, testsOnly) => {
   return getFilesInOrder(dir);
 };
 
+const findCollectionPath = (dir) => {
+  dir ??= process.cwd();
+
+  const brunoJsonExists = (dir) => {
+    const brunoJsonPath = path.join(dir, 'bruno.json');
+    return fs.existsSync(brunoJsonPath);
+  };
+
+  while (!brunoJsonExists(dir)) {
+    const dirname = path.dirname(dir);
+    if (dir === dirname) {
+      // we've reached the root of the filesystem
+      return '';
+    }
+    dir = dirname;
+  }
+
+  return dir;
+};
+
 const getCollectionRoot = (dir) => {
   const collectionRootPath = path.join(dir, 'collection.bru');
   const exists = fs.existsSync(collectionRootPath);
@@ -246,21 +266,12 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, testsOnly, bail } = argv;
-    const collectionPath = process.cwd();
 
-    // todo
-    // right now, bru must be run from the root of the collection
-    // will add support in the future to run it from anywhere inside the collection
-    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
-    const brunoJsonExists = await exists(brunoJsonPath);
-    if (!brunoJsonExists) {
-      console.error(chalk.red(`You can run only at the root of a collection`));
+    const collectionPath = findCollectionPath(filename);
+    if (!collectionPath) {
+      console.error(chalk.red(`Could not find collection root`));
       return;
     }
-
-    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-    const brunoConfig = JSON.parse(brunoConfigFile);
-    const collectionRoot = getCollectionRoot(collectionPath);
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -272,6 +283,21 @@ const handler = async function (argv) {
       filename = './';
       recursive = true;
     }
+
+    if (path.relative(collectionPath, filename) === '') {
+      recursive = true;
+    }
+
+    const brunoJsonPath = path.join(collectionPath, 'bruno.json');
+    const brunoJsonExists = await exists(brunoJsonPath);
+    if (!brunoJsonExists) {
+      console.error(chalk.red(`Could not find bruno.json`));
+      return;
+    }
+
+    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
+    const brunoConfig = JSON.parse(brunoConfigFile);
+    const collectionRoot = getCollectionRoot(collectionPath);
 
     const collectionVariables = {};
     let envVars = {};
@@ -511,5 +537,6 @@ module.exports = {
   desc,
   builder,
   handler,
+  findCollectionPath,
   printRunSummary
 };
