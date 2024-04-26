@@ -49,7 +49,7 @@ export const exportCollection = (collection) => {
 
   const generateEventSection = (item) => {
     const eventArray = [];
-    if (item.request.tests.length) {
+    if (item?.request?.tests?.length) {
       eventArray.push({
         listen: 'test',
         script: {
@@ -58,7 +58,7 @@ export const exportCollection = (collection) => {
         }
       });
     }
-    if (item.request.script.req) {
+    if (item?.request?.script?.req) {
       eventArray.push({
         listen: 'prerequest',
         script: {
