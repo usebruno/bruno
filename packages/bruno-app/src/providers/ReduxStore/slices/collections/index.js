@@ -1176,10 +1176,35 @@ export const collectionsSlice = createSlice({
       }
     },
     updateCollectionDocs: (state, action) => {
+      // NOTE: If you make any updates to the structure of the docs, make sure to update the
+      // converters in packages/bruno-electron/src/bru/index.js
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
-        set(collection, 'root.docs', action.payload.docs);
+        if (collection.root.docs.editing === false) {
+          // Only update the original docs if we weren't already editing
+          set(collection, 'root.docs.original', get(collection, 'root.docs.current'));
+        }
+        // Update the current docs
+        set(collection, 'root.docs.current', action.payload.docs);
+        set(collection, 'root.docs.editing', true);
+      }
+    },
+    revertCollectionDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      // Revert the docs if we are currently editing
+      if (collection && collection.root.docs.editing === true) {
+        set(collection, 'root.docs.current', collection.root.docs.original);
+        set(collection, 'root.docs.editing', false);
+      }
+    },
+    saveCollectionDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      // Remove the editing flag if we are saving
+      if (collection && collection.root.docs.editing === true) {
+        set(collection, 'root.docs.editing', false);
       }
     },
     addFolderHeader: (state, action) => {
@@ -1816,6 +1841,8 @@ export const {
   updateCollectionResponseScript,
   updateCollectionTests,
   updateCollectionDocs,
+  revertCollectionDocs,
+  saveCollectionDocs,
   collectionAddFileEvent,
   collectionAddDirectoryEvent,
   collectionChangeFileEvent,

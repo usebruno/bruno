@@ -3,7 +3,7 @@ import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import get from 'lodash/get';
 import StyledWrapper from './StyledWrapper';
 import ButtonBar from 'components/ButtonBar';
-import { IconPencil, IconCheck } from '@tabler/icons';
+import { IconPencil, IconCheck, IconX } from '@tabler/icons';
 import { useEffect, useState, useRef } from 'react';
 import { useTheme } from 'providers/Theme';
 import { useSelector } from 'react-redux';
@@ -11,7 +11,7 @@ import CodeEditor from 'components/CodeEditor';
 
 const md = new MarkdownIt();
 
-const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave }) => {
+const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave, onCancel }) => {
   const [isEditing, setIsEditing] = useState(false);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
@@ -23,10 +23,8 @@ const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave })
   };
 
   const handleClick = (event) => {
-    if (event?.detail === 4) {
-      // Quadruple click.
-      // A double click is commonly used to select a word, and
-      // a triple click is used to select a paragraph, so we want to avoid using those.
+    if (event?.detail === 2) {
+      // double click
       setIsEditing(true);
     }
   };
@@ -70,14 +68,29 @@ const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave })
               mode="application/text"
             />
           </div>
-          <ButtonBar
-            text="Save"
-            handleClick={() => {
-              setIsEditing(false);
-              onSave();
-            }}
-          >
-            <IconCheck size={18} strokeWidth={2} className="ml-1" />
+          <ButtonBar>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                onCancel();
+              }}
+            >
+              <span className="flex items-center">
+                Cancel
+                <IconX size={18} strokeWidth={2} className="ml-1" />
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setIsEditing(false);
+                onSave();
+              }}
+            >
+              <span className="flex items-center">
+                Save
+                <IconCheck size={18} strokeWidth={2} className="ml-1" />
+              </span>
+            </button>
           </ButtonBar>
         </>
       ) : (
@@ -91,7 +104,16 @@ const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave })
             />
           </div>
           <ButtonBar text="Edit" handleClick={() => setIsEditing(true)}>
-            <IconPencil size={18} strokeWidth={2} className="ml-2" />
+            <button
+              onClick={() => {
+                setIsEditing(true);
+              }}
+            >
+              <span className="flex items-center">
+                Edit
+                <IconPencil size={18} strokeWidth={2} className="ml-2" />
+              </span>
+            </button>
           </ButtonBar>
         </>
       )}

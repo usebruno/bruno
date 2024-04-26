@@ -10,9 +10,10 @@ const StyledButtonBar = styled.div`
   margin-left: -1rem;
 
   display: flex;
+  flex-direction: row;
   justify-content: flex-end;
   border-top: 1px solid ${(props) => props.theme.table.border};
-  background: ${(props) => props.theme.bg}; // Assuming you want to inherit this from StyledMarkdownBodyWrapper
+  background: ${(props) => props.theme.bg};
 
   button {
     z-index: 1;
@@ -26,6 +27,10 @@ const StyledButtonBar = styled.div`
     &:hover {
       background: ${(props) => props.theme.markDownEditor.hoverBg};
       border-color: ${(props) => props.theme.table.border};
+    }
+
+    &:last-child {
+      margin-right: 0;
     }
   }
 
