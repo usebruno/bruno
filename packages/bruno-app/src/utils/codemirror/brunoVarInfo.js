@@ -13,6 +13,27 @@ const { get } = require('lodash');
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 
+  const formatHints = (hints = {}) => {
+    const render = (element, self, data) => {
+      let text = data.text;
+      if (typeof hints[text] !== 'object' && hints[text]) {
+        text = text + `: <i>${hints[text]}</i>`;
+      }
+      element.innerHTML = text;
+      return element;
+    };
+    try {
+      const keys = Object.keys(hints);
+
+      return keys.map((key) => ({
+        text: key,
+        render
+      }));
+    } catch {
+      return [];
+    }
+  };
+
   const renderVarInfo = (token, options, cm, pos) => {
     const str = token.string || '';
     if (!str || !str.length || typeof str !== 'string') {

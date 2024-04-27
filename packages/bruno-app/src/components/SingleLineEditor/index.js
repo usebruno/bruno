@@ -80,14 +80,12 @@ class SingleLineEditor extends Component {
         'Shift-Tab': false
       }
     });
-    if (this.props.autocomplete) {
-      this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.keyCode != 13) {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
-        }
-      });
-    }
+    this.editor.on('keyup', (cm, event) => {
+      if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.keyCode != 13) {
+        /*Enter - do not open autocomplete list just after item has been selected in it*/
+        CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
+      }
+    });
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay();

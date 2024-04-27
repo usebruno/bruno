@@ -2,8 +2,53 @@ let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 
 if (!SERVER_RENDERED) {
-  CodeMirror = require('codemirror');
-  CodeMirror.registerHelper('hint', 'anyword', (editor, options) => {
+  const formatHints = (hints = {}) => {
+    const render = (element, self, data) => {
+      let text = data.text;
+      if (typeof hints[text] !== 'object' && hints[text]) {
+        text = text + `: <i>${hints[text]}</i>`;
+      }
+      element.innerHTML = text;
+      return element;
+    };
+    try {
+      const keys = Object.keys(hints);
+
+      return keys.map((key) => ({
+        text: key,
+        render
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const variableCompletion = (editor) => {
+    if (!editor.state.brunoVarInfo) return null;
+    const cursor = editor.getCursor();
+    const cursorLine = editor.getLine(cursor.line);
+    const position = cursor.ch;
+
+    const char = cursorLine.charAt(position - 1);
+    const prevChar = cursorLine.charAt(position - 2);
+
+    if ((char === '{' && prevChar === '{') || (prevChar === '{' && cursorLine.charAt(position - 3) === '{')) {
+      const completions = {
+        list: formatHints(editor.state.brunoVarInfo.options.variables),
+        from: CodeMirror.Pos(cursor.line, position)
+      };
+      CodeMirror.on(completions, 'pick', (completion) => {
+        const endOfCompletion = cursorLine.charAt(position);
+        if (endOfCompletion !== '}') {
+          editor.replaceRange('}}', CodeMirror.Pos(cursor.line, position + completion.text.length));
+        }
+      });
+      return completions;
+    }
+    return null;
+  };
+
+  const wordCompletion = (editor, options) => {
     const word = /[\w$-]+/;
     const wordlist = (options && options.autocomplete) || [];
     let cur = editor.getCursor(),
@@ -33,6 +78,13 @@ if (!SERVER_RENDERED) {
       }
     }
     return { list: [...new Set(list)], from: CodeMirror.Pos(cur.line, start), to: CodeMirror.Pos(cur.line, end) };
+  };
+
+  CodeMirror = require('codemirror');
+  CodeMirror.registerHelper('hint', 'anyword', (editor, options) => {
+    const variables = variableCompletion(editor);
+    if (variables) return variables;
+    return wordCompletion(editor, options);
   });
   CodeMirror.commands.autocomplete = (cm, hint, options) => {
     cm.showHint({ hint, ...options });
