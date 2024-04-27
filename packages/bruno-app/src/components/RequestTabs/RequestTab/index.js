@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -12,11 +12,15 @@ import ConfirmRequestClose from './ConfirmRequestClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
+import Dropdown from 'components/Dropdown';
 
-const RequestTab = ({ tab, collection }) => {
+const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const dropdownTippyRef = useRef();
+  const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const handleCloseClick = (event) => {
     event.stopPropagation();
@@ -26,6 +30,19 @@ const RequestTab = ({ tab, collection }) => {
         tabUids: [tab.uid]
       })
     );
+  };
+
+  const handleRightClick = (_event) => {
+    const menuDropdown = dropdownTippyRef.current;
+    if (!menuDropdown) {
+      return;
+    }
+
+    if (menuDropdown.state.isShown) {
+      menuDropdown.hide();
+    } else {
+      menuDropdown.show();
+    }
   };
 
   const handleMouseUp = (e) => {
@@ -139,6 +156,7 @@ const RequestTab = ({ tab, collection }) => {
       )}
       <div
         className="flex items-baseline tab-label pl-2"
+        onContextMenu={handleRightClick}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
 
@@ -155,6 +173,15 @@ const RequestTab = ({ tab, collection }) => {
         <span className="ml-1 tab-name" title={item.name}>
           {item.name}
         </span>
+        <RequestTabMenu
+          onDropdownCreate={onDropdownCreate}
+          tabIndex={tabIndex}
+          collectionRequestTabs={collectionRequestTabs}
+          tabItem={item}
+          collection={collection}
+          dropdownTippyRef={dropdownTippyRef}
+          dispatch={dispatch}
+        />
       </div>
       <div
         className="flex px-2 close-icon-container"
@@ -190,5 +217,77 @@ const RequestTab = ({ tab, collection }) => {
     </StyledWrapper>
   );
 };
+
+function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, collection, dropdownTippyRef, dispatch }) {
+  const totalTabs = collectionRequestTabs.length || 0;
+  const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
+  const hasRightTabs = totalTabs > tabIndex + 1;
+  const hasOtherTabs = totalTabs > 1;
+
+  async function handleCloseTab(event, tabUid) {
+    event.stopPropagation();
+    dropdownTippyRef.current.hide();
+
+    if (!tabUid) {
+      return;
+    }
+
+    try {
+      const item = findItemInCollection(collection, tabUid);
+      // silently save unsaved changes before closing the tab
+      if (item.draft) {
+        await dispatch(saveRequest(item.uid, collection.uid, true));
+      }
+
+      dispatch(closeTabs({ tabUids: [tabUid] }));
+    } catch (err) {}
+  }
+
+  function handleCloseOtherTabs(event) {
+    dropdownTippyRef.current.hide();
+
+    const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
+    otherTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+  }
+
+  function handleCloseTabsToTheRight(event) {
+    dropdownTippyRef.current.hide();
+
+    const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
+    rightTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+  }
+
+  function handleCloseSavedTabs(event) {
+    event.stopPropagation();
+
+    const savedTabs = collection.items.filter((item) => !item.draft);
+    const savedTabIds = savedTabs.map((item) => item.uid) || [];
+    dispatch(closeTabs({ tabUids: savedTabIds }));
+  }
+
+  function handleCloseAllTabs(event) {
+    collectionRequestTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+  }
+
+  return (
+    <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
+      <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
+        Close
+      </button>
+      <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
+        Close Others
+      </button>
+      <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
+        Close to the Right
+      </button>
+      <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
+        Close Saved
+      </button>
+      <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
+        Close All
+      </button>
+    </Dropdown>
+  );
+}
 
 export default RequestTab;
