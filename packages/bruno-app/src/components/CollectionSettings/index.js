@@ -118,12 +118,14 @@ const CollectionSettings = ({ collection }) => {
   };
 
   const root = collection.root || {};
+  const activeHeadersLength = root.request.headers.filter((header) => header.enabled).length;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('headers', root.request.headers.length)} role="tab" onClick={() => setTab('headers')}>
           Headers
+          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
         <div className={getTabClassname('auth', hasNonEmptyValue(omit(root.request.auth, 'mode')))} role="tab" onClick={() => setTab('auth')}>
           Auth
