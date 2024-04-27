@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -13,6 +13,8 @@ import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
+import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
+import NewRequest from 'components/Sidebar/NewRequest/index';
 
 const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
   const dispatch = useDispatch();
@@ -219,8 +221,12 @@ const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
 };
 
 function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, collection, dropdownTippyRef, dispatch }) {
+  const [showCloneRequestModal, setShowCloneRequestModal] = useState(false);
+  const [showAddNewRequestModal, setShowAddNewRequestModal] = useState(false);
+
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
+  const currentTabItem = findItemInCollection(collection, currentTabUid);
 
   const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
@@ -279,26 +285,58 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
   }
 
   return (
-    <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
-      <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
-        Close
-      </button>
-      <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
-        Close Others
-      </button>
-      <button disabled={!hasLeftTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheLeft}>
-        Close to the Left
-      </button>
-      <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
-        Close to the Right
-      </button>
-      <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
-        Close Saved
-      </button>
-      <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
-        Close All
-      </button>
-    </Dropdown>
+    <Fragment>
+      {showAddNewRequestModal && (
+        <NewRequest collection={collection} onClose={() => setShowAddNewRequestModal(false)} />
+      )}
+
+      {showCloneRequestModal && (
+        <CloneCollectionItem
+          item={currentTabItem}
+          collection={collection}
+          onClose={() => setShowCloneRequestModal(false)}
+        />
+      )}
+
+      <Dropdown onCreate={onDropdownCreate} icon={<span></span>} placement="bottom-start">
+        <button
+          className="dropdown-item w-full"
+          onClick={() => {
+            dropdownTippyRef.current.hide();
+            setShowAddNewRequestModal(true);
+          }}
+        >
+          New Request
+        </button>
+        <button
+          className="dropdown-item w-full"
+          onClick={() => {
+            dropdownTippyRef.current.hide();
+            setShowCloneRequestModal(true);
+          }}
+        >
+          Clone Request
+        </button>
+        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
+          Close
+        </button>
+        <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
+          Close Others
+        </button>
+        <button disabled={!hasLeftTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheLeft}>
+          Close to the Left
+        </button>
+        <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
+          Close to the Right
+        </button>
+        <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
+          Close Saved
+        </button>
+        <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
+          Close All
+        </button>
+      </Dropdown>
+    </Fragment>
   );
 }
 
