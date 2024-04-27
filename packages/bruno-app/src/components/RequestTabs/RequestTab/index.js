@@ -221,6 +221,8 @@ const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
 function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, collection, dropdownTippyRef, dispatch }) {
   const totalTabs = collectionRequestTabs.length || 0;
   const currentTabUid = collectionRequestTabs[tabIndex]?.uid;
+
+  const hasLeftTabs = tabIndex !== 0;
   const hasRightTabs = totalTabs > tabIndex + 1;
   const hasOtherTabs = totalTabs > 1;
 
@@ -250,6 +252,13 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     otherTabs.forEach((tab) => handleCloseTab(event, tab.uid));
   }
 
+  function handleCloseTabsToTheLeft(event) {
+    dropdownTippyRef.current.hide();
+
+    const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
+    leftTabs.forEach((tab) => handleCloseTab(event, tab.uid));
+  }
+
   function handleCloseTabsToTheRight(event) {
     dropdownTippyRef.current.hide();
 
@@ -276,6 +285,9 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
       </button>
       <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
         Close Others
+      </button>
+      <button disabled={!hasLeftTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheLeft}>
+        Close to the Left
       </button>
       <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
         Close to the Right
