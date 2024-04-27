@@ -2,7 +2,7 @@
 
 ### Veröffentlichung von Bruno über neue Paket-Manager
 
-Obwohl Bruno Open Source und für alle frei zugänglich ist, bitten wir dich Kontakt zu uns aufzunehmen bevor du Bruno über weitere Paket-Manager veröffentlichst.
+Obwohl Bruno Open Source und für alle frei zugänglich ist, bitten wir dich Kontakt zu uns aufzunehmen, bevor du Bruno über weitere Paket-Manager veröffentlichst.
 Als Schöpfer von Bruno, liegen alle Marktrechte von `Bruno` bei mir und ich will die volle Kontrolle über alle Verbreitungswege behalten.
 Falls Bruno über einen weiteren Paketmanager veröffentlicht werden soll, eröffne bitte ein GitHub-Issue.
 
