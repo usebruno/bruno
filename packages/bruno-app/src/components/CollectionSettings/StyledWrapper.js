@@ -21,8 +21,12 @@ const StyledWrapper = styled.div`
         box-shadow: none !important;
       }
 
+      &.content,
       &.active {
         color: ${(props) => props.theme.tabs.active.color} !important;
+      }
+
+      &.active {
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
     }
