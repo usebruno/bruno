@@ -1,21 +1,20 @@
-import React from 'react';
-import find from 'lodash/find';
 import classnames from 'classnames';
-import { useSelector, useDispatch } from 'react-redux';
-import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import Documentation from 'components/Documentation/index';
+import Assertions from 'components/RequestPane/Assertions';
+import Auth from 'components/RequestPane/Auth';
 import QueryParams from 'components/RequestPane/QueryParams';
-import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
-import Auth from 'components/RequestPane/Auth';
-import AuthMode from 'components/RequestPane/Auth/AuthMode';
-import Vars from 'components/RequestPane/Vars';
-import Assertions from 'components/RequestPane/Assertions';
+import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import Script from 'components/RequestPane/Script';
 import Tests from 'components/RequestPane/Tests';
+import Vars from 'components/RequestPane/Vars';
+import { find, get, omit } from 'lodash';
+import { updateRequestPaneTab } from 'providers/ReduxStore/slices/tabs';
+import React from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { hasNonEmptyValue } from 'src/utils/common';
 import StyledWrapper from './StyledWrapper';
-import { get } from 'lodash';
-import Documentation from 'components/Documentation/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -75,58 +74,53 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  const getTabClassname = (tabName) => {
+  const getTabClassname = (tabName, hasContent) => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === focusedTab.requestPaneTab
+      active: tabName === focusedTab.requestPaneTab,
+      content: hasContent
     });
   };
 
-  // get the length of active params, headers, asserts and vars
-  const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
-  const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
-  const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
-  const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-  const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
-
-  const activeParamsLength = params.filter((param) => param.enabled).length;
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
-  const activeAssertionsLength = assertions.filter((assertion) => assertion.enabled).length;
+  const request = item.draft ? get(item, 'draft.request', {}) : get(item, 'request');
+  const activeParamsLength = request.params.filter((param) => param.enabled).length;
+  const activeHeadersLength = request.headers.filter((header) => header.enabled).length;
+  const activeAssertionsLength = request.assertions.filter((assertion) => assertion.enabled).length;
   const activeVarsLength =
-    requestVars.filter((request) => request.enabled).length +
-    responseVars.filter((response) => response.enabled).length;
+    request.vars.req?.filter((request) => request.enabled).length +
+    request.vars.res?.filter((response) => response.enabled).length;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
+        <div className={getTabClassname('params', activeParamsLength)} role="tab" onClick={() => selectTab('params')}>
           Query
           {activeParamsLength > 0 && <sup className="ml-1 font-medium">{activeParamsLength}</sup>}
         </div>
-        <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
+        <div className={getTabClassname('body', hasNonEmptyValue(omit(request.body, 'mode')))} role="tab" onClick={() => selectTab('body')}>
           Body
         </div>
-        <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
+        <div className={getTabClassname('headers', request.headers.length)} role="tab" onClick={() => selectTab('headers')}>
           Headers
           {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
+        <div className={getTabClassname('auth', hasNonEmptyValue(omit(request.auth, 'mode')))} role="tab" onClick={() => selectTab('auth')}>
           Auth
         </div>
-        <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
+        <div className={getTabClassname('vars', request.vars.req?.length ?? 0 + request.vars.res?.length ?? 0)} role="tab" onClick={() => selectTab('vars')}>
           Vars
           {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
         </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
+        <div className={getTabClassname('script', request.script.req || request.script.res)} role="tab" onClick={() => selectTab('script')}>
           Script
         </div>
-        <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
+        <div className={getTabClassname('assert', request.assertions.length)} role="tab" onClick={() => selectTab('assert')}>
           Assert
           {activeAssertionsLength > 0 && <sup className="ml-1 font-medium">{activeAssertionsLength}</sup>}
         </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
+        <div className={getTabClassname('tests', request.tests.length)} role="tab" onClick={() => selectTab('tests')}>
           Tests
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
+        <div className={getTabClassname('docs', request.docs.length)} role="tab" onClick={() => selectTab('docs')}>
           Docs
         </div>
         {focusedTab.requestPaneTab === 'body' ? (

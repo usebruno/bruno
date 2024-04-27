@@ -1,3 +1,5 @@
+import { isEmpty, keys, some } from 'lodash';
+import { flatten } from 'flat';
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
 
@@ -155,4 +157,9 @@ export const humanizeDate = (dateString) => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+export const hasNonEmptyValue = (item) => {
+  const flatItem = flatten(item);
+  return some(keys(flatItem), key => !isEmpty(flatItem[key]));
 };
