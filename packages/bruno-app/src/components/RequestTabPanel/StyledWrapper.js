@@ -1,6 +1,10 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  section.main {
+    max-height: calc(100vh - 150px);
+  }
+
   &.dragging {
     cursor: col-resize;
   }

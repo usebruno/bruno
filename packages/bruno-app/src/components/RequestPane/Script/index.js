@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -15,9 +15,10 @@ const Script = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const componentRef = useRef(null);
 
   useEffect(() => {
-    updateCodeMirrorsHeight('#request-script-tab', 125, 'calc((100vh - 280px) / 2');
+    updateCodeMirrorsHeight(componentRef.current, 125, 'calc((100vh - 280px) / 2');
   });
 
   const onRequestScriptEdit = (value) => {
@@ -44,7 +45,7 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper id="request-script-tab" className="w-full">
+    <StyledWrapper ref={componentRef} className="w-full">
       <div className="flex flex-col">
         <div className="flex-1 mt-2">
           <div className="mb-1 title text-xs">Pre Request</div>

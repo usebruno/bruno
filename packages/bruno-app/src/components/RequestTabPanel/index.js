@@ -188,7 +188,11 @@ const RequestTabPanel = () => {
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className={`main flex flex-grow pb-4 relative ${isResponsePaneDockedToBottom ? 'flex-col' : ''}`}>
+      <section
+        className={`main flex flex-grow pb-4 relative overflow-y-auto ${
+          isResponsePaneDockedToBottom ? 'flex-col' : ''
+        }`}
+      >
         <section className="request-pane">
           <div
             className="px-4 "

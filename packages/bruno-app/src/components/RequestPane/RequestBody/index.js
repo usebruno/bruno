@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
@@ -16,9 +16,10 @@ const RequestBody = ({ item, collection }) => {
   const bodyMode = item.draft ? get(item, 'draft.request.body.mode') : get(item, 'request.body.mode');
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const componentRef = useRef(null);
 
   useEffect(() => {
-    updateCodeMirrorsHeight('#request-body', 65, 'calc(100vh - 250px)');
+    updateCodeMirrorsHeight(componentRef.current, 65, 'calc(100vh - 250px)');
   });
 
   const onEdit = (value) => {
@@ -50,7 +51,7 @@ const RequestBody = ({ item, collection }) => {
     };
 
     return (
-      <StyledWrapper id="request-body" className="w-full">
+      <StyledWrapper ref={componentRef} className="w-full">
         <CodeEditor
           collection={collection}
           theme={displayedTheme}

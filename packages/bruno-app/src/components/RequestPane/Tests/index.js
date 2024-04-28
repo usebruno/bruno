@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
@@ -14,6 +14,7 @@ const Tests = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const componentRef = useRef(null);
 
   const onEdit = (value) => {
     dispatch(
@@ -26,14 +27,14 @@ const Tests = ({ item, collection }) => {
   };
 
   useEffect(() => {
-    updateCodeMirrorsHeight('#test-tab', 65, 'calc(100vh - 250px)');
+    updateCodeMirrorsHeight(componentRef.current, 65, 'calc(100vh - 250px)');
   });
 
   const onRun = () => dispatch(sendRequest(item, collection.uid));
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper id="test-tab" className="w-full">
+    <StyledWrapper ref={componentRef} className="w-full">
       <CodeEditor
         collection={collection}
         value={tests || ''}

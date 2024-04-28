@@ -69,11 +69,16 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
   }
 };
 
-export const updateCodeMirrorsHeight = (parentId, offsetTop, dockRightHeight) => {
-  const MIN_HEIGHT = 100;
-  const codeMirrors = document.querySelectorAll(parentId + ' .CodeMirror');
+export const updateCodeMirrorsHeight = (parent, offsetTop, dockRightHeight) => {
+  const MIN_HEIGHT = 150;
+  if (parent === null) {
+    return;
+  }
+  const codeMirrors = parent.querySelectorAll('.CodeMirror');
   const pane = document.querySelector('.request-pane');
-  const isResponsePaneDockedToBottom = document.querySelectorAll('.main .drag-request-horizontal').length;
+  const dragRequestHorizontal = document.querySelector('.main .drag-request-horizontal');
+  const isResponsePaneDockedToBottom =
+    dragRequestHorizontal !== null && !dragRequestHorizontal.classList.contains('invisible');
   if (codeMirrors !== null && pane !== null) {
     codeMirrors.forEach((control) => {
       let newHeight;
