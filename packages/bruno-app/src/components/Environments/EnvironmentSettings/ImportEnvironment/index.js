@@ -7,6 +7,14 @@ import { importEnvironment } from 'providers/ReduxStore/slices/collections/actio
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
+const getErrorMessage = (err) => {
+  if (err.message.endsWith('environment: contains invalid characters')) {
+    return 'The environment name contains one or more illegal characters (<, >, :, ", /, \\, |, ?, *).';
+  }
+
+  return 'An error occurred while importing the environment';
+};
+
 const ImportEnvironment = ({ onClose, collection }) => {
   const dispatch = useDispatch();
 
@@ -18,7 +26,7 @@ const ImportEnvironment = ({ onClose, collection }) => {
             toast.success('Environment imported successfully');
             onClose();
           })
-          .catch(() => toast.error('An error occurred while importing the environment'));
+          .catch((err) => toast.error(getErrorMessage(err)));
       })
       .catch((err) => toastError(err, 'Postman Import environment failed'));
   };
