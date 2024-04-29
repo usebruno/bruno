@@ -1,4 +1,4 @@
-const unsafePathCharacters = /[<>:"/\\|?* ]+/;
+const unsafePathCharacters = /[<>:"/\\|?*]+/;
 
 module.exports = {
   unsafePathCharacters
