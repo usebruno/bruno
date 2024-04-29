@@ -503,7 +503,7 @@ const handler = async function (argv) {
   } catch (err) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
-    process.exit(constants.EXIT_STATUS_ERROR_GENERIC);
+    process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
   }
 };
 
