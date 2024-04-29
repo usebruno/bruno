@@ -300,7 +300,7 @@ const handler = async function (argv) {
         processVars = envVar;
       } else {
         console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        process.exit(constants.EXIT_STATUS_ERROR_MALFORMED_ENV_OVERRIDE);
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
       }
       if (processVars && Array.isArray(processVars)) {
         for (const value of processVars.values()) {
