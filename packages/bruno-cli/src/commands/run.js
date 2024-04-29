@@ -340,7 +340,7 @@ const handler = async function (argv) {
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
-      process.exit(constants.EXIT_STATUS_ERROR_INCORRECT_OUTPUT_FORMAT);
+      process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
     // load .env file at root of collection if it exists
