@@ -9,9 +9,14 @@ const Font = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
+  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '12'));
 
-  const handleInputChange = (event) => {
+  const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
+  };
+
+  const handleCodeFontSizeChange = (event) => {
+    setCodeFontSize(event.target.value);
   };
 
   const handleSave = () => {
@@ -19,7 +24,8 @@ const Font = ({ close }) => {
       savePreferences({
         ...preferences,
         font: {
-          codeFont
+          codeFont,
+          codeFontSize
         }
       })
     ).then(() => {
@@ -37,8 +43,18 @@ const Font = ({ close }) => {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        onChange={handleInputChange}
+        onChange={handleCodeFontChange}
         defaultValue={codeFont}
+      />
+      <label classname="block font-medium">Code Editor Font Size</label>
+      <input
+        type="number"
+        className="block textbox mt-2 w-full"
+        autoComplete="off"
+        autoCorrect="off"
+        inputMode="numeric"
+        onChange={handleCodeFontSizeChange}
+        defaultValue={codeFontSize}
       />
 
       <div className="mt-10">
