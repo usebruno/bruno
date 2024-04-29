@@ -53,7 +53,6 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
   const { displayedTheme } = useTheme();
-  const preferences = useSelector((state) => state.app.preferences);
   const isResponsePaneDockedToBottom = useSelector(
     (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
   );

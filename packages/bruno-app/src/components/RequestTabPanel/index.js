@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import get from 'lodash/get';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -37,7 +36,6 @@ const RequestTabPanel = () => {
   const collections = useSelector((state) => state.collections.collections);
   const screenWidth = useSelector((state) => state.app.screenWidth);
   const screenHeight = useSelector((state) => state.app.screenHeight);
-  const preferences = useSelector((state) => state.app.preferences);
   const isResponsePaneDockedToBottom = useSelector(
     (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
   );

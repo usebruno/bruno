@@ -1,5 +1,4 @@
 import React from 'react';
-import get from 'lodash/get';
 import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { savePreferences } from 'providers/ReduxStore/slices/app';

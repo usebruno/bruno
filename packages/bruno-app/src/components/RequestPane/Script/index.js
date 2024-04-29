@@ -14,6 +14,9 @@ const Script = ({ item, collection }) => {
 
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
+  );
 
   const onRequestScriptEdit = (value) => {
     dispatch(
@@ -41,7 +44,7 @@ const Script = ({ item, collection }) => {
   return (
     <StyledWrapper className="w-full h-full">
       <div className="section-wrapper flex flex-col">
-        <div className="script-section flex-1 mt-2">
+        <div className={`script-section flex-1 mt-2 ${isResponsePaneDockedToBottom ? 'mr-4' : ''}`}>
           <div className="mb-1 title text-xs">Pre Request</div>
           <CodeEditor
             collection={collection}
@@ -54,7 +57,7 @@ const Script = ({ item, collection }) => {
             onSave={onSave}
           />
         </div>
-        <div className="script-section flex-1 mt-6">
+        <div className={`script-section flex-1 mt-6 ${isResponsePaneDockedToBottom ? 'mr-4' : ''}`}>
           <div className="mt-1 mb-1 title text-xs">Post Response</div>
           <CodeEditor
             collection={collection}
