@@ -498,7 +498,7 @@ const handler = async function (argv) {
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
-      process.exit(constants.EXIT_STATUS_ERROR_FAILED_COLLECTION);
+      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
