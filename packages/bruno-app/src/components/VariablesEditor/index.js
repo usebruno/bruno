@@ -89,14 +89,16 @@ const VariablesEditor = ({ collection }) => {
   const reactInspectorTheme = storedTheme === 'light' ? 'chromeLight' : 'chromeDark';
 
   return (
-    <StyledWrapper className="px-4 py-4">
-      <CollectionVariables collection={collection} theme={reactInspectorTheme} />
-      <EnvVariables collection={collection} theme={reactInspectorTheme} />
+    <StyledWrapper id="VariablesEditor" className="px-4 py-4 overflow-y-auto">
+      <div className="h-full w-full overflow-y-auto">
+        <CollectionVariables collection={collection} theme={reactInspectorTheme} />
+        <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
-      <div className="mt-8 muted text-xs">
-        Note: As of today, collection variables can only be set via the API -{' '}
-        <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
-        In the next release, we will add a UI to set and modify collection variables.
+        <div className="mt-8 muted text-xs">
+          Note: As of today, collection variables can only be set via the API -{' '}
+          <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
+          In the next release, we will add a UI to set and modify collection variables.
+        </div>
       </div>
     </StyledWrapper>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
+import { refreshScreenWidthAndHeight } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
 import useIpcEvents from './useIpcEvents';
 import useTelemetry from './useTelemetry';
@@ -15,12 +15,12 @@ export const AppProvider = (props) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(refreshScreenWidth());
+    dispatch(refreshScreenWidthAndHeight());
   }, []);
 
   useEffect(() => {
     const handleResize = () => {
-      dispatch(refreshScreenWidth());
+      dispatch(refreshScreenWidthAndHeight());
     };
 
     window.addEventListener('resize', handleResize);

@@ -21,6 +21,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
+  );
 
   const selectTab = (tab) => {
     dispatch(
@@ -96,7 +99,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     responseVars.filter((response) => response.enabled).length;
 
   return (
-    <StyledWrapper className="flex flex-col h-full relative">
+    <StyledWrapper id="HttpRequestPane" className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params')} role="tab" onClick={() => selectTab('params')}>
           Query
@@ -136,7 +139,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${
+        className={`flex w-full overflow-y-auto h-full ${
           ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
         }`}
       >

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import get from 'lodash/get';
 import find from 'lodash/find';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
@@ -7,7 +8,7 @@ import HttpRequestPane from 'components/RequestPane/HttpRequestPane';
 import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
-import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
+import { updateRequestPaneTabWidth, updateRequestPaneTabHeight } from 'providers/ReduxStore/slices/tabs';
 import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
@@ -21,6 +22,9 @@ import StyledWrapper from './StyledWrapper';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
+const MIN_TOP_PANE_HEIGHT = 40;
+const MIN_BOTTOM_PANE_HEIGHT = 150;
+
 const DEFAULT_PADDING = 5;
 
 const RequestTabPanel = () => {
@@ -32,14 +36,21 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const screenWidth = useSelector((state) => state.app.screenWidth);
-
+  const screenHeight = useSelector((state) => state.app.screenHeight);
+  const preferences = useSelector((state) => state.app.preferences);
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
+  );
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
+  let asideHeight = useSelector((state) => state.app.topBarHeight);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
     focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
   ); // 2.2 so that request pane is relatively smaller
+  const [topPaneHeight, setTopPaneHeight] = useState((screenHeight - asideHeight) / 2);
   const [rightPaneWidth, setRightPaneWidth] = useState(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   const [dragging, setDragging] = useState(false);
+  const [draggingHorizontal, setDraggingHorizontal] = useState(false);
 
   // Not a recommended pattern here to have the child component
   // make a callback to set state, but treating this as an exception
@@ -66,6 +77,11 @@ const RequestTabPanel = () => {
     setRightPaneWidth(screenWidth - asideWidth - leftPaneWidth - DEFAULT_PADDING);
   }, [screenWidth, asideWidth, leftPaneWidth]);
 
+  useEffect(() => {
+    const topPaneHeight = (screenHeight - asideHeight) / 2;
+    setTopPaneHeight(topPaneHeight);
+  }, [screenHeight]);
+
   const handleMouseMove = (e) => {
     if (dragging) {
       e.preventDefault();
@@ -78,6 +94,16 @@ const RequestTabPanel = () => {
       }
       setLeftPaneWidth(leftPaneXPosition - asideWidth);
       setRightPaneWidth(screenWidth - e.clientX - DEFAULT_PADDING);
+    } else if (draggingHorizontal) {
+      e.preventDefault();
+      let topPaneYPosition = e.clientY + 2;
+      if (
+        topPaneYPosition < asideHeight + DEFAULT_PADDING + MIN_TOP_PANE_HEIGHT ||
+        topPaneYPosition > screenHeight - MIN_BOTTOM_PANE_HEIGHT
+      ) {
+        return;
+      }
+      setTopPaneHeight(topPaneYPosition - asideHeight);
     }
   };
   const handleMouseUp = (e) => {
@@ -90,11 +116,19 @@ const RequestTabPanel = () => {
           requestPaneWidth: e.clientX - asideWidth - DEFAULT_PADDING
         })
       );
+    } else if (draggingHorizontal) {
+      e.preventDefault();
+      setDraggingHorizontal(false);
     }
   };
   const handleDragbarMouseDown = (e) => {
     e.preventDefault();
     setDragging(true);
+  };
+
+  const handleDragbarHorizontalMouseDown = (e) => {
+    e.preventDefault();
+    setDraggingHorizontal(true);
   };
 
   useEffect(() => {
@@ -105,7 +139,7 @@ const RequestTabPanel = () => {
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [dragging, asideWidth]);
+  }, [dragging, draggingHorizontal, asideWidth, asideHeight]);
 
   if (!activeTabUid) {
     return <Welcome />;
@@ -146,17 +180,26 @@ const RequestTabPanel = () => {
   };
 
   return (
-    <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+    <StyledWrapper
+      id="RequestTabPanel"
+      className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''} ${
+        draggingHorizontal ? 'dragging-horizontal' : ''
+      }`}
+    >
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
-      <section className="main flex flex-grow pb-4 relative">
+      <section
+        className={`main flex flex-grow pb-4 relative overflow-y-auto ${
+          isResponsePaneDockedToBottom ? 'flex-col' : ''
+        }`}
+      >
         <section className="request-pane">
           <div
-            className="px-4"
+            className="px-4 "
             style={{
-              width: `${Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH)}px`,
-              height: `calc(100% - ${DEFAULT_PADDING}px)`
+              width: `${isResponsePaneDockedToBottom ? '100%' : Math.max(leftPaneWidth, MIN_LEFT_PANE_WIDTH) + 'px'}`,
+              height: `${isResponsePaneDockedToBottom ? Math.max(topPaneHeight, MIN_TOP_PANE_HEIGHT) + 'px' : '100%'}`
             }}
           >
             {item.type === 'graphql-request' ? (
@@ -176,12 +219,37 @@ const RequestTabPanel = () => {
           </div>
         </section>
 
-        <div className="drag-request" onMouseDown={handleDragbarMouseDown}>
+        <div
+          className={`drag-request ${isResponsePaneDockedToBottom ? 'invisible' : ''}`}
+          onMouseDown={handleDragbarMouseDown}
+        >
           <div className="drag-request-border" />
         </div>
 
-        <section className="response-pane flex-grow">
-          <ResponsePane item={item} collection={collection} rightPaneWidth={rightPaneWidth} response={item.response} />
+        <div
+          id=""
+          className={`drag-request-horizontal ${isResponsePaneDockedToBottom ? 'px-4' : 'invisible'}`}
+          onMouseDown={handleDragbarHorizontalMouseDown}
+        >
+          <div className="drag-request-horizontal-border" />
+        </div>
+
+        <section className="response-pane flex-grow ">
+          <div
+            className="px-4 "
+            style={{
+              height: `${
+                isResponsePaneDockedToBottom ? screenHeight - asideHeight - topPaneHeight - 30 + 'px' : '100%'
+              }`
+            }}
+          >
+            <ResponsePane
+              item={item}
+              collection={collection}
+              rightPaneWidth={rightPaneWidth}
+              response={item.response}
+            />
+          </div>
         </section>
       </section>
 

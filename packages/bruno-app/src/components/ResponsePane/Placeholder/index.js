@@ -10,7 +10,7 @@ const Placeholder = () => {
   const editEnvironmentShortcut = isMac ? 'Cmd + E' : 'Ctrl + E';
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="flex items-center justify-center h-full">
       <div className="send-icon flex justify-center" style={{ fontSize: 200 }}>
         <IconSend size={150} strokeWidth={1} />
       </div>

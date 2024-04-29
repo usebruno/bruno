@@ -31,7 +31,9 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
     : get(item, 'request.body.graphql.variables');
   const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
-
+  const isResponsePaneDockedToBottom = useSelector(
+    (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
+  );
   useEffect(() => {
     onSchemaLoad(schema);
   }, [schema]);
@@ -151,7 +153,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full mt-5">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full h-full mt-5 overflow-y-auto">{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>
   );
 };

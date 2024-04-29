@@ -38,39 +38,41 @@ const Script = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full flex flex-col h-full">
-      <div className="text-xs mb-4 text-muted">
-        Write pre and post-request scripts that will run before and after any request in this collection is sent.
-      </div>
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
-        <CodeEditor
-          collection={collection}
-          value={requestScript || ''}
-          theme={displayedTheme}
-          onEdit={onRequestScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-        />
-      </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
-        <CodeEditor
-          collection={collection}
-          value={responseScript || ''}
-          theme={displayedTheme}
-          onEdit={onResponseScriptEdit}
-          mode="javascript"
-          onSave={handleSave}
-          font={get(preferences, 'font.codeFont', 'default')}
-        />
-      </div>
+    <StyledWrapper className="w-full  h-full">
+      <div className="flex flex-col section-wrapper">
+        <div className="text-xs mb-4 text-muted">
+          Write pre and post-request scripts that will run before and after any request in this collection is sent.
+        </div>
+        <div className="script-section flex-1 mt-2">
+          <div className="mb-1 title text-xs">Pre Request</div>
+          <CodeEditor
+            collection={collection}
+            value={requestScript || ''}
+            theme={displayedTheme}
+            onEdit={onRequestScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+          />
+        </div>
+        <div className="script-section flex-1 mt-6">
+          <div className="mt-1 mb-1 title text-xs">Post Response</div>
+          <CodeEditor
+            collection={collection}
+            value={responseScript || ''}
+            theme={displayedTheme}
+            onEdit={onResponseScriptEdit}
+            mode="javascript"
+            onSave={handleSave}
+            font={get(preferences, 'font.codeFont', 'default')}
+          />
+        </div>
 
-      <div className="mt-12">
-        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
-          Save
-        </button>
+        <div className="mt-12">
+          <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+            Save
+          </button>
+        </div>
       </div>
     </StyledWrapper>
   );

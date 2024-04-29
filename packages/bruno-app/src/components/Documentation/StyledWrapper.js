@@ -2,16 +2,18 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   div.CodeMirror {
-    /* todo: find a better way */
-    height: calc(100vh - 240px);
+    height: 100%;
+  }
 
-    .CodeMirror-scroll {
-      padding-bottom: 0px;
-    }
+  div.code-mirror-wrapper {
+    height: calc(100% - 35px);
   }
   .editing-mode {
     cursor: pointer;
     color: ${(props) => props.theme.colors.text.yellow};
+  }
+  div.markdown-wrapper {
+    height: calc(100% - 35px);
   }
 `;
 

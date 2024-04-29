@@ -78,7 +78,7 @@ const RequestTabs = () => {
 
   // Todo: Must support ephemeral requests
   return (
-    <StyledWrapper className={getRootClassname()}>
+    <StyledWrapper id="RequestTabs" className={getRootClassname()}>
       {newRequestModalOpen && (
         <NewRequest collection={activeCollection} onClose={() => setNewRequestModalOpen(false)} />
       )}

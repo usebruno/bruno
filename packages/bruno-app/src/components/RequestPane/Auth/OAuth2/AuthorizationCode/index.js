@@ -104,7 +104,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           onChange={handlePKCEToggle}
         />
       </div>
-      <div className="flex flex-row gap-4">
+      <div className="flex flex-row gap-4 mb-5">
         <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
           Get Access Token
         </button>

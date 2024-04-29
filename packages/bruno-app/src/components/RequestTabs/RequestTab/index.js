@@ -102,7 +102,7 @@ const RequestTab = ({ tab, collection }) => {
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
 
   return (
-    <StyledWrapper className="flex items-center justify-between tab-container px-1">
+    <StyledWrapper id="RequestTab" className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
         <ConfirmRequestClose
           item={item}

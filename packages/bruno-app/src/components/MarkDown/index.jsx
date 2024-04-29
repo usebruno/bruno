@@ -13,7 +13,7 @@ const Markdown = ({ onDoubleClick, content }) => {
   const htmlFromMarkdown = md.render(content || '');
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="markdown-wrapper">
       <div
         className="markdown-body"
         dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
