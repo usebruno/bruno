@@ -478,7 +478,7 @@ const handler = async function (argv) {
       const outputDirExists = await exists(outputDir);
       if (!outputDirExists) {
         console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(constants.EXIT_STATUS_ERROR_MISSING_OUTPUT_DIR);
+        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       }
 
       const outputJson = {
