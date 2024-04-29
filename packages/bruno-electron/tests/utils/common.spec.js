@@ -16,7 +16,6 @@ describe('utils: flattenDataForDotNotation', () => {
 
     expect(flattenDataForDotNotation(input)).toEqual(expectedOutput);
   });
-
   test('Flatten an object with nested arrays', () => {
     const input = {
       users: [
