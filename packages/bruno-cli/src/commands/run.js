@@ -452,7 +452,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS_ERROR_INFINTE_LOOP);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
         }
         if (nextRequestName === null) {
           break;
