@@ -311,7 +311,7 @@ const handler = async function (argv) {
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
                 chalk.dim(`${value}`)
             );
-            process.exit(constants.EXIT_STATUS_ERROR_INCORRECT_ENV_OVERRIDE);
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
         }
