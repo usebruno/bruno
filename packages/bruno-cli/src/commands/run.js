@@ -283,7 +283,7 @@ const handler = async function (argv) {
 
       if (!envPathExists) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
-        process.exit(constants.EXIT_STATUS_ERROR_ENV_NOT_FOUND);
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
