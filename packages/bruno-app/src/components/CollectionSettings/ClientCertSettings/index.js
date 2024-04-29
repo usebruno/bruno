@@ -3,6 +3,8 @@ import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
 import { uuid } from 'utils/common';
 import * as Yup from 'yup';
+import { IconEye, IconEyeOff } from '@tabler/icons';
+import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -28,6 +30,8 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   const getFile = (e) => {
     formik.values[e.name] = e.files[0].path;
   };
+
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   return (
     <StyledWrapper className="w-full h-full">
@@ -63,7 +67,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             type="text"
             name="domain"
             placeholder="*.example.org"
-            className="block textbox"
+            className="block textbox non-passphrase-input"
             onChange={formik.handleChange}
             value={formik.values.domain || ''}
           />
@@ -79,7 +83,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             id="certFilePath"
             type="file"
             name="certFilePath"
-            className="block"
+            className="block non-passphrase-input"
             onChange={(e) => getFile(e.target)}
           />
           {formik.touched.certFilePath && formik.errors.certFilePath ? (
@@ -94,7 +98,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             id="keyFilePath"
             type="file"
             name="keyFilePath"
-            className="block"
+            className="block non-passphrase-input"
             onChange={(e) => getFile(e.target)}
           />
           {formik.touched.keyFilePath && formik.errors.keyFilePath ? (
@@ -105,14 +109,23 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           <label className="settings-label" htmlFor="passphrase">
             Passphrase
           </label>
-          <input
-            id="passphrase"
-            type="text"
-            name="passphrase"
-            className="block textbox"
-            onChange={formik.handleChange}
-            value={formik.values.passphrase || ''}
-          />
+          <div className="textbox flex flex-row items-center w-[300px] h-[1.70rem] relative">
+            <input
+              id="passphrase"
+              type={passwordVisible ? 'text' : 'password'}
+              name="passphrase"
+              className="outline-none w-64 bg-transparent"
+              onChange={formik.handleChange}
+              value={formik.values.passphrase || ''}
+            />
+            <button
+              type="button"
+              className="btn btn-sm absolute right-0 l"
+              onClick={() => setPasswordVisible(!passwordVisible)}
+            >
+              {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+            </button>
+          </div>
           {formik.touched.passphrase && formik.errors.passphrase ? (
             <div className="ml-1 text-red-500">{formik.errors.passphrase}</div>
           ) : null}

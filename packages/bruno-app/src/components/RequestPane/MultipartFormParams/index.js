@@ -9,7 +9,7 @@ import {
   updateMultipartFormParam,
   deleteMultipartFormParam
 } from 'providers/ReduxStore/slices/collections';
-import SingleLineEditor from 'components/SingleLineEditor';
+import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
@@ -121,7 +121,7 @@ const MultipartFormParams = ({ item, collection }) => {
                           collection={collection}
                         />
                       ) : (
-                        <SingleLineEditor
+                        <MultiLineEditor
                           onSave={onSave}
                           theme={storedTheme}
                           value={param.value}
@@ -137,6 +137,7 @@ const MultipartFormParams = ({ item, collection }) => {
                             )
                           }
                           onRun={handleRun}
+                          allowNewlines={true}
                           collection={collection}
                         />
                       )}
