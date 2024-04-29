@@ -256,7 +256,7 @@ const handler = async function (argv) {
     const brunoJsonExists = await exists(brunoJsonPath);
     if (!brunoJsonExists) {
       console.error(chalk.red(`You can run only at the root of a collection`));
-      process.exit(constants.EXIT_STATUS_ERROR_NOT_IN_COLLECTION);
+      process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     }
 
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
