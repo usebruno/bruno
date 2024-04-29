@@ -267,7 +267,7 @@ const handler = async function (argv) {
       const pathExists = await exists(filename);
       if (!pathExists) {
         console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS_ERROR_FILE_NOT_FOUND);
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     } else {
       filename = './';
