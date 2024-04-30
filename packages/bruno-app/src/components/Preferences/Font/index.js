@@ -35,27 +35,33 @@ const Font = ({ close }) => {
 
   return (
     <StyledWrapper>
-      <label className="block font-medium">Code Editor Font</label>
-      <input
-        type="text"
-        className="block textbox mt-2 w-full"
-        autoComplete="off"
-        autoCorrect="off"
-        autoCapitalize="off"
-        spellCheck="false"
-        onChange={handleCodeFontChange}
-        defaultValue={codeFont}
-      />
-      <label classname="block font-medium">Code Editor Font Size</label>
-      <input
-        type="number"
-        className="block textbox mt-2 w-full"
-        autoComplete="off"
-        autoCorrect="off"
-        inputMode="numeric"
-        onChange={handleCodeFontSizeChange}
-        defaultValue={codeFontSize}
-      />
+      <div className="flex flex-row gap-2 w-full">
+        <div className="w-4/5">
+          <label className="block font-medium">Code Editor Font</label>
+          <input
+            type="text"
+            className="block textbox mt-2 w-full"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={handleCodeFontChange}
+            defaultValue={codeFont}
+          />
+        </div>
+        <div className="w-1/5">
+          <label classname="block font-medium">Font Size</label>
+          <input
+            type="number"
+            className="block textbox mt-2 w-full"
+            autoComplete="off"
+            autoCorrect="off"
+            inputMode="numeric"
+            onChange={handleCodeFontSizeChange}
+            defaultValue={codeFontSize}
+          />
+        </div>
+      </div>
 
       <div className="mt-10">
         <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
