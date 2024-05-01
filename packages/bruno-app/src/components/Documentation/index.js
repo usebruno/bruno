@@ -47,7 +47,7 @@ const Documentation = ({ item, collection }) => {
           collection={collection}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize', '13')}
+          fontSize={get(preferences, 'font.codeFontSize', '14')}
           value={docs || ''}
           onEdit={onEdit}
           onSave={onSave}

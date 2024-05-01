@@ -9,7 +9,7 @@ const Font = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
 
   const [codeFont, setCodeFont] = useState(get(preferences, 'font.codeFont', 'default'));
-  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '12'));
+  const [codeFontSize, setCodeFontSize] = useState(get(preferences, 'font.codeFontSize', '14'));
 
   const handleCodeFontChange = (event) => {
     setCodeFont(event.target.value);
