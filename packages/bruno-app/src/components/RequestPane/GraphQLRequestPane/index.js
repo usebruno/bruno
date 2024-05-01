@@ -73,7 +73,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             onEdit={onQueryChange}
             onClickReference={handleGqlClickReference}
             font={get(preferences, 'font.codeFont', 'default')}
-            fontSize={get(preferences, 'font.codeFontSize', '13')}
+            fontSize={get(preferences, 'font.codeFontSize', '14')}
           />
         );
       }
