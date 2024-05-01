@@ -23,7 +23,8 @@ const defaultPreferences = {
     timeout: 0
   },
   font: {
-    codeFont: 'default'
+    codeFont: 'default',
+    codeFontSize: 14
   },
   proxy: {
     enabled: false,
@@ -54,7 +55,8 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
-    codeFont: Yup.string().nullable()
+    codeFont: Yup.string().nullable(),
+    codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
     enabled: Yup.boolean(),

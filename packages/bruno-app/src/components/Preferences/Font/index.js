@@ -16,7 +16,9 @@ const Font = ({ close }) => {
   };
 
   const handleCodeFontSizeChange = (event) => {
-    setCodeFontSize(event.target.value);
+    // Restrict to min/max value
+    const clampedSize = Math.max(1, Math.min(event.target.value, 32));
+    setCodeFontSize(clampedSize);
   };
 
   const handleSave = () => {
