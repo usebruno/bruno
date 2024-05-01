@@ -52,7 +52,7 @@ const Script = ({ collection }) => {
           mode="javascript"
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize', '14')}
+          fontSize={get(preferences, 'font.codeFontSize')}
         />
       </div>
       <div className="flex-1 mt-6">
@@ -65,7 +65,7 @@ const Script = ({ collection }) => {
           mode="javascript"
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize', '14')}
+          fontSize={get(preferences, 'font.codeFontSize')}
         />
       </div>
 
