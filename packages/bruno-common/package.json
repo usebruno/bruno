@@ -24,6 +24,7 @@
     "lodash": "^4.17.21",
     "lossless-json": "^4.0.1",
     "nanoid": "3.3.4",
+    "proxy-agent": "^6.4.0",
     "qs": "^6.12.0",
     "undici": "^6.10.1"
   },

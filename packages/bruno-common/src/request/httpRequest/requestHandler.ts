@@ -13,7 +13,7 @@ export async function makeHttpRequest(context: RequestContext) {
   }
 
   const body = context.httpRequest?.body;
-  let requestOptions = structuredClone(context.httpRequest!.options);
+  let requestOptions = context.httpRequest!.options;
 
   while (true) {
     addMandatoryHeader(requestOptions, body);
@@ -21,9 +21,14 @@ export async function makeHttpRequest(context: RequestContext) {
       addAwsAuthHeader(context.requestItem.request.auth, requestOptions, body);
     }
 
+    // Deference the original options
     context.debug.log('Request', {
-      options: requestOptions
+      options: {
+        ...requestOptions,
+        agent: undefined
+      }
     });
+    console.log(context.abortController);
     const response = await execHttpRequest(requestOptions, body, context.abortController?.signal);
 
     const nextRequest = await handleServerResponse(context, requestOptions, response);
@@ -33,12 +38,12 @@ export async function makeHttpRequest(context: RequestContext) {
       break;
     }
 
-    requestOptions = structuredClone(nextRequest);
+    requestOptions = nextRequest;
   }
 }
 
 function addMandatoryHeader(requestOptions: RequestOptions, body?: string | Buffer) {
-  let hostHeader = requestOptions.hostname!;
+  let hostHeader = requestOptions.host!;
   if (requestOptions.port) {
     hostHeader = `:${requestOptions.port}`;
   }

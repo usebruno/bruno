@@ -24,7 +24,7 @@ export async function execHttpRequest(
   signal?: AbortSignal
 ): Promise<HttpRequestInfo> {
   const requestInfo: HttpRequestInfo = {
-    finalOptions: structuredClone(options),
+    finalOptions: { ...options, agent: undefined },
     requestBody: body ? body.toString().slice(0, 2048) : undefined
   };
 
@@ -84,6 +84,10 @@ async function doExecHttpRequest(info: HttpRequestInfo, options: RequestOptions,
 
   req.on('error', (err) => {
     info.error = String(err);
+    if (err.name === 'AggregateError') {
+      // @ts-expect-error
+      info.error = err.errors.map(String).join('\n');
+    }
     resolve();
   });
   req.on('close', () => {

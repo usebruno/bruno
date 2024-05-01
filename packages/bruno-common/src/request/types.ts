@@ -252,13 +252,13 @@ export type Collection = {
 };
 
 export type BrunoConfig = {
-  version: string;
+  version: '1';
   name: string;
   type: 'collection';
   ignore: string[];
   proxy?: {
-    enabled: 'global' | 'enabled' | 'disabled';
-    protocol: 'https' | 'http';
+    enabled: 'global' | true | false;
+    protocol: 'https' | 'http' | 'socks4' | 'socks5';
     hostname: string;
     port: number;
     auth: {
@@ -267,6 +267,14 @@ export type BrunoConfig = {
       password: string;
     };
     bypassProxy: string;
+  };
+  clientCertificates?: {
+    certs: {
+      domain: string;
+      certFilePath: string;
+      keyFilePath: string;
+      passphrase: string;
+    }[];
   };
   scripts: {
     additionalContextRoots: string[];

@@ -10,7 +10,7 @@
     "importHelpers": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "target": "ES2016",
+    "target": "ES2021",
     "module": "esnext",
     "lib": ["es2017", "dom"],
     "skipLibCheck": true,

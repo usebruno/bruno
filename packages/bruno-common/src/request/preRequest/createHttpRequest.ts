@@ -1,5 +1,5 @@
 import { platform, arch } from 'node:os';
-import { RequestBody, RequestContext, RequestItem } from '../types';
+import { BrunoConfig, RequestBody, RequestContext, RequestItem } from '../types';
 import { stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
@@ -7,6 +7,9 @@ import path from 'node:path';
 import { Buffer } from 'node:buffer';
 import qs from 'qs';
 import FormData from 'form-data';
+import { Agent } from 'node:http';
+import { ProxyAgent } from 'proxy-agent';
+import BodyReadable from 'undici/types/readable';
 
 function createAuthHeader(requestItem: RequestItem): Record<string, string> {
   const auth = requestItem.request.auth;
@@ -143,6 +146,46 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
   return [bodyData, extraHeaders];
 }
 
+function createClientCertOptions(certConfig: Exclude<BrunoConfig['clientCertificates'], undefined>, host: string) {
+  for (const { domain, certFilePath, keyFilePath, passphrase } of certConfig.certs) {
+    // Check if the Certificate was created for the current host
+    const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
+    if (!host.match(hostRegex)) {
+      continue;
+    }
+  }
+}
+
+const protocolMap: Record<Exclude<BrunoConfig['proxy'], undefined>['protocol'], string> = {
+  http: 'http:',
+  https: 'https:',
+  socks4: 'socks:',
+  socks5: 'socks:'
+};
+
+function createProxyAgent(
+  proxyConfig: Exclude<BrunoConfig['proxy'], undefined>,
+  host: string,
+  signal?: AbortSignal
+): Agent | null {
+  if (proxyConfig.enabled === false) {
+    return null;
+  }
+
+  const mustByPass = proxyConfig.bypassProxy.split(';').some((byPass) => byPass === '*' || byPass === host);
+  if (mustByPass) {
+    return null;
+  }
+
+  return new ProxyAgent({
+    protocol: protocolMap[proxyConfig.protocol],
+    hostname: proxyConfig.hostname,
+    port: !proxyConfig.port ? undefined : proxyConfig.port, // Port could be 0 / NaN
+    auth: proxyConfig.auth.enabled ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}` : undefined,
+    signal
+  });
+}
+
 export async function createHttpRequest(context: RequestContext) {
   let urlObject;
   try {
@@ -158,12 +201,23 @@ export async function createHttpRequest(context: RequestContext) {
     options: {
       method: context.requestItem.request.method,
       protocol: urlObject.protocol,
-      hostname: urlObject.hostname,
+      host: urlObject.host,
       port: urlObject.port,
       path: `${urlObject.pathname}${urlObject.search}${urlObject.hash}`,
       headers: getRequestHeaders(context, extraHeaders)
     }
   };
+
+  if (context.collection.brunoConfig.proxy) {
+    const agent = createProxyAgent(
+      context.collection.brunoConfig.proxy,
+      urlObject.host,
+      context.abortController?.signal
+    );
+    if (agent) {
+      context.httpRequest.options.agent = agent;
+    }
+  }
 
   context.callback.folderRequestSent(context);
 }
