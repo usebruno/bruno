@@ -2,7 +2,48 @@ import { RequestContext } from '../types';
 import interpolate from '../../interpolate';
 import { parse, stringify } from 'lossless-json';
 
-function interpolateAuth(context: RequestContext, combinedVars: Record<string, unknown>) {
+// This is wrapper/shorthand for the original `interpolate` function.
+// The `name` parameter is used for debugLogging
+type InterpolationShorthandFunction = (target: string, name: string) => string;
+
+function interpolateBrunoConfigOptions(context: RequestContext, i: InterpolationShorthandFunction) {
+  const brunoConfig = context.collection.brunoConfig;
+
+  if (brunoConfig.clientCertificates?.certs) {
+    for (const cert of brunoConfig.clientCertificates?.certs) {
+      cert.certFilePath = i(cert.certFilePath, 'Certificate CertFilePath');
+      cert.keyFilePath = i(cert.keyFilePath, 'Certificate KeyFilePath');
+      cert.domain = i(cert.domain, 'Certificate domain');
+      cert.passphrase = i(cert.passphrase, 'Certificate passphrase');
+    }
+  }
+
+  if (brunoConfig.proxy) {
+    // @ts-expect-error User need to make sure this is correct. `createHttpRequest` will throw an erro when this is not correct
+    brunoConfig.proxy.protocol = i(brunoConfig.proxy.protocol, 'Proxy protocol');
+    brunoConfig.proxy.hostname = i(brunoConfig.proxy.hostname, 'Proxy hostname');
+    brunoConfig.proxy.port = Number(i(String(brunoConfig.proxy.port), 'Proxy port'));
+    if (brunoConfig.proxy.auth?.enabled) {
+      brunoConfig.proxy.auth.username = i(brunoConfig.proxy.auth.username, 'Proxy username');
+      brunoConfig.proxy.auth.password = (brunoConfig.proxy.auth.password, 'Proxy password');
+    }
+  }
+}
+
+function interpolateRequestItem(context: RequestContext, i: InterpolationShorthandFunction) {
+  const request = context.requestItem.request;
+
+  request.url = i(request.url, 'Request url');
+
+  let pos = 0;
+  for (const header of request.headers) {
+    pos++;
+    header.name = i(header.name, `Header name #${pos}`);
+    header.value = i(header.value, `Header value #${pos}`);
+  }
+}
+
+function interpolateAuth(context: RequestContext, i: InterpolationShorthandFunction) {
   const auth = context.requestItem.request.auth;
 
   switch (auth.mode) {
@@ -10,61 +51,68 @@ function interpolateAuth(context: RequestContext, combinedVars: Record<string, u
     case 'inherit':
       break;
     case 'basic':
-      auth.basic.username = interpolate(auth.basic.username, combinedVars);
-      auth.basic.password = interpolate(auth.basic.password, combinedVars);
+      auth.basic.username = i(auth.basic.username, 'Basic auth username');
+      auth.basic.password = i(auth.basic.password, 'Basic auth password');
       break;
     case 'bearer':
-      auth.bearer.token = interpolate(auth.bearer.token, combinedVars);
+      auth.bearer.token = i(auth.bearer.token, 'Bearer token');
       break;
     case 'digest':
-      auth.digest.username = interpolate(auth.digest.username, combinedVars);
-      auth.digest.password = interpolate(auth.digest.password, combinedVars);
+      auth.digest.username = i(auth.digest.username, 'Digest auth usernaem');
+      auth.digest.password = i(auth.digest.password, 'Digest auth password');
       break;
     case 'awsv4':
-      auth.awsv4.accessKeyId = interpolate(auth.awsv4.accessKeyId, combinedVars);
-      auth.awsv4.region = interpolate(auth.awsv4.region, combinedVars);
-      auth.awsv4.profileName = interpolate(auth.awsv4.profileName, combinedVars);
-      auth.awsv4.service = interpolate(auth.awsv4.service, combinedVars);
-      auth.awsv4.sessionToken = interpolate(auth.awsv4.sessionToken, combinedVars);
-      auth.awsv4.secretAccessKey = interpolate(auth.awsv4.secretAccessKey, combinedVars);
+      auth.awsv4.accessKeyId = i(auth.awsv4.accessKeyId, 'AWS auth AccessKeyId');
+      auth.awsv4.region = i(auth.awsv4.region, 'AWS auth Region');
+      auth.awsv4.profileName = i(auth.awsv4.profileName, 'AWS auth ProfileName');
+      auth.awsv4.service = i(auth.awsv4.service, 'AWS auth Service');
+      auth.awsv4.sessionToken = i(auth.awsv4.sessionToken, 'AWS auth SessionToken');
+      auth.awsv4.secretAccessKey = i(auth.awsv4.secretAccessKey, 'AWS auth SecretAccessKey');
       break;
   }
 }
 
-function interpolateBody(context: RequestContext, combinedVars: Record<string, unknown>) {
-  switch (context.requestItem.request.body.mode) {
+function interpolateBody(context: RequestContext, i: InterpolationShorthandFunction) {
+  const body = context.requestItem.request.body;
+  switch (body.mode) {
     case 'text':
-      context.requestItem.request.body.text = interpolate(context.requestItem.request.body.text, combinedVars);
+      body.text = i(body.text, '');
       break;
     case 'json':
-      if (typeof context.requestItem.request.body.json === 'object') {
-        context.requestItem.request.body.json = stringify(context.requestItem.request.body.json)!;
+      if (typeof body.json === 'object') {
+        body.json = stringify(body.json)!;
       }
-      context.requestItem.request.body.json = interpolate(context.requestItem.request.body.json, combinedVars);
+      body.json = i(body.json, 'Json body');
       try {
         // @ts-ignore
-        context.requestItem.request.body.json = parse(context.requestItem.request.body.json);
+        body.json = parse(body.json);
       } catch {}
       break;
-    case 'multipartForm':
-      for (const item of context.requestItem.request.body.multipartForm) {
+    case 'multipartForm': {
+      let pos = 0;
+      for (const item of body.multipartForm) {
+        pos++;
         if (item.type === 'text') {
-          item.value = interpolate(item.value, combinedVars);
+          item.value = i(item.value, `Multipart form value #${pos}`);
         }
-        item.name = interpolate(item.name, combinedVars);
+        item.name = i(item.name, `Multipart form name #${pos}`);
       }
       break;
-    case 'formUrlEncoded':
-      for (const item of context.requestItem.request.body.formUrlEncoded) {
-        item.value = interpolate(item.value, combinedVars);
-        item.name = interpolate(item.name, combinedVars);
+    }
+    case 'formUrlEncoded': {
+      let pos = 0;
+      for (const item of body.formUrlEncoded) {
+        pos++;
+        item.value = i(item.value, `Form field value #${pos}`);
+        item.name = i(item.name, `Form field name #${pos}`);
       }
       break;
+    }
     case 'xml':
-      context.requestItem.request.body.xml = interpolate(context.requestItem.request.body.xml, combinedVars);
+      body.xml = i(body.xml, 'XML body');
       break;
     case 'sparql':
-      context.requestItem.request.body.sparql = interpolate(context.requestItem.request.body.sparql, combinedVars);
+      body.sparql = i(body.sparql, 'SPARQL body');
       break;
   }
 }
@@ -75,30 +123,21 @@ export function interpolateRequest(context: RequestContext) {
     ...context.variables.collection,
     ...context.variables.process
   };
-  const request = context.requestItem.request;
 
-  request.url = interpolate(request.url, combinedVars);
-
-  for (const header of request.headers) {
-    header.name = interpolate(header.name, combinedVars);
-    header.value = interpolate(header.value, combinedVars);
-  }
-
-  interpolateBody(context, combinedVars);
-  interpolateAuth(context, combinedVars);
-
-  const proxy = context.collection.brunoConfig.proxy;
-  if (proxy) {
-    // @ts-expect-error
-    proxy.protocol = interpolate(proxy.protocol, combinedVars);
-    proxy.hostname = interpolate(proxy.hostname, combinedVars);
-    proxy.port = Number(interpolate(String(proxy.port), combinedVars));
-
-    if (proxy.auth && proxy.auth.enabled) {
-      proxy.auth.username = interpolate(proxy.auth.username, combinedVars);
-      proxy.auth.password = interpolate(proxy.auth.password, combinedVars);
+  const interpolationResults: Record<string, { before: string; after: string }> = {};
+  const interpolateShorthand: InterpolationShorthandFunction = (before, name) => {
+    const after = interpolate(before, combinedVars);
+    // Only log when something has changed
+    if (before !== after) {
+      interpolationResults[name] = { before, after };
     }
-  }
+    return after;
+  };
 
-  // TODO: Find out how the auth is saved in the request
+  interpolateRequestItem(context, interpolateShorthand);
+  interpolateBody(context, interpolateShorthand);
+  interpolateAuth(context, interpolateShorthand);
+  interpolateBrunoConfigOptions(context, interpolateShorthand);
+
+  context.debug.log('Interpolated request', interpolationResults);
 }

@@ -43,7 +43,7 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
 
   const responseData: string[] = useMemo(() => {
     const data = [`HTTP/${item.httpVersion} ${item.statusCode}`];
-    for (const [name, value] of Object.entries(item.headers)) {
+    for (const [name, value] of Object.entries(item.headers ?? {})) {
       if (!Array.isArray(value)) {
         data.push(`${name}: ${value}`);
         continue;

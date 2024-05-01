@@ -4,6 +4,7 @@ import { DebugLogger } from './DebugLogger';
 import { Timeline } from './Timeline';
 import { Callbacks } from './Callbacks';
 import { RequestOptions } from 'node:http';
+import { TlsOptions } from 'node:tls';
 
 export type RequestType = 'http-request' | 'graphql-request';
 
@@ -251,6 +252,38 @@ export type Collection = {
   };
 };
 
+// This should always be equal to `prefences.js` in bruno-electron
+export type Preferences = {
+  request: {
+    sslVerification: boolean;
+    customCaCertificate: {
+      enabled: boolean;
+      filePath: string | null;
+    };
+    keepDefaultCaCertificates: {
+      enabled: boolean;
+    };
+    storeCookies: boolean;
+    sendCookies: boolean;
+    timeout: number;
+  };
+  font: {
+    codeFont: string | null;
+  };
+  proxy: {
+    enabled: boolean;
+    protocol: 'http' | 'https' | 'socks4' | 'socks5';
+    hostname: string;
+    port: number | null;
+    auth?: {
+      enabled: boolean;
+      username: string;
+      password: string;
+    };
+    bypassProxy?: string;
+  };
+};
+
 export type BrunoConfig = {
   version: '1';
   name: string;
@@ -260,13 +293,13 @@ export type BrunoConfig = {
     enabled: 'global' | true | false;
     protocol: 'https' | 'http' | 'socks4' | 'socks5';
     hostname: string;
-    port: number;
-    auth: {
+    port: number | null;
+    auth?: {
       enabled: boolean;
       username: string;
       password: string;
     };
-    bypassProxy: string;
+    bypassProxy?: string;
   };
   clientCertificates?: {
     certs: {
@@ -294,6 +327,7 @@ export type RequestContext = {
 
   requestItem: RequestItem;
   collection: Collection;
+  prefences: Preferences;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;
@@ -310,7 +344,7 @@ export type RequestContext = {
   timeline?: Timeline;
 
   httpRequest?: {
-    options: RequestOptions;
+    options: RequestOptions & TlsOptions;
     body?: string | Buffer;
     redirectDepth: number;
   };

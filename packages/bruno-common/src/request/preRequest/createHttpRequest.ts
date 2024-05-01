@@ -9,7 +9,8 @@ import qs from 'qs';
 import FormData from 'form-data';
 import { Agent } from 'node:http';
 import { ProxyAgent } from 'proxy-agent';
-import BodyReadable from 'undici/types/readable';
+import { DebugLogger } from '../DebugLogger';
+import { TlsOptions } from 'node:tls';
 
 function createAuthHeader(requestItem: RequestItem): Record<string, string> {
   const auth = requestItem.request.auth;
@@ -146,14 +147,28 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
   return [bodyData, extraHeaders];
 }
 
-function createClientCertOptions(certConfig: Exclude<BrunoConfig['clientCertificates'], undefined>, host: string) {
+async function createClientCertOptions(
+  certConfig: Exclude<BrunoConfig['clientCertificates'], undefined>,
+  host: string,
+  collectionPath: string
+): Promise<TlsOptions> {
   for (const { domain, certFilePath, keyFilePath, passphrase } of certConfig.certs) {
     // Check if the Certificate was created for the current host
     const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
     if (!host.match(hostRegex)) {
       continue;
     }
+
+    const absoluteCertFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+    const cert = await fs.readFile(absoluteCertFilePath, { encoding: 'utf8' });
+
+    const asoluteKeyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+    const key = await fs.readFile(asoluteKeyFilePath, { encoding: 'utf8' });
+
+    return { cert, key, passphrase };
   }
+
+  return {};
 }
 
 const protocolMap: Record<Exclude<BrunoConfig['proxy'], undefined>['protocol'], string> = {
@@ -166,22 +181,41 @@ const protocolMap: Record<Exclude<BrunoConfig['proxy'], undefined>['protocol'], 
 function createProxyAgent(
   proxyConfig: Exclude<BrunoConfig['proxy'], undefined>,
   host: string,
+  debug: DebugLogger,
   signal?: AbortSignal
 ): Agent | null {
   if (proxyConfig.enabled === false) {
     return null;
   }
 
-  const mustByPass = proxyConfig.bypassProxy.split(';').some((byPass) => byPass === '*' || byPass === host);
+  const mustByPass = proxyConfig.bypassProxy?.split(';').some((byPass) => byPass === '*' || byPass === host);
   if (mustByPass) {
     return null;
   }
 
-  return new ProxyAgent({
-    protocol: protocolMap[proxyConfig.protocol],
+  const protocol = protocolMap[proxyConfig.protocol];
+  if (!protocol) {
+    throw new Error(
+      `Invalid proxy protocol: "${proxyConfig.protocol}". Expected one of ${Object.keys(protocolMap).join(', ')}`
+    );
+  }
+
+  debug.log('Added ProxyAgent', {
+    protocol,
     hostname: proxyConfig.hostname,
     port: !proxyConfig.port ? undefined : proxyConfig.port, // Port could be 0 / NaN
-    auth: proxyConfig.auth.enabled ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}` : undefined,
+    auth: proxyConfig.auth?.enabled ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}` : undefined
+  });
+  return new ProxyAgent({
+    getProxyForUrl: () => {
+      let auth = '';
+      if (proxyConfig.auth?.enabled) {
+        auth = `${proxyConfig.auth.username}:${proxyConfig.auth.password}`;
+      }
+      return `${proxyConfig.protocol}://${auth}@${proxyConfig.hostname}${
+        proxyConfig.port ? `:${proxyConfig.port}` : ''
+      }`;
+    },
     signal
   });
 }
@@ -194,6 +228,15 @@ export async function createHttpRequest(context: RequestContext) {
     throw new Error(`Could not your URL: "${context.requestItem.request.url}". Original error: ${error}`);
   }
 
+  let certOptions = {};
+  if (context.collection.brunoConfig.clientCertificates) {
+    certOptions = await createClientCertOptions(
+      context.collection.brunoConfig.clientCertificates,
+      urlObject.host,
+      context.collection.pathname
+    );
+  }
+
   const [body, extraHeaders] = await getRequestBody(context);
   context.httpRequest = {
     redirectDepth: 0,
@@ -204,7 +247,10 @@ export async function createHttpRequest(context: RequestContext) {
       host: urlObject.host,
       port: urlObject.port,
       path: `${urlObject.pathname}${urlObject.search}${urlObject.hash}`,
-      headers: getRequestHeaders(context, extraHeaders)
+      headers: getRequestHeaders(context, extraHeaders),
+      timeout: context.prefences.request.timeout,
+      rejectUnauthorized: context.prefences.request.sslVerification,
+      ...certOptions
     }
   };
 
@@ -212,6 +258,7 @@ export async function createHttpRequest(context: RequestContext) {
     const agent = createProxyAgent(
       context.collection.brunoConfig.proxy,
       urlObject.host,
+      context.debug,
       context.abortController?.signal
     );
     if (agent) {

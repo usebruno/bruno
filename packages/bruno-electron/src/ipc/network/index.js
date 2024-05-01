@@ -20,7 +20,7 @@ const { uuid } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
-const { preferencesUtil } = require('../../store/preferences');
+const { preferencesUtil, getPreferences } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { HttpProxyAgent } = require('http-proxy-agent');
@@ -480,23 +480,32 @@ const registerNetworkIpc = (mainWindow) => {
 
       const item = folderRequests[currentRequestIndex];
 
-      const res = await newRequest(item, collection, dataDir, cancelToken, abortController, environment, {
-        runFolderEvent: (payload) => {
-          mainWindow.webContents.send('main:run-folder-event', {
-            ...payload,
-            folderUid
-          });
-        },
-        updateScriptEnvironment: (payload) => {
-          mainWindow.webContents.send('main:script-environment-update', payload);
-        },
-        cookieUpdated: (payload) => {
-          mainWindow.webContents.send('main:cookies-update', payload);
-        },
-        consoleLog: (payload) => {
-          mainWindow.webContents.send('main:console-log', payload);
+      const res = await newRequest(
+        item,
+        collection,
+        getPreferences(),
+        dataDir,
+        cancelToken,
+        abortController,
+        environment,
+        {
+          runFolderEvent: (payload) => {
+            mainWindow.webContents.send('main:run-folder-event', {
+              ...payload,
+              folderUid
+            });
+          },
+          updateScriptEnvironment: (payload) => {
+            mainWindow.webContents.send('main:script-environment-update', payload);
+          },
+          cookieUpdated: (payload) => {
+            mainWindow.webContents.send('main:cookies-update', payload);
+          },
+          consoleLog: (payload) => {
+            mainWindow.webContents.send('main:console-log', payload);
+          }
         }
-      });
+      );
       if (abortController.signal.aborted) {
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'error',
@@ -553,20 +562,29 @@ const registerNetworkIpc = (mainWindow) => {
     const abortController = new AbortController();
     saveCancelToken(cancelToken, abortController);
 
-    const res = await newRequest(item, collection, dataDir, cancelToken, abortController, environment, {
-      updateScriptEnvironment: (payload) => {
-        mainWindow.webContents.send('main:script-environment-update', payload);
-      },
-      cookieUpdated: (payload) => {
-        mainWindow.webContents.send('main:cookies-update', payload);
-      },
-      requestEvent: (payload) => {
-        mainWindow.webContents.send('main:run-request-event', payload);
-      },
-      consoleLog: (payload) => {
-        mainWindow.webContents.send('main:console-log', payload);
+    const res = await newRequest(
+      item,
+      collection,
+      getPreferences(),
+      dataDir,
+      cancelToken,
+      abortController,
+      environment,
+      {
+        updateScriptEnvironment: (payload) => {
+          mainWindow.webContents.send('main:script-environment-update', payload);
+        },
+        cookieUpdated: (payload) => {
+          mainWindow.webContents.send('main:cookies-update', payload);
+        },
+        requestEvent: (payload) => {
+          mainWindow.webContents.send('main:run-request-event', payload);
+        },
+        consoleLog: (payload) => {
+          mainWindow.webContents.send('main:console-log', payload);
+        }
       }
-    });
+    );
     if (res.error) {
       console.error(res.error);
     }

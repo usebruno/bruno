@@ -1,6 +1,6 @@
 import { DebugLogger } from './DebugLogger';
 import { Timings } from './Timings';
-import { Collection, CollectionEnvironment, RequestContext, RequestItem } from './types';
+import { Collection, CollectionEnvironment, Preferences, RequestContext, RequestItem } from './types';
 import { preRequestVars } from './preRequest/preRequestVars';
 import { preRequestScript } from './preRequest/preRequestScript';
 import { applyCollectionSettings } from './preRequest/applyCollectionSettings';
@@ -19,6 +19,7 @@ import { makeHttpRequest } from './httpRequest/requestHandler';
 export async function request(
   requestItem: RequestItem,
   collection: Collection,
+  prefences: Preferences,
   dataDir: string,
   cancelToken: string,
   abortController: AbortController,
@@ -41,6 +42,7 @@ export async function request(
 
     requestItem,
     collection,
+    prefences,
     variables: {
       process: {
         process: {
