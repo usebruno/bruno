@@ -22,6 +22,8 @@ auth:awsv4 {
 vars:pre-request {
   m4: true
   pong: pong
+  dog: {{bark}}
+  secret: {{bearer_auth_token}}
 }
 
 assert {
@@ -34,6 +36,16 @@ tests {
   test("should ping pong", function() {
     const data = res.getBody();
     expect(data).to.equal(bru.getVar("pong"));
+  });
+  
+  test("dog should bark", function() {
+    const data = res.getBody();
+    expect(bru.getVar("dog")).to.equal("woof");
+  });
+  
+  test("secret var should interpolate", function() {
+    const data = res.getBody();
+    expect(bru.getVar("secret")).to.equal("your_secret_token");
   });
 }
 

@@ -27,6 +27,17 @@ class Bru {
     });
   };
 
+  _interpolateVar = (str) => {
+    if (!str || !str.length || typeof str !== 'string') {
+      return str;
+    }
+
+    const template = Handlebars.compile(str, { noEscape: true });
+    const result = template({ ...this.envVariables });
+
+    return this._interpolateEnvVar(result);
+  };
+
   cwd() {
     return this.collectionPath;
   }
@@ -74,7 +85,7 @@ class Bru {
       );
     }
 
-    return this.collectionVariables[key];
+    return this._interpolateVar(this.collectionVariables[key]);
   }
 
   setNextRequest(nextRequest) {
