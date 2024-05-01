@@ -50,7 +50,7 @@ const Font = ({ close }) => {
           />
         </div>
         <div className="w-1/5">
-          <label classname="block font-medium">Font Size</label>
+          <label className="block font-medium">Font Size</label>
           <input
             type="number"
             className="block textbox mt-2 w-full"
