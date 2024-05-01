@@ -13,7 +13,8 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  sanitizeFileName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -218,13 +219,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         await createDirectory(envDirPath);
       }
 
-      const envFilePath = path.join(envDirPath, `${name}.bru`);
+      const envFilePath = path.join(envDirPath, `${sanitizeFileName(name)}.bru`);
       if (fs.existsSync(envFilePath)) {
         throw new Error(`environment: ${envFilePath} already exists`);
       }
 
       const environment = {
-        name: name,
+        name: sanitizeFileName(name),
         variables: variables || []
       };
 
