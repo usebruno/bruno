@@ -628,6 +628,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
   ipcMain.handle('main:complete-quit-flow', () => {
     mainWindow.destroy();
   });
+
+  ipcMain.handle('main:force-quit', () => {
+    process.exit();
+  });
 };
 
 const registerCollectionsIpc = (mainWindow, watcher, lastOpenedCollections) => {

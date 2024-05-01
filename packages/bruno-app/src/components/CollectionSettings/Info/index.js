@@ -36,7 +36,7 @@ const Info = ({ collection }) => {
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Ignored files&nbsp;:</td>
-            <td className="py-2 px-2 break-all">{collection.brunoConfig.ignore.map((x) => `'${x}'`).join(', ')}</td>
+            <td className="py-2 px-2 break-all">{collection.brunoConfig?.ignore?.map((x) => `'${x}'`).join(', ')}</td>
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Environments&nbsp;:</td>

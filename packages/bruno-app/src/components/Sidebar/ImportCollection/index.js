@@ -79,7 +79,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         </div>
         <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (
-            <div className="relative flex items-start">
+            <div key={key} className="relative flex items-start">
               <div className="flex h-6 items-center">
                 <input
                   id="comments"

@@ -10,7 +10,7 @@
 [![Sitio Web](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Descargas](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | **Español** | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md)
+[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | **Español** | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](./readme_zhtw.md)
 
 Bruno es un cliente de APIs nuevo e innovador, creado con el objetivo de revolucionar el panorama actual representado por Postman y otras herramientas similares.
 
