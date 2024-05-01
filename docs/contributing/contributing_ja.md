@@ -22,7 +22,7 @@ BrunoはNext.jsとReactで作られています。デスクトップアプリ(�
 
 ### 依存関係
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+<!-- You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project -->
 [Node v18.x もしくは最新のLTSバージョン](https://nodejs.org/en/)とnpm 8.xが必要です。プロジェクトにnpmワークスペースを使用しています。
 
 ## 開発
@@ -52,7 +52,7 @@ npm run dev:electron
 
 ### トラブルシューティング
 
-You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app.
+<!-- You might encounter a `Unsupported platform` error when you run `npm install`. To fix this, you will need to delete `node_modules` and `package-lock.json` and run `npm install`. This should install all the necessary packages needed to run the app. -->
 `npm install`を実行すると、`Unsupported platform`エラーに遭遇することがあります。これを直すためには、`node_modules`と`package-lock.json`を削除し、`npm install`を実行しなおす必要があります。これにより、アプリを動かすのに必要なパッケージがすべてインストールされます。
 
 ```shell
