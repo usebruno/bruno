@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
@@ -93,7 +93,19 @@ class SingleLineEditor extends Component {
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
+    if (this.props.maskInput) this._enableMaskedEditor(this.props.maskInput);
   }
+
+  /** Enable or disable masking the rendered content of the editor */
+  _enableMaskedEditor = (enabled) => {
+    if (enabled == true) {
+      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
+      this.maskedEditor.enable();
+    } else {
+      this.maskedEditor?.disable();
+      this.maskedEditor = null;
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -121,6 +133,12 @@ class SingleLineEditor extends Component {
     if (this.props.value !== prevProps.value && this.props.value !== this.cachedValue && this.editor) {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
+    }
+    if (!isEqual(this.props.maskInput, prevProps.maskInput)) {
+      this._enableMaskedEditor(this.props.maskInput);
+    }
+    if (this.props.maskInput) {
+      this.maskedEditor?.update();
     }
     this.ignoreChangeEvent = false;
   }
