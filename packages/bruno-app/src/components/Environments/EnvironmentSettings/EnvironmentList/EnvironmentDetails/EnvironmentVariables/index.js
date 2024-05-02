@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
-import { maskInputValue } from 'utils/collections';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
@@ -131,17 +130,14 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                   <ErrorMessage name={`${index}.name`} />
                 </td>
                 <td>
-                  {variable.secret ? (
-                    <div className="overflow-hidden text-ellipsis">{maskInputValue(variable.value)}</div>
-                  ) : (
-                    <SingleLineEditor
-                      theme={storedTheme}
-                      collection={collection}
-                      name={`${index}.value`}
-                      value={variable.value}
-                      onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                    />
-                  )}
+                  <SingleLineEditor
+                    theme={storedTheme}
+                    collection={collection}
+                    name={`${index}.value`}
+                    value={variable.value}
+                    maskInput={variable.secret}
+                    onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                  />
                 </td>
                 <td>
                   <input
