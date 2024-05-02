@@ -2,6 +2,7 @@ import { request as requestHttp } from 'node:http';
 import { request as requestHttps } from 'node:https';
 import { Buffer } from 'node:buffer';
 import { RequestOptions } from 'node:https';
+import { createWriteStream } from 'node:fs';
 
 export type HttpRequestInfo = {
   // RequestInfo
@@ -58,7 +59,7 @@ async function doExecHttpRequest(info: HttpRequestInfo, options: RequestOptions,
     resolve = res;
   });
 
-  let responseData = Buffer.from([]);
+  let responseBuffers: Buffer[] = [];
 
   req.on('response', (response) => {
     info.statusCode = response.statusCode;
@@ -75,10 +76,11 @@ async function doExecHttpRequest(info: HttpRequestInfo, options: RequestOptions,
         // We did not set the encoding, so it must be a Buffer here
         throw new Error('Expected data to be a buffer!');
       }
-      responseData = Buffer.concat([responseData, chunk]);
+
+      responseBuffers.push(chunk);
     });
     response.on('end', () => {
-      info.responseBody = responseData;
+      info.responseBody = Buffer.concat(responseBuffers);
     });
   });
 

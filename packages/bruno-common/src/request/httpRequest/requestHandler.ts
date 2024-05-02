@@ -61,7 +61,10 @@ function addMandatoryHeader(requestOptions: RequestOptions, body?: string | Buff
 
 async function addCookieHeader(requestOptions: RequestOptions, cookieJar: CookieJar) {
   const currentUrl = urlFromRequestOptions(requestOptions);
-  requestOptions.headers!['cookie'] = await cookieJar.getCookieString(currentUrl.href);
+  const cookieHeader = await cookieJar.getCookieString(currentUrl.href);
+  if (cookieHeader) {
+    requestOptions.headers!['cookie'] = cookieHeader;
+  }
 }
 
 async function handleServerResponse(
@@ -156,11 +159,11 @@ async function handleFinalResponse(response: HttpRequestInfo, context: RequestCo
   await writeFile(targetPath, response.responseBody!);
 
   context.response = {
-    encoding: 'utf-8',
     path: targetPath,
     headers: response.headers!,
     responseTime: response.responseTime!,
-    statusCode: response.statusCode
+    statusCode: response.statusCode,
+    size: response.responseBody?.length ?? 0
   };
 }
 

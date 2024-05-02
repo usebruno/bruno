@@ -600,7 +600,7 @@ const registerNetworkIpc = (mainWindow) => {
     return {
       status: res.response?.statusCode,
       headers: res.response?.headers,
-      size: res.response?.headers['content-length'] ?? 0,
+      size: res.response?.size ?? 0,
       duration: res.response?.responseTime ?? 0,
       isNew: true,
       timeline: res.timeline,

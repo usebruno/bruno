@@ -19,6 +19,7 @@ export async function runScript(
   script: string,
   request: RequestItem,
   response: Response | null,
+  responseBody: Response | null,
   variables: RequestContext['variables'],
   useTests: boolean,
   collectionPath: string,
@@ -28,6 +29,7 @@ export async function runScript(
   const scriptContext = buildScriptContext(
     request,
     response,
+    responseBody,
     variables,
     useTests,
     collectionPath,
@@ -58,6 +60,7 @@ export async function runScript(
 function buildScriptContext(
   request: RequestItem,
   response: Response | null,
+  responseBody: any | null,
   variables: RequestContext['variables'],
   useTests: boolean,
   collectionPath: string,
@@ -87,7 +90,7 @@ function buildScriptContext(
   };
 
   if (response) {
-    context.res = new BrunoResponse(response);
+    context.res = new BrunoResponse(response, responseBody);
   }
 
   if (useTests) {

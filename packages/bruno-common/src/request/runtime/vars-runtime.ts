@@ -42,6 +42,7 @@ export class VarsRuntime {
     vars: RequestVariable[],
     request: RequestItem,
     response: Response,
+    responseBody: any,
     envVariables: Record<string, unknown>,
     collectionVariables: Record<string, unknown>,
     collectionPath: string,
@@ -54,7 +55,7 @@ export class VarsRuntime {
 
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath, 'the-env');
     const req = new BrunoRequest(request, true);
-    const res = createResponseParser(response);
+    const res = createResponseParser(response, responseBody);
 
     const context = {
       ...envVariables,

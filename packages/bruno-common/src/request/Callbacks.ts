@@ -2,6 +2,7 @@ import { RequestContext } from './types';
 import { stringify, parse } from 'lossless-json';
 import { STATUS_CODES } from 'node:http';
 import { Cookie, CookieJar } from 'tough-cookie';
+import { cleanJson } from './runtime/utils';
 
 type Callback = (payload: any) => void;
 export type RawCallbacks = {
@@ -120,7 +121,7 @@ export class Callbacks {
       if (!this.rawCallbacks.cookieUpdated) {
         return;
       }
-      this.rawCallbacks.cookieUpdated(domainsWithCookies);
+      this.rawCallbacks.cookieUpdated(cleanJson(domainsWithCookies));
     });
   }
 

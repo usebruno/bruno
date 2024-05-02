@@ -20,6 +20,7 @@ export async function preRequestScript(context: RequestContext) {
       preRequestScript,
       context.requestItem,
       null,
+      null,
       context.variables,
       false,
       context.collection.pathname,

@@ -2,7 +2,7 @@ import { RequestContext } from '../types';
 import { runScript } from '../runtime/script-runner';
 import { EOL } from 'node:os';
 
-export async function postRequestScript(context: RequestContext) {
+export async function postRequestScript(context: RequestContext, responseBody: any) {
   const collectionPostRequestScript = context.collection.root?.request?.script.res ?? '';
   const requestPostRequestScript = context.requestItem.request.script.res ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
@@ -20,6 +20,7 @@ export async function postRequestScript(context: RequestContext) {
       postRequestScript,
       context.requestItem,
       context.response!,
+      responseBody,
       context.variables,
       false,
       context.collection.pathname,

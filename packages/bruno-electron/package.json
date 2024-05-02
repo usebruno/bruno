@@ -11,7 +11,7 @@
     "predev": "pnpm run build",
     "dev": "vite build -c vite.main.config.ts --watch",
     "preelectron": "pnpm run build",
-    "electron": "electron .",
+    "electron": "electron --inspect .",
     "dist": "electron-builder --config electron-builder-config.js",
     "clean": "rimraf out web .vite",
     "test": "jest"

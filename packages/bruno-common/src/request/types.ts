@@ -185,7 +185,7 @@ export type Response = {
   responseTime: number;
   // Absolute path to response file
   path: string;
-  encoding: BufferEncoding;
+  size: number;
 };
 
 export type FolderItem = {

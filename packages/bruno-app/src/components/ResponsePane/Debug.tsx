@@ -15,7 +15,7 @@ export const DebugTab: React.FC<{ debugInfo: DebugInfo; timings: unknown; maxWid
     <Stack w={'100%'} maw={maxWidth} gap={'xl'}>
       <ResponseTimings timings={timings} />
       {debugInfo.map(({ stage, logs }) => (
-        <div>
+        <div key={stage}>
           <Title key={stage} order={3} mb={'xs'}>
             {stage}
           </Title>

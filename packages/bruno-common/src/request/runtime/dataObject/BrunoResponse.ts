@@ -1,9 +1,7 @@
 import { Response } from '../../types';
-import fs from 'node:fs';
-import { parse } from 'lossless-json';
 
 export class BrunoResponse {
-  constructor(private _res: Response) {}
+  constructor(private _res: Response, public body: any) {}
 
   get status() {
     return this.getStatus();
@@ -25,16 +23,8 @@ export class BrunoResponse {
     return this._res.headers;
   }
 
-  get body() {
-    return this.getBody();
-  }
   getBody() {
-    let body: any = fs.readFileSync(this._res.path, { encoding: this._res.encoding }).toString();
-    try {
-      body = parse(body);
-    } catch {}
-
-    return body;
+    return this.body;
   }
 
   get responseTime() {

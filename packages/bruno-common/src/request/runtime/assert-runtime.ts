@@ -206,6 +206,7 @@ export class AssertRuntime {
     assertions: any[],
     request: RequestItem,
     response: any,
+    responseBody: any,
     envVariables: Record<string, unknown>,
     collectionVariables: Record<string, unknown>,
     collectionPath: string
@@ -217,7 +218,7 @@ export class AssertRuntime {
 
     const bru = new Bru(envVariables, collectionVariables, {}, collectionPath, 'the-env');
     const req = new BrunoRequest(request, true);
-    const res = createResponseParser(response);
+    const res = createResponseParser(response, responseBody);
 
     const bruContext = {
       bru,

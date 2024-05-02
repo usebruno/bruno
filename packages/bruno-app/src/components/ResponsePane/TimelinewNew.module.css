@@ -1,0 +1,7 @@
+.wordWrap {
+  overflow-wrap: anywhere;
+}
+
+.noUserselect {
+  user-select: none;
+}

@@ -2,7 +2,7 @@ import { RequestContext } from '../types';
 import { EOL } from 'node:os';
 import { runScript } from '../runtime/script-runner';
 
-export async function tests(context: RequestContext) {
+export async function tests(context: RequestContext, responseBody: any) {
   const collectionPostRequestScript = context.collection.root?.request?.tests ?? '';
   const requestPostRequestScript = context.requestItem.request.tests ?? '';
   const postRequestScript = collectionPostRequestScript + EOL + requestPostRequestScript;
@@ -20,6 +20,7 @@ export async function tests(context: RequestContext) {
       postRequestScript,
       context.requestItem,
       context.response!,
+      responseBody,
       context.variables,
       true,
       context.collection.pathname,

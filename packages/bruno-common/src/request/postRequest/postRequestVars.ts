@@ -1,7 +1,7 @@
 import { RequestContext } from '../types';
 import { VarsRuntime } from '../runtime/vars-runtime';
 
-export function postRequestVars(context: RequestContext) {
+export function postRequestVars(context: RequestContext, responseBody: any) {
   const postRequestVars = context.requestItem.request.vars.res;
   if (postRequestVars === undefined) {
     context.debug.log('Post request variables skipped');
@@ -16,6 +16,7 @@ export function postRequestVars(context: RequestContext) {
     postRequestVars,
     context.requestItem,
     context.response!,
+    responseBody,
     context.variables.environment,
     context.variables.collection,
     context.collection.pathname,

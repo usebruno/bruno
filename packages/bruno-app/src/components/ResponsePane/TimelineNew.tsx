@@ -1,15 +1,14 @@
 import { useMemo } from 'react';
-import { statusCodesToPhrases } from 'know-your-http-well';
-import { Stack, Divider, Group, Text, Space, ThemeIcon } from '@mantine/core';
-import { IconInfoCircle } from '@tabler/icons-react';
-import { ResponseTimings } from 'components/ResponsePane/ResponseTimings';
+import { Stack, Group, Text, Space, ThemeIcon, Alert, Spoiler } from '@mantine/core';
+import { IconAlertTriangle, IconInfoCircle } from '@tabler/icons-react';
+import classes from './TimelinewNew.module.css';
 
 type RequestTimeline = {
   // RequestInfo
   finalOptions: {
     method: string;
     protocol: string;
-    hostname: string;
+    host: string;
     port: string;
     path: string;
     headers: Record<string, string[]>;
@@ -21,14 +20,17 @@ type RequestTimeline = {
   statusMessage?: String;
   headers?: Record<string, string[]>;
   httpVersion?: string;
-  responseBody?: Buffer;
+  responseBody?: string;
   error?: string;
   info?: string;
 };
 
 const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
-  const requestData: string[] = useMemo(() => {
-    const data = [`${item.finalOptions.method} ${item.finalOptions.hostname}`];
+  const requestHeader: string[] = useMemo(() => {
+    const port = item.finalOptions.port ? `:${item.finalOptions.protocol}` : '';
+    const url = `${item.finalOptions.protocol}//${item.finalOptions.host}${port}${item.finalOptions.path}`;
+
+    const data = [`${item.finalOptions.method} ${url}`];
     for (const [name, value] of Object.entries(item.finalOptions.headers)) {
       if (Array.isArray(value)) {
         for (const val of value) {
@@ -38,11 +40,22 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
       }
       data.push(`${name}: ${value}`);
     }
+
     return data;
   }, [item.finalOptions]);
 
-  const responseData: string[] = useMemo(() => {
-    const data = [`HTTP/${item.httpVersion} ${item.statusCode}`];
+  let requestData;
+  if (item.requestBody !== undefined) {
+    const truncated = item.requestBody.length >= 2048 ? '... (Truncated)' : '';
+    requestData = `data ${item.requestBody}${truncated}`;
+  }
+
+  const responseHeader: string[] = useMemo(() => {
+    if (!item.statusCode) {
+      return ['N/A'];
+    }
+
+    const data = [`HTTP/${item.httpVersion} ${item.statusCode} ${item.statusMessage}`];
     for (const [name, value] of Object.entries(item.headers ?? {})) {
       if (!Array.isArray(value)) {
         data.push(`${name}: ${value}`);
@@ -52,31 +65,70 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
         data.push(`${name}: ${val}`);
       }
     }
+
     return data;
   }, [item.headers]);
 
+  let responseData;
+  if (item.responseBody !== undefined) {
+    const truncated = item.responseBody.length >= 2048 ? '... (Truncated)' : '';
+    responseData = `data ${item.responseBody}${truncated}`;
+  }
+
   return (
     <div>
-      {requestData.map((item, i) => (
-        <Text key={item + i} c={'green'} style={{ overflowWrap: 'anywhere' }}>
-          <span>&gt; </span>
+      {requestHeader.map((item, i) => (
+        <Text key={item + i} c={'green'} className={classes.wordWrap}>
+          <span className={classes.noUserselect}>&gt; </span>
           {item}
         </Text>
       ))}
+      {requestData !== undefined ? (
+        <Spoiler
+          maxHeight={50}
+          showLabel={'Show full request data'}
+          hideLabel={'Show less'}
+          c={'grape'}
+          className={classes.wordWrap}
+        >
+          <span className={classes.noUserselect}>&lt; </span>
+          {requestData}
+        </Spoiler>
+      ) : null}
       <Space h={'xs'} />
-      {responseData.map((item, i) => (
-        <Text key={item + i} c={'grape'} style={{ overflowWrap: 'anywhere' }}>
-          <span>&lt; </span>
+
+      {responseHeader.map((item, i) => (
+        <Text key={item + i} c={'grape'} className={classes.wordWrap}>
+          <span className={classes.noUserselect}>&lt; </span>
           {item}
         </Text>
       ))}
-      <Space h={'xs'} />
-      <Group gap={'xs'}>
-        <ThemeIcon size={'xs'} color={'gray'}>
-          <IconInfoCircle />
-        </ThemeIcon>
-        <Text c={'dimmed'}>{item.info}</Text>
-      </Group>
+      {responseData !== undefined ? (
+        <Spoiler
+          maxHeight={50}
+          showLabel={'Show full response data'}
+          hideLabel={'Show less'}
+          c={'grape'}
+          className={classes.wordWrap}
+        >
+          <span className={classes.noUserselect}>&lt; </span>
+          {responseData}
+        </Spoiler>
+      ) : null}
+
+      {item.error !== undefined ? (
+        <Alert variant="light" color="red" radius="xs" title="Error" mt={'xs'} icon={<IconAlertTriangle />}>
+          {item.error}
+        </Alert>
+      ) : null}
+      {item.info !== undefined ? (
+        <Group pt={'xs'} gap={'xs'}>
+          <ThemeIcon size={'xs'} color={'gray'}>
+            <IconInfoCircle />
+          </ThemeIcon>
+          <Text c={'dimmed'}>{item.info}</Text>
+        </Group>
+      ) : null}
     </div>
   );
 };
@@ -91,8 +143,8 @@ export const TimelineNew: React.FC<TimelineNewProps> = ({ timeline, maxWidth }) 
     return <div>No timeline data available</div>;
   }
 
-  const items = timeline.map((item) => {
-    return <TimelineItem item={item} />;
+  const items = timeline.map((item, index) => {
+    return <TimelineItem item={item} key={`${index}-${item.statusCode}`} />;
   });
 
   return (

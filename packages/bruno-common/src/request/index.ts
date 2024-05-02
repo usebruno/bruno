@@ -16,6 +16,7 @@ import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { makeHttpRequest } from './httpRequest/requestHandler';
 import { CookieJar } from 'tough-cookie';
+import { readResponseBodyAsync } from './runtime/utils';
 
 export async function request(
   requestItem: RequestItem,
@@ -98,10 +99,13 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
 
   context.debug.addStage('Post-Request');
   context.callback.cookieUpdated(context.cookieJar);
-  postRequestVars(context);
-  await postRequestScript(context);
-  assertions(context);
-  await tests(context);
+
+  const body = await readResponseBodyAsync(context.response!.path);
+
+  postRequestVars(context, body);
+  await postRequestScript(context, body);
+  assertions(context, body);
+  await tests(context, body);
 
   context.timings.stopMeasure('total');
 

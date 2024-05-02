@@ -2,7 +2,7 @@ import { get } from '@usebruno/query';
 import { stringify, parse, LosslessNumber } from 'lossless-json';
 import jsonQuery from 'json-query';
 import { Response } from '../types';
-import fs from 'node:fs';
+import { Worker } from 'worker_threads';
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -116,17 +116,12 @@ type ResponseParser = ((expr: string, ...fns: any) => any) & {
   jq: (expr: string) => unknown;
 };
 
-export const createResponseParser = (response: Response) => {
-  let bodyData: any = fs.readFileSync(response.path, { encoding: response.encoding });
-  try {
-    bodyData = parse(bodyData);
-  } catch {}
-
+export const createResponseParser = (response: Response, responseBody: any) => {
   const res: ResponseParser = (expr: string, ...fns: any[]) => {
-    return get(bodyData, expr, ...fns);
+    return get(responseBody, expr, ...fns);
   };
 
-  res.body = bodyData;
+  res.body = responseBody;
   res.status = response.statusCode;
   res.headers = response.headers;
   res.responseTime = response.responseTime;
@@ -159,3 +154,35 @@ export const cleanJson = (data: any) => {
     return data;
   }
 };
+
+// Read the in a seperate worker thread, so it does not block the main thread during json parse
+export function readResponseBodyAsync(path: string): any {
+  const worker = new Worker(
+    `
+  const { parse, LosslessNumber } = require('lossless-json');
+  const { readFileSync } = require('node:fs');
+  const { parentPort, workerData } = require('node:worker_threads');
+
+  let bodyData = readFileSync(workerData, { encoding: 'utf8' });
+  try {
+    bodyData = parse(bodyData, null, (value) => {
+      // Convert the Lossless number into whatever fits best
+      return new LosslessNumber(value).valueOf();
+    })
+  } catch {}
+  
+  parentPort.postMessage(bodyData);
+  `,
+    { eval: true, stderr: true, stdout: true, name: 'body-parser', workerData: path }
+  );
+  return new Promise((resolve, reject) => {
+    worker.on('message', (bodyData) => {
+      resolve(bodyData);
+      worker.terminate();
+    });
+    worker.on('error', (err) => {
+      reject(err);
+      worker.terminate();
+    });
+  });
+}
