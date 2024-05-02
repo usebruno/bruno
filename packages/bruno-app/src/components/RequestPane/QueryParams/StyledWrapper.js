@@ -21,12 +21,26 @@ const Wrapper = styled.div`
       padding: 6px 10px;
 
       &:nth-child(1) {
+        width: 50px;
+      }
+
+      &:nth-child(2) {
         width: 30%;
       }
 
-      &:nth-child(3) {
+      &:nth-child(4) {
         width: 70px;
       }
+    }
+  }
+
+  .draggable-handle {
+    cursor: grab;
+    white-space: nowrap;
+    text-align: center;
+
+    &:active {
+      cursor: grabbing;
     }
   }
 
