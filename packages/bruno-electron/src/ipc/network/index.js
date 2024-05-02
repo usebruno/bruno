@@ -925,7 +925,7 @@ const registerNetworkIpc = (mainWindow) => {
             timeStart = Date.now();
             let response, responseTime;
             try {
-              if (delay && !Number.isNaN(delay)) {
+              if (delay && !Number.isNaN(delay) && delay > 0) {
                 const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
 
                 const cancellationPromise = new Promise((_, reject) => {
