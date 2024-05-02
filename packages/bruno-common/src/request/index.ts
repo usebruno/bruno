@@ -15,11 +15,13 @@ import { nanoid } from 'nanoid';
 import { join } from 'node:path';
 import { rm } from 'node:fs/promises';
 import { makeHttpRequest } from './httpRequest/requestHandler';
+import { CookieJar } from 'tough-cookie';
 
 export async function request(
   requestItem: RequestItem,
   collection: Collection,
   prefences: Preferences,
+  cookieJar: CookieJar,
   dataDir: string,
   cancelToken: string,
   abortController: AbortController,
@@ -43,6 +45,7 @@ export async function request(
     requestItem,
     collection,
     prefences,
+    cookieJar,
     variables: {
       process: {
         process: {
@@ -94,7 +97,7 @@ async function doRequest(context: RequestContext): Promise<RequestContext> {
   context.timings.stopMeasure('request');
 
   context.debug.addStage('Post-Request');
-  // TODO: Collect cookies from headers
+  context.callback.cookieUpdated(context.cookieJar);
   postRequestVars(context);
   await postRequestScript(context);
   assertions(context);

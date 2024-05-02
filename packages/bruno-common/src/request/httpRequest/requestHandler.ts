@@ -6,6 +6,8 @@ import { HttpRequestInfo, execHttpRequest } from './httpRequest';
 import { Timeline } from '../Timeline';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { CookieJar } from 'tough-cookie';
+import { URL } from 'node:url';
 
 export async function makeHttpRequest(context: RequestContext) {
   if (context.timeline === undefined) {
@@ -17,6 +19,9 @@ export async function makeHttpRequest(context: RequestContext) {
 
   while (true) {
     addMandatoryHeader(requestOptions, body);
+    if (context.prefences.request.sendCookies) {
+      addCookieHeader(requestOptions, context.cookieJar);
+    }
     if (context.requestItem.request.auth.mode === 'awsv4') {
       addAwsAuthHeader(context.requestItem.request.auth, requestOptions, body);
     }
@@ -28,7 +33,6 @@ export async function makeHttpRequest(context: RequestContext) {
         agent: undefined
       }
     });
-    console.log(context.abortController);
     const response = await execHttpRequest(requestOptions, body, context.abortController?.signal);
 
     const nextRequest = await handleServerResponse(context, requestOptions, response);
@@ -55,6 +59,11 @@ function addMandatoryHeader(requestOptions: RequestOptions, body?: string | Buff
   }
 }
 
+async function addCookieHeader(requestOptions: RequestOptions, cookieJar: CookieJar) {
+  const currentUrl = urlFromRequestOptions(requestOptions);
+  requestOptions.headers!['cookie'] = await cookieJar.getCookieString(currentUrl.href);
+}
+
 async function handleServerResponse(
   context: RequestContext,
   request: RequestOptions,
@@ -63,6 +72,10 @@ async function handleServerResponse(
   // We did not get a response / an error occurred
   if (response.statusCode === undefined) {
     return false;
+  }
+
+  if (context.prefences.request.storeCookies) {
+    storeCookies(context.cookieJar, request, response);
   }
 
   const mustRedirect = handleRedirect(request, response);
@@ -111,19 +124,27 @@ function handleRedirect(request: RequestOptions, response: HttpRequestInfo): boo
   // e.g. https://my-new-site.net
   let newLocationUrl;
   try {
-    newLocationUrl = new URL(newLocation, new URL(request.path!, `${request.protocol}//${request.hostname}`));
+    newLocationUrl = new URL(newLocation, new URL(request.path!, `${request.protocol}//${request.host}`));
   } catch (error) {
     throw new Error(
       'Could not create Url to redirect location! Server returned this location: ' +
-        `"${newLocation}", old path: "${request.path}" & old base: "${request.protocol}//${request.hostname}". ` +
+        `"${newLocation}", old path: "${request.path}" & old base: "${request.protocol}//${request.host}". ` +
         `Original error: ${error}`
     );
   }
-  request.hostname = newLocationUrl.hostname;
+  request.host = newLocationUrl.host;
   request.protocol = newLocationUrl.protocol;
   request.path = `${newLocationUrl.pathname}${newLocationUrl.search}`;
 
   return true;
+}
+
+async function storeCookies(cookieJar: CookieJar, request: RequestOptions, response: HttpRequestInfo) {
+  const currentUrl = urlFromRequestOptions(request);
+
+  for (const cookieString of response.headers!['set-cookie'] ?? []) {
+    await cookieJar.setCookie(cookieString, currentUrl.href);
+  }
 }
 
 async function handleFinalResponse(response: HttpRequestInfo, context: RequestContext) {
@@ -141,4 +162,12 @@ async function handleFinalResponse(response: HttpRequestInfo, context: RequestCo
     responseTime: response.responseTime!,
     statusCode: response.statusCode
   };
+}
+
+export function urlFromRequestOptions(opts: RequestOptions): URL {
+  let port = '';
+  if (opts.port) {
+    port = `:${port}`;
+  }
+  return new URL(`${opts.protocol}//${opts.host}${port}${opts.path}`);
 }

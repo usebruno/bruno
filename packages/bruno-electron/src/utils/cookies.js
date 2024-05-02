@@ -81,5 +81,6 @@ module.exports = {
   getCookiesForUrl,
   getCookieStringForUrl,
   getDomainsWithCookies,
-  deleteCookiesForDomain
+  deleteCookiesForDomain,
+  cookieJar
 };

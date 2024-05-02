@@ -1,6 +1,7 @@
 import { RequestContext } from './types';
 import { stringify, parse } from 'lossless-json';
 import { STATUS_CODES } from 'node:http';
+import { Cookie, CookieJar } from 'tough-cookie';
 
 type Callback = (payload: any) => void;
 export type RawCallbacks = {
@@ -78,12 +79,49 @@ export class Callbacks {
     });
   }
 
-  cookieUpdated(domainsWithCookie: any) {
-    if (!this.rawCallbacks.cookieUpdated) {
-      return;
-    }
+  cookieUpdated(cookieJar: CookieJar) {
+    // @ts-expect-error Not sure why the store is not included in the type
+    cookieJar.store.getAllCookies((err: Error, cookies: Cookie[]) => {
+      if (err) {
+        throw err;
+      }
 
-    this.rawCallbacks.cookieUpdated(domainsWithCookie);
+      const domainCookieMap: Record<string, Cookie[]> = {};
+      cookies.forEach((cookie) => {
+        if (!cookie.domain) {
+          return;
+        }
+
+        if (!domainCookieMap[cookie.domain]) {
+          domainCookieMap[cookie.domain] = [cookie];
+        } else {
+          domainCookieMap[cookie.domain].push(cookie);
+        }
+      });
+
+      const domains = Object.keys(domainCookieMap);
+      const domainsWithCookies = [];
+
+      for (const domain of domains) {
+        const cookies = domainCookieMap[domain];
+        const validCookies = cookies.filter(
+          (cookie) => cookie.expires === 'Infinity' || cookie.expires.getTime() > Date.now()
+        );
+
+        if (validCookies.length) {
+          domainsWithCookies.push({
+            domain,
+            cookies: validCookies,
+            cookieString: validCookies.map((cookie) => cookie.cookieString()).join('; ')
+          });
+        }
+      }
+
+      if (!this.rawCallbacks.cookieUpdated) {
+        return;
+      }
+      this.rawCallbacks.cookieUpdated(domainsWithCookies);
+    });
   }
 
   consoleLog(type: string, args: any) {

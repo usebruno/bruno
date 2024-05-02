@@ -30,7 +30,7 @@ const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-he
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
-const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies, cookieJar } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
   transformClientCredentialsRequest,
@@ -484,6 +484,7 @@ const registerNetworkIpc = (mainWindow) => {
         item,
         collection,
         getPreferences(),
+        cookieJar,
         dataDir,
         cancelToken,
         abortController,
@@ -566,6 +567,7 @@ const registerNetworkIpc = (mainWindow) => {
       item,
       collection,
       getPreferences(),
+      cookieJar,
       dataDir,
       cancelToken,
       abortController,

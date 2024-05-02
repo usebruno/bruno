@@ -5,6 +5,7 @@ import { Timeline } from './Timeline';
 import { Callbacks } from './Callbacks';
 import { RequestOptions } from 'node:http';
 import { TlsOptions } from 'node:tls';
+import { CookieJar } from 'tough-cookie';
 
 export type RequestType = 'http-request' | 'graphql-request';
 
@@ -328,6 +329,7 @@ export type RequestContext = {
   requestItem: RequestItem;
   collection: Collection;
   prefences: Preferences;
+  cookieJar: CookieJar;
   variables: {
     collection: Record<string, unknown>;
     environment: Record<string, unknown>;

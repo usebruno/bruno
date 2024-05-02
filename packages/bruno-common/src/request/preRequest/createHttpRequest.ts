@@ -1,5 +1,5 @@
 import { platform, arch } from 'node:os';
-import { BrunoConfig, RequestBody, RequestContext, RequestItem } from '../types';
+import { BrunoConfig, Preferences, RequestBody, RequestContext, RequestItem } from '../types';
 import { stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
@@ -10,7 +10,7 @@ import FormData from 'form-data';
 import { Agent } from 'node:http';
 import { ProxyAgent } from 'proxy-agent';
 import { DebugLogger } from '../DebugLogger';
-import { TlsOptions } from 'node:tls';
+import { TlsOptions, rootCertificates } from 'node:tls';
 
 function createAuthHeader(requestItem: RequestItem): Record<string, string> {
   const auth = requestItem.request.auth;
@@ -149,9 +149,12 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
 
 async function createClientCertOptions(
   certConfig: Exclude<BrunoConfig['clientCertificates'], undefined>,
+  prefences: Preferences,
   host: string,
   collectionPath: string
 ): Promise<TlsOptions> {
+  let options: TlsOptions = {};
+
   for (const { domain, certFilePath, keyFilePath, passphrase } of certConfig.certs) {
     // Check if the Certificate was created for the current host
     const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
@@ -165,10 +168,20 @@ async function createClientCertOptions(
     const asoluteKeyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
     const key = await fs.readFile(asoluteKeyFilePath, { encoding: 'utf8' });
 
-    return { cert, key, passphrase };
+    options = { cert, key, passphrase };
+    break;
   }
 
-  return {};
+  const { customCaCertificate, keepDefaultCaCertificates } = prefences.request;
+  if (customCaCertificate.enabled && customCaCertificate.filePath) {
+    options.ca = await fs.readFile(customCaCertificate.filePath, { encoding: 'utf8' });
+
+    if (keepDefaultCaCertificates.enabled) {
+      options.ca += '\n' + rootCertificates.join('\n');
+    }
+  }
+
+  return options;
 }
 
 const protocolMap: Record<Exclude<BrunoConfig['proxy'], undefined>['protocol'], string> = {
@@ -182,14 +195,10 @@ function createProxyAgent(
   proxyConfig: Exclude<BrunoConfig['proxy'], undefined>,
   host: string,
   debug: DebugLogger,
+  tlsOptions: TlsOptions,
   signal?: AbortSignal
 ): Agent | null {
   if (proxyConfig.enabled === false) {
-    return null;
-  }
-
-  const mustByPass = proxyConfig.bypassProxy?.split(';').some((byPass) => byPass === '*' || byPass === host);
-  if (mustByPass) {
     return null;
   }
 
@@ -200,27 +209,38 @@ function createProxyAgent(
     );
   }
 
-  debug.log('Added ProxyAgent', {
-    protocol,
-    hostname: proxyConfig.hostname,
-    port: !proxyConfig.port ? undefined : proxyConfig.port, // Port could be 0 / NaN
-    auth: proxyConfig.auth?.enabled ? `${proxyConfig.auth.username}:${proxyConfig.auth.password}` : undefined
-  });
+  let auth = '';
+  if (proxyConfig.auth?.enabled) {
+    auth = `${proxyConfig.auth.username}:${proxyConfig.auth.password}`;
+  }
+  let port = '';
+  if (proxyConfig.port) {
+    port = `:${proxyConfig.port}`;
+  }
+  const proxyUrl = `${proxyConfig.protocol}://${auth}@${proxyConfig.hostname}${port}`;
+
+  debug.log('Added ProxyAgent', { proxyUrl });
   return new ProxyAgent({
-    getProxyForUrl: () => {
-      let auth = '';
-      if (proxyConfig.auth?.enabled) {
-        auth = `${proxyConfig.auth.username}:${proxyConfig.auth.password}`;
+    getProxyForUrl: (url) => {
+      const mustByPass = proxyConfig.bypassProxy?.split(';').some((byPass) => byPass === '*' || byPass === host);
+      if (mustByPass) {
+        debug.log('Proxy bypassed', { url, bypass: proxyConfig.bypassProxy });
+        return '';
       }
-      return `${proxyConfig.protocol}://${auth}@${proxyConfig.hostname}${
-        proxyConfig.port ? `:${proxyConfig.port}` : ''
-      }`;
+      debug.log('Request proxied', { url, proxyUrl, bypass: proxyConfig.bypassProxy });
+      return proxyUrl;
     },
-    signal
+    signal,
+    ...tlsOptions
   });
 }
 
 export async function createHttpRequest(context: RequestContext) {
+  // Make sure the URL starts with a protocol
+  if (/^([-+\w]{1,25})(:?\/\/|:)/.test(context.requestItem.request.url) === false) {
+    context.requestItem.request.url = `http://${context.requestItem.request.url}`;
+  }
+
   let urlObject;
   try {
     urlObject = new URL(context.requestItem.request.url);
@@ -232,6 +252,7 @@ export async function createHttpRequest(context: RequestContext) {
   if (context.collection.brunoConfig.clientCertificates) {
     certOptions = await createClientCertOptions(
       context.collection.brunoConfig.clientCertificates,
+      context.prefences,
       urlObject.host,
       context.collection.pathname
     );
@@ -259,6 +280,7 @@ export async function createHttpRequest(context: RequestContext) {
       context.collection.brunoConfig.proxy,
       urlObject.host,
       context.debug,
+      certOptions,
       context.abortController?.signal
     );
     if (agent) {
