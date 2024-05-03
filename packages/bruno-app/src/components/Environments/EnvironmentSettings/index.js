@@ -6,9 +6,11 @@ import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
 
 const EnvironmentSettings = ({ collection, onClose }) => {
+  const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
+  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
 
   if (!environments || !environments.length) {
     return (
@@ -48,7 +50,13 @@ const EnvironmentSettings = ({ collection, onClose }) => {
 
   return (
     <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
-      <EnvironmentList collection={collection} />
+      <EnvironmentList
+        selectedEnvironment={selectedEnvironment}
+        setSelectedEnvironment={setSelectedEnvironment}
+        collection={collection}
+        isModified={isModified}
+        setIsModified={setIsModified}
+      />
     </Modal>
   );
 };
