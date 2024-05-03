@@ -31,14 +31,26 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body) => {
+const createPostData = (body, { target, client }) => {
   const contentType = createContentType(body.mode);
   if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
     return {
       mimeType: contentType,
       params: body[body.mode]
         .filter((param) => param.enabled)
-        .map((param) => ({ name: param.name, value: param.value }))
+        .map(({ name, value, type }) => {
+          if (body.mode === 'multipartForm' && type === 'file' && target === 'shell' && client === 'curl') {
+            return {
+              name,
+              fileName: value
+            };
+          }
+
+          return {
+            name,
+            value
+          };
+        })
     };
   } else {
     return {
@@ -48,7 +60,7 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => {
+export const buildHarRequest = ({ request, headers, target, client }) => {
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -56,7 +68,7 @@ export const buildHarRequest = ({ request, headers }) => {
     cookies: [],
     headers: createHeaders(headers),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body),
+    postData: createPostData(request.body, { target, client }),
     headersSize: 0,
     bodySize: 0
   };
