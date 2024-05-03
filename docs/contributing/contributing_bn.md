@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](/contributing_fr.md) | **বাংলা**
+[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](/contributing_fr.md) | **বাংলা** | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
 
 ## আসুন ব্রুনোকে আরও ভালো করি, একসাথে!!
 

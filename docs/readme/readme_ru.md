@@ -11,7 +11,7 @@
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
 
-[English](/readme.md) | [Українська](/readme_ua.md) | **Русский** | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français](/readme_fr.md) | [বাংলা](docs/readme/readme_bn.md)
+[English](/readme.md) | [Українська](/readme_ua.md) | **Русский** | [Türkçe](/readme_tr.md) | [Deutsch](/readme_de.md) | [Français](/readme_fr.md) | [বাংলা](docs/readme/readme_bn.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md)
 
 Bruno - новый и инновационный клиент API, направленный на революцию в установившейся ситуации, представленной Postman и подобными инструментами.
 

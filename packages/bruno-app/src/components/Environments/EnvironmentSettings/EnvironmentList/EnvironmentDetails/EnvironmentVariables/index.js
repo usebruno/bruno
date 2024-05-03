@@ -1,19 +1,19 @@
 import React from 'react';
-import toast from 'react-hot-toast';
-import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { uuid } from 'utils/common';
+import { maskInputValue } from 'utils/collections';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
-import { maskInputValue } from 'utils/collections';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import cloneDeep from 'lodash/cloneDeep';
+import toast from 'react-hot-toast';
 
-const EnvironmentVariables = ({ environment, collection }) => {
+const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -46,10 +46,16 @@ const EnvironmentVariables = ({ environment, collection }) => {
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
+          setIsModified(false);
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  // Effect to track modifications.
+  React.useEffect(() => {
+    setIsModified(formik.dirty);
+  }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
@@ -78,6 +84,10 @@ const EnvironmentVariables = ({ environment, collection }) => {
 
   const handleRemoveVar = (id) => {
     formik.setValues(formik.values.filter((variable) => variable.uid !== id));
+  };
+
+  const handleReset = () => {
+    formik.resetForm({ originalEnvironmentVariables });
   };
 
   return (
@@ -161,6 +171,9 @@ const EnvironmentVariables = ({ environment, collection }) => {
       <div>
         <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
           Save
+        </button>
+        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+          Reset
         </button>
       </div>
     </StyledWrapper>

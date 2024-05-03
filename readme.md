@@ -10,8 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) | [日本語](docs/readme/readme_ja.md)
-
+**English** | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) |  [العربية](docs/readme/readme_ar.md)
 
 Bruno is a new and innovative API client, aimed at revolutionizing the status quo represented by Postman and similar tools out there.
 
@@ -64,7 +63,7 @@ flatpak install com.usebruno.Bruno
 sudo mkdir -p /etc/apt/keyrings
 sudo gpg --no-default-keyring --keyring /etc/apt/keyrings/bruno.gpg --keyserver keyserver.ubuntu.com --recv-keys 9FA6017ECABE0266
 
-echo "deb [signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebruno.com/ bruno stable" | sudo tee /etc/apt/sources.list.d/bruno.list
 
 sudo apt update
 sudo apt install bruno
@@ -105,7 +104,7 @@ Or any version control system of your choice
 - [Website](https://www.usebruno.com)
 - [Pricing](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [Github Sponsors](https://github.com/sponsors/helloanoop).
+- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Showcase 🎥
 
@@ -115,7 +114,7 @@ Or any version control system of your choice
 
 ### Support ❤️
 
-If you like Bruno and want to support our opensource work, consider sponsoring us via [Github Sponsors](https://github.com/sponsors/helloanoop).
+If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Share Testimonials 📣
 

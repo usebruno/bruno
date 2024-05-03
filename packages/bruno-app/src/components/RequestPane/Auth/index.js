@@ -41,7 +41,9 @@ const Auth = ({ item, collection }) => {
                   <div>Collection level auth is: </div>
                   <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
                 </div>
-                <div className="text-sm opacity-50">Cannot inherit Oauth2 from collection.</div>
+                <div className="text-sm opacity-50">
+                  Note: You need to use scripting to set the access token in the request headers.
+                </div>
               </div>
             ) : (
               <>

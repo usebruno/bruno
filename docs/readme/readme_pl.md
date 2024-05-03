@@ -10,7 +10,7 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md)) | [한국어](docs/readme/readme_kr.md) ) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | **Polski**
+[English](/readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md)) | [한국어](docs/readme/readme_kr.md) ) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | **Polski** | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md)
 
 Bruno to nowy i innowacyjny klient API, którego celem jest zrewolucjonizowanie status quo reprezentowy przez Postman i podobne narzędzia.
 
@@ -73,7 +73,7 @@ Lub dowolny inny system kontroli wersji, który wybierzesz
 - [Strona Internetowa](https://www.usebruno.com)
 - [Cennik](https://www.usebruno.com/pricing)
 - [Pobieranie](https://www.usebruno.com/downloads)
-- [Sponsorzy Github](https://github.com/sponsors/helloanoop).
+- [Sponsorzy GitHub](https://github.com/sponsors/helloanoop).
 
 ### Zobacz 🎥
 
@@ -83,7 +83,7 @@ Lub dowolny inny system kontroli wersji, który wybierzesz
 
 ### Wsparcie ❤️
 
-Jeśli podoba Ci się Bruno i chcesz wspierać naszą pracę opensource, rozważ sponsorowanie nas przez [Sponsorzy Github](https://github.com/sponsors/helloanoop).
+Jeśli podoba Ci się Bruno i chcesz wspierać naszą pracę opensource, rozważ sponsorowanie nas przez [Sponsorzy GitHub](https://github.com/sponsors/helloanoop).
 
 ### Udostępnij Opinie 📣
 
