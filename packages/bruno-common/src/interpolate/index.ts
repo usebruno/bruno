@@ -11,6 +11,7 @@
  * Output: Hello, my name is Bruno and I am 4 years old
  */
 
+import { Set } from 'typescript';
 import { flattenObject } from '../utils';
 
 const interpolate = (str: string, obj: Record<string, any>): string => {
@@ -18,14 +19,25 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
     return str;
   }
 
-  const patternRegex = /\{\{([^}]+)\}\}/g;
   const flattenedObj = flattenObject(obj);
-  const result = str.replace(patternRegex, (match, placeholder) => {
+
+  return replace(str, flattenedObj);
+};
+
+const replace = (str: string, flattenedObj: Record<string, any>, matches: Set<string> = new Set<string>()): string => {
+  const patternRegex = /\{\{([^}]+)\}\}/g;
+
+  return str.replace(patternRegex, (match, placeholder) => {
     const replacement = flattenedObj[placeholder];
+
+    if (patternRegex.test(replacement) && !matches.has(match)) {
+      matches.add(match);
+      return replace(replacement, flattenedObj, matches);
+    }
+
+    matches.add(match);
     return replacement !== undefined ? replacement : match;
   });
-
-  return result;
 };
 
 export default interpolate;
