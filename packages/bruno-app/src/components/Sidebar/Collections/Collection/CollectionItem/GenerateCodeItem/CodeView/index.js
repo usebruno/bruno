@@ -9,6 +9,7 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
+import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
 
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
@@ -20,10 +21,16 @@ const CodeView = ({ language, item }) => {
     item.uid
   );
 
-  const headers = [...(collection?.root?.request?.headers || []), ...(requestHeaders || [])];
+  const collectionRootAuth = collection?.root?.request?.auth;
+  const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+
+  const headers = [
+    ...getAuthHeaders(collectionRootAuth, requestAuth),
+    ...(collection?.root?.request?.headers || []),
+    ...(requestHeaders || [])
+  ];
 
   let snippet = '';
-
   try {
     snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(target, client);
   } catch (e) {
