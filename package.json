@@ -47,12 +47,10 @@
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install"
   },
-  
   "overrides": {
     "rollup": "3.2.5"
   },
   "dependencies": {
-    "json-bigint": "^1.0.0",
     "lossless-json": "^4.0.1"
   }
 }
