@@ -24,19 +24,34 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
   return replace(str, flattenedObj);
 };
 
-const replace = (str: string, flattenedObj: Record<string, any>, matches: Set<string> = new Set<string>()): string => {
+const replace = (
+  str: string,
+  flattenedObj: Record<string, any>,
+  visited = new Set<String>(),
+  results = new Map<string, string>()
+): string => {
   const patternRegex = /\{\{([^}]+)\}\}/g;
 
   return str.replace(patternRegex, (match, placeholder) => {
     const replacement = flattenedObj[placeholder];
 
-    if (patternRegex.test(replacement) && !matches.has(match)) {
-      matches.add(match);
-      return replace(replacement, flattenedObj, matches);
+    if (results.has(match)) {
+      return results.get(match);
     }
 
-    matches.add(match);
-    return replacement !== undefined ? replacement : match;
+    if (patternRegex.test(replacement) && !visited.has(match)) {
+      visited.add(match);
+      const result = replace(replacement, flattenedObj, visited, results);
+      results.set(match, result);
+
+      return result;
+    }
+
+    visited.add(match);
+    const result = replacement !== undefined ? replacement : match;
+    results.set(match, result);
+
+    return result;
   });
 };
 

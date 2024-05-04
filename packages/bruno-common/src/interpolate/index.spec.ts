@@ -296,4 +296,43 @@ describe('interpolate - recursive', () => {
 
     expect(result).toBe('{{recursion2}}');
   });
+
+  it('should replace repetead placeholders with 1 level of recursion with values from the object', () => {
+    const inputString = '{{repetead}}';
+    const inputObject = {
+      repetead: '{{repetead2}} {{repetead2}}',
+      repetead2: 'repetead2'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe(new Array(2).fill('repetead2').join(' '));
+  });
+
+  it('should replace repetead placeholders with 2 level of recursion with values from the object', () => {
+    const inputString = '{{repetead}}';
+    const inputObject = {
+      repetead: '{{repetead2}} {{repetead2}}',
+      repetead2: '{{repetead3}} {{repetead3}} {{repetead3}}',
+      repetead3: 'repetead3'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe(new Array(6).fill('repetead3').join(' '));
+  });
+
+  it('should replace repetead placeholders with 3 level of recursion with values from the object', () => {
+    const inputString = '{{repetead}}';
+    const inputObject = {
+      repetead: '{{repetead2}} {{repetead2}}',
+      repetead2: '{{repetead3}} {{repetead3}} {{repetead3}}',
+      repetead3: '{{repetead4}} {{repetead4}} {{repetead4}} {{repetead4}}',
+      repetead4: 'repetead4'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe(new Array(24).fill('repetead4').join(' '));
+  });
 });
