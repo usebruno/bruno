@@ -17,6 +17,7 @@ const Docs = ({ collection }) => {
     '*To get started, either double-click this text, or select the ' +
     '`Edit` button in the bottom right corner to start editing.*';
   const docs = get(collection, 'root.docs.current', null);
+  const isEditing = get(collection, 'root.docs.editing', false);
 
   const onEdit = (value) => {
     // This does not save the docs, but it does cache them.
@@ -46,6 +47,7 @@ const Docs = ({ collection }) => {
         collection={collection}
         content={docs}
         defaultContent={defaultDocs}
+        isCurrentlyEditing={isEditing}
         onEdit={onEdit}
         onSave={onSave}
         onCancel={onCancel}

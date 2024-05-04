@@ -11,8 +11,8 @@ import CodeEditor from 'components/CodeEditor';
 
 const md = new MarkdownIt();
 
-const MarkdownEditor = ({ collection, content, defaultContent, onEdit, onSave, onCancel }) => {
-  const [isEditing, setIsEditing] = useState(false);
+const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditing, onEdit, onSave, onCancel }) => {
+  const [isEditing, setIsEditing] = useState(isCurrentlyEditing);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const ref = useRef(null);
