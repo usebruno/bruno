@@ -927,7 +927,8 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     }
 
     dispatch(_selectEnvironment({ environmentUid, collectionUid }));
-    resolve();
+
+    ipcRenderer.invoke('renderer:select-environment', collectionUid, environmentUid).then(resolve).catch(reject);
   });
 };
 
@@ -991,12 +992,13 @@ export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getS
   });
 };
 
-export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, getState) => {
+export const openCollectionEvent = (uid, pathname, brunoConfig, environmentUid) => (dispatch, getState) => {
   const collection = {
     version: '1',
     uid: uid,
     name: brunoConfig.name,
     pathname: pathname,
+    activeEnvironmentUid: environmentUid,
     items: [],
     collectionVariables: {},
     brunoConfig: brunoConfig

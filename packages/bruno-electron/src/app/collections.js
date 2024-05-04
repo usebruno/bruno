@@ -4,6 +4,7 @@ const { dialog, ipcMain } = require('electron');
 const Yup = require('yup');
 const { isDirectory, normalizeAndResolvePath } = require('../utils/filesystem');
 const { generateUidBasedOnHash } = require('../utils/common');
+const { getLastOpenedEnvironment } = require('../store/last-opened-environment');
 
 // todo: bruno.json config schema validation errors must be propagated to the UI
 const configSchema = Yup.object({
@@ -70,8 +71,9 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
         brunoConfig.ignore = ['node_modules', '.git'];
       }
 
-      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
+      const lastOpenedEnvironmentUid = getLastOpenedEnvironment(uid);
+      win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig, lastOpenedEnvironmentUid);
+      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig, lastOpenedEnvironmentUid);
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {

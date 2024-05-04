@@ -6,7 +6,7 @@ const { hasBruExtension } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
-const { uuid } = require('../utils/common');
+const { uuid, generateUidBasedOnHash } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
@@ -101,7 +101,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = getRequestUid(pathname);
+    file.data.uid = generateUidBasedOnHash(pathname);
 
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
@@ -136,7 +136,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     const bruContent = fs.readFileSync(pathname, 'utf8');
     file.data = bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
-    file.data.uid = getRequestUid(pathname);
+    file.data.uid = generateUidBasedOnHash(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
 
     // hydrate environment variables with secrets
@@ -168,7 +168,7 @@ const unlinkEnvironmentFile = async (win, pathname, collectionUid) => {
         name: path.basename(pathname)
       },
       data: {
-        uid: getRequestUid(pathname),
+        uid: generateUidBasedOnHash(pathname),
         name: path.basename(pathname).substring(0, path.basename(pathname).length - 4)
       }
     };

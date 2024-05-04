@@ -20,6 +20,7 @@ const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON 
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const { saveLastOpenedEnvironment, removeLastOpenedEnvironment } = require('../store/last-opened-environment');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -264,6 +265,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // select environment
+  ipcMain.handle('renderer:select-environment', async (event, collectionUid, environmentUid) => {
+    try {
+      await saveLastOpenedEnvironment({ collectionUid, environmentUid });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // rename environment
   ipcMain.handle('renderer:rename-environment', async (event, collectionPathname, environmentName, newName) => {
     try {
@@ -400,6 +410,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       console.log(`watcher stopWatching: ${collectionPath}`);
       watcher.removeWatcher(collectionPath, mainWindow);
       lastOpenedCollections.remove(collectionPath);
+
+      removeLastOpenedEnvironment(generateUidBasedOnHash(collectionPath));
     }
   });
 
