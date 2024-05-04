@@ -1,6 +1,5 @@
 const { get, each, filter } = require('lodash');
 const fs = require('fs');
-var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
 const prepareRequest = (request, collectionRoot) => {
@@ -76,11 +75,7 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
-    }
+    axiosRequest.data = decomment(request.body.json);
   }
 
   if (request.body.mode === 'text') {
