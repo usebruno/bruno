@@ -206,8 +206,8 @@ describe('interpolate - recursive', () => {
     const inputString = '{{user.message}}';
     const inputObject = {
       'user.message': 'Hello, my name is {{user.full_name}} and I am {{user.age}} years old',
-      'user.full_name': '{{user.name}} {{user.lastName}}',
-      'user.name': 'Bruno',
+      'user.full_name': '{{user.name}}',
+      'user.name': 'Bruno {{user.lastName}}',
       'user.lastName': 'Dog',
       user: {
         age: 4
