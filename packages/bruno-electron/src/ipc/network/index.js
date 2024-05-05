@@ -203,39 +203,34 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
+    interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+    let credentials, response;
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { credentials, response } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid);
-        request.credentials = credentials;
-        request.authRequestResponse = response;
-        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+        ({ credentials, response } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
         break;
       }
       case 'client_credentials': {
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { credentials, response } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid);
-        request.credentials = credentials;
-        request.authRequestResponse = response;
-        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+        ({ credentials, response } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
         break;
       }
       case 'password': {
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { credentials, response } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid);
-        request.credentials = credentials;
-        request.authRequestResponse = response;
-        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+        ({ credentials, response } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
         break;
       }
       case 'implicit': {
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
-        const { credentials, response } = await oauth2AuthorizeWithImplicitFlow(requestCopy, collectionUid);
-        request.credentials = credentials;
-        request.authRequestResponse = response;
-        request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+        ({ credentials, response } = await oauth2AuthorizeWithImplicitFlow(requestCopy, collectionUid));
         break;
       }
+    }
+    request.credentials = credentials;
+    request.authRequestResponse = response;
+
+    // Bruno can handle bearer token type automatically.
+    // Other - more exotic token types are not touched
+    // Users are free to use pre-request script and operate on req.credentials.access_token variable
+    if (credentials?.token_type.toLowerCase() === 'bearer') {
+      request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
     }
   }
 
