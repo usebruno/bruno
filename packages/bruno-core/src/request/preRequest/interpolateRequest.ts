@@ -1,5 +1,5 @@
 import { RequestContext } from '../types';
-import interpolate from '../../interpolate';
+import { interpolate } from '@usebruno/common';
 import { parse, stringify } from 'lossless-json';
 
 // This is wrapper/shorthand for the original `interpolate` function.

@@ -5,7 +5,7 @@ import { nanoid } from 'nanoid';
 import { Bru } from './dataObject/Bru';
 import { BrunoRequest } from './dataObject/BrunoRequest';
 import { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } from './utils';
-import interpolate from '../../interpolate';
+import { interpolate } from '@usebruno/common';
 import { RequestItem } from '../types';
 
 use(chaiString);

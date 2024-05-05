@@ -47,10 +47,10 @@ class ErrorBoundary extends React.Component {
               Please report this under:
               <a
                 className="text-link hover:underline cursor-pointer ml-2"
-                href="https://github.com/usebruno/bruno/issues"
+                href="https://github.com/its-treason/bruno/issues"
                 target="_blank"
               >
-                https://github.com/usebruno/bruno/issues
+                https://github.com/its-treason/bruno/issues
               </a>
             </p>
 

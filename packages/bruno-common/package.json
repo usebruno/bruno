@@ -15,27 +15,7 @@
     "clean": "rimraf dist",
     "test": "jest"
   },
-  "dependencies": {
-    "@types/tough-cookie": "^4.0.5",
-    "@usebruno/query": "workspace:*",
-    "chai": "^4.3.7",
-    "chai-string": "^1.5.0",
-    "form-data": "^4.0.0",
-    "json-query": "^2.2.2",
-    "lodash": "^4.17.21",
-    "lossless-json": "^4.0.1",
-    "nanoid": "3.3.4",
-    "proxy-agent": "^6.4.0",
-    "qs": "^6.12.0",
-    "tough-cookie": "^4.1.3",
-    "undici": "^6.10.1"
-  },
   "devDependencies": {
-    "@types/chai": "^4.3.14",
-    "@types/chai-string": "^1.4.5",
-    "@types/json-query": "^2.2.6",
-    "@types/node": "^20.11.25",
-    "@types/qs": "^6.9.14",
     "rimraf": "^5.0.5",
     "typescript": "^5.4.2",
     "vite": "^5.1.5"

@@ -19,6 +19,7 @@
   "dependencies": {
     "@aws-sdk/credential-providers": "3.525.0",
     "@usebruno/common": "workspace:*",
+    "@usebruno/core": "workspace:*",
     "@usebruno/js": "workspace:*",
     "@usebruno/lang": "workspace:*",
     "@usebruno/schema": "workspace:*",

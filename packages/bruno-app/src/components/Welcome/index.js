@@ -2,7 +2,16 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons-react';
+import {
+  IconBrandGithub,
+  IconPlus,
+  IconDownload,
+  IconFolders,
+  IconSpeakerphone,
+  IconBook,
+  IconCopyleft
+} from '@tabler/icons-react';
+import { Blockquote } from '@mantine/core';
 
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
@@ -85,18 +94,27 @@ const Welcome = () => {
           </a>
         </div>
         <div className="flex items-center mt-2">
-          <a href="https://github.com/usebruno/bruno/issues" target="_blank" className="inline-flex items-center">
+          <a href="https://github.com/its-treason/bruno/issues" target="_blank" className="inline-flex items-center">
             <IconSpeakerphone size={18} strokeWidth={2} />
             <span className="label ml-2">Report Issues</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
-          <a href="https://github.com/usebruno/bruno" target="_blank" className="flex items-center">
+          <a href="https://github.com/its-treason/bruno" target="_blank" className="flex items-center">
             <IconBrandGithub size={18} strokeWidth={2} />
             <span className="label ml-2">GitHub</span>
           </a>
         </div>
       </div>
+      <Blockquote color="blue" icon={<IconCopyleft />} mt="xl" iconSize={36}>
+        Parts of Bruno-lazer are licensed under the GNU General Public License version 3 (GPL-3).
+        <br />
+        You can view the full corresponding source code at:{' '}
+        <a target="_blank" href="https://github.com/its-treason/bruno">
+          https://github.com/its-treason/bruno
+        </a>
+        .
+      </Blockquote>
     </StyledWrapper>
   );
 };

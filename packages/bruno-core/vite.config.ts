@@ -5,6 +5,8 @@ export default defineConfig({
   build: {
     minify: false,
     sourcemap: true,
+    ssr: true,
+    target: ['node18'],
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
       name: 'index',

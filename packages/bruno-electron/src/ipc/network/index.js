@@ -37,7 +37,7 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
-const { request: newRequest } = require('@usebruno/common');
+const { request: newRequest } = require('@usebruno/core');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -503,9 +503,9 @@ const registerNetworkIpc = (mainWindow) => {
             mainWindow.webContents.send('main:cookies-update', payload);
           },
           consoleLog: (payload) => {
-            consle.log('=== start console.log from your script ===');
+            console.log('=== start console.log from your script ===');
             console.log(payload.args);
-            consle.log('=== end console.log from your script ===');
+            console.log('=== end console.log from your script ===');
             try {
               mainWindow.webContents.send('main:console-log', payload);
             } catch (e) {
