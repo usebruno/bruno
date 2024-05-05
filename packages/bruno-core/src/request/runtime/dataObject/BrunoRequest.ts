@@ -1,4 +1,3 @@
-import { Dispatcher } from 'undici';
 import { RequestItem } from '../../types';
 
 export class BrunoRequest {
@@ -30,7 +29,7 @@ export class BrunoRequest {
   getMethod() {
     return this._req.request.method;
   }
-  setMethod(method: Dispatcher.HttpMethod) {
+  setMethod(method: string) {
     if (this.readonly) {
       throw new Error('Cannot update "method" request is readonly');
     }

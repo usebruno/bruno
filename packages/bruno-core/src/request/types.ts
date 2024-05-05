@@ -1,4 +1,3 @@
-import { Dispatcher } from 'undici';
 import { Timings } from './Timings';
 import { DebugLogger } from './DebugLogger';
 import { Timeline } from './Timeline';
@@ -145,7 +144,7 @@ export type RequestItem = {
   type: RequestType;
   seq: number;
   request: {
-    method: Dispatcher.HttpMethod;
+    method: string;
     url: string;
     params: {
       name: string;

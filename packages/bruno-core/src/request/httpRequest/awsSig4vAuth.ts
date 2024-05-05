@@ -1,7 +1,6 @@
 import { AuthMode } from '../types';
 import crypto from 'node:crypto';
 import { Readable } from 'stream';
-import { FormData } from 'undici';
 import { RequestOptions } from 'node:http';
 
 function createAwsV4AuthHeaders(
