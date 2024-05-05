@@ -158,7 +158,6 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   if (request?.oauth2?.grantType) {
-    let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
@@ -166,6 +165,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.password = _interpolate(request.oauth2.password) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
@@ -179,6 +179,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
@@ -192,6 +193,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.credentialsId = _interpolate(request.oauth2.credentialsId) || '';
         request.oauth2.tokenPlacement = _interpolate(request.oauth2.tokenPlacement) || '';
@@ -231,7 +233,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.ntlmConfig) {
     request.ntlmConfig.username = _interpolate(request.ntlmConfig.username) || '';
     request.ntlmConfig.password = _interpolate(request.ntlmConfig.password) || '';
-    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';    
+    request.ntlmConfig.domain = _interpolate(request.ntlmConfig.domain) || '';
   }
 
   return request;

@@ -31,7 +31,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce, authorizationUrl, credentialsId, reuseToken } = oAuth;
+  const { clientId, clientSecret, clientSecretMethod, callbackUrl, scope, pkce, authorizationUrl, credentialsId, reuseToken } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   if ((reuseToken || ALWAYS_REUSE_ACCESS_TOKEN____UNLESS_FETCHED_MANUALLY) && !forceFetch) {
@@ -43,9 +43,7 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
-    redirect_uri: callbackUrl,
-    client_id: clientId,
-    client_secret: clientSecret
+    redirect_uri: callbackUrl
   };
   if (pkce) {
     data['code_verifier'] = codeVerifier;
@@ -53,9 +51,11 @@ const getOAuth2TokenUsingAuthorizationCode = async ({ request, collectionUid, fo
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
+  requestCopy.headers['accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
+
+  setClientCredentials(clientId, clientSecret, clientSecretMethod, requestCopy);
 
   const axiosInstance = makeAxiosInstance();
   const response = await axiosInstance(requestCopy);
@@ -105,11 +105,9 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
+  const { clientId, clientSecret, clientSecretMethod, scope, credentialsId, reuseToken } = oAuth;
   const data = {
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret
+    grant_type: 'client_credentials'
   };
   if (scope) {
     data.scope = scope;
@@ -124,9 +122,11 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
+  requestCopy.headers['accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
+
+  setClientCredentials(clientId, clientSecret, clientSecretMethod, requestCopy);
 
   const axiosInstance = makeAxiosInstance();
 
@@ -142,13 +142,11 @@ const getOAuth2TokenUsingClientCredentials = async ({ request, collectionUid, fo
 const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, forceFetch = false }) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
+  const { username, password, clientId, clientSecret, clientSecretMethod, scope, credentialsId, reuseToken } = oAuth;
   const data = {
     grant_type: 'password',
     username,
-    password,
-    client_id: clientId,
-    client_secret: clientSecret
+    password
   };
   if (scope) {
     data.scope = scope;
@@ -162,9 +160,11 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-  requestCopy.headers['Accept'] = 'application/json';
+  requestCopy.headers['accept'] = 'application/json';
   requestCopy.data = data;
   requestCopy.url = url;
+
+  setClientCredentials(clientId, clientSecret, clientSecretMethod, requestCopy);
 
   const axiosInstance = makeAxiosInstance();
   const response = await axiosInstance(requestCopy);
@@ -177,7 +177,7 @@ const getOAuth2TokenUsingPasswordCredentials = async ({ request, collectionUid, 
 const refreshOauth2Token = async (request, collectionUid) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, credentialsId } = oAuth;
+  const { clientId, clientSecret, clientSecretMethod, credentialsId } = oAuth;
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
@@ -195,9 +195,11 @@ const refreshOauth2Token = async (request, collectionUid) => {
     };
     requestCopy.method = 'POST';
     requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
-    requestCopy.headers['Accept'] = 'application/json';
+    requestCopy.headers['accept'] = 'application/json';
     requestCopy.data = data;
     requestCopy.url = url;
+
+    setClientCredentials(clientId, clientSecret, clientSecretMethod, requestCopy);
 
     const axiosInstance = makeAxiosInstance();
     try {
@@ -226,6 +228,22 @@ const generateCodeChallenge = (codeVerifier) => {
   hash.update(codeVerifier);
   const base64Hash = hash.digest('base64');
   return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+};
+
+const setClientCredentials = (clientId, clientSecret, clientSecretMethod, request) => {
+  if (clientSecret) {
+    switch (clientSecretMethod) {
+      case 'client_credentials_post': {
+        request.data["client_id"] = clientId;
+        request.data["client_secret"] = clientSecret;
+        break;
+      }
+      case 'client_credentials_basic': {
+        request.headers["authorization"] = 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64');
+        break;
+      }
+    }
+  }
 };
 
 module.exports = {
