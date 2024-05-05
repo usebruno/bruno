@@ -73,14 +73,6 @@ const OAuth2Implicit = ({ item, collection }) => {
           </div>
         );
       })}
-      <div className="flex flex-row gap-4">
-        <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-          Get Access Token
-        </button>
-        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
-          Clear Cache
-        </button>
-      </div>
     </StyledWrapper>
   );
 };

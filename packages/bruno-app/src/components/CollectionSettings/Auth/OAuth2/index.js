@@ -6,6 +6,7 @@ import OAuth2PasswordCredentials from './PasswordCredentials/index';
 import OAuth2AuthorizationCode from './AuthorizationCode/index';
 import OAuth2ClientCredentials from './ClientCredentials/index';
 import OAuth2Implicit from './Implicit/index';
+import CredentialsPreview from 'components/RequestPane/Auth/OAuth2/CredentialsPreview';
 
 const grantTypeComponentMap = (grantType, collection) => {
   switch (grantType) {
@@ -34,6 +35,7 @@ const OAuth2 = ({ collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <GrantTypeSelector collection={collection} />
       {grantTypeComponentMap(oAuth?.grantType, collection)}
+      <CredentialsPreview collection={collection} />
     </StyledWrapper>
   );
 };
