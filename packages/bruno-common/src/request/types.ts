@@ -129,6 +129,13 @@ export type RequestBody =
   | {
       mode: 'sparql';
       sparql: string;
+    }
+  | {
+      mode: 'graphql';
+      graphql: {
+        query: string;
+        variables: string;
+      };
     };
 
 // This is the request Item from the App/.bru file

@@ -1,6 +1,6 @@
 import { platform, arch } from 'node:os';
 import { BrunoConfig, Preferences, RequestBody, RequestContext, RequestItem } from '../types';
-import { stringify } from 'lossless-json';
+import { parse, stringify } from 'lossless-json';
 import { URL } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -34,6 +34,7 @@ const bodyContentTypeMap: Record<RequestBody['mode'], string | undefined> = {
   multipartForm: undefined,
   formUrlEncoded: 'application/x-www-form-urlencoded',
   json: 'application/json',
+  graphql: 'application/json',
   xml: 'text/xml',
   text: 'text/plain',
   sparql: 'application/sparql-query',
@@ -138,6 +139,20 @@ async function getRequestBody(context: RequestContext): Promise<[string | Buffer
       break;
     case 'none':
       bodyData = undefined;
+      break;
+    case 'graphql':
+      let variables;
+      try {
+        variables = parse(body.graphql.variables || '{}');
+      } catch (e) {
+        throw new Error(
+          `Could not parse GraphQL variables JSON: ${e}\n\n=== Start of preview ===\n${body.graphql.variables}\n=== End of preview ===`
+        );
+      }
+      bodyData = stringify({
+        query: body.graphql.query,
+        variables
+      });
       break;
     default:
       // @ts-expect-error body.mode is `never` here because the case should never happen

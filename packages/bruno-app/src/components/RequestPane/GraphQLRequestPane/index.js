@@ -70,7 +70,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             value={query}
             onRun={onRun}
             mode={'graphql-query'}
-            onEdit={onQueryChange}
+            onChange={onQueryChange}
           />
         );
       }

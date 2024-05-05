@@ -2,7 +2,7 @@ import { get } from '@usebruno/query';
 import { stringify, parse, LosslessNumber } from 'lossless-json';
 import jsonQuery from 'json-query';
 import { Response } from '../types';
-import { Worker } from 'worker_threads';
+import { readFile } from 'node:fs/promises';
 
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
@@ -156,33 +156,15 @@ export const cleanJson = (data: any) => {
 };
 
 // Read the in a seperate worker thread, so it does not block the main thread during json parse
-export function readResponseBodyAsync(path: string): any {
-  const worker = new Worker(
-    `
-  const { parse, LosslessNumber } = require('lossless-json');
-  const { readFileSync } = require('node:fs');
-  const { parentPort, workerData } = require('node:worker_threads');
-
-  let bodyData = readFileSync(workerData, { encoding: 'utf8' });
+export async function readResponseBodyAsync(path: string): Promise<any> {
+  // TODO: Move this into a seperate thread
+  let bodyData: any = await readFile(path, { encoding: 'utf8' });
   try {
     bodyData = parse(bodyData, null, (value) => {
       // Convert the Lossless number into whatever fits best
       return new LosslessNumber(value).valueOf();
-    })
+    });
   } catch {}
-  
-  parentPort.postMessage(bodyData);
-  `,
-    { eval: true, stderr: true, stdout: true, name: 'body-parser', workerData: path }
-  );
-  return new Promise((resolve, reject) => {
-    worker.on('message', (bodyData) => {
-      resolve(bodyData);
-      worker.terminate();
-    });
-    worker.on('error', (err) => {
-      reject(err);
-      worker.terminate();
-    });
-  });
+
+  return bodyData;
 }

@@ -503,7 +503,18 @@ const registerNetworkIpc = (mainWindow) => {
             mainWindow.webContents.send('main:cookies-update', payload);
           },
           consoleLog: (payload) => {
-            mainWindow.webContents.send('main:console-log', payload);
+            consle.log('=== start console.log from your script ===');
+            console.log(payload.args);
+            consle.log('=== end console.log from your script ===');
+            try {
+              mainWindow.webContents.send('main:console-log', payload);
+            } catch (e) {
+              console.error(`The above console.log could not be sent to electron: ${e}`);
+              mainWindow.webContents.send('main:console-log', {
+                type: 'error',
+                args: [`console.${payload.type} could not be sent to electron: ${e}`, safeStringifyJSON(payload)]
+              });
+            }
           }
         }
       );

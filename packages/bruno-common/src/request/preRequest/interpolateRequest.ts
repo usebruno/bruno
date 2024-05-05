@@ -114,6 +114,10 @@ function interpolateBody(context: RequestContext, i: InterpolationShorthandFunct
     case 'sparql':
       body.sparql = i(body.sparql, 'SPARQL body');
       break;
+    case 'graphql':
+      body.graphql.query = i(body.graphql.query, 'GraphQL query');
+      body.graphql.variables = i(body.graphql.variables, 'GraphQL variables');
+      break;
   }
 }
 

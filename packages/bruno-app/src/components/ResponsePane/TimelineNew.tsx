@@ -88,10 +88,10 @@ const TimelineItem: React.FC<{ item: RequestTimeline }> = ({ item }) => {
           maxHeight={50}
           showLabel={'Show full request data'}
           hideLabel={'Show less'}
-          c={'grape'}
+          c={'green'}
           className={classes.wordWrap}
         >
-          <span className={classes.noUserselect}>&lt; </span>
+          <span className={classes.noUserselect}>&gt; </span>
           {requestData}
         </Spoiler>
       ) : null}
