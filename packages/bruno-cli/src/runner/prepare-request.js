@@ -33,7 +33,7 @@ const prepareRequest = (request, collectionRoot) => {
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth.mode === 'none') {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
