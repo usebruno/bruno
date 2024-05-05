@@ -199,8 +199,6 @@ const configureRequest = async (
     });
   }
 
-  const axiosInstance = makeAxiosInstance();
-
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
@@ -253,7 +251,6 @@ const configureRequest = async (
       request.headers['cookie'] = cookieString;
     }
   }
-  return axiosInstance;
 };
 
 const parseDataFromResponse = (response) => {
@@ -448,6 +445,10 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = controller.signal;
       saveCancelToken(cancelTokenUid, controller);
 
+      const axiosInstance = makeAxiosInstance();
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      await configureRequest(collectionUid, request, envVars, collectionVariables, processEnvVars, collectionPath);
+
       await runPreRequest(
         request,
         requestUid,
@@ -458,15 +459,6 @@ const registerNetworkIpc = (mainWindow) => {
         collectionVariables,
         processEnvVars,
         scriptingConfig
-      );
-
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
       );
 
       mainWindow.webContents.send('main:run-request-event', {
@@ -645,6 +637,16 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
 
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      await configureRequest(
+        collection.uid,
+        request,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
       await runPreRequest(
         request,
         requestUid,
@@ -655,16 +657,6 @@ const registerNetworkIpc = (mainWindow) => {
         collectionVariables,
         processEnvVars,
         scriptingConfig
-      );
-
-      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
-      await configureRequest(
-        collection.uid,
-        request,
-        envVars,
-        collection.collectionVariables,
-        processEnvVars,
-        collectionPath
       );
 
       const response = request.authRequestResponse;
@@ -745,6 +737,17 @@ const registerNetworkIpc = (mainWindow) => {
       const brunoConfig = getBrunoConfig(collection.uid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
 
+      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      const axiosInstance = makeAxiosInstance();
+      await configureRequest(
+        collection.uid,
+        preparedRequest,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
       await runPreRequest(
         request,
         requestUid,
@@ -757,15 +760,6 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
-      const axiosInstance = await configureRequest(
-        collection.uid,
-        preparedRequest,
-        envVars,
-        collection.collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
       const response = await axiosInstance(preparedRequest);
 
       await runPostResponse(
@@ -880,6 +874,15 @@ const registerNetworkIpc = (mainWindow) => {
           const processEnvVars = getProcessEnvVars(collectionUid);
 
           try {
+            await configureRequest(
+              collectionUid,
+              request,
+              envVars,
+              collectionVariables,
+              processEnvVars,
+              collectionPath
+            );
+
             const preRequestScriptResult = await runPreRequest(
               request,
               requestUid,
@@ -911,14 +914,7 @@ const registerNetworkIpc = (mainWindow) => {
             });
 
             request.signal = abortController.signal;
-            const axiosInstance = await configureRequest(
-              collectionUid,
-              request,
-              envVars,
-              collectionVariables,
-              processEnvVars,
-              collectionPath
-            );
+            const axiosInstance = makeAxiosInstance();
 
             timeStart = Date.now();
             let response, responseTime;
