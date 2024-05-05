@@ -6,11 +6,9 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
-import { clearOauth2Cache } from 'utils/network';
-import toast from 'react-hot-toast';
+import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 
-const OAuth2AuthorizationCode = ({ item, collection }) => {
+const OAuth2PasswordCredentials = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -43,16 +41,6 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
     );
   };
 
-  const handleClearCache = (e) => {
-    clearOauth2Cache(collection?.uid)
-      .then(() => {
-        toast.success('cleared cache successfully');
-      })
-      .catch((err) => {
-        toast.error(err.message);
-      });
-  };
-
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
@@ -74,16 +62,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           </div>
         );
       })}
-      <div className="flex flex-row gap-4">
-        <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-          Get Access Token
-        </button>
-        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
-          Clear Cache
-        </button>
-      </div>
     </StyledWrapper>
   );
 };
 
-export default OAuth2AuthorizationCode;
+export default OAuth2PasswordCredentials;

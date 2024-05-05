@@ -787,6 +787,17 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
+  ipcMain.handle('read-oauth2-cached-credentials', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = new Oauth2Store();
+        return resolve(oauth2Store.getOauth2DataOfCollection(uid).credentials ?? {});
+      } catch (err) {
+        reject(new Error('Could not read cached oauth2 credentials'));
+      }
+    });
+  });
+
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {

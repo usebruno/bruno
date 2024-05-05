@@ -86,7 +86,7 @@ const AuthMode = ({ collection }) => {
               onModeChange('oauth2');
             }}
           >
-            Oauth2
+            OAuth 2.0
           </div>
           <div
             className="dropdown-item"
