@@ -284,7 +284,13 @@ const configureRequest = async (
     }
     request.credentials = credentials;
     request.authRequestResponse = response;
-    request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+
+    // Bruno can handle bearer token type automatically.
+    // Other - more exotic token types are not touched
+    // Users are free to use pre-request script and operate on req.credentials.access_token variable
+    if (credentials?.token_type.toLowerCase() === 'bearer') {
+      request.headers['Authorization'] = `Bearer ${credentials.access_token}`;
+    }
   }
 
   if (request.awsv4config) {
