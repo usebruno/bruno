@@ -102,25 +102,25 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
     const { oauth2 } = request;
     const { callbackUrl, clientId, authorizationUrl, scope, state, pkce } = oauth2;
 
-    let oauth2QueryParams =
-      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=code`;
+    const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+    authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
+    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
     if (callbackUrl) {
-      oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
     }
     if (scope) {
-      oauth2QueryParams += `&scope=${scope}`;
+      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
     if (pkce) {
-      oauth2QueryParams += `&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge', codeChallenge);
+      authorizationUrlWithQueryParams.searchParams.append('code_challenge_method', 'S256');
     }
     if (state) {
-      oauth2QueryParams += `&state=${state}`;
+      authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
-
-    const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
     try {
       const { authorizationCode } = await authorizeUserInWindow({
-        authorizeUrl: authorizationUrlWithQueryParams,
+        authorizeUrl: authorizationUrlWithQueryParams.toString(),
         callbackUrl,
         session: oauth2Store.getSessionIdOfCollection(collectionUid)
       });
@@ -210,21 +210,21 @@ const oauth2AuthorizeWithImplicitFlow = async (request, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
     const { callbackUrl, authorizationUrl, clientId, scope, state } = oauth2;
-    let oauth2QueryParams =
-      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=token`;
+    const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+    authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
+    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
     if (callbackUrl) {
-      oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
     }
     if (scope) {
-      oauth2QueryParams += `&scope=${scope}`;
+      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
     }
     if (state) {
-      oauth2QueryParams += `&state=${state}`;
+      authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
-    const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
     try {
       const { credentials } = await authorizeUserInWindowImplicit({
-        authorizeUrl: authorizationUrlWithQueryParams,
+        authorizeUrl: authorizationUrlWithQueryParams.toString(),
         callbackUrl: callbackUrl,
         session: oauth2Store.getSessionIdOfCollection(collectionUid)
       });
