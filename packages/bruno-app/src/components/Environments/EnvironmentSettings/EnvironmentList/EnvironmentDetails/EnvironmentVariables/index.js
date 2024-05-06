@@ -7,7 +7,6 @@ import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { IconEye, IconEyeOff } from '@tabler/icons';
 import { variableNameRegex } from 'utils/common/regex';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import cloneDeep from 'lodash/cloneDeep';
@@ -16,7 +15,6 @@ import toast from 'react-hot-toast';
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const [visibleSecrets, setVisibleSecrets] = React.useState({});
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -58,15 +56,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
     setIsModified(formik.dirty);
   }, [formik.dirty]);
 
-  const toggleVisibleSecret = (variable) => {
-    visibleSecrets[variable.uid] = !visibleSecrets[variable.uid];
-    setVisibleSecrets({ ...visibleSecrets });
-  };
-
-  const isMaskedSecret = (variable) => {
-    return variable.secret && visibleSecrets[variable.uid] !== true;
-  };
-
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
     if (!meta.error) {
@@ -97,7 +86,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   };
 
   const handleReset = () => {
-    setVisibleSecrets({});
     formik.resetForm({ originalEnvironmentVariables });
   };
 
@@ -148,19 +136,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                       collection={collection}
                       name={`${index}.value`}
                       value={variable.value}
-                      maskInput={isMaskedSecret(variable)}
+                      isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
                   </div>
-                  {variable.secret ? (
-                    <button type="button" className="btn btn-sm !pr-0" onClick={() => toggleVisibleSecret(variable)}>
-                      {isMaskedSecret(variable) ? (
-                        <IconEyeOff size={18} strokeWidth={2} />
-                      ) : (
-                        <IconEye size={18} strokeWidth={2} />
-                      )}
-                    </button>
-                  ) : null}
                 </td>
                 <td>
                   <input
