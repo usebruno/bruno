@@ -321,8 +321,7 @@ const parseOpenApiCollection = (data) => {
         return;
       }
 
-      // TODO what if info.title not defined?
-      brunoCollection.name = collectionData.info.title;
+      brunoCollection.name = collectionData.info ? collectionData.info.title : '';
       let servers = collectionData.servers || [];
       let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '{{baseUrl}}';
       let securityConfig = getSecurity(collectionData);
