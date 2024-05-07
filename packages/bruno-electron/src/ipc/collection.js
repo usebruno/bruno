@@ -444,17 +444,28 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         });
       };
 
+      const createBrunoJsonFile = async (collection, collectionPath) => {
+        const brunoConfig = {
+          version: '1',
+          name: collection.name,
+          type: 'collection',
+          ignore: ['node_modules', '.git']
+        };
+
+        if (!fs.existsSync(path.join(collectionPath, 'bruno.json')) && collection.brunoConfig) {
+          const content = { ...brunoConfig, ...collection.brunoConfig };
+          await writeFile(path.join(collectionPath, 'bruno.json'), await stringifyJson(content));
+        } else if (!fs.existsSync(path.join(collectionPath, 'bruno.json'))) {
+          await writeFile(path.join(collectionPath, 'bruno.json'), await stringifyJson(brunoConfig));
+        }
+
+        return brunoConfig;
+      };
+
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = {
-        version: '1',
-        name: collectionName,
-        type: 'collection',
-        ignore: ['node_modules', '.git']
-      };
-      const content = await stringifyJson(brunoConfig);
-      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+      const brunoConfig = await createBrunoJsonFile(collection, collectionPath);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);

@@ -267,6 +267,11 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
+      if (isItemNotARequest(si)) {
+        // Skip copying JSON type items. i.e. bruno.json
+        return;
+      }
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -359,6 +364,18 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const appendCollectionConfig = (destItems) => {
+    if (collection.brunoConfig) {
+      delete collection.brunoConfig.name;
+      delete collection.brunoConfig.type;
+      delete collection.brunoConfig.version;
+
+      destItems.brunoConfig = collection.brunoConfig;
+    } else {
+      destItems.brunoConfig = {};
+    }
+  };
+
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
@@ -370,6 +387,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.environments = collection.environments || [];
 
   copyItems(collection.items, collectionToSave.items);
+  appendCollectionConfig(collectionToSave);
 
   return collectionToSave;
 };
@@ -451,6 +469,10 @@ export const deleteItemInCollectionByPathname = (pathname, collection) => {
 
 export const isItemARequest = (item) => {
   return item.hasOwnProperty('request') && ['http-request', 'graphql-request'].includes(item.type) && !item.items;
+};
+
+export const isItemNotARequest = (item) => {
+  return ['json', 'js'].includes(item.type);
 };
 
 export const isItemAFolder = (item) => {
