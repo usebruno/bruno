@@ -95,10 +95,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         <table>
           <thead>
             <tr>
-              <td>Enabled</td>
+              <td className="text-center">Enabled</td>
               <td>Name</td>
               <td>Value</td>
-              <td>Secret</td>
+              <td className="text-center">Secret</td>
               <td></td>
             </tr>
           </thead>
@@ -108,7 +108,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                 <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.enabled`}
                     checked={variable.enabled}
                     onChange={formik.handleChange}
@@ -141,10 +141,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                     />
                   </div>
                 </td>
-                <td>
+                <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.secret`}
                     checked={variable.secret}
                     onChange={formik.handleChange}
