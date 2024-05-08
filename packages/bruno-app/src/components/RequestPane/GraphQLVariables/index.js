@@ -6,6 +6,7 @@ import { updateRequestGraphqlVariables } from 'providers/ReduxStore/slices/colle
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { useTheme } from 'providers/Theme';
 import StyledWrapper from './StyledWrapper';
+import prettierParserBabel from 'prettier/parser-babel';
 
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
@@ -37,6 +38,7 @@ const GraphQLVariables = ({ variables, item, collection }) => {
         mode="javascript"
         onRun={onRun}
         onSave={onSave}
+        formattingOptions={{ parser: 'json', plugins: [prettierParserBabel] }}
       />
     </StyledWrapper>
   );

@@ -13,6 +13,9 @@ import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { IconWand } from '@tabler/icons';
+import toast from 'react-hot-toast';
+import { format } from 'prettier/standalone';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -280,19 +283,41 @@ export default class CodeEditor extends React.Component {
     }
   }
 
+  prettify = () => {
+    try {
+      const prettified = format(this.props.value, this.props.formattingOptions);
+
+      this.editor.setValue(prettified);
+
+      toast.success('Code prettified');
+    } catch (e) {
+      toast.error('Error occurred while prettifying code : ' + e.message);
+    }
+  };
+
   render() {
     if (this.editor) {
       this.editor.refresh();
     }
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className="h-full w-full relative"
         aria-label="Code Editor"
         font={this.props.font}
         ref={(node) => {
           this._node = node;
         }}
-      />
+      >
+        {this.props.formattingOptions && (
+          <button
+            className="btn-add-param text-link px-4 py-4 select-none absolute top-0 right-0 z-10"
+            onClick={this.prettify}
+            title={'Prettify'}
+          >
+            <IconWand size={20} strokeWidth={1.5} />
+          </button>
+        )}
+      </StyledWrapper>
     );
   }
 
