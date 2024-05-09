@@ -111,7 +111,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               xml: null,
               formUrlEncoded: [],
               multipartForm: []
-            }
+            },
+            docs: i.request.description
           }
         };
 
