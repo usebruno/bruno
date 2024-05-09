@@ -1,0 +1,139 @@
+meta {
+  name: supermetrics json visualize
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://testbench-sanity.usebruno.com/api/echo/json
+  body: json
+  auth: none
+}
+
+headers {
+  foo: bar
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "notes": {
+      "runtime_sec": 5,
+      "result_rows": 4,
+      "query_count": 6    
+    },
+    "fields": [
+      {
+        "name": "Count",
+        "type": "number",
+        "data_type": "number"
+      },
+      {
+        "name": "Name",
+        "type": "string",
+        "data_type": "string"
+      },
+      {
+        "name": "Age",
+        "type": "number",
+        "data_type": "number"
+      },
+      {
+        "name": "Email",
+        "type": "email",
+        "data_type": "string"
+      },
+      {
+        "name": "Place",
+        "type": "string",
+        "data_type": "string"
+      }
+    ],
+    "data": [
+      {
+        "id": null,
+        "name": "Name",
+        "age": "Age",
+        "email": "Email",
+        "city": "City"
+      },
+      {
+        "id": 1,
+        "name": "John Doe",
+        "age": 30,
+        "email": "john@example.com",
+        "city": "New York"
+      },
+      {
+        "id": 2,
+        "name": "Jane Smith",
+        "age": 25,
+        "email": "jane@example.com",
+        "city": "Los Angeles"
+      },
+      {
+        "id": 3,
+        "name": "Bob Johnson",
+        "age": 35,
+        "email": "bob@example.com",
+        "city": "Chicago"
+      },
+      {
+        "id": 4,
+        "name": "Alice Williams",
+        "age": 28,
+        "email": "alice@example.com",
+        "city": "San Francisco"
+      }
+    ]
+  }
+  
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  const { URL } = require('url');
+  
+  const reqUrl = new URL(req.url);
+  
+  reqUrl.searchParams.delete('returnQueryIDafterSeconds');
+  reqUrl.searchParams.delete('separateFetchQuery');
+  reqUrl.searchParams.delete('pretty');
+  reqUrl.searchParams.delete('displayLog');
+  reqUrl.searchParams.delete('triggerID');
+  reqUrl.searchParams.delete('hashForQIDFDB');
+  reqUrl.searchParams.delete('queryType');
+  reqUrl.searchParams.delete('queryCount');
+  
+  reqUrl.searchParams.append("cacheBuster", new Date().toISOString());
+  
+  req.setUrl(reqUrl.href);
+  
+}
+
+script:post-response {
+  const visualizeNotes = require("./lib/notes");
+  
+  bru.visualize(visualizeNotes(res));
+}
+
+tests {
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "hello": "bruno"
+    });
+  });
+  
+}
