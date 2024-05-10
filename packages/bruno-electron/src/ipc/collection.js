@@ -13,7 +13,8 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  renameDirectory
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -140,6 +141,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const newContent = await stringifyJson(json);
       await writeFile(brunoJsonFilePath, newContent);
+
+      const newPathName = path.join(path.dirname(collectionPathname), newName);
+      await renameDirectory(collectionPathname, newPathName);
+      lastOpenedCollections.add(newPathName);
 
       // todo: listen for bruno.json changes and handle it in watcher
       // the app will change the name of the collection after parsing the bruno.json file contents
