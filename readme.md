@@ -33,6 +33,26 @@ We strive to strike a harmonious balance between [open-source principles and sus
 
 You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19** ! <br/>
 
+## Table of Contents
+- [Installation](#installation)
+- [Features](#features)
+  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-)
+  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
+- [Sponsors](#sponsors)
+  - [Gold Sponsors](#gold-sponsors)
+  - [Silver Sponsors](#silver-sponsors)
+  - [Bronze Sponsors](#bronze-sponsors)
+- [Important Links 📌](#important-links-)
+- [Showcase 🎥](#showcase-)
+- [Support ❤️](#support-)
+- [Share Testimonials 📣](#share-testimonials-)
+- [Publishing to New Package Managers](#publishing-to-new-package-managers)
+- [Stay in touch 🌐](#stay-in-touch-)
+- [Trademark](#trademark)
+- [Contribute 👩‍💻🧑‍💻](#contribute-)
+- [Authors](#authors)
+- [License 📄](#license-)
+
 ## Installation
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
@@ -68,29 +88,6 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bruno.gpg] http://debian.usebr
 sudo apt update
 sudo apt install bruno
 ```
-
-## Table of Contents
-
-- [Project Description](#bruno---opensource-ide-for-exploring-and-testing-apis)
-- [Golden Edition ✨](#golden-edition-)
-- [Installation](#installation)
-- [Features](#features)
-  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-)
-  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
-- [Sponsors](#sponsors)
-  - [Gold Sponsors](#gold-sponsors)
-  - [Silver Sponsors](#silver-sponsors)
-  - [Bronze Sponsors](#bronze-sponsors)
-- [Important Links 📌](#important-links-)
-- [Showcase 🎥](#showcase-)
-- [Support ❤️](#support-)
-- [Share Testimonials 📣](#share-testimonials-)
-- [Publishing to New Package Managers](#publishing-to-new-package-managers)
-- [Stay in touch 🌐](#stay-in-touch-)
-- [Trademark](#trademark)
-- [Contribute 👩‍💻🧑‍💻](#contribute-)
-- [Authors](#authors)
-- [License 📄](#license-)
 
 ## Features
 
