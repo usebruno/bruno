@@ -36,7 +36,7 @@ You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-tim
 ## Table of Contents
 - [Installation](#installation)
 - [Features](#features)
-  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-)
+  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
   - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
 - [Sponsors](#sponsors)
   - [Gold Sponsors](#gold-sponsors)
@@ -44,7 +44,7 @@ You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-tim
   - [Bronze Sponsors](#bronze-sponsors)
 - [Important Links 📌](#important-links-)
 - [Showcase 🎥](#showcase-)
-- [Support ❤️](#support-)
+- [Support ❤️](#support-%EF%B8%8F)
 - [Share Testimonials 📣](#share-testimonials-)
 - [Publishing to New Package Managers](#publishing-to-new-package-managers)
 - [Stay in touch 🌐](#stay-in-touch-)
