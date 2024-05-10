@@ -1,8 +1,13 @@
-import { React, useCallback } from 'react';
+import { React } from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
-import { addQueryParam, updateQueryParam, deleteQueryParam } from 'providers/ReduxStore/slices/collections';
+import {
+  addQueryParam,
+  updateQueryParam,
+  deleteQueryParam,
+  moveQueryParam
+} from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -62,10 +67,23 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const handleParamDrag = (sourceIndex, targetIndex) => {
+    console.log('handleParamDrag', sourceIndex, targetIndex, params);
+    dispatch(
+      moveQueryParam({
+        sourceIndex: sourceIndex,
+        targetIndex: targetIndex,
+        paramUid: params[sourceIndex].uid,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
   return (
     <StyledWrapper className="w-full">
       <DndProvider backend={HTML5Backend}>
-        <table className="draggable-table">
+        <table className="draggable-table select-text">
           <thead>
             <tr>
               <td></td>
@@ -80,11 +98,13 @@ const QueryParams = ({ item, collection }) => {
                   return (
                     <QueryParamRow
                       param={param}
+                      index={index}
                       collection={collection}
                       onSave={onSave}
                       onRun={handleRun}
                       onChangeEvent={handleParamChange}
                       onTrashEvent={handleRemoveParam}
+                      onDragEvent={handleParamDrag}
                     />
                   );
                 })

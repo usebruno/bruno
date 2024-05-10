@@ -431,6 +431,25 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          var sortedParams = [...item.draft.request.params];
+          var tmp = sortedParams[action.payload.sourceIndex];
+          sortedParams.splice(action.payload.sourceIndex, 1);
+          sortedParams.splice(action.payload.targetIndex, 0, tmp);
+          item.draft.request.params = sortedParams;
+          console.log('resorted params');
+        }
+      }
+    },
     updateQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1416,6 +1435,7 @@ export const {
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  moveQueryParam,
   updateQueryParam,
   deleteQueryParam,
   addRequestHeader,
