@@ -67,14 +67,14 @@ export const QueryParamRow = ({
       return { index, param };
     },
     collect: (monitor) => ({
-      isDragging: monitor.isDragging()
+      isDragging: param.uid === monitor.getItem()?.param?.uid
     })
   });
 
   drag(drop(ref));
   return (
-    <tr key={param.uid} className="select-none">
-      <td className="draggable-handle text-right !pl-0 !pr-0 select-none" ref={ref} data-handler-id={handlerId}>
+    <tr key={param.uid} style={{ opacity: isDragging ? 0.4 : 1 }} className="select-none" data-handler-id={handlerId}>
+      <td className="draggable-handle text-right !pl-0 !pr-0 select-none" ref={ref}>
         <div className="w-full flex place-content-center">
           <IconLineHeight strokeWidth={1.5} size={20} />
         </div>
