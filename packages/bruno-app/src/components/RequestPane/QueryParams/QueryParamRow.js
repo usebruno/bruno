@@ -17,7 +17,7 @@ export const QueryParamRow = ({
   onDragEvent
 }) => {
   const { storedTheme } = useTheme();
-  const ref = useRef(null);
+  const draggableRef = useRef(null);
 
   const [{ handlerId }, drop] = useDrop({
     accept: DRAG_ACCEPT,
@@ -27,7 +27,7 @@ export const QueryParamRow = ({
       };
     },
     hover(item, monitor) {
-      if (!ref.current) return;
+      if (!draggableRef.current) return;
 
       const dragIndex = item.index;
       const hoverIndex = index;
@@ -37,7 +37,7 @@ export const QueryParamRow = ({
       }
 
       // Determine mouse position and rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
+      const hoverBoundingRect = draggableRef.current?.getBoundingClientRect();
       const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
       const clientOffset = monitor.getClientOffset();
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
@@ -61,7 +61,7 @@ export const QueryParamRow = ({
       item.index = hoverIndex;
     }
   });
-  const [{ isDragging }, drag, preview] = useDrag({
+  const [{ isDragging }, drag] = useDrag({
     type: DRAG_ACCEPT,
     item: () => {
       return { index, param };
@@ -71,13 +71,13 @@ export const QueryParamRow = ({
     })
   });
   const getClassNames = () => {
-    return isDragging ? 'dragging select-none' : 'select-text';
+    return isDragging ? 'dragging select-none clip-codemirror' : 'select-text clip-codemirror';
   };
 
-  drag(drop(ref));
+  drag(drop(draggableRef));
   return (
-    <tr key={param.uid} className={getClassNames()} ref={ref} data-handler-id={handlerId}>
-      <td className="draggable-handle text-right !p-0 !p-0 select-none" ref={preview}>
+    <tr key={param.uid} className={getClassNames()} ref={draggableRef} data-handler-id={handlerId}>
+      <td className="draggable-handle text-right !p-0 !p-0 select-none">
         <div className="w-full flex place-content-center">
           <IconLineHeight strokeWidth={1.5} size={20} />
         </div>

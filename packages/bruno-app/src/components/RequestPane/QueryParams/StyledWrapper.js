@@ -34,6 +34,23 @@ const Wrapper = styled.div`
     }
   }
 
+  // Fixes overlay of draggable containing neighbouring elements
+  .clip-codemirror:active {
+    .CodeMirror {
+      textarea {
+        display: none;
+      }
+    }
+    .CodeMirror-scroll {
+      padding: 0 !important;
+      margin: 0 !important;
+
+      div:nth-last-child(2) {
+        display: none;
+      }
+    }
+  }
+
   .draggable-handle {
     cursor: grab;
     white-space: nowrap;
