@@ -248,6 +248,9 @@ const darkTheme = {
     striped: '#2A2D2F',
     input: {
       color: '#ccc'
+    },
+    active: {
+      bg: '#3D3D3D'
     }
   },
 

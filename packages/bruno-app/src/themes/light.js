@@ -252,6 +252,9 @@ const lightTheme = {
     striped: '#f3f3f3',
     input: {
       color: '#000000'
+    },
+    active: {
+      bg: '#e7e7e7'
     }
   },
 

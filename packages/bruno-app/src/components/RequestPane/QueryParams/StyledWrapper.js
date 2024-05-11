@@ -43,6 +43,9 @@ const Wrapper = styled.div`
       cursor: grabbing;
     }
   }
+  .dragging {
+    background: ${(props) => props.theme.table.active.bg};
+  }
 
   .btn-add-param {
     font-size: 0.8125rem;

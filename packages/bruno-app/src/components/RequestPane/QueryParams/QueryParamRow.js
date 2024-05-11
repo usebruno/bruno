@@ -4,7 +4,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { IconLineHeight, IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 
-const DRAG_ACCEPT = 'table';
+const DRAG_ACCEPT = 'QueryParamRow';
 
 export const QueryParamRow = ({
   param,
@@ -23,7 +23,7 @@ export const QueryParamRow = ({
     accept: DRAG_ACCEPT,
     collect(monitor) {
       return {
-        handlelId: monitor.getHandlerId()
+        handlerId: monitor.getHandlerId()
       };
     },
     hover(item, monitor) {
@@ -61,7 +61,7 @@ export const QueryParamRow = ({
       item.index = hoverIndex;
     }
   });
-  const [{ isDragging }, drag] = useDrag({
+  const [{ isDragging }, drag, preview] = useDrag({
     type: DRAG_ACCEPT,
     item: () => {
       return { index, param };
@@ -70,11 +70,14 @@ export const QueryParamRow = ({
       isDragging: param.uid === monitor.getItem()?.param?.uid
     })
   });
+  const getClassNames = () => {
+    return isDragging ? 'dragging select-none' : 'select-text';
+  };
 
   drag(drop(ref));
   return (
-    <tr key={param.uid} style={{ opacity: isDragging ? 0.4 : 1 }} className="select-none" data-handler-id={handlerId}>
-      <td className="draggable-handle text-right !pl-0 !pr-0 select-none" ref={ref}>
+    <tr key={param.uid} className={getClassNames()} ref={ref} data-handler-id={handlerId}>
+      <td className="draggable-handle text-right !p-0 !p-0 select-none" ref={preview}>
         <div className="w-full flex place-content-center">
           <IconLineHeight strokeWidth={1.5} size={20} />
         </div>
