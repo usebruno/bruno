@@ -53,7 +53,6 @@ export const QueryParamRow = ({
       if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
         return;
       }
-      console.log(`hoverIndex=${hoverIndex}, dragIndex=${dragIndex}`);
 
       // Trigger callback
       onDragEvent(dragIndex, hoverIndex);

@@ -48,13 +48,7 @@ const QueryParams = ({ item, collection }) => {
       }
     }
 
-    dispatch(
-      updateQueryParam({
-        param,
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    updateParam(param);
   };
 
   const handleRemoveParam = (param) => {
@@ -67,8 +61,17 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
+  const updateParam = (param) => {
+    dispatch(
+      updateQueryParam({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        param: param
+      })
+    );
+  };
+
   const handleParamDrag = (sourceIndex, targetIndex) => {
-    console.log('handleParamDrag', sourceIndex, targetIndex, params);
     dispatch(
       moveQueryParam({
         sourceIndex: sourceIndex,
@@ -78,6 +81,7 @@ const QueryParams = ({ item, collection }) => {
         collectionUid: collection.uid
       })
     );
+    updateParam(params[sourceIndex]);
   };
 
   return (

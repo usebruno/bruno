@@ -431,6 +431,23 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    /**
+     * Moves a query parameter from `sourceIndex` to `targetIndex` location. The remaining items after the sourceIndex are
+     * either shifted left or right, depending on the insertion position.
+     *
+     * @example moveQueryParam({sourceIndex: 1, targetIndex: 4, collectionUid: collection.uid, itemUid: item.uid, paramUid: param.uid});
+     *
+     * | params  | before | after |
+     * | ------- | ------ | ----- |
+     * | [0].uid | a      | a     |
+     * | [1].uid | b      | c     |
+     * | [2].uid | c      | d     |
+     * | [3].uid | d      | e     |
+     * | [4].uid | e      | b     |
+     *
+     * @param {*} state
+     * @param {*} action
+     */
     moveQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -441,12 +458,23 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
 
-          var sortedParams = [...item.draft.request.params];
-          var tmp = sortedParams[action.payload.sourceIndex];
+          const sortedParams = [...item.draft.request.params];
+          // Assert given input
+          console.assert(action.payload.sourceIndex >= 0, 'sourceIndex must be greater >= 0');
+          console.assert(action.payload.targetIndex >= 0, 'targetIndex must be greater >= 0');
+          console.assert(
+            action.payload.sourceIndex < sortedParams.length,
+            'sourceIndex must not exceed the params length'
+          );
+          console.assert(
+            action.payload.targetIndex < sortedParams.length,
+            'targetIndex must not exceed the params length'
+          );
+
+          const tmp = sortedParams[action.payload.sourceIndex];
           sortedParams.splice(action.payload.sourceIndex, 1);
           sortedParams.splice(action.payload.targetIndex, 0, tmp);
           item.draft.request.params = sortedParams;
-          console.log('resorted params');
         }
       }
     },
