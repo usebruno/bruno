@@ -48,6 +48,13 @@ function getDataString(request) {
   }
 
   const parsedQueryString = querystring.parse(request.data, { sort: false });
+  // if missing `=`, `query-string` will set value as `null`. Reset value as empty string ('') here.
+  // https://github.com/sindresorhus/query-string/blob/3d8fbf2328220c06e45f166cdf58e70617c7ee68/base.js#L364-L366
+  Object.keys(parsedQueryString).forEach((key) => {
+    if (parsedQueryString[key] === null) {
+      parsedQueryString[key] = '';
+    }
+  });
   const keyCount = Object.keys(parsedQueryString).length;
   const singleKeyOnly = keyCount === 1 && !parsedQueryString[Object.keys(parsedQueryString)[0]];
   const singularData = request.isDataBinary || singleKeyOnly;
