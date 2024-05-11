@@ -114,13 +114,13 @@ export const QueryParamRow = ({
           collection={collection}
         />
       </td>
-      <td>
-        <div className="flex items-center">
+      <td className="!p-0 !m-0">
+        <div className="flex justify-evenly w-full">
           <input
             type="checkbox"
             checked={param.enabled}
             tabIndex="-1"
-            className="mr-3 mousetrap"
+            className="mousetrap"
             onChange={(e) => onChangeEvent(e, param, 'enabled')}
           />
           <button tabIndex="-1" onClick={() => onTrashEvent(param)}>
