@@ -1,4 +1,4 @@
-import { React, useMemo, useState, useRef } from 'react';
+import { React, useRef } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { IconLineHeight, IconTrash } from '@tabler/icons';
@@ -17,54 +17,38 @@ export const QueryParamRow = ({
   onDragEvent
 }) => {
   const { storedTheme } = useTheme();
-  const draggableRef = useRef(null);
+  const ref = useRef(null);
 
   const [{ handlerId }, drop] = useDrop({
     accept: DRAG_ACCEPT,
-    collect(monitor) {
-      return {
-        handlerId: monitor.getHandlerId()
-      };
-    },
-    hover(item, monitor) {
-      if (!draggableRef.current) return;
+    collect: (monitor) => ({ handlerId: monitor.getHandlerId() }),
+    hover: (item, monitor) => {
+      if (!ref.current) return;
 
       const dragIndex = item.index;
       const hoverIndex = index;
       // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-
-      // Determine mouse position and rectangle on screen
-      const hoverBoundingRect = draggableRef.current?.getBoundingClientRect();
+      if (item.index === index) return;
+      // Determine grab and hover rectangle on screen
+      const hoverBoundingRect = ref.current?.getBoundingClientRect();
       const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
       const clientOffset = monitor.getClientOffset();
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
 
       // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
       // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
+      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) return;
       // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
+      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) return;
 
-      // Trigger callback
-      onDragEvent(dragIndex, hoverIndex);
-
-      item.index = hoverIndex;
+      // Trigger callback and override index
+      onDragEvent(item.index, index);
+      item.index = index;
     }
   });
   const [{ isDragging }, drag] = useDrag({
     type: DRAG_ACCEPT,
-    item: () => {
-      return { index, param };
-    },
+    item: () => ({ index, param }),
     collect: (monitor) => ({
       isDragging: param.uid === monitor.getItem()?.param?.uid
     })
@@ -73,9 +57,9 @@ export const QueryParamRow = ({
     return isDragging ? 'dragging select-none clip-codemirror' : 'select-text clip-codemirror';
   };
 
-  drag(drop(draggableRef));
+  drag(drop(ref));
   return (
-    <tr key={param.uid} className={getClassNames()} ref={draggableRef} data-handler-id={handlerId}>
+    <tr key={param.uid} className={getClassNames()} ref={ref} data-handler-id={handlerId}>
       <td className="draggable-handle text-right !p-0 !p-0 select-none">
         <div className="w-full flex place-content-center">
           <IconLineHeight strokeWidth={1.5} size={20} />
