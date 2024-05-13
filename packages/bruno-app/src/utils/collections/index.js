@@ -265,8 +265,45 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const copyRequest = (request) => {
+    return {
+      url: request.url,
+      method: request.method,
+      headers: copyHeaders(request.headers),
+      params: copyQueryParams(request.params),
+      body: {
+        mode: request.body.mode,
+        json: request.body.json,
+        text: request.body.text,
+        xml: request.body.xml,
+        graphql: request.body.graphql,
+        sparql: request.body.sparql,
+        formUrlEncoded: copyFormUrlEncodedParams(request.body.formUrlEncoded),
+        multipartForm: copyMultipartFormParams(request.body.multipartForm)
+      },
+      auth: {
+        mode: get(request, 'auth.mode', 'none'),
+        basic: {
+          username: get(request, 'auth.basic.username', ''),
+          password: get(request, 'auth.basic.password', '')
+        },
+        bearer: {
+          token: get(request, 'auth.bearer.token', '')
+        }
+      },
+      script: request.script,
+      vars: request.vars,
+      assertions: request.assertions,
+      tests: request.tests
+    };
+  };
+
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
+      if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -274,75 +311,22 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         seq: si.seq
       };
 
-      // if items is draft, then take data from draft to save
-      // The condition "!options.ignoreDraft" may appear confusing
-      // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
-      // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if (si.draft && !options.ignoreDraft) {
+      /* If the item is a draft, we take the data from the draft to save.
+       The condition "!options.ignoreDraft" might seem confusing at first.
+       When saving a collection, this option allows the caller to specify whether to ignore any draft changes while still saving the rest of the collection.
+       This is particularly useful when renaming requests/collections, as it allows changes in the draft to remain unsaved in the indexeddb, thus not affecting the original data.
+      */
+
+      // If the item type is 'js', we directly save the raw content of the item.
+      if (si.type === 'js') {
+        di.fileContent = si.raw;
+      } else if (si.draft && !options.ignoreDraft) {
         if (si.draft.request) {
-          di.request = {
-            url: si.draft.request.url,
-            method: si.draft.request.method,
-            headers: copyHeaders(si.draft.request.headers),
-            params: copyQueryParams(si.draft.request.params),
-            body: {
-              mode: si.draft.request.body.mode,
-              json: si.draft.request.body.json,
-              text: si.draft.request.body.text,
-              xml: si.draft.request.body.xml,
-              graphql: si.draft.request.body.graphql,
-              sparql: si.draft.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.draft.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.draft.request, 'auth.basic.username', ''),
-                password: get(si.draft.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.draft.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.draft.request.script,
-            vars: si.draft.request.vars,
-            assertions: si.draft.request.assertions,
-            tests: si.draft.request.tests
-          };
+          di.request = copyRequest(si.draft.request);
         }
       } else {
         if (si.request) {
-          di.request = {
-            url: si.request.url,
-            method: si.request.method,
-            headers: copyHeaders(si.request.headers),
-            params: copyQueryParams(si.request.params),
-            body: {
-              mode: si.request.body.mode,
-              json: si.request.body.json,
-              text: si.request.body.text,
-              xml: si.request.body.xml,
-              graphql: si.request.body.graphql,
-              sparql: si.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.request, 'auth.basic.username', ''),
-                password: get(si.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.request.script,
-            vars: si.request.vars,
-            assertions: si.request.assertions,
-            tests: si.request.tests
-          };
+          di.request = copyRequest(si.request);
         }
       }
 
@@ -359,6 +343,15 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const appendCollectionBrunoConfig = (destItems) => {
+    if (collection.brunoConfig) {
+      const { name, type, version, ...rest } = collection.brunoConfig;
+      destItems.brunoConfig = rest;
+    } else {
+      destItems.brunoConfig = {};
+    }
+  };
+
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
@@ -370,6 +363,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.environments = collection.environments || [];
 
   copyItems(collection.items, collectionToSave.items);
+  appendCollectionBrunoConfig(collectionToSave);
 
   return collectionToSave;
 };
