@@ -240,6 +240,17 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
+  const copyPathParams = (paths) => {
+    return map(paths, (path) => {
+      return {
+        uid: path.uid,
+        name: path.name,
+        value: path.value,
+        enabled: path.enabled
+      };
+    });
+  };
+
   const copyFormUrlEncodedParams = (params = []) => {
     return map(params, (param) => {
       return {
@@ -285,6 +296,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             method: si.draft.request.method,
             headers: copyHeaders(si.draft.request.headers),
             params: copyQueryParams(si.draft.request.params),
+            paths: copyPathParams(si.draft.request.paths),
             body: {
               mode: si.draft.request.body.mode,
               json: si.draft.request.body.json,
@@ -318,6 +330,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             method: si.request.method,
             headers: copyHeaders(si.request.headers),
             params: copyQueryParams(si.request.params),
+            paths: copyPathParams(si.request.paths),
             body: {
               mode: si.request.body.mode,
               json: si.request.body.json,
@@ -385,6 +398,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       method: _item.request.method,
       url: _item.request.url,
       params: [],
+      paths: [],
       headers: [],
       auth: _item.request.auth,
       body: _item.request.body,
@@ -403,6 +417,14 @@ export const transformRequestToSaveToFilesystem = (item) => {
       value: param.value,
       description: param.description,
       enabled: param.enabled
+    });
+  });
+
+  each(_item.request.paths, (path) => {
+    itemToSave.request.paths.push({
+      uid: path.uid,
+      name: path.name,
+      value: path.value
     });
   });
 
@@ -546,6 +568,7 @@ export const refreshUidsInItem = (item) => {
 
   each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
+  each(get(item, 'request.paths'), (path) => (path.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
 
@@ -556,11 +579,13 @@ export const deleteUidsInItem = (item) => {
   delete item.uid;
   const params = get(item, 'request.params', []);
   const headers = get(item, 'request.headers', []);
+  const paths = get(item, 'request.paths', []);
   const bodyFormUrlEncoded = get(item, 'request.body.formUrlEncoded', []);
   const bodyMultipartForm = get(item, 'request.body.multipartForm', []);
 
   params.forEach((param) => delete param.uid);
   headers.forEach((header) => delete header.uid);
+  paths.forEach((path) => delete path.uid);
   bodyFormUrlEncoded.forEach((param) => delete param.uid);
   bodyMultipartForm.forEach((param) => delete param.uid);
 

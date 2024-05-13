@@ -23,11 +23,9 @@ Bruno 使用 Next.js 和 React 構建。我們使用 Electron 來封裝及發佈
 
 您需要使用 [Node v18.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
 
-
 ## 開發
 
 Bruno 正以桌面應用程式的形式開發。您需要在一個終端機中執行 Next.js 來載入應用程式，然後在另一個終端機中執行 electron 應用程式。
-
 
 ### 開發依賴
 
@@ -69,7 +67,6 @@ done
 find . -type f -name "package-lock.json" -delete
 ```
 
-
 ### 測試
 
 ```bash
@@ -79,7 +76,6 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
-
 
 ### 發送 Pull Request
 

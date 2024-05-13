@@ -193,6 +193,7 @@ const requestSchema = Yup.object({
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
   params: Yup.array().of(keyValueSchema).required('params are required'),
+  paths: Yup.array().of(keyValueSchema).required('paths are required'),
   auth: authSchema,
   body: requestBodySchema,
   script: Yup.object({

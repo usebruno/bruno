@@ -29,7 +29,8 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    paths: request.paths
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');
