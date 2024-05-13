@@ -364,7 +364,7 @@ const importCollection = (options) => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection, translationLog }))
       .catch((err) => {
         console.log(err);
         reject(new BrunoError('Import collection failed'));
