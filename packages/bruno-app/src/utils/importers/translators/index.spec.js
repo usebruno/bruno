@@ -36,8 +36,8 @@ describe('postmanTranslation function', () => {
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => pm.response.json());";
-    const expectedOutput = "// test('random test', () => pm.response.json());";
+    const inputScript = "pm.test('random test', () => pm.imaginary.json());";
+    const expectedOutput = "// test('random test', () => pm.imaginary.json());";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
   test('should handle multiple pm commands on the same line', () => {
