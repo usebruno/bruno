@@ -343,14 +343,14 @@ const parsePostmanCollection = (str, options) => {
 
 const logTranslationDetails = (translationLog) => {
   if (Object.keys(translationLog || {}).length > 0) {
-    console.log(
-      `======== Postman Translation Logs ========
-|| Collections incomplete : ${Object.keys(translationLog || {}).length}` +
-        `\n|| Total lines incomplete : ${Object.values(translationLog || {}).reduce(
+    console.warn(
+      `[Postman Translation Logs]
+Collections incomplete : ${Object.keys(translationLog || {}).length}` +
+        `\nTotal lines incomplete : ${Object.values(translationLog || {}).reduce(
           (acc, curr) => acc + (curr.script?.length || 0) + (curr.test?.length || 0),
           0
         )}` +
-        `\n|| See details below :`,
+        `\nSee details below :`,
       translationLog
     );
   }
