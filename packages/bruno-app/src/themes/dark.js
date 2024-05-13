@@ -136,6 +136,21 @@ const darkTheme = {
     }
   },
 
+  notifications: {
+    bg: '#3D3D3D',
+    list: {
+      bg: '3D3D3D',
+      borderRight: '#4f4f4f',
+      borderBottom: '#545454',
+      hoverBg: '#434343',
+      active: {
+        border: '#569cd6',
+        bg: '#4f4f4f',
+        hoverBg: '#4f4f4f'
+      }
+    }
+  },
+
   modal: {
     title: {
       color: '#ccc',
@@ -238,6 +253,10 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
+  },
+
+  scrollbar: {
+    color: 'rgb(52 51 49)'
   }
 };
 

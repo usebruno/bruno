@@ -28,6 +28,19 @@ const RequestTab = ({ tab, collection }) => {
     );
   };
 
+  const handleMouseUp = (e) => {
+    if (e.button === 1) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      dispatch(
+        closeTabs({
+          tabUids: [tab.uid]
+        })
+      );
+    }
+  };
+
   const getMethodColor = (method = '') => {
     const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
 
@@ -124,7 +137,18 @@ const RequestTab = ({ tab, collection }) => {
           }}
         />
       )}
-      <div className="flex items-baseline tab-label pl-2">
+      <div
+        className="flex items-baseline tab-label pl-2"
+        onMouseUp={(e) => {
+          if (!item.draft) return handleMouseUp(e);
+
+          if (e.button === 1) {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowConfirmClose(true);
+          }
+        }}
+      >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
         </span>

@@ -1,4 +1,6 @@
 const { get, each, filter } = require('lodash');
+const fs = require('fs');
+var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
 const prepareRequest = (request, collectionRoot) => {
@@ -31,12 +33,8 @@ const prepareRequest = (request, collectionRoot) => {
     paths: request.paths
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -45,7 +43,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -57,8 +55,19 @@ const prepareRequest = (request, collectionRoot) => {
       };
     }
 
+    if (request.auth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+        secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+        sessionToken: get(request, 'auth.awsv4.sessionToken'),
+        service: get(request, 'auth.awsv4.service'),
+        region: get(request, 'auth.awsv4.region'),
+        profileName: get(request, 'auth.awsv4.profileName')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
   }
 
@@ -69,7 +78,7 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
     } catch (ex) {
       axiosRequest.data = request.body.json;
     }
@@ -107,7 +116,13 @@ const prepareRequest = (request, collectionRoot) => {
   if (request.body.mode === 'multipartForm') {
     const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+    each(enabledParams, (p) => {
+      if (p.type === 'file') {
+        params[p.name] = p.value.map((path) => fs.createReadStream(path));
+      } else {
+        params[p.name] = p.value;
+      }
+    });
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
   }

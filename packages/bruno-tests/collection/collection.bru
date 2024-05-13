@@ -3,16 +3,11 @@ headers {
 }
 
 auth {
-  mode: none
-}
-
-auth:basic {
-  username: bruno
-  password: {{basicAuthPassword}}
+  mode: bearer
 }
 
 auth:bearer {
-  token: {{bearerAuthToken}}
+  token: {{bearer_auth_token}}
 }
 
 docs {

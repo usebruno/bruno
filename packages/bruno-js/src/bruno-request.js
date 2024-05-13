@@ -20,6 +20,22 @@ class BrunoRequest {
     return this.req.method;
   }
 
+  getAuthMode() {
+    if (this.req?.oauth2) {
+      return 'oauth2';
+    } else if (this.headers?.['Authorization']?.startsWith('Bearer')) {
+      return 'bearer';
+    } else if (this.headers?.['Authorization']?.startsWith('Basic') || this.req?.auth?.username) {
+      return 'basic';
+    } else if (this.req?.awsv4) {
+      return 'awsv4';
+    } else if (this.req?.digestConfig) {
+      return 'digest';
+    } else {
+      return 'none';
+    }
+  }
+
   setMethod(method) {
     this.req.method = method;
   }

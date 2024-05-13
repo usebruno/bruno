@@ -23,6 +23,7 @@ function countRequests(items) {
 const Info = ({ collection }) => {
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
+      <div className="text-xs mb-4 text-muted">General information about the collection.</div>
       <table className="w-full border-collapse">
         <tbody>
           <tr className="">
@@ -32,6 +33,10 @@ const Info = ({ collection }) => {
           <tr className="">
             <td className="py-2 px-2 text-right">Location&nbsp;:</td>
             <td className="py-2 px-2 break-all">{collection.pathname}</td>
+          </tr>
+          <tr className="">
+            <td className="py-2 px-2 text-right">Ignored files&nbsp;:</td>
+            <td className="py-2 px-2 break-all">{collection.brunoConfig?.ignore?.map((x) => `'${x}'`).join(', ')}</td>
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Environments&nbsp;:</td>

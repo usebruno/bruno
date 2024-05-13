@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest 
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -42,6 +42,7 @@ const grammar = ohm.grammar(`Bru {
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
+  authOAuth2 = "auth:oauth2" dictionary
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -239,6 +240,54 @@ const sem = grammar.createSemantics().addAttribute('ast', {
           username,
           password
         }
+      }
+    };
+  },
+  authOAuth2(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const grantTypeKey = _.find(auth, { name: 'grant_type' });
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const callbackUrlKey = _.find(auth, { name: 'callback_url' });
+    const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
+    const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const clientIdKey = _.find(auth, { name: 'client_id' });
+    const clientSecretKey = _.find(auth, { name: 'client_secret' });
+    const scopeKey = _.find(auth, { name: 'scope' });
+    const pkceKey = _.find(auth, { name: 'pkce' });
+    return {
+      auth: {
+        oauth2:
+          grantTypeKey?.value && grantTypeKey?.value == 'password'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                username: usernameKey ? usernameKey.value : '',
+                password: passwordKey ? passwordKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : {}
       }
     };
   },

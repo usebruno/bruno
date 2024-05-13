@@ -19,7 +19,7 @@ const QueryResultPreview = ({
   collection,
   mode,
   disableRunEventListener,
-  storedTheme
+  displayedTheme
 }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
@@ -65,13 +65,23 @@ const QueryResultPreview = ({
         </div>
       );
     }
+    case 'preview-audio': {
+      return (
+        <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
+    case 'preview-video': {
+      return (
+        <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
     default:
     case 'raw': {
       return (
         <CodeEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
-          theme={storedTheme}
+          theme={displayedTheme}
           onRun={onRun}
           value={formattedData}
           mode={mode}

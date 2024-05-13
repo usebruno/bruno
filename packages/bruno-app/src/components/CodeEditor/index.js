@@ -43,6 +43,7 @@ if (!SERVER_RENDERED) {
     'req.getUrl()',
     'req.setUrl(url)',
     'req.getMethod()',
+    'req.getAuthMode()',
     'req.setMethod(method)',
     'req.getHeader(name)',
     'req.getHeaders()',
@@ -231,7 +232,7 @@ export default class CodeEditor extends React.Component {
         let curWord = start != end && currentLine.slice(start, end);
         //Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
