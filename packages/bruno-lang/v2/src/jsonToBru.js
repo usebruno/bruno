@@ -64,21 +64,12 @@ const jsonToBru = (json) => {
 
   if (query && query.length) {
     bru += 'query {';
-    if (enabled(query).length) {
-      bru += `\n${indentString(
-        enabled(query)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
-    }
-
-    if (disabled(query).length) {
-      bru += `\n${indentString(
-        disabled(query)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
-    }
+    var queryParams = [];
+    query.forEach((item) => {
+      if (item.enabled) queryParams.push(`${item.name}: ${item.value}`);
+      else queryParams.push(`~${item.name}: ${item.value}`);
+    });
+    bru += `\n${indentString(queryParams.join('\n'))}`;
 
     bru += '\n}\n\n';
   }
