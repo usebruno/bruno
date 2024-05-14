@@ -9,10 +9,6 @@ const Wrapper = styled.div`
     display: flex;
     position: relative;
 
-    &::-webkit-scrollbar {
-      display: none;
-    }
-
     li {
       display: inline-flex;
       max-width: 150px;
