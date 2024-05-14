@@ -8,7 +8,6 @@ const Wrapper = styled.div`
     margin: 0;
     display: flex;
     position: relative;
-    overflow: scroll;
 
     &::-webkit-scrollbar {
       display: none;
