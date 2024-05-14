@@ -461,11 +461,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           };
         }
 
-        if (!fs.existsSync(path.join(collectionPath, 'bruno.json'))) {
-          const content = { ...brunoConfig, ...(collection?.brunoConfig || {}) };
-          await writeFile(path.join(collectionPath, 'bruno.json'), await stringifyJson(content));
-        }
-
+        await writeFile(path.join(collectionPath, 'bruno.json'), await stringifyJson(brunoConfig));
         return brunoConfig;
       };
 

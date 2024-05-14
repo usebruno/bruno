@@ -343,15 +343,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const appendCollectionBrunoConfig = (destItems) => {
-    if (collection.brunoConfig) {
-      const { name, type, version, ...rest } = collection.brunoConfig;
-      destItems.brunoConfig = rest;
-    } else {
-      destItems.brunoConfig = {};
-    }
-  };
-
   const collectionToSave = {};
   collectionToSave.name = collection.name;
   collectionToSave.uid = collection.uid;
@@ -362,9 +353,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
 
-  copyItems(collection.items, collectionToSave.items);
-  appendCollectionBrunoConfig(collectionToSave);
+  collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
 
+  // delete proxy password if present
+  if (collectionToSave?.brunoConfig?.proxy?.auth?.password) {
+    delete collectionToSave.brunoConfig.proxy.auth.password;
+  }
+
+  copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
 
