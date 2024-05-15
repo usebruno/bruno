@@ -725,11 +725,11 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collection) => {
+  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
     try {
       const envVars = getEnvVars(environment);
       const collectionRoot = get(collection, 'root', {});
-      const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
+      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
 
       request.timeout = preferencesUtil.getRequestTimeout();
 
@@ -759,16 +759,16 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
-        preparedRequest,
+        request,
         envVars,
         collection.collectionVariables,
         processEnvVars,
         collectionPath
       );
-      const response = await axiosInstance(preparedRequest);
+      const response = await axiosInstance(request);
 
       await runPostResponse(
         request,
