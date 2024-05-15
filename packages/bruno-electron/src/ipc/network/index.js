@@ -1,6 +1,5 @@
 const os = require('os');
 const fs = require('fs');
-const qs = require('qs');
 const https = require('https');
 const tls = require('tls');
 const axios = require('axios');
@@ -16,7 +15,7 @@ const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
-const { uuid } = require('../../utils/common');
+const { uuid, convertFormUrlEncodedToString } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { sortFolder, getAllRequestsInFolderRecursively } = require('./helper');
@@ -350,7 +349,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
-      request.data = qs.stringify(request.data);
+      request.data = convertFormUrlEncodedToString(request.data.data);
     }
 
     return scriptResult;

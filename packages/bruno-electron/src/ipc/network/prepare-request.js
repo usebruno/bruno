@@ -200,9 +200,15 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
 
   if (request.body.mode === 'formUrlEncoded') {
     axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    const params = {
+      data: []
+    };
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
+    each(enabledParams, (p) =>
+      params.data.push({
+        [p.name]: p.value
+      })
+    );
     axiosRequest.data = params;
   }
 

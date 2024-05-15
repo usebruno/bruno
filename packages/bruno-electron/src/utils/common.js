@@ -85,6 +85,11 @@ const flattenDataForDotNotation = (data) => {
   return result;
 };
 
+function convertFormUrlEncodedToString(inputArray) {
+  const formattedStrings = inputArray.map((obj) => `${Object.keys(obj)[0]}=${Object.values(obj)[0]}`);
+  return formattedStrings.join('&');
+}
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -93,5 +98,6 @@ module.exports = {
   safeParseJSON,
   simpleHash,
   generateUidBasedOnHash,
-  flattenDataForDotNotation
+  flattenDataForDotNotation,
+  convertFormUrlEncodedToString
 };
