@@ -449,7 +449,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         });
       };
 
-      const createBrunoJsonFile = async (collection, collectionPath) => {
+      const getBrunoJsonConfig = async (collection, collectionPath) => {
         let brunoConfig = collection.brunoConfig;
 
         if (!brunoConfig) {
@@ -468,9 +468,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = await createBrunoJsonFile(collection, collectionPath);
-      const content = await stringifyJson(brunoConfig);
-      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+      const brunoConfig = await getBrunoJsonConfig(collection, collectionPath);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);

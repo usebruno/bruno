@@ -316,22 +316,16 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
        When saving a collection, this option allows the caller to specify whether to ignore any draft changes while still saving the rest of the collection.
        This is particularly useful when renaming requests/collections, as it allows changes in the draft to remain unsaved in the indexeddb, thus not affecting the original data.
       */
+      if (si.request) {
+        di.request = copyRequest(si.request);
 
-      // If the item type is 'js', we directly save the raw content of the item.
-      if (si.type === 'js') {
-        di.fileContent = si.raw;
-      } else if (si.draft && !options.ignoreDraft) {
-        if (si.draft.request) {
-          di.request = copyRequest(si.draft.request);
+        if (si.type === 'js') {
+          di.fileContent = si.raw;
         }
-      } else {
-        if (si.request) {
-          di.request = copyRequest(si.request);
-        }
-      }
 
-      if (di.request && di.request.body.mode === 'json') {
-        di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        if (di.request.body.mode === 'json') {
+          di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+        }
       }
 
       destItems.push(di);
