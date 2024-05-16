@@ -207,10 +207,11 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
+    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = parseFormData(enabledParams, collectionPath);
-    extend(axiosRequest.headers, form.getHeaders());
-    axiosRequest.data = form;
+    each(enabledParams, (p) => (params[p.name] = p.value));
+    axiosRequest.data = params;
   }
 
   if (request.body.mode === 'graphql') {

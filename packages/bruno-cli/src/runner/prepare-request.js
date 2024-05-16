@@ -113,16 +113,10 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
     const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => {
-      if (p.type === 'file') {
-        params[p.name] = p.value.map((path) => fs.createReadStream(path));
-      } else {
-        params[p.name] = p.value;
-      }
-    });
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
+    each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.data = params;
   }
 

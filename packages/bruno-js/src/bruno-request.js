@@ -61,6 +61,7 @@ class BrunoRequest {
   }
 
   setBody(data) {
+    this.req.__bruno__bodySetViaMethodCall = true;
     this.req.data = data;
   }
 
