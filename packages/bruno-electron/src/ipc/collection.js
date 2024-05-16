@@ -584,7 +584,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const jsonData = fs.readFileSync(filePaths[0], 'utf8');
-      return JSON.parse(jsonData);
+      return jsonData;
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
     }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildClientSchema } from 'graphql';
+import { buildClientSchema, buildSchema } from 'graphql';
 import { fetchGqlSchema } from 'utils/network';
 import { simpleHash } from 'utils/common';
 
@@ -48,7 +48,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       return;
     }
     setSchemaSource('file');
-    return schemaContent.data;
+    return schemaContent;
   };
 
   const loadSchema = async (schemaSource) => {
@@ -66,7 +66,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
         // fallback to introspection if source is unknown
         data = await loadSchemaFromIntrospection();
       }
-      setSchema(buildClientSchema(data));
+      setSchema(buildSchema(data));
       localStorage.setItem(localStorageKey, JSON.stringify(data));
       toast.success('GraphQL Schema loaded successfully');
     } catch (err) {
