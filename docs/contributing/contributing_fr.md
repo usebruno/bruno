@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | **Français** | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
+[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | **Français** | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
 
 ## Ensemble, améliorons Bruno !
 
@@ -56,7 +56,7 @@ npm run dev:electron
 
 ### Dépannage
 
-Vous pourriez rencontrer une erreur `Unsupported platform` durant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules` ainsi que le fichier `package-lock.json` et lancez à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
+Vous pourriez rencontrer une erreur `Unsupported platform` durant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules` ainsi que le fichier `package-lock.json` et lancez à nouveau `npm install`. Cela devrait installer tous les paquets nécessaires pour lancer l'application.
 
 ```shell
 # Efface les répertoires node_modules dans les sous-répertoires
@@ -85,6 +85,6 @@ npm test --workspace=packages/bruno-lang
 - Merci de conserver les PR minimes et focalisées sur un seul objectif
 - Merci de suivre le format de nom des branches :
   - feature/[feature name]: Cette branche doit contenir une fonctionnalité spécifique
-    - Exemple: feature/dark-mode
+    - Exemple : feature/dark-mode
   - bugfix/[bug name]: Cette branche doit contenir seulement une solution pour un bug spécifique
-    - Exemple: bugfix/bug-1
+    - Exemple : bugfix/bug-1

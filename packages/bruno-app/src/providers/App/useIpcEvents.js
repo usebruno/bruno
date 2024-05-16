@@ -95,7 +95,7 @@ const useIpcEvents = () => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
       }
-      if (typeof message === 'object') {
+      if (typeof error === 'object') {
         return toast.error(error.message || 'Something went wrong!');
       }
     });

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Discussions
+    url: https://github.com/usebruno/bruno/discussions
+    about: You can ask general questions or give feedback here.
+  - name: Discord Server
+    url: https://discord.com/invite/KgcZUncpjq
+    about: Join our Discord community to chat about Bruno.
