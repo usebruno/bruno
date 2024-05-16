@@ -22,13 +22,13 @@ const TranslationLog = ({ translationLog }) => {
   };
   return (
     <div className="flex flex-col mt-2">
-      <div className="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-50/30 p-1.5 rounded-r">
+      <div className="border-l-2 border-amber-500 dark:border-amber-300 bg-amber-50 dark:bg-amber-50/10 p-1.5 rounded-r">
         <div className="flex items-center">
           <div className="flex-shrink-0">
-            <IconAlertTriangle className="h-4 w-4 text-amber-500" aria-hidden="true" />
+            <IconAlertTriangle className="h-4 w-4 text-amber-500 dark:text-amber-300" aria-hidden="true" />
           </div>
           <div className="ml-2">
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-amber-700 dark:text-amber-300">
               <span className="font-semibold">Warning:</span> Some commands were not translated.{' '}
             </p>
           </div>
@@ -36,13 +36,13 @@ const TranslationLog = ({ translationLog }) => {
       </div>
       <button
         onClick={(e) => preventSetShowDetails(e)}
-        className="flex w-fit items-center rounded px-2.5 py-1 mt-2 text-xs font-semibold ring-1 ring-inset bg-slate-50 dark:bg-slate-400/10 text-slate-700 dark:text-slate-400 ring-slate-600/10 dark:ring-slate-400/20"
+        className="flex w-fit items-center rounded px-2.5 py-1 mt-2 text-xs font-semibold ring-1 ring-inset bg-slate-50 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300 ring-slate-600/10 dark:ring-slate-400/20"
       >
         See details
         {showDetails ? <IconCaretDown size={16} className="ml-1" /> : <IconCaretRight size={16} className="ml-1" />}
       </button>
       {showDetails && (
-        <div className="flex relative flex-col text-xs max-w-[364px] max-h-[300px] overflow-scroll mt-2 p-2 bg-slate-50 dark:bg-slate-400/10 ring-1 ring-inset rounded text-slate-700 dark:text-slate-400 ring-slate-600/20 dark:ring-slate-400/20">
+        <div className="flex relative flex-col text-xs max-w-[364px] max-h-[300px] overflow-scroll mt-2 p-2 bg-slate-50 dark:bg-slate-400/10 ring-1 ring-inset rounded text-slate-700 dark:text-slate-300 ring-slate-600/20 dark:ring-slate-400/20">
           <span className="font-semibold flex items-center">
             Impacted Collections: {Object.keys(translationLog || {}).length}
           </span>
@@ -93,7 +93,7 @@ const TranslationLog = ({ translationLog }) => {
             ))}
           </ul>
           <button
-            className="absolute top-1 right-1 flex w-fit items-center rounded p-2 text-xs font-semibold ring-1 ring-inset bg-slate-50 dark:bg-slate-400/10 text-slate-700 dark:text-slate-400 ring-slate-600/10 dark:ring-slate-400/20"
+            className="absolute top-1 right-1 flex w-fit items-center rounded p-2 text-xs font-semibold ring-1 ring-inset bg-slate-50 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300 ring-slate-600/10 dark:ring-slate-400/20"
             onClick={(e) => copyClipboard(e, JSON.stringify(translationLog))}
           >
             <IconCopy size={16} />
