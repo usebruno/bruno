@@ -163,6 +163,11 @@ const oauth2Schema = Yup.object({
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
+  state: Yup.string().when('grantType', {
+    is: (val) => ['authorization_code'].includes(val),
+    then: Yup.string().nullable(),
+    otherwise: Yup.string().nullable().strip()
+  }),
   pkce: Yup.boolean().when('grantType', {
     is: (val) => ['authorization_code'].includes(val),
     then: Yup.boolean().default(false),

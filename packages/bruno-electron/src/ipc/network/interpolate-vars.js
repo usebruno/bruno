@@ -139,6 +139,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
         break;
       case 'client_credentials':
