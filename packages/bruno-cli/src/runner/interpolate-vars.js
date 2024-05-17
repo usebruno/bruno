@@ -1,5 +1,30 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn, cloneDeep, extend } = require('lodash');
+const FormData = require('form-data');
+const fs = require('fs');
+
+const getNameFromFormKey = (formKeyString) => {
+  // Example formKeyString:
+  // '----------------------------111889243577309058514306\r\n Content-Disposition: form-data; name=""foo""\r\n'
+  if (typeof formKeyString == 'string') {
+    let name = formKeyString.split('name="')?.[1]?.trim();
+    if (name?.slice(-1) == '"') {
+      name = name?.slice(0, -1);
+    }
+    name = name?.split('";')?.[0];
+    return name;
+  }
+};
+
+const getFilenameFromFormKey = (formKeyString) => {
+  // Example formKeyString:
+  // ----------------------------160947275217288416797863 Content-Disposition: form-data; name="file"; filename="Screenshot 2024-05-16 at 9.33.12 PM.png" Content-Type: image/png
+  if (typeof formKeyString == 'string') {
+    let filename = formKeyString.split('filename="')?.[1]?.split('Content-Type')?.[0].trim();
+    filename = filename?.slice(0, -1);
+    return filename;
+  }
+};
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -47,6 +72,34 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     return interpolate(str, combinedVars);
   };
 
+  const interpolateFormData = (form) => {
+    if (!(form instanceof FormData)) {
+      return form;
+    } else {
+      let interpolatedForm = new FormData();
+      let data = form?._streams || [];
+      for (let index in data) {
+        if (index % 3 !== 0) {
+          continue;
+        }
+        let formKeyString = data[index];
+        let formValue = data[parseInt(index) + 1];
+        const formKeyName = getNameFromFormKey(formKeyString);
+        if (!formKeyName.length) continue;
+        const formKeyFilename = getFilenameFromFormKey(formKeyString);
+        if (formKeyFilename?.length) {
+          let formFilePath = formValue?.source?.path;
+          if (fs.existsSync(formFilePath)) {
+            interpolatedForm.append(_interpolate(formKeyName), fs.createReadStream(formFilePath));
+          }
+        } else {
+          interpolatedForm.append(_interpolate(formKeyName), _interpolate(formValue));
+        }
+      }
+      return interpolatedForm;
+    }
+  };
+
   request.url = _interpolate(request.url);
 
   forOwn(request.headers, (value, key) => {
@@ -78,6 +131,10 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
+  } else if (contentType === 'multipart/form-data') {
+    const interpolatedFormData = interpolateFormData(request.data);
+    extend(request.headers, interpolatedFormData.getHeaders());
+    request.data = interpolatedFormData;
   } else {
     request.data = _interpolate(request.data);
   }

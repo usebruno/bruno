@@ -1,17 +1,44 @@
 const { get, each, filter } = require('lodash');
+const FormData = require('form-data');
 const fs = require('fs');
+const path = require('path');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
-const prepareRequest = (request, collectionRoot) => {
+const parseFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  datas.forEach((item) => {
+    const value = item?.value;
+    const name = item?.name || '';
+    if (item?.type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+
+        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(name, value);
+    }
+  });
+  return form;
+};
+
+const prepareRequest = (request, collectionRoot, collectionPath) => {
   const headers = {};
   let contentTypeDefined = false;
 
   // collection headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
+      headers[h?.name] = h.value;
+      if (h?.name?.toLowerCase?.() === 'content-type') {
         contentTypeDefined = true;
       }
     }
@@ -19,8 +46,8 @@ const prepareRequest = (request, collectionRoot) => {
 
   each(request.headers, (h) => {
     if (h.enabled) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
+      headers[h?.name] = h.value;
+      if (h?.name?.toLowerCase?.() === 'content-type') {
         contentTypeDefined = true;
       }
     }
@@ -113,17 +140,10 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
-    const params = {};
-    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => {
-      if (p.type === 'file') {
-        params[p.name] = p.value.map((path) => fs.createReadStream(path));
-      } else {
-        params[p.name] = p.value;
-      }
-    });
     axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
+    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
+    const form = parseFormData(enabledParams, collectionPath);
+    axiosRequest.data = form;
   }
 
   if (request.body.mode === 'graphql') {

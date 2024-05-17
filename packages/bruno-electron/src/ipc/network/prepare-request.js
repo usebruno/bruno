@@ -10,9 +10,9 @@ const parseFormData = (datas, collectionPath) => {
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
   datas.forEach((item) => {
-    const value = item.value;
-    const name = item.name;
-    if (item.type === 'file') {
+    const value = item?.value;
+    const name = item?.name;
+    if (item?.type === 'file') {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
@@ -207,9 +207,9 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     const form = parseFormData(enabledParams, collectionPath);
-    extend(axiosRequest.headers, form.getHeaders());
     axiosRequest.data = form;
   }
 

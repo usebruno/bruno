@@ -3,8 +3,7 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
-const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
-const FormData = require('form-data');
+const { isUndefined, isNull, each, get, compact } = require('lodash');
 const prepareRequest = require('./prepare-request');
 const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
@@ -37,21 +36,6 @@ const runSingleRequest = async function (
     request = prepareRequest(bruJson.request, collectionRoot);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
-
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      const form = new FormData();
-      forOwn(request.data, (value, key) => {
-        if (value instanceof Array) {
-          each(value, (v) => form.append(key, v));
-        } else {
-          form.append(key, value);
-        }
-      });
-      extend(request.headers, form.getHeaders());
-      request.data = form;
-    }
 
     // run pre-request vars
     const preRequestVars = get(bruJson, 'request.vars.req');
