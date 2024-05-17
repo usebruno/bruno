@@ -125,15 +125,23 @@ const runSingleRequest = async function (
       const domain = interpolateString(clientCert.domain, interpolationOptions);
       const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
       const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-      if (domain && certFilePath && keyFilePath) {
+      if (domain && certFilePath && (keyFilePath || clientCert.pfx)) {
         const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
 
         if (request.url.match(hostRegex)) {
-          try {
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.log('Error reading cert/key file', err);
+          if (clientCert.pfx) {
+            try {
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(certFilePath);
+            } catch (err) {
+              console.log('Error reading cert file', err);
+            }
+          } else {
+            try {
+              httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+              httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+            } catch (err) {
+              console.log('Error reading cert/key file', err);
+            }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
           break;

@@ -13,13 +13,15 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
     initialValues: {
       domain: '',
       certFilePath: '',
+      pfx: false,
       keyFilePath: '',
       passphrase: ''
     },
     validationSchema: Yup.object({
       domain: Yup.string().required(),
       certFilePath: Yup.string().required(),
-      keyFilePath: Yup.string().required(),
+      pfx: Yup.boolean().required(),
+      keyFilePath: Yup.string().when('pfx', { is: (pfx) => !pfx, then: Yup.string().required() }),
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
@@ -28,7 +30,12 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   });
 
   const getFile = (e) => {
-    formik.values[e.name] = e.files[0].path;
+    try {
+      formik.setFieldValue(e.name, e.files[0].path, true);
+    } catch (err) {
+      // User cancelled selection
+      formik.setFieldValue(e.name, undefined, true);
+    }
   };
 
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -75,17 +82,28 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             <div className="ml-1 text-red-500">{formik.errors.domain}</div>
           ) : null}
         </div>
-        <div className="mb-3 flex items-center">
+        <div className="mb-3 flex items-top">
           <label className="settings-label" htmlFor="certFilePath">
             Cert file
           </label>
-          <input
-            id="certFilePath"
-            type="file"
-            name="certFilePath"
-            className="block non-passphrase-input"
-            onChange={(e) => getFile(e.target)}
-          />
+          <div>
+            <input
+              id="certFilePath"
+              type="file"
+              name="certFilePath"
+              className="block non-passphrase-input"
+              onChange={(e) => getFile(e.target)}
+            />
+            <input
+              className="cursor-pointer"
+              id="pfx"
+              name="pfx"
+              type="checkbox"
+              checked={formik.values.pfx}
+              onChange={formik.handleChange}
+            />{' '}
+            <span>PFX/PKCS12</span>
+          </div>
           {formik.touched.certFilePath && formik.errors.certFilePath ? (
             <div className="ml-1 text-red-500">{formik.errors.certFilePath}</div>
           ) : null}
@@ -100,6 +118,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             name="keyFilePath"
             className="block non-passphrase-input"
             onChange={(e) => getFile(e.target)}
+            disabled={formik.values.pfx}
           />
           {formik.touched.keyFilePath && formik.errors.keyFilePath ? (
             <div className="ml-1 text-red-500">{formik.errors.keyFilePath}</div>
