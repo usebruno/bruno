@@ -60,6 +60,7 @@ const Wrapper = styled.div`
     opacity: 0;
     transition: opacity 0.3s;
     white-space: nowrap;
+    user-select: none;
   }
 
   .tooltiptext::after {
