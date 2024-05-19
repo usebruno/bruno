@@ -1,15 +1,6 @@
 import each from 'lodash/each';
-import fileDialog from 'file-dialog';
-import { BrunoError } from 'utils/common/error';
-
-const readFile = (files) => {
-  return new Promise((resolve, reject) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
-    fileReader.onerror = (err) => reject(err);
-    fileReader.readAsText(files[0]);
-  });
-};
+import { BrunoError } from 'src/common/common';
+import { readFile } from './postman-collection';
 
 const isSecret = (type) => {
   return type === 'secret';
@@ -55,17 +46,15 @@ const parsePostmanEnvironment = (str) => {
   });
 };
 
-const importEnvironment = () => {
-  return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
-      .then(parsePostmanEnvironment)
-      .then((environment) => resolve(environment))
-      .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import Environment failed'));
-      });
+export const importEnvironment = (fileName) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const str = await readFile(fileName);
+      const environment = await parsePostmanEnvironment(str);
+      resolve(environment);
+    } catch (err) {
+      console.log(err);
+      reject(new BrunoError('Import Environment failed'));
+    }
   });
 };
-
-export default importEnvironment;
