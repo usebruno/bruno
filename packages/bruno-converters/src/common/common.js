@@ -5,7 +5,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import { uuid, normalizeFileName } from './index.js';
 import { isItemARequest } from '../collections';
 import { collectionSchema } from '@usebruno/schema';
-// import { BrunoError } from 'error';
 
 export class BrunoError extends Error {
   constructor(message, level) {

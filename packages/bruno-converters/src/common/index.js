@@ -1,5 +1,4 @@
 import { customAlphabet } from 'nanoid';
-// import xmlFormat from 'xml-formatter';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
