@@ -7,7 +7,6 @@
     "packages/bruno-cli",
     "packages/bruno-common",
     "packages/bruno-converters",
-    "packages/bruno-importers",
     "packages/bruno-schema",
     "packages/bruno-query",
     "packages/bruno-js",
