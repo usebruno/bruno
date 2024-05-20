@@ -13,22 +13,19 @@ module.exports = [
     output: [
       {
         file: packageJson.main,
-        // dir: packageJson.main,
         format: 'cjs',
         sourcemap: true
-        // preserveModules: true
       },
       {
         file: packageJson.module,
-        // dir: packageJson.module,
         format: 'esm',
         sourcemap: true
-        // preserveModules: true
       }
     ],
     plugins: [
       peerDepsExternal(),
       nodeResolve({
+        preferBuiltins: true,
         extensions: ['.js', '.css'] // Resolve .js files
       }),
       commonjs(),
