@@ -467,7 +467,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = stringifyJson(await getBrunoJsonConfig(collection));
+      const brunoConfig = stringifyJson(getBrunoJsonConfig(collection));
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), brunoConfig);

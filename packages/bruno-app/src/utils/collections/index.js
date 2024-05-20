@@ -294,21 +294,62 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
             multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
           },
-          auth: {
-            mode: get(si.request, 'auth.mode', 'none'),
-            basic: {
-              username: get(si.request, 'auth.basic.username', ''),
-              password: get(si.request, 'auth.basic.password', '')
-            },
-            bearer: {
-              token: get(si.request, 'auth.bearer.token', '')
-            }
-          },
           script: si.request.script,
           vars: si.request.vars,
           assertions: si.request.assertions,
           tests: si.request.tests
         };
+
+        // Handle auth object dynamically
+        di.request.auth = {
+          mode: get(si.request, 'auth.mode', 'none')
+        };
+
+        switch (di.request.auth.mode) {
+          case 'awsv4':
+            di.request.auth.awsv4 = {
+              accessKeyId: get(si.request, 'auth.awsv4.accessKeyId', ''),
+              secretAccessKey: get(si.request, 'auth.awsv4.secretAccessKey', ''),
+              sessionToken: get(si.request, 'auth.awsv4.sessionToken', ''),
+              service: get(si.request, 'auth.awsv4.service', ''),
+              region: get(si.request, 'auth.awsv4.region', ''),
+              profileName: get(si.request, 'auth.awsv4.profileName', '')
+            };
+            break;
+          case 'basic':
+            di.request.auth.basic = {
+              username: get(si.request, 'auth.basic.username', ''),
+              password: get(si.request, 'auth.basic.password', '')
+            };
+            break;
+          case 'bearer':
+            di.request.auth.bearer = {
+              token: get(si.request, 'auth.bearer.token', '')
+            };
+            break;
+          case 'digest':
+            di.request.auth.digest = {
+              username: get(si.request, 'auth.digest.username', ''),
+              password: get(si.request, 'auth.digest.password', '')
+            };
+            break;
+          case 'oauth2':
+            di.request.auth.oauth2 = {
+              grantType: get(si.request, 'auth.oauth2.grantType', ''),
+              username: get(si.request, 'auth.oauth2.username', ''),
+              password: get(si.request, 'auth.oauth2.password', ''),
+              callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+              authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+              accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+              clientId: get(si.request, 'auth.oauth2.clientId', ''),
+              clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+              scope: get(si.request, 'auth.oauth2.scope', ''),
+              pkce: get(si.request, 'auth.oauth2.pkce', false)
+            };
+            break;
+          default:
+            break;
+        }
 
         if (si.type === 'js') {
           di.fileContent = si.raw;
