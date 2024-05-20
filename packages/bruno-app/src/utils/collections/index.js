@@ -334,18 +334,41 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             };
             break;
           case 'oauth2':
-            di.request.auth.oauth2 = {
-              grantType: get(si.request, 'auth.oauth2.grantType', ''),
-              username: get(si.request, 'auth.oauth2.username', ''),
-              password: get(si.request, 'auth.oauth2.password', ''),
-              callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
-              authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
-              accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
-              clientId: get(si.request, 'auth.oauth2.clientId', ''),
-              clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
-              scope: get(si.request, 'auth.oauth2.scope', ''),
-              pkce: get(si.request, 'auth.oauth2.pkce', false)
-            };
+            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            switch (grantType) {
+              case 'password':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  username: get(si.request, 'auth.oauth2.username', ''),
+                  password: get(si.request, 'auth.oauth2.password', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+              case 'authorization_code':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                };
+                break;
+              case 'client_credentials':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+            }
             break;
           default:
             break;
