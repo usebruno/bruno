@@ -4,7 +4,6 @@ import get from 'lodash/get';
 
 import { readFile, uuid } from './common';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
-import { parsePostmanCollection } from './postman-collection';
 
 const parseGraphQL = (text) => {
   try {
