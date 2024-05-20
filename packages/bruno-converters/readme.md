@@ -34,3 +34,14 @@ const { importPostmanEnvironment } = require('@usebruno/converters');
 const postmanEnvFile = './example.postman_environment.json';
 const brunoEnvironment = await importPostmanEnvironment(postmanEnvFile);
 ```
+
+### Convert Insomnia collection to Bruno collection
+
+```javascript
+import { importInsomniaCollection, exportBrunoCollection } from '@usebruno/converters';
+
+const insomniaCollectionFile = './example.insomnia.json';
+const brunoCollection = await importInsomniaCollection(insomniaCollectionFile);
+
+exportBrunoCollection(brunoCollection);
+```
