@@ -1,37 +1,9 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { uuid } from 'src/common/index';
-import { BrunoError } from 'src/common/common';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from 'src/common/common';
+import { readFile, uuid } from 'src/common/index';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
 import { postmanTranslation } from 'src/translators/postman_translation';
-import * as fs from 'node:fs';
-
-export const readFile = (file) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(file, 'utf8', (err, data) => {
-      if (err) {
-        console.error(err);
-        reject(err);
-      } else {
-        resolve(data);
-      }
-    });
-  });
-};
-
-export const saveFile = (data, fileName) => {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(fileName, data, (err) => {
-      if (err) {
-        console.error(err);
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-};
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -304,10 +276,9 @@ export const importPostmanV2Collection = (collection, options) => {
   return brunoCollection;
 };
 
-export const parsePostmanCollection = (str, options) => {
+export const parsePostmanCollection = (collection, options) => {
   return new Promise((resolve, reject) => {
     try {
-      let collection = JSON.parse(str);
       let schema = get(collection, 'info.schema');
 
       let v2Schemas = [
@@ -347,7 +318,7 @@ export const importCollection = (fileName, options) => {
       const validatedCollection = await validateSchema(hydratedCollection);
       resolve(validatedCollection);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       reject(new BrunoError('Import collection failed'));
     }
   });

@@ -21,6 +21,7 @@
   "dependencies": {
     "@usebruno/schema": "^0.7.0",
     "lodash": "^4.17.21",
+    "js-yaml": "^4.1.0",
     "nanoid": "3.3.4"
   },
   "devDependencies": {

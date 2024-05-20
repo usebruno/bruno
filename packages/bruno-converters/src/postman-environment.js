@@ -1,6 +1,6 @@
 import each from 'lodash/each';
 import { BrunoError } from 'src/common/common';
-import { readFile } from './postman-collection';
+import { readFile } from './common';
 
 const isSecret = (type) => {
   return type === 'secret';
@@ -31,10 +31,9 @@ const importPostmanEnvironment = (environment) => {
   return brunoEnvironment;
 };
 
-const parsePostmanEnvironment = (str) => {
+const parsePostmanEnvironment = (environment) => {
   return new Promise((resolve, reject) => {
     try {
-      let environment = JSON.parse(str);
       return resolve(importPostmanEnvironment(environment));
     } catch (err) {
       console.log(err);

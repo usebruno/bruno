@@ -14,7 +14,7 @@ npm install @bruno-converters
 ### Convert Postman collection to Bruno collection
 
 ```javascript
-const { importPostmanCollection, exportBrunoCollection } = require('@bruno-converters');
+const { importPostmanCollection, exportBrunoCollection } = require('@usebruno/converters');
 
 // Convert Postman collection to Bruno collection
 const postmanCollectionFile = './example.postman_collection.json';
@@ -24,4 +24,13 @@ const brunoCollection = await importPostmanCollection(postmanCollectionFile, {
 
 // Export Bruno collection as a JSON file
 exportBrunoCollection(brunoCollection);
+```
+
+### Convert Postman Environment to Bruno Environment
+
+```javascript
+const { importPostmanEnvironment } = require('@usebruno/converters');
+
+const postmanEnvFile = './example.postman_environment.json';
+const brunoEnvironment = await importPostmanEnvironment(postmanEnvFile);
 ```

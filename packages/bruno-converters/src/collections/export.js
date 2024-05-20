@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import each from 'lodash/each';
-import { saveFile } from '../postman-collection';
+import { saveFile } from '../common';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {
