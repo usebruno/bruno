@@ -45,3 +45,14 @@ const brunoCollection = await importInsomniaCollection(insomniaCollectionFile);
 
 exportBrunoCollection(brunoCollection);
 ```
+
+### Convert OpenAPI specification to Bruno collection
+
+```javascript
+import { importOpenAPICollection, exportBrunoCollection } from '@usebruno/converters';
+
+const openAPIFile = './example.openapi.yaml';
+const brunoCollection = await importOpenAPICollection(openAPIFile);
+
+exportBrunoCollection(brunoCollection);
+```
