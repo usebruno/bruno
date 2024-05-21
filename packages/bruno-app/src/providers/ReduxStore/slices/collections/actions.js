@@ -1039,6 +1039,16 @@ export const openCollection = () => () => {
     ipcRenderer.invoke('renderer:open-collection').then(resolve).catch(reject);
   });
 };
+export const gitCloneCollection = (collectionLocation, collectionRepoUrl, collectionRepoAuth) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:git-clone-collection', collectionLocation, collectionRepoUrl, collectionRepoAuth)
+      .then(resolve)
+      .catch(reject);
+  });
+};
 
 export const collectionAddEnvFileEvent = (payload) => (dispatch, getState) => {
   const { data: environment, meta } = payload;
