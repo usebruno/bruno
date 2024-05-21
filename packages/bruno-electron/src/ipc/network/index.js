@@ -265,7 +265,7 @@ const parseDataFromResponse = (response) => {
   let data = dataBuffer.toString(charset || 'utf-8');
   // Try to parse response to JSON, this can quietly fail
   try {
-    // Filter out non-printable characters and BOM
+    // Filter out control characters and ZWNBSP character
     data = data.replace(/[\x00-\x08\x0E-\x1F\x7F\uFEFF]/g, '');
     data = JSON.parse(data);
   } catch {}
