@@ -2,13 +2,22 @@ import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { IconBrandGithub, IconPlus, IconDownload, IconFolders, IconSpeakerphone, IconBook } from '@tabler/icons';
+import {
+  IconBrandGithub,
+  IconPlus,
+  IconDownload,
+  IconFolders,
+  IconSpeakerphone,
+  IconBook,
+  IconMusic
+} from '@tabler/icons';
 
 import Bruno from 'components/Bruno';
 import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import StyledWrapper from './StyledWrapper';
+import CloneCollection from 'components/Sidebar/CloneCollection';
 
 const Welcome = () => {
   const dispatch = useDispatch();
@@ -16,6 +25,7 @@ const Welcome = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [cloneCollectionModalOpen, setCloneCollectionModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
@@ -49,6 +59,7 @@ const Welcome = () => {
           handleSubmit={handleImportCollectionLocation}
         />
       ) : null}
+      {cloneCollectionModalOpen && <CloneCollection onClose={() => setCloneCollectionModalOpen(false)} />}
 
       <div className="">
         <Bruno width={50} />
@@ -72,6 +83,12 @@ const Welcome = () => {
           <IconDownload size={18} strokeWidth={2} />
           <span className="label ml-2" id="import-collection">
             Import Collection
+          </span>
+        </div>
+        <div className="flex items-center ml-6" onClick={() => setCloneCollectionModalOpen(true)}>
+          <IconMusic size={18} strokeWidth={2} />
+          <span className="label ml-2" id="clone-collection">
+            Clone Collection
           </span>
         </div>
       </div>

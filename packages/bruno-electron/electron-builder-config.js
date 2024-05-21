@@ -9,7 +9,7 @@ const config = {
     output: 'out'
   },
   files: ['**/*'],
-  afterSign: 'notarize.js',
+  // afterSign: 'notarize.js',
   mac: {
     artifactName: '${name}_${version}_${arch}_${os}.${ext}',
     category: 'public.app-category.developer-tools',
@@ -36,9 +36,9 @@ const config = {
   },
   win: {
     artifactName: '${name}_${version}_${arch}_win.${ext}',
-    icon: 'resources/icons/png',
-    certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
-    certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
+    icon: 'resources/icons/png'
+    // certificateFile: `${process.env.WIN_CERT_FILEPATH}`,
+    // certificatePassword: `${process.env.WIN_CERT_PASSWORD}`
   }
 };
 

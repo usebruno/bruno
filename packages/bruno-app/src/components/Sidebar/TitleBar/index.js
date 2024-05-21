@@ -11,12 +11,14 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import CloneCollection from 'components/Sidebar/CloneCollection';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [cloneCollectionModalOpen, setCloneCollectionModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
@@ -68,6 +70,7 @@ const TitleBar = () => {
           handleSubmit={handleImportCollectionLocation}
         />
       ) : null}
+      {cloneCollectionModalOpen && <CloneCollection onClose={() => setCloneCollectionModalOpen(false)} />}
 
       <div className="flex items-center">
         <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
@@ -108,6 +111,15 @@ const TitleBar = () => {
               }}
             >
               Import Collection
+            </div>
+            <div
+              className="dropdown-item"
+              onClick={(e) => {
+                menuDropdownTippyRef.current.hide();
+                setCloneCollectionModalOpen(true);
+              }}
+            >
+              Clone Collection
             </div>
             <div
               className="dropdown-item"

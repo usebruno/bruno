@@ -16,6 +16,8 @@ import Docs from './Docs';
 import Presets from './Presets';
 import Info from './Info';
 import StyledWrapper from './StyledWrapper';
+import GitSettings from 'components/CollectionSettings/Git';
+import GitUI from 'components/CollectionSettings/GitUI';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -72,6 +74,16 @@ const CollectionSettings = ({ collection }) => {
       .catch((err) => console.log(err) && toast.error('Failed to update collection settings'));
   };
 
+  const onGitSettingsUpdate = (config) => {
+    const brunoConfig = cloneDeep(collection.brunoConfig);
+    brunoConfig.git = config;
+    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
+      .then(() => {
+        toast.success('Collection git settings updated successfully.');
+      })
+      .catch((err) => console.log(err) && toast.error('Failed to update collection git settings'));
+  };
+
   const getTabPanel = (tab) => {
     switch (tab) {
       case 'headers': {
@@ -106,6 +118,12 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'info': {
         return <Info collection={collection} />;
+      }
+      case 'git': {
+        return <GitSettings collection={collection} onUpdate={onGitSettingsUpdate} />;
+      }
+      case 'git-ui': {
+        return <GitUI collection={collection} />;
       }
     }
   };
@@ -145,6 +163,12 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
+        </div>
+        <div className={getTabClassname('git')} role="tab" onClick={() => setTab('git')}>
+          Git
+        </div>
+        <div className={getTabClassname('git-ui')} role="tab" onClick={() => setTab('git-ui')}>
+          GitUI
         </div>
       </div>
       <section className="mt-4 h-full">{getTabPanel(tab)}</section>

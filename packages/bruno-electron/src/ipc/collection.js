@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
+const simpleGit = require('simple-git');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
@@ -20,6 +21,7 @@ const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON 
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const { CleanOptions } = require('simple-git');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -127,6 +129,54 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       mainWindow.webContents.send('main:collection-opened', dirPath, uid, json);
       ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+    }
+  );
+  // git clone collection
+  ipcMain.handle(
+    'renderer:git-clone-collection',
+    async (event, collectionLocation, collectionRepoUrl, collectionRepoAuth) => {
+      try {
+        let git;
+        if (collectionRepoAuth?.type === 'ssh') {
+          const sshKey = collectionRepoAuth.sshKeyPath.replaceAll('\\', '/');
+          // const sshKnownHosts = path.resolve(`${process.cwd()}/settings/ssh/known_hosts`);
+          // const GIT_SSH_COMMAND = `ssh -o UserKnownHostsFile=${sshKnownHosts} -o StrictHostKeyChecking=no -i ${sshKey}`;
+          const GIT_SSH_COMMAND = `ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${sshKey}`;
+          git = simpleGit().env('GIT_SSH_COMMAND', GIT_SSH_COMMAND).clean(CleanOptions.FORCE);
+        } else if (collectionRepoAuth?.type === 'password') {
+          const username = collectionRepoAuth.username;
+          const password = collectionRepoAuth.password;
+          const urlScheme = collectionRepoUrl.substring(0, collectionRepoUrl.indexOf('://') + 3);
+          const repository = collectionRepoUrl.substring(collectionRepoUrl.indexOf('://'), collectionRepoUrl.length);
+          collectionRepoUrl = `${urlScheme}${username}:${password}@${repository}`;
+          git = simpleGit();
+        }
+
+        await git.clone(collectionRepoUrl, collectionLocation, ['--single-branch']);
+      } catch (e) {
+        console.error(e);
+        throw new Error('Git clone failed with an error.', e);
+      }
+
+      const uid = generateUidBasedOnHash(collectionLocation);
+      const brunoJsonFilePath = path.join(collectionLocation, 'bruno.json');
+      const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
+      const json = JSON.parse(content);
+
+      if (!json.git) {
+        json.git = {};
+      }
+      json.git.enabled = true;
+      json.git.repoUrl = collectionRepoUrl;
+      if (!json.git.auth) {
+        json.git.auth = {};
+      }
+      json.git.auth = collectionRepoAuth;
+      const newContent = await stringifyJson(json);
+      await writeFile(brunoJsonFilePath, newContent);
+
+      mainWindow.webContents.send('main:collection-opened', collectionLocation, uid, json);
+      ipcMain.emit('main:collection-opened', mainWindow, collectionLocation, uid, json);
     }
   );
   // rename collection
