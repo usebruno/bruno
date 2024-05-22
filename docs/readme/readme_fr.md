@@ -85,7 +85,7 @@ Ou n'importe quel système de gestion de sources
 
 ### Soutien ❤️
 
-Ouaf ! Si vous aimez le projet, cliquez sur le bouton ⭐ !!
+Si vous aimez Bruno et que vous souhaitez soutenir le travail _opensource_, pensez à devenir un sponsor via la page [Github Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Partage de témoignages 📣
 
@@ -93,7 +93,7 @@ Si Bruno vous a aidé dans votre travail, au sein de votre équipe, merci de pen
 
 ### Publier Bruno sur un nouveau gestionnaire de paquets
 
-Veuillez regarder [ici](/publishing.md) pour plus d'information.
+Veuillez regarder [ici](../publishing/publishing_fr.md) pour plus d'information.
 
 ### Contribuer 👩‍💻🧑‍💻
 
