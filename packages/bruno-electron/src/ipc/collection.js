@@ -651,6 +651,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return Promise.reject(error);
     }
   });
+
+  ipcMain.handle('renderer:get-bruno-version', async (event) => {
+    mainWindow.webContents.send('renderer:bruno-version-update', require('../../package.json').version);
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {

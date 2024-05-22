@@ -72,6 +72,9 @@ export const appSlice = createSlice({
     },
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
+    },
+    updateBrunoVersion: (state, action) => {
+      state.brunoVersion = action.payload;
     }
   }
 });
@@ -89,7 +92,8 @@ export const {
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
-  removeAllTasksFromQueue
+  removeAllTasksFromQueue,
+  updateBrunoVersion
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

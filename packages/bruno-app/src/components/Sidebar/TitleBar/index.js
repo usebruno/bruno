@@ -6,12 +6,13 @@ import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 
 import { IconDots } from '@tabler/icons';
-import { useState, forwardRef, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useState, forwardRef, useRef, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
-import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { openCollection, importCollection, getBrunoVersion } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import CloneCollection from 'components/Sidebar/CloneCollection';
+import versionCheck from '@version-checker/core';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -19,8 +20,26 @@ const TitleBar = () => {
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const [cloneCollectionModalOpen, setCloneCollectionModalOpen] = useState(false);
+  const [newReleaseUrl, setNewReleaseUrl] = useState('');
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
+
+  const brunoVersion = useSelector((state) => state.app.brunoVersion);
+
+  useEffect(() => {
+    dispatch(getBrunoVersion()).then(() => {
+      versionCheck({
+        repo: 'bruno',
+        owner: 'Evgeniy-xlv',
+        currentVersion: brunoVersion
+      }).then((result) => {
+        const update = result.update;
+        if (update && !update.isDraft && !update.isPrerelease) {
+          setNewReleaseUrl(update.url);
+        }
+      });
+    });
+  }, [brunoVersion]);
 
   const handleImportCollection = (collection) => {
     setImportedCollection(collection);
@@ -46,6 +65,7 @@ const TitleBar = () => {
   });
 
   const handleTitleClick = () => dispatch(showHomePage());
+  const handleNewReleaseClick = () => window.open(newReleaseUrl);
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch(
@@ -83,6 +103,15 @@ const TitleBar = () => {
         >
           bruno
         </div>
+        {newReleaseUrl.length > 0 ? (
+          <div
+            onClick={handleNewReleaseClick}
+            className="flex items-center font-medium select-none cursor-pointer"
+            style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1, color: '#546de5' }}
+          >
+            New release is available!
+          </div>
+        ) : null}
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div

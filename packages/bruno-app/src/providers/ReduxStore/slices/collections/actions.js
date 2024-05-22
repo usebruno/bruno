@@ -1082,3 +1082,11 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
   });
 };
+
+export const getBrunoVersion = () => () => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
+    ipcRenderer.invoke('renderer:get-bruno-version').then(resolve).catch(reject);
+  });
+};
