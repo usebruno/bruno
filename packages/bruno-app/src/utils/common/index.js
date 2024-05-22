@@ -76,10 +76,15 @@ export const normalizeFileName = (name) => {
     return name;
   }
 
-  const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
+  const replacements = [/\//g, '\u2215', /\?/g, '\u2754'];
+  let withReplacementsName = name;
+  for (let i = 0; i < replacements.length; i += 2) {
+    withReplacementsName = withReplacementsName.replaceAll(replacements[i], replacements[i + 1]);
+  }
+  const validChars = /[^\w\u0430-\u044f\u0410-\u042f\s-\u2215\u2754]/g;
+  const validName = withReplacementsName.replace(validChars, '-');
 
-  return formattedName;
+  return validName;
 };
 
 export const getContentType = (headers) => {

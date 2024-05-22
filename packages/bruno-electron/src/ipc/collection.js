@@ -467,7 +467,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            const itemName = item.filename ? item.filename : item.name;
+            const filePath = path.join(currentPath, `${itemName}.bru`);
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
