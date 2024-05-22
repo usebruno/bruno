@@ -13,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 const Welcome = () => {
   const dispatch = useDispatch();
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -23,8 +24,9 @@ const Welcome = () => {
     );
   };
 
-  const handleImportCollection = (collection) => {
+  const handleImportCollection = (collection, translationLog) => {
     setImportedCollection(collection);
+    setImportedTranslationLog(translationLog);
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -44,6 +46,7 @@ const Welcome = () => {
       ) : null}
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
+          translationLog={importedTranslationLog}
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
