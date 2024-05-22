@@ -23,7 +23,9 @@ const TitleBar = () => {
 
   const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);
-    setImportedTranslationLog(translationLog);
+    if (translationLog) {
+      setImportedTranslationLog(translationLog);
+    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };

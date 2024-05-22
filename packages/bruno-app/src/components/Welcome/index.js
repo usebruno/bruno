@@ -24,9 +24,11 @@ const Welcome = () => {
     );
   };
 
-  const handleImportCollection = (collection, translationLog) => {
+  const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);
-    setImportedTranslationLog(translationLog);
+    if (translationLog) {
+      setImportedTranslationLog(translationLog);
+    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -53,7 +55,7 @@ const Welcome = () => {
         />
       ) : null}
 
-      <div className="">
+      <div>
         <Bruno width={50} />
       </div>
       <div className="text-xl font-semibold select-none">bruno</div>
