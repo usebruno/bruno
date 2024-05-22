@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { showPreferences, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
+import { showPreferences, updateBrunoVersion, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
@@ -140,6 +140,10 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
+    const removeBrunoVersionUpdateListener = ipcRenderer.on('renderer:bruno-version-update', (val) => {
+      dispatch(updateBrunoVersion(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -155,6 +159,7 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
+      removeBrunoVersionUpdateListener();
     };
   }, [isElectron]);
 };
