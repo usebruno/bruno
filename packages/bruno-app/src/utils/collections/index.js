@@ -374,13 +374,13 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             break;
         }
 
-        if (si.type === 'js') {
-          di.fileContent = si.raw;
-        }
-
         if (di.request.body.mode === 'json') {
           di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
+      }
+
+      if (si.type === 'js') {
+        di.fileContent = si.raw;
       }
 
       destItems.push(di);
