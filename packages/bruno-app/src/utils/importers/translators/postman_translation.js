@@ -7,7 +7,13 @@ const replacements = {
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
-  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal('
+  'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
+  'pm\\.response\\.to\\.have\\.status\\(': 'expect(res.getStatus()).to.equal(',
+  'pm\\.response\\.json\\(': 'res.getBody(',
+  'pm\\.expect\\(': 'expect(',
+  'pm\\.environment\\.has\\(([^)]+)\\)': 'bru.getEnvVar($1) !== undefined && bru.getEnvVar($1) !== null',
+  'pm\\.response\\.code': 'res.getStatus()',
+  'pm\\.response\\.text\\(': 'res.getBody()?.toString('
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({
@@ -15,7 +21,7 @@ const compiledReplacements = Object.entries(replacements).map(([pattern, replace
   replacement
 }));
 
-export const postmanTranslation = (script) => {
+export const postmanTranslation = (script, logCallback) => {
   try {
     let modifiedScript = script;
     let modified = false;
@@ -25,8 +31,9 @@ export const postmanTranslation = (script) => {
         modified = true;
       }
     }
-    if (modified && modifiedScript.includes('pm.')) {
+    if (modifiedScript.includes('pm.')) {
       modifiedScript = modifiedScript.replace(/^(.*pm\..*)$/gm, '// $1');
+      logCallback?.();
     }
     return modifiedScript;
   } catch (e) {

@@ -11,7 +11,7 @@ if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
 }
 
-class SingleLineEditor extends Component {
+class MultiLineEditor extends Component {
   constructor(props) {
     super(props);
     // Keep a cached version of the value, this cache will be updated when the
@@ -51,17 +51,12 @@ class SingleLineEditor extends Component {
           }
         },
         'Alt-Enter': () => {
-          if (this.props.allowNewlines) {
-            this.editor.setValue(this.editor.getValue() + '\n');
-            this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
-          } else if (this.props.onRun) {
-            this.props.onRun();
-          }
+          this.editor.setValue(this.editor.getValue() + '\n');
+          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
         },
         'Shift-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
+          this.editor.setValue(this.editor.getValue() + '\n');
+          this.editor.setCursor({ line: this.editor.lineCount(), ch: 0 });
         },
         'Cmd-S': () => {
           if (this.props.onSave) {
@@ -120,6 +115,9 @@ class SingleLineEditor extends Component {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
     }
+    if (this.editorRef?.current) {
+      this.editorRef.current.scrollTo(0, 10000);
+    }
     this.ignoreChangeEvent = false;
   }
 
@@ -139,4 +137,4 @@ class SingleLineEditor extends Component {
     return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
   }
 }
-export default SingleLineEditor;
+export default MultiLineEditor;
