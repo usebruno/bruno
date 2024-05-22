@@ -1,28 +1,28 @@
 <br />
 <img src="assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - APIの検証・動作テストのためのオープンソースIDE.
+### Bruno - API の検証・動作テストのためのオープンソース IDE.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](../../readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) |  [العربية](docs/readme/readme_ar.md) | **日本語**
+[English](../../readme.md) | [Українська](docs/readme/readme_ua.md) | [Русский](docs/readme/readme_ru.md) | [Türkçe](docs/readme/readme_tr.md) | [Deutsch](docs/readme/readme_de.md) | [Français](docs/readme/readme_fr.md) | [Português (BR)](docs/readme/readme_pt_br.md) | [한국어](docs/readme/readme_kr.md) | [বাংলা](docs/readme/readme_bn.md) | [Español](docs/readme/readme_es.md) | [Italiano](docs/readme/readme_it.md) | [Română](docs/readme/readme_ro.md) | [Polski](docs/readme/readme_pl.md) | [简体中文](docs/readme/readme_cn.md) | [正體中文](docs/readme/readme_zhtw.md) | [العربية](docs/readme/readme_ar.md) | **日本語**
 
-Brunoは革新的なAPIクライアントです。Postmanを代表するAPIクライアントツールの現状に一石を投じることを目指しています。
+Bruno は革新的な API クライアントです。Postman を代表する API クライアントツールの現状に一石を投じることを目指しています。
 
-Brunoはローカルフォルダに直接コレクションを保存します。APIリクエストの情報を保存するためにBruというプレーンテキストのマークアップ言語を採用しています。
+Bruno はローカルフォルダに直接コレクションを保存します。API リクエストの情報を保存するために Bru というプレーンテキストのマークアップ言語を採用しています。
 
-Gitや任意のバージョン管理システムを使ってAPIコレクションを共同開発することもできます。
+Git や任意のバージョン管理システムを使って API コレクションを共同開発することもできます。
 
-Brunoはオフラインのみで利用できます。Brunoにクラウド同期機能を追加する予定はありません。私たちはデータプライバシーを尊重しており、データはローカルに保存されるべきだと考えています。私たちの長期的なビジョンは[こちら](https://github.com/usebruno/bruno/discussions/269)をご覧ください。
+Bruno はオフラインのみで利用できます。Bruno にクラウド同期機能を追加する予定はありません。私たちはデータプライバシーを尊重しており、データはローカルに保存されるべきだと考えています。私たちの長期的なビジョンは[こちら](https://github.com/usebruno/bruno/discussions/269)をご覧ください。
 
-[Brunoをダウンロード](https://www.usebruno.com/downloads)
+[Bruno をダウンロード](https://www.usebruno.com/downloads)
 
-📢 India FOSS 3.0 Conferenceでの発表の様子は[こちら](https://www.youtube.com/watch?v=7bSMFpbcPiY)から
+📢 India FOSS 3.0 Conference での発表の様子は[こちら](https://www.youtube.com/watch?v=7bSMFpbcPiY)から
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
@@ -31,13 +31,13 @@ Brunoはオフラインのみで利用できます。Brunoにクラウド同期�
 機能のほとんどが無料で使用でき、オープンソースとなっています。
 私たちは[オープンソースの原則と長期的な維持](https://github.com/usebruno/bruno/discussions/269)の間でうまくバランスを取ろうと努力しています。
 
-[ゴールデンエディション](https://www.usebruno.com/pricing)を **19ドル** (買い切り)で購入できます！
+[ゴールデンエディション](https://www.usebruno.com/pricing)を **19 ドル** (買い切り)で購入できます！
 
 ### インストール方法
 
-Brunoは[私たちのウェブサイト](https://www.usebruno.com/downloads)からバイナリをダウンロードできます。Mac, Windows, Linuxに対応しています。
+Bruno は[私たちのウェブサイト](https://www.usebruno.com/downloads)からバイナリをダウンロードできます。Mac, Windows, Linux に対応しています。
 
-Homebrew, Chocolatey, Scoop, Snap, Flatpak, Aptなどのパッケージマネージャからもインストール可能です。
+Homebrew, Chocolatey, Scoop, Snap, Flatpak, Apt などのパッケージマネージャからもインストール可能です。
 
 ```sh
 # MacでHomebrewを使ってインストール
@@ -73,7 +73,7 @@ sudo apt install bruno
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
 
-### Gitとの連携が可能 👩‍💻🧑‍💻
+### Git との連携が可能 👩‍💻🧑‍💻
 
 または任意のバージョン管理システムにも対応しています。
 
@@ -104,7 +104,7 @@ sudo apt install bruno
 - [ウェブサイト](https://www.usebruno.com)
 - [料金設定](https://www.usebruno.com/pricing)
 - [ダウンロード](https://www.usebruno.com/downloads)
-- [Githubスポンサー](https://github.com/sponsors/helloanoop).
+- [Github スポンサー](https://github.com/sponsors/helloanoop).
 
 ### Showcase 🎥
 
@@ -114,11 +114,11 @@ sudo apt install bruno
 
 ### サポート ❤️
 
-もしBrunoを気に入っていただいて、オープンソースの活動を支援していただけるなら、[Github Sponsors](https://github.com/sponsors/helloanoop)でスポンサーになることを考えてみてください。
+もし Bruno を気に入っていただいて、オープンソースの活動を支援していただけるなら、[Github Sponsors](https://github.com/sponsors/helloanoop)でスポンサーになることを考えてみてください。
 
 ### 体験談のシェア 📣
 
-Brunoが職場やチームで役立っているのであれば、[GitHub discussion上であなたの体験談](https://github.com/usebruno/bruno/discussions/343)をシェアしていただくようお願いします。
+Bruno が職場やチームで役立っているのであれば、[GitHub discussion 上であなたの体験談](https://github.com/usebruno/bruno/discussions/343)をシェアしていただくようお願いします。
 
 ### 新しいパッケージマネージャへの公開
 
@@ -143,7 +143,7 @@ Brunoが職場やチームで役立っているのであれば、[GitHub discuss
 
 ### 貢献するには 👩‍💻🧑‍💻
 
-Brunoを改善していただけるのは歓迎です。[コントリビュートガイド](../contributing/contributing_ja.md)をご覧ください。
+Bruno を改善していただけるのは歓迎です。[コントリビュートガイド](../contributing/contributing_ja.md)をご覧ください。
 
 もしコードによる貢献ができない場合でも、あなたのユースケースを解決するために遠慮なくバグ報告や機能リクエストを出してください。
 
