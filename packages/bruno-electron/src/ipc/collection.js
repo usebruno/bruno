@@ -431,7 +431,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           // Handle items of type 'js'
           if (item.type === 'js') {
             const filePath = path.join(currentPath, `${item.name}.js`);
-            fs.writeFileSync(filePath, item.raw);
+            fs.writeFileSync(filePath, item.fileContent);
           }
         });
       };
