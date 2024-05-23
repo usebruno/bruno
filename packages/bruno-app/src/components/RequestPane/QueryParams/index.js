@@ -7,12 +7,12 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addQueryParam,
-  updateQueryParam,
   deleteQueryParam,
-  updatePathParam
+  updatePathParam,
+  updateQueryParam
 } from 'providers/ReduxStore/slices/collections';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 import StyledWrapper from './StyledWrapper';
 
@@ -23,7 +23,7 @@ const QueryParams = ({ item, collection }) => {
   const queryParams = params.filter((param) => param.type === 'query');
   const pathParams = params.filter((param) => param.type === 'path');
 
-  const handleAddParam = () => {
+  const handleAddQueryParam = () => {
     dispatch(
       addQueryParam({
         itemUid: item.uid,
@@ -47,7 +47,7 @@ const QueryParams = ({ item, collection }) => {
     return _data;
   };
 
-  const handleParamChange = (e, data, type) => {
+  const handleQueryParamChange = (e, data, type) => {
     let value;
 
     switch (type) {
@@ -76,7 +76,7 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
-  const handlePathChange = (e, data) => {
+  const handlePathParamChange = (e, data) => {
     let value = e.target.value;
 
     const path = handleValueChange(data, 'value', value);
@@ -90,7 +90,7 @@ const QueryParams = ({ item, collection }) => {
     );
   };
 
-  const handleRemoveParam = (param) => {
+  const handleRemoveQueryParam = (param) => {
     dispatch(
       deleteQueryParam({
         paramUid: param.uid,
@@ -126,7 +126,7 @@ const QueryParams = ({ item, collection }) => {
                           spellCheck="false"
                           value={param.name}
                           className="mousetrap"
-                          onChange={(e) => handleParamChange(e, param, 'name')}
+                          onChange={(e) => handleQueryParamChange(e, param, 'name')}
                         />
                       </td>
                       <td>
@@ -135,7 +135,7 @@ const QueryParams = ({ item, collection }) => {
                           theme={storedTheme}
                           onSave={onSave}
                           onChange={(newValue) =>
-                            handleParamChange(
+                            handleQueryParamChange(
                               {
                                 target: {
                                   value: newValue
@@ -156,9 +156,9 @@ const QueryParams = ({ item, collection }) => {
                             checked={param.enabled}
                             tabIndex="-1"
                             className="mr-3 mousetrap"
-                            onChange={(e) => handleParamChange(e, param, 'enabled')}
+                            onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
                           />
-                          <button tabIndex="-1" onClick={() => handleRemoveParam(param)}>
+                          <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
                             <IconTrash strokeWidth={1.5} size={20} />
                           </button>
                         </div>
@@ -169,7 +169,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddParam}>
+        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
           +&nbsp;<span>Add Param</span>
         </button>
         <div className="mb-1 title text-xs">Path</div>
@@ -203,7 +203,7 @@ const QueryParams = ({ item, collection }) => {
                           theme={storedTheme}
                           onSave={onSave}
                           onChange={(newValue) =>
-                            handlePathChange(
+                            handlePathParamChange(
                               {
                                 target: {
                                   value: newValue

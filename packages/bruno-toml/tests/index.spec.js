@@ -43,3 +43,48 @@ describe('bruno toml', () => {
     });
   });
 });
+describe('joinPathUrl', () => {
+  it('should join path and query params correctly', () => {
+    const url = 'https://example.com/api/:id';
+    const params = [
+      { name: 'id', type: 'path', enabled: true, value: '123' },
+      { name: 'sort', type: 'query', enabled: true, value: 'asc' },
+      { name: 'filter', type: 'query', enabled: true, value: 'active' }
+    ];
+    const expectedUrl = 'https://example.com/api/123?sort=asc&filter=active';
+
+    const result = joinPathUrl(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should handle empty path and query params', () => {
+    const url = 'https://example.com/api';
+    const params = [];
+    const expectedUrl = 'https://example.com/api';
+
+    const result = joinPathUrl(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should handle empty query params', () => {
+    const url = 'https://example.com/api/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
+    const expectedUrl = 'https://example.com/api/123';
+
+    const result = joinPathUrl(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+
+  it('should handle invalid URL', () => {
+    const url = 'example.com/api/:id';
+    const params = [{ name: 'id', type: 'path', enabled: true, value: '123' }];
+    const expectedUrl = 'http://example.com/api/123';
+
+    const result = joinPathUrl(url, params);
+
+    expect(result).toEqual(expectedUrl);
+  });
+});

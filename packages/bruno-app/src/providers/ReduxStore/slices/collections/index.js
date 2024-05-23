@@ -1,29 +1,21 @@
 import { uuid } from 'utils/common';
-import find from 'lodash/find';
-import map from 'lodash/map';
-import forOwn from 'lodash/forOwn';
-import concat from 'lodash/concat';
-import filter from 'lodash/filter';
-import each from 'lodash/each';
-import cloneDeep from 'lodash/cloneDeep';
-import get from 'lodash/get';
-import set from 'lodash/set';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
-  findCollectionByUid,
-  findCollectionByPathname,
-  findItemInCollection,
-  findEnvironmentInCollection,
-  findItemInCollectionByPathname,
   addDepth,
+  areItemsTheSameExceptSeqUpdate,
   collapseCollection,
   deleteItemInCollection,
   deleteItemInCollectionByPathname,
-  isItemARequest,
-  areItemsTheSameExceptSeqUpdate
+  findCollectionByPathname,
+  findCollectionByUid,
+  findEnvironmentInCollection,
+  findItemInCollection,
+  findItemInCollectionByPathname,
+  isItemARequest
 } from 'utils/collections';
-import { parseQueryParams, stringifyQueryParams, splitOnFirst, parsePathParams } from 'utils/url';
-import { getSubdirectoriesFromRoot, getDirectoryName, PATH_SEPARATOR } from 'utils/common/platform';
+import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 
 const initialState = {
   collections: [],
@@ -481,20 +473,20 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          const param = find(
+          const queryParam = find(
             item.draft.request.params,
             (h) => h.uid === action.payload.param.uid && h.type === 'query'
           );
-          if (param) {
-            param.name = action.payload.param.name;
-            param.value = action.payload.param.value;
-            param.description = action.payload.param.description;
-            param.enabled = action.payload.param.enabled;
-            param.type = 'query';
+          if (queryParam) {
+            queryParam.name = action.payload.param.name;
+            queryParam.value = action.payload.param.value;
+            queryParam.enabled = action.payload.param.enabled;
 
             // update request url
             const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+            const query = stringifyQueryParams(
+              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+            );
 
             // if no query is found, then strip the query params in url
             if (!query || !query.length) {
@@ -530,7 +522,7 @@ export const collectionsSlice = createSlice({
 
           // update request url
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {
