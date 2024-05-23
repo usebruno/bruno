@@ -4,7 +4,7 @@
 ### Bruno - 开源 IDE，用于探索和测试 API。
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![网站](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
@@ -95,7 +95,7 @@ sudo apt install bruno
 
 ### 贡献 👩‍💻🧑‍💻
 
-我很高兴您希望改进bruno。请查看 [贡献指南](../../contributing_cn.md)。
+我很高兴您希望改进 bruno。请查看 [贡献指南](../../contributing_cn.md)。
 
 即使您无法通过代码做出贡献，我们仍然欢迎您提出 BUG 和新的功能需求。
 

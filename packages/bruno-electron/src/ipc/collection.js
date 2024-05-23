@@ -428,6 +428,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               parseCollectionItems(item.items, folderPath);
             }
           }
+          // Handle items of type 'js'
+          if (item.type === 'js') {
+            const filePath = path.join(currentPath, `${item.name}.js`);
+            fs.writeFileSync(filePath, item.fileContent);
+          }
         });
       };
 
@@ -444,17 +449,29 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         });
       };
 
+      const getBrunoJsonConfig = (collection) => {
+        let brunoConfig = collection.brunoConfig;
+
+        if (!brunoConfig) {
+          brunoConfig = {
+            version: '1',
+            name: collection.name,
+            type: 'collection',
+            ignore: ['node_modules', '.git']
+          };
+        }
+
+        return brunoConfig;
+      };
+
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = {
-        version: '1',
-        name: collectionName,
-        type: 'collection',
-        ignore: ['node_modules', '.git']
-      };
-      const content = await stringifyJson(brunoConfig);
-      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+      const brunoConfig = getBrunoJsonConfig(collection);
+      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+
+      // Write the Bruno configuration to a file
+      await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);

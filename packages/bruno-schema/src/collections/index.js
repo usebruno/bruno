@@ -228,12 +228,20 @@ const requestSchema = Yup.object({
 
 const itemSchema = Yup.object({
   uid: uidSchema,
-  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder']).required('type is required'),
+  type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
   seq: Yup.number().min(1),
   name: Yup.string().min(1, 'name must be at least 1 character').required('name is required'),
   request: requestSchema.when('type', {
     is: (type) => ['http-request', 'graphql-request'].includes(type),
     then: (schema) => schema.required('request is required when item-type is request')
+  }),
+  fileContent: Yup.string().when('type', {
+    // If the type is 'js', the fileContent field is expected to be a string.
+    // This can include an empty string, indicating that the JS file may not have any content.
+    is: 'js',
+    then: Yup.string(),
+    // For all other types, the fileContent field is not required and can be null.
+    otherwise: Yup.string().nullable()
   }),
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
   filename: Yup.string().nullable(),
