@@ -294,10 +294,28 @@ export const collectionsSlice = createSlice({
 
       if (collection && collection.items && collection.items.length) {
         const parts = splitOnFirst(action.payload.requestUrl, '?');
-        const params = parseQueryParams(parts[1]);
-        each(params, (urlParam) => {
-          urlParam.enabled = true;
-        });
+        const queryParams = parseQueryParams(parts[1]);
+        const pathParams = parsePathParams(parts[0]);
+
+        const queryParamObjects = queryParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'query',
+          enabled: true
+        }));
+
+        const pathParamObjects = pathParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'path',
+          enabled: true
+        }));
+
+        const params = [...queryParamObjects, ...pathParamObjects];
 
         const item = {
           uid: action.payload.uid,
@@ -307,7 +325,6 @@ export const collectionsSlice = createSlice({
             url: action.payload.requestUrl,
             method: action.payload.requestMethod,
             params,
-            paths: [],
             headers: [],
             body: {
               mode: null,
@@ -354,8 +371,8 @@ export const collectionsSlice = createSlice({
           const urlParams = parseQueryParams(parts[1]);
           const urlPaths = parsePathParams(parts[0]);
           const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
-          let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
-          let oldPaths = cloneDeep(item.draft.request.paths);
+          let enabledParams = filter(item.draft.request.params, (p) => p.enabled && p.type === 'query');
+          let oldPaths = filter(item.draft.request.params, (p) => p.enabled && p.type === 'path');
           let newPaths = [];
 
           // try and connect as much as old params uid's as possible
@@ -363,6 +380,7 @@ export const collectionsSlice = createSlice({
             const existingParam = find(enabledParams, (p) => p.name === urlParam.name || p.value === urlParam.value);
             urlParam.uid = existingParam ? existingParam.uid : uuid();
             urlParam.enabled = true;
+            urlParam.type = 'query';
 
             // once found, remove it - trying our best here to accommodate duplicate query params
             if (existingParam) {
@@ -378,6 +396,7 @@ export const collectionsSlice = createSlice({
             }
             urlPath.uid = uuid();
             urlPath.enabled = true;
+            urlPath.type = 'path';
             return true;
           });
 
@@ -389,10 +408,7 @@ export const collectionsSlice = createSlice({
           // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
-          item.draft.request.params = concat(urlParams, disabledParams);
-
-          // join both old and new path param to preserve consistency between url and data
-          item.draft.request.paths = concat(newPaths, oldPaths);
+          item.draft.request.params = concat(urlParams, newPaths, disabledParams, oldPaths);
         }
       }
     },
@@ -449,6 +465,7 @@ export const collectionsSlice = createSlice({
             name: '',
             value: '',
             description: '',
+            type: 'query',
             enabled: true
           });
         }
@@ -464,12 +481,16 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
+          const param = find(
+            item.draft.request.params,
+            (h) => h.uid === action.payload.param.uid && h.type === 'query'
+          );
           if (param) {
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
             param.enabled = action.payload.param.enabled;
+            param.type = 'query';
 
             // update request url
             const parts = splitOnFirst(item.draft.request.url, '?');
@@ -528,10 +549,12 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          const path = find(item.draft.request.paths, (h) => h.uid === action.payload.path.uid);
-          if (path) {
-            path.name = action.payload.path.name;
-            path.value = action.payload.path.value;
+
+          const param = find(item.draft.request.params, (p) => p.uid === action.payload.path.uid && p.type === 'path');
+
+          if (param) {
+            param.name = action.payload.path.name;
+            param.value = action.payload.path.value;
           }
         }
       }

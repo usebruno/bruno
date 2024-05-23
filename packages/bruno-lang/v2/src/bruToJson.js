@@ -22,10 +22,11 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | path | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
+  params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -74,8 +75,8 @@ const grammar = ohm.grammar(`Bru {
   headers = "headers" dictionary
 
   query = "query" dictionary
-  
-  path = "path" dictionary
+  paramspath = "params:path" dictionary
+  paramsquery = "params:query" dictionary
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -131,6 +132,28 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       name,
       value,
       enabled
+    };
+  });
+};
+
+const mapPairListToKeyValPairsWithType = (pairList = [], type) => {
+  if (!pairList.length) {
+    return [];
+  }
+  return _.map(pairList[0], (pair) => {
+    let name = _.keys(pair)[0];
+    let value = pair[name];
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === '~') {
+      name = name.slice(1);
+      enabled = false;
+    }
+
+    return {
+      name,
+      value,
+      enabled,
+      type
     };
   });
 };
@@ -323,12 +346,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   query(_1, dictionary) {
     return {
-      query: mapPairListToKeyValPairs(dictionary.ast)
+      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'query')
     };
   },
-  path(_1, dictionary) {
+  paramspath(_1, dictionary) {
     return {
-      path: mapPairListToKeyValPairs(dictionary.ast)
+      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'path')
+    };
+  },
+  paramsquery(_1, dictionary) {
+    return {
+      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'query')
     };
   },
   headers(_1, dictionary) {
@@ -594,6 +622,7 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
+    console.log('bruToJson -> parser -> sem(match).ast', sem(match).ast);
     return sem(match).ast;
   } else {
     throw new Error(match.message);

@@ -30,7 +30,7 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, query, path, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -62,33 +62,38 @@ const jsonToBru = (json) => {
 `;
   }
 
-  if (query && query.length) {
-    bru += 'query {';
-    if (enabled(query).length) {
-      bru += `\n${indentString(
-        enabled(query)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+  if (params && params.length) {
+    const queryParams = params.filter((param) => param.type === 'query');
+    const pathParams = params.filter((param) => param.type === 'path');
+
+    if (queryParams.length) {
+      bru += 'params:query {';
+      if (enabled(queryParams).length) {
+        bru += `\n${indentString(
+          enabled(queryParams)
+            .map((item) => `${item.name}: ${item.value}`)
+            .join('\n')
+        )}`;
+      }
+
+      if (disabled(queryParams).length) {
+        bru += `\n${indentString(
+          disabled(queryParams)
+            .map((item) => `~${item.name}: ${item.value}`)
+            .join('\n')
+        )}`;
+      }
+
+      bru += '\n}\n\n';
     }
 
-    if (disabled(query).length) {
-      bru += `\n${indentString(
-        disabled(query)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+    if (pathParams.length) {
+      bru += 'params:path {';
+
+      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+
+      bru += '\n}\n\n';
     }
-
-    bru += '\n}\n\n';
-  }
-
-  if (path && path.length) {
-    bru += 'path {';
-
-    bru += `\n${indentString(path.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
-
-    bru += '\n}\n\n';
   }
 
   if (headers && headers.length) {

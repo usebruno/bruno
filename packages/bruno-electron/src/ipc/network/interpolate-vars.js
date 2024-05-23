@@ -86,8 +86,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = _interpolate(param.value);
   });
 
-  if (request.paths.length) {
-    let url = new URL(request.url);
+  if (request.params.length) {
+    let url;
+    try {
+      url = new URL(request.url);
+    } catch (e) {
+      url = new URL('http://' + request.url);
+    }
     let urlPaths = url.pathname.split('/');
     urlPaths = urlPaths.reduce((acc, path) => {
       if (path !== '') {
@@ -96,9 +101,9 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         } else {
           let name = path.slice(1, path.length);
           if (name) {
-            let existingPath = find(request.paths, (path) => path.name === name);
-            if (existingPath) {
-              acc += '/' + interpolate(existingPath.value);
+            let existingPathParam = find(request.params, (param) => param.type === 'path' && param.name === name);
+            if (existingPathParam) {
+              acc += '/' + interpolate(existingPathParam.value);
             }
           }
         }

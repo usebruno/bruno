@@ -20,7 +20,8 @@ const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.params') : get(item, 'request.params');
-  const paths = item.draft ? get(item, 'draft.request.paths') : get(item, 'request.paths');
+  const queryParams = params.filter((param) => param.type === 'query');
+  const pathParams = params.filter((param) => param.type === 'path');
 
   const handleAddParam = () => {
     dispatch(
@@ -112,8 +113,8 @@ const QueryParams = ({ item, collection }) => {
             </tr>
           </thead>
           <tbody>
-            {params && params.length
-              ? params.map((param, index) => {
+            {queryParams && queryParams.length
+              ? queryParams.map((param, index) => {
                   return (
                     <tr key={param.uid}>
                       <td>
@@ -180,8 +181,8 @@ const QueryParams = ({ item, collection }) => {
             </tr>
           </thead>
           <tbody>
-            {paths && paths.length
-              ? paths.map((path, index) => {
+            {pathParams && pathParams.length
+              ? pathParams.map((path, index) => {
                   return (
                     <tr key={path.uid}>
                       <td>
