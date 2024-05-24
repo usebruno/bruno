@@ -688,7 +688,7 @@ export const humanizeRequestAuthMode = (mode) => {
       break;
     }
     case 'ntlm': {
-      label = 'NTLM';
+      label = 'NTLM Auth';
       break;
     }     
     case 'oauth2': {
