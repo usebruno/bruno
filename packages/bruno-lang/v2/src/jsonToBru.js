@@ -165,7 +165,6 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
 `;
   }
 
-
   if (auth && auth.ntlm) {
     bru += `auth:ntlm {
 ${indentString(`username: ${auth?.ntlm?.username || ''}`)}
@@ -175,7 +174,26 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 }
 
 `;
-  }  
+  }
+
+  if (auth && auth.oauth1) {
+    bru += `auth:oauth1 {
+${indentString(`consumerKey: ${auth?.oauth1?.consumerKey || ''}`)}
+${indentString(`consumerSecret: ${auth?.oauth1?.consumerSecret || ''}`)}
+${indentString(`requestTokenUrl: ${auth?.oauth1?.requestTokenUrl || ''}`)}
+${indentString(`accessTokenUrl: ${auth?.oauth1?.accessTokenUrl || ''}`)}
+${indentString(`authorizeUrl: ${auth?.oauth1?.authorizeUrl || ''}`)}
+${indentString(`callbackUrl: ${auth?.oauth1?.callbackUrl || ''}`)}
+${indentString(`verifier: ${auth?.oauth1?.verifier || ''}`)}
+${indentString(`accessToken: ${auth?.oauth1?.accessToken || ''}`)}
+${indentString(`accessTokenSecret: ${auth?.oauth1?.accessTokenSecret || ''}`)}
+${indentString(`rsaPrivateKey: ${auth?.oauth1?.rsaPrivateKey || ''}`)}
+${indentString(`parameterTransmissionMethod: ${auth?.oauth1?.parameterTransmissionMethod || ''}`)}
+${indentString(`signatureMethod: ${auth?.oauth1?.signatureMethod || ''}`)}
+}
+
+`;
+  }
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {

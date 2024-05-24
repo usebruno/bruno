@@ -13,7 +13,7 @@ const AuthMode = ({ item, collection }) => {
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
   const authMode = item.draft ? get(item, 'draft.request.auth.mode') : get(item, 'request.auth.mode');
 
-  const authModes = ['awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth2', 'wsse', 'apikey', 'inherit', 'none'];
+  const authModes = ['awsv4', 'basic', 'bearer', 'digest', 'ntlm', 'oauth1', 'oauth2', 'wsse', 'apikey', 'inherit', 'none'];
 
   const Icon = forwardRef((props, ref) => {
     return (

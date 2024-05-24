@@ -40,7 +40,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'ntlm.password'),
           domain: get(collectionAuth, 'ntlm.domain')
         };
-        break;        
+        break;
       case 'wsse':
         const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
@@ -103,7 +103,23 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.ntlm.password'),
           domain: get(request, 'auth.ntlm.domain')
         };
-        break;        
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1 = {
+          consumerKey: get(request, 'auth.oauth1.consumerKey'),
+          consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+          requestTokenUrl: get(request, 'auth.oauth1.requestTokenUrl'),
+          accessTokenUrl: get(request, 'auth.oauth1.accessTokenUrl'),
+          authorizeUrl: get(request, 'auth.oauth1.authorizeUrl'),
+          callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+          verifier: get(request, 'auth.oauth1.verifier'),
+          accessToken: get(request, 'auth.oauth1.accessToken'),
+          accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+          rsaPrivateKey: get(request, 'auth.oauth1.rsaPrivateKey'),
+          parameterTransmissionMethod: get(request, 'auth.oauth1.parameterTransmissionMethod'),
+          signatureMethod: get(request, 'auth.oauth1.signatureMethod')
+        };
+        break;
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
