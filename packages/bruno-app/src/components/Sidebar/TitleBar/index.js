@@ -16,6 +16,7 @@ import versionCheck from '@version-checker/core';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
@@ -41,8 +42,11 @@ const TitleBar = () => {
     });
   }, [brunoVersion]);
 
-  const handleImportCollection = (collection) => {
+  const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);
+    if (translationLog) {
+      setImportedTranslationLog(translationLog);
+    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
@@ -86,6 +90,7 @@ const TitleBar = () => {
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
+          translationLog={importedTranslationLog}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
