@@ -87,29 +87,31 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   });
 
   if (request.params.length) {
-    let url;
-    try {
-      url = new URL(request.url);
-    } catch (e) {
-      url = new URL('http://' + request.url);
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
     }
-    let urlPaths = url.pathname.split('/');
-    urlPaths = urlPaths.reduce((acc, path) => {
-      if (path !== '') {
+
+    try {
+      url = new URL(url);
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+
+    const urlPaths = url.pathname
+      .split('/')
+      .filter((path) => path !== '')
+      .map((path) => {
         if (path[0] !== ':') {
-          acc += '/' + path;
+          return '/' + path;
         } else {
-          let name = path.slice(1, path.length);
-          if (name) {
-            let existingPathParam = find(request.params, (param) => param.type === 'path' && param.name === name);
-            if (existingPathParam) {
-              acc += '/' + interpolate(existingPathParam.value);
-            }
-          }
+          const name = path.slice(1);
+          const existingPathParam = request.params.find((param) => param.type === 'path' && param.name === name);
+          return existingPathParam ? '/' + existingPathParam.value : '';
         }
-      }
-      return acc;
-    }, '');
+      })
+      .join('');
 
     request.url = url.origin + urlPaths + url.search;
   }

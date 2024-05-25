@@ -34,15 +34,15 @@ export const parsePathParams = (url) => {
     return [];
   }
 
-  if (uri.indexOf('http://') === -1 || uri.indexOf('https://') === -1) {
+  if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
     uri = `http://${uri}`;
   }
 
-  if (!isValidUrl(uri)) {
-    throw 'Invalid URL format';
+  try {
+    uri = new URL(uri);
+  } catch (e) {
+    throw e;
   }
-
-  uri = new URL(uri);
 
   let paths = uri.pathname.split('/');
 

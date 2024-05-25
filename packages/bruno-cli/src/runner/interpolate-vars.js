@@ -86,25 +86,32 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = _interpolate(param.value);
   });
 
-  if (request.paths.length) {
-    let url = new URL(request.url);
-    let urlPaths = url.pathname.split('/');
-    urlPaths = urlPaths.reduce((acc, path) => {
-      if (path !== '') {
+  if (request.params.length) {
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+
+    try {
+      url = new URL(url);
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+
+    const urlPaths = url.pathname
+      .split('/')
+      .filter((path) => path !== '')
+      .map((path) => {
         if (path[0] !== ':') {
-          acc += '/' + path;
+          return '/' + path;
         } else {
-          let name = path.slice(1, path.length);
-          if (name) {
-            let existingPath = find(request.paths, (path) => path.name === name);
-            if (existingPath) {
-              acc += '/' + interpolate(existingPath.value);
-            }
-          }
+          const name = path.slice(1);
+          const existingPathParam = request.params.find((param) => param.type === 'path' && param.name === name);
+          return existingPathParam ? '/' + existingPathParam.value : '';
         }
-      }
-      return acc;
-    }, '');
+      })
+      .join('');
 
     request.url = url.origin + urlPaths + url.search;
   }

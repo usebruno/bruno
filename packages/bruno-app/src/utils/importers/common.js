@@ -29,7 +29,6 @@ export const updateUidsInCollection = (_collection) => {
       item.uid = uuid();
 
       each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
-      each(get(item, 'request.query'), (param) => (param.uid = uuid()));
       each(get(item, 'request.params'), (param) => (param.uid = uuid()));
       each(get(item, 'request.vars.req'), (v) => (v.uid = uuid()));
       each(get(item, 'request.vars.res'), (v) => (v.uid = uuid()));
@@ -66,12 +65,6 @@ export const transformItemsInCollection = (collection) => {
 
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
-        if (item.request.query) {
-          item.request.params = item.request.query;
-        }
-
-        delete item.request.query;
-
         // from 5 feb 2024, multipartFormData needs to have a type
         // this was introduced when we added support for file uploads
         // below logic is to make older collection exports backward compatible

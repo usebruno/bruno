@@ -1,5 +1,5 @@
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -16,6 +16,7 @@ import {
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
+import toast from 'react-hot-toast';
 
 const initialState = {
   collections: [],
@@ -287,7 +288,14 @@ export const collectionsSlice = createSlice({
       if (collection && collection.items && collection.items.length) {
         const parts = splitOnFirst(action.payload.requestUrl, '?');
         const queryParams = parseQueryParams(parts[1]);
-        const pathParams = parsePathParams(parts[0]);
+
+        let pathParams = [];
+        try {
+          pathParams = parsePathParams(parts[0]);
+        } catch (err) {
+          console.error(err);
+          toast.error(err.message);
+        }
 
         const queryParamObjects = queryParams.map((param) => ({
           uid: uuid(),
@@ -361,7 +369,15 @@ export const collectionsSlice = createSlice({
 
           const parts = splitOnFirst(item.draft.request.url, '?');
           const urlParams = parseQueryParams(parts[1]);
-          const urlPaths = parsePathParams(parts[0]);
+          let urlPaths = [];
+
+          try {
+            urlPaths = parsePathParams(parts[0]);
+          } catch (err) {
+            console.error(err);
+            toast.error(err.message);
+          }
+
           const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
           let enabledParams = filter(item.draft.request.params, (p) => p.enabled && p.type === 'query');
           let oldPaths = filter(item.draft.request.params, (p) => p.enabled && p.type === 'path');
