@@ -120,7 +120,7 @@ export default function RunnerResults({ collection }) {
         <div className="mt-6">
           <label>Delay (in ms)</label>
           <input
-            type="text"
+            type="number"
             className="block textbox mt-2 py-5"
             autoComplete="off"
             autoCorrect="off"
@@ -188,7 +188,9 @@ export default function RunnerResults({ collection }) {
                         <span>{item.responseReceived?.statusText}</span>)
                       </span>
                     ) : (
-                      <span className="danger text-xs">(request failed)</span>
+                      <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        (request failed)
+                      </span>
                     )}
                   </div>
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
