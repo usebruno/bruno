@@ -83,16 +83,16 @@ Of elk versiebeheersysteem naar keuze
 
 #### Gouden Sponsors
 
-<img src="assets/images/sponsors/samagata.png" width="150"/>
+<img src="../../assets/images/sponsors/samagata.png" width="150"/>
 
 #### Zilveren Sponsors
 
-<img src="assets/images/sponsors/commit-company.png" width="70"/>
+<img src="../../assets/images/sponsors/commit-company.png" width="70"/>
 
 #### Bronzen Sponsors
 
 <a href="https://zuplo.link/bruno">
-    <img src="assets/images/sponsors/zuplo.png" width="120"/>
+    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
 </a>
 
 ### Belangrijke Links 📌
