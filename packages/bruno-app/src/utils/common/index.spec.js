@@ -89,7 +89,7 @@ describe('common utils', () => {
       expect(relativeDate(date)).toBe('1 week ago');
     });
 
-    it('should return weeks ago', () => {
+    it('should return months ago', () => {
       let date = new Date();
       date.setDate(date.getDate() - 60);
       expect(relativeDate(date)).toBe('2 months ago');
