@@ -10,7 +10,7 @@
 [![网站](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![下载](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](../../readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | **简体中文** | [正體中文](docs/readme/readme_zhtw.md)
+[English](../../readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Nederlands](./readme_nl.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | **简体中文** | [正體中文](docs/readme/readme_zhtw.md)
 
 Bruno 是一款全新且创新的 API 客户端，旨在颠覆 Postman 和其他类似工具。
 
