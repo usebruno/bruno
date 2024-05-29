@@ -275,7 +275,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             name: param.key,
             value: param.value,
             description: param.description,
+            type: 'query',
             enabled: !param.disabled
+          });
+        });
+
+        each(get(i, 'request.url.variable'), (param) => {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: param.key,
+            value: param.value,
+            description: param.description,
+            type: 'path',
+            enabled: true
           });
         });
 

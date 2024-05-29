@@ -92,7 +92,17 @@ const transformOpenapiRequestItem = (request) => {
         name: param.name,
         value: '',
         description: param.description || '',
-        enabled: param.required
+        enabled: param.required,
+        type: 'query'
+      });
+    } else if (param.in === 'path') {
+      brunoRequestItem.request.params.push({
+        uid: uuid(),
+        name: param.name,
+        value: '',
+        description: param.description || '',
+        enabled: param.required,
+        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
