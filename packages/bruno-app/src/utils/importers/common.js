@@ -65,6 +65,17 @@ export const transformItemsInCollection = (collection) => {
 
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
+
+        if (item.request.query) {
+          item.request.params = item.request.query.map((queryItem) => ({
+            ...queryItem,
+            type: 'query',
+            uid: queryItem.uid || uuid()
+          }));
+        }
+
+        delete item.request.query;
+
         // from 5 feb 2024, multipartFormData needs to have a type
         // this was introduced when we added support for file uploads
         // below logic is to make older collection exports backward compatible
