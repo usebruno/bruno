@@ -136,7 +136,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   });
 };
 
-const mapPairListToKeyValPairsWithType = (pairList = [], type) => {
+const mapRequestParams = (pairList = [], type) => {
   if (!pairList.length) {
     return [];
   }
@@ -346,17 +346,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   query(_1, dictionary) {
     return {
-      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'query')
+      params: mapRequestParams(dictionary.ast, 'query')
     };
   },
   paramspath(_1, dictionary) {
     return {
-      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'path')
+      params: mapRequestParams(dictionary.ast, 'path')
     };
   },
   paramsquery(_1, dictionary) {
     return {
-      params: mapPairListToKeyValPairsWithType(dictionary.ast, 'query')
+      params: mapRequestParams(dictionary.ast, 'query')
     };
   },
   headers(_1, dictionary) {
