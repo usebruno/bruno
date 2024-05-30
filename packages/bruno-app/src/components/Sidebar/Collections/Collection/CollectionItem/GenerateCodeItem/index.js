@@ -29,14 +29,14 @@ const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) =
 
 // Recreates the URL with the interpolated query and path params
 const constructUrlWithInterpolatedQueryAndPathParams = (url, params) => {
-  const getInterpolatedBasePath = (uri, params) => {
-    return uri
+  const getInterpolatedBasePath = (pathname, params) => {
+    return pathname
       .split('/')
       .map((segment) => {
         if (segment.startsWith(':')) {
           const pathParamName = segment.slice(1);
           const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
-          return pathParam ? params.value : segment;
+          return pathParam ? pathParam.value : segment;
         }
         return segment;
       })
