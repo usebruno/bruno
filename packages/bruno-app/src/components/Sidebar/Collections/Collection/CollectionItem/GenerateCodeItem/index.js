@@ -27,8 +27,8 @@ const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) =
   });
 };
 
-// Recreates the URL with the interpolated query and path params
-const constructUrlWithInterpolatedQueryAndPathParams = (url, params) => {
+// interpolate URL paths
+const interpolateUrlPathParams = (url, params) => {
   const getInterpolatedBasePath = (pathname, params) => {
     return pathname
       .split('/')
@@ -43,16 +43,6 @@ const constructUrlWithInterpolatedQueryAndPathParams = (url, params) => {
       .join('/');
   };
 
-  const getInterpolatedQueryString = (search, params) => {
-    const queryParams = new URLSearchParams(search);
-    params
-      .filter((p) => p.type === 'query' && p.enabled)
-      .forEach((param) => {
-        queryParams.set(param.name, param.value);
-      });
-    return queryParams.toString();
-  };
-
   let uri;
   try {
     uri = new URL(url);
@@ -61,9 +51,8 @@ const constructUrlWithInterpolatedQueryAndPathParams = (url, params) => {
   }
 
   const basePath = getInterpolatedBasePath(uri.pathname, params);
-  const queryString = getInterpolatedQueryString(uri.search, params);
 
-  return `${uri.origin}${basePath}${queryString ? `?${queryString}` : ''}`;
+  return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
 
 const languages = [
@@ -115,10 +104,6 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = constructUrlWithInterpolatedQueryAndPathParams(
-    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url'),
-    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
-  );
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
@@ -129,12 +114,23 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     }, {});
   }
 
+  const requestUrl =
+    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+
+  // interpolate the query params
   const interpolatedUrl = interpolateUrl({
-    url,
+    url: requestUrl,
     envVars,
     collectionVariables: collection.collectionVariables,
     processEnvVars: collection.processEnvVariables
   });
+
+  // interpoalte the path params
+  const url = interpolateUrlPathParams(
+    interpolatedUrl,
+    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+  );
+
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -158,7 +154,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             </div>
           </div>
           <div className="flex-grow p-4">
-            {isValidUrl(interpolatedUrl) ? (
+            {isValidUrl(url) ? (
               <CodeView
                 language={selectedLanguage}
                 item={{
@@ -167,18 +163,18 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url: interpolatedUrl
+                          url
                         }
                       : {
                           ...item.draft.request,
-                          url: interpolatedUrl
+                          url
                         }
                 }}
               />
             ) : (
               <div className="flex flex-col justify-center items-center w-full">
                 <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {interpolatedUrl}</h1>
+                  <h1 className="text-2xl font-bold">Invalid URL: {url}</h1>
                   <p className="text-gray-500">Please check the URL and try again</p>
                 </div>
               </div>
