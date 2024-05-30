@@ -27,22 +27,23 @@ const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) =
   });
 };
 
-const joinPathUrl = (url, params) => {
-  const processPaths = (uri, paths) => {
+// Recreates the URL with the interpolated query and path params
+const constructUrlWithInterpolatedQueryAndPathParams = (url, params) => {
+  const getInterpolatedBasePath = (uri, params) => {
     return uri
       .split('/')
       .map((segment) => {
         if (segment.startsWith(':')) {
-          const paramName = segment.slice(1);
-          const param = paths.find((p) => p.name === paramName && p.type === 'path' && p.enabled);
-          return param ? param.value : segment;
+          const pathParamName = segment.slice(1);
+          const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
+          return pathParam ? params.value : segment;
         }
         return segment;
       })
       .join('/');
   };
 
-  const processQueryParams = (search, params) => {
+  const getInterpolatedQueryString = (search, params) => {
     const queryParams = new URLSearchParams(search);
     params
       .filter((p) => p.type === 'query' && p.enabled)
@@ -59,8 +60,8 @@ const joinPathUrl = (url, params) => {
     uri = new URL(`http://${url}`);
   }
 
-  const basePath = processPaths(uri.pathname, params);
-  const queryString = processQueryParams(uri.search, params);
+  const basePath = getInterpolatedBasePath(uri.pathname, params);
+  const queryString = getInterpolatedQueryString(uri.search, params);
 
   return `${uri.origin}${basePath}${queryString ? `?${queryString}` : ''}`;
 };
@@ -114,7 +115,7 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = joinPathUrl(
+  const url = constructUrlWithInterpolatedQueryAndPathParams(
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url'),
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );

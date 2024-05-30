@@ -185,7 +185,7 @@ const authSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
-const keyValueWithTypeSchema = Yup.object({
+const requestParamsSchema = Yup.object({
   uid: uidSchema,
   name: Yup.string().nullable(),
   value: Yup.string().nullable(),
@@ -203,7 +203,7 @@ const requestSchema = Yup.object({
   url: requestUrlSchema,
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
-  params: Yup.array().of(keyValueWithTypeSchema).required('params are required'),
+  params: Yup.array().of(requestParamsSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
   script: Yup.object({

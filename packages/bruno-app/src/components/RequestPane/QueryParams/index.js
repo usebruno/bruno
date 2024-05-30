@@ -35,22 +35,10 @@ const QueryParams = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
 
-  const handleValueChange = (data, type, value) => {
-    const _data = cloneDeep(data);
-
-    if (!has(_data, type)) {
-      return;
-    }
-
-    _data[type] = value;
-
-    return _data;
-  };
-
-  const handleQueryParamChange = (e, data, type) => {
+  const handleQueryParamChange = (e, data, key) => {
     let value;
 
-    switch (type) {
+    switch (key) {
       case 'name': {
         value = e.target.value;
         break;
@@ -65,11 +53,17 @@ const QueryParams = ({ item, collection }) => {
       }
     }
 
-    const param = handleValueChange(data, type, value);
+    let queryParam = cloneDeep(data);
+
+    if (queryParam[key]?.value === value) {
+      return;
+    }
+
+    queryParam[key] = value;
 
     dispatch(
       updateQueryParam({
-        param,
+        queryParam,
         itemUid: item.uid,
         collectionUid: collection.uid
       })
@@ -79,11 +73,17 @@ const QueryParams = ({ item, collection }) => {
   const handlePathParamChange = (e, data) => {
     let value = e.target.value;
 
-    const path = handleValueChange(data, 'value', value);
+    let pathParam = cloneDeep(data);
+
+    if (pathParam['value']?.value === value) {
+      return;
+    }
+
+    pathParam['value'] = value;
 
     dispatch(
       updatePathParam({
-        path,
+        pathParam,
         itemUid: item.uid,
         collectionUid: collection.uid
       })
