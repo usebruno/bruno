@@ -622,7 +622,6 @@ const parser = (input) => {
   const match = grammar.match(input);
 
   if (match.succeeded()) {
-    console.log('bruToJson -> parser -> sem(match).ast', sem(match).ast);
     return sem(match).ast;
   } else {
     throw new Error(match.message);
