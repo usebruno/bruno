@@ -1,4 +1,20 @@
-[English](/contributing.md) | [Українська](./contributing_ua.md) | [Русский](./contributing_ru.md) | [Türkçe](./contributing_tr.md) | [Deutsch](./contributing_de.md) | [Français](./contributing_fr.md) | [Português (BR)](./contributing_pt_br.md) | [বাংলা](./contributing_bn.md) | [हिंदी](./contributing_hi.md) | [Español](./contributing_es.md) | [Română](./contributing_ro.md) | [Polski](./contributing_pl.md) | [简体中文](./contributing_cn.md) | **正體中文**
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| [Deutsch](./contributing_de.md)
+| [Français](./contributing_fr.md)
+| [Português (BR)](./contributing_pt_br.md)
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| **正體中文**
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
 
 ## 讓我們一起來讓 Bruno 變得更好！
 
