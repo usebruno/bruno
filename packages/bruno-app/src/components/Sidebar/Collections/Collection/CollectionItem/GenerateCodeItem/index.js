@@ -125,8 +125,8 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     processEnvVars: collection.processEnvVariables
   });
 
-  // interpoalte the path params
-  const url = interpolateUrlPathParams(
+  // interpolate the path params
+  const finalUrl = interpolateUrlPathParams(
     interpolatedUrl,
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
@@ -154,7 +154,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             </div>
           </div>
           <div className="flex-grow p-4">
-            {isValidUrl(url) ? (
+            {isValidUrl(finalUrl) ? (
               <CodeView
                 language={selectedLanguage}
                 item={{
@@ -163,11 +163,11 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url
+                          url: finalUrl
                         }
                       : {
                           ...item.draft.request,
-                          url
+                          url: finalUrl
                         }
                 }}
               />

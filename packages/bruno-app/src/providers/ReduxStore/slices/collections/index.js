@@ -378,7 +378,7 @@ export const collectionsSlice = createSlice({
             toast.error(err.message);
           }
 
-          const disabledParams = filter(item?.draft?.request?.params, (p) => !p.enabled);
+          const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
           let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
           let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
           let newPathParams = [];
@@ -419,7 +419,7 @@ export const collectionsSlice = createSlice({
           // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
-          item.draft.request.params = concat(urlQueryParams, newPathParams, disabledParams, oldPathParams);
+          item.draft.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
         }
       }
     },
