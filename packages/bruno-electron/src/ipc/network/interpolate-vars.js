@@ -99,7 +99,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       throw { message: 'Invalid URL format', originalError: e.message };
     }
 
-    const interpolatedUrlPath = url.pathname
+    const urlPathnameInterpolatedWithPathParams = url.pathname
       .split('/')
       .filter((path) => path !== '')
       .map((path) => {
@@ -113,7 +113,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       })
       .join('');
 
-    request.url = url.origin + interpolatedUrlPath + url.search;
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
   }
 
   if (request.proxy) {
