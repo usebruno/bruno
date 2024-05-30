@@ -31,4 +31,10 @@ router.get('/bom-json-test', (req, res) => {
   return res.send(jsonWithBom);
 });
 
+router.get('/iso-enc', (req, res) => {
+  res.set('Content-Type', 'text/plain; charset=ISO-8859-1');
+  const responseText = 'éçà';
+  return res.send(Buffer.from(responseText, 'latin1'));
+});
+
 module.exports = router;

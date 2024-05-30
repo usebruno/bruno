@@ -41,6 +41,7 @@
     "graphql": "^16.6.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
+    "iconv-lite": "^0.6.3",
     "is-valid-path": "^0.1.1",
     "js-yaml": "^4.1.0",
     "json-bigint": "^1.0.0",
