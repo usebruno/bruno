@@ -10,7 +10,7 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -37,6 +37,7 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
+const FormData = require('form-data');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -81,6 +82,29 @@ const getEnvVars = (environment = {}) => {
 };
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+
+const createFormData = (datas, collectionPath) => {
+  // make axios work in node using form data
+  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
+  const form = new FormData();
+  forOwn(datas, (value, key) => {
+    if (typeof value == 'object') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
+
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
+
+        form.append(key, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+      });
+    } else {
+      form.append(key, value);
+    }
+  });
+  return form;
+};
 
 const configureRequest = async (
   collectionUid,
@@ -356,6 +380,12 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
+    }
+
+    if (request.headers['content-type'] === 'multipart/form-data' && !request.__bruno__bodySetViaMethodCall) {
+      let form = createFormData(request.data, collectionPath);
+      request.data = form;
+      extend(request.headers, form.getHeaders());
     }
 
     return scriptResult;

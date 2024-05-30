@@ -70,7 +70,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.data = _interpolate(request.data);
       }
     }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
+  } else if (contentType === 'application/x-www-form-urlencoded' || contentType === 'multipart/form-data') {
     if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
