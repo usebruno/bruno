@@ -2,8 +2,8 @@ import Modal from 'components/Modal/index';
 import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url/index';
-import get from 'lodash/get';
+import { isValidUrl } from 'utils/url';
+import { find, get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
 
 // Todo: Fix this
@@ -25,6 +25,44 @@ const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) =
       }
     }
   });
+};
+
+const joinPathUrl = (url, params) => {
+  const processPaths = (uri, paths) => {
+    return uri
+      .split('/')
+      .map((segment) => {
+        if (segment.startsWith(':')) {
+          const paramName = segment.slice(1);
+          const param = paths.find((p) => p.name === paramName && p.type === 'path' && p.enabled);
+          return param ? param.value : segment;
+        }
+        return segment;
+      })
+      .join('/');
+  };
+
+  const processQueryParams = (search, params) => {
+    const queryParams = new URLSearchParams(search);
+    params
+      .filter((p) => p.type === 'query' && p.enabled)
+      .forEach((param) => {
+        queryParams.set(param.name, param.value);
+      });
+    return queryParams.toString();
+  };
+
+  let uri;
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    uri = new URL(`http://${url}`);
+  }
+
+  const basePath = processPaths(uri.pathname, params);
+  const queryString = processQueryParams(uri.search, params);
+
+  return `${uri.origin}${basePath}${queryString ? `?${queryString}` : ''}`;
 };
 
 const languages = [
@@ -76,7 +114,10 @@ const languages = [
 ];
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = joinPathUrl(
+    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url'),
+    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+  );
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {

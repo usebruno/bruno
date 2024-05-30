@@ -1,5 +1,5 @@
 **English** | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
-| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md) | [日本語](docs/contributing/contributing_ja.md) |  [हिंदी](docs/contributing/contributing_hi.md)
+| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md) | [日本語](docs/contributing/contributing_ja.md) | [हिंदी](docs/contributing/contributing_hi.md)
 
 ## Let's make Bruno better, together !!
 

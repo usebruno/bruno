@@ -185,6 +185,17 @@ const authSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const keyValueWithTypeSchema = Yup.object({
+  uid: uidSchema,
+  name: Yup.string().nullable(),
+  value: Yup.string().nullable(),
+  description: Yup.string().nullable(),
+  type: Yup.string().oneOf(['query', 'path']).required('type is required'),
+  enabled: Yup.boolean()
+})
+  .noUnknown(true)
+  .strict();
+
 // Right now, the request schema is very tightly coupled with http request
 // As we introduce more request types in the future, we will improve the definition to support
 // schema structure based on other request type
@@ -192,7 +203,7 @@ const requestSchema = Yup.object({
   url: requestUrlSchema,
   method: requestMethodSchema,
   headers: Yup.array().of(keyValueSchema).required('headers are required'),
-  params: Yup.array().of(keyValueSchema).required('params are required'),
+  params: Yup.array().of(keyValueWithTypeSchema).required('params are required'),
   auth: authSchema,
   body: requestBodySchema,
   script: Yup.object({
