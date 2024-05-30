@@ -1,13 +1,13 @@
 [English](../../contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
 | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md) | **日本語**
 
-## 一緒にBrunoをよりよいものにしていきましょう！！
+## 一緒に Bruno をよりよいものにしていきましょう！！
 
-Brunoを改善していただけるのは歓迎です。以下はあなたの環境でBrunoを起動するためのガイドラインです。
+Bruno を改善していただけるのは歓迎です。以下はあなたの環境で Bruno を起動するためのガイドラインです。
 
 ### 技術スタック
 
-BrunoはNext.jsとReactで作られています。デスクトップアプリ(ローカルのコレクションに対応しています)にはelectronも使用しています。
+Bruno は Next.js と React で作られています。デスクトップアプリ(ローカルのコレクションに対応しています)には electron も使用しています。
 
 使用ライブラリ
 
@@ -22,11 +22,11 @@ BrunoはNext.jsとReactで作られています。デスクトップアプリ(�
 
 ### 依存関係
 
-[Node v18.x もしくは最新のLTSバージョン](https://nodejs.org/en/)とnpm 8.xが必要です。プロジェクトにnpmワークスペースを使用しています。
+[Node v18.x もしくは最新の LTS バージョン](https://nodejs.org/en/)と npm 8.x が必要です。プロジェクトに npm ワークスペースを使用しています。
 
 ## 開発
 
-Brunoはデスクトップアプリとして開発されています。一つのターミナルでNext.jsアプリを立ち上げ、もう一つのターミナルでelectronアプリを立ち上げてアプリを読み込む必要があります。
+Bruno はデスクトップアプリとして開発されています。一つのターミナルで Next.js アプリを立ち上げ、もう一つのターミナルで electron アプリを立ち上げてアプリを読み込む必要があります。
 
 ### ローカル環境での開発
 

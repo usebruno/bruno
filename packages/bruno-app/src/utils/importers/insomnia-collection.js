@@ -112,7 +112,19 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: 'query',
       enabled: !param.disabled
+    });
+  });
+
+  each(request.pathParameters, (param) => {
+    brunoRequestItem.request.params.push({
+      uid: uuid(),
+      name: param.name,
+      value: param.value,
+      description: '',
+      type: 'path',
+      enabled: true
     });
   });
 

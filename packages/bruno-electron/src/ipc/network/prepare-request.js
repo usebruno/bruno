@@ -161,6 +161,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     method: request.method,
     url,
     headers,
+    params: request.params.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
 

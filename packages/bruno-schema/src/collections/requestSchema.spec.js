@@ -9,6 +9,7 @@ describe('Request Schema Validation', () => {
       method: 'GET',
       headers: [],
       params: [],
+      paths: [],
       body: {
         mode: 'none'
       }
@@ -24,6 +25,7 @@ describe('Request Schema Validation', () => {
       method: 'GET-junk',
       headers: [],
       params: [],
+      paths: [],
       body: {
         mode: 'none'
       }
