@@ -5,7 +5,7 @@ import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
-import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleOff, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -58,7 +58,8 @@ export default function RunnerResults({ collection }) {
         pathname: info.pathname,
         relativePath: getRelativePath(collection.pathname, info.pathname)
       };
-      if (newItem.status !== 'error') {
+
+      if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
           const failed = newItem.testResults.filter((result) => result.status === 'fail');
           newItem.testStatus = failed.length ? 'fail' : 'pass';
@@ -104,6 +105,9 @@ export default function RunnerResults({ collection }) {
   const failedRequests = items.filter((item) => {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
+  const skipedRequests = items.filter((item) => {
+    return item.status == 'skipped';
+  });
 
   if (!items || !items.length) {
     return (
@@ -146,7 +150,8 @@ export default function RunnerResults({ collection }) {
           ref={runnerBodyRef}
         >
           <div className="pb-2 font-medium test-summary">
-            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
+            Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
+            {skipedRequests.length}
           </div>
           {items.map((item) => {
             return (
@@ -156,6 +161,8 @@ export default function RunnerResults({ collection }) {
                     <span>
                       {item.status !== 'error' && item.testStatus === 'pass' ? (
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
+                      ) : item.status === 'skipped' ? (
+                        <IconCircleOff className="skipped-request" size={20} strokeWidth={1.5} />
                       ) : (
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       )}
@@ -165,7 +172,7 @@ export default function RunnerResults({ collection }) {
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'error' && item.status !== 'completed' ? (
+                    {item.status !== 'error' && item.status !== 'completed' && item.status != 'skipped' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                     ) : (
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>

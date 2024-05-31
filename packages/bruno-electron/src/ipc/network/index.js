@@ -905,6 +905,20 @@ const registerNetworkIpc = (mainWindow) => {
               scriptingConfig
             );
 
+            if (preRequestScriptResult?.isSkippedRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'request-skipped',
+                responseReceived: {
+                  status: 'Skipped',
+                  statusText: 'OK'
+                },
+                ...eventData
+              });
+
+              currentRequestIndex++;
+              continue;
+            }
+
             if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
             }

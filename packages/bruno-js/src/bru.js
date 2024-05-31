@@ -80,6 +80,10 @@ class Bru {
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
   }
+
+  skipRequest() {
+    this.isSkippedRequest = true;
+  }
 }
 
 module.exports = Bru;

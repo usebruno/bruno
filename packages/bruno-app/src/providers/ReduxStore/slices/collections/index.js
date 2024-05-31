@@ -1417,6 +1417,12 @@ export const collectionsSlice = createSlice({
           item.requestSent = action.payload.requestSent;
         }
 
+        if (type === 'request-skipped') {
+          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          item.status = 'skipped';
+          item.responseReceived = action.payload.responseReceived;
+        }
+
         if (type === 'response-received') {
           const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
           item.status = 'completed';
