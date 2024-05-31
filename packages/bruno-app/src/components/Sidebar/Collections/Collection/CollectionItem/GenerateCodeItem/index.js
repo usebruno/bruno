@@ -126,7 +126,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             ) : (
               <div className="flex flex-col justify-center items-center w-full">
                 <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {url}</h1>
+                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
                   <p className="text-gray-500">Please check the URL and try again</p>
                 </div>
               </div>
