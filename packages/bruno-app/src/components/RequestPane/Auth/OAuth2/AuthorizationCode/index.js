@@ -59,6 +59,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          state,
           scope,
           pkce: !Boolean(oAuth?.['pkce'])
         }
