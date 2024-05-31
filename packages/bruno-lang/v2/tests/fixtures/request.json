@@ -72,6 +72,7 @@
       "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
       "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
       "scope": "read write",
+      "state": "807061d5f0be",
       "pkce": false
     }
   },
