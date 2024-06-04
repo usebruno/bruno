@@ -263,7 +263,7 @@ ${indentString(body.sparql)}
             const enabled = item.enabled ? '' : '~';
 
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${item.value}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}`;
             }
 
             if (item.type === 'file') {
