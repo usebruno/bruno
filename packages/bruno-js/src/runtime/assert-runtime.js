@@ -66,6 +66,7 @@ chai.use(function (chai, utils) {
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
+ * isArray     : is array
  */
 const parseAssertionOperator = (str = '') => {
   if (!str || typeof str !== 'string' || !str.length) {
@@ -101,7 +102,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const unaryOperators = [
@@ -114,7 +116,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const [operator, ...rest] = str.trim().split(' ');
@@ -151,7 +154,8 @@ const isUnaryOperator = (operator) => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   return unaryOperators.includes(operator);
@@ -312,6 +316,9 @@ class AssertRuntime {
             break;
           case 'isBoolean':
             expect(lhs).to.be.a('boolean');
+            break;
+          case 'isArray':
+            expect(lhs).to.be.a('array');
             break;
           default:
             expect(lhs).to.equal(rhs);
