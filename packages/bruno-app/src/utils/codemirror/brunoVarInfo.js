@@ -18,10 +18,23 @@ if (!SERVER_RENDERED) {
     if (!str || !str.length || typeof str !== 'string') {
       return;
     }
-    // str is of format {{variableName}}, extract variableName
-    // we are seeing that from the gql query editor, the token string is of format variableName
-    const variableName = str.replace('{{', '').replace('}}', '').trim();
-    const variableValue = get(options.variables, variableName);
+
+    // str is of format {{variableName}} or :variableName, extract variableName
+    let variableName;
+    let variableValue;
+
+    if (str.startsWith('{{')) {
+      variableName = str.replace('{{', '').replace('}}', '').trim();
+      variableValue = options.variables ? options.variables[variableName] : undefined;
+    } else if (str.startsWith(':')) {
+      variableName = str.replace(':', '').trim();
+      variableValue =
+        options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
+    }
+
+    if (variableValue === undefined) {
+      return;
+    }
 
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');

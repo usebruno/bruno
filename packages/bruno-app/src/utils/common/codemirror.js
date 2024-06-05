@@ -43,7 +43,7 @@ export const defineCombinedCodeMirrorMode = (variables, mode) => {
           while ((ch = stream.next()) != null) {
             if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
               stream.backUp(1);
-              const found = pathFoundInVariables(word, variables);
+              const found = pathFoundInVariables(word, variables?.pathParams);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;
