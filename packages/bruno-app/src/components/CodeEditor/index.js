@@ -8,7 +8,7 @@
 import React from 'react';
 import isEqual from 'lodash/isEqual';
 import { getEnvironmentVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { defineCombinedCodeMirrorMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
@@ -301,7 +301,7 @@ export default class CodeEditor extends React.Component {
     let variables = getEnvironmentVariables(this.props.collection);
     this.variables = variables;
 
-    defineCodeMirrorBrunoVariablesMode(variables, mode);
+    defineCombinedCodeMirrorMode(variables, mode);
     this.editor.setOption('mode', 'brunovariables');
   };
 
