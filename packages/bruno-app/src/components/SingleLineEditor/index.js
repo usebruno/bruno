@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCombinedCodeMirrorMode } from 'utils/common/codemirror';
+import { defineCodeMirrorCombinedVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
@@ -129,7 +129,7 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCombinedCodeMirrorMode(variables, 'text/plain');
+    defineCodeMirrorCombinedVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'combinedmode');
   };
 

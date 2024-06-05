@@ -12,7 +12,7 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
-export const defineCombinedCodeMirrorMode = (variables, mode) => {
+export const defineCodeMirrorCombinedVariablesMode = (variables, mode) => {
   CodeMirror.defineMode('combinedmode', function (config, parserConfig) {
     const variablesOverlay = {
       token: function (stream) {
@@ -49,6 +49,14 @@ export const defineCombinedCodeMirrorMode = (variables, mode) => {
               return `variable-${status} ${randomClass}`;
             }
             word += ch;
+          }
+
+          // If we've consumed all characters and the word is not empty, it might be a path parameter at the end of the URL.
+          if (word) {
+            const found = pathFoundInVariables(word, variables?.pathParams);
+            const status = found ? 'valid' : 'invalid';
+            const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+            return `variable-${status} ${randomClass}`;
           }
         }
         stream.skipTo(':') || stream.skipToEnd();
