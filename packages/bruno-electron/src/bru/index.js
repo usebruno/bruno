@@ -14,7 +14,7 @@ const collectionBruToJson = (bru) => {
 
     const transformedJson = {
       request: {
-        params: _.get(json, 'query', []),
+        params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
@@ -33,7 +33,7 @@ const collectionBruToJson = (bru) => {
 const jsonToCollectionBru = (json) => {
   try {
     const collectionBruJson = {
-      query: _.get(json, 'request.params', []),
+      params: _.get(json, 'request.params', []),
       headers: _.get(json, 'request.headers', []),
       auth: _.get(json, 'request.auth', {}),
       script: {
@@ -111,7 +111,7 @@ const bruToJson = (bru) => {
       request: {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
-        params: _.get(json, 'query', []),
+        params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         body: _.get(json, 'body', {}),
@@ -162,7 +162,7 @@ const jsonToBru = (json) => {
       auth: _.get(json, 'request.auth.mode', 'none'),
       body: _.get(json, 'request.body.mode', 'none')
     },
-    query: _.get(json, 'request.params', []),
+    params: _.get(json, 'request.params', []),
     headers: _.get(json, 'request.headers', []),
     auth: _.get(json, 'request.auth', {}),
     body: _.get(json, 'request.body', {}),

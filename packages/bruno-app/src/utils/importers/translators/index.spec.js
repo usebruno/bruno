@@ -9,6 +9,8 @@ describe('postmanTranslation function', () => {
       pm.variables.set('key', 'value');
       pm.collectionVariables.get('key');
       pm.collectionVariables.set('key', 'value');
+      const data = pm.response.json();
+      pm.expect(pm.environment.has('key')).to.be.true;
     `;
     const expectedOutput = `
       bru.getEnvVar('key');
@@ -17,6 +19,8 @@ describe('postmanTranslation function', () => {
       bru.setVar('key', 'value');
       bru.getVar('key');
       bru.setVar('key', 'value');
+      const data = res.getBody();
+      expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
@@ -36,13 +40,14 @@ describe('postmanTranslation function', () => {
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => pm.response.json());";
-    const expectedOutput = "// test('random test', () => pm.response.json());";
+    const inputScript = "pm.test('random test', () => pm.variables.replaceIn('{{$guid}}'));";
+    const expectedOutput = "// test('random test', () => pm.variables.replaceIn('{{$guid}}'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
   test('should handle multiple pm commands on the same line', () => {
     const inputScript = "pm.environment.get('key'); pm.environment.set('key', 'value');";
-    const expectedOutput = "bru.getEnv(var); bru.setEnvVar(var, 'value');";
+    const expectedOutput = "bru.getEnvVar('key'); bru.setEnvVar('key', 'value');";
+    expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
   test('should handle comments and other JavaScript code', () => {
     const inputScript = `

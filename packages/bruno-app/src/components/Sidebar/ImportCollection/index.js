@@ -17,32 +17,32 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   });
   const handleImportBrunoCollection = () => {
     importBrunoCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Import collection failed'));
   };
 
   const handleImportPostmanCollection = () => {
     importPostmanCollection(options)
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection, translationLog }) => {
+        handleSubmit({ collection, translationLog });
       })
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };
 
   const handleImportInsomniaCollection = () => {
     importInsomniaCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Insomnia Import collection failed'));
   };
 
   const handleImportOpenapiCollection = () => {
     importOpenapiCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
   };
@@ -79,7 +79,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
         </div>
         <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (
-            <div className="relative flex items-start">
+            <div key={key} className="relative flex items-start">
               <div className="flex h-6 items-center">
                 <input
                   id="comments"

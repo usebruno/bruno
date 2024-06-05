@@ -1,13 +1,6 @@
+import { uuid } from 'utils/common';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
-import cloneDeep from 'lodash/cloneDeep';
-import concat from 'lodash/concat';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
-import find from 'lodash/find';
-import forOwn from 'lodash/forOwn';
-import get from 'lodash/get';
-import map from 'lodash/map';
-import set from 'lodash/set';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -21,9 +14,9 @@ import {
   findItemInCollectionByPathname,
   isItemARequest
 } from 'utils/collections';
-import { uuid } from 'utils/common';
-import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
+import toast from 'react-hot-toast';
 
 const initialState = {
   collections: [],
@@ -294,10 +287,35 @@ export const collectionsSlice = createSlice({
 
       if (collection && collection.items && collection.items.length) {
         const parts = splitOnFirst(action.payload.requestUrl, '?');
-        const params = parseQueryParams(parts[1]);
-        each(params, (urlParam) => {
-          urlParam.enabled = true;
-        });
+        const queryParams = parseQueryParams(parts[1]);
+
+        let pathParams = [];
+        try {
+          pathParams = parsePathParams(parts[0]);
+        } catch (err) {
+          console.error(err);
+          toast.error(err.message);
+        }
+
+        const queryParamObjects = queryParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'query',
+          enabled: true
+        }));
+
+        const pathParamObjects = pathParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'path',
+          enabled: true
+        }));
+
+        const params = [...queryParamObjects, ...pathParamObjects];
 
         const item = {
           uid: action.payload.uid,
@@ -349,27 +367,59 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.url = action.payload.url;
 
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const urlParams = parseQueryParams(parts[1]);
-          const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
-          let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
+          const parts = splitOnFirst(item?.draft?.request?.url, '?');
+          const urlQueryParams = parseQueryParams(parts[1]);
+          let urlPathParams = [];
+
+          try {
+            urlPathParams = parsePathParams(parts[0]);
+          } catch (err) {
+            console.error(err);
+            toast.error(err.message);
+          }
+
+          const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
+          let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
+          let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
+          let newPathParams = [];
 
           // try and connect as much as old params uid's as possible
-          each(urlParams, (urlParam) => {
-            const existingParam = find(enabledParams, (p) => p.name === urlParam.name || p.value === urlParam.value);
-            urlParam.uid = existingParam ? existingParam.uid : uuid();
-            urlParam.enabled = true;
+          each(urlQueryParams, (urlQueryParam) => {
+            const existingQueryParam = find(
+              enabledQueryParams,
+              (p) => p?.name === urlQueryParam?.name || p?.value === urlQueryParam?.value
+            );
+            urlQueryParam.uid = existingQueryParam?.uid || uuid();
+            urlQueryParam.enabled = true;
+            urlQueryParam.type = 'query';
 
             // once found, remove it - trying our best here to accommodate duplicate query params
-            if (existingParam) {
-              enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
+            if (existingQueryParam) {
+              enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
             }
+          });
+
+          // filter the newest path param and compare with previous data that already inserted
+          newPathParams = filter(urlPathParams, (urlPath) => {
+            const existingPathParam = find(oldPathParams, (p) => p.name === urlPath.name);
+            if (existingPathParam) {
+              return false;
+            }
+            urlPath.uid = uuid();
+            urlPath.enabled = true;
+            urlPath.type = 'path';
+            return true;
+          });
+
+          // remove path param that not used or deleted when typing url
+          oldPathParams = filter(oldPathParams, (urlPath) => {
+            return find(urlPathParams, (p) => p.name === urlPath.name);
           });
 
           // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
-          item.draft.request.params = concat(urlParams, disabledParams);
+          item.draft.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
         }
       }
     },
@@ -426,6 +476,7 @@ export const collectionsSlice = createSlice({
             name: '',
             value: '',
             description: '',
+            type: 'query',
             enabled: true
           });
         }
@@ -441,16 +492,20 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
-          if (param) {
-            param.name = action.payload.param.name;
-            param.value = action.payload.param.value;
-            param.description = action.payload.param.description;
-            param.enabled = action.payload.param.enabled;
+          const queryParam = find(
+            item.draft.request.params,
+            (h) => h.uid === action.payload.queryParam.uid && h.type === 'query'
+          );
+          if (queryParam) {
+            queryParam.name = action.payload.queryParam.name;
+            queryParam.value = action.payload.queryParam.value;
+            queryParam.enabled = action.payload.queryParam.enabled;
 
             // update request url
             const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+            const query = stringifyQueryParams(
+              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+            );
 
             // if no query is found, then strip the query params in url
             if (!query || !query.length) {
@@ -486,11 +541,34 @@ export const collectionsSlice = createSlice({
 
           // update request url
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {
             item.draft.request.url = parts[0];
+          }
+        }
+      }
+    },
+    updatePathParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          const param = find(
+            item.draft.request.params,
+            (p) => p.uid === action.payload.pathParam.uid && p.type === 'path'
+          );
+
+          if (param) {
+            param.name = action.payload.pathParam.name;
+            param.value = action.payload.pathParam.value;
           }
         }
       }
@@ -1418,6 +1496,7 @@ export const {
   addQueryParam,
   updateQueryParam,
   deleteQueryParam,
+  updatePathParam,
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
