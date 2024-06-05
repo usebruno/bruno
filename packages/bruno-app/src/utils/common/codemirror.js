@@ -44,7 +44,6 @@ export const defineCombinedCodeMirrorMode = (variables, mode) => {
             if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
               stream.backUp(1);
               const found = pathFoundInVariables(word, variables);
-              console.log('urlPathParamsOverlay ->found', word, found);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;

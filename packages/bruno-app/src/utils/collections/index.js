@@ -670,12 +670,28 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection) => {
+const getPathParams = (item) => {
+  const pathParams = {};
+  if (item && item.request && item.request.params) {
+    item.request.params.forEach((param) => {
+      if (param.type === 'path') {
+        pathParams[param.name] = param.value;
+      }
+    });
+  }
+  return pathParams;
+};
+
+export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  const pathParams = getPathParams(item);
+
+  console.log('getAllVariables -> pathParams', pathParams);
 
   return {
     ...environmentVariables,
     ...collection.collectionVariables,
+    ...pathParams,
     process: {
       env: {
         ...collection.processEnvVariables
