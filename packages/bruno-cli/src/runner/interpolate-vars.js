@@ -66,7 +66,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     }
 
     if (typeof request.data === 'string') {
-      if (request.data.length) {
+      if (request?.data?.length) {
         request.data = _interpolate(request.data);
       }
     }
@@ -86,7 +86,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = _interpolate(param.value);
   });
 
-  if (request.params.length) {
+  if (request?.params?.length) {
     let url = request.url;
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
