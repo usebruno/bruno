@@ -26,6 +26,7 @@ vars:pre-request {
 
 assert {
   res.status: eq 200
+  res.responseTime: lte 2000
   ~res.body: eq {{pong}}
 }
 

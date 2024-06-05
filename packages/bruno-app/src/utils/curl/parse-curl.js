@@ -33,7 +33,7 @@ const parseCurlCommand = (curlCommand) => {
   curlCommand = curlCommand.trim();
 
   const parsedArguments = yargs(curlCommand, {
-    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's'],
+    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's', 'G', 'get'],
     alias: {
       H: 'header',
       A: 'user-agent'
@@ -153,7 +153,10 @@ const parseCurlCommand = (curlCommand) => {
   // NB: the -G flag does not change the http verb. It just moves the data into the url.
   if (parsedArguments.G || parsedArguments.get) {
     urlObject.query = urlObject.query ? urlObject.query : '';
-    const option = 'd' in parsedArguments ? 'd' : 'data' in parsedArguments ? 'data' : null;
+    let option = null;
+    if ('d' in parsedArguments) option = 'd';
+    if ('data' in parsedArguments) option = 'data';
+    if ('data-urlencode' in parsedArguments) option = 'data-urlencode';
     if (option) {
       let urlQueryString = '';
 
@@ -219,6 +222,8 @@ const parseCurlCommand = (curlCommand) => {
   } else if (parsedArguments['data-raw']) {
     request.data = parsedArguments['data-raw'];
     request.isDataRaw = true;
+  } else if (parsedArguments['data-urlencode']) {
+    request.data = parsedArguments['data-urlencode'];
   }
 
   if (parsedArguments.u) {

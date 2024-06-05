@@ -22,10 +22,11 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
+  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
+  params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -35,12 +36,16 @@ const grammar = ohm.grammar(`Bru {
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
 
+   // Multiline text block surrounded by '''
+  multilinetextblockdelimiter = "'''"
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
   
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -70,6 +75,8 @@ const grammar = ohm.grammar(`Bru {
   headers = "headers" dictionary
 
   query = "query" dictionary
+  paramspath = "params:path" dictionary
+  paramsquery = "params:query" dictionary
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -125,6 +132,28 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       name,
       value,
       enabled
+    };
+  });
+};
+
+const mapRequestParams = (pairList = [], type) => {
+  if (!pairList.length) {
+    return [];
+  }
+  return _.map(pairList[0], (pair) => {
+    let name = _.keys(pair)[0];
+    let value = pair[name];
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === '~') {
+      name = name.slice(1);
+      enabled = false;
+    }
+
+    return {
+      name,
+      value,
+      enabled,
+      type
     };
   });
 };
@@ -186,6 +215,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    try {
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
+      if (isMultiline) {
+        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return multilineString
+          .split('\n')
+          .map((line) => line.slice(4))
+          .join('\n');
+      }
+      return chars.sourceString ? chars.sourceString.trim() : '';
+    } catch (err) {
+      console.error(err);
+    }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   assertdictionary(_1, _2, pairlist, _3) {
@@ -304,7 +346,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   query(_1, dictionary) {
     return {
-      query: mapPairListToKeyValPairs(dictionary.ast)
+      params: mapRequestParams(dictionary.ast, 'query')
+    };
+  },
+  paramspath(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'path')
+    };
+  },
+  paramsquery(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'query')
     };
   },
   headers(_1, dictionary) {
@@ -392,6 +444,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
+    const stateKey = _.find(auth, { name: 'state' });
     const pkceKey = _.find(auth, { name: 'pkce' });
     return {
       auth: {
@@ -402,6 +455,8 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 username: usernameKey ? usernameKey.value : '',
                 password: passwordKey ? passwordKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : ''
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
@@ -413,6 +468,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
                 pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'

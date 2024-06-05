@@ -12,8 +12,25 @@ const stripLastLine = (text) => {
   return text.replace(/(\r?\n)$/, '');
 };
 
+const getValueString = (value) => {
+  const hasNewLines = value.includes('\n');
+
+  if (!hasNewLines) {
+    return value;
+  }
+
+  // Add one level of indentation to the contents of the multistring
+  const indentedLines = value
+    .split('\n')
+    .map((line) => `  ${line}`)
+    .join('\n');
+
+  // Join the lines back together with newline characters and enclose them in triple single quotes
+  return `'''\n${indentedLines}\n'''`;
+};
+
 const jsonToBru = (json) => {
-  const { meta, http, query, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -45,25 +62,38 @@ const jsonToBru = (json) => {
 `;
   }
 
-  if (query && query.length) {
-    bru += 'query {';
-    if (enabled(query).length) {
-      bru += `\n${indentString(
-        enabled(query)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+  if (params && params.length) {
+    const queryParams = params.filter((param) => param.type === 'query');
+    const pathParams = params.filter((param) => param.type === 'path');
+
+    if (queryParams.length) {
+      bru += 'params:query {';
+      if (enabled(queryParams).length) {
+        bru += `\n${indentString(
+          enabled(queryParams)
+            .map((item) => `${item.name}: ${item.value}`)
+            .join('\n')
+        )}`;
+      }
+
+      if (disabled(queryParams).length) {
+        bru += `\n${indentString(
+          disabled(queryParams)
+            .map((item) => `~${item.name}: ${item.value}`)
+            .join('\n')
+        )}`;
+      }
+
+      bru += '\n}\n\n';
     }
 
-    if (disabled(query).length) {
-      bru += `\n${indentString(
-        disabled(query)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
-    }
+    if (pathParams.length) {
+      bru += 'params:path {';
 
-    bru += '\n}\n\n';
+      bru += `\n${indentString(pathParams.map((item) => `${item.name}: ${item.value}`).join('\n'))}`;
+
+      bru += '\n}\n\n';
+    }
   }
 
   if (headers && headers.length) {
@@ -134,6 +164,8 @@ ${indentString(`grant_type: password`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 }
 
@@ -148,6 +180,7 @@ ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
 }
 
@@ -200,24 +233,23 @@ ${indentString(body.sparql)}
   }
 
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
-    bru += `body:form-urlencoded {`;
+    bru += `body:form-urlencoded {\n`;
+
     if (enabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        enabled(body.formUrlEncoded)
-          .map((item) => `${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      const enabledValues = enabled(body.formUrlEncoded)
+        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
-      bru += `\n${indentString(
-        disabled(body.formUrlEncoded)
-          .map((item) => `~${item.name}: ${item.value}`)
-          .join('\n')
-      )}`;
+      const disabledValues = disabled(body.formUrlEncoded)
+        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .join('\n');
+      bru += `${indentString(disabledValues)}\n`;
     }
 
-    bru += '\n}\n\n';
+    bru += '}\n\n';
   }
 
   if (body && body.multipartForm && body.multipartForm.length) {
@@ -231,7 +263,7 @@ ${indentString(body.sparql)}
             const enabled = item.enabled ? '' : '~';
 
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${item.value}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}`;
             }
 
             if (item.type === 'file') {

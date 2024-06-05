@@ -15,6 +15,9 @@ const defaultPreferences = {
       enabled: false,
       filePath: null
     },
+    keepDefaultCaCertificates: {
+      enabled: false
+    },
     storeCookies: true,
     sendCookies: true,
     timeout: 0
@@ -45,6 +48,9 @@ const preferencesSchema = Yup.object().shape({
     customCaCertificate: Yup.object({
       enabled: Yup.boolean(),
       filePath: Yup.string().nullable()
+    }),
+    keepDefaultCaCertificates: Yup.object({
+      enabled: Yup.boolean()
     }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
@@ -116,6 +122,9 @@ const preferencesUtil = {
   },
   shouldUseCustomCaCertificate: () => {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
+  },
+  shouldKeepDefaultCaCertificates: () => {
+    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', false);
   },
   getCustomCaCertificateFilePath: () => {
     return get(getPreferences(), 'request.customCaCertificate.filePath', null);

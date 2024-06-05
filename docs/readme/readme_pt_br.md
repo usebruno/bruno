@@ -4,7 +4,7 @@
 ### Bruno - IDE de código aberto para explorar e testar APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
@@ -94,7 +94,7 @@ Ou qualquer sistema de controle de versão de sua escolha.
 - [Website](https://www.usebruno.com)
 - [Preços](https://www.usebruno.com/pricing)
 - [Download](https://www.usebruno.com/downloads)
-- [Github Sponsors](https://github.com/sponsors/helloanoop)
+- [GitHub Sponsors](https://github.com/sponsors/helloanoop)
 
 ### Showcase 🎥
 
@@ -104,7 +104,7 @@ Ou qualquer sistema de controle de versão de sua escolha.
 
 ### Apoie ❤️
 
-Au-au! Se você gosta do projeto e deseja apoiar nosso trabalho, considere nos ajudando via [Github Sponsors](https://github.com/sponsors/helloanoop).
+Au-au! Se você gosta do projeto e deseja apoiar nosso trabalho, considere nos ajudando via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
 ### Compartilhe sua experiência 📣
 

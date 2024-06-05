@@ -2,6 +2,7 @@ const os = require('os');
 const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
+const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
@@ -36,6 +37,7 @@ const {
   transformPasswordCredentialsRequest
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
+const iconv = require('iconv-lite');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -105,7 +107,11 @@ const configureRequest = async (
   if (preferencesUtil.shouldUseCustomCaCertificate()) {
     const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
     if (caCertFilePath) {
-      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+      let caCertBuffer = fs.readFileSync(caCertFilePath);
+      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
+        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+      }
+      httpsAgentRequestFields['ca'] = caCertBuffer;
     }
   }
 
@@ -203,6 +209,7 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
           await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        request.method = 'POST';
         request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = authorizationCodeData;
         request.url = authorizationCodeAccessTokenUrl;
@@ -211,6 +218,8 @@ const configureRequest = async (
         interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = clientCredentialsData;
         request.url = clientCredentialsAccessTokenUrl;
         break;
@@ -219,6 +228,8 @@ const configureRequest = async (
         const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
           requestCopy
         );
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
         request.data = passwordData;
         request.url = passwordAccessTokenUrl;
         break;
@@ -248,14 +259,24 @@ const configureRequest = async (
 };
 
 const parseDataFromResponse = (response) => {
-  const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
-  // Overwrite the original data for backwards compatability
-  let data = dataBuffer.toString(charset || 'utf-8');
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
+  const charsetValue = charsetMatch?.[1];
+  const dataBuffer = Buffer.from(response.data);
+  // Overwrite the original data for backwards compatibility
+  let data;
+  if (iconv.encodingExists(charsetValue)) {
+    data = iconv.decode(dataBuffer, charsetValue);
+  } else {
+    data = iconv.decode(dataBuffer, 'utf-8');
+  }
   // Try to parse response to JSON, this can quietly fail
   try {
-    data = JSON.parse(response.data);
+    // Filter out ZWNBSP character
+    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+    data = data.replace(/^\uFEFF/, '');
+    data = JSON.parse(data);
   } catch {}
 
   return { data, dataBuffer };
@@ -451,6 +472,15 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
@@ -465,15 +495,6 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         cancelTokenUid
       });
-
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
 
       let response, responseTime;
       try {
@@ -913,7 +934,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            let response;
+            let response, responseTime;
             try {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
@@ -921,6 +942,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
+              response.responseTime = response.headers.get('request-duration');
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
@@ -931,7 +953,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: response.data
+                  data: response.data,
+                  responseTime: response.headers.get('request-duration')
                 },
                 ...eventData
               });
@@ -948,7 +971,8 @@ const registerNetworkIpc = (mainWindow) => {
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data
+                  data: error.response.data,
+                  responseTime: error.response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success

@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn, cloneDeep, find } = require('lodash');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -86,6 +86,36 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     param.value = _interpolate(param.value);
   });
 
+  if (request?.params?.length) {
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+
+    try {
+      url = new URL(url);
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+
+    const urlPathnameInterpolatedWithPathParams = url.pathname
+      .split('/')
+      .filter((path) => path !== '')
+      .map((path) => {
+        if (path[0] !== ':') {
+          return '/' + path;
+        } else {
+          const name = path.slice(1);
+          const existingPathParam = request.params.find((param) => param.type === 'path' && param.name === name);
+          return existingPathParam ? '/' + existingPathParam.value : '';
+        }
+      })
+      .join('');
+
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+  }
+
   if (request.proxy) {
     request.proxy.protocol = _interpolate(request.proxy.protocol);
     request.proxy.hostname = _interpolate(request.proxy.hostname);
@@ -114,15 +144,21 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       case 'password':
         username = _interpolate(request.oauth2.username) || '';
         password = _interpolate(request.oauth2.password) || '';
+        clientId = _interpolate(request.oauth2.clientId) || '';
+        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.username = username;
         request.oauth2.password = password;
+        request.oauth2.clientId = clientId;
+        request.oauth2.clientSecret = clientSecret;
         request.oauth2.scope = scope;
         request.data = {
           grant_type: 'password',
           username,
           password,
+          client_id: clientId,
+          client_secret: clientSecret,
           scope
         };
         break;
@@ -133,6 +169,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
         break;
       case 'client_credentials':

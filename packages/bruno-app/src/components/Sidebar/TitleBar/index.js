@@ -14,19 +14,23 @@ import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = (collection) => {
+  const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);
+    if (translationLog) {
+      setImportedTranslationLog(translationLog);
+    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
-  const handleImportCollectionLocation = (collectionLocation, useTranslation) => {
+  const handleImportCollectionLocation = (collectionLocation) => {
     dispatch(importCollection(importedCollection, collectionLocation));
     setImportCollectionLocationModalOpen(false);
     setImportedCollection(null);
@@ -64,6 +68,7 @@ const TitleBar = () => {
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
+          translationLog={importedTranslationLog}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
