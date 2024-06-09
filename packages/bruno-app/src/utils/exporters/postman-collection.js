@@ -171,11 +171,43 @@ export const exportCollection = (collection) => {
     }
   };
 
+  const generateHost = (url) => {
+    try {
+      const { hostname } = new URL(url);
+      return hostname.split('.');
+    } catch (error) {
+      console.error(`Invalid URL: ${url}`, error);
+      return [];
+    }
+  };
+
+  const generatePathParams = (params) => {
+    return params.filter((param) => param.type === 'path').map((param) => `:${param.name}`);
+  };
+
+  const generateQueryParams = (params) => {
+    return params
+      .filter((param) => param.type === 'query')
+      .map(({ name, value, description }) => ({ key: name, value, description }));
+  };
+
+  const generateVariables = (params) => {
+    return params
+      .filter((param) => param.type === 'path')
+      .map(({ name, value, description }) => ({ key: name, value, description }));
+  };
+
   const generateRequestSection = (itemRequest) => {
     const requestObject = {
       method: itemRequest.method,
       header: generateHeaders(itemRequest.headers),
-      url: itemRequest.url,
+      url: {
+        raw: itemRequest.url,
+        host: generateHost(itemRequest.url),
+        path: generatePathParams(itemRequest.params),
+        query: generateQueryParams(itemRequest.params),
+        variable: generateVariables(itemRequest.params)
+      },
       auth: generateAuth(itemRequest.auth)
     };
 

@@ -81,6 +81,8 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     });
   };
 
+  const isMultipleContentTab = ['params', 'script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
+
   const request = item.draft ? get(item, 'draft.request', {}) : get(item, 'request');
   const activeParamsLength = request.params.filter((param) => param.enabled).length;
   const activeHeadersLength = request.headers.filter((header) => header.enabled).length;
@@ -93,27 +95,51 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
     <StyledWrapper className="flex flex-col h-full relative">
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('params', activeParamsLength)} role="tab" onClick={() => selectTab('params')}>
-          Query
+          Params
           {activeParamsLength > 0 && <sup className="ml-1 font-medium">{activeParamsLength}</sup>}
         </div>
-        <div className={getTabClassname('body', hasNonEmptyValue(omit(request.body, 'mode')))} role="tab" onClick={() => selectTab('body')}>
+        <div
+          className={getTabClassname('body', hasNonEmptyValue(omit(request.body, 'mode')))}
+          role="tab"
+          onClick={() => selectTab('body')}
+        >
           Body
         </div>
-        <div className={getTabClassname('headers', request.headers.length)} role="tab" onClick={() => selectTab('headers')}>
+        <div
+          className={getTabClassname('headers', request.headers.length)}
+          role="tab"
+          onClick={() => selectTab('headers')}
+        >
           Headers
           {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
-        <div className={getTabClassname('auth', hasNonEmptyValue(omit(request.auth, 'mode')))} role="tab" onClick={() => selectTab('auth')}>
+        <div
+          className={getTabClassname('auth', hasNonEmptyValue(omit(request.auth, 'mode')))}
+          role="tab"
+          onClick={() => selectTab('auth')}
+        >
           Auth
         </div>
-        <div className={getTabClassname('vars', request.vars.req?.length ?? 0 + request.vars.res?.length ?? 0)} role="tab" onClick={() => selectTab('vars')}>
+        <div
+          className={getTabClassname('vars', request.vars.req?.length ?? 0 + request.vars.res?.length ?? 0)}
+          role="tab"
+          onClick={() => selectTab('vars')}
+        >
           Vars
           {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
         </div>
-        <div className={getTabClassname('script', request.script.req || request.script.res)} role="tab" onClick={() => selectTab('script')}>
+        <div
+          className={getTabClassname('script', request.script.req || request.script.res)}
+          role="tab"
+          onClick={() => selectTab('script')}
+        >
           Script
         </div>
-        <div className={getTabClassname('assert', request.assertions.length)} role="tab" onClick={() => selectTab('assert')}>
+        <div
+          className={getTabClassname('assert', request.assertions.length)}
+          role="tab"
+          onClick={() => selectTab('assert')}
+        >
           Assert
           {activeAssertionsLength > 0 && <sup className="ml-1 font-medium">{activeAssertionsLength}</sup>}
         </div>
@@ -130,9 +156,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         ) : null}
       </div>
       <section
-        className={`flex w-full ${
-          ['script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab) ? '' : 'mt-5'
-        }`}
+        className={classnames('flex w-full', {
+          'mt-5': !isMultipleContentTab
+        })}
       >
         {getTabPanel(focusedTab.requestPaneTab)}
       </section>

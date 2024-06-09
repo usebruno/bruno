@@ -30,20 +30,9 @@ const parseFormData = (datas, collectionPath) => {
   return form;
 };
 
-/**
- * 27 Feb 2024:
- * ['inherit', 'none'].includes(request.auth.mode)
- * We are mainitaining the old behavior where 'none' used to inherit the collection auth.
- *
- * Very soon, 'none' will be treated as no auth and 'inherit' will be the only way to inherit collection auth.
- * We will request users to update their collection files to use 'inherit' instead of 'none'.
- * Don't want to break ongoing CI pipelines.
- *
- * Hoping to remove this by 1 April 2024.
- */
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && ['inherit', 'none'].includes(request.auth.mode)) {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
       case 'awsv4':
         axiosRequest.awsv4config = {
@@ -123,6 +112,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
+              state: get(request, 'auth.oauth2.state'),
               pkce: get(request, 'auth.oauth2.pkce')
             };
             break;
@@ -172,6 +162,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     method: request.method,
     url,
     headers,
+    params: request.params.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
 

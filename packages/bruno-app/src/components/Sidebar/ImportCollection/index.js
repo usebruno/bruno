@@ -17,32 +17,32 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   });
   const handleImportBrunoCollection = () => {
     importBrunoCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Import collection failed'));
   };
 
   const handleImportPostmanCollection = () => {
     importPostmanCollection(options)
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection, translationLog }) => {
+        handleSubmit({ collection, translationLog });
       })
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };
 
   const handleImportInsomniaCollection = () => {
     importInsomniaCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Insomnia Import collection failed'));
   };
 
   const handleImportOpenapiCollection = () => {
     importOpenapiCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
   };
