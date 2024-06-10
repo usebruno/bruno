@@ -73,9 +73,12 @@ describe('makeHtmlOutput', () => {
       ]
     };
 
-    makeHtmlOutput(outputJson, '/tmp/testfile.html');
+    makeHtmlOutput(outputJson, '/tmp/testfile.html', null, 'any title');
 
     const htmlReport = fs.writeFileSync.mock.calls[0][1];
-    expect(htmlReport).toContain(JSON.stringify(outputJson, null, 2));
+    expect(htmlReport).toContain(
+      `JSON.parse(decodeURIComponent(atob('${btoa(encodeURIComponent(JSON.stringify(outputJson)))}')))`
+    );
+    expect(htmlReport).toContain('any title');
   });
 });
