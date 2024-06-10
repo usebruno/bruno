@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorCombinedVariablesMode } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 
 let CodeMirror;
@@ -24,13 +24,15 @@ class SingleLineEditor extends Component {
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
+    const variables = getAllVariables(this.props.collection, this.props.item);
+
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       mode: 'brunovariables',
       brunoVarInfo: {
-        variables: getAllVariables(this.props.collection, this.props.item)
+        variables
       },
       scrollbarStyle: null,
       tabindex: 0,
@@ -90,7 +92,7 @@ class SingleLineEditor extends Component {
     }
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
-    this.addOverlay();
+    this.addOverlay(variables);
   }
 
   _onEdit = () => {
@@ -129,7 +131,7 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorCombinedVariablesMode(variables, 'text/plain');
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
     this.editor.setOption('mode', 'combinedmode');
   };
 

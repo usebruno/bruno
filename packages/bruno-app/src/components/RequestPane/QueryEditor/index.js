@@ -11,7 +11,7 @@ import MD from 'markdown-it';
 import { format } from 'prettier/standalone';
 import prettierPluginGraphql from 'prettier/parser-graphql';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorCombinedVariablesMode } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { IconWand } from '@tabler/icons';
@@ -201,7 +201,7 @@ export default class QueryEditor extends React.Component {
   addOverlay = () => {
     // let variables = getAllVariables(this.props.collection);
     // this.variables = variables;
-    // defineCodeMirrorCombinedVariablesMode(variables, 'graphql');
+    // defineCodeMirrorBrunoVariablesMode(variables, 'graphql');
     // this.editor.setOption('mode', 'brunovariables');
   };
 

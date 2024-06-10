@@ -12,7 +12,7 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
-export const defineCodeMirrorCombinedVariablesMode = (variables, mode) => {
+export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
   CodeMirror.defineMode('combinedmode', function (config, parserConfig) {
     const variablesOverlay = {
       token: function (stream) {
