@@ -13,7 +13,8 @@ const replacements = {
   'pm\\.expect\\(': 'expect(',
   'pm\\.environment\\.has\\(([^)]+)\\)': 'bru.getEnvVar($1) !== undefined && bru.getEnvVar($1) !== null',
   'pm\\.response\\.code': 'res.getStatus()',
-  'pm\\.response\\.text\\(': 'res.getBody()?.toString('
+  'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
+  'pm\\.expect\\.fail\\(': 'expect.fail('
 };
 
 const compiledReplacements = Object.entries(replacements).map(([pattern, replacement]) => ({
