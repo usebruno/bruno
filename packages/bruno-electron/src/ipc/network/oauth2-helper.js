@@ -30,9 +30,11 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
     redirect_uri: callbackUrl,
     client_id: clientId,
     client_secret: clientSecret,
-    scope: scope,
     state: state
   };
+  if (scope) {
+    data['scope'] = scope;
+  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
@@ -88,9 +90,11 @@ const transformClientCredentialsRequest = async (request) => {
   const data = {
     grant_type: 'client_credentials',
     client_id: clientId,
-    client_secret: clientSecret,
-    scope
+    client_secret: clientSecret
   };
+  if (scope) {
+    data.scope = scope;
+  }
   const url = requestCopy?.oauth2?.accessTokenUrl;
   return {
     data,
@@ -109,9 +113,11 @@ const transformPasswordCredentialsRequest = async (request) => {
     username,
     password,
     client_id: clientId,
-    client_secret: clientSecret,
-    scope
+    client_secret: clientSecret
   };
+  if (scope) {
+    data.scope = scope;
+  }
   const url = requestCopy?.oauth2?.accessTokenUrl;
   return {
     data,
