@@ -114,6 +114,8 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       .join('');
 
     request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+    // We don't need them anymore Issue #2439
+    delete request.params;
   }
 
   if (request.proxy) {

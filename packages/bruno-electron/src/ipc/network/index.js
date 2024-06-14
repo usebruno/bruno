@@ -499,8 +499,6 @@ const registerNetworkIpc = (mainWindow) => {
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
-        // Looks like the "params" create problems if filled
-        request.params = [];
         response = await axiosInstance(request);
 
         // Prevents the duration on leaking to the actual result
