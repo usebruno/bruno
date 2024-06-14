@@ -401,6 +401,10 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
       }
+
+      if (result?.error) {
+        mainWindow.webContents.send('main:display-error', result.error);
+      }
     }
 
     // run post-response script

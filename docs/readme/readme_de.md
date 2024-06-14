@@ -10,7 +10,23 @@
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | **Deutsch** | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](./readme_cn.md) | [正體中文](./readme_zhtw.md)
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| **Deutsch**
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
 
 Bruno ist ein neuer und innovativer API-Client, der den Status Quo von Postman und ähnlichen Tools revolutionieren soll.
 
@@ -114,7 +130,7 @@ Wenn Bruno dir und in deinen Teams bei der Arbeit geholfen hat, vergiss bitte ni
 
 ### Bereitstellung in neuen Paket-Managern
 
-Mehr Informationen findest du [hier](/publishing.md).
+Mehr Informationen findest du [hier](../publishing/publishing_de.md).
 
 ### Mitmachen 👩‍💻🧑‍💻
 
@@ -149,4 +165,4 @@ Das Logo stammt von [OpenMoji](https://openmoji.org/library/emoji-1F436/). Lizen
 
 ### Lizenz 📄
 
-[MIT](/license.md)
+[MIT](../../license.md)
