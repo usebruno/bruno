@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { IconCertificate, IconTrash, IconWorld } from '@tabler/icons';
 import { useFormik } from 'formik';
 import { uuid } from 'utils/common';
@@ -26,8 +26,35 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
     }),
     onSubmit: (values) => {
       onUpdate(values);
+      formik.resetForm();
     }
   });
+  const certFileChooserRef = useRef(null);
+  const keyFileChooserRef = useRef(null);
+
+  useEffect(() => {
+    if (formik.values.pfx) {
+      formik.setFieldValue('keyFilePath', undefined);
+    }
+  }, [formik.values.pfx]);
+
+  useEffect(() => {
+    if (!formik.values.keyFilePath) {
+      clearFileInput(keyFileChooserRef);
+    }
+  }, [formik.values.keyFilePath]);
+
+  useEffect(() => {
+    if (!formik.values.certFilePath) {
+      clearFileInput(certFileChooserRef);
+    }
+  }, [formik.values.certFilePath]);
+
+  const clearFileInput = (inputRef) => {
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+  };
 
   const getFile = (e) => {
     try {
@@ -91,6 +118,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
               id="certFilePath"
               type="file"
               name="certFilePath"
+              ref={certFileChooserRef}
               className="block non-passphrase-input"
               onChange={(e) => getFile(e.target)}
             />
@@ -116,6 +144,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             id="keyFilePath"
             type="file"
             name="keyFilePath"
+            ref={keyFileChooserRef}
             className="block non-passphrase-input"
             onChange={(e) => getFile(e.target)}
             disabled={formik.values.pfx}
