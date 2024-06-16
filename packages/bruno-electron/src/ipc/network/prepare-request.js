@@ -112,6 +112,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
+              state: get(request, 'auth.oauth2.state'),
               pkce: get(request, 'auth.oauth2.pkce')
             };
             break;
@@ -161,6 +162,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     method: request.method,
     url,
     headers,
+    params: request.params.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
 

@@ -228,13 +228,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const copyQueryParams = (params) => {
+  const copyParams = (params) => {
     return map(params, (param) => {
       return {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
+        type: param.type,
         enabled: param.enabled
       };
     });
@@ -283,7 +284,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           url: si.request.url,
           method: si.request.method,
           headers: copyHeaders(si.request.headers),
-          params: copyQueryParams(si.request.params),
+          params: copyParams(si.request.params),
           body: {
             mode: si.request.body.mode,
             json: si.request.body.json,
@@ -441,6 +442,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: param.type,
       enabled: param.enabled
     });
   });

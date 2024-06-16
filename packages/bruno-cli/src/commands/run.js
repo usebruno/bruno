@@ -10,6 +10,7 @@ const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
+const constants = require('../constants');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -255,7 +256,7 @@ const handler = async function (argv) {
     const brunoJsonExists = await exists(brunoJsonPath);
     if (!brunoJsonExists) {
       console.error(chalk.red(`You can run only at the root of a collection`));
-      return;
+      process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     }
 
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -266,7 +267,7 @@ const handler = async function (argv) {
       const pathExists = await exists(filename);
       if (!pathExists) {
         console.error(chalk.red(`File or directory ${filename} does not exist`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     } else {
       filename = './';
@@ -282,7 +283,7 @@ const handler = async function (argv) {
 
       if (!envPathExists) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
@@ -299,7 +300,7 @@ const handler = async function (argv) {
         processVars = envVar;
       } else {
         console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
       }
       if (processVars && Array.isArray(processVars)) {
         for (const value of processVars.values()) {
@@ -310,7 +311,7 @@ const handler = async function (argv) {
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
                 chalk.dim(`${value}`)
             );
-            return;
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
         }
@@ -339,7 +340,7 @@ const handler = async function (argv) {
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
-      return;
+      process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
     // load .env file at root of collection if it exists
@@ -451,7 +452,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(1);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
         }
         if (nextRequestName === null) {
           break;
@@ -477,7 +478,7 @@ const handler = async function (argv) {
       const outputDirExists = await exists(outputDir);
       if (!outputDirExists) {
         console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(1);
+        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       }
 
       const outputJson = {
@@ -497,12 +498,12 @@ const handler = async function (argv) {
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
-      process.exit(1);
+      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
-    process.exit(1);
+    process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
   }
 };
 
