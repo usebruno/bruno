@@ -80,6 +80,10 @@ class Bru {
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
   }
+
+  rmVar(varType, key) {
+    delete this[varType][key];
+  }
 }
 
 module.exports = Bru;
