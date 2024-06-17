@@ -45,6 +45,18 @@ const compileJsExpression = (expr) => {
     globals: globals.map((name) => ` ${name} = ${name} ?? globalThis.${name};`).join('')
   };
 
+  if (expr.indexOf('-') > 0 && expr.indexOf('.') > 0) {
+    let _expr = '';
+    expr.split('.').forEach((_part, index) => {
+      if (_part.indexOf('-') > 0) {
+        _expr += `['${_part}']`;
+      } else {
+        _expr += (index > 0 ? '.' : '') + `${_part}`;
+      }
+      expr = _expr;
+    });
+  }
+
   const body = `let { ${code.vars} } = context; ${code.globals}; return ${expr}`;
 
   return new Function('context', body);
