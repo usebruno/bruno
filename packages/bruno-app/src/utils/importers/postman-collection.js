@@ -181,11 +181,22 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
             each(i.request.body.formdata, (param) => {
+              const isFile = param.type === 'file';
+              let value;
+              if (isFile) {
+                if (Array.isArray(param.src)) {
+                  value = param.src;
+                } else {
+                  value = param.src;
+                }
+              } else {
+                value = param.value;
+              }
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                type: 'text',
+                type: param.type,
                 name: param.key,
-                value: param.value,
+                value: value,
                 description: param.description,
                 enabled: !param.disabled
               });
