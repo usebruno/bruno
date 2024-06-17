@@ -255,6 +255,10 @@ const configureRequest = async (
       request.headers['cookie'] = cookieString;
     }
   }
+
+  // Remove pathParams, already in URL (Issue #2439)
+  delete request.pathParams;
+
   return axiosInstance;
 };
 
