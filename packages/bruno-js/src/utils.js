@@ -45,6 +45,8 @@ const compileJsExpression = (expr) => {
     globals: globals.map((name) => ` ${name} = ${name} ?? globalThis.${name};`).join('')
   };
 
+  // If expr contains an hyphen and has dotted identifiers, we need to adjust fieldnames
+  // to use square bracket access to the property
   if (expr.indexOf('-') > 0 && expr.indexOf('.') > 0) {
     let _expr = '';
     expr.split('.').forEach((_part, index) => {
