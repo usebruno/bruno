@@ -180,18 +180,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         if (bodyMode) {
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
-            each(i.request.body.formdata, (param) => {
+
+            i.request.body.formdata.forEach((param) => {
               const isFile = param.type === 'file';
               let value;
+
               if (isFile) {
-                if (Array.isArray(param.src)) {
-                  value = param.src;
-                } else {
-                  value = param.src;
-                }
+                // If param.src is an array, keep it as it is.
+                // If param.src is a string, convert it into an array with a single element.
+                value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
               } else {
                 value = param.value;
               }
+
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
                 type: param.type,
