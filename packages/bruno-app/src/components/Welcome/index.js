@@ -34,10 +34,17 @@ const Welcome = () => {
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
-    setImportCollectionLocationModalOpen(false);
-    setImportedCollection(null);
-    toast.success('Collection imported successfully');
+    dispatch(importCollection(importedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportedCollection(null);
+        toast.success('Collection imported successfully');
+      })
+      .catch((err) => {
+        setImportCollectionLocationModalOpen(false);
+        console.error(err);
+        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+      });
   };
 
   return (
