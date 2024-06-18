@@ -140,7 +140,7 @@ const runSingleRequest = async function (
             }
           } else if (type === 'pfx') {
             try {
-              const pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
               pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
               httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
             } catch (err) {
