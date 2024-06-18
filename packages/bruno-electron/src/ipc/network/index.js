@@ -142,6 +142,7 @@ const configureRequest = async (
             httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
           } catch (err) {
             console.error('Error reading cert/key file', err);
+            throw new Error('Error reading cert/key file' + err);
           }
         } else if (type === 'pfx') {
           try {
@@ -150,6 +151,7 @@ const configureRequest = async (
             httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
           } catch (err) {
             console.error('Error reading pfx file', err);
+            throw new Error('Error reading pfx file' + err);
           }
         }
         httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
