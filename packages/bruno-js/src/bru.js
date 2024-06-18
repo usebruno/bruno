@@ -5,8 +5,8 @@ const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
   constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
-    this.envVariables = cloneDeep(envVariables || {});
-    this.collectionVariables = cloneDeep(collectionVariables || {});
+    this.envVariables = envVariables || {};
+    this.collectionVariables = collectionVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionPath = collectionPath;
   }

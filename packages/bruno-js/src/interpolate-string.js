@@ -1,6 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 
-const interpolateString = (str, { envVariables, collectionVariables, processEnvVars }) => {
+const interpolateString = (str, { envVariables = {}, collectionVariables = {}, processEnvVars = {} }) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
