@@ -127,6 +127,18 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
+      case 'apikey':
+        const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+          // } else if (apiKeyAuth.placement === 'queryparams') {
+          //   axiosRequest.params = axiosRequest.params || {};
+          //   axiosRequest.params[apiKeyAuth.key] = apiKeyAuth.value;
+          // }
+        } else {
+          break;
+        }
+        break;
     }
   }
 

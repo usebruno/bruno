@@ -23,8 +23,7 @@ const ApiKeyAuth = ({ item, collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      // TODO: Remove the classname grant-type-label
-      <div ref={ref} className="flex items-center justify-end grant-type-label select-none">
+      <div ref={ref} className="flex items-center justify-end auth-type-label select-none">
         {humanizeRequestAPIKeyPlacement(apikeyAuth?.placement)}
         <IconCaretDown className="caret ml-1 mr-1" size={14} strokeWidth={2} />
       </div>
@@ -103,16 +102,16 @@ const ApiKeyAuth = ({ item, collection }) => {
       </div>
 
       <label className="block font-medium mb-2">Add To</label>
-      <div className="inline-flex items-center cursor-pointer grant-type-mode-selector w-fit">
+      <div className="inline-flex items-center cursor-pointer auth-placement-selector w-fit">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              handlePlacementChange('headers');
+              handlePlacementChange('header');
             }}
           >
-            Headers
+            Header
           </div>
           <div
             className="dropdown-item"

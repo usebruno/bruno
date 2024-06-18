@@ -557,6 +557,26 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'OAuth 2.0';
       break;
     }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAPIKeyPlacement = (placement) => {
+  let label = 'Header';
+  switch (placement) {
+    case 'header': {
+      label = 'Header';
+      break;
+    }
+    case 'queryparams': {
+      label = 'Query Params';
+      break;
+    }
   }
 
   return label;
