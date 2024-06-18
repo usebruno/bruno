@@ -1,6 +1,8 @@
 const jsonQuery = require('json-query');
 const { get } = require('@usebruno/query');
 
+const _jsInvalidChars = /\-/;
+
 const JS_KEYWORDS = `
   break case catch class const continue debugger default delete do
   else export extends false finally for function if import in instanceof
@@ -45,12 +47,12 @@ const compileJsExpression = (expr) => {
     globals: globals.map((name) => ` ${name} = ${name} ?? globalThis.${name};`).join('')
   };
 
-  // If expr contains an hyphen and has dotted identifiers, we need to adjust fieldnames
-  // to use square bracket access to the property
-  if (expr.indexOf('-') > 0 && expr.indexOf('.') > 0) {
+  // If expr contains an hyphen (or other invalid chars) and has dotted identifiers, we need to adjust fieldnames
+  // to use square bracket access to the property (if not already used)
+  if (_jsInvalidChars.test(expr) > 0 && expr.indexOf('.') > 0) {
     let _expr = '';
     expr.split('.').forEach((_part, index) => {
-      if (_part.indexOf('-') > 0) {
+      if (_jsInvalidChars.test(_part) > 0 && _part.indexOf('[') < 0) {
         _expr += `['${_part}']`;
       } else {
         _expr += (index > 0 ? '.' : '') + `${_part}`;
