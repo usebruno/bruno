@@ -30,46 +30,15 @@ const ApiKeyAuth = ({ item, collection }) => {
     );
   });
 
-  const handleKeyChange = (key) => {
+  const handleAuthChange = (property, value) => {
     dispatch(
       updateAuth({
         mode: 'apikey',
         collectionUid: collection.uid,
         itemUid: item.uid,
         content: {
-          key: key,
-          value: apikeyAuth.value,
-          placement: apikeyAuth.placement
-        }
-      })
-    );
-  };
-
-  const handleValueChange = (value) => {
-    dispatch(
-      updateAuth({
-        mode: 'apikey',
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        content: {
-          key: apikeyAuth.key,
-          value: value,
-          placement: apikeyAuth.placement
-        }
-      })
-    );
-  };
-
-  const handlePlacementChange = (placement) => {
-    dispatch(
-      updateAuth({
-        mode: 'apikey',
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        content: {
-          key: apikeyAuth.key,
-          value: apikeyAuth.value,
-          placement: placement
+          ...apikeyAuth,
+          [property]: value
         }
       })
     );
@@ -83,7 +52,7 @@ const ApiKeyAuth = ({ item, collection }) => {
           value={apikeyAuth.key || ''}
           theme={storedTheme}
           onSave={handleSave}
-          onChange={(val) => handleKeyChange(val)}
+          onChange={(val) => handleAuthChange('key', val)}
           onRun={handleRun}
           collection={collection}
         />
@@ -95,7 +64,7 @@ const ApiKeyAuth = ({ item, collection }) => {
           value={apikeyAuth.value || ''}
           theme={storedTheme}
           onSave={handleSave}
-          onChange={(val) => handleValueChange(val)}
+          onChange={(val) => handleAuthChange('value', val)}
           onRun={handleRun}
           collection={collection}
         />
@@ -108,7 +77,7 @@ const ApiKeyAuth = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              handlePlacementChange('header');
+              handleAuthChange('placement', 'header');
             }}
           >
             Header
@@ -117,7 +86,7 @@ const ApiKeyAuth = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              handlePlacementChange('queryparams');
+              handleAuthChange('placement', 'queryparams');
             }}
           >
             Query Params
