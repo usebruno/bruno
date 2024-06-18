@@ -17,7 +17,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
-
+const path = require('path');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const runSingleRequest = async function (
@@ -129,8 +129,10 @@ const runSingleRequest = async function (
         if (request.url.match(hostRegex)) {
           if (type === 'cert') {
             try {
-              const certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
-              const keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+              let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
               httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
               httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
             } catch (err) {
@@ -139,6 +141,7 @@ const runSingleRequest = async function (
           } else if (type === 'pfx') {
             try {
               const pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
               httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
             } catch (err) {
               console.error('Error reading pfx file', err);

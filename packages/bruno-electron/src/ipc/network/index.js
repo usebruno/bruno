@@ -137,6 +137,7 @@ const configureRequest = async (
             certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
             let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
             keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+
             httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
             httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
           } catch (err) {
@@ -145,7 +146,7 @@ const configureRequest = async (
         } else if (type === 'pfx') {
           try {
             const pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
-            pfxFilePath = path.isAbsolute(pfxFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+            pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
             httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
           } catch (err) {
             console.error('Error reading pfx file', err);
