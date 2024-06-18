@@ -8,6 +8,8 @@ import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';
 import { useRef } from 'react';
+import path from 'path';
+import slash from 'utils/common/slash';
 
 const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
   const certFilePathInputRef = useRef();
@@ -136,7 +138,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             Type
           </label>
           <div className="flex items-center">
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="type"
@@ -147,7 +149,7 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
               />
               Cert
             </label>
-            <label className="flex items-center ml-4">
+            <label className="flex items-center ml-4 cursor-pointer">
               <input
                 type="radio"
                 name="type"
@@ -172,20 +174,23 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                   id="certFilePath"
                   type="file"
                   name="certFilePath"
-                  className="block non-passphrase-input"
+                  className={`non-passphrase-input ${formik.values.certFilePath?.length ? 'hidden' : 'block'}`}
                   onChange={(e) => getFile(e.target)}
                   ref={certFilePathInputRef}
                 />
-                {formik.values.certFilePath || certFilePathInputRef?.current?.value?.length ? (
-                  <IconTrash
-                    size={18}
-                    strokeWidth={1.5}
-                    className="ml-2 cursor-pointer"
-                    onClick={() => {
-                      formik.setFieldValue('certFilePath', '');
-                      certFilePathInputRef.current.value = '';
-                    }}
-                  />
+                {formik.values.certFilePath ? (
+                  <div className="flex flex-row gap-2 items-center">
+                    <div className="my-[3px]">{path.basename(slash(formik.values.certFilePath))}</div>
+                    <IconTrash
+                      size={18}
+                      strokeWidth={1.5}
+                      className="ml-2 cursor-pointer"
+                      onClick={() => {
+                        formik.setFieldValue('certFilePath', '');
+                        certFilePathInputRef.current.value = '';
+                      }}
+                    />
+                  </div>
                 ) : (
                   <></>
                 )}
@@ -204,20 +209,23 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                   id="keyFilePath"
                   type="file"
                   name="keyFilePath"
-                  className="block non-passphrase-input"
+                  className={`non-passphrase-input ${formik.values.keyFilePath?.length ? 'hidden' : 'block'}`}
                   onChange={(e) => getFile(e.target)}
                   ref={keyFilePathInputRef}
                 />
-                {formik.values.keyFilePath || keyFilePathInputRef?.current?.value?.length ? (
-                  <IconTrash
-                    size={18}
-                    strokeWidth={1.5}
-                    className="ml-2 cursor-pointer"
-                    onClick={() => {
-                      formik.setFieldValue('keyFilePath', '');
-                      keyFilePathInputRef.current.value = '';
-                    }}
-                  />
+                {formik.values.keyFilePath ? (
+                  <div className="flex flex-row gap-2 items-center">
+                    <div className="my-[3px]">{path.basename(slash(formik.values.keyFilePath))}</div>
+                    <IconTrash
+                      size={18}
+                      strokeWidth={1.5}
+                      className="ml-2 cursor-pointer"
+                      onClick={() => {
+                        formik.setFieldValue('keyFilePath', '');
+                        keyFilePathInputRef.current.value = '';
+                      }}
+                    />
+                  </div>
                 ) : (
                   <></>
                 )}
@@ -239,20 +247,23 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                   id="pfxFilePath"
                   type="file"
                   name="pfxFilePath"
-                  className="block non-passphrase-input"
+                  className={`non-passphrase-input ${formik.values.pfxFilePath?.length ? 'hidden' : 'block'}`}
                   onChange={(e) => getFile(e.target)}
                   ref={pfxFilePathInputRef}
                 />
-                {formik.values.pfxFilePath || pfxFilePathInputRef?.current?.value?.length ? (
-                  <IconTrash
-                    size={18}
-                    strokeWidth={1.5}
-                    className="ml-2 cursor-pointer"
-                    onClick={() => {
-                      formik.setFieldValue('pfxFilePath', '');
-                      pfxFilePathInputRef.current.value = '';
-                    }}
-                  />
+                {formik.values.pfxFilePath ? (
+                  <div className="flex flex-row gap-2 items-center">
+                    <div className="my-[3px]">{path.basename(slash(formik.values.pfxFilePath))}</div>
+                    <IconTrash
+                      size={18}
+                      strokeWidth={1.5}
+                      className="ml-2 cursor-pointer"
+                      onClick={() => {
+                        formik.setFieldValue('pfxFilePath', '');
+                        pfxFilePathInputRef.current.value = '';
+                      }}
+                    />
+                  </div>
                 ) : (
                   <></>
                 )}
