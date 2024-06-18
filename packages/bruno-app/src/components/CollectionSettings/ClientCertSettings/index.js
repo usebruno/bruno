@@ -180,7 +180,12 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                 />
                 {formik.values.certFilePath ? (
                   <div className="flex flex-row gap-2 items-center">
-                    <div className="my-[3px]">{path.basename(slash(formik.values.certFilePath))}</div>
+                    <div
+                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
+                      title={path.basename(slash(formik.values.certFilePath))}
+                    >
+                      {path.basename(slash(formik.values.certFilePath))}
+                    </div>
                     <IconTrash
                       size={18}
                       strokeWidth={1.5}
@@ -215,7 +220,12 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                 />
                 {formik.values.keyFilePath ? (
                   <div className="flex flex-row gap-2 items-center">
-                    <div className="my-[3px]">{path.basename(slash(formik.values.keyFilePath))}</div>
+                    <div
+                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
+                      title={path.basename(slash(formik.values.keyFilePath))}
+                    >
+                      {path.basename(slash(formik.values.keyFilePath))}
+                    </div>
                     <IconTrash
                       size={18}
                       strokeWidth={1.5}
@@ -253,7 +263,12 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
                 />
                 {formik.values.pfxFilePath ? (
                   <div className="flex flex-row gap-2 items-center">
-                    <div className="my-[3px]">{path.basename(slash(formik.values.pfxFilePath))}</div>
+                    <div
+                      className="my-[3px] overflow-hidden text-ellipsis whitespace-nowrap max-w-[300px]"
+                      title={path.basename(slash(formik.values.pfxFilePath))}
+                    >
+                      {path.basename(slash(formik.values.pfxFilePath))}
+                    </div>
                     <IconTrash
                       size={18}
                       strokeWidth={1.5}
