@@ -7,31 +7,87 @@ import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
 
 import StyledWrapper from './StyledWrapper';
+import { useRef } from 'react';
 
 const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
+  const certFilePathInputRef = useRef();
+  const keyFilePathInputRef = useRef();
+  const pfxFilePathInputRef = useRef();
+
   const formik = useFormik({
     initialValues: {
       domain: '',
+      type: 'cert',
       certFilePath: '',
       keyFilePath: '',
+      pfxFilePath: '',
       passphrase: ''
     },
     validationSchema: Yup.object({
       domain: Yup.string().required(),
-      certFilePath: Yup.string().required(),
-      keyFilePath: Yup.string().required(),
+      type: Yup.string().required().oneOf(['cert', 'pfx']),
+      certFilePath: Yup.string().when('type', {
+        is: (type) => type == 'cert',
+        then: Yup.string().min(1, 'certFilePath is a required field').required()
+      }),
+      keyFilePath: Yup.string().when('type', {
+        is: (type) => type == 'cert',
+        then: Yup.string().min(1, 'keyFilePath is a required field').required()
+      }),
+      pfxFilePath: Yup.string().when('type', {
+        is: (type) => type == 'pfx',
+        then: Yup.string().min(1, 'pfxFilePath is a required field').required()
+      }),
       passphrase: Yup.string()
     }),
     onSubmit: (values) => {
-      onUpdate(values);
+      let relevantValues = {};
+      if (values.type === 'cert') {
+        relevantValues = {
+          domain: values.domain,
+          type: values.type,
+          certFilePath: values.certFilePath,
+          keyFilePath: values.keyFilePath,
+          passphrase: values.passphrase
+        };
+      } else {
+        relevantValues = {
+          domain: values.domain,
+          type: values.type,
+          pfxFilePath: values.pfxFilePath,
+          passphrase: values.passphrase
+        };
+      }
+      onUpdate(relevantValues);
+      formik.resetForm();
+      resetFileInputFields();
     }
   });
 
   const getFile = (e) => {
-    formik.values[e.name] = e.files[0].path;
+    e.files?.[0]?.path && formik.setFieldValue(e.name, e.files?.[0]?.path);
+  };
+
+  const resetFileInputFields = () => {
+    certFilePathInputRef.current.value = '';
+    keyFilePathInputRef.current.value = '';
+    pfxFilePathInputRef.current.value = '';
   };
 
   const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const handleTypeChange = (e) => {
+    formik.setFieldValue('type', e.target.value);
+    if (e.target.value === 'cert') {
+      formik.setFieldValue('pfxFilePath', '');
+      pfxFilePathInputRef.current.value = '';
+    } else {
+      formik.setFieldValue('certFilePath', '');
+      certFilePathInputRef.current.value = '';
+      formik.setFieldValue('keyFilePath', '');
+      keyFilePathInputRef.current.value = '';
+    }
+  };
 
   return (
     <StyledWrapper className="w-full h-full">
@@ -76,35 +132,137 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           ) : null}
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="certFilePath">
-            Cert file
+          <label className="settings-label" htmlFor="protocol">
+            Type
           </label>
-          <input
-            id="certFilePath"
-            type="file"
-            name="certFilePath"
-            className="block non-passphrase-input"
-            onChange={(e) => getFile(e.target)}
-          />
-          {formik.touched.certFilePath && formik.errors.certFilePath ? (
-            <div className="ml-1 text-red-500">{formik.errors.certFilePath}</div>
-          ) : null}
+          <div className="flex items-center">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="type"
+                value="cert"
+                checked={formik.values.type === 'cert'}
+                onChange={handleTypeChange}
+                className="mr-1"
+              />
+              Cert
+            </label>
+            <label className="flex items-center ml-4">
+              <input
+                type="radio"
+                name="type"
+                value="pfx"
+                checked={formik.values.type === 'pfx'}
+                onChange={handleTypeChange}
+                className="mr-1"
+              />
+              PFX
+            </label>
+          </div>
         </div>
-        <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="keyFilePath">
-            Key file
-          </label>
-          <input
-            id="keyFilePath"
-            type="file"
-            name="keyFilePath"
-            className="block non-passphrase-input"
-            onChange={(e) => getFile(e.target)}
-          />
-          {formik.touched.keyFilePath && formik.errors.keyFilePath ? (
-            <div className="ml-1 text-red-500">{formik.errors.keyFilePath}</div>
-          ) : null}
-        </div>
+        {formik.values.type === 'cert' ? (
+          <>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="certFilePath">
+                Cert file
+              </label>
+              <div className="flex flex-row gap-2 justify-start">
+                <input
+                  key="certFilePath"
+                  id="certFilePath"
+                  type="file"
+                  name="certFilePath"
+                  className="block non-passphrase-input"
+                  onChange={(e) => getFile(e.target)}
+                  ref={certFilePathInputRef}
+                />
+                {formik.values.certFilePath || certFilePathInputRef?.current?.value?.length ? (
+                  <IconTrash
+                    size={18}
+                    strokeWidth={1.5}
+                    className="ml-2 cursor-pointer"
+                    onClick={() => {
+                      formik.setFieldValue('certFilePath', '');
+                      certFilePathInputRef.current.value = '';
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
+              {formik.touched.certFilePath && formik.errors.certFilePath ? (
+                <div className="ml-1 text-red-500">{formik.errors.certFilePath}</div>
+              ) : null}
+            </div>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="keyFilePath">
+                Key file
+              </label>
+              <div className="flex flex-row gap-2">
+                <input
+                  key="keyFilePath"
+                  id="keyFilePath"
+                  type="file"
+                  name="keyFilePath"
+                  className="block non-passphrase-input"
+                  onChange={(e) => getFile(e.target)}
+                  ref={keyFilePathInputRef}
+                />
+                {formik.values.keyFilePath || keyFilePathInputRef?.current?.value?.length ? (
+                  <IconTrash
+                    size={18}
+                    strokeWidth={1.5}
+                    className="ml-2 cursor-pointer"
+                    onClick={() => {
+                      formik.setFieldValue('keyFilePath', '');
+                      keyFilePathInputRef.current.value = '';
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
+              {formik.touched.keyFilePath && formik.errors.keyFilePath ? (
+                <div className="ml-1 text-red-500">{formik.errors.keyFilePath}</div>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-3 flex items-center">
+              <label className="settings-label" htmlFor="pfxFilePath">
+                PFX file
+              </label>
+              <div className="flex flex-row gap-2">
+                <input
+                  key="pfxFilePath"
+                  id="pfxFilePath"
+                  type="file"
+                  name="pfxFilePath"
+                  className="block non-passphrase-input"
+                  onChange={(e) => getFile(e.target)}
+                  ref={pfxFilePathInputRef}
+                />
+                {formik.values.pfxFilePath || pfxFilePathInputRef?.current?.value?.length ? (
+                  <IconTrash
+                    size={18}
+                    strokeWidth={1.5}
+                    className="ml-2 cursor-pointer"
+                    onClick={() => {
+                      formik.setFieldValue('pfxFilePath', '');
+                      pfxFilePathInputRef.current.value = '';
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
+              </div>
+              {formik.touched.pfxFilePath && formik.errors.pfxFilePath ? (
+                <div className="ml-1 text-red-500">{formik.errors.pfxFilePath}</div>
+              ) : null}
+            </div>
+          </>
+        )}
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="passphrase">
             Passphrase
