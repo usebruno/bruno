@@ -131,12 +131,6 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         const apiKeyAuth = get(request, 'auth.apikey');
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
-          // } else if (apiKeyAuth.placement === 'queryparams') {
-          //   axiosRequest.params = axiosRequest.params || {};
-          //   axiosRequest.params[apiKeyAuth.key] = apiKeyAuth.value;
-          // }
-        } else {
-          break;
         }
         break;
     }
@@ -179,6 +173,15 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   };
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
+
+  const apiKeyAuth = get(request, 'auth.apikey');
+  if (apiKeyAuth && apiKeyAuth.placement === 'queryparams') {
+    let urlObj = new URL(axiosRequest.url);
+
+    // Overwrite the existing value
+    urlObj.searchParams.set(apiKeyAuth.key, apiKeyAuth.value);
+    axiosRequest.url = urlObj.toString();
+  }
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {
