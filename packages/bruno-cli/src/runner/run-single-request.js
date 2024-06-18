@@ -122,18 +122,27 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
-      const domain = interpolateString(clientCert.domain, interpolationOptions);
-      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-      if (domain && certFilePath && keyFilePath) {
+      const domain = interpolateString(clientCert?.domain, interpolationOptions);
+      const type = clientCert?.type || 'cert';
+      if (domain) {
         const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-
         if (request.url.match(hostRegex)) {
-          try {
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.log('Error reading cert/key file', err);
+          if (type === 'cert') {
+            try {
+              const certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              const keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+              httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+            } catch (err) {
+              console.error('Error reading cert/key file', err);
+            }
+          } else if (type === 'pfx') {
+            try {
+              const pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+            } catch (err) {
+              console.error('Error reading pfx file', err);
+            }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
           break;
