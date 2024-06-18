@@ -54,6 +54,23 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+const constructUrl = (url) => {
+  let urlStr = '';
+  if (typeof url === 'string') {
+    urlStr = url;
+  } else if (url.raw) {
+    urlStr = url.raw;
+  } else {
+    const { protocol, host, path, port, query } = url;
+    const hostStr = Array.isArray(host) ? host.join('.') : host;
+    const pathStr = Array.isArray(path) ? path.join('/') : path;
+    const portStr = port ? `:${port}` : '';
+    const queryStr = query && query.length > 0 ? `?${query.map((q) => `${q.key}=${q.value}`).join('&')}` : '';
+    urlStr = `${protocol}://${hostStr}${portStr}/${pathStr}${queryStr}`;
+  }
+  return urlStr;
+};
+
 const translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
@@ -84,12 +101,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
       }
     } else {
       if (i.request) {
-        let url = '';
-        if (typeof i.request.url === 'string') {
-          url = i.request.url;
-        } else {
-          url = get(i, 'request.url.raw') || '';
-        }
+        let url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
           uid: uuid(),
