@@ -672,15 +672,14 @@ export const getTotalRequestCountInCollection = (collection) => {
 
 export const getAllVariables = (collection) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  const processEnvVariables = Object.keys(collection.processEnvVariables ?? {}).length
+    ? { process: { env: { ...collection.processEnvVariables } } }
+    : {};
 
   return {
     ...environmentVariables,
     ...collection.collectionVariables,
-    process: {
-      env: {
-        ...collection.processEnvVariables
-      }
-    }
+    ...processEnvVariables
   };
 };
 
