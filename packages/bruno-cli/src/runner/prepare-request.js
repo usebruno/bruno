@@ -1,8 +1,9 @@
 const { get, each, filter } = require('lodash');
 const fs = require('fs');
+var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, brunoConfig) => {
   const headers = {};
   let contentTypeDefined = false;
 
@@ -75,7 +76,15 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    axiosRequest.data = request?.body?.json;
+    if (brunoConfig?.presets?.sendRawJsonBody) {
+      axiosRequest.data = request?.body?.json;
+    } else {
+      try {
+        axiosRequest.data = JSONbig.parse(decomment(request.body.json));
+      } catch (ex) {
+        axiosRequest.data = decomment(request?.body?.json);
+      }
+    }
   }
 
   if (request.body.mode === 'text') {

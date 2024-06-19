@@ -16,7 +16,8 @@ const PresetsSettings = ({ collection }) => {
     enableReinitialize: true,
     initialValues: {
       requestType: presets.requestType || 'http',
-      requestUrl: presets.requestUrl || ''
+      requestUrl: presets.requestUrl || '',
+      sendRawJsonBody: presets.sendRawJsonBody || false
     },
     onSubmit: (newPresets) => {
       const brunoConfig = cloneDeep(collection.brunoConfig);
@@ -36,7 +37,7 @@ const PresetsSettings = ({ collection }) => {
           <label className="settings-label flex  items-center" htmlFor="enabled">
             Request Type
           </label>
-          <div className="flex items-center">
+          <div className="flex items-center" style={{ width: '100%' }}>
             <input
               id="http"
               className="cursor-pointer"
@@ -82,6 +83,23 @@ const PresetsSettings = ({ collection }) => {
                 onChange={formik.handleChange}
                 value={formik.values.requestUrl || ''}
                 style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+        </div>
+        <div className="mb-3 flex items-center">
+          <label className="settings-label" htmlFor="requestUrl">
+            Raw JSON Body
+          </label>
+          <div className="flex items-center w-full">
+            <div className="flex items-center flex-grow input-container h-full">
+              <input
+                id="sendRawJsonBody"
+                name="sendRawJsonBody"
+                type="checkbox"
+                checked={formik.values.sendRawJsonBody}
+                className="cursor-pointer"
+                onChange={formik.handleChange}
               />
             </div>
           </div>
