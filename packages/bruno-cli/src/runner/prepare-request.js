@@ -82,7 +82,7 @@ const prepareRequest = (request, collectionRoot, brunoConfig) => {
       try {
         axiosRequest.data = JSONbig.parse(decomment(request.body.json));
       } catch (ex) {
-        axiosRequest.data = decomment(request?.body?.json);
+        axiosRequest.data = request?.body?.json;
       }
     }
   }
