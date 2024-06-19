@@ -80,13 +80,11 @@ const prepareRequest = (request, collectionRoot) => {
     try {
       jsonBody = decomment(request?.body?.json);
     } catch (error) {
-      console.error(error);
       jsonBody = request?.body?.json;
     }
     try {
       axiosRequest.data = JSONbig.parse(jsonBody);
     } catch (error) {
-      console.error(error);
       axiosRequest.data = jsonBody;
     }
   }

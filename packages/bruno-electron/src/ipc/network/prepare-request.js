@@ -162,7 +162,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     method: request.method,
     url,
     headers,
-    pathParams: request.params.filter((param) => param.type === 'path'),
+    pathParams: request?.params?.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
 
@@ -176,13 +176,11 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     try {
       jsonBody = decomment(request?.body?.json);
     } catch (error) {
-      console.error(error);
       jsonBody = request?.body?.json;
     }
     try {
       axiosRequest.data = JSONbig.parse(jsonBody);
     } catch (error) {
-      console.error(error);
       axiosRequest.data = jsonBody;
     }
   }
