@@ -3,7 +3,7 @@ const fs = require('fs');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (request, collectionRoot, brunoConfig) => {
   const headers = {};
   let contentTypeDefined = false;
 
@@ -76,10 +76,14 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+    if (brunoConfig?.presets?.sendRawJsonBody) {
+      axiosRequest.data = request?.body?.json;
+    } else {
+      try {
+        axiosRequest.data = JSONbig.parse(decomment(request.body.json));
+      } catch (ex) {
+        axiosRequest.data = request?.body?.json;
+      }
     }
   }
 

@@ -4,6 +4,7 @@ var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const { getBrunoConfig } = require('../../store/bruno-config');
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -133,8 +134,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot, collectionPath) => {
+const prepareRequest = (request, collectionRoot, collectionPath, collectionUid) => {
   const headers = {};
+  const brunoConfig = getBrunoConfig(collectionUid);
   let contentTypeDefined = false;
   let url = request.url;
 
@@ -172,10 +174,15 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+
+    if (brunoConfig?.presets?.sendRawJsonBody) {
+      axiosRequest.data = request?.body?.json;
+    } else {
+      try {
+        axiosRequest.data = JSONbig.parse(decomment(request.body.json));
+      } catch (ex) {
+        axiosRequest.data = request?.body?.json;
+      }
     }
   }
 
