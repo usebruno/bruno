@@ -371,6 +371,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 break;
             }
             break;
+          case 'apikey':
+            di.request.auth.apikey = {
+              key: get(si.request, 'auth.apikey.key', ''),
+              value: get(si.request, 'auth.apikey.value', ''),
+              placement: get(si.request, 'auth.apikey.placement)', 'header')
+            };
+            break;
+
           default:
             break;
         }
