@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import get from 'lodash/get';
 import { IconCaretDown } from '@tabler/icons';
@@ -43,6 +43,20 @@ const ApiKeyAuth = ({ item, collection }) => {
       })
     );
   };
+
+  useEffect(() => {
+    !apikeyAuth?.placement &&
+      dispatch(
+        updateAuth({
+          mode: 'apikey',
+          collectionUid: collection.uid,
+          itemUid: item.uid,
+          content: {
+            placement: 'header'
+          }
+        })
+      );
+  }, [apikeyAuth]);
 
   return (
     <StyledWrapper className="mt-2 w-full">
