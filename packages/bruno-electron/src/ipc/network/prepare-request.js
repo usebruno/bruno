@@ -172,16 +172,16 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     responseType: 'arraybuffer'
   };
 
-  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
-
-  const apiKeyAuth = get(request, 'auth.apikey');
-  if (apiKeyAuth && apiKeyAuth.placement === 'queryparams') {
-    let urlObj = new URL(axiosRequest.url);
-
-    // Overwrite the existing value
-    urlObj.searchParams.set(apiKeyAuth.key, apiKeyAuth.value);
-    axiosRequest.url = urlObj.toString();
+  /**
+   * If the API key authentication is set and its placement is 'queryparams',
+   * add it to the axios request object. This will be used in the configureRequest function
+   * to append the API key to the query parameters of the request URL.
+   */
+  if (request.auth && request.auth.apikey && request.auth.apikey.placement === 'queryparams') {
+    axiosRequest.apiKeyAuthValueForQueryParams = request.auth.apikey;
   }
+
+  axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
   if (request.body.mode === 'json') {
     if (!contentTypeDefined) {

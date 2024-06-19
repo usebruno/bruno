@@ -255,6 +255,19 @@ const configureRequest = async (
       request.headers['cookie'] = cookieString;
     }
   }
+
+  // Add API key to the URL
+  if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    const urlObj = new URL(request.url);
+
+    // Interpolate key and value as they can be variables before adding to the URL.
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+    urlObj.searchParams.set(key, value);
+    request.url = urlObj.toString();
+  }
+
   return axiosInstance;
 };
 
