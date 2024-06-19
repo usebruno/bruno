@@ -136,7 +136,7 @@ const runSingleRequest = async function (
               httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
               httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
             } catch (err) {
-              console.error('Error reading cert/key file', err);
+              console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
             }
           } else if (type === 'pfx') {
             try {
@@ -144,7 +144,7 @@ const runSingleRequest = async function (
               pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
               httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
             } catch (err) {
-              console.error('Error reading pfx file', err);
+              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
             }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
