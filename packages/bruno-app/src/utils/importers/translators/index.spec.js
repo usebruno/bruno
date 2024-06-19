@@ -40,8 +40,8 @@ describe('postmanTranslation function', () => {
   });
 
   test('should comment non-translated pm commands', () => {
-    const inputScript = "pm.test('random test', () => pm.variables.replaceIn('{{$guid}}'));";
-    const expectedOutput = "// test('random test', () => pm.variables.replaceIn('{{$guid}}'));";
+    const inputScript = "pm.test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
+    const expectedOutput = "// test('random test', () => postman.variables.replaceIn('{{$guid}}'));";
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
   test('should handle multiple pm commands on the same line', () => {
@@ -136,4 +136,18 @@ describe('postmanTranslation function', () => {
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
+});
+
+test('should handle response commands', () => {
+  const inputScript = `
+    const responseTime = pm.response.responseTime;
+    const responseCode = pm.response.code;
+    const responseText = pm.response.text();
+  `;
+  const expectedOutput = `
+    const responseTime = res.getResponseTime();
+    const responseCode = res.getStatus();
+    const responseText = res.getBody()?.toString();
+  `;
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });
