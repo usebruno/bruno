@@ -172,10 +172,11 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
+    const body = decomment(request.body.json);
     try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
+      axiosRequest.data = JSONbig.parse(body);
     } catch (ex) {
-      axiosRequest.data = request.body.json;
+      axiosRequest.data = body;
     }
   }
 
