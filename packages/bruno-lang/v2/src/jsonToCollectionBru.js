@@ -114,6 +114,15 @@ ${indentString(`password: ${auth.digest.password}`)}
 `;
   }
 
+  if (auth && auth.apikey) {
+    bru += `auth:apikey {
+${indentString(`key: ${auth?.apikey?.key || ''}`)}
+${indentString(`value: ${auth?.apikey?.value || ''}`)}
+${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
+}
+`;
+  }
+
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
       case 'password':

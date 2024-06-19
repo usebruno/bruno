@@ -59,6 +59,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'apikey':
+        const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        }
+        break;
     }
   }
 
@@ -177,8 +183,14 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
    * add it to the axios request object. This will be used in the configureRequest function
    * to append the API key to the query parameters of the request URL.
    */
-  if (request.auth && request.auth.apikey && request.auth.apikey.placement === 'queryparams') {
-    axiosRequest.apiKeyAuthValueForQueryParams = request.auth.apikey;
+
+  // If the auth mode is 'inherit', use the auth values from the collection root
+  const auth = request.auth.mode === 'inherit' ? collectionRoot.request.auth : request.auth;
+
+  const apiKeyAuth = auth?.apikey;
+
+  if (apiKeyAuth && apiKeyAuth.placement === 'queryparams') {
+    axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
   }
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
