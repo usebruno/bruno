@@ -134,12 +134,13 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
           ) : null}
         </div>
         <div className="mb-3 flex items-center">
-          <label className="settings-label" htmlFor="protocol">
+          <label id="type-label" className="settings-label">
             Type
           </label>
-          <div className="flex items-center">
-            <label className="flex items-center cursor-pointer">
+          <div className="flex items-center" aria-labelledby="type-label">
+            <label className="flex items-center cursor-pointer" htmlFor="cert">
               <input
+                id="cert"
                 type="radio"
                 name="type"
                 value="cert"
@@ -149,8 +150,9 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
               />
               Cert
             </label>
-            <label className="flex items-center ml-4 cursor-pointer">
+            <label className="flex items-center ml-4 cursor-pointer" htmlFor="pfx">
               <input
+                id="pfx"
                 type="radio"
                 name="type"
                 value="pfx"
