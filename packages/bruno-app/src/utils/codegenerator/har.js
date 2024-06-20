@@ -11,7 +11,7 @@ const createContentType = (mode) => {
     case 'formUrlEncoded':
       return 'application/x-www-form-urlencoded';
     case 'graphql':
-      return 'application/json'
+      return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
     default:
@@ -26,10 +26,10 @@ const createHeaders = (request, headers) => {
       name: header.name,
       value: header.value
     }));
-  
-  const contentType = createContentType(request.body?.mode)
-  if(contentType !== ''){
-    enabledHeaders.push({name:'content-type', value: contentType})
+
+  const contentType = createContentType(request.body?.mode);
+  if (contentType !== '') {
+    enabledHeaders.push({ name: 'content-type', value: contentType });
   }
   return enabledHeaders;
 };
