@@ -70,81 +70,84 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
     // Set up event listener for window resize
     window.addEventListener('resize', updateHeight);
 
-    // Clean up event listener on unmount
-    return () => window.removeEventListener('resize', updateHeight);
-  }, []);
+    // Set up resize observer to update height when content changes
+    const resizeObserver = new ResizeObserver(updateHeight);
+    resizeObserver.observe(ref.current);
 
-  const FlexContainer = ({ children }) => (
-    <div className="flex flex-col justify-between gap-3" style={{ height: `${calculatedHeight}px` }}>
-      {children}
-    </div>
-  );
+    // Clean up event listener on unmount
+    return () => {
+      window.removeEventListener('resize', updateHeight);
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   return (
     <StyledWrapper ref={ref} className="w-full relative">
-      {isEditing ? (
-        <FlexContainer>
-          <div style={{ height: '100%', overflowY: 'scroll' }}>
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              value={content != null ? content : defaultContent}
-              onEdit={onEdit}
-              onSave={() => {
-                setIsEditing(false);
-                onSave();
-              }}
-              font={get(preferences, 'font.codeFont', 'default')}
-              mode="application/text"
+      <div className="flex flex-col justify-between gap-3" style={{ height: `${calculatedHeight}px` }}>
+        {isEditing ? (
+          <>
+            <div style={{ height: '100%', overflowY: 'scroll' }}>
+              <CodeEditor
+                collection={collection}
+                theme={displayedTheme}
+                value={content != null ? content : defaultContent}
+                onEdit={onEdit}
+                onSave={() => {
+                  setIsEditing(false);
+                  onSave();
+                }}
+                font={get(preferences, 'font.codeFont', 'default')}
+                mode="application/text"
+              />
+            </div>
+            <ButtonBar>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  onCancel();
+                }}
+              >
+                <span className="flex items-center">
+                  Cancel
+                  <IconX size={18} strokeWidth={2} className="ml-1" />
+                </span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  onSave();
+                }}
+              >
+                <span className="flex items-center">
+                  Save
+                  <IconCheck size={18} strokeWidth={2} className="ml-1" />
+                </span>
+              </button>
+            </ButtonBar>
+          </>
+        ) : (
+          <>
+            <div
+              className="markdown-body"
+              dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
+              onClick={handleClick}
+              style={{ cursor: 'text', width: '100%' }}
             />
-          </div>
-          <ButtonBar>
-            <button
-              onClick={() => {
-                setIsEditing(false);
-                onCancel();
-              }}
-            >
-              <span className="flex items-center">
-                Cancel
-                <IconX size={18} strokeWidth={2} className="ml-1" />
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setIsEditing(false);
-                onSave();
-              }}
-            >
-              <span className="flex items-center">
-                Save
-                <IconCheck size={18} strokeWidth={2} className="ml-1" />
-              </span>
-            </button>
-          </ButtonBar>
-        </FlexContainer>
-      ) : (
-        <FlexContainer>
-          <div
-            className="markdown-body"
-            dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
-            onClick={handleClick}
-            style={{ cursor: 'text' }}
-          />
-          <ButtonBar text="Edit" handleClick={() => setIsEditing(true)}>
-            <button
-              onClick={() => {
-                setIsEditing(true);
-              }}
-            >
-              <span className="flex items-center">
-                Edit
-                <IconPencil size={18} strokeWidth={2} className="ml-2" />
-              </span>
-            </button>
-          </ButtonBar>
-        </FlexContainer>
-      )}
+            <ButtonBar text="Edit" handleClick={() => setIsEditing(true)}>
+              <button
+                onClick={() => {
+                  setIsEditing(true);
+                }}
+              >
+                <span className="flex items-center">
+                  Edit
+                  <IconPencil size={18} strokeWidth={2} className="ml-2" />
+                </span>
+              </button>
+            </ButtonBar>
+          </>
+        )}
+      </div>
     </StyledWrapper>
   );
 };
