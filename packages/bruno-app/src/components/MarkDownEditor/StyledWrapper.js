@@ -4,7 +4,8 @@ const StyledMarkdownBodyWrapper = styled.div`
   .markdown-body {
     background: transparent;
     color: ${(props) => props.theme.text};
-    overflow: scroll;
+    overflow-y: scroll;
+    overflow-x: hidden;
     box-sizing: border-box;
     margin: 0 auto;
     font-size: 0.875rem;
