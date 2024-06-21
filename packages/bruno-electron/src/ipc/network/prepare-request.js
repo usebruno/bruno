@@ -128,6 +128,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               scope: get(request, 'auth.oauth2.scope')
             };
             break;
+          case 'implicit':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(request, 'auth.oauth2.callbackUrl'),
+              authorizationUrl: get(request, 'auth.oauth2.authorizationUrl'),
+              clientId: get(request, 'auth.oauth2.clientId'),
+              scope: get(request, 'auth.oauth2.scope')
+            };
+            break;
         }
         break;
       case 'wsse':

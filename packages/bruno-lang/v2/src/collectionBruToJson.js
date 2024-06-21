@@ -261,7 +261,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       auth: {
         oauth2:
-          grantTypeKey?.value && grantTypeKey?.value == 'password'
+          grantTypeKey?.value && grantTypeKey?.value === 'password'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
@@ -271,7 +271,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : ''
               }
-            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+            : grantTypeKey?.value && grantTypeKey?.value === 'authorization_code'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
@@ -283,12 +283,20 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 state: stateKey ? stateKey.value : '',
                 pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
               }
-            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+            : grantTypeKey?.value && grantTypeKey?.value === 'client_credentials'
             ? {
                 grantType: grantTypeKey ? grantTypeKey.value : '',
                 accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : grantTypeKey?.value && grantTypeKey?.value === 'implicit'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
                 scope: scopeKey ? scopeKey.value : ''
               }
             : {}

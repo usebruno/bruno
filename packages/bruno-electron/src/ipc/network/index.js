@@ -32,7 +32,8 @@ const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require
 const {
   oauth2AuthorizeWithAuthorizationCode,
   oauth2AuthorizeWithClientCredentials,
-  oauth2AuthorizeWithPasswordCredentials
+  oauth2AuthorizeWithPasswordCredentials,
+  oauth2AuthorizeWithImplicitFlow
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
@@ -288,6 +289,13 @@ const configureRequest = async (
       }
       case 'password': {
         ({ credentials, response } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
+        break;
+      }
+      case 'implicit': {
+        ({ credentials, authRequest, authResponse } = await oauth2AuthorizeWithImplicitFlow(
+          requestCopy,
+          collectionUid
+        ));
         break;
       }
     }

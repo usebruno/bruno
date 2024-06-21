@@ -137,7 +137,7 @@ const authApiKeySchema = Yup.object({
 
 const oauth2Schema = Yup.object({
   grantType: Yup.string()
-    .oneOf(['client_credentials', 'password', 'authorization_code'])
+    .oneOf(['client_credentials', 'password', 'authorization_code', 'implicit'])
     .required('grantType is required'),
   username: Yup.string().when('grantType', {
     is: (val) => ['client_credentials', 'password'].includes(val),
@@ -150,12 +150,12 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   callbackUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
   authorizationUrl: Yup.string().when('grantType', {
-    is: (val) => ['authorization_code'].includes(val),
+    is: (val) => ['authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -165,7 +165,7 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   clientId: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
@@ -175,7 +175,7 @@ const oauth2Schema = Yup.object({
     otherwise: Yup.string().nullable().strip()
   }),
   scope: Yup.string().when('grantType', {
-    is: (val) => ['client_credentials', 'password', 'authorization_code'].includes(val),
+    is: (val) => ['client_credentials', 'password', 'authorization_code', 'implicit'].includes(val),
     then: Yup.string().nullable(),
     otherwise: Yup.string().nullable().strip()
   }),
