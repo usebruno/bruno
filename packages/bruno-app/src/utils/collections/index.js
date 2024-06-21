@@ -657,6 +657,18 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+const getPathParams = (item) => {
+  let pathParams = {};
+  if (item && item.request && item.request.params) {
+    item.request.params.forEach((param) => {
+      if (param.type === 'path' && param.name && param.value) {
+        pathParams[param.name] = param.value;
+      }
+    });
+  }
+  return pathParams;
+};
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
@@ -670,12 +682,16 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection) => {
+export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  const pathParams = getPathParams(item);
 
   return {
     ...environmentVariables,
     ...collection.collectionVariables,
+    pathParams: {
+      ...pathParams
+    },
     process: {
       env: {
         ...collection.processEnvVariables
