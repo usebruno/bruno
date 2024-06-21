@@ -47,7 +47,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19** ! <br/>
+You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19**! <br/>
 
 ### Installation
 

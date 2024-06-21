@@ -16,7 +16,7 @@
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
 
-## Let's make Bruno better, together !!
+## Let's make Bruno better, together!!
 
 We are happy that you are looking to improve Bruno. Below are the guidelines to get started bringing up Bruno on your computer.
 

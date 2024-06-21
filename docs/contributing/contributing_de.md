@@ -16,7 +16,7 @@
 | [日本語](./contributing_ja.md)
 | [हिंदी](./contributing_hi.md)
 
-## Lass uns Bruno noch besser machen, gemeinsam !!
+## Lass uns Bruno noch besser machen, gemeinsam!!
 
 Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
 
