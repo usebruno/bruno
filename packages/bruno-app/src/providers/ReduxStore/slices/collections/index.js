@@ -1749,13 +1749,28 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        // Find the request item in the collection
         const item = findItemInCollection(collection, action.payload.itemUid);
 
         if (item && isItemARequest(item)) {
           if (!item.draft) {
+            // If there wasn't a draft, create one because the original item is about to be modified
             item.draft = cloneDeep(item);
           }
+          // Update the docs in the draft
           item.draft.request.docs = action.payload.docs;
+        }
+      }
+    },
+    revertRequestDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // If there was a draft, remove it because the original item is about to be restored
+          item.draft = null;
         }
       }
     }
@@ -1854,7 +1869,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  revertRequestDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

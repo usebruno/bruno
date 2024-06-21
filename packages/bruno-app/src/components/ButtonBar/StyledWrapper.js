@@ -3,11 +3,7 @@ import styled from 'styled-components';
 
 // Assuming StyledWrapper is intended to apply styles directly to the ButtonBar component
 const StyledButtonBar = styled.div`
-  position: fixed;
-  bottom: 0;
-  width: inherit;
-  max-width: 800px;
-  margin-left: -1rem;
+  width: 100%;
 
   display: flex;
   flex-direction: row;

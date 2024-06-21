@@ -3,13 +3,13 @@ import styled from 'styled-components';
 const StyledMarkdownBodyWrapper = styled.div`
   .markdown-body {
     background: transparent;
-    overflow-y: auto;
-    /* todo: find a better way to limit the height to the container */
-    height: calc(100vh - 240px);
     color: ${(props) => props.theme.text};
+    overflow-y: scroll;
     box-sizing: border-box;
     margin: 0 auto;
     font-size: 0.875rem;
+
+    // ::-webkit-scrollbar-corner {background-color: transparent;}
 
     // Add this to change the background on hover
     &:hover {

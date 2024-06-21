@@ -13,6 +13,7 @@ const md = new MarkdownIt();
 
 const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditing, onEdit, onSave, onCancel }) => {
   const [isEditing, setIsEditing] = useState(isCurrentlyEditing);
+  const [calculatedHeight, setCalculatedHeight] = useState(0);
   const preferences = useSelector((state) => state.app.preferences);
   const { displayedTheme } = useTheme();
   const ref = useRef(null);
@@ -50,24 +51,52 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
   const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
   const htmlFromMarkdown = md.render(content != null && content !== '' ? content : defaultContent);
 
+  // useEffect(() => {
+  // const updateHeight = () => {
+  //   const div = document.getElementById('.markdown-body');
+  //   // get the top position of the div
+  //   const top = div?.getBoundingClientRect().top;
+  //   // Calculate the remaining height
+  //   const remainingHeight = window.innerHeight - top;
+  //   console.log('remainingHeight', remainingHeight);
+  //   console.log('top', top);
+  //   console.log('window.innerHeight', window.innerHeight);
+  //   setCalculatedHeight(remainingHeight - 20);
+  // };
+
+  // // Run once to set initial height
+  // updateHeight();
+
+  // // Set up event listener for window resize
+  // window.addEventListener('resize', updateHeight);
+
+  // // Clean up event listener on unmount
+  // return () => window.removeEventListener('resize', updateHeight);
+  // }, []);
+
+  const FlexContainer = ({ children }) => (
+    // <div className="flex flex-col gap-3" style={{ maxHeight: `${calculatedHeight}px` }}>
+    <div className="flex flex-col gap-3" style={{ maxHeight: `800px` }}>
+      {children}
+    </div>
+  );
+
   return (
     <StyledWrapper ref={ref} className="w-full relative">
       {isEditing ? (
-        <>
-          <div className="h-full w-full">
-            <CodeEditor
-              collection={collection}
-              theme={displayedTheme}
-              value={content != null ? content : defaultContent}
-              onEdit={onEdit}
-              onSave={() => {
-                setIsEditing(false);
-                onSave();
-              }}
-              font={get(preferences, 'font.codeFont', 'default')}
-              mode="application/text"
-            />
-          </div>
+        <FlexContainer>
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            value={content != null ? content : defaultContent}
+            onEdit={onEdit}
+            onSave={() => {
+              setIsEditing(false);
+              onSave();
+            }}
+            font={get(preferences, 'font.codeFont', 'default')}
+            mode="application/text"
+          />
           <ButtonBar>
             <button
               onClick={() => {
@@ -92,17 +121,15 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
               </span>
             </button>
           </ButtonBar>
-        </>
+        </FlexContainer>
       ) : (
-        <>
-          <div className="w-full h-full">
-            <div
-              className="markdown-body"
-              dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
-              onClick={handleClick}
-              style={{ cursor: 'text' }}
-            />
-          </div>
+        <FlexContainer>
+          <div
+            className="markdown-body"
+            dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
+            onClick={handleClick}
+            style={{ cursor: 'text' }}
+          />
           <ButtonBar text="Edit" handleClick={() => setIsEditing(true)}>
             <button
               onClick={() => {
@@ -115,7 +142,7 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
               </span>
             </button>
           </ButtonBar>
-        </>
+        </FlexContainer>
       )}
     </StyledWrapper>
   );
