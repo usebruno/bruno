@@ -17,6 +17,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
+import IgnoreCollectionItem from './IgnoreCollectionItem';
 import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
@@ -34,6 +35,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
   const [cloneItemModalOpen, setCloneItemModalOpen] = useState(false);
   const [deleteItemModalOpen, setDeleteItemModalOpen] = useState(false);
+  const [ignoreItemModalOpen, setIgnoreItemModalOpen] = useState(false);
   const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
@@ -202,6 +204,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {deleteItemModalOpen && (
         <DeleteCollectionItem item={item} collection={collection} onClose={() => setDeleteItemModalOpen(false)} />
       )}
+      {ignoreItemModalOpen && (
+        <IgnoreCollectionItem item={item} collection={collection} onClose={() => setIgnoreItemModalOpen(false)} />
+      )}
       {newRequestModalOpen && (
         <NewRequest item={item} collection={collection} onClose={() => setNewRequestModalOpen(false)} />
       )}
@@ -344,6 +349,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 }}
               >
                 Delete
+              </div>
+              <div
+                className="dropdown-item delete-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setIgnoreItemModalOpen(true);
+                }}
+              >
+                Ignore
               </div>
             </Dropdown>
           </div>
