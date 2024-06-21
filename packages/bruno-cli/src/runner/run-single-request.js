@@ -18,7 +18,7 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
-
+const path = require('path');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const runSingleRequest = async function (
@@ -127,18 +127,30 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
-      const domain = interpolateString(clientCert.domain, interpolationOptions);
-      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-      if (domain && certFilePath && keyFilePath) {
+      const domain = interpolateString(clientCert?.domain, interpolationOptions);
+      const type = clientCert?.type || 'cert';
+      if (domain) {
         const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-
         if (request.url.match(hostRegex)) {
-          try {
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.log('Error reading cert/key file', err);
+          if (type === 'cert') {
+            try {
+              let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+              let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+              httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+              httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
+            }
+          } else if (type === 'pfx') {
+            try {
+              let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
+            }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
           break;
