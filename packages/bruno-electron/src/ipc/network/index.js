@@ -589,7 +589,7 @@ const registerNetworkIpc = (mainWindow) => {
           response,
           envVars,
           collectionVariables,
-          collectionPath
+          processEnvVars
         );
 
         mainWindow.webContents.send('main:run-request-event', {
@@ -1028,7 +1028,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response,
                 envVars,
                 collectionVariables,
-                collectionPath
+                processEnvVars
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
