@@ -322,7 +322,7 @@ const runSingleRequest = async function (
         response,
         envVariables,
         collectionVariables,
-        collectionPath
+        processEnvVars
       );
 
       each(assertionResults, (r) => {
