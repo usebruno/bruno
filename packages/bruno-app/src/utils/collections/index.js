@@ -375,7 +375,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             di.request.auth.apikey = {
               key: get(si.request, 'auth.apikey.key', ''),
               value: get(si.request, 'auth.apikey.value', ''),
-              placement: get(si.request, 'auth.apikey.placement)', 'header')
+              placement: get(si.request, 'auth.apikey.placement', 'header')
             };
             break;
 
