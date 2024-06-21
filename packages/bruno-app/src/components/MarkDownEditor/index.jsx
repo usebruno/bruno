@@ -51,32 +51,31 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
   const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
   const htmlFromMarkdown = md.render(content != null && content !== '' ? content : defaultContent);
 
-  // useEffect(() => {
-  // const updateHeight = () => {
-  //   const div = document.getElementById('.markdown-body');
-  //   // get the top position of the div
-  //   const top = div?.getBoundingClientRect().top;
-  //   // Calculate the remaining height
-  //   const remainingHeight = window.innerHeight - top;
-  //   console.log('remainingHeight', remainingHeight);
-  //   console.log('top', top);
-  //   console.log('window.innerHeight', window.innerHeight);
-  //   setCalculatedHeight(remainingHeight - 20);
-  // };
+  useEffect(() => {
+    const updateHeight = () => {
+      const div = ref.current;
+      // get the top position of the div
+      const top = div.getBoundingClientRect().top;
+      // Calculate the remaining height
+      const remainingHeight = window.innerHeight - top - 1;
+      console.log('remainingHeight', remainingHeight);
+      console.log('top', top);
+      console.log('window.innerHeight', window.innerHeight);
+      setCalculatedHeight(remainingHeight - 15);
+    };
 
-  // // Run once to set initial height
-  // updateHeight();
+    // Run once to set initial height
+    updateHeight();
 
-  // // Set up event listener for window resize
-  // window.addEventListener('resize', updateHeight);
+    // Set up event listener for window resize
+    window.addEventListener('resize', updateHeight);
 
-  // // Clean up event listener on unmount
-  // return () => window.removeEventListener('resize', updateHeight);
-  // }, []);
+    // Clean up event listener on unmount
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
 
   const FlexContainer = ({ children }) => (
-    // <div className="flex flex-col gap-3" style={{ maxHeight: `${calculatedHeight}px` }}>
-    <div className="flex flex-col gap-3" style={{ maxHeight: `800px` }}>
+    <div className="flex flex-col justify-between gap-3" style={{ height: `${calculatedHeight}px` }}>
       {children}
     </div>
   );
@@ -85,18 +84,20 @@ const MarkdownEditor = ({ collection, content, defaultContent, isCurrentlyEditin
     <StyledWrapper ref={ref} className="w-full relative">
       {isEditing ? (
         <FlexContainer>
-          <CodeEditor
-            collection={collection}
-            theme={displayedTheme}
-            value={content != null ? content : defaultContent}
-            onEdit={onEdit}
-            onSave={() => {
-              setIsEditing(false);
-              onSave();
-            }}
-            font={get(preferences, 'font.codeFont', 'default')}
-            mode="application/text"
-          />
+          <div style={{ height: '100%', overflowY: 'scroll' }}>
+            <CodeEditor
+              collection={collection}
+              theme={displayedTheme}
+              value={content != null ? content : defaultContent}
+              onEdit={onEdit}
+              onSave={() => {
+                setIsEditing(false);
+                onSave();
+              }}
+              font={get(preferences, 'font.codeFont', 'default')}
+              mode="application/text"
+            />
+          </div>
           <ButtonBar>
             <button
               onClick={() => {
