@@ -93,7 +93,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           </div>
           <button type="button" className="btn-sm btn-secondary flex flex-row">
             <span className="ml-1">Send</span>
-            <IconSend size={22} strokeWidth={2} width={30} color={theme.requestTabs.icon.color} />
+            <IconSend size={22} strokeWidth={1.5} width={30} color={theme.requestTabs.icon.color} />
           </button>
         </div>
       </div>
