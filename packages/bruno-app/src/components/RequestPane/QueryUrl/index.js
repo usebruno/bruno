@@ -91,14 +91,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <button type="button">
-            <IconSend
-              className="btn-secondary"
-              size={20}
-              strokeWidth={2}
-              width={55}
-              color={theme.requestTabs.icon.color}
-            />
+          <button type="button" className="btn-sm btn-secondary flex flex-row">
+            <span className="ml-1">Send</span>
+            <IconSend size={22} strokeWidth={2} width={30} color={theme.requestTabs.icon.color} />
           </button>
         </div>
       </div>
