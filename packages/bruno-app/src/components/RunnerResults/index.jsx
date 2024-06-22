@@ -23,6 +23,7 @@ const getRelativePath = (fullPath, pathname) => {
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
+  const [delay, setDelay] = useState(null);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -78,11 +79,11 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive));
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
   };
 
   const resetRunner = () => {
@@ -114,6 +115,20 @@ export default function RunnerResults({ collection }) {
         </div>
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+        </div>
+
+        <div className="mt-6">
+          <label>Delay (in ms)</label>
+          <input
+            type="number"
+            className="block textbox mt-2 py-5"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={delay}
+            onChange={(e) => setDelay(e.target.value)}
+          />
         </div>
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
@@ -167,10 +182,14 @@ export default function RunnerResults({ collection }) {
                     </span>
                     {item.status !== 'error' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
-                    ) : (
+                    ) : item.responseReceived?.status ? (
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                        (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
-                        <span>{get(item.responseReceived, 'statusText')}</span>)
+                        (<span className="mr-1">{item.responseReceived?.status}</span>
+                        <span>{item.responseReceived?.statusText}</span>)
+                      </span>
+                    ) : (
+                      <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        (request failed)
                       </span>
                     )}
                   </div>
