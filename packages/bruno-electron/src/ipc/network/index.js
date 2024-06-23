@@ -339,7 +339,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: 'isolated-vm' });
       scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
@@ -422,7 +422,7 @@ const registerNetworkIpc = (mainWindow) => {
       os.EOL
     );
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: 'isolateed-vm' });
       scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
