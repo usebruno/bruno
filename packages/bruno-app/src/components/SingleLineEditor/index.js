@@ -104,6 +104,8 @@ class SingleLineEditor extends Component {
 
   /** Enable or disable masking the rendered content of the editor */
   _enableMaskedEditor = (enabled) => {
+    if (typeof enabled !== 'boolean') return;
+
     console.log('Enabling masked editor: ' + enabled);
     if (enabled == true) {
       if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
@@ -144,7 +146,6 @@ class SingleLineEditor extends Component {
     if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
       // If the secret flag has changed, update the editor to reflect the change
       this._enableMaskedEditor(this.props.isSecret);
-      this.maskedEditor?.update();
       // also set the maskInput flag to the new value
       this.setState({ maskInput: this.props.isSecret });
     }
@@ -185,8 +186,8 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <StyledWrapper ref={this.editorRef} className="single-line-editor" />
+      <div className="flex flex-row justify-between w-full">
+        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
         {this.secretEye(this.props.isSecret)}
       </div>
     );
