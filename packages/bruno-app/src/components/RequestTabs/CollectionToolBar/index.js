@@ -44,7 +44,7 @@ const CollectionToolBar = ({ collection }) => {
       <div className="flex items-center p-2">
         <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
           <IconFiles size={18} strokeWidth={1.5} />
-          <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
+          <span className="ml-2 mr-4 font-semibold">{collection?.name || 'Folder'}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
           <span className="mr-2">
