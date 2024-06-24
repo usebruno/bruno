@@ -38,7 +38,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
 
     const urlPathParamsOverlay = {
       token: function (stream) {
-        if (stream.match(':', true)) {
+        if (stream.match('/:', true)) {
           let ch;
           let word = '';
           while ((ch = stream.next()) != null) {
@@ -60,7 +60,7 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
             return `variable-${status} ${randomClass}`;
           }
         }
-        stream.skipTo(':') || stream.skipToEnd();
+        stream.skipTo('/:') || stream.skipToEnd();
         return null;
       }
     };
