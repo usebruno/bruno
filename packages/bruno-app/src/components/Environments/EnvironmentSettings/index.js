@@ -4,9 +4,9 @@ import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import ImportEnvironment from './ImportEnvironment';
-import { IconAlertCircle, IconFileAlert } from '@tabler/icons';
+import { IconFileAlert } from '@tabler/icons';
 
-const EnvButton = ({ children, className, onClick }) => {
+export const SharedButton = ({ children, className, onClick }) => {
   return (
     <button
       type="button"
@@ -19,43 +19,54 @@ const EnvButton = ({ children, className, onClick }) => {
   );
 };
 
+const DefaultTab = ({ setTab }) => {
+  return (
+    <div className="text-center items-center flex flex-col">
+      <IconFileAlert size={64} strokeWidth={1} />
+      <span className="font-semibold mt-2">No environments found</span>
+      <span className="font-extralight mt-2 text-zinc-500 dark:text-zinc-400">
+        Get started by using the following buttons :
+      </span>
+      <div className="flex items-center justify-center mt-6">
+        <SharedButton onClick={() => setTab('create')}>
+          <span>Create Environment</span>
+        </SharedButton>
+
+        <span className="mx-4">Or</span>
+
+        <SharedButton onClick={() => setTab('import')}>
+          <span>Import Environment</span>
+        </SharedButton>
+      </div>
+    </div>
+  );
+};
+
 const EnvironmentSettings = ({ collection, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
+  const [tab, setTab] = useState('default');
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
         <Modal
           size="md"
           title="Environments"
-          confirmText={'Close'}
-          handleConfirm={onClose}
+          confirmText={'Go back'}
+          handleConfirm={() => setTab('default')}
           handleCancel={onClose}
           hideCancel={true}
         >
-          {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
-          {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
-          <div className="text-center items-center flex flex-col">
-            <IconFileAlert size={64} strokeWidth={1} />
-            <span className="font-semibold mt-2">No environments found</span>
-            <span className="font-extralight mt-2 text-zinc-500 dark:text-zinc-400">
-              Get started by using the following buttons :
-            </span>
-            <div className="flex items-center justify-center mt-6">
-              <EnvButton onClick={() => setOpenCreateModal(true)}>
-                <span>Create Environment</span>
-              </EnvButton>
-
-              <span className="mx-4">Or</span>
-
-              <EnvButton onClick={() => setOpenImportModal(true)}>
-                <span>Import Environment</span>
-              </EnvButton>
-            </div>
-          </div>
+          {tab === 'create' ? (
+            <CreateEnvironment collection={collection} />
+          ) : tab === 'import' ? (
+            <ImportEnvironment collection={collection} />
+          ) : (
+            <DefaultTab setTab={setTab} />
+          )}
         </Modal>
       </StyledWrapper>
     );

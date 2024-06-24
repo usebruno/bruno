@@ -6,6 +6,8 @@ import importPostmanEnvironment from 'utils/importers/postman-environment';
 import { importEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
+import { SharedButton } from 'components/Environments/EnvironmentSettings';
+import { IconDatabaseImport } from '@tabler/icons';
 
 const ImportEnvironment = ({ onClose, collection }) => {
   const dispatch = useDispatch();
@@ -17,7 +19,6 @@ const ImportEnvironment = ({ onClose, collection }) => {
           dispatch(importEnvironment(environment.name, environment.variables, collection.uid))
             .then(() => {
               toast.success('Environment imported successfully');
-              onClose();
             })
             .catch(() => toast.error('An error occurred while importing the environment'));
         });
@@ -26,15 +27,14 @@ const ImportEnvironment = ({ onClose, collection }) => {
   };
 
   return (
-    <Portal>
-      <Modal size="sm" title="Import Environment" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
-        <div>
-          <div className="text-link hover:underline cursor-pointer" onClick={handleImportPostmanEnvironment}>
-            Postman Environment
-          </div>
-        </div>
-      </Modal>
-    </Portal>
+    <button
+      type="button"
+      onClick={handleImportPostmanEnvironment}
+      className="flex justify-center flex-col items-center w-full dark:bg-zinc-700 rounded-lg border-2 border-dashed border-zinc-300 dark:border-zinc-400 p-12 text-center hover:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+    >
+      <IconDatabaseImport size={64} />
+      <span className="mt-2 block text-sm font-semibold">Import your Postman environments</span>
+    </button>
   );
 };
 
