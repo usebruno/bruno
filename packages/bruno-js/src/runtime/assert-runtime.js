@@ -66,6 +66,7 @@ chai.use(function (chai, utils) {
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
+ * isArray     : is array
  */
 const parseAssertionOperator = (str = '') => {
   if (!str || typeof str !== 'string' || !str.length) {
@@ -101,7 +102,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const unaryOperators = [
@@ -114,7 +116,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const [operator, ...rest] = str.trim().split(' ');
@@ -151,7 +154,8 @@ const isUnaryOperator = (operator) => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   return unaryOperators.includes(operator);
@@ -199,13 +203,13 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 };
 
 class AssertRuntime {
-  runAssertions(assertions, request, response, envVariables, collectionVariables, collectionPath) {
+  runAssertions(assertions, request, response, envVariables, collectionVariables, processEnvVars) {
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
     if (!enabledAssertions.length) {
       return [];
     }
 
-    const bru = new Bru(envVariables, collectionVariables);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -218,6 +222,7 @@ class AssertRuntime {
     const context = {
       ...envVariables,
       ...collectionVariables,
+      ...processEnvVars,
       ...bruContext
     };
 
@@ -312,6 +317,9 @@ class AssertRuntime {
             break;
           case 'isBoolean':
             expect(lhs).to.be.a('boolean');
+            break;
+          case 'isArray':
+            expect(lhs).to.be.a('array');
             break;
           default:
             expect(lhs).to.equal(rhs);

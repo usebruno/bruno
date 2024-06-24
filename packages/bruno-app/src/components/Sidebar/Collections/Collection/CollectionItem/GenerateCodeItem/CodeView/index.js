@@ -9,9 +9,10 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid } from '../../../../../../../utils/collections/index';
+import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
 
 const CodeView = ({ language, item }) => {
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const { target, client, language: lang } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
@@ -20,10 +21,16 @@ const CodeView = ({ language, item }) => {
     item.uid
   );
 
-  const headers = [...(collection?.root?.request?.headers || []), ...(requestHeaders || [])];
+  const collectionRootAuth = collection?.root?.request?.auth;
+  const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+
+  const headers = [
+    ...getAuthHeaders(collectionRootAuth, requestAuth),
+    ...(collection?.root?.request?.headers || []),
+    ...(requestHeaders || [])
+  ];
 
   let snippet = '';
-
   try {
     snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(target, client);
   } catch (e) {
@@ -45,7 +52,7 @@ const CodeView = ({ language, item }) => {
           readOnly
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
-          theme={storedTheme}
+          theme={displayedTheme}
           mode={lang}
         />
       </StyledWrapper>

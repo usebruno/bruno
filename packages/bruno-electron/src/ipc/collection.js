@@ -10,6 +10,7 @@ const {
   hasBruExtension,
   isDirectory,
   browseDirectory,
+  browseFiles,
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName
@@ -38,6 +39,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // browse directory for file
+  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+    try {
+      const filePaths = await browseFiles(mainWindow, filters);
+
+      return filePaths;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // create collection
   ipcMain.handle(
     'renderer:create-collection',
@@ -58,13 +70,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const brunoConfig = {
           version: '1',
           name: collectionName,
-          type: 'collection'
+          type: 'collection',
+          ignore: ['node_modules', '.git']
         };
         const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -425,6 +438,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
               parseCollectionItems(item.items, folderPath);
             }
           }
+          // Handle items of type 'js'
+          if (item.type === 'js') {
+            const filePath = path.join(currentPath, `${item.name}.js`);
+            fs.writeFileSync(filePath, item.fileContent);
+          }
         });
       };
 
@@ -441,19 +459,32 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         });
       };
 
+      const getBrunoJsonConfig = (collection) => {
+        let brunoConfig = collection.brunoConfig;
+
+        if (!brunoConfig) {
+          brunoConfig = {
+            version: '1',
+            name: collection.name,
+            type: 'collection',
+            ignore: ['node_modules', '.git']
+          };
+        }
+
+        return brunoConfig;
+      };
+
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = {
-        version: '1',
-        name: collectionName,
-        type: 'collection'
-      };
-      const content = await stringifyJson(brunoConfig);
-      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+      const brunoConfig = getBrunoJsonConfig(collection);
+      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+
+      // Write the Bruno configuration to a file
+      await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
       lastOpenedCollections.add(collectionPath);
 
@@ -580,7 +611,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const jsonData = fs.readFileSync(filePaths[0], 'utf8');
-      return JSON.parse(jsonData);
+      return safeParseJSON(jsonData);
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
     }
@@ -610,9 +641,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     shell.openExternal(docsURL);
   });
 
-  ipcMain.on('main:collection-opened', (win, pathname, uid) => {
-    watcher.addWatcher(win, pathname, uid);
+  ipcMain.on('main:collection-opened', (win, pathname, uid, brunoConfig) => {
+    watcher.addWatcher(win, pathname, uid, brunoConfig);
     lastOpenedCollections.add(pathname);
+    app.addRecentDocument(pathname);
   });
 
   // The app listen for this event and allows the user to save unsaved requests before closing the app
@@ -622,6 +654,10 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
 
   ipcMain.handle('main:complete-quit-flow', () => {
     mainWindow.destroy();
+  });
+
+  ipcMain.handle('main:force-quit', () => {
+    process.exit();
   });
 };
 

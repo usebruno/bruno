@@ -2,6 +2,7 @@ const os = require('os');
 const fs = require('fs');
 const qs = require('qs');
 const https = require('https');
+const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
@@ -9,9 +10,10 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
+const prepareCollectionRequest = require('./prepare-collection-request');
 const prepareGqlIntrospectionRequest = require('./prepare-gql-introspection-request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid } = require('../../utils/common');
@@ -29,6 +31,13 @@ const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
 const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const {
+  resolveOAuth2AuthorizationCodeAccessToken,
+  transformClientCredentialsRequest,
+  transformPasswordCredentialsRequest
+} = require('./oauth2-helper');
+const Oauth2Store = require('../../store/oauth2');
+const iconv = require('iconv-lite');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -98,7 +107,11 @@ const configureRequest = async (
   if (preferencesUtil.shouldUseCustomCaCertificate()) {
     const caCertFilePath = preferencesUtil.getCustomCaCertificateFilePath();
     if (caCertFilePath) {
-      httpsAgentRequestFields['ca'] = fs.readFileSync(caCertFilePath);
+      let caCertBuffer = fs.readFileSync(caCertFilePath);
+      if (preferencesUtil.shouldKeepDefaultCaCertificates()) {
+        caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+      }
+      httpsAgentRequestFields['ca'] = caCertBuffer;
     }
   }
 
@@ -111,31 +124,36 @@ const configureRequest = async (
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+
   for (let clientCert of clientCertConfig) {
-    const domain = interpolateString(clientCert.domain, interpolationOptions);
-
-    let certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-    certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
-
-    let keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-    keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
-
-    if (domain && certFilePath && keyFilePath) {
+    const domain = interpolateString(clientCert?.domain, interpolationOptions);
+    const type = clientCert?.type || 'cert';
+    if (domain) {
       const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-
       if (request.url.match(hostRegex)) {
-        try {
-          httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-        } catch (err) {
-          console.log('Error reading cert file', err);
-        }
+        if (type === 'cert') {
+          try {
+            let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+            certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+            let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+            keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
 
-        try {
-          httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-        } catch (err) {
-          console.log('Error reading key file', err);
+            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+          } catch (err) {
+            console.error('Error reading cert/key file', err);
+            throw new Error('Error reading cert/key file' + err);
+          }
+        } else if (type === 'pfx') {
+          try {
+            let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+            pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
+            httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+          } catch (err) {
+            console.error('Error reading pfx file', err);
+            throw new Error('Error reading pfx file' + err);
+          }
         }
-
         httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
         break;
       }
@@ -169,9 +187,11 @@ const configureRequest = async (
     }
 
     if (socksEnabled) {
-      const socksProxyAgent = new SocksProxyAgent(proxyUri);
-      request.httpsAgent = socksProxyAgent;
-      request.httpAgent = socksProxyAgent;
+      request.httpsAgent = new SocksProxyAgent(
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = new SocksProxyAgent(proxyUri);
     } else {
       request.httpsAgent = new PatchedHttpsProxyAgent(
         proxyUri,
@@ -186,6 +206,40 @@ const configureRequest = async (
   }
 
   const axiosInstance = makeAxiosInstance();
+
+  if (request.oauth2) {
+    let requestCopy = cloneDeep(request);
+    switch (request?.oauth2?.grantType) {
+      case 'authorization_code':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
+          await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = authorizationCodeData;
+        request.url = authorizationCodeAccessTokenUrl;
+        break;
+      case 'client_credentials':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
+          await transformClientCredentialsRequest(requestCopy);
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = clientCredentialsData;
+        request.url = clientCredentialsAccessTokenUrl;
+        break;
+      case 'password':
+        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
+          requestCopy
+        );
+        request.method = 'POST';
+        request.headers['content-type'] = 'application/x-www-form-urlencoded';
+        request.data = passwordData;
+        request.url = passwordAccessTokenUrl;
+        break;
+    }
+  }
 
   if (request.awsv4config) {
     request.awsv4config = await resolveAwsV4Credentials(request);
@@ -207,18 +261,31 @@ const configureRequest = async (
     }
   }
 
+  // Remove pathParams, already in URL (Issue #2439)
+  delete request.pathParams;
+
   return axiosInstance;
 };
 
 const parseDataFromResponse = (response) => {
-  const dataBuffer = Buffer.from(response.data);
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
-  const charset = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['Content-Type'] || '');
-  // Overwrite the original data for backwards compatability
-  let data = dataBuffer.toString(charset || 'utf-8');
+  const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
+  const charsetValue = charsetMatch?.[1];
+  const dataBuffer = Buffer.from(response.data);
+  // Overwrite the original data for backwards compatibility
+  let data;
+  if (iconv.encodingExists(charsetValue)) {
+    data = iconv.decode(dataBuffer, charsetValue);
+  } else {
+    data = iconv.decode(dataBuffer, 'utf-8');
+  }
   // Try to parse response to JSON, this can quietly fail
   try {
-    data = JSON.parse(response.data);
+    // Filter out ZWNBSP character
+    // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+    data = data.replace(/^\uFEFF/, '');
+    data = JSON.parse(data);
   } catch {}
 
   return { data, dataBuffer };
@@ -343,6 +410,10 @@ const registerNetworkIpc = (mainWindow) => {
           collectionUid
         });
       }
+
+      if (result?.error) {
+        mainWindow.webContents.send('main:display-error', result.error);
+      }
     }
 
     // run post-response script
@@ -391,16 +462,16 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot);
+    const request = prepareRequest(_request, collectionRoot, collectionPath);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
 
     try {
-      const cancelToken = axios.CancelToken.source();
-      request.cancelToken = cancelToken.token;
-      saveCancelToken(cancelTokenUid, cancelToken);
+      const controller = new AbortController();
+      request.signal = controller.signal;
+      saveCancelToken(cancelTokenUid, controller);
 
       await runPreRequest(
         request,
@@ -412,6 +483,15 @@ const registerNetworkIpc = (mainWindow) => {
         collectionVariables,
         processEnvVars,
         scriptingConfig
+      );
+
+      const axiosInstance = await configureRequest(
+        collectionUid,
+        request,
+        envVars,
+        collectionVariables,
+        processEnvVars,
+        collectionPath
       );
 
       mainWindow.webContents.send('main:run-request-event', {
@@ -428,15 +508,6 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         cancelTokenUid
       });
-
-      const axiosInstance = await configureRequest(
-        collectionUid,
-        request,
-        envVars,
-        collectionVariables,
-        processEnvVars,
-        collectionPath
-      );
 
       let response, responseTime;
       try {
@@ -482,7 +553,6 @@ const registerNetworkIpc = (mainWindow) => {
           setCookieHeaders = Array.isArray(response.headers['set-cookie'])
             ? response.headers['set-cookie']
             : [response.headers['set-cookie']];
-
           for (let setCookieHeader of setCookieHeaders) {
             if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
               addCookieToJar(setCookieHeader, request.url);
@@ -493,6 +563,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // send domain cookies to renderer
       const domainsWithCookies = await getDomainsWithCookies();
+
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
       await runPostResponse(
@@ -518,7 +589,7 @@ const registerNetworkIpc = (mainWindow) => {
           response,
           envVars,
           collectionVariables,
-          collectionPath
+          processEnvVars
         );
 
         mainWindow.webContents.send('main:run-request-event', {
@@ -581,10 +652,95 @@ const registerNetworkIpc = (mainWindow) => {
     }
   });
 
+  ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, collectionVariables) => {
+    try {
+      const collectionUid = collection.uid;
+      const collectionPath = collection.pathname;
+      const requestUid = uuid();
+
+      const collectionRoot = get(collection, 'root', {});
+      const _request = collectionRoot?.request;
+      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+
+      await runPreRequest(
+        request,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      const axiosInstance = await configureRequest(
+        collection.uid,
+        request,
+        envVars,
+        collection.collectionVariables,
+        processEnvVars,
+        collectionPath
+      );
+
+      try {
+        response = await axiosInstance(request);
+      } catch (error) {
+        if (error?.response) {
+          response = error.response;
+        } else {
+          return Promise.reject(error);
+        }
+      }
+
+      const { data } = parseDataFromResponse(response);
+      response.data = data;
+
+      await runPostResponse(
+        request,
+        response,
+        requestUid,
+        envVars,
+        collectionPath,
+        collectionRoot,
+        collectionUid,
+        collectionVariables,
+        processEnvVars,
+        scriptingConfig
+      );
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data: response.data
+      };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = new Oauth2Store();
+        oauth2Store.clearSessionIdOfCollection(uid);
+        resolve();
+      } catch (err) {
+        reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
+  });
+
   ipcMain.handle('cancel-http-request', async (event, cancelTokenUid) => {
     return new Promise((resolve, reject) => {
       if (cancelTokenUid && cancelTokens[cancelTokenUid]) {
-        cancelTokens[cancelTokenUid].cancel();
+        cancelTokens[cancelTokenUid].abort();
         deleteCancelToken(cancelTokenUid);
         resolve();
       } else {
@@ -593,11 +749,11 @@ const registerNetworkIpc = (mainWindow) => {
     });
   });
 
-  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, request, collection) => {
+  ipcMain.handle('fetch-gql-schema', async (event, endpoint, environment, _request, collection) => {
     try {
       const envVars = getEnvVars(environment);
       const collectionRoot = get(collection, 'root', {});
-      const preparedRequest = prepareGqlIntrospectionRequest(endpoint, envVars, request, collectionRoot);
+      const request = prepareGqlIntrospectionRequest(endpoint, envVars, _request, collectionRoot);
 
       request.timeout = preferencesUtil.getRequestTimeout();
 
@@ -627,16 +783,16 @@ const registerNetworkIpc = (mainWindow) => {
         scriptingConfig
       );
 
-      interpolateVars(preparedRequest, envVars, collection.collectionVariables, processEnvVars);
+      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
-        preparedRequest,
+        request,
         envVars,
         collection.collectionVariables,
         processEnvVars,
         collectionPath
       );
-      const response = await axiosInstance(preparedRequest);
+      const response = await axiosInstance(request);
 
       await runPostResponse(
         request,
@@ -677,9 +833,13 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
+      const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       const collectionRoot = get(collection, 'root', {});
+
+      const abortController = new AbortController();
+      saveCancelToken(cancelTokenUid, abortController);
 
       if (!folder) {
         folder = collection;
@@ -689,7 +849,8 @@ const registerNetworkIpc = (mainWindow) => {
         type: 'testrun-started',
         isRecursive: recursive,
         collectionUid,
-        folderUid
+        folderUid,
+        cancelTokenUid
       });
 
       try {
@@ -715,6 +876,13 @@ const registerNetworkIpc = (mainWindow) => {
         let currentRequestIndex = 0;
         let nJumps = 0; // count the number of jumps to avoid infinite loops
         while (currentRequestIndex < folderRequests.length) {
+          // user requested to cancel runner
+          if (abortController.signal.aborted) {
+            let error = new Error('Runner execution cancelled');
+            error.isCancel = true;
+            throw error;
+          }
+
           const item = folderRequests[currentRequestIndex];
           let nextRequestName;
           const itemUid = item.uid;
@@ -733,7 +901,7 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot);
+          const request = prepareRequest(_request, collectionRoot, collectionPath);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
@@ -768,6 +936,7 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
 
+            request.signal = abortController.signal;
             const axiosInstance = await configureRequest(
               collectionUid,
               request,
@@ -778,7 +947,7 @@ const registerNetworkIpc = (mainWindow) => {
             );
 
             timeStart = Date.now();
-            let response;
+            let response, responseTime;
             try {
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
@@ -786,22 +955,24 @@ const registerNetworkIpc = (mainWindow) => {
 
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
+              response.responseTime = response.headers.get('request-duration');
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
                   status: response.status,
                   statusText: response.statusText,
-                  headers: Object.entries(response.headers),
+                  headers: response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: response.data
+                  data: response.data,
+                  responseTime: response.headers.get('request-duration')
                 },
                 ...eventData
               });
             } catch (error) {
-              if (error?.response) {
+              if (error?.response && !axios.isCancel(error)) {
                 const { data, dataBuffer } = parseDataFromResponse(error.response);
                 error.response.data = data;
 
@@ -809,11 +980,12 @@ const registerNetworkIpc = (mainWindow) => {
                 response = {
                   status: error.response.status,
                   statusText: error.response.statusText,
-                  headers: Object.entries(error.response.headers),
+                  headers: error.response.headers,
                   duration: timeEnd - timeStart,
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
-                  data: error.response.data
+                  data: error.response.data,
+                  responseTime: error.response.headers.get('request-duration')
                 };
 
                 // if we get a response from the server, we consider it as a success
@@ -856,7 +1028,7 @@ const registerNetworkIpc = (mainWindow) => {
                 response,
                 envVars,
                 collectionVariables,
-                collectionPath
+                processEnvVars
               );
 
               mainWindow.webContents.send('main:run-folder-event', {
@@ -926,15 +1098,19 @@ const registerNetworkIpc = (mainWindow) => {
           }
         }
 
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
           type: 'testrun-ended',
           collectionUid,
           folderUid
         });
       } catch (error) {
+        deleteCancelToken(cancelTokenUid);
         mainWindow.webContents.send('main:run-folder-event', {
-          type: 'error',
-          error
+          type: 'testrun-ended',
+          collectionUid,
+          folderUid,
+          error: error && !error.isCancel ? error : null
         });
       }
     }
@@ -944,8 +1120,10 @@ const registerNetworkIpc = (mainWindow) => {
   ipcMain.handle('renderer:save-response-to-file', async (event, response, url) => {
     try {
       const getHeaderValue = (headerName) => {
-        if (response.headers) {
-          const header = response.headers.find((header) => header[0] === headerName);
+        const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+
+        if (headersArray.length > 0) {
+          const header = headersArray.find((header) => header[0] === headerName);
           if (header && header.length > 1) {
             return header[1];
           }

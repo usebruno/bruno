@@ -41,6 +41,7 @@ import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -55,7 +56,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -76,7 +77,11 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
-      .then(() => toast.success('Request saved successfully'))
+      .then(() => {
+        if (!saveSilently) {
+          toast.success('Request saved successfully');
+        }
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
@@ -165,6 +170,7 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
       });
   });
 };
+
 export const retrieveDirectoriesBetween = (pathname, parameter, filename) => {
   const parameterIndex = pathname.indexOf(parameter);
   const filenameIndex = pathname.indexOf(filename);
@@ -183,6 +189,7 @@ export const retrieveDirectoriesBetween = (pathname, parameter, filename) => {
   }
   return reconstructedPaths;
 };
+
 export const mergeRequests = (parentRequest, childRequest) => {
   return _.mergeWith({}, parentRequest, childRequest, customizer);
 };
@@ -194,6 +201,39 @@ function customizer(objValue, srcValue, key) {
   }
   return undefined;
 }
+
+export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+    const externalSecrets = getExternalCollectionSecretsForActiveEnvironment({ collection });
+    const secretVariables = getFormattedCollectionSecretVariables({ externalSecrets });
+
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.collectionVariables, itemUid, secretVariables)
+      .then((response) => {
+        if (response?.data?.error) {
+          toast.error(response?.data?.error);
+        } else {
+          toast.success('Request made successfully');
+        }
+        return response;
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -203,7 +243,7 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    const itemCopy = cloneDeep(item);
+    const itemCopy = cloneDeep(item || {});
     const collectionCopy = cloneDeep(collection);
 
     const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
@@ -279,6 +319,10 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
       );
     })
     .catch((err) => console.log(err));
+};
+
+export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
+  cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
 };
 
 export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
@@ -453,6 +497,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -473,6 +526,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -981,6 +1043,16 @@ export const browseDirectory = () => (dispatch, getState) => {
     ipcRenderer.invoke('renderer:browse-directory').then(resolve).catch(reject);
   });
 };
+
+export const browseFiles =
+  (filters = []) =>
+  (dispatch, getState) => {
+    const { ipcRenderer } = window;
+
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+    });
+  };
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();

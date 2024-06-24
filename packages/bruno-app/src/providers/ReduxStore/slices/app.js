@@ -9,12 +9,16 @@ const initialState = {
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
+  isEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
       customCaCertificate: {
         enabled: false,
         filePath: null
+      },
+      keepDefaultCaCertificates: {
+        enabled: true
       },
       timeout: 0
     },
@@ -41,6 +45,9 @@ export const appSlice = createSlice({
     },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
+    },
+    updateEnvironmentSettingsModalVisibility: (state, action) => {
+      state.isEnvironmentSettingsModalOpen = action.payload;
     },
     showHomePage: (state) => {
       state.showHomePage = true;
@@ -74,6 +81,7 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
+  updateEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
   showPreferences,

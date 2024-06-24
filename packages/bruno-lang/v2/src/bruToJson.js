@@ -22,10 +22,11 @@ const { outdentString } = require('../../v1/src/utils');
  *
  */
 const grammar = ohm.grammar(`Bru {
-  BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest 
+  BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
+  params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -35,12 +36,16 @@ const grammar = ohm.grammar(`Bru {
   keychar = ~(tagend | st | nl | ":") any
   valuechar = ~(nl | tagend) any
 
+   // Multiline text block surrounded by '''
+  multilinetextblockdelimiter = "'''"
+  multilinetextblock = multilinetextblockdelimiter (~multilinetextblockdelimiter any)* multilinetextblockdelimiter
+
   // Dictionary Blocks
   dictionary = st* "{" pairlist? tagend
   pairlist = optionalnl* pair (~tagend stnl* pair)* (~tagend space)*
   pair = st* key st* ":" st* value st*
   key = keychar*
-  value = valuechar*
+  value = multilinetextblock | valuechar*
   
   // Dictionary for Assert Block
   assertdictionary = st* "{" assertpairlist? tagend
@@ -70,6 +75,8 @@ const grammar = ohm.grammar(`Bru {
   headers = "headers" dictionary
 
   query = "query" dictionary
+  paramspath = "params:path" dictionary
+  paramsquery = "params:query" dictionary
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -80,6 +87,7 @@ const grammar = ohm.grammar(`Bru {
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
+  authOAuth2 = "auth:oauth2" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -105,7 +113,7 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
   }
   return _.map(pairList[0], (pair) => {
     let name = _.keys(pair)[0];
-    let value = decodeURIComponent(pair[name]);
+    let value = pair[name];
 
     if (!parseEnabled) {
       return {
@@ -125,6 +133,42 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       value,
       enabled
     };
+  });
+};
+
+const mapRequestParams = (pairList = [], type) => {
+  if (!pairList.length) {
+    return [];
+  }
+  return _.map(pairList[0], (pair) => {
+    let name = _.keys(pair)[0];
+    let value = pair[name];
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === '~') {
+      name = name.slice(1);
+      enabled = false;
+    }
+
+    return {
+      name,
+      value,
+      enabled,
+      type
+    };
+  });
+};
+
+const mapPairListToKeyValPairsMultipart = (pairList = [], parseEnabled = true) => {
+  const pairs = mapPairListToKeyValPairs(pairList, parseEnabled);
+
+  return pairs.map((pair) => {
+    pair.type = 'text';
+    if (pair.value.startsWith('@file(') && pair.value.endsWith(')')) {
+      let filestr = pair.value.replace(/^@file\(/, '').replace(/\)$/, '');
+      pair.type = 'file';
+      pair.value = filestr.split('|');
+    }
+    return pair;
   });
 };
 
@@ -171,6 +215,19 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   value(chars) {
+    try {
+      let isMultiline = chars.sourceString?.startsWith(`'''`) && chars.sourceString?.endsWith(`'''`);
+      if (isMultiline) {
+        const multilineString = chars.sourceString?.replace(/^'''|'''$/g, '');
+        return multilineString
+          .split('\n')
+          .map((line) => line.slice(4))
+          .join('\n');
+      }
+      return chars.sourceString ? chars.sourceString.trim() : '';
+    } catch (err) {
+      console.error(err);
+    }
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
   assertdictionary(_1, _2, pairlist, _3) {
@@ -289,7 +346,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   query(_1, dictionary) {
     return {
-      query: mapPairListToKeyValPairs(dictionary.ast)
+      params: mapRequestParams(dictionary.ast, 'query')
+    };
+  },
+  paramspath(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'path')
+    };
+  },
+  paramsquery(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'query')
     };
   },
   headers(_1, dictionary) {
@@ -366,6 +433,56 @@ const sem = grammar.createSemantics().addAttribute('ast', {
       }
     };
   },
+  authOAuth2(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const grantTypeKey = _.find(auth, { name: 'grant_type' });
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const callbackUrlKey = _.find(auth, { name: 'callback_url' });
+    const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
+    const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const clientIdKey = _.find(auth, { name: 'client_id' });
+    const clientSecretKey = _.find(auth, { name: 'client_secret' });
+    const scopeKey = _.find(auth, { name: 'scope' });
+    const stateKey = _.find(auth, { name: 'state' });
+    const pkceKey = _.find(auth, { name: 'pkce' });
+    return {
+      auth: {
+        oauth2:
+          grantTypeKey?.value && grantTypeKey?.value == 'password'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                username: usernameKey ? usernameKey.value : '',
+                password: passwordKey ? passwordKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : {}
+      }
+    };
+  },
   bodyformurlencoded(_1, dictionary) {
     return {
       body: {
@@ -376,7 +493,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   bodymultipart(_1, dictionary) {
     return {
       body: {
-        multipartForm: mapPairListToKeyValPairs(dictionary.ast)
+        multipartForm: mapPairListToKeyValPairsMultipart(dictionary.ast)
       }
     };
   },

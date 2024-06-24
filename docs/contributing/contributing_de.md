@@ -1,6 +1,22 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | **Deutsch** | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md)
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| **Deutsch**
+| [Français](./contributing_fr.md)
+| [Português (BR)](./contributing_pt_br.md)
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
 
-## Lass uns Bruno noch besser machen, gemeinsam !!
+## Lass uns Bruno noch besser machen, gemeinsam!!
 
 Ich freue mich, dass Du Bruno verbessern möchtest. Hier findest Du eine Anleitung, mit der Du Bruno auf Deinem Computer einrichten kannst.
 

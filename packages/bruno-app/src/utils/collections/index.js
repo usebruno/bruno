@@ -228,13 +228,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const copyQueryParams = (params) => {
+  const copyParams = (params) => {
     return map(params, (param) => {
       return {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
+        type: param.type,
         enabled: param.enabled
       };
     });
@@ -256,6 +257,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     return map(params, (param) => {
       return {
         uid: param.uid,
+        type: param.type,
         name: param.name,
         value: param.value,
         description: param.description,
@@ -266,6 +268,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
+      if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -273,80 +279,109 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         seq: si.seq
       };
 
-      // if items is draft, then take data from draft to save
-      // The condition "!options.ignoreDraft" may appear confusing
-      // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
-      // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if (si.draft && !options.ignoreDraft) {
-        if (si.draft.request) {
-          di.request = {
-            url: si.draft.request.url,
-            method: si.draft.request.method,
-            headers: copyHeaders(si.draft.request.headers),
-            params: copyQueryParams(si.draft.request.params),
-            body: {
-              mode: si.draft.request.body.mode,
-              json: si.draft.request.body.json,
-              text: si.draft.request.body.text,
-              xml: si.draft.request.body.xml,
-              graphql: si.draft.request.body.graphql,
-              sparql: si.draft.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.draft.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.draft.request, 'auth.basic.username', ''),
-                password: get(si.draft.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.draft.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.draft.request.script,
-            vars: si.draft.request.vars,
-            assertions: si.draft.request.assertions,
-            tests: si.draft.request.tests
-          };
+      if (si.request) {
+        di.request = {
+          url: si.request.url,
+          method: si.request.method,
+          headers: copyHeaders(si.request.headers),
+          params: copyParams(si.request.params),
+          body: {
+            mode: si.request.body.mode,
+            json: si.request.body.json,
+            text: si.request.body.text,
+            xml: si.request.body.xml,
+            graphql: si.request.body.graphql,
+            sparql: si.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+          },
+          script: si.request.script,
+          vars: si.request.vars,
+          assertions: si.request.assertions,
+          tests: si.request.tests
+        };
+
+        // Handle auth object dynamically
+        di.request.auth = {
+          mode: get(si.request, 'auth.mode', 'none')
+        };
+
+        switch (di.request.auth.mode) {
+          case 'awsv4':
+            di.request.auth.awsv4 = {
+              accessKeyId: get(si.request, 'auth.awsv4.accessKeyId', ''),
+              secretAccessKey: get(si.request, 'auth.awsv4.secretAccessKey', ''),
+              sessionToken: get(si.request, 'auth.awsv4.sessionToken', ''),
+              service: get(si.request, 'auth.awsv4.service', ''),
+              region: get(si.request, 'auth.awsv4.region', ''),
+              profileName: get(si.request, 'auth.awsv4.profileName', '')
+            };
+            break;
+          case 'basic':
+            di.request.auth.basic = {
+              username: get(si.request, 'auth.basic.username', ''),
+              password: get(si.request, 'auth.basic.password', '')
+            };
+            break;
+          case 'bearer':
+            di.request.auth.bearer = {
+              token: get(si.request, 'auth.bearer.token', '')
+            };
+            break;
+          case 'digest':
+            di.request.auth.digest = {
+              username: get(si.request, 'auth.digest.username', ''),
+              password: get(si.request, 'auth.digest.password', '')
+            };
+            break;
+          case 'oauth2':
+            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            switch (grantType) {
+              case 'password':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  username: get(si.request, 'auth.oauth2.username', ''),
+                  password: get(si.request, 'auth.oauth2.password', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+              case 'authorization_code':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                };
+                break;
+              case 'client_credentials':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+            }
+            break;
+          default:
+            break;
         }
-      } else {
-        if (si.request) {
-          di.request = {
-            url: si.request.url,
-            method: si.request.method,
-            headers: copyHeaders(si.request.headers),
-            params: copyQueryParams(si.request.params),
-            body: {
-              mode: si.request.body.mode,
-              json: si.request.body.json,
-              text: si.request.body.text,
-              xml: si.request.body.xml,
-              graphql: si.request.body.graphql,
-              sparql: si.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.request, 'auth.basic.username', ''),
-                password: get(si.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.request.script,
-            vars: si.request.vars,
-            assertions: si.request.assertions,
-            tests: si.request.tests
-          };
+
+        if (di.request.body.mode === 'json') {
+          di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
       }
 
-      if (di.request && di.request.body.mode === 'json') {
-        di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+      if (si.type === 'js') {
+        di.fileContent = si.raw;
       }
 
       destItems.push(di);
@@ -368,8 +403,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
 
-  copyItems(collection.items, collectionToSave.items);
+  collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
 
+  // delete proxy password if present
+  if (collectionToSave?.brunoConfig?.proxy?.auth?.password) {
+    delete collectionToSave.brunoConfig.proxy.auth.password;
+  }
+
+  copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
 
@@ -401,6 +442,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: param.type,
       enabled: param.enabled
     });
   });
@@ -416,7 +458,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
   });
 
   if (itemToSave.request.body.mode === 'json') {
-    itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
   }
 
   return itemToSave;
@@ -488,6 +533,10 @@ export const humanizeRequestBodyMode = (mode) => {
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
+    case 'inherit': {
+      label = 'Inherit';
+      break;
+    }
     case 'awsv4': {
       label = 'AWS Sig V4';
       break;
@@ -504,6 +553,30 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'Digest Auth';
       break;
     }
+    case 'oauth2': {
+      label = 'OAuth 2.0';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeGrantType = (mode) => {
+  let label = 'No Auth';
+  switch (mode) {
+    case 'password': {
+      label = 'Password Credentials';
+      break;
+    }
+    case 'authorization_code': {
+      label = 'Authorization Code';
+      break;
+    }
+    case 'client_credentials': {
+      label = 'Client Credentials';
+      break;
+    }
   }
 
   return label;
@@ -518,10 +591,6 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
 
   return item;
-};
-
-export const isLocalCollection = (collection) => {
-  return collection.pathname ? true : false;
 };
 
 export const deleteUidsInItem = (item) => {
@@ -588,6 +657,18 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+const getPathParams = (item) => {
+  let pathParams = {};
+  if (item && item.request && item.request.params) {
+    item.request.params.forEach((param) => {
+      if (param.type === 'path' && param.name && param.value) {
+        pathParams[param.name] = param.value;
+      }
+    });
+  }
+  return pathParams;
+};
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
@@ -601,16 +682,31 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection) => {
+export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  const pathParams = getPathParams(item);
 
   return {
     ...environmentVariables,
     ...collection.collectionVariables,
+    pathParams: {
+      ...pathParams
+    },
     process: {
       env: {
         ...collection.processEnvVariables
       }
     }
   };
+};
+
+export const maskInputValue = (value) => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .split('')
+    .map(() => '*')
+    .join('');
 };
