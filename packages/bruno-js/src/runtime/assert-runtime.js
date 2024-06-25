@@ -5,6 +5,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
+const { executeInIsolatedVM } = require('../sandbox/isolatedvm');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -161,7 +162,39 @@ const isUnaryOperator = (operator) => {
   return unaryOperators.includes(operator);
 };
 
-const evaluateRhsOperand = (rhsOperand, operator, context) => {
+const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime) => {
+  let value;
+  if (runtime === 'isolated-vm') {
+    value = executeInIsolatedVM({
+      script: v,
+      context,
+      scriptType: 'template-literal'
+    });
+  } else if (runtime === 'node-vm') {
+    value = v;
+  } else {
+    value = evaluateJsTemplateLiteral(v, context);
+  }
+  return value;
+};
+
+const evaluateJsExpressionBasedOnRuntime = (v, context, runtime) => {
+  let value;
+  if (runtime === 'isolated-vm') {
+    value = executeInIsolatedVM({
+      script: v,
+      context,
+      scriptType: 'expression'
+    });
+  } else if (runtime === 'node-vm') {
+    value = v;
+  } else {
+    value = evaluateJsExpression(v, context);
+  }
+  return value;
+};
+
+const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
   if (isUnaryOperator(operator)) {
     return;
   }
@@ -180,13 +213,17 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 
     return rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(v.trim(), interpolationContext), context, runtime)
+      );
   }
 
   if (operator === 'between') {
     const [lhs, rhs] = rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(v.trim(), interpolationContext), context, runtime)
+      );
     return [lhs, rhs];
   }
 
@@ -199,10 +236,14 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return interpolateString(rhsOperand, interpolationContext);
   }
 
-  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, interpolationContext), context);
+  return evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(rhsOperand, interpolationContext), context, runtime);
 };
 
 class AssertRuntime {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
+
   runAssertions(assertions, request, response, envVariables, collectionVariables, processEnvVars) {
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
     if (!enabledAssertions.length) {
@@ -235,8 +276,8 @@ class AssertRuntime {
       const { operator, value: rhsOperand } = parseAssertionOperator(rhsExpr);
 
       try {
-        const lhs = evaluateJsExpression(lhsExpr, context);
-        const rhs = evaluateRhsOperand(rhsOperand, operator, context);
+        const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime);
 
         switch (operator) {
           case 'eq':

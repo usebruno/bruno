@@ -3,7 +3,45 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
+const { executeInIsolatedVM } = require('../sandbox/isolatedvm');
+
+const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime) => {
+  let value;
+  if (runtime === 'isolated-vm') {
+    value = executeInIsolatedVM({
+      script: v,
+      context,
+      scriptType: 'template-literal'
+    });
+  } else if (runtime === 'node-vm') {
+    value = v;
+  } else {
+    value = evaluateJsTemplateLiteral(v, context);
+  }
+  return value;
+};
+
+const evaluateJsExpressionBasedOnRuntime = (v, context, runtime) => {
+  let value;
+  if (runtime === 'isolated-vm') {
+    value = executeInIsolatedVM({
+      script: v,
+      context,
+      scriptType: 'expression'
+    });
+  } else if (runtime === 'node-vm') {
+    value = v;
+  } else {
+    value = evaluateJsExpression(v, context);
+  }
+  return value;
+};
+
 class VarsRuntime {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
+
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
@@ -25,7 +63,7 @@ class VarsRuntime {
     };
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteral(v.value, context);
+      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
       bru.setVar(v.name, value);
     });
 
@@ -59,7 +97,7 @@ class VarsRuntime {
     const errors = new Map();
     _.each(enabledVars, (v) => {
       try {
-        const value = evaluateJsExpression(v.value, context);
+        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
         bru.setVar(v.name, value);
       } catch (error) {
         errors.set(v.name, error);

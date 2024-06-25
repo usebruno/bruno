@@ -1,54 +1,70 @@
 const rollup = require('rollup');
-const resolve = require('@rollup/plugin-node-resolve').default;
-const commonjs = require('@rollup/plugin-commonjs');
 const json = require('@rollup/plugin-json');
-const path = require('path');
+const resolve = require('@rollup/plugin-node-resolve').default;
+const commonjs = require('@rollup/plugin-commonjs').default;
+const nodePolyfills = require('rollup-plugin-polyfill-node');
+const builtins = require('rollup-plugin-node-builtins');
+const globals = require('rollup-plugin-node-globals');
 const fs = require('fs');
 
-const bundleLibraries = async (libraries) => {
-  try {
-    const availableModules = Object.keys(libraries)
-      .map((module) => {
-        if (require.resolve(module)) {
-          return module;
-        }
-        return null;
-      })
-      .filter((module) => module);
-    const entryContent = availableModules.map((lib) => `require('${lib}');`).join('\n');
+const bundleLibraries = async () => {
+  const codeScript = `
+  import isNumber from "is-number";
+  import { expect, assert } from "chai";
 
-    const entryPath = path.resolve(__dirname, 'entry.js');
-    fs.writeFileSync(entryPath, entryContent);
-
-    const inputOptions = {
-      input: entryPath,
-      plugins: [
-        resolve({
-          preferBuiltins: false
-        }),
-        commonjs(),
-        json()
-      ]
-    };
-
-    const bundle = await rollup.rollup(inputOptions);
-
-    const { output } = await bundle.generate({
-      format: 'cjs',
-      name: 'externalModules'
-    });
-
-    return output[0].code;
-  } catch (error) {
-    throw error;
-  } finally {
-    try {
-      await fs.unlink(entryPath);
-    } catch (unlinkError) {
-      if (unlinkError.code !== 'ENOENT') {
-        console.error('Error deleting temporary entry file:', unlinkError);
-      }
+  global.require = (module) => {
+    if (module === 'is-number') {
+      return isNumber;
     }
+    if (module === 'chai') {
+      return { expect, assert };
+    }
+  }
+`;
+
+  const config = {
+    input: {
+      input: 'inline-code',
+      plugins: [
+        {
+          name: 'inline-code-plugin',
+          resolveId(id) {
+            if (id === 'inline-code') {
+              return id;
+            }
+            return null;
+          },
+          load(id) {
+            if (id === 'inline-code') {
+              return codeScript;
+            }
+            return null;
+          }
+        },
+        nodePolyfills(),
+        resolve({
+          preferBuiltins: false,
+          browser: true
+        }),
+        json(),
+        commonjs(),
+        globals(),
+        builtins()
+      ]
+    },
+    output: {
+      format: 'iife',
+      name: 'MyBundle'
+    }
+  };
+
+  try {
+    const bundle = await rollup.rollup(config.input);
+    const { output } = await bundle.generate(config.output);
+    // fs.writeFileSync('bundle.js', output?.map((o) => o.code).join('\n'));
+    return output?.map((o) => o.code).join('\n');
+  } catch (error) {
+    console.error('Error while bundling:', error);
   }
 };
 

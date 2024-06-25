@@ -16,7 +16,8 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "jest"
+    "test": "jest",
+    "rebuild:isolated-vm": "npx electron-rebuild"
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.525.0",

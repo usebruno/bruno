@@ -32,6 +32,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
+      collection.securitySettingsSelectedTab = 'codeExecution';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -1462,6 +1463,15 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    updateSecuritySettingsSelectedTab: (state, action) => {
+      const { collectionUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.securitySettingsSelectedTab = tab;
+      }
     }
   }
 });
@@ -1541,7 +1551,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateSecuritySettingsSelectedTab
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

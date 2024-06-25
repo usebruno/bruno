@@ -28,11 +28,11 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const executeInIsolatedVM = require('../sandbox/isolatedvm');
+const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 
 class ScriptRuntime {
-  constructor({ runtime }) {
-    this.runtime = runtime;
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
   }
 
   // This approach is getting out of hand
@@ -89,11 +89,14 @@ class ScriptRuntime {
     }
 
     if (this.runtime == 'isolated-vm') {
-      await executeInIsolatedVM({
+      await executeInIsolatedVMAsync({
         script,
         context,
-        modules: {}
+        modules: {}, // todo: module support?
+        scriptType: 'jsScript'
       });
+    } else if (this.runtime == 'node-vm') {
+      // todo
     } else {
       const vm = new NodeVM({
         sandbox: context,
@@ -130,8 +133,14 @@ class ScriptRuntime {
           }
         }
       });
-
-      const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
+      const asyncVM = vm.run(
+        `module.exports = async () => { 
+          console.info('vm2:pre-request:execution-start');
+          ${script}
+          console.info('vm2:pre-request:execution-end:');
+        }`,
+        path.join(collectionPath, 'vm.js')
+      );
       await asyncVM();
     }
 
@@ -192,11 +201,14 @@ class ScriptRuntime {
     }
 
     if (this.runtime == 'isolated-vm') {
-      await executeInIsolatedVM({
+      await executeInIsolatedVMAsync({
         script,
         context,
-        modules: {}
+        modules: {}, // todo: module support?
+        scriptType: 'jsScript'
       });
+    } else if (this.runtime == 'node-vm') {
+      // todo
     } else {
       const vm = new NodeVM({
         sandbox: context,
@@ -233,7 +245,14 @@ class ScriptRuntime {
         }
       });
 
-      const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
+      const asyncVM = vm.run(
+        `module.exports = async () => { 
+          console.info('vm2:post-response:execution-start:');
+          ${script}
+          console.info('vm2:post-response:execution-end:');
+        }`,
+        path.join(collectionPath, 'vm.js')
+      );
       await asyncVM();
     }
 

@@ -26,13 +26,13 @@ const addConsoleShimToContext = (context, console) => {
 
   context.evalSync(`
     console = {
-        ...console || {},
-        log: global.log,
-        debug: global.debug,
-        info: global.info,
-        warn: global.warn,
-        error: global.error
-      }
+      ...console || {},
+      log: global.log,
+      debug: global.debug,
+      info: global.info,
+      warn: global.warn,
+      error: global.error
+    }
   `);
 };
 

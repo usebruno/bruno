@@ -24,6 +24,10 @@ jobs:
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
 
+      # rebuild isolated-vm
+      - name: Rebuild bruno-electron isolated-vm
+        run: npm run rebuild:isolated-vm --workspace=packages/bruno-electron
+
       # test
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
@@ -33,14 +37,23 @@ jobs:
         run: npm run test --workspace=packages/bruno-schema
       - name: Test Package bruno-app
         run: npm run test --workspace=packages/bruno-app
-      - name: Test Package bruno-js
-        run: npm run test --workspace=packages/bruno-js
+
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
       - name: Test Package bruno-cli
         run: npm run test --workspace=packages/bruno-cli
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
+
+      # rebuild isolated-vm for bruno-js
+      - name: Rebuild bruno-js isolated-vm
+        run: |
+          cd packages/bruno-js/node_modules/isolated-vm
+          npm run rebuild
+
+      # test for bruno-js
+      - name: Test Package bruno-js
+        run: npm run test --workspace=packages/bruno-js
 
   cli-test:
     name: CLI Tests

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@rollup/plugin-json": "^6.1.0",
+    "rollup-plugin-polyfill-node": "^0.13.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
@@ -33,6 +34,8 @@
     "nanoid": "3.3.4",
     "node-fetch": "2.*",
     "node-vault": "^0.10.2",
+    "stream": "^0.0.2",
+    "util": "^0.12.5",
     "uuid": "^9.0.0"
   }
 }
