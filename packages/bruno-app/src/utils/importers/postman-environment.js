@@ -59,7 +59,16 @@ const importEnvironment = () => {
   return new Promise((resolve, reject) => {
     fileDialog({ multiple: true, accept: 'application/json' })
       .then((files) => {
-        return Promise.all(Object.values(files ?? {}).map((file) => readFile([file]).then(parsePostmanEnvironment)));
+        return Promise.all(
+          Object.values(files ?? {}).map((file) =>
+            readFile([file])
+              .then(parsePostmanEnvironment)
+              .catch((err) => {
+                console.error(`Error processing file: ${file.name || 'undefined'}`, err);
+                throw err;
+              })
+          )
+        );
       })
       .then((environments) => resolve(environments))
       .catch((err) => {

@@ -12,13 +12,22 @@ const ImportEnvironment = ({ collection }) => {
   const handleImportPostmanEnvironment = () => {
     importPostmanEnvironment()
       .then((environments) => {
-        environments.map((environment) => {
-          dispatch(importEnvironment(environment.name, environment.variables, collection.uid))
-            .then(() => {
-              toast.success('Environment imported successfully');
-            })
-            .catch(() => toast.error('An error occurred while importing the environment'));
-        });
+        environments
+          .filter((env) =>
+            env.name && env.name !== 'undefined'
+              ? true
+              : () => {
+                  toast.error('Failed to import environment: env has no name');
+                  return false;
+                }
+          )
+          .map((environment) => {
+            dispatch(importEnvironment(environment.name, environment.variables, collection.uid))
+              .then(() => {
+                toast.success('Environment imported successfully');
+              })
+              .catch(() => toast.error('An error occurred while importing the environment'));
+          });
       })
       .catch((err) => toastError(err, 'Postman Import environment failed'));
   };
