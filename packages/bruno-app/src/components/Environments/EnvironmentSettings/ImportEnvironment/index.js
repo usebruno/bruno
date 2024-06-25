@@ -1,15 +1,12 @@
 import React from 'react';
-import Portal from 'components/Portal';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import importPostmanEnvironment from 'utils/importers/postman-environment';
 import { importEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { toastError } from 'utils/common/error';
-import Modal from 'components/Modal';
-import { SharedButton } from 'components/Environments/EnvironmentSettings';
 import { IconDatabaseImport } from '@tabler/icons';
 
-const ImportEnvironment = ({ onClose, collection }) => {
+const ImportEnvironment = ({ collection }) => {
   const dispatch = useDispatch();
 
   const handleImportPostmanEnvironment = () => {
