@@ -18,7 +18,8 @@ const collectionBruToJson = (bru) => {
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
         vars: _.get(json, 'vars', {}),
-        tests: _.get(json, 'tests', '')
+        tests: _.get(json, 'tests', ''),
+        docs: _.get(json, 'docs', '')
       }
     };
 

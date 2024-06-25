@@ -452,6 +452,9 @@ const registerNetworkIpc = (mainWindow) => {
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
+    collectionVariables['currentItem'] = item;
+    collectionVariables['executionMode'] = 'single';
+
     mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
@@ -882,6 +885,9 @@ const registerNetworkIpc = (mainWindow) => {
             error.isCancel = true;
             throw error;
           }
+
+          collectionVariables['currentItem'] = folderRequests[currentRequestIndex];
+          collectionVariables['executionMode'] = 'runner';
 
           const item = folderRequests[currentRequestIndex];
           let nextRequestName;
