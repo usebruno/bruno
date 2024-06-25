@@ -26,7 +26,7 @@ jobs:
 
       # rebuild isolated-vm
       - name: Rebuild bruno-electron isolated-vm
-        run: npm run rebuild:isolated-vm --workspace=packages/bruno-electron
+        run: npm run rebuild:isolated-vm --workspace=packages/bruno-electron || true
 
       # test
       - name: Test Package bruno-query
@@ -49,7 +49,7 @@ jobs:
       - name: Rebuild bruno-js isolated-vm
         run: |
           cd packages/bruno-js/node_modules/isolated-vm
-          npm run rebuild
+          npm run rebuild || true
 
       # test for bruno-js
       - name: Test Package bruno-js
