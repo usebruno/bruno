@@ -24,6 +24,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
+import { getPathSummary } from 'utils/url/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -256,11 +257,16 @@ const CollectionItem = ({ item, collection, searchText }) => {
               ) : null}
             </div>
 
-            <div className="ml-1 flex items-center overflow-hidden">
-              <RequestMethod item={item} />
-              <span className="item-name" title={item.name}>
-                {item.name}
-              </span>
+            <div className="ml-1 flex flex-col overflow-hidden">
+              <div className="flex items-center">
+                <RequestMethod item={item} />
+                <span className="item-name" title={item.name}>
+                  {item.name}
+                </span>
+              </div>
+              <div>
+                <span>{decodeURI(getPathSummary(item.request.url))}</span>
+              </div>
             </div>
           </div>
           <div className="menu-icon pr-2">

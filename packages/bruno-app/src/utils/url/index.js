@@ -155,3 +155,15 @@ export const interpolateUrlPathParams = (url, params) => {
 
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
+
+export const getPathSummary = (url) => {
+  if (url.startsWith('http://')) {
+    url = url.replace('http://', '');
+  }
+
+  if (url.startsWith('https://')) {
+    url = url.replace('https://', '');
+  }
+
+  return `/${splitOnFirst(url, '/')[1]?.replace('{{', '{').replace('}}', '}') || ''}`;
+};
