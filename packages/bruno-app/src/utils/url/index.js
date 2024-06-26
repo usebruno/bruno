@@ -165,5 +165,5 @@ export const getPathSummary = (url) => {
     url = url.replace('https://', '');
   }
 
-  return `/${splitOnFirst(url, '/')[1]?.replace('{{', '{').replace('}}', '}') || ''}`;
+  return `/${splitOnFirst(url, '/')[1] || ''}`;
 };
