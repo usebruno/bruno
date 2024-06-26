@@ -5,6 +5,8 @@ const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/brunoResponse');
 const bundleLibraries = require('./utils/bundleLibraries');
 const addTestShimToContext = require('./shims/test');
+const fs = require('fs');
+const addLibraryShimsToContext = require('./shims/lib');
 
 const executeInIsolatedVM = ({
   script: externalScript,
@@ -15,7 +17,7 @@ const executeInIsolatedVM = ({
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
-  const isolate = new ivm.Isolate({ memoryLimit: 128 });
+  const isolate = new ivm.Isolate();
   try {
     const context = isolate.createContextSync();
     context.global.setSync('global', context.global.derefInto());
@@ -27,7 +29,6 @@ const executeInIsolatedVM = ({
       let req = {};
       let res = {};
       let console = {};
-      global.require = undefined;
     `);
 
     bru && addBruShimToContext(context, bru);
@@ -83,21 +84,21 @@ const executeInIsolatedVMAsync = async ({
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
-  const isolate = new ivm.Isolate({ memoryLimit: 128 });
+  const isolate = new ivm.Isolate();
   try {
-    const context = isolate.createContextSync();
-    context.global.setSync('global', context.global.derefInto());
+    const context = await isolate.createContext();
+    await context.global.set('global', context.global.derefInto());
 
     context.evalSync(`
     let bru = {};
     let req = {};
     let res = {};
     let console = {};
-    global.require = undefined;
+    global.requireObject = {};
   `);
 
     const bundledCode = await bundleLibraries();
-    context.evalSync(bundledCode);
+    await context.eval(bundledCode);
 
     const { bru, req, res, test, __brunoTestResults, expect, assert, console: consoleFn, ...rest } = externalContext;
 
@@ -105,19 +106,29 @@ const executeInIsolatedVMAsync = async ({
     req && addBrunoRequestShimToContext(context, req);
     res && addBrunoResponseShimToContext(context, res);
     consoleFn && addConsoleShimToContext(context, consoleFn);
+    await addLibraryShimsToContext(context);
+
+    await context.eval(
+      `
+        global.require = (module) => {
+            return global.requireObject[module];
+        }
+      `
+    );
+
     test && (await addTestShimToContext(context, __brunoTestResults));
 
     const jsScriptText = `
-      (async()=>{
-          console?.info && console.info('isolated-vm:execution-start:');
-          try {
-              ${externalScript}
-          }
-          catch(error) {
-            console?.info && console.info('isolated-vm:execution-end:with-error', error?.message);
-          }
-          console?.info && console.info('isolated-vm:execution-end:');
-      })();
+      new Promise(async (resolve, reject) => {
+        console?.info && console.info('isolated-vm:execution-start:');
+        try {
+          ${externalScript}
+        } catch (error) {
+          console?.info && console.info('isolated-vm:execution-end:with-error', error?.message);
+        }
+        console?.info && console.info('isolated-vm:execution-end:');
+        resolve();
+      });
     `;
 
     const templateLiteralText = `
@@ -137,8 +148,8 @@ const executeInIsolatedVMAsync = async ({
         ? jsExpressionText
         : jsScriptText;
 
-    const script = isolate.compileScriptSync(scriptText);
-    const result = script.runSync(context);
+    const script = await isolate.compileScript(scriptText);
+    const result = await script.run(context);
     return result;
   } catch (error) {
     console.error('Error executing the script!', error);

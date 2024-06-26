@@ -11,15 +11,25 @@ const bundleLibraries = async () => {
   const codeScript = `
   import isNumber from "is-number";
   import { expect, assert } from "chai";
+  import { Buffer } from "buffer";
+  import btoa from "btoa";
+  import atob from "atob";
+  import moment from "moment";
 
-  global.require = (module) => {
-    if (module === 'is-number') {
-      return isNumber;
-    }
-    if (module === 'chai') {
-      return { expect, assert };
-    }
-  }
+  global.Buffer = Buffer;
+  global.btoa = btoa;
+  global.atob = atob;
+  global.moment = moment;
+
+  global.requireObject = {
+    'is-number': isNumber,
+    'chai': { expect, assert },
+    'buffer': { Buffer },
+    'btoa': btoa,
+    'atob': atob,
+    'moment': moment
+  };
+
 `;
 
   const config = {
@@ -44,7 +54,7 @@ const bundleLibraries = async () => {
         nodePolyfills(),
         resolve({
           preferBuiltins: false,
-          browser: true
+          browser: false
         }),
         json(),
         commonjs(),
@@ -61,7 +71,7 @@ const bundleLibraries = async () => {
   try {
     const bundle = await rollup.rollup(config.input);
     const { output } = await bundle.generate(config.output);
-    // fs.writeFileSync('bundle.js', output?.map((o) => o.code).join('\n'));
+    // fs.writeFileSync('bundle-browser.js', output?.map((o) => o.code).join('\n'));
     return output?.map((o) => o.code).join('\n');
   } catch (error) {
     console.error('Error while bundling:', error);
