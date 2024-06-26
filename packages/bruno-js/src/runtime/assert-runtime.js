@@ -171,7 +171,7 @@ const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
   let value;
   if (mode === 'restricted') {
     let _value = _.get(context, v, v);
-    if (_value && _value == 'object') {
+    if (_value && typeof _value == 'object') {
       value = JSON.stringify(_value);
     } else if (Number.isNaN(Number(_value))) {
       value = _value;
@@ -194,7 +194,7 @@ const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
   let value;
   if (mode === 'restricted') {
     let _value = _.get(context, v, v);
-    if (_value && _value == 'object') {
+    if (_value && typeof _value == 'object') {
       value = JSON.stringify(_value);
     } else if (Number.isNaN(Number(_value))) {
       value = _value;
