@@ -3,34 +3,53 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
-const { executeInIsolatedVM } = require('../sandbox/isolatedvm');
+const { executeInIsolatedVMStrict } = require('../sandbox/isolatedvm');
 
-const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime) => {
+const toNumber = (value) => {
+  const num = Number(value);
+  return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
+};
+
+const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
   let value;
-  if (runtime === 'isolated-vm') {
-    value = executeInIsolatedVM({
+  if (mode === 'restricted') {
+    let _value = _.get(context, v, v);
+    if (_value && _value == 'object') {
+      value = JSON.stringify(_value);
+    } else if (Number.isNaN(Number(_value))) {
+      value = _value;
+    } else {
+      value = toNumber(_value);
+    }
+  } else if (mode === 'safe') {
+    value = executeInIsolatedVMStrict({
       script: v,
       context,
       scriptType: 'template-literal'
     });
-  } else if (runtime === 'node-vm') {
-    value = v;
   } else {
     value = evaluateJsTemplateLiteral(v, context);
   }
   return value;
 };
 
-const evaluateJsExpressionBasedOnRuntime = (v, context, runtime) => {
+const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
   let value;
-  if (runtime === 'isolated-vm') {
-    value = executeInIsolatedVM({
+  if (mode === 'restricted') {
+    let _value = _.get(context, v, v);
+    if (_value && _value == 'object') {
+      value = JSON.stringify(_value);
+    } else if (Number.isNaN(Number(_value))) {
+      value = _value;
+    } else {
+      value = toNumber(_value);
+    }
+  } else if (mode === 'safe') {
+    value = executeInIsolatedVMStrict({
       script: v,
       context,
       scriptType: 'expression'
     });
-  } else if (runtime === 'node-vm') {
-    value = v;
   } else {
     value = evaluateJsExpression(v, context);
   }
@@ -40,6 +59,7 @@ const evaluateJsExpressionBasedOnRuntime = (v, context, runtime) => {
 class VarsRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
   }
 
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
@@ -63,7 +83,7 @@ class VarsRuntime {
     };
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
+      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime, this.mode);
       bru.setVar(v.name, value);
     });
 
@@ -97,7 +117,7 @@ class VarsRuntime {
     const errors = new Map();
     _.each(enabledVars, (v) => {
       try {
-        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
+        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime, this.mode);
         bru.setVar(v.name, value);
       } catch (error) {
         errors.set(v.name, error);

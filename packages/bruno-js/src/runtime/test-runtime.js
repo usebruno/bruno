@@ -35,6 +35,7 @@ const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 class TestRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
   }
 
   async runTests(
@@ -48,6 +49,14 @@ class TestRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    if (this.mode === 'restricted') {
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        collectionVariables: cleanJson(collectionVariables),
+        results: []
+      };
+    }
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -106,17 +115,16 @@ class TestRuntime {
       };
     }
 
-    if (this.runtime == 'isolated-vm') {
-      console.log(testsFile);
+    if (this.mode == 'safe') {
+      // SAFE mode
       await executeInIsolatedVMAsync({
         script: testsFile,
         context,
         modules: {}, // todo: module support?
         scriptType: 'jsScript'
       });
-    } else if (this.runtime == 'node-vm') {
-      // todo
     } else {
+      // DEVELOPER MODE
       const vm = new NodeVM({
         sandbox: context,
         require: {

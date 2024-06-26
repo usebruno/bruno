@@ -32,7 +32,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
-      collection.securitySettingsSelectedTab = 'codeExecution';
+      collection.securitySettingsSelectedTab = 'appMode';
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection

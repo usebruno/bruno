@@ -114,7 +114,7 @@ describe('runtime', () => {
                   bru.setVar('validation', validate(new Date().toISOString()))
               `;
 
-        const runtime = new ScriptRuntime({ runtime: 'vm2' });
+        const runtime = new ScriptRuntime({ runtime: 'vm2', mode: 'developer' });
         const result = await runtime.runRequestScript(script, { ...baseRequest }, {}, {}, '.', null, process.env);
         expect(result.collectionVariables.validation).toBeTruthy();
       });
@@ -160,7 +160,7 @@ describe('runtime', () => {
                   bru.setVar('validation', validate(new Date().toISOString()))
               `;
 
-        const runtime = new ScriptRuntime({ runtime: 'vm2' });
+        const runtime = new ScriptRuntime({ runtime: 'vm2', mode: 'developer' });
         const result = await runtime.runResponseScript(
           script,
           { ...baseRequest },

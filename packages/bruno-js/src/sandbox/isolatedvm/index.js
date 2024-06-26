@@ -8,66 +8,46 @@ const addTestShimToContext = require('./shims/test');
 const fs = require('fs');
 const addLibraryShimsToContext = require('./shims/lib');
 
-const executeInIsolatedVM = ({
-  script: externalScript,
-  context: externalContext,
-  modules = {},
-  scriptType = 'script'
-}) => {
+const executeInIsolatedVMStrict = ({ script: externalScript, context: externalContext, scriptType = 'script' }) => {
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
+  let result;
   const isolate = new ivm.Isolate();
   try {
     const context = isolate.createContextSync();
     context.global.setSync('global', context.global.derefInto());
 
-    const { bru, req, res, test, __brunoTestResults, expect, assert, console: consoleFn, ...rest } = externalContext;
+    const { bru, req, res } = externalContext;
 
     context.evalSync(`
       let bru = {};
       let req = {};
       let res = {};
-      let console = {};
     `);
 
     bru && addBruShimToContext(context, bru);
     req && addBrunoRequestShimToContext(context, req);
     res && addBrunoResponseShimToContext(context, res);
-    consoleFn && addConsoleShimToContext(context, consoleFn);
 
-    const jsScriptText = `
-      (async()=>{
-          console?.info && console.info('isolated-vm:execution-start:');
-          try {
-              ${externalScript}
-          }
-          catch(error) {
-            console?.info && console.info('isolated-vm:execution-end:with-error', error?.message);
-          }
-          console?.info && console.info('isolated-vm:execution-end:');
-      })();
-    `;
+    context.global.setSync('setResult', function (arg) {
+      result = arg;
+    });
 
     const templateLiteralText = `
       let value = \`${externalScript}\`;
-      value;
+      setResult(value);
     `;
 
     const jsExpressionText = `
       let value = ${externalScript};
-      value;
+      setResult(value);
     `;
 
-    let scriptText =
-      scriptType === 'template-literal'
-        ? templateLiteralText
-        : scriptType === 'expression'
-        ? jsExpressionText
-        : jsScriptText;
+    let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
 
     const script = isolate.compileScriptSync(scriptText);
-    const result = script.runSync(context);
+    script.runSync(context);
     return result;
   } catch (error) {
     console.error('Error executing the script!', error);
@@ -84,6 +64,7 @@ const executeInIsolatedVMAsync = async ({
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
+  let result;
   const isolate = new ivm.Isolate();
   try {
     const context = await isolate.createContext();
@@ -118,6 +99,10 @@ const executeInIsolatedVMAsync = async ({
 
     test && (await addTestShimToContext(context, __brunoTestResults));
 
+    context.global.setSync('setResult', function (arg) {
+      result = arg;
+    });
+
     const jsScriptText = `
       new Promise(async (resolve, reject) => {
         console?.info && console.info('isolated-vm:execution-start:');
@@ -133,12 +118,12 @@ const executeInIsolatedVMAsync = async ({
 
     const templateLiteralText = `
       let value = \`${externalScript}\`;
-      value;
+      setResult(value);
     `;
 
     const jsExpressionText = `
       let value = ${externalScript};
-      value;
+      setResult(value);
     `;
 
     let scriptText =
@@ -149,7 +134,7 @@ const executeInIsolatedVMAsync = async ({
         : jsScriptText;
 
     const script = await isolate.compileScript(scriptText);
-    const result = await script.run(context);
+    await script.run(context);
     return result;
   } catch (error) {
     console.error('Error executing the script!', error);
@@ -158,6 +143,6 @@ const executeInIsolatedVMAsync = async ({
 };
 
 module.exports = {
-  executeInIsolatedVM,
+  executeInIsolatedVMStrict,
   executeInIsolatedVMAsync
 };

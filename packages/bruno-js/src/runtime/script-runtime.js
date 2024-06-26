@@ -33,6 +33,7 @@ const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 class ScriptRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
   }
 
   // This approach is getting out of hand
@@ -47,6 +48,14 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    if (this.mode === 'restricted') {
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        collectionVariables: cleanJson(collectionVariables),
+        nextRequestName: undefined
+      };
+    }
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -88,15 +97,13 @@ class ScriptRuntime {
       };
     }
 
-    if (this.runtime == 'isolated-vm') {
+    if (this.mode == 'safe') {
       await executeInIsolatedVMAsync({
         script,
         context,
         modules: {}, // todo: module support?
         scriptType: 'jsScript'
       });
-    } else if (this.runtime == 'node-vm') {
-      // todo
     } else {
       const vm = new NodeVM({
         sandbox: context,
@@ -163,6 +170,14 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    if (this.mode === 'restricted') {
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        collectionVariables: cleanJson(collectionVariables),
+        nextRequestName: undefined
+      };
+    }
     const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -200,16 +215,16 @@ class ScriptRuntime {
       };
     }
 
-    if (this.runtime == 'isolated-vm') {
+    if (this.mode == 'safe') {
+      // SAFE MODE
       await executeInIsolatedVMAsync({
         script,
         context,
         modules: {}, // todo: module support?
         scriptType: 'jsScript'
       });
-    } else if (this.runtime == 'node-vm') {
-      // todo
     } else {
+      // DEVELOPER MODE
       const vm = new NodeVM({
         sandbox: context,
         require: {

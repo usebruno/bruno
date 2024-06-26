@@ -57,7 +57,6 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
-          <button className="btn btn-sm border border-slate-500/70 mr-2 opacity-30">Enable Code Execution</button>
           <span className="mr-2">
             <IconShieldLock className="cursor-pointer" size={20} strokeWidth={1.5} onClick={viewSecuritySettings} />
           </span>

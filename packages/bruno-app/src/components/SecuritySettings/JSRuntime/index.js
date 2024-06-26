@@ -6,7 +6,17 @@ import { useState } from 'react';
 
 const JSRuntime = ({ collection }) => {
   const dispatch = useDispatch();
-  const [selectedRuntime, setSelectedRuntime] = useState(collection?.brunoConfig?.security?.runtime || 'vm2');
+  const runtime = collection?.brunoConfig?.security?.runtime;
+  const appMode = collection?.brunoConfig?.security?.appMode;
+  const [selectedRuntime, setSelectedRuntime] = useState(runtime || 'vm2');
+
+  if (appMode === 'restricted') {
+    return <div className="">No Runtime. Code Execution is blocked in restricted mode.</div>;
+  }
+
+  if (appMode === 'safe') {
+    return <div className="">In Safe Mode the code execution happens isolated-vm runtime.</div>;
+  }
 
   const handleRuntimeChange = (e) => {
     setSelectedRuntime(e.target.value);
@@ -30,18 +40,6 @@ const JSRuntime = ({ collection }) => {
       <div className="text-xs opacity-70">Choose the JavaScript runtime for this collection.</div>
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <label htmlFor="isolated-vm" className="flex flex-row gap-2 cursor-pointer">
-            <input
-              type="radio"
-              id="isolated-vm"
-              name="runtime"
-              value="isolated-vm"
-              checked={selectedRuntime === 'isolated-vm'}
-              onChange={handleRuntimeChange}
-              className="cursor-pointer"
-            />
-            Isolated-VM
-          </label>
           <label htmlFor="node-vm" className="flex flex-row gap-2 cursor-pointer">
             <input
               type="radio"
