@@ -30,7 +30,7 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
+const { isolatedVMAsyncInstance } = require('../sandbox/isolatedvm');
 
 class TestRuntime {
   constructor(props) {
@@ -117,7 +117,7 @@ class TestRuntime {
 
     if (this.mode == 'safe') {
       // SAFE mode
-      await executeInIsolatedVMAsync({
+      await isolatedVMAsyncInstance.execute({
         script: testsFile,
         context,
         modules: {}, // todo: module support?

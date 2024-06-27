@@ -11,11 +11,17 @@
     "@n8n/vm2": "^3.9.23"
   },
   "scripts": {
-    "test": "jest --testPathIgnorePatterns test.js"
+    "test": "jest --testPathIgnorePatterns test.js",
+    "rebuild:electron": "cd ./node_modules/isolated-vm && npx electron-rebuild"
   },
   "dependencies": {
+    "rollup": "3.2.5",
+    "@rollup/plugin-commonjs": "^23.0.2",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-json": "^6.1.0",
     "rollup-plugin-polyfill-node": "^0.13.0",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.4.0",
     "@usebruno/common": "0.1.0",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",

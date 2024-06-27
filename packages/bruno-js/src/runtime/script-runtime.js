@@ -28,7 +28,7 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
+const { isolatedVMAsyncInstance } = require('../sandbox/isolatedvm');
 
 class ScriptRuntime {
   constructor(props) {
@@ -98,7 +98,7 @@ class ScriptRuntime {
     }
 
     if (this.mode == 'safe') {
-      await executeInIsolatedVMAsync({
+      await isolatedVMAsyncInstance.execute({
         script,
         context,
         modules: {}, // todo: module support?
@@ -217,7 +217,7 @@ class ScriptRuntime {
 
     if (this.mode == 'safe') {
       // SAFE MODE
-      await executeInIsolatedVMAsync({
+      await isolatedVMAsyncInstance.execute({
         script,
         context,
         modules: {}, // todo: module support?

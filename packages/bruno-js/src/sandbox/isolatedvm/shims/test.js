@@ -8,15 +8,16 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
   });
 
   context.evalSync(`
-    const isNumber = require('is-number');
-    const { expect, assert } = require('chai');
+    global.expect = require('chai').expect;
+    global.assert = require('chai').assert;
 
-    let __brunoTestResults = {
+    global.__brunoTestResults = {
         addResult: global.addResult,
         getResults: global.getResults,
     }
 
-    class DummyChaiAssertionError extends Error {
+
+    global.DummyChaiAssertionError = class DummyChaiAssertionError extends Error {
       constructor(message, props, ssf) {
         super(message);
         this.name = "AssertionError";
@@ -24,7 +25,7 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
       }
     }
 
-    const Test = (__brunoTestResults) => async (description, callback) => {
+    global.Test = (__brunoTestResults) => async (description, callback) => {
       try {
         await callback();
         __brunoTestResults.addResult({ description, status: "pass" });
@@ -49,7 +50,7 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
       }
     };
     
-    const test = Test(__brunoTestResults);
+    global.test = Test(__brunoTestResults);
   `);
 };
 

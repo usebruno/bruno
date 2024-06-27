@@ -5,7 +5,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
-const { executeInIsolatedVMStrict } = require('../sandbox/isolatedvm');
+const { isolatedVMStrictInstance } = require('../sandbox/isolatedvm');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -179,7 +179,7 @@ const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
       value = toNumber(_value);
     }
   } else if (mode === 'safe') {
-    value = executeInIsolatedVMStrict({
+    value = isolatedVMStrictInstance.execute({
       script: v,
       context,
       scriptType: 'template-literal'
@@ -202,7 +202,7 @@ const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
       value = toNumber(_value);
     }
   } else if (mode === 'safe') {
-    value = executeInIsolatedVMStrict({
+    value = isolatedVMStrictInstance.execute({
       script: v,
       context,
       scriptType: 'expression'

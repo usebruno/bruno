@@ -36,11 +36,6 @@ jobs:
       - name: Test Package bruno-cli
         run: npm run test --workspace=packages/bruno-cli
 
-      # rebuild isolated-vm for bruno-electron
-      - name: Rebuild bruno-electron isolated-vm
-        run: npm run rebuild:isolated-vm --workspace=packages/bruno-electron || true
-
-      # other test
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
       - name: Test Package bruno-lang
