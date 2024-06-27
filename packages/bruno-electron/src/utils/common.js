@@ -1,4 +1,5 @@
 const { customAlphabet } = require('nanoid');
+const { unsafePathCharacters } = require('./regex');
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -85,6 +86,10 @@ const flattenDataForDotNotation = (data) => {
   return result;
 };
 
+const isInvalidFilename = (filename) => {
+  return filename && unsafePathCharacters.test(filename);
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -93,5 +98,6 @@ module.exports = {
   safeParseJSON,
   simpleHash,
   generateUidBasedOnHash,
-  flattenDataForDotNotation
+  flattenDataForDotNotation,
+  isInvalidFilename
 };

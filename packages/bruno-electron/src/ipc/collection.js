@@ -16,7 +16,13 @@ const {
   sanitizeDirectoryName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
-const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
+const {
+  generateUidBasedOnHash,
+  stringifyJson,
+  safeParseJSON,
+  safeStringifyJSON,
+  isInvalidFilename
+} = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
@@ -216,6 +222,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const envDirPath = path.join(collectionPathname, 'environments');
       if (!fs.existsSync(envDirPath)) {
         await createDirectory(envDirPath);
+      }
+
+      if (isInvalidFilename(name)) {
+        throw new Error(`environment: contains invalid characters`);
       }
 
       const envFilePath = path.join(envDirPath, `${name}.bru`);
