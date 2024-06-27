@@ -1,27 +1,25 @@
-import { cloneDeep } from 'lodash';
-import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
 
 const AppMode = ({ collection }) => {
   const dispatch = useDispatch();
-  const [selectedAppMode, setSelectedAppMode] = useState(collection?.brunoConfig?.security?.appMode || 'developer');
+  const [selectedAppMode, setSelectedAppMode] = useState(collection?.securityConfig?.appMode || 'developer');
 
   const handleAppModeChange = (e) => {
     setSelectedAppMode(e.target.value);
   };
 
   const handleSave = () => {
-    let brunoConfig = cloneDeep(collection.brunoConfig) || {};
-    brunoConfig.security = {
-      ...(brunoConfig?.security || {}),
-      appMode: selectedAppMode,
-      runtime: selectedAppMode === 'developer' ? 'vm2' : brunoConfig?.security?.runtime
-    };
-    dispatch(updateBrunoConfig(brunoConfig, collection.uid))
+    dispatch(
+      saveCollectionSecurityConfig(collection?.uid, {
+        appMode: selectedAppMode,
+        runtime: selectedAppMode === 'developer' ? 'vm2' : selectedAppMode === 'safe' ? 'isolated-vm' : undefined
+      })
+    )
       .then(() => {
-        toast.success('JS AppMode updated successfully');
+        toast.success('App Mode updated successfully');
       })
       .catch((err) => console.log(err) && toast.error('Failed to update JS AppMode'));
   };

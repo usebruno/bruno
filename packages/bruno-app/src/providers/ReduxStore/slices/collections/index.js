@@ -34,7 +34,7 @@ export const collectionsSlice = createSlice({
       collection.settingsSelectedTab = 'headers';
       collection.securitySettingsSelectedTab = 'appMode';
 
-      collection.showAppModeModal = !collection.brunoConfig?.security?.appMode;
+      collection.showAppModeModal = !collection?.securityConfig?.appMode;
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -55,13 +55,18 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       collection.showAppModeModal = action.payload.showAppModeModal;
     },
+    setCollectionSecurityConfig: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.securityConfig = action.payload.securityConfig;
+      }
+    },
     brunoConfigUpdateEvent: (state, action) => {
       const { collectionUid, brunoConfig } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         collection.brunoConfig = brunoConfig;
-        collection.showAppModeModal = !brunoConfig?.security?.appMode;
       }
     },
     renameCollection: (state, action) => {
@@ -1485,6 +1490,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,

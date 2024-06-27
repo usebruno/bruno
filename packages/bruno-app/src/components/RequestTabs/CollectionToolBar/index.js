@@ -9,7 +9,7 @@ import SecuritySettingsIcon from 'components/SecuritySettings/SecurityIconWithMo
 
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
-  const appMode = collection?.brunoConfig?.security?.appMode;
+  const appMode = collection?.securityConfig?.appMode;
 
   const handleRun = () => {
     dispatch(
