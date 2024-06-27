@@ -156,14 +156,19 @@ export const interpolateUrlPathParams = (url, params) => {
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
 
-export const getPathSummary = (url) => {
-  if (url.startsWith('http://')) {
-    url = url.replace('http://', '');
+export const getPath = (url) => {
+  let uri;
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `http://${url}`;
   }
 
-  if (url.startsWith('https://')) {
-    url = url.replace('https://', '');
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    // if the URL is invalid, return empty string as path
+    return '';
   }
 
-  return `/${splitOnFirst(url, '/')[1] || ''}`;
+  return uri.pathname;
 };

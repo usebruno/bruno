@@ -1,4 +1,11 @@
-import { parseQueryParams, splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
+import {
+  parseQueryParams,
+  splitOnFirst,
+  parsePathParams,
+  interpolateUrl,
+  interpolateUrlPathParams,
+  getPath
+} from './index';
 
 describe('Url Utils - parseQueryParams', () => {
   it('should parse query - case 1', () => {
@@ -191,4 +198,61 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
 
     expect(result).toEqual(expectedUrl);
   });
+});
+
+describe('Url Utils - getPath', () => {
+  it('should return path when url starts with http://', () => {
+    const expectedPath = '/api/v1/:id';
+    const url = `http://1.1.1.1:3000${expectedPath}`;
+
+    const result = getPath(url);
+
+    expect(result).toEqual(expectedPath);
+  });
+
+  it('should return path when url starts with https://', () => {
+    const expectedPath = '/api/v1/:id';
+    const url = `https://1.1.1.1:3000${expectedPath}`;
+
+    const result = getPath(url);
+
+    expect(result).toEqual(expectedPath);
+  });
+
+  it('should return path when url does not start with http:// or https://', () => {
+    const expectedPath = '/api/v1/:id';
+    const url = `{{host}}${expectedPath}`;
+
+    const result = getPath(url);
+
+    expect(result).toEqual(expectedPath);
+  });
+
+  it('should return slash when url does not contain a path', () => {
+    const url = 'http://1.1.1.1:3000';
+
+    const result = getPath(url);
+
+    expect(result).toEqual('/');
+  });
+
+  it('should return path summary without query params when url contains query params', () => {
+    const expectedPath = '/api/v1/:id';
+    const url = `http://1.1.1.1:3000${expectedPath}?param=:name`;
+
+    const result = getPath(url);
+
+    expect(result).toEqual(expectedPath);
+  });
+
+  if (
+    ('should return empty string when url is not valid',
+    () => {
+      const invalidUrl = 'example.com/api/:id';
+
+      const result = getPath(invalidUrl);
+
+      expect(result).toEqual('');
+    })
+  );
 });

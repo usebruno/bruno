@@ -24,7 +24,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { getPathSummary } from 'utils/url/index';
+import { getPath } from 'utils/url/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -265,7 +265,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 </span>
               </div>
               <div>
-                <span>{decodeURI(getPathSummary(item.request.url))}</span>
+                <span>{getPath(item.request.url)}</span>
               </div>
             </div>
           </div>
