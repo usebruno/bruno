@@ -245,14 +245,11 @@ describe('Url Utils - getPath', () => {
     expect(result).toEqual(expectedPath);
   });
 
-  if (
-    ('should return empty string when url is not valid',
-    () => {
-      const invalidUrl = 'example.com/api/:id';
+  it('should return empty string when url is not valid', () => {
+    const invalidUrl = 'http://example.com[/]api/:id';
 
-      const result = getPath(invalidUrl);
+    const result = getPath(invalidUrl);
 
-      expect(result).toEqual('');
-    })
-  );
+    expect(result).toEqual('');
+  });
 });
