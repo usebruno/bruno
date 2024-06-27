@@ -466,7 +466,7 @@ const registerNetworkIpc = (mainWindow) => {
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
-    const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(brunoConfig, 'security', {}) };
+    const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
     try {
       const controller = new AbortController();
@@ -664,7 +664,7 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(brunoConfig, 'security', {}) };
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
       await runPreRequest(
         request,
@@ -769,7 +769,7 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionVariables = collection.collectionVariables;
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collection.uid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(brunoConfig, 'security', {}) };
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
       await runPreRequest(
         request,
@@ -835,7 +835,7 @@ const registerNetworkIpc = (mainWindow) => {
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(brunoConfig, 'security', {}) };
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
       const collectionRoot = get(collection, 'root', {});
 
       const abortController = new AbortController();

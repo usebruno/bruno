@@ -81,7 +81,7 @@ const executeInIsolatedVMAsync = async ({
     const bundledCode = await bundleLibraries();
     await context.eval(bundledCode);
 
-    const { bru, req, res, test, __brunoTestResults, expect, assert, console: consoleFn, ...rest } = externalContext;
+    const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
     bru && addBruShimToContext(context, bru);
     req && addBrunoRequestShimToContext(context, req);
@@ -97,7 +97,7 @@ const executeInIsolatedVMAsync = async ({
       `
     );
 
-    test && (await addTestShimToContext(context, __brunoTestResults));
+    test && __brunoTestResults && (await addTestShimToContext(context, __brunoTestResults));
 
     context.global.setSync('setResult', function (arg) {
       result = arg;
