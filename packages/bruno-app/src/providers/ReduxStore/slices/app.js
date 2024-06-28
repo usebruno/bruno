@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 const initialState = {
   isDragging: false,
   idbConnectionReady: false,
-  leftSidebarWidth: 222,
+  leftSidebarWidth: 322,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,

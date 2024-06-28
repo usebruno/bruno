@@ -155,3 +155,20 @@ export const interpolateUrlPathParams = (url, params) => {
 
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
+
+export const getPath = (url) => {
+  let uri;
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `http://${url}`;
+  }
+
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    // if the URL is invalid, return empty string as path
+    return '';
+  }
+
+  return uri.pathname;
+};

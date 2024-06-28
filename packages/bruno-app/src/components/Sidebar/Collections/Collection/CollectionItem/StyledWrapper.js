@@ -19,7 +19,7 @@ const Wrapper = styled.div`
   }
 
   .collection-item-name {
-    height: 1.875rem;
+    height: 2.875rem;
     cursor: pointer;
     user-select: none;
 
