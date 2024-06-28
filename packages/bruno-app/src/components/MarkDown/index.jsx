@@ -1,10 +1,15 @@
 import MarkdownIt from 'markdown-it';
+import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
 import * as React from 'react';
 
-const md = new MarkdownIt();
-
-const Markdown = ({ onDoubleClick, content }) => {
+const Markdown = ({ collectionPath, onDoubleClick, content }) => {
+  const markdownItOptions = {
+    replaceLink: function (link, env) {
+      return link.replace(/^\./, collectionPath);
+    }
+  };
+  const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
   const handleOnDoubleClick = (event) => {
     if (event?.detail === 2) {
       onDoubleClick();
