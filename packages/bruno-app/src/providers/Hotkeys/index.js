@@ -9,7 +9,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { CTRL_TAB_ACTIONS, closeTabs, ctrlTab } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -153,6 +153,48 @@ export const HotkeysProvider = (props) => {
       Mousetrap.unbind(['command+w', 'ctrl+w']);
     };
   }, [activeTabUid]);
+
+  useEffect(() => {
+    const shortcuts = ['mod+tab'];
+    const shiftedShortcuts = ['shift+mod+tab'];
+
+    const bindCtrlTabShortcut = () => {
+      Mousetrap.bind(shortcuts, () => {
+        dispatch(ctrlTab(CTRL_TAB_ACTIONS.ENTER));
+        Mousetrap.unbind(shortcuts);
+
+        Mousetrap.bind(shortcuts, () => {
+          dispatch(ctrlTab(CTRL_TAB_ACTIONS.PLUS));
+          return false; // this stops the event bubbling
+        });
+        Mousetrap.bind(shiftedShortcuts, () => {
+          dispatch(ctrlTab(CTRL_TAB_ACTIONS.MINUS));
+          return false; // this stops the event bubbling
+        });
+
+        Mousetrap.bind(
+          ['mod'],
+          () => {
+            dispatch(ctrlTab(CTRL_TAB_ACTIONS.SWITCH));
+            Mousetrap.unbind(['mod'], 'keyup');
+            Mousetrap.unbind(shortcuts);
+            Mousetrap.unbind(shiftedShortcuts);
+
+            bindCtrlTabShortcut();
+            return false; // this stops the event bubbling
+          },
+          'keyup'
+        );
+
+        return false; // this stops the event bubbling
+      });
+    };
+    bindCtrlTabShortcut();
+
+    return () => {
+      Mousetrap.unbind(shortcuts);
+    };
+  }, []);
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
