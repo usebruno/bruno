@@ -1,19 +1,25 @@
 const os = require('os');
 const fs = require('fs-extra');
-const util = require('util');
-const spawn = util.promisify(require('child_process').spawn);
+const spawn = require('child_process').spawn;
+
+function log(...args) {
+  console.log('-> ', ...args);
+}
+function error(...args) {
+  console.log('!> ', ...args);
+}
 
 async function deleteFileIfExists(filePath) {
   try {
     const exists = await fs.pathExists(filePath);
     if (exists) {
       await fs.remove(filePath);
-      console.log(`${filePath} has been successfully deleted.`);
+      log(`${filePath} has been successfully deleted.`);
     } else {
-      console.log(`${filePath} does not exist.`);
+      log(`${filePath} does not exist.`);
     }
   } catch (err) {
-    console.error(`Error while checking the existence of ${filePath}: ${err}`);
+    error(`Error while checking the existence of ${filePath}: ${err}`);
   }
 }
 
@@ -22,12 +28,12 @@ async function copyFolderIfExists(srcPath, destPath) {
     const exists = await fs.pathExists(srcPath);
     if (exists) {
       await fs.copy(srcPath, destPath);
-      console.log(`${srcPath} has been successfully copied.`);
+      log(`${srcPath} has been successfully copied.`);
     } else {
-      console.log(`${srcPath} was not copied as it does not exist.`);
+      log(`${srcPath} was not copied as it does not exist.`);
     }
   } catch (err) {
-    console.error(`Error while checking the existence of ${srcPath}: ${err}`);
+    error(`Error while checking the existence of ${srcPath}: ${err}`);
   }
 }
 
@@ -38,17 +44,22 @@ async function removeSourceMapFiles(directory) {
       if (file.endsWith('.map')) {
         const filePath = path.join(directory, file);
         await fs.remove(filePath);
-        console.log(`${filePath} has been successfully deleted.`);
+        log(`${filePath} has been successfully deleted.`);
       }
     }
   } catch (error) {
-    console.error(`Error while deleting .map files: ${error}`);
+    error(`Error while deleting .map files: ${error}`);
   }
 }
 
-async function execCommandWithOutput(command) {
+/**
+ * @param {String} command
+ * @param {String[]} args
+ * @returns {Promise<void>}
+ */
+async function execCommandWithOutput(command, args) {
   return new Promise(async (resolve, reject) => {
-    const childProcess = await spawn(command, {
+    const childProcess = spawn(command, args, {
       stdio: 'inherit',
       shell: true
     });
@@ -65,51 +76,50 @@ async function execCommandWithOutput(command) {
   });
 }
 
-async function main() {
-  try {
-    // Remove out directory
-    await deleteFileIfExists('packages/bruno-electron/out');
-
-    // Remove web directory
-    await deleteFileIfExists('packages/bruno-electron/web');
-
-    // Create a new web directory
-    await fs.ensureDir('packages/bruno-electron/web');
-    console.log('The directory has been created successfully!');
-
-    // Copy build
-    await copyFolderIfExists('packages/bruno-app/out', 'packages/bruno-electron/web');
-
-    // Change paths in next
-    const files = await fs.readdir('packages/bruno-electron/web');
-    for (const file of files) {
-      if (file.endsWith('.html')) {
-        let content = await fs.readFile(`packages/bruno-electron/web/${file}`, 'utf8');
-        content = content.replace(/\/_next\//g, '_next/');
-        await fs.writeFile(`packages/bruno-electron/web/${file}`, content);
-      }
-    }
-
-    // Remove sourcemaps
-    await removeSourceMapFiles('packages/bruno-electron/web');
-
-    // Run npm dist command
-    console.log('Building the Electron distribution');
-
-    // Determine the OS and set the appropriate argument
-    let osArg;
+/**
+ * @param {String[]} args
+ * @returns {Promise<number>}
+ */
+async function main(args) {
+  let target = args[args.length - 1];
+  if (!target) {
+    // Auto detect target
     if (os.platform() === 'win32') {
-      osArg = 'win';
+      target = 'win';
     } else if (os.platform() === 'darwin') {
-      osArg = 'mac';
+      target = 'mac';
     } else {
-      osArg = 'linux';
+      target = 'linux';
     }
-
-    await execCommandWithOutput(`npm run dist:${osArg} --workspace=packages/bruno-electron`);
-  } catch (error) {
-    console.error('An error occurred:', error);
+    log('Target automatically set to ', target);
   }
+
+  log('Clean up old build artifacts');
+  await deleteFileIfExists('packages/bruno-electron/web');
+  await deleteFileIfExists('packages/bruno-app/out');
+
+  log('Building web');
+  await execCommandWithOutput('npm', ['run', 'build:web']);
+  await fs.ensureDir('packages/bruno-electron/web');
+  await copyFolderIfExists('packages/bruno-app/out', 'packages/bruno-electron/web');
+
+  // Change paths in next
+  const files = await fs.readdir('packages/bruno-electron/web');
+  for (const file of files) {
+    if (file.endsWith('.html')) {
+      let content = await fs.readFile(`packages/bruno-electron/web/${file}`, 'utf8');
+      content = content.replace(/\/_next\//g, '_next/');
+      await fs.writeFile(`packages/bruno-electron/web/${file}`, content);
+    }
+  }
+
+  // Run npm dist command
+  log(`Building the Electron app for target: ${target}`);
+  await execCommandWithOutput('npm', ['run', `dist:${target}`, '--workspace=packages/bruno-electron']);
+  log('Build complete');
+  return 0;
 }
 
-main();
+main(process.argv)
+  .then((code) => process.exit(code))
+  .catch((e) => console.error('An error occurred during build', e) && process.exit(1));
