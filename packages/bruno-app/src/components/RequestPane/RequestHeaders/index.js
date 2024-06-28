@@ -9,7 +9,17 @@ import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collection
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import MediaTypes from 'know-your-http-well/json/media-types.json';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
+const mediaTypesAutoCompleteList = MediaTypes.map((e) => e.media_type);
+
+function headerValueAutoCompleteList(header) {
+  if (header.name && (header.name.toLowerCase() === 'content-type' || header.name.toLowerCase() === 'accept')) {
+    return mediaTypesAutoCompleteList;
+  }
+
+  return [];
+}
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -114,6 +124,7 @@ const RequestHeaders = ({ item, collection }) => {
                             'value'
                           )
                         }
+                        autocomplete={headerValueAutoCompleteList(header)}
                         onRun={handleRun}
                         allowNewlines={true}
                         collection={collection}
