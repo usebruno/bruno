@@ -6,6 +6,7 @@ import Headers from './Headers';
 import Script from './Script';
 import Tests from './Tests';
 import StyledWrapper from './StyledWrapper';
+import Vars from './Vars';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -36,6 +37,9 @@ const FolderSettings = ({ collection, folder }) => {
       case 'test': {
         return <Tests collection={collection} folder={folder} />;
       }
+      case 'vars': {
+        return <Vars collection={collection} folder={folder} />;
+      }
     }
   };
 
@@ -57,6 +61,9 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
             Test
+          </div>
+          <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+            Vars
           </div>
         </div>
         <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
