@@ -372,18 +372,25 @@ const handler = async function (argv) {
     }
 
     // load .env file at root of collection if it exists
-    const dotEnvPath = path.join(collectionPath, '.env');
-    const dotEnvExists = await exists(dotEnvPath);
+    //const dotEnvPath = path.join(collectionPath, '.env');
+    //const dotEnvExists = await exists(dotEnvPath);
     const processEnvVars = {
       ...process.env
     };
-    if (dotEnvExists) {
-      const content = fs.readFileSync(dotEnvPath, 'utf8');
-      const jsonData = dotenvToJson(content);
+    const dotEnvFiles = fs.readdirSync(collectionPath).filter((file) => file.endsWith('.env'));
+    if (dotEnvFiles.length > 0) {
+      console.log(chalk.yellow('Reading .env files \n'));
 
-      forOwn(jsonData, (value, key) => {
-        processEnvVars[key] = value;
-      });
+      for (const dotEnvPath of dotEnvFiles) {
+        const content = fs.readFileSync(dotEnvPath, 'utf8');
+        const jsonData = dotenvToJson(content);
+
+        forOwn(jsonData, (value, key) => {
+          processEnvVars[key] = value;
+        });
+      }
+    } else {
+      console.log(chalk.yellow('No .env files found \n'));
     }
 
     const _isFile = isFile(filename);
