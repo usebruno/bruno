@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   .current-environment {
-    background-color: ${(props) => props.theme.sidebar.badge.bg};
+    background-color: ${(props) => props.color ?? props.theme.sidebar.badge.bg};
     border-radius: 15px;
 
     .caret {
