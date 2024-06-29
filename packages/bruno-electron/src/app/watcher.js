@@ -43,39 +43,6 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
-const isFolderRootBruFile = (pathname, folderPath) => {
-  const dirname = path.dirname(pathname);
-  const basename = path.basename(pathname);
-  return dirname === folderPath && basename === 'folder.bru';
-};
-
-const scanDirectory = (directoryPath, callback) => {
-  fs.readdir(directoryPath, (err, files) => {
-    if (err) {
-      console.error(`Error reading directory ${directoryPath}: ${err}`);
-      return;
-    }
-    if (files.includes('folder.bru')) {
-      callback(directoryPath);
-    }
-    // Iterate through each file/folder in the directory
-    files.forEach((file) => {
-      const filePath = path.join(directoryPath, file);
-      // Check if it's a directory
-      fs.stat(filePath, (err, stats) => {
-        if (err) {
-          console.error(`Error statting ${filePath}: ${err}`);
-          return;
-        }
-        // If it's a directory, recursively scan it
-        if (stats.isDirectory()) {
-          scanDirectory(filePath, callback);
-        }
-      });
-    });
-  });
-};
-
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
@@ -257,27 +224,38 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
         collectionRoot: true
       }
     };
-    const folderCallback = (filePath) => {
-      const bruContent = fs.readFileSync(`${filePath}/folder.bru`, 'utf8');
-      if (bruContent) {
-        const folder = {
-          meta: {
-            collectionUid,
-            pathname: filePath,
-            name: path.basename(filePath),
-            folderRoot: true
-          }
-        };
-        folder.data = collectionBruToJson(bruContent);
-        hydrateBruCollectionFileWithUuid(folder.data);
-        win.webContents.send('main:collection-tree-updated', 'addFileDir', folder);
-      }
-    };
+
     try {
-      scanDirectory(collectionPath, folderCallback);
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  // Is this a folder.bru file?
+  if (path.basename(pathname) === 'folder.bru') {
+    console.log('folder.bru file detected');
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
       return;
@@ -402,6 +380,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = bruToJson(bru);
+
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {

@@ -461,8 +461,7 @@ const registerNetworkIpc = (mainWindow) => {
     });
 
     const collectionRoot = get(collection, 'root', {});
-    const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot, collectionPath);
+    const request = prepareRequest(item, collection);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -900,8 +899,7 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot, collectionPath);
+          const request = prepareRequest(item, collection);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 

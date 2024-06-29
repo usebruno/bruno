@@ -1,9 +1,79 @@
-const { get, each, filter, extend } = require('lodash');
+const os = require('os');
+const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
 var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const { getTreePathFromCollectionToItem } = require('../../utils/collection');
+
+const mergeFolderLevelHeaders = (request, requestTreePath) => {
+  let folderHeaders = new Map();
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let headers = get(i, 'root.request.headers', []);
+      headers.forEach((header) => {
+        if (header.enabled) {
+          folderHeaders.set(header.name, header.value);
+        }
+      });
+    }
+  }
+
+  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
+  let requestHeaders = request.headers || [];
+  let requestHeadersMap = new Map();
+
+  for (let header of requestHeaders) {
+    if (header.enabled) {
+      requestHeadersMap.set(header.name, header.value);
+    }
+  }
+
+  mergedFolderHeaders.forEach((header) => {
+    requestHeadersMap.set(header.name, header.value);
+  });
+
+  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
+};
+
+const mergeFolderLevelScripts = (request, requestTreePath) => {
+  let folderCombinedPreReqScript = [];
+  let folderCombinedPostResScript = [];
+  let folderCombinedTests = [];
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let preReqScript = get(i, 'root.request.script.req', '');
+      if (preReqScript && preReqScript.trim() !== '') {
+        folderCombinedPreReqScript.push(preReqScript);
+      }
+
+      let postResScript = get(i, 'root.request.script.res', '');
+      if (postResScript && postResScript.trim() !== '') {
+        folderCombinedPostResScript.push(postResScript);
+      }
+
+      let tests = get(i, 'root.request.tests', []);
+      if (tests && tests?.trim() !== '') {
+        folderCombinedTests.push(tests);
+      }
+    }
+  }
+
+  if (folderCombinedPreReqScript.length) {
+    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+    console.log('request.script.req', request.script.req);
+  }
+
+  if (folderCombinedPostResScript.length) {
+    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+  }
+
+  if (folderCombinedTests.length) {
+    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+  }
+};
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -133,7 +203,10 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot, collectionPath) => {
+const prepareRequest = (item, collection) => {
+  const request = item.draft ? item.draft.request : item.request;
+  const collectionRoot = get(collection, 'root', {});
+  const collectionPath = collection.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -147,6 +220,12 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
       }
     }
   });
+
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeFolderLevelHeaders(request, requestTreePath);
+    mergeFolderLevelScripts(request, requestTreePath);
+  }
 
   each(request.headers, (h) => {
     if (h.enabled && h.name.length > 0) {

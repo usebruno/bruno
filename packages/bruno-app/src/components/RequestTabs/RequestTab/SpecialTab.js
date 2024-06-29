@@ -1,8 +1,8 @@
 import React from 'react';
-import { IconVariable, IconSettings, IconRun } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconFolder } from '@tabler/icons';
 
-const SpecialTab = ({ handleCloseClick, type, folderName }) => {
-  const getTabInfo = (type, folderName) => {
+const SpecialTab = ({ handleCloseClick, type, tabName }) => {
+  const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
         return (
@@ -15,8 +15,8 @@ const SpecialTab = ({ handleCloseClick, type, folderName }) => {
       case 'folder-settings': {
         return (
           <div className="flex items-center flex-nowrap overflow-hidden">
-            <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
-            <span className="ml-1 leading-6 truncate">{folderName || 'Folder'}</span>
+            <IconFolder size={18} strokeWidth={1.5} className="text-yellow-600 min-w-[18px]" />
+            <span className="ml-1 leading-6 truncate">{tabName || 'Folder'}</span>
           </div>
         );
       }
@@ -41,7 +41,7 @@ const SpecialTab = ({ handleCloseClick, type, folderName }) => {
 
   return (
     <>
-      <div className="flex items-center tab-label pl-2">{getTabInfo(type, folderName)}</div>
+      <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
         <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" className="close-icon">
           <path

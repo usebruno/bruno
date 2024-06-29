@@ -84,7 +84,11 @@ const RequestTab = ({ tab, collection, folderUid }) => {
   if (['collection-settings', 'folder-settings', 'variables', 'collection-runner'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} folderName={folder?.name} />
+        {tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+        ) : (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        )}
       </StyledWrapper>
     );
   }

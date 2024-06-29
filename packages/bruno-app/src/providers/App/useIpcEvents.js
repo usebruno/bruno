@@ -11,7 +11,6 @@ import {
   collectionUnlinkFileEvent,
   processEnvUpdateEvent,
   runFolderEvent,
-  folderAddFileEvent,
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
@@ -45,13 +44,6 @@ const useIpcEvents = () => {
       if (type === 'addFile') {
         dispatch(
           collectionAddFileEvent({
-            file: val
-          })
-        );
-      }
-      if (type === 'addFileDir') {
-        dispatch(
-          folderAddFileEvent({
             file: val
           })
         );

@@ -1,4 +1,5 @@
 import { uuid } from 'utils/common';
+import path from 'path';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
@@ -32,6 +33,8 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
+
+      collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -95,6 +98,19 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+      }
+    },
+    updatedFolderSettingsSelectedTab: (state, action) => {
+      const { collectionUid, folderUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const folder = findItemInCollection(collection, folderUid);
+
+        if (folder) {
+          collection.folderLevelSettingsSelectedTab[folderUid] = tab;
+        }
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -1152,6 +1168,27 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.headers', headers);
       }
     },
+    updateFolderRequestScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.req', action.payload.script);
+      }
+    },
+    updateFolderResponseScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.res', action.payload.script);
+      }
+    },
+    updateFolderTests: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.tests', action.payload.tests);
+      }
+    },
     addCollectionHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1190,25 +1227,23 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.headers', headers);
       }
     },
-    folderAddFileEvent: (state, action) => {
-      const file = action.payload.file;
-      const isFolderRoot = file.meta.folderRoot ? true : false;
-      const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
-      const folder = findItemInCollectionByPathname(collection, file.meta.pathname);
-      if (isFolderRoot) {
-        if (folder) {
-          folder.root = file.data;
-        }
-        return;
-      }
-    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
+        }
+        return;
+      }
+
+      if (isFolderRoot) {
+        const folderPath = path.dirname(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          folderItem.root = file.data;
         }
         return;
       }
@@ -1523,6 +1558,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
@@ -1573,6 +1609,9 @@ export const {
   addFolderHeader,
   updateFolderHeader,
   deleteFolderHeader,
+  updateFolderRequestScript,
+  updateFolderResponseScript,
+  updateFolderTests,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
@@ -1589,7 +1628,6 @@ export const {
   collectionUnlinkDirectoryEvent,
   collectionAddEnvFileEvent,
   collectionRenamedEvent,
-  folderAddFileEvent,
   resetRunResults,
   runRequestEvent,
   runFolderEvent,

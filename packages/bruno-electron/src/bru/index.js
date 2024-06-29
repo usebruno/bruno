@@ -24,6 +24,16 @@ const collectionBruToJson = (bru) => {
       docs: _.get(json, 'docs', '')
     };
 
+    // add meta if it exists
+    // this is only for folder bru file
+    // in the future, all of this will be replaced by standard bru lang
+    if (json.meta) {
+      transformedJson.meta = {
+        name: json.meta.name,
+        seq: json.meta.seq
+      };
+    }
+
     return transformedJson;
   } catch (error) {
     return Promise.reject(error);
@@ -47,6 +57,16 @@ const jsonToCollectionBru = (json) => {
       tests: _.get(json, 'request.tests', ''),
       docs: _.get(json, 'docs', '')
     };
+
+    // add meta if it exists
+    // this is only for folder bru file
+    // in the future, all of this will be replaced by standard bru lang
+    if (json.meta) {
+      collectionBruJson.meta = {
+        name: json.meta.name,
+        seq: json.meta.seq
+      };
+    }
 
     return _jsonToCollectionBru(collectionBruJson);
   } catch (error) {

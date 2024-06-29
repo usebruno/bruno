@@ -63,6 +63,9 @@ const Headers = ({ collection, folder }) => {
 
   return (
     <StyledWrapper className="w-full">
+      <div className="text-xs mb-4 text-muted">
+        Request headers that will be sent with every request inside this folder.
+      </div>
       <table>
         <thead>
           <tr>

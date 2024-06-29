@@ -1,16 +1,24 @@
 import React from 'react';
 import classnames from 'classnames';
-import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { updatedFolderSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
 import { useDispatch } from 'react-redux';
 import Headers from './Headers';
+import Script from './Script';
+import Tests from './Tests';
+import StyledWrapper from './StyledWrapper';
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
-  const tab = folder?.settingsSelectedTab || 'headers';
+  let tab = 'headers';
+  const { folderLevelSettingsSelectedTab } = collection;
+  if (folderLevelSettingsSelectedTab?.[folder.uid]) {
+    tab = folderLevelSettingsSelectedTab[folder.uid];
+  }
+
   const setTab = (tab) => {
     dispatch(
-      updateSettingsSelectedTab({
-        collectionUid: folder.collectionUid,
+      updatedFolderSettingsSelectedTab({
+        collectionUid: collection.uid,
         folderUid: folder.uid,
         tab
       })
@@ -22,7 +30,12 @@ const FolderSettings = ({ collection, folder }) => {
       case 'headers': {
         return <Headers collection={collection} folder={folder} />;
       }
-      // TODO: Add auth
+      case 'script': {
+        return <Script collection={collection} folder={folder} />;
+      }
+      case 'test': {
+        return <Tests collection={collection} folder={folder} />;
+      }
     }
   };
 
@@ -33,19 +46,22 @@ const FolderSettings = ({ collection, folder }) => {
   };
 
   return (
-    <div className="flex flex-col h-full relative px-4 py-4">
-      <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
-          Headers
+    <StyledWrapper>
+      <div className="flex flex-col h-full relative px-4 py-4">
+        <div className="flex flex-wrap items-center tabs" role="tablist">
+          <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
+            Headers
+          </div>
+          <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
+            Script
+          </div>
+          <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
+            Test
+          </div>
         </div>
-        {/* <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
-          Auth
-        </div> */}
+        <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
       </div>
-      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
-        {getTabPanel(tab)}
-      </section>
-    </div>
+    </StyledWrapper>
   );
 };
 
