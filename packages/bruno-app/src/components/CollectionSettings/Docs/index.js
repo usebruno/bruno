@@ -48,7 +48,7 @@ const Docs = ({ collection }) => {
           font={get(preferences, 'font.codeFont', 'default')}
         />
       ) : (
-        <Markdown onDoubleClick={toggleViewMode} content={docs} />
+        <Markdown onDoubleClick={toggleViewMode} content={docs} onSave={onSave} />
       )}
     </StyledWrapper>
   );
