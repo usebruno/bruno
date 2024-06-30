@@ -6,33 +6,34 @@ import lightTheme from 'themes/light';
 /**
  * Assertion operators
  *
- * eq          : equal to
- * neq         : not equal to
- * gt          : greater than
- * gte         : greater than or equal to
- * lt          : less than
- * lte         : less than or equal to
- * in          : in
- * notIn       : not in
- * contains    : contains
- * notContains : not contains
- * length      : length
- * matches     : matches
- * notMatches  : not matches
- * startsWith  : starts with
- * endsWith    : ends with
- * between     : between
- * isEmpty     : is empty
- * isNull      : is null
- * isUndefined : is undefined
- * isDefined   : is defined
- * isTruthy    : is truthy
- * isFalsy     : is falsy
- * isJson      : is json
- * isNumber    : is number
- * isString    : is string
- * isBoolean   : is boolean
- * isArray     : is array
+ * eq            : equal to
+ * neq           : not equal to
+ * gt            : greater than
+ * gte           : greater than or equal to
+ * lt            : less than
+ * lte           : less than or equal to
+ * in            : in
+ * notIn         : not in
+ * contains      : contains
+ * notContains   : not contains
+ * length        : length
+ * lengthBetween : length between
+ * matches       : matches
+ * notMatches    : not matches
+ * startsWith    : starts with
+ * endsWith      : ends with
+ * between       : between
+ * isEmpty       : is empty
+ * isNull        : is null
+ * isUndefined   : is undefined
+ * isDefined     : is defined
+ * isTruthy      : is truthy
+ * isFalsy       : is falsy
+ * isJson        : is json
+ * isNumber      : is number
+ * isString      : is string
+ * isBoolean     : is boolean
+ * isArray       : is array
  */
 
 const AssertionOperator = ({ operator, onChange }) => {
@@ -48,6 +49,7 @@ const AssertionOperator = ({ operator, onChange }) => {
     'contains',
     'notContains',
     'length',
+    'lengthBetween',
     'matches',
     'notMatches',
     'startsWith',
