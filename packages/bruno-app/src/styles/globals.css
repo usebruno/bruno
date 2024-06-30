@@ -22,15 +22,16 @@
   --color-method-patch: rgb(52 52 52);
   --color-method-options: rgb(52 52 52);
   --color-method-head: rgb(52 52 52);
+  --font-size: 16px;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  font-size: 1rem;
+  font-size: var(--font-size);
+  font-family: var(--font-family);
   color: rgb(52 52 52);
-
   font-kerning: none;
   text-rendering: optimizeSpeed;
   letter-spacing: normal;
