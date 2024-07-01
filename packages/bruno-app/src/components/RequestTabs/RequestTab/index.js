@@ -13,7 +13,7 @@ import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
 
-const RequestTab = ({ tab, collection }) => {
+const RequestTab = ({ tab, collection, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -80,11 +80,15 @@ const RequestTab = ({ tab, collection }) => {
 
     return color;
   };
-
-  if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        {tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+        ) : (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        )}
       </StyledWrapper>
     );
   }

@@ -19,7 +19,7 @@ const initialState = {
         filePath: null
       },
       keepDefaultCaCertificates: {
-        enabled: false
+        enabled: true
       },
       timeout: 0
     },
