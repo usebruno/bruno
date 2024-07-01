@@ -3,38 +3,40 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { clearOauth2Cache } from 'utils/network';
 import toast from 'react-hot-toast';
 
-const OAuth2ClientCredentials = ({ collection }) => {
+const OAuth2Implicit = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const oAuth = get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
 
   const handleRun = async () => {
-    dispatch(sendCollectionOauth2Request(collection.uid));
+    dispatch(sendRequest(item, collection.uid));
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
+  const { callbackUrl, authorizationUrl, clientId, scope, state } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
-      updateCollectionAuth({
+      updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
+        itemUid: item.uid,
         content: {
-          grantType: 'client_credentials',
-          accessTokenUrl,
+          grantType: 'implicit',
+          callbackUrl,
+          authorizationUrl,
           clientId,
-          clientSecret,
           scope,
+          state,
           [key]: value
         }
       })
@@ -83,4 +85,4 @@ const OAuth2ClientCredentials = ({ collection }) => {
   );
 };
 
-export default OAuth2ClientCredentials;
+export default OAuth2Implicit;

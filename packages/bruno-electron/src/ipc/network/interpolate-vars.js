@@ -155,14 +155,6 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.clientId = clientId;
         request.oauth2.clientSecret = clientSecret;
         request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'password',
-          username,
-          password,
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
         break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
@@ -182,12 +174,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.clientId = clientId;
         request.oauth2.clientSecret = clientSecret;
         request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'client_credentials',
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
+        break;
+      case 'implicit':
+        request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
+        request.oauth2.authorizationUrl = _interpolate(request.oauth2.authorizationUrl) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
         break;
       default:
         break;

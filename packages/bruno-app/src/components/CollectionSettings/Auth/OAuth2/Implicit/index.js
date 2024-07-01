@@ -10,7 +10,7 @@ import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 import { clearOauth2Cache } from 'utils/network';
 import toast from 'react-hot-toast';
 
-const OAuth2ClientCredentials = ({ collection }) => {
+const OAuth2Implicit = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -22,7 +22,7 @@ const OAuth2ClientCredentials = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
-  const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
+  const { callbackUrl, authorizationUrl, clientId, scope, state } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -30,11 +30,12 @@ const OAuth2ClientCredentials = ({ collection }) => {
         mode: 'oauth2',
         collectionUid: collection.uid,
         content: {
-          grantType: 'client_credentials',
-          accessTokenUrl,
+          grantType: 'implicit',
+          callbackUrl,
+          authorizationUrl,
           clientId,
-          clientSecret,
           scope,
+          state,
           [key]: value
         }
       })
@@ -83,4 +84,4 @@ const OAuth2ClientCredentials = ({ collection }) => {
   );
 };
 
-export default OAuth2ClientCredentials;
+export default OAuth2Implicit;
