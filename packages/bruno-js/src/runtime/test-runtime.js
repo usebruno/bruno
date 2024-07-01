@@ -30,7 +30,7 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { isolatedVMAsyncInstance } = require('../sandbox/isolatedvm');
+const { executeInIsolatedVMAsync, isolatedVMAsyncInstance } = require('../sandbox/isolatedvm');
 
 class TestRuntime {
   constructor(props) {
@@ -116,11 +116,18 @@ class TestRuntime {
     }
 
     if (this.mode == 'safe') {
-      // SAFE mode
-      await isolatedVMAsyncInstance.execute({
+      // Reuses the same instance of IsolatedVMAsync
+      // TODO: Test for performance
+      // await isolatedVMAsyncInstance.execute({
+      //   script: testsFile,
+      //   context: context,
+      //   modules: {},
+      //   scriptType: 'jsScript'
+      // });
+      await executeInIsolatedVMAsync({
         script: testsFile,
-        context,
-        modules: {}, // todo: module support?
+        context: context,
+        modules: {},
         scriptType: 'jsScript'
       });
     } else {
@@ -162,9 +169,9 @@ class TestRuntime {
       });
       const asyncVM = vm.run(
         `module.exports = async () => { 
-          console.info('vm2:tests:execution-start');
+          console?.debug && console.debug('vm2:tests:execution-start');
           ${testsFile}
-          console.info('vm2:tests:execution-end:');
+          console?.debug && console.debug('vm2:tests:execution-end:');
         }`,
         path.join(collectionPath, 'vm.js')
       );

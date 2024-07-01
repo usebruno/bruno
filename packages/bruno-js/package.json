@@ -12,16 +12,18 @@
   },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js",
-    "rebuild:electron": "cd ./node_modules/isolated-vm && npx electron-rebuild"
+    "rebuild:electron": "cd ./node_modules/isolated-vm && npx electron-rebuild",
+    "postinstall": "npm run install:isolated-vm && npm run prebuild:isolated-vm:dev && npm run build:isolated-vm:inbuilt-modules",
+    "install:isolated-vm": "cd ./node_modules/isolated-vm && npm install",
+    "prebuild:isolated-vm:dev": "node ./scripts/prebuild-isolated-vm-for-dev.js",
+    "prebuild:isolated-vm:prod": "node ./scripts/prebuild-isolated-vm-for-prod-builds.js",
+    "build:isolated-vm:inbuilt-modules": "node ./src/sandbox/isolatedvm/utils/bundleLibraries.js"
   },
   "dependencies": {
-    "rollup": "3.2.5",
+    "@faker-js/faker": "^8.4.1",
     "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-node-resolve": "^15.0.1",
     "@rollup/plugin-json": "^6.1.0",
-    "rollup-plugin-polyfill-node": "^0.13.0",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-node-globals": "^1.4.0",
+    "@rollup/plugin-node-resolve": "^15.0.1",
     "@usebruno/common": "0.1.0",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
@@ -40,7 +42,14 @@
     "nanoid": "3.3.4",
     "node-fetch": "2.*",
     "node-vault": "^0.10.2",
+    "rollup": "3.2.5",
+    "rollup-plugin-node-builtins": "^2.1.2",
+    "rollup-plugin-node-globals": "^1.4.0",
+    "rollup-plugin-polyfill-node": "^0.13.0",
+    "rollup-plugin-terser": "^7.0.2",
     "stream": "^0.0.2",
+    "terser": "^5.31.1",
+    "uglify-js": "^3.18.0",
     "util": "^0.12.5",
     "uuid": "^9.0.0"
   }

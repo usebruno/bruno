@@ -3,10 +3,12 @@ const addBruShimToContext = require('./shims/bru');
 const addBrunoRequestShimToContext = require('./shims/brunoRequest');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/brunoResponse');
-const bundleLibraries = require('./utils/bundleLibraries');
 const addTestShimToContext = require('./shims/test');
 const fs = require('fs');
 const addLibraryShimsToContext = require('./shims/lib');
+
+// execute `npm run build:isolated-vm:inbuilt-modules` if the below file doesn't exist
+const getBundledCode = require('../../bundle-browser-rollup');
 
 const toNumber = (value) => {
   const num = Number(value);
@@ -137,7 +139,6 @@ class IsolatedVMAsync {
     this.isolate = new ivm.Isolate();
     this.context = this.isolate.createContextSync();
     this.context.global.setSync('global', this.context.global.derefInto());
-
     this.context.evalSync(`
       let bru = {};
       let req = {};
@@ -149,8 +150,12 @@ class IsolatedVMAsync {
       }
     `);
 
-    this.bundledCode = await bundleLibraries();
-    await this.context.eval(this.bundledCode);
+    try {
+      this.bundledCode = getBundledCode?.toString() || '';
+      await this.context.eval(`(${this.bundledCode})()`);
+    } catch (err) {
+      console.debug('Error bundling libraries', err);
+    }
 
     await addLibraryShimsToContext(this.context);
 
@@ -190,13 +195,13 @@ class IsolatedVMAsync {
 
       const jsScriptText = `
         new Promise(async (resolve, reject) => {
-          console?.info && console.info('isolated-vm:execution-start:');
+          console?.debug && console.debug('isolated-vm:execution-start:');
           try {
             ${externalScript}
           } catch (error) {
-            console?.info && console.info('isolated-vm:execution-end:with-error', error?.message);
+            console?.debug && console.debug('isolated-vm:execution-end:with-error', error?.message);
           }
-          console?.info && console.info('isolated-vm:execution-end:');
+          console?.debug && console.debug('isolated-vm:execution-end:');
           resolve();
         });
       `;
@@ -249,8 +254,16 @@ const executeInIsolatedVMAsync = async ({
     global.requireObject = {};
   `);
 
-    const bundledCode = await bundleLibraries();
-    await context.eval(bundledCode);
+    context.global.setSync('log', function (...args) {
+      console.debug(...args);
+    });
+
+    try {
+      const bundledCode = getBundledCode?.toString() || '';
+      await context.eval(`(${bundledCode})()`);
+    } catch (err) {
+      console.debug('Error bundling libraries', err);
+    }
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
@@ -275,13 +288,13 @@ const executeInIsolatedVMAsync = async ({
 
     const jsScriptText = `
       new Promise(async (resolve, reject) => {
-        console?.info && console.info('isolated-vm:execution-start:');
+        console?.debug && console.debug('isolated-vm:execution-start:');
         try {
           ${externalScript}
         } catch (error) {
-          console?.info && console.info('isolated-vm:execution-end:with-error', error?.message);
+          console?.debug && console.debug('isolated-vm:execution-end:with-error', error?.message);
         }
-        console?.info && console.info('isolated-vm:execution-end:');
+        console?.debug && console.debug('isolated-vm:execution-end:');
         resolve();
       });
     `;

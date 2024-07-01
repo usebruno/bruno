@@ -28,7 +28,7 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { isolatedVMAsyncInstance } = require('../sandbox/isolatedvm');
+const { isolatedVMAsyncInstance, executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 
 class ScriptRuntime {
   constructor(props) {
@@ -98,10 +98,18 @@ class ScriptRuntime {
     }
 
     if (this.mode == 'safe') {
-      await isolatedVMAsyncInstance.execute({
-        script,
-        context,
-        modules: {}, // todo: module support?
+      // Reuses the same instance of IsolatedVMAsync
+      // TODO: Test for performance
+      // await isolatedVMAsyncInstance.execute({
+      //   script,
+      //   context,
+      //   modules: {}, // todo: module support?
+      //   scriptType: 'jsScript'
+      // });
+      await executeInIsolatedVMAsync({
+        script: script,
+        context: context,
+        modules: {},
         scriptType: 'jsScript'
       });
     } else {
@@ -142,9 +150,9 @@ class ScriptRuntime {
       });
       const asyncVM = vm.run(
         `module.exports = async () => { 
-          console.info('vm2:pre-request:execution-start');
+          console?.debug && console.debug('vm2:pre-request:execution-start');
           ${script}
-          console.info('vm2:pre-request:execution-end:');
+          console?.debug && console.debug('vm2:pre-request:execution-end:');
         }`,
         path.join(collectionPath, 'vm.js')
       );
@@ -211,16 +219,24 @@ class ScriptRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
-        error: customLogger('error')
+        error: customLogger('error'),
+        debug: customLogger('debug')
       };
     }
 
     if (this.mode == 'safe') {
-      // SAFE MODE
-      await isolatedVMAsyncInstance.execute({
-        script,
-        context,
-        modules: {}, // todo: module support?
+      // Reuses the same instance of IsolatedVMAsync
+      // TODO: Test for performance
+      // await isolatedVMAsyncInstance.execute({
+      //   script,
+      //   context,
+      //   modules: {}, // todo: module support?
+      //   scriptType: 'jsScript'
+      // });
+      await executeInIsolatedVMAsync({
+        script: script,
+        context: context,
+        modules: {},
         scriptType: 'jsScript'
       });
     } else {
@@ -262,9 +278,9 @@ class ScriptRuntime {
 
       const asyncVM = vm.run(
         `module.exports = async () => { 
-          console.info('vm2:post-response:execution-start:');
+          console?.debug && console.debug('vm2:post-response:execution-start:');
           ${script}
-          console.info('vm2:post-response:execution-end:');
+          console?.debug && console.debug('vm2:post-response:execution-end:');
         }`,
         path.join(collectionPath, 'vm.js')
       );

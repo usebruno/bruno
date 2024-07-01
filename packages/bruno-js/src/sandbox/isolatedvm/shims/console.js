@@ -1,26 +1,26 @@
 const addConsoleShimToContext = (context, console) => {
   context.global.setSync('log', function (...args) {
-    console.log(...args);
+    console?.log && console.log(...args);
     return args;
   });
 
   context.global.setSync('debug', function (...args) {
-    console.debug(...args);
+    console?.debug && console.debug(...args);
     return args;
   });
 
   context.global.setSync('info', function (...args) {
-    console.info(...args);
+    console?.info && console.info(...args);
     return args;
   });
 
   context.global.setSync('warn', function (...args) {
-    console.warn(...args);
+    console?.warn && console.warn(...args);
     return args;
   });
 
   context.global.setSync('error', function (...args) {
-    console.error(...args);
+    console?.error && console.error(...args);
     return args;
   });
 

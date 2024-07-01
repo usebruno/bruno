@@ -1,35 +1,35 @@
 const rollup = require('rollup');
-const json = require('@rollup/plugin-json');
-const resolve = require('@rollup/plugin-node-resolve').default;
-const commonjs = require('@rollup/plugin-commonjs').default;
-const nodePolyfills = require('rollup-plugin-polyfill-node');
-const builtins = require('rollup-plugin-node-builtins');
-const globals = require('rollup-plugin-node-globals');
+const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const commonjs = require('@rollup/plugin-commonjs');
 const fs = require('fs');
+const { terser } = require('rollup-plugin-terser');
 
 const bundleLibraries = async () => {
   const codeScript = `
-  import isNumber from "is-number";
-  import { expect, assert } from "chai";
-  import { Buffer } from "buffer";
-  import btoa from "btoa";
-  import atob from "atob";
-  import moment from "moment";
-
-  global.Buffer = Buffer;
-  global.btoa = btoa;
-  global.atob = atob;
-  global.moment = moment;
-
-  global.requireObject = {
-    'is-number': isNumber,
-    'chai': { expect, assert },
-    'buffer': { Buffer },
-    'btoa': btoa,
-    'atob': atob,
-    'moment': moment
-  };
-
+    import isNumber from "is-number";
+    global.isNumber = isNumber;
+    import { faker } from "@faker-js/faker";
+    import { expect, assert } from 'chai';
+    import { Buffer } from "buffer";
+    import moment from "moment";
+    import btoa from "btoa";
+    import atob from "atob";
+    global.expect = expect;
+    global.assert = assert;
+    global.faker = faker;
+    global.moment = moment;
+    global.btoa = btoa;
+    global.atob = atob;
+    global.Buffer = Buffer;
+    global.requireObject = {
+      'chai': { expect, assert },
+      'faker': faker,
+      '@faker-js/faker': { faker },
+      'moment': moment,
+      'buffer': { Buffer },
+      'btoa': btoa,
+      'atob': atob,
+    };
 `;
 
   const config = {
@@ -51,18 +51,16 @@ const bundleLibraries = async () => {
             return null;
           }
         },
-        nodePolyfills(),
-        resolve({
+        nodeResolve({
           preferBuiltins: false,
           browser: false
         }),
-        json(),
         commonjs(),
-        globals(),
-        builtins()
+        terser()
       ]
     },
     output: {
+      file: './src/bundle-browser-rollup.js',
       format: 'iife',
       name: 'MyBundle'
     }
@@ -71,11 +69,22 @@ const bundleLibraries = async () => {
   try {
     const bundle = await rollup.rollup(config.input);
     const { output } = await bundle.generate(config.output);
-    // fs.writeFileSync('bundle-browser.js', output?.map((o) => o.code).join('\n'));
-    return output?.map((o) => o.code).join('\n');
+    fs.writeFileSync(
+      './src/bundle-browser-rollup.js',
+      `
+      const getBundledCode = () => {
+        return function(){
+          ${output?.map((o) => o.code).join('\n')}
+        }()
+      }
+      module.exports = getBundledCode;
+    `
+    );
   } catch (error) {
     console.error('Error while bundling:', error);
   }
 };
+
+bundleLibraries();
 
 module.exports = bundleLibraries;
