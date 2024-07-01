@@ -286,7 +286,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className="h-full w-full code-mirror-wrapper"
         aria-label="Code Editor"
         font={this.props.font}
         ref={(node) => {

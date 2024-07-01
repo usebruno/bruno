@@ -1,6 +1,8 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  max-height: calc(100vh - 90px);
+
   table {
     thead,
     td {

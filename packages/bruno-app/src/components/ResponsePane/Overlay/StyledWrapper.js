@@ -7,12 +7,10 @@ const StyledWrapper = styled.div`
   background-color: ${(props) => props.theme.requestTabPanel.responseOverlayBg};
 
   div.overlay {
-    height: 100%;
     z-index: 9;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 20%;
     overflow: hidden;
     text-align: center;
 

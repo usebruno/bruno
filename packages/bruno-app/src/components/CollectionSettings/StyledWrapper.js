@@ -3,6 +3,8 @@ import styled from 'styled-components';
 const StyledWrapper = styled.div`
   max-width: 800px;
 
+  max-height: calc(100vh - 90px);
+
   div.tabs {
     div.tab {
       padding: 6px 0px;

@@ -6,6 +6,7 @@ const initialState = {
   isDragging: false,
   idbConnectionReady: false,
   leftSidebarWidth: 222,
+  topBarHeight: 154,
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
@@ -24,6 +25,9 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
+    },
+    userInterface: {
+      responsePaneDockedToBottom: false
     }
   },
   cookies: [],
@@ -37,8 +41,9 @@ export const appSlice = createSlice({
     idbConnectionReady: (state) => {
       state.idbConnectionReady = true;
     },
-    refreshScreenWidth: (state) => {
+    refreshScreenWidthAndHeight: (state) => {
       state.screenWidth = window.innerWidth;
+      state.screenHeight = window.innerHeight;
     },
     updateLeftSidebarWidth: (state, action) => {
       state.leftSidebarWidth = action.payload.leftSidebarWidth;
@@ -78,7 +83,7 @@ export const appSlice = createSlice({
 
 export const {
   idbConnectionReady,
-  refreshScreenWidth,
+  refreshScreenWidthAndHeight,
   updateLeftSidebarWidth,
   updateIsDragging,
   updateEnvironmentSettingsModalVisibility,
@@ -92,13 +97,19 @@ export const {
   removeAllTasksFromQueue
 } = appSlice.actions;
 
-export const savePreferences = (preferences) => (dispatch, getState) => {
+export const savePreferences = (preferences, displaySuccessToast) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
       .invoke('renderer:save-preferences', preferences)
-      .then(() => toast.success('Preferences saved successfully'))
+      .then(() => {
+        const shouldDisplaySuccessToast = _.isUndefined(displaySuccessToast) || displaySuccessToast;
+
+        if (shouldDisplaySuccessToast) {
+          toast.success('Preferences saved successfully');
+        }
+      })
       .then(() => dispatch(updatePreferences(preferences)))
       .then(resolve)
       .catch((err) => {
