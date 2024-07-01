@@ -7,6 +7,7 @@ import Font from './Font';
 import Theme from './Theme';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
+import Interface from './Interface/index';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -38,6 +39,10 @@ const Preferences = ({ onClose }) => {
       case 'font': {
         return <Font close={onClose} />;
       }
+
+      case 'interface': {
+        return <Interface close={onClose} />;
+      }
     }
   };
 
@@ -50,6 +55,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('theme')} role="tab" onClick={() => setTab('theme')}>
             Theme
+          </div>
+          <div className={getTabClassname('interface')} role="tab" onClick={() => setTab('interface')}>
+            Interface
           </div>
           <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
             Font
