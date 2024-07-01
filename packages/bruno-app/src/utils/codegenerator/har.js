@@ -13,13 +13,22 @@ const createContentType = (mode) => {
   }
 };
 
-const createHeaders = (headers) => {
-  return headers
+const createHeaders = (headers, type) => {
+  const result = headers
     .filter((header) => header.enabled)
     .map((header) => ({
       name: header.name,
       value: header.value
     }));
+
+  // TODO in this PR, make sure that the content type application/json is added to the headers by default
+  if (type === 'graphql-request') {
+    result.push({
+      name: 'Content-Type',
+      value: 'application/json'
+    });
+  }
+  return result;
 };
 
 const createQuery = (queryParams = []) => {
@@ -31,7 +40,14 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body) => {
+const createPostData = (body, type) => {
+  if (type === 'graphql-request') {
+    return {
+      mimeType: 'application/json',
+      text: JSON.stringify(body[body.mode])
+    };
+  }
+
   const contentType = createContentType(body.mode);
   if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
     return {
@@ -48,15 +64,15 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => {
+export const buildHarRequest = ({ request, headers, type }) => {
   return {
     method: request.method,
     url: encodeURI(request.url),
     httpVersion: 'HTTP/1.1',
     cookies: [],
-    headers: createHeaders(headers),
+    headers: createHeaders(headers, type),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body),
+    postData: createPostData(request.body, type),
     headersSize: 0,
     bodySize: 0
   };

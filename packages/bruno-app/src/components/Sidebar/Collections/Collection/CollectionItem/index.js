@@ -337,7 +337,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Run
                 </div>
               )}
-              {!isFolder && item.type === 'http-request' && (
+              {!isFolder && (
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
