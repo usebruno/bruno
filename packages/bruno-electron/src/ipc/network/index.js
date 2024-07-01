@@ -316,7 +316,7 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPreRequestVars(
+      varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVars,
@@ -324,15 +324,6 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         processEnvVars
       );
-
-      if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
     }
 
     // run pre-request script
