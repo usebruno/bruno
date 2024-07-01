@@ -1,30 +1,34 @@
-const Handlebars = require('handlebars');
 const { cloneDeep } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
-    this.envVariables = envVariables;
-    this.collectionVariables = collectionVariables;
+  constructor(envVariables, collectionVariables, processEnvVars, collectionPath, requestVariables) {
+    this.envVariables = envVariables || {};
+    this.collectionVariables = collectionVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
+    this.requestVariables = requestVariables || {};
     this.collectionPath = collectionPath;
   }
 
-  _interpolateEnvVar = (str) => {
+  _interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
-    const template = Handlebars.compile(str, { noEscape: true });
-
-    return template({
+    const combinedVars = {
+      ...this.envVariables,
+      ...this.requestVariables,
+      ...this.collectionVariables,
       process: {
         env: {
           ...this.processEnvVars
         }
       }
-    });
+    };
+
+    return interpolate(str, combinedVars);
   };
 
   _interpolateVar = (str) => {
@@ -35,7 +39,7 @@ class Bru {
     const template = Handlebars.compile(str, { noEscape: true });
     const result = template({ ...this.envVariables });
 
-    return this._interpolateEnvVar(result);
+    return this._interpolate(result);
   };
 
   cwd() {
@@ -51,7 +55,7 @@ class Bru {
   }
 
   getEnvVar(key) {
-    return this._interpolateEnvVar(this.envVariables[key]);
+    return this._interpolate(this.envVariables[key]);
   }
 
   setEnvVar(key, value) {
@@ -85,7 +89,11 @@ class Bru {
       );
     }
 
-    return this._interpolateVar(this.collectionVariables[key]);
+    return this._interpolate(this.collectionVariables[key]);
+  }
+
+  getRequestVar(key) {
+    return this._interpolate(this.requestVariables[key]);
   }
 
   setNextRequest(nextRequest) {
