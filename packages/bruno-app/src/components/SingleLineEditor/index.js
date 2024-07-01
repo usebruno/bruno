@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import { isMacOS } from 'utils/common/platform';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -22,6 +23,8 @@ class SingleLineEditor extends Component {
     this.variables = {};
   }
   componentDidMount() {
+    const modifierKey = isMacOS() ? 'Cmd' : 'Ctrl';
+
     // Initialize CodeMirror as a single line editor
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
@@ -42,12 +45,7 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
+        [`${modifierKey}-Enter`]: () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
@@ -65,18 +63,12 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Cmd-S': () => {
+        [`${modifierKey}-S`]: () => {
           if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        [`${modifierKey}-F`]: () => {},
         // Tabbing disabled to make tabindex work
         Tab: false,
         'Shift-Tab': false

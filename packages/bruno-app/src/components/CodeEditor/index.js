@@ -13,6 +13,7 @@ import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { isMacOS } from 'utils/common/platform';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -114,6 +115,8 @@ export default class CodeEditor extends React.Component {
   }
 
   componentDidMount() {
+    const modifierKey = isMacOS() ? 'Cmd' : 'Ctrl';
+
     const editor = (this.editor = CodeMirror(this._node, {
       value: this.props.value || '',
       lineNumbers: true,
@@ -131,42 +134,27 @@ export default class CodeEditor extends React.Component {
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
       extraKeys: {
-        'Cmd-Enter': () => {
+        [`${modifierKey}-Enter`]: () => {
           if (this.props.onRun) {
             this.props.onRun();
           }
         },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
+        [`${modifierKey}-S`]: () => {
           if (this.props.onSave) {
             this.props.onSave();
           }
         },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
-        'Cmd-H': 'replace',
-        'Ctrl-H': 'replace',
+        [`${modifierKey}-F`]: 'findPersistent',
+        [`${modifierKey}-H`]: 'replace',
         Tab: function (cm) {
           cm.getSelection().includes('\n') || editor.getLine(cm.getCursor().line) == cm.getSelection()
             ? cm.execCommand('indentMore')
             : cm.replaceSelection('  ', 'end');
         },
         'Shift-Tab': 'indentLess',
-        'Ctrl-Space': 'autocomplete',
-        'Cmd-Space': 'autocomplete',
-        'Ctrl-Y': 'foldAll',
-        'Cmd-Y': 'foldAll',
-        'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        [`${modifierKey}-Space`]: 'autocomplete',
+        [`${modifierKey}-Y`]: 'foldAll',
+        [`${modifierKey}-I`]: 'unfoldAll'
       },
       foldOptions: {
         widget: (from, to) => {
