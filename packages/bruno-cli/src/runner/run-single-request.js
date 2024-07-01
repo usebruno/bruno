@@ -178,6 +178,7 @@ const runSingleRequest = async function (
       } else {
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
+      request.proxy = {};
 
       if (socksEnabled) {
         request.httpsAgent = new SocksProxyAgent(
