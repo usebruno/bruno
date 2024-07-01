@@ -6,7 +6,8 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
+import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2ClientCredentials = ({ collection }) => {
   const dispatch = useDispatch();
@@ -20,7 +21,7 @@ const OAuth2ClientCredentials = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
-  const { accessTokenUrl, clientId, clientSecret, scope } = oAuth;
+  const { accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -32,6 +33,7 @@ const OAuth2ClientCredentials = ({ collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           [key]: value
         }
@@ -59,9 +61,7 @@ const OAuth2ClientCredentials = ({ collection }) => {
           </div>
         );
       })}
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
+      <ClientCredentialsMethodSelector collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };

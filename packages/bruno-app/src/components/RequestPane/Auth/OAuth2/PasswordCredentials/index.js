@@ -7,8 +7,9 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
-const OAuth2AuthorizationCode = ({ item, collection }) => {
+const OAuth2PasswordCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -20,7 +21,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, username, password, clientId, clientSecret, scope } = oAuth;
+  const { accessTokenUrl, username, password, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -35,6 +36,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           password,
           clientId,
           clientSecret,
+          clientSecretMethod,
           scope,
           [key]: value
         }
@@ -62,11 +64,9 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           </div>
         );
       })}
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
+      <ClientCredentialsMethodSelector item={item} collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };
 
-export default OAuth2AuthorizationCode;
+export default OAuth2PasswordCredentials;

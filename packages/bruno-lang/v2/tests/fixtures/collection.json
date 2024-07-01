@@ -31,6 +31,17 @@
     "digest": {
       "username": "john",
       "password": "secret"
+    },
+    "oauth2": {
+      "grantType": "authorization_code",
+      "clientId": "client_id_1",
+      "clientSecret": "client_secret_1",
+      "clientSecretMethod": "client_credentials_post",
+      "authorizationUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
+      "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
+      "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
+      "scope": "read write",
+      "pkce": false
     }
   },
   "vars": {

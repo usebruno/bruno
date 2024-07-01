@@ -3,44 +3,54 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
-import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
+import { clearOauth2Cache } from 'utils/network';
+import toast from 'react-hot-toast';
 
-const OAuth2PasswordCredentials = ({ collection }) => {
+const OAuth2Implicit = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const oAuth = get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
 
   const handleRun = async () => {
-    dispatch(sendCollectionOauth2Request(collection.uid));
+    dispatch(sendRequest(item, collection.uid));
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { accessTokenUrl, username, password, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
+  const { callbackUrl, authorizationUrl, clientId, scope, state } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
-      updateCollectionAuth({
+      updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
+        itemUid: item.uid,
         content: {
-          grantType: 'password',
-          accessTokenUrl,
-          username,
-          password,
+          grantType: 'implicit',
+          callbackUrl,
+          authorizationUrl,
           clientId,
-          clientSecret,
-          clientSecretMethod,
           scope,
+          state,
           [key]: value
         }
       })
     );
+  };
+
+  const handleClearCache = (e) => {
+    clearOauth2Cache(collection?.uid)
+      .then(() => {
+        toast.success('cleared cache successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message);
+      });
   };
 
   return (
@@ -63,9 +73,8 @@ const OAuth2PasswordCredentials = ({ collection }) => {
           </div>
         );
       })}
-      <ClientCredentialsMethodSelector collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };
 
-export default OAuth2PasswordCredentials;
+export default OAuth2Implicit;

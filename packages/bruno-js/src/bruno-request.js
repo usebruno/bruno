@@ -6,6 +6,7 @@ class BrunoRequest {
     this.headers = req.headers;
     this.body = req.data;
     this.timeout = req.timeout;
+    this.credentials = req.credentials;
   }
 
   getUrl() {
