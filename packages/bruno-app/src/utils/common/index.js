@@ -76,10 +76,9 @@ export const normalizeFileName = (name) => {
     return name;
   }
 
-  const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
-
-  return formattedName;
+  // Use Unicode character classes to match alphanumeric characters, spaces, hyphens, and underscores
+  const validChars = new RegExp('[^\\p{L}\\p{M}\\p{N}\\s_-]', 'gu');
+  return name.replace(validChars, '-');
 };
 
 export const getContentType = (headers) => {
