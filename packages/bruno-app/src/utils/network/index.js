@@ -1,5 +1,3 @@
-import { safeStringifyJSON } from 'utils/common';
-
 export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
@@ -47,6 +45,13 @@ export const clearOauth2Cache = async (uid) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
     ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
+  });
+};
+
+export const readOauth2CachedCredentials = async (uid) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('read-oauth2-cached-credentials', uid).then(resolve).catch(reject);
   });
 };
 

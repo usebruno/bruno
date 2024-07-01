@@ -6,7 +6,7 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections/index';
+import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
 
 const OAuth2ClientCredentials = ({ collection }) => {
   const dispatch = useDispatch();
@@ -59,9 +59,6 @@ const OAuth2ClientCredentials = ({ collection }) => {
           </div>
         );
       })}
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
     </StyledWrapper>
   );
 };

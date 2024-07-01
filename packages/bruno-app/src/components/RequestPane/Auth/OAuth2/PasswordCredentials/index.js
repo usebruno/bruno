@@ -8,7 +8,7 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 
-const OAuth2AuthorizationCode = ({ item, collection }) => {
+const OAuth2PasswordCredentials = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
@@ -62,11 +62,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           </div>
         );
       })}
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
     </StyledWrapper>
   );
 };
 
-export default OAuth2AuthorizationCode;
+export default OAuth2PasswordCredentials;

@@ -3,65 +3,56 @@ import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { saveCollectionRoot, sendCollectionOauth2Request } from 'providers/ReduxStore/slices/collections/actions';
+import { updateAuth } from 'providers/ReduxStore/slices/collections';
+import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { updateCollectionAuth } from 'providers/ReduxStore/slices/collections';
+import { clearOauth2Cache } from 'utils/network';
+import toast from 'react-hot-toast';
 
-const OAuth2AuthorizationCode = ({ collection }) => {
+const OAuth2Implicit = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const oAuth = get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
 
   const handleRun = async () => {
-    dispatch(sendCollectionOauth2Request(collection.uid));
+    dispatch(sendRequest(item, collection.uid));
   };
 
-  const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
+  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce } = oAuth;
+  const { callbackUrl, authorizationUrl, clientId, scope, state } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
-      updateCollectionAuth({
+      updateAuth({
         mode: 'oauth2',
         collectionUid: collection.uid,
+        itemUid: item.uid,
         content: {
-          grantType: 'authorization_code',
+          grantType: 'implicit',
           callbackUrl,
           authorizationUrl,
-          accessTokenUrl,
           clientId,
-          clientSecret,
           scope,
           state,
-          pkce,
           [key]: value
         }
       })
     );
   };
 
-  const handlePKCEToggle = (e) => {
-    dispatch(
-      updateCollectionAuth({
-        mode: 'oauth2',
-        collectionUid: collection.uid,
-        content: {
-          grantType: 'authorization_code',
-          callbackUrl,
-          authorizationUrl,
-          accessTokenUrl,
-          clientId,
-          clientSecret,
-          scope,
-          state,
-          pkce: !Boolean(oAuth?.['pkce'])
-        }
+  const handleClearCache = (e) => {
+    clearOauth2Cache(collection?.uid)
+      .then(() => {
+        toast.success('cleared cache successfully');
       })
-    );
+      .catch((err) => {
+        toast.error(err.message);
+      });
   };
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
@@ -82,17 +73,8 @@ const OAuth2AuthorizationCode = ({ collection }) => {
           </div>
         );
       })}
-      <div className="flex flex-row w-full gap-4" key="pkce">
-        <label className="block font-medium">Use PKCE</label>
-        <input
-          className="cursor-pointer"
-          type="checkbox"
-          checked={Boolean(oAuth?.['pkce'])}
-          onChange={handlePKCEToggle}
-        />
-      </div>
     </StyledWrapper>
   );
 };
 
-export default OAuth2AuthorizationCode;
+export default OAuth2Implicit;

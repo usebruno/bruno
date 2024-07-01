@@ -5,6 +5,8 @@ import GrantTypeSelector from './GrantTypeSelector/index';
 import OAuth2PasswordCredentials from './PasswordCredentials/index';
 import OAuth2AuthorizationCode from './AuthorizationCode/index';
 import OAuth2ClientCredentials from './ClientCredentials/index';
+import OAuth2Implicit from './Implicit/index';
+import CredentialsPreview from 'components/RequestPane/Auth/OAuth2/CredentialsPreview';
 
 const grantTypeComponentMap = (grantType, collection) => {
   switch (grantType) {
@@ -16,6 +18,9 @@ const grantTypeComponentMap = (grantType, collection) => {
       break;
     case 'client_credentials':
       return <OAuth2ClientCredentials collection={collection} />;
+      break;
+    case 'implicit':
+      return <OAuth2Implicit collection={collection} />;
       break;
     default:
       return <div>TBD</div>;
@@ -30,6 +35,7 @@ const OAuth2 = ({ collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <GrantTypeSelector collection={collection} />
       {grantTypeComponentMap(oAuth?.grantType, collection)}
+      <CredentialsPreview collection={collection} />
     </StyledWrapper>
   );
 };
