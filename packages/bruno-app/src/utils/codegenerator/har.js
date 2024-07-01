@@ -24,7 +24,7 @@ const createHeaders = (headers) => {
 
 const createQuery = (queryParams = []) => {
   return queryParams
-    .filter((param) => param.enabled)
+    .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
       name: param.name,
       value: param.value

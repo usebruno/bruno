@@ -1,26 +1,10 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
-
-function countRequests(items) {
-  let count = 0;
-
-  function recurse(item) {
-    if (item && typeof item === 'object') {
-      if (item.type !== 'folder') {
-        count++;
-      }
-      if (Array.isArray(item.items)) {
-        item.items.forEach(recurse);
-      }
-    }
-  }
-
-  items.forEach(recurse);
-
-  return count;
-}
+import { getTotalRequestCountInCollection } from 'utils/collections/';
 
 const Info = ({ collection }) => {
+  const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
+
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
       <div className="text-xs mb-4 text-muted">General information about the collection.</div>
@@ -44,7 +28,7 @@ const Info = ({ collection }) => {
           </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Requests&nbsp;:</td>
-            <td className="py-2 px-2">{countRequests(collection.items)}</td>
+            <td className="py-2 px-2">{totalRequestsInCollection}</td>
           </tr>
         </tbody>
       </table>
