@@ -70,6 +70,7 @@ const StyledMarkdownBodyWrapper = styled.div`
 
     pre {
       background: ${(props) => props.theme.sidebar.bg};
+      color: ${(props) => props.theme.text};
     }
 
     table {
