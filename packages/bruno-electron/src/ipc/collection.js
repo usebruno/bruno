@@ -152,6 +152,21 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
+    try {
+      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const folderBruFilePath = path.join(folderPathname, 'folder.bru');
+
+      folderRoot.meta = {
+        name: folderName
+      };
+
+      const content = jsonToCollectionBru(folderRoot);
+      await writeFile(folderBruFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
