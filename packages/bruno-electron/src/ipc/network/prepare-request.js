@@ -18,6 +18,13 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
+    } else {
+      let headers = get(i, 'request.headers', []);
+      headers.forEach((header) => {
+        if (header.enabled) {
+          folderHeaders.set(header.name, header.value);
+        }
+      });
     }
   }
 
@@ -38,10 +45,84 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
   request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
 };
 
+const mergeFolderLevelVars = (request, requestTreePath) => {
+  let folderReqVars = new Map();
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderReqVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderReqVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
+  let requestReqVars = request?.vars?.req || [];
+  let requestReqVarsMap = new Map();
+  for (let _var of requestReqVars) {
+    if (_var.enabled) {
+      requestReqVarsMap.set(_var.name, _var.value);
+    }
+  }
+  mergedFolderReqVars.forEach((_var) => {
+    requestReqVarsMap.set(_var.name, _var.value);
+  });
+  request.vars.req = Array.from(requestReqVarsMap, ([name, value]) => ({
+    name,
+    value,
+    enabled: true,
+    type: 'request'
+  }));
+
+  let folderResVars = new Map();
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderResVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderResVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
+  let requestResVars = request?.vars?.res || [];
+  let requestResVarsMap = new Map();
+  for (let _var of requestResVars) {
+    if (_var.enabled) {
+      requestResVarsMap.set(_var.name, _var.value);
+    }
+  }
+  mergedFolderResVars.forEach((_var) => {
+    requestResVarsMap.set(_var.name, _var.value);
+  });
+  request.vars.res = Array.from(requestResVarsMap, ([name, value]) => ({
+    name,
+    value,
+    enabled: true,
+    type: 'response'
+  }));
+};
+
 const mergeFolderLevelScripts = (request, requestTreePath) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
-  let folderCombinedTests = [];
+  let folderCombinedTests = '';
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let preReqScript = get(i, 'root.request.script.req', '');
@@ -54,16 +135,15 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
         folderCombinedPostResScript.push(postResScript);
       }
 
-      let tests = get(i, 'root.request.tests', []);
-      if (tests && tests?.trim() !== '') {
-        folderCombinedTests.push(tests);
+      let tests = get(i, 'root.request.tests', '');
+      if (tests?.trim?.() !== '') {
+        folderCombinedTests = `${folderCombinedTests} \n ${tests} \n`;
       }
     }
   }
 
   if (folderCombinedPreReqScript.length) {
     request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
-    console.log('request.script.req', request.script.req);
   }
 
   if (folderCombinedPostResScript.length) {
@@ -71,7 +151,7 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
   }
 
   if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    request.tests = `${request?.tests} \n ${folderCombinedTests}`;
   }
 };
 
@@ -225,6 +305,7 @@ const prepareRequest = (item, collection) => {
   if (requestTreePath && requestTreePath.length > 0) {
     mergeFolderLevelHeaders(request, requestTreePath);
     mergeFolderLevelScripts(request, requestTreePath);
+    mergeFolderLevelVars(request, requestTreePath);
   }
 
   each(request.headers, (h) => {

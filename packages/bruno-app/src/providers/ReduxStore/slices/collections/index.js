@@ -1168,6 +1168,78 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.headers', headers);
       }
     },
+    addFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          const vars = get(folder, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            type: 'request',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(folder, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            type: 'response',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    deleteFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
     updateFolderRequestScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -1609,6 +1681,9 @@ export const {
   addFolderHeader,
   updateFolderHeader,
   deleteFolderHeader,
+  addFolderVar,
+  updateFolderVar,
+  deleteFolderVar,
   updateFolderRequestScript,
   updateFolderResponseScript,
   updateFolderTests,

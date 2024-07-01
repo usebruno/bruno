@@ -52,7 +52,7 @@ const jsonToCollectionBru = (json) => {
       },
       vars: {
         req: _.get(json, 'request.vars.req', []),
-        res: _.get(json, 'request.vars.req', [])
+        res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
       docs: _.get(json, 'docs', '')
