@@ -5,6 +5,9 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 
 class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
+    if (!request?.requestVariables) {
+      request.requestVariables = {};
+    }
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
@@ -26,21 +29,18 @@ class VarsRuntime {
 
     _.each(enabledVars, (v) => {
       const value = evaluateJsTemplateLiteral(v.value, context);
-      bru.setVar(v.name, value);
+      request?.requestVariables && (request.requestVariables[v.name] = value);
     });
-
-    return {
-      collectionVariables
-    };
   }
 
   runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
+    const requestVariables = request?.requestVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, undefined, requestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 

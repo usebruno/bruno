@@ -45,7 +45,8 @@ class TestRuntime {
     processEnvVars,
     scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);

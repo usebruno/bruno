@@ -122,7 +122,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
 const mergeFolderLevelScripts = (request, requestTreePath) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
-  let folderCombinedTests = '';
+  let folderCombinedTests = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let preReqScript = get(i, 'root.request.script.req', '');
@@ -136,8 +136,8 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
       }
 
       let tests = get(i, 'root.request.tests', '');
-      if (tests?.trim?.() !== '') {
-        folderCombinedTests = `${folderCombinedTests} \n ${tests} \n`;
+      if (tests && tests?.trim?.() !== '') {
+        folderCombinedTests.push(tests);
       }
     }
   }
@@ -151,7 +151,7 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
   }
 
   if (folderCombinedTests.length) {
-    request.tests = `${request?.tests} \n ${folderCombinedTests}`;
+    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
   }
 };
 
