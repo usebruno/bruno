@@ -9,6 +9,7 @@ import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import { IconSend } from '@tabler/icons';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -91,7 +92,10 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
+          <button type="button" className="btn-sm btn-secondary flex flex-row">
+            <span className="ml-1">Send</span>
+            <IconSend size={22} strokeWidth={1.5} width={30} color={theme.requestTabs.icon.color} />
+          </button>
         </div>
       </div>
     </StyledWrapper>
