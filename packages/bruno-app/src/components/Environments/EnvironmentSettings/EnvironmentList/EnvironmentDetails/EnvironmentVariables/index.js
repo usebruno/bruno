@@ -5,7 +5,6 @@ import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
-import { maskInputValue } from 'utils/collections';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
@@ -96,10 +95,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         <table>
           <thead>
             <tr>
-              <td>Enabled</td>
+              <td className="text-center">Enabled</td>
               <td>Name</td>
               <td>Value</td>
-              <td>Secret</td>
+              <td className="text-center">Secret</td>
               <td></td>
             </tr>
           </thead>
@@ -109,7 +108,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                 <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.enabled`}
                     checked={variable.enabled}
                     onChange={formik.handleChange}
@@ -130,23 +129,22 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                   />
                   <ErrorMessage name={`${index}.name`} />
                 </td>
-                <td>
-                  {variable.secret ? (
-                    <div className="overflow-hidden text-ellipsis">{maskInputValue(variable.value)}</div>
-                  ) : (
+                <td className="flex flex-row flex-nowrap">
+                  <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
                       collection={collection}
                       name={`${index}.value`}
                       value={variable.value}
+                      isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
-                  )}
+                  </div>
                 </td>
-                <td>
+                <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.secret`}
                     checked={variable.secret}
                     onChange={formik.handleChange}
