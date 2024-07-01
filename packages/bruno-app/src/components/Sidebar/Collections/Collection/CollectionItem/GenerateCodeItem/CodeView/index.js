@@ -53,6 +53,7 @@ const CodeView = ({ language, item }) => {
           collection={collection}
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           mode={lang}
         />

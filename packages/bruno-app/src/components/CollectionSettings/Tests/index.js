@@ -36,6 +36,7 @@ const Tests = ({ collection }) => {
         mode="javascript"
         onSave={handleSave}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
       />
 
       <div className="mt-6">
