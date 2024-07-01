@@ -127,7 +127,8 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       collectionVariables: cleanJson(collectionVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      isSkippedRequest: bru.isSkippedRequest
     };
   }
 
