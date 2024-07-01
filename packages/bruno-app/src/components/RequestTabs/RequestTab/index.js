@@ -81,7 +81,7 @@ const RequestTab = ({ tab, collection }) => {
     return color;
   };
 
-  if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  if (['collection-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
         <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />

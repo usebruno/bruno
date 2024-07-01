@@ -1,5 +1,5 @@
 import React from 'react';
-import { IconVariable, IconSettings, IconRun } from '@tabler/icons';
+import { IconVariable, IconSettings, IconRun, IconShieldLock } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type }) => {
   const getTabInfo = (type) => {
@@ -9,6 +9,14 @@ const SpecialTab = ({ handleCloseClick, type }) => {
           <>
             <IconSettings size={18} strokeWidth={1.5} className="text-yellow-600" />
             <span className="ml-1">Collection</span>
+          </>
+        );
+      }
+      case 'security-settings': {
+        return (
+          <>
+            <IconShieldLock size={18} strokeWidth={1.5} className="text-yellow-600" />
+            <span className="ml-1">Security</span>
           </>
         );
       }

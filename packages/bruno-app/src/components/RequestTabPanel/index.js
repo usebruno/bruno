@@ -18,6 +18,7 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
+import SecuritySettings from 'components/SecuritySettings/index';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -130,6 +131,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'collection-settings') {
     return <CollectionSettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'security-settings') {
+    return <SecuritySettings collection={collection} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);

@@ -32,6 +32,9 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
+      collection.securitySettingsSelectedTab = 'appMode';
+
+      collection.showAppModeModal = !collection?.securityConfig?.appMode;
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -46,6 +49,16 @@ export const collectionsSlice = createSlice({
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    setShowAppModeModal: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      collection.showAppModeModal = action.payload.showAppModeModal;
+    },
+    setCollectionSecurityConfig: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.securityConfig = action.payload.securityConfig;
       }
     },
     brunoConfigUpdateEvent: (state, action) => {
@@ -1462,12 +1475,22 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    updateSecuritySettingsSelectedTab: (state, action) => {
+      const { collectionUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        collection.securitySettingsSelectedTab = tab;
+      }
     }
   }
 });
 
 export const {
   createCollection,
+  setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
@@ -1541,7 +1564,9 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateSecuritySettingsSelectedTab,
+  setShowAppModeModal
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

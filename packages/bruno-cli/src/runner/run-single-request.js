@@ -37,7 +37,7 @@ const runSingleRequest = async function (
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
-    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(brunoConfig, 'security', {}) };
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -57,7 +57,7 @@ const runSingleRequest = async function (
     // run pre-request vars
     const preRequestVars = get(bruJson, 'request.vars.req');
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
@@ -74,7 +74,7 @@ const runSingleRequest = async function (
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
     if (requestScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
@@ -276,7 +276,7 @@ const runSingleRequest = async function (
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
@@ -294,7 +294,7 @@ const runSingleRequest = async function (
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
     if (responseScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
@@ -315,7 +315,7 @@ const runSingleRequest = async function (
     let assertionResults = [];
     const assertions = get(bruJson, 'request.assertions');
     if (assertions) {
-      const assertRuntime = new AssertRuntime();
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       assertionResults = assertRuntime.runAssertions(
         assertions,
         request,
@@ -339,7 +339,7 @@ const runSingleRequest = async function (
     let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
     if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime();
+      const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       const result = await testRuntime.runTests(
         decomment(testFile),
         request,

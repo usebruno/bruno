@@ -24,7 +24,9 @@ export const tabsSlice = createSlice({
         return;
       }
 
-      if (['variables', 'collection-settings', 'collection-runner'].includes(action.payload.type)) {
+      if (
+        ['variables', 'collection-settings', 'collection-runner', 'security-settings'].includes(action.payload.type)
+      ) {
         const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
         if (tab) {
           state.activeTabUid = tab.uid;

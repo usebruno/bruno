@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const ModalHeader = ({ title, handleCancel, customHeader }) => (
+const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
     {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
-    {handleCancel ? (
+    {handleCancel && !hideClose ? (
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
         ×
       </div>
@@ -63,6 +63,7 @@ const Modal = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
+  hideClose,
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
@@ -100,7 +101,12 @@ const Modal = ({
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
-        <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} customHeader={customHeader} />
+        <ModalHeader
+          title={title}
+          hideClose={hideClose}
+          handleCancel={() => closeModal({ type: 'icon' })}
+          customHeader={customHeader}
+        />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}

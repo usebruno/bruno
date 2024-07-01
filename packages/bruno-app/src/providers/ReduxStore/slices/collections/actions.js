@@ -33,7 +33,8 @@ import {
   requestCancelled,
   resetRunResults,
   responseReceived,
-  updateLastAction
+  updateLastAction,
+  setCollectionSecurityConfig
 } from './index';
 
 import { each } from 'lodash';
@@ -1003,11 +1004,13 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
   };
 
   return new Promise((resolve, reject) => {
-    collectionSchema
-      .validate(collection)
-      .then(() => dispatch(_createCollection(collection)))
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
+      collectionSchema
+        .validate(collection)
+        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+        .then(resolve)
+        .catch(reject);
+    });
   });
 };
 
@@ -1070,5 +1073,21 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+  });
+};
+
+export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    ipcRenderer
+      .invoke('renderer:save-collection-security-config', collection?.pathname, securityConfig)
+      .then(async () => {
+        await dispatch(setCollectionSecurityConfig({ collectionUid, securityConfig }));
+        resolve();
+      })
+      .catch(reject);
   });
 };

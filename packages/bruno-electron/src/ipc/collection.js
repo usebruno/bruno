@@ -20,8 +20,10 @@ const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON 
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const CollectionSecurityStore = require('../store/collection-security');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
+const collectionSecurityStore = new CollectionSecurityStore();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -613,6 +615,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-collection-security-config', async (event, collectionPath, securityConfig) => {
+    try {
+      collectionSecurityStore.storeSecurityConfigForCollection(collectionPath, securityConfig);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:get-collection-security-config', async (event, collectionPath) => {
+    try {
+      return collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
     } catch (error) {
       return Promise.reject(error);
     }
