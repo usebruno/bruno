@@ -12,8 +12,9 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
-export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
-  CodeMirror.defineMode('combinedmode', function (config, parserConfig) {
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
+  CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
+    const { pathParams = {}, ...variables } = _variables || {};
     const variablesOverlay = {
       token: function (stream) {
         if (stream.match('{{', true)) {
@@ -37,13 +38,13 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
 
     const urlPathParamsOverlay = {
       token: function (stream) {
-        if (stream.match(':', true)) {
+        if (stream.match('/:', true)) {
           let ch;
           let word = '';
           while ((ch = stream.next()) != null) {
             if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
               stream.backUp(1);
-              const found = pathFoundInVariables(word, variables?.pathParams);
+              const found = pathFoundInVariables(word, pathParams);
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;
@@ -53,21 +54,24 @@ export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
 
           // If we've consumed all characters and the word is not empty, it might be a path parameter at the end of the URL.
           if (word) {
-            const found = pathFoundInVariables(word, variables?.pathParams);
+            const found = pathFoundInVariables(word, pathParams);
             const status = found ? 'valid' : 'invalid';
             const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
             return `variable-${status} ${randomClass}`;
           }
         }
-        stream.skipTo(':') || stream.skipToEnd();
+        stream.skipTo('/:') || stream.skipToEnd();
         return null;
       }
     };
 
-    return CodeMirror.overlayMode(
-      CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay),
-      urlPathParamsOverlay
-    );
+    let baseMode = CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+
+    if (highlightPathParams) {
+      return CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    } else {
+      return baseMode;
+    }
   });
 };
 

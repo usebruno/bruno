@@ -31,8 +31,8 @@ if (!SERVER_RENDERED) {
     if (str.startsWith('{{')) {
       variableName = str.replace('{{', '').replace('}}', '').trim();
       variableValue = interpolate(get(options.variables, variableName), options.variables);
-    } else if (str.startsWith(':')) {
-      variableName = str.replace(':', '').trim();
+    } else if (str.startsWith('/:')) {
+      variableName = str.replace('/:', '').trim();
       variableValue =
         options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
     }

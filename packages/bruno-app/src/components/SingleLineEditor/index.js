@@ -131,8 +131,8 @@ class SingleLineEditor extends Component {
 
   addOverlay = (variables) => {
     this.variables = variables;
-    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain');
-    this.editor.setOption('mode', 'combinedmode');
+    defineCodeMirrorBrunoVariablesMode(variables, 'text/plain', this.props.highlightPathParams);
+    this.editor.setOption('mode', 'brunovariables');
   };
 
   render() {
