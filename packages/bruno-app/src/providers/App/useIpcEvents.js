@@ -83,9 +83,12 @@ const useIpcEvents = () => {
 
     const removeCollectionTreeUpdateListener = ipcRenderer.on('main:collection-tree-updated', _collectionTreeUpdated);
 
-    const removeOpenCollectionListener = ipcRenderer.on('main:collection-opened', (pathname, uid, brunoConfig) => {
-      dispatch(openCollectionEvent(uid, pathname, brunoConfig));
-    });
+    const removeOpenCollectionListener = ipcRenderer.on(
+      'main:collection-opened',
+      (pathname, uid, brunoConfig, environmentUid) => {
+        dispatch(openCollectionEvent(uid, pathname, brunoConfig, environmentUid));
+      }
+    );
 
     const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
       toast.success('Collection is already opened');
