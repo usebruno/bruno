@@ -64,7 +64,7 @@ const prepareRequest = (request, collectionRoot) => {
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth.mode === 'none') {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -107,10 +107,16 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
+    let jsonBody;
     try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+      jsonBody = decomment(request?.body?.json);
+    } catch (error) {
+      jsonBody = request?.body?.json;
+    }
+    try {
+      axiosRequest.data = JSONbig.parse(jsonBody);
+    } catch (error) {
+      axiosRequest.data = jsonBody;
     }
   }
 

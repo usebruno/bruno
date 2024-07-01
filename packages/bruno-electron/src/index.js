@@ -24,7 +24,9 @@ const contentSecurityPolicy = [
   "font-src 'self' https:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
-  "img-src 'self' blob: data: https:",
+  // we make an exception and allow http for images so that
+  // they can be used as link in the embedded markdown editors
+  "img-src 'self' blob: data: http: https:",
   "media-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];

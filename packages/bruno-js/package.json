@@ -1,6 +1,6 @@
 {
   "name": "@usebruno/js",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "license": "MIT",
   "main": "src/index.js",
   "files": [
@@ -14,6 +14,7 @@
     "test": "jest --testPathIgnorePatterns test.js"
   },
   "dependencies": {
+    "@usebruno/common": "0.1.0",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
@@ -23,7 +24,6 @@
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
     "crypto-js": "^4.1.1",
-    "handlebars": "^4.7.8",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
