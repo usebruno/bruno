@@ -22,10 +22,14 @@ export const parseQueryParams = (query) => {
     return [];
   }
 
-  let params = query.split('&').map((param) => {
-    let [name, value = ''] = param.split('=');
-    return { name, value };
-  });
+  let params = query
+    .split('#')[0]
+    .split('&')
+    .map((param) => {
+      let [name, ...value] = param.split('=');
+      value = value.join('=');
+      return { name, value };
+    });
 
   return filter(params, (p) => hasLength(p.name));
 };
