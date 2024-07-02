@@ -21,7 +21,10 @@ const collectionBruToJson = (bru) => {
         vars: _.get(json, 'vars', {}),
         tests: _.get(json, 'tests', '')
       },
-      docs: _.get(json, 'docs', '')
+      docs: {
+        current: _.get(json, 'docs', ''),
+        original: _.get(json, 'docs', '')
+      }
     };
 
     // add meta if it exists
@@ -55,7 +58,7 @@ const jsonToCollectionBru = (json) => {
         res: _.get(json, 'request.vars.res', [])
       },
       tests: _.get(json, 'request.tests', ''),
-      docs: _.get(json, 'docs', '')
+      docs: _.get(json, 'docs.current', '')
     };
 
     // add meta if it exists
