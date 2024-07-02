@@ -60,7 +60,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       <button
         type="button"
         onClick={onClick}
-        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-slate-900 dark:text-slate-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
       >
         {children}
