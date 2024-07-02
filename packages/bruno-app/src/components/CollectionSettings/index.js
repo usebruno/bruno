@@ -1,21 +1,21 @@
-import React from 'react';
 import classnames from 'classnames';
-import get from 'lodash/get';
-import cloneDeep from 'lodash/cloneDeep';
-import toast from 'react-hot-toast';
-import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { cloneDeep, get, omit } from 'lodash';
 import { updateSettingsSelectedTab } from 'providers/ReduxStore/slices/collections';
+import { updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import React from 'react';
+import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import ProxySettings from './ProxySettings';
-import ClientCertSettings from './ClientCertSettings';
-import Headers from './Headers';
+import { hasNonEmptyValue } from 'src/utils/common';
 import Auth from './Auth';
-import Script from './Script';
-import Test from './Tests';
+import ClientCertSettings from './ClientCertSettings';
 import Docs from './Docs';
-import Presets from './Presets';
+import Headers from './Headers';
 import Info from './Info';
+import Presets from './Presets';
+import ProxySettings from './ProxySettings';
+import Script from './Script';
 import StyledWrapper from './StyledWrapper';
+import Test from './Tests';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -110,37 +110,42 @@ const CollectionSettings = ({ collection }) => {
     }
   };
 
-  const getTabClassname = (tabName) => {
+  const getTabClassname = (tabName, hasContent) => {
     return classnames(`tab select-none ${tabName}`, {
-      active: tabName === tab
+      active: tabName === tab,
+      content: hasContent
     });
   };
+
+  const root = collection.root || {};
+  const activeHeadersLength = root.request.headers.filter((header) => header.enabled).length;
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="flex flex-wrap items-center tabs" role="tablist">
-        <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
+        <div className={getTabClassname('headers', root.request.headers.length)} role="tab" onClick={() => setTab('headers')}>
           Headers
+          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
-        <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
+        <div className={getTabClassname('auth', hasNonEmptyValue(omit(root.request.auth, 'mode')))} role="tab" onClick={() => setTab('auth')}>
           Auth
         </div>
-        <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
+        <div className={getTabClassname('script', root.request.script.req || root.request.script.res)} role="tab" onClick={() => setTab('script')}>
           Script
         </div>
-        <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
+        <div className={getTabClassname('tests', root.request.tests.length)} role="tab" onClick={() => setTab('tests')}>
           Tests
         </div>
-        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+        <div className={getTabClassname('presets', hasNonEmptyValue(omit(collection.brunoConfig.presets, 'requestType')))} role="tab" onClick={() => setTab('presets')}>
           Presets
         </div>
-        <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
+        <div className={getTabClassname('proxy', proxyConfig.enabled)} role="tab" onClick={() => setTab('proxy')}>
           Proxy
         </div>
-        <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
+        <div className={getTabClassname('clientCert', clientCertConfig.length)} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
         </div>
-        <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+        <div className={getTabClassname('docs', root.docs.length)} role="tab" onClick={() => setTab('docs')}>
           Docs
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
@@ -153,3 +158,4 @@ const CollectionSettings = ({ collection }) => {
 };
 
 export default CollectionSettings;
+
