@@ -43,8 +43,28 @@ class Bru {
     return this.processEnvVars[key];
   }
 
+  clearEnvVars() {
+    Object.keys(this.envVariables).forEach((k) => delete this.envVariables[k]);
+  }
+
+  hasEnvVar(key) {
+    if (!key) {
+      throw new Error('Verification of variable existence without specifying a name is not allowed.');
+    }
+
+    return !!this.getEnvVar(key);
+  }
+
   getEnvVar(key) {
     return this._interpolate(this.envVariables[key]);
+  }
+
+  unsetEnvVar(key) {
+    if (!key) {
+      throw new Error('Reseting a env variable without specifying a name is not allowed.');
+    }
+
+    delete this.envVariables[key];
   }
 
   setEnvVar(key, value) {
@@ -53,6 +73,14 @@ class Bru {
     }
 
     this.envVariables[key] = value;
+  }
+
+  hasVar(key) {
+    if (!key) {
+      throw new Error('Verification of variable existence without specifying a name is not allowed.');
+    }
+
+    return !!this.getVar(key);
   }
 
   setVar(key, value) {
@@ -70,6 +98,21 @@ class Bru {
     this.collectionVariables[key] = value;
   }
 
+  unsetVar(key) {
+    if (!key) {
+      throw new Error('Reseting a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    delete this.collectionVariables[key];
+  }
+
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
@@ -83,6 +126,10 @@ class Bru {
 
   getRequestVar(key) {
     return this._interpolate(this.requestVariables[key]);
+  }
+
+  clearVars() {
+    Object.keys(this.collectionVariables).forEach((k) => delete this.collectionVariables[k]);
   }
 
   setNextRequest(nextRequest) {
