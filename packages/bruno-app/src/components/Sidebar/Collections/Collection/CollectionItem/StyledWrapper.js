@@ -45,6 +45,20 @@ const Wrapper = styled.div`
       }
     }
 
+    &.item-target {
+      background: #ccc3;
+    }
+
+    &.item-seperator {
+      .seperator {
+        bottom: 0px;
+        position: absolute;
+        height: 3px;
+        width: 100%;
+        background: #ccc3;
+      }
+    }
+
     &.item-focused-in-tab {
       background: ${(props) => props.theme.sidebar.collection.item.bg};
 

@@ -161,6 +161,8 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    folder?.root?.meta?.seq && (folder.root.meta.seq = folder?.seq);
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
