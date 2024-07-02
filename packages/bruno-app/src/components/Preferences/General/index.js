@@ -36,7 +36,20 @@ const General = ({ close }) => {
       })
       .test('isValidTimeout', 'Request Timeout must be equal or greater than 0', (value) => {
         return value === undefined || Number(value) >= 0;
+      }),
+    showResponseInTimeline: Yup.boolean(),
+    responseSizeLimit: Yup.mixed()
+      .transform((value, originalValue) => {
+        return originalValue === '' ? undefined : value;
       })
+      .nullable()
+      .test('isNumber', 'Response size limit must be a number', (value) => {
+        return value === undefined || !isNaN(value);
+      })
+      .test('isValidLimit', 'Response size limit must be equal or greater than 0', (value) => {
+        return value === undefined || Number(value) >= 0;
+      }),
+    responseMimeTypes: Yup.string().nullable()
   });
 
   const formik = useFormik({
@@ -51,7 +64,10 @@ const General = ({ close }) => {
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
-      sendCookies: get(preferences, 'request.sendCookies', true)
+      sendCookies: get(preferences, 'request.sendCookies', true),
+      showResponseInTimeline: get(preferences, 'response.showInTimeline', true),
+      responseSizeLimit: preferences.response.sizeLimit,
+      responseMimeTypes: preferences.response.mimeTypes
     },
     validationSchema: preferencesSchema,
     onSubmit: async (values) => {
@@ -80,6 +96,11 @@ const General = ({ close }) => {
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
+        },
+        response: {
+          showInTimeline: newPreferences.showResponseInTimeline,
+          sizeLimit: newPreferences.responseSizeLimit,
+          mimeTypes: newPreferences.responseMimeTypes
         }
       })
     )
@@ -229,6 +250,63 @@ const General = ({ close }) => {
         {formik.touched.timeout && formik.errors.timeout ? (
           <div className="text-red-500">{formik.errors.timeout}</div>
         ) : null}
+        <div className="flex items-center mt-6">
+          <input
+            id="showResponseInTimeline"
+            type="checkbox"
+            name="showResponseInTimeline"
+            checked={formik.values.showResponseInTimeline}
+            onChange={formik.handleChange}
+            className="mousetrap mr-0"
+          />
+          <label className="block ml-2 select-none" htmlFor="showResponseInTimeline">
+            Show raw responses in timeline tab
+          </label>
+        </div>
+        <div className="flex flex-col mt-2">
+          <label
+            className={`block select-none ${formik.values.showResponseInTimeline ? '' : 'opacity-25'}`}
+            htmlFor="responseSizeLimit"
+          >
+            Only display responses when size is lower than (in Kb)
+          </label>
+          <input
+            type="text"
+            name="responseSizeLimit"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.responseSizeLimit}
+            className={`block textbox mt-2 w-16 ${formik.values.showResponseInTimeline ? '' : 'opacity-25'}`}
+            disabled={!formik.values.showResponseInTimeline}
+          />
+        </div>
+        {formik.touched.responseSizeLimit && formik.errors.responseSizeLimit ? (
+          <div className="text-red-500">{formik.errors.responseSizeLimit}</div>
+        ) : null}
+        <div className="flex flex-col mt-2">
+          <label
+            className={`block select-none ${formik.values.showResponseInTimeline ? '' : 'opacity-25'}`}
+            htmlFor="responseMimeTypes"
+          >
+            Limit response display to the following mime types (comma separated)
+          </label>
+          <input
+            type="text"
+            name="responseMimeTypes"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            onChange={formik.handleChange}
+            value={formik.values.responseMimeTypes}
+            className={`block textbox mt-2 w-128 ${formik.values.showResponseInTimeline ? '' : 'opacity-25'}`}
+            disabled={!formik.values.showResponseInTimeline}
+          />
+        </div>
+
         <div className="mt-10">
           <button type="submit" className="submit btn btn-sm btn-secondary">
             Save

@@ -22,6 +22,11 @@ const initialState = {
       },
       timeout: 0
     },
+    response: {
+      showInTimeline: true,
+      sizeLimit: 1024,
+      mimeTypes: 'text/plain, text/xml, application/json, application/xml'
+    },
     font: {
       codeFont: 'default'
     }
