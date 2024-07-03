@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, reorderAroundFolderItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -59,13 +59,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
         if (isFolder) {
+          console.log('herererer');
           if (action === 'SHORT_HOVER') {
             if (itemIsCollapsed) {
-              // first item in the folder
-            } else {
               // outside of the folder, but adjacent to the folder
+              dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
+            } else {
+              // first item in the folder
             }
-          } else {
+          } else if (action === 'LONG_HOVER') {
             dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
           }
         } else {
@@ -97,9 +99,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
   }, [isOver, canDrop]);
 
   useEffect(() => {
-    if (hoverTime >= 100 && hoverTime < 1000) {
+    if (hoverTime >= 0 && hoverTime < 750) {
       setAction('SHORT_HOVER');
-    } else if (hoverTime >= 1000) {
+    } else if (hoverTime >= 750) {
       setAction('LONG_HOVER');
     } else {
       setAction(null);
