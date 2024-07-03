@@ -59,15 +59,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
         if (isFolder) {
-          console.log('herererer');
           if (action === 'SHORT_HOVER') {
             if (itemIsCollapsed) {
               // outside of the folder, but adjacent to the folder
               dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
             } else {
               // first item in the folder
+              // could be refactored to seperate this into a seperate function?
+              dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
             }
           } else if (action === 'LONG_HOVER') {
+            // could be refactored to seperate this into a seperate function?
             dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
           }
         } else {
@@ -410,7 +412,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </Dropdown>
           </div>
         </div>
-        <div className="seperator"></div>
+        <div className={isFolder ? `seperator-blinker` : `seperator`}></div>
       </div>
 
       {!itemIsCollapsed ? (

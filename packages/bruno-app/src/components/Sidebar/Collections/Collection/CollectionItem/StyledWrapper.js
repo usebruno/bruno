@@ -57,6 +57,26 @@ const Wrapper = styled.div`
         width: 100%;
         background: #ccc3;
       }
+      .seperator-blinker {
+        bottom: 0px;
+        position: absolute;
+        height: 3px;
+        width: 100%;
+        background: #ccc3;
+        animation: pulsing 0.25s infinite;
+      }
+    }
+
+    @keyframes pulsing {
+      0% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+      }
     }
 
     &.item-focused-in-tab {

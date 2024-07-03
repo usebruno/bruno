@@ -41,7 +41,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { name } from 'file-loader';
+import { moveCollectionItemToFolder } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -631,7 +631,7 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
     // file item dragged into another folder
     if (isItemARequest(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
       const draggedItemPathname = draggedItem.pathname;
-      moveCollectionItem(collectionCopy, draggedItem, targetItem);
+      moveCollectionItemToFolder(collectionCopy, draggedItem, targetItem);
       const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
       const itemsToResequence2 = getItemsToResequence(targetItem, collectionCopy);
 
@@ -696,9 +696,14 @@ export const moveItem = (collectionUid, draggedItemUid, targetItemUid) => (dispa
     // folder dragged into another folder
     if (isItemAFolder(draggedItem) && isItemAFolder(targetItem) && draggedItemParent !== targetItem) {
       const draggedItemPathname = draggedItem.pathname;
+      moveCollectionItemToFolder(collectionCopy, draggedItem, targetItem);
+      const itemsToResequence = getItemsToResequence(draggedItemParent, collectionCopy);
+      const itemsToResequence2 = getItemsToResequence(targetItem, collectionCopy);
 
       return ipcRenderer
         .invoke('renderer:move-folder-item', draggedItemPathname, targetItem.pathname)
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence))
+        .then(() => ipcRenderer.invoke('renderer:resequence-items', itemsToResequence2))
         .then(resolve)
         .catch((error) => reject(error));
     }
