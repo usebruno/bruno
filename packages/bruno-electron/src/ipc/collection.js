@@ -161,7 +161,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         name: folderName
       };
 
-      const content = jsonToCollectionBru(folderRoot);
+      const content = jsonToCollectionBru(
+        folderRoot,
+        true // isFolder
+      );
       await writeFile(folderBruFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -439,10 +442,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
-            const folderBruFilePath = path.join(folderPath, 'folder.bru');
-            const folderContent = jsonToCollectionBru(item.root);
-            console.log('folder COntent', item.root, folderContent);
-            fs.writeFileSync(folderBruFilePath, folderContent);
+            if (item?.root?.meta?.name) {
+              const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              const folderContent = jsonToCollectionBru(
+                item.root,
+                true // isFolder
+              );
+              fs.writeFileSync(folderBruFilePath, folderContent);
+            }
 
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
