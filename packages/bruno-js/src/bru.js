@@ -43,6 +43,10 @@ class Bru {
     return this.processEnvVars[key];
   }
 
+  hasEnvVar(key) {
+    return Object.hasOwn(this.envVariables, key);
+  }
+
   getEnvVar(key) {
     return this._interpolate(this.envVariables[key]);
   }
@@ -53,6 +57,10 @@ class Bru {
     }
 
     this.envVariables[key] = value;
+  }
+
+  hasVar(key) {
+    return Object.hasOwn(this.collectionVariables, key);
   }
 
   setVar(key, value) {
@@ -79,6 +87,10 @@ class Bru {
     }
 
     return this._interpolate(this.collectionVariables[key]);
+  }
+
+  deleteVar(key) {
+    delete this.collectionVariables[key];
   }
 
   getRequestVar(key) {
