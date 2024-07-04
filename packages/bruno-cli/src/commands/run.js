@@ -179,6 +179,17 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const getFolderRoot = (dir) => {
+  const folderRootPath = path.join(dir, 'folder.bru');
+  const exists = fs.existsSync(folderRootPath);
+  if (!exists) {
+    return {};
+  }
+
+  const content = fs.readFileSync(folderRootPath, 'utf8');
+  return collectionBruToJson(content);
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {

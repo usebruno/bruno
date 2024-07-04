@@ -380,6 +380,21 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
+      if (si.type == 'folder' && si?.root) {
+        di.root = {
+          request: {
+            headers: si?.root?.request?.headers,
+            script: si?.root?.request?.script,
+            vars: si?.root?.request?.vars,
+            tests: si?.root?.request?.tests
+          },
+          docs: si?.root?.request?.docs,
+          meta: {
+            name: si?.root?.meta?.name
+          }
+        };
+      }
+
       if (si.type === 'js') {
         di.fileContent = si.raw;
       }
@@ -402,6 +417,25 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
+  collectionToSave.root = {
+    request: {
+      auth: collection?.root?.request?.auth,
+      headers: collection?.root?.request?.headers,
+      script: collection?.root?.request?.script,
+      vars: collection?.root?.request?.vars,
+      tests: collection?.root?.request?.tests
+    },
+    docs: collection?.root?.request?.docs,
+    meta: {
+      name: collection?.root?.meta?.name || collection?.name
+    }
+  };
+
+  if (!collection?.root?.request?.auth?.mode) {
+    collectionToSave.root.request.auth = {
+      mode: 'none'
+    };
+  }
 
   collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
 

@@ -13,6 +13,7 @@ const getContentType = (headers = {}) => {
 };
 
 const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+  const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -36,6 +37,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     // collectionVariables take precedence over envVars
     const combinedVars = {
       ...envVars,
+      ...requestVariables,
       ...collectionVariables,
       process: {
         env: {

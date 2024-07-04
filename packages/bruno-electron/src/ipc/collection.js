@@ -152,6 +152,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
+    try {
+      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const folderBruFilePath = path.join(folderPathname, 'folder.bru');
+
+      folderRoot.meta = {
+        name: folderName
+      };
+
+      const content = jsonToCollectionBru(
+        folderRoot,
+        true // isFolder
+      );
+      await writeFile(folderBruFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
@@ -424,6 +442,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
+            if (item?.root?.meta?.name) {
+              const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              const folderContent = jsonToCollectionBru(
+                item.root,
+                true // isFolder
+              );
+              fs.writeFileSync(folderBruFilePath, folderContent);
+            }
+
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
@@ -472,6 +499,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+
+      const collectionContent = jsonToCollectionBru(collection.root);
+      await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
