@@ -316,7 +316,7 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      const result = varsRuntime.runPreRequestVars(
+      varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVars,
@@ -324,15 +324,6 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         processEnvVars
       );
-
-      if (result) {
-        mainWindow.webContents.send('main:script-environment-update', {
-          envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
-          requestUid,
-          collectionUid
-        });
-      }
     }
 
     // run pre-request script
@@ -418,7 +409,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // run post-response script
     let scriptResult;
-    const responseScript = compact([get(collectionRoot, 'request.script.res'), get(request, 'script.res')]).join(
+    const responseScript = compact([get(request, 'script.res'), get(collectionRoot, 'request.script.res')]).join(
       os.EOL
     );
     if (responseScript?.length) {
@@ -461,8 +452,7 @@ const registerNetworkIpc = (mainWindow) => {
     });
 
     const collectionRoot = get(collection, 'root', {});
-    const _request = item.draft ? item.draft.request : item.request;
-    const request = prepareRequest(_request, collectionRoot, collectionPath);
+    const request = prepareRequest(item, collection);
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -603,8 +593,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       // run tests
       const testFile = compact([
-        get(collectionRoot, 'request.tests'),
-        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
+        get(collectionRoot, 'request.tests')
       ]).join(os.EOL);
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime();
@@ -900,8 +890,7 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const _request = item.draft ? item.draft.request : item.request;
-          const request = prepareRequest(_request, collectionRoot, collectionPath);
+          const request = prepareRequest(item, collection);
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 

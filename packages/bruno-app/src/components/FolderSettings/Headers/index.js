@@ -4,30 +4,28 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { addFolderHeader, updateFolderHeader, deleteFolderHeader } from 'providers/ReduxStore/slices/collections';
+import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
-import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
-const RequestHeaders = ({ item, collection }) => {
+const Headers = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
-  const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const headers = get(folder, 'root.request.headers', []);
 
   const addHeader = () => {
     dispatch(
-      addRequestHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid
+      addFolderHeader({
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-  const handleRun = () => dispatch(sendRequest(item, collection.uid));
+  const handleSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
   const handleHeaderValueChange = (e, _header, type) => {
     const header = cloneDeep(_header);
     switch (type) {
@@ -45,26 +43,29 @@ const RequestHeaders = ({ item, collection }) => {
       }
     }
     dispatch(
-      updateRequestHeader({
+      updateFolderHeader({
         header: header,
-        itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };
 
   const handleRemoveHeader = (header) => {
     dispatch(
-      deleteRequestHeader({
+      deleteFolderHeader({
         headerUid: header.uid,
-        itemUid: item.uid,
-        collectionUid: collection.uid
+        collectionUid: collection.uid,
+        folderUid: folder.uid
       })
     );
   };
 
   return (
     <StyledWrapper className="w-full">
+      <div className="text-xs mb-4 text-muted">
+        Request headers that will be sent with every request inside this folder.
+      </div>
       <table>
         <thead>
           <tr>
@@ -82,7 +83,7 @@ const RequestHeaders = ({ item, collection }) => {
                       <SingleLineEditor
                         value={header.name}
                         theme={storedTheme}
-                        onSave={onSave}
+                        onSave={handleSave}
                         onChange={(newValue) =>
                           handleHeaderValueChange(
                             {
@@ -95,7 +96,6 @@ const RequestHeaders = ({ item, collection }) => {
                           )
                         }
                         autocomplete={headerAutoCompleteList}
-                        onRun={handleRun}
                         collection={collection}
                       />
                     </td>
@@ -103,7 +103,7 @@ const RequestHeaders = ({ item, collection }) => {
                       <SingleLineEditor
                         value={header.value}
                         theme={storedTheme}
-                        onSave={onSave}
+                        onSave={handleSave}
                         onChange={(newValue) =>
                           handleHeaderValueChange(
                             {
@@ -115,9 +115,6 @@ const RequestHeaders = ({ item, collection }) => {
                             'value'
                           )
                         }
-                        onRun={handleRun}
-                        autocomplete={MimeTypes}
-                        allowNewlines={true}
                         collection={collection}
                       />
                     </td>
@@ -144,7 +141,13 @@ const RequestHeaders = ({ item, collection }) => {
       <button className="btn-add-header text-link pr-2 py-3 mt-2 select-none" onClick={addHeader}>
         + Add Header
       </button>
+
+      <div className="mt-6">
+        <button type="submit" className="submit btn btn-sm btn-secondary" onClick={handleSave}>
+          Save
+        </button>
+      </div>
     </StyledWrapper>
   );
 };
-export default RequestHeaders;
+export default Headers;
