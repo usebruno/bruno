@@ -382,9 +382,7 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
-    // load .env file at root of collection if it exists
-    //const dotEnvPath = path.join(collectionPath, '.env');
-    //const dotEnvExists = await exists(dotEnvPath);
+    // load all .env files at root of collection if any exist
     const processEnvVars = {
       ...process.env
     };

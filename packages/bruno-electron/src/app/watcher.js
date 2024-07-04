@@ -203,7 +203,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
         const dotEnvPath = `${path.resolve(collectionPath, dotEnvFile)}`;
         console.log(`dotEnvPath: ${dotEnvPath}`);
         const content = fs.readFileSync(dotEnvPath, 'utf8');
-        //const content = fs.readFileSync(path.resolve(dotEnvFile), 'utf8');
 
         const jsonData = dotenvToJson(content);
 
@@ -211,14 +210,12 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
           ...jsonDataEnvVars,
           ...jsonData
         };
-        //setDotEnvVars(collectionUid, jsonData);
         setDotEnvVars(collectionUid, jsonDataEnvVars);
         const payload = {
           collectionUid,
           processEnvVariables: {
             ...process.env,
             ...jsonDataEnvVars
-            //...jsonData
           }
         };
         win.webContents.send('main:process-env-update', payload);
@@ -349,7 +346,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
         const dotEnvPath = `${path.resolve(collectionPath, dotEnvFile)}`;
         console.log(`dotEnvPath: ${dotEnvPath}`);
         const content = fs.readFileSync(dotEnvPath, 'utf8');
-        //const content = fs.readFileSync(path.resolve(dotEnvFile), 'utf8');
 
         const jsonData = dotenvToJson(content);
 
@@ -357,7 +353,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
           ...jsonDataEnvVars,
           ...jsonData
         };
-        //setDotEnvVars(collectionUid, jsonData);
         setDotEnvVars(collectionUid, jsonDataEnvVars);
         const payload = {
           collectionUid,
