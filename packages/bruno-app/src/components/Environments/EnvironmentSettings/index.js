@@ -45,28 +45,20 @@ const DefaultTab = ({ setTab }) => {
 const EnvironmentSettings = ({ collection, onClose }) => {
   const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
-  const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [openImportModal, setOpenImportModal] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [tab, setTab] = useState('default');
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal
-          size="md"
-          title="Environments"
-          confirmText={'Go back'}
-          handleConfirm={() => setTab('default')}
-          handleCancel={onClose}
-          hideCancel={true}
-        >
+        <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
           {tab === 'create' ? (
-            <CreateEnvironment collection={collection} />
+            <CreateEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : tab === 'import' ? (
-            <ImportEnvironment collection={collection} />
+            <ImportEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : (
-            <DefaultTab setTab={setTab} />
+            <></>
           )}
+          <DefaultTab setTab={setTab} />
         </Modal>
       </StyledWrapper>
     );
