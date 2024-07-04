@@ -12,8 +12,8 @@ const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
   let tab = 'headers';
   const { folderLevelSettingsSelectedTab } = collection;
-  if (folderLevelSettingsSelectedTab?.[folder.uid]) {
-    tab = folderLevelSettingsSelectedTab[folder.uid];
+  if (folderLevelSettingsSelectedTab?.[folder?.uid]) {
+    tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
   const setTab = (tab) => {
