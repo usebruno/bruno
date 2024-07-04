@@ -38,11 +38,10 @@ const collectionBruToJson = (bru) => {
   }
 };
 
-const jsonToCollectionBru = (json) => {
+const jsonToCollectionBru = (json, isFolder) => {
   try {
     const collectionBruJson = {
       headers: _.get(json, 'request.headers', []),
-      auth: _.get(json, 'request.auth', {}),
       script: {
         req: _.get(json, 'request.script.req', ''),
         res: _.get(json, 'request.script.res', '')
@@ -62,6 +61,10 @@ const jsonToCollectionBru = (json) => {
       collectionBruJson.meta = {
         name: json.meta.name
       };
+    }
+
+    if (!isFolder) {
+      collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
     return _jsonToCollectionBru(collectionBruJson);

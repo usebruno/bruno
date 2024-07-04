@@ -380,7 +380,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
-      if (si?.root) {
+      if (si.type == 'folder' && si?.root) {
         di.root = {
           request: {
             headers: si?.root?.request?.headers,
@@ -392,10 +392,6 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           meta: {
             name: si?.root?.meta?.name
           }
-        };
-
-        di.root.request.auth = {
-          mode: get(si.root.request, 'auth.mode', 'none')
         };
       }
 
