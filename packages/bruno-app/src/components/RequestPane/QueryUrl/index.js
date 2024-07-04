@@ -14,7 +14,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-  const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
 
@@ -69,6 +69,8 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}
+          highlightPathParams={true}
+          item={item}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div

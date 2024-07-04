@@ -3,6 +3,7 @@ const qs = require('qs');
 const chalk = require('chalk');
 const decomment = require('decomment');
 const fs = require('fs');
+const tls = require('tls');
 const { forOwn, isUndefined, isNull, each, extend, get, compact } = require('lodash');
 const FormData = require('form-data');
 const prepareRequest = require('./prepare-request');
@@ -15,7 +16,10 @@ const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
+const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
+const path = require('path');
+const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const runSingleRequest = async function (
   filename,
@@ -29,6 +33,7 @@ const runSingleRequest = async function (
 ) {
   try {
     let request;
+    let nextRequestName;
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
@@ -39,7 +44,11 @@ const runSingleRequest = async function (
     if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
       const form = new FormData();
       forOwn(request.data, (value, key) => {
-        form.append(key, value);
+        if (value instanceof Array) {
+          each(value, (v) => form.append(key, v));
+        } else {
+          form.append(key, value);
+        }
       });
       extend(request.headers, form.getHeaders());
       request.data = form;
@@ -66,7 +75,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runRequestScript(
+      const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
         envVariables,
@@ -76,10 +85,17 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // interpolate variables inside request
     interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+
+    if (!protocolRegex.test(request.url)) {
+      request.url = `http://${request.url}`;
+    }
 
     const options = getOptions();
     const insecure = get(options, 'insecure', false);
@@ -91,7 +107,11 @@ const runSingleRequest = async function (
       const caCert = caCertArray.find((el) => el);
       if (caCert && caCert.length > 1) {
         try {
-          httpsAgentRequestFields['ca'] = fs.readFileSync(caCert);
+          let caCertBuffer = fs.readFileSync(caCert);
+          if (!options['ignoreTruststore']) {
+            caCertBuffer += '\n' + tls.rootCertificates.join('\n'); // Augment default truststore with custom CA certificates
+          }
+          httpsAgentRequestFields['ca'] = caCertBuffer;
         } catch (err) {
           console.log('Error reading CA cert file:' + caCert, err);
         }
@@ -107,18 +127,30 @@ const runSingleRequest = async function (
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
-      const domain = interpolateString(clientCert.domain, interpolationOptions);
-      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-      if (domain && certFilePath && keyFilePath) {
+      const domain = interpolateString(clientCert?.domain, interpolationOptions);
+      const type = clientCert?.type || 'cert';
+      if (domain) {
         const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-
         if (request.url.match(hostRegex)) {
-          try {
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.log('Error reading cert/key file', err);
+          if (type === 'cert') {
+            try {
+              let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+              let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+              httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+              httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
+            }
+          } else if (type === 'pfx') {
+            try {
+              let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
+            }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
           break;
@@ -148,9 +180,11 @@ const runSingleRequest = async function (
       }
 
       if (socksEnabled) {
-        const socksProxyAgent = new SocksProxyAgent(proxyUri);
-        request.httpsAgent = socksProxyAgent;
-        request.httpAgent = socksProxyAgent;
+        request.httpsAgent = new SocksProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new SocksProxyAgent(proxyUri);
       } else {
         request.httpsAgent = new PatchedHttpsProxyAgent(
           proxyUri,
@@ -174,6 +208,24 @@ const runSingleRequest = async function (
       // run request
       const axiosInstance = makeAxiosInstance();
 
+      if (request.awsv4config) {
+        // todo: make this happen in prepare-request.js
+        // interpolate the aws v4 config
+        request.awsv4config.accessKeyId = interpolateString(request.awsv4config.accessKeyId, interpolationOptions);
+        request.awsv4config.secretAccessKey = interpolateString(
+          request.awsv4config.secretAccessKey,
+          interpolationOptions
+        );
+        request.awsv4config.sessionToken = interpolateString(request.awsv4config.sessionToken, interpolationOptions);
+        request.awsv4config.service = interpolateString(request.awsv4config.service, interpolationOptions);
+        request.awsv4config.region = interpolateString(request.awsv4config.region, interpolationOptions);
+        request.awsv4config.profileName = interpolateString(request.awsv4config.profileName, interpolationOptions);
+
+        request.awsv4config = await resolveAwsV4Credentials(request);
+        addAwsV4Interceptor(axiosInstance, request);
+        delete request.awsv4config;
+      }
+
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
@@ -190,6 +242,9 @@ const runSingleRequest = async function (
       } else {
         console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
         return {
+          test: {
+            filename: filename
+          },
           request: {
             method: request.method,
             url: request.url,
@@ -205,7 +260,8 @@ const runSingleRequest = async function (
           },
           error: err.message,
           assertionResults: [],
-          testResults: []
+          testResults: [],
+          nextRequestName: nextRequestName
         };
       }
     }
@@ -239,7 +295,7 @@ const runSingleRequest = async function (
     ]).join(os.EOL);
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime();
-      await scriptRuntime.runResponseScript(
+      const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
         response,
@@ -250,6 +306,9 @@ const runSingleRequest = async function (
         processEnvVars,
         scriptingConfig
       );
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     // run assertions
@@ -263,7 +322,7 @@ const runSingleRequest = async function (
         response,
         envVariables,
         collectionVariables,
-        collectionPath
+        processEnvVars
       );
 
       each(assertionResults, (r) => {
@@ -306,6 +365,9 @@ const runSingleRequest = async function (
     }
 
     return {
+      test: {
+        filename: filename
+      },
       request: {
         method: request.method,
         url: request.url,
@@ -321,11 +383,15 @@ const runSingleRequest = async function (
       },
       error: null,
       assertionResults,
-      testResults
+      testResults,
+      nextRequestName: nextRequestName
     };
   } catch (err) {
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
     return {
+      test: {
+        filename: filename
+      },
       request: {
         method: null,
         url: null,

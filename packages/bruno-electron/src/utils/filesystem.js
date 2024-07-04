@@ -103,6 +103,19 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseFiles = async (win, filters) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openFile', 'multiSelections'],
+    filters
+  });
+
+  if (!filePaths) {
+    return [];
+  }
+
+  return filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path));
+};
+
 const chooseFileToSave = async (win, preferredFileName = '') => {
   const { filePath } = await dialog.showSaveDialog(win, {
     defaultPath: preferredFileName
@@ -147,6 +160,7 @@ module.exports = {
   hasBruExtension,
   createDirectory,
   browseDirectory,
+  browseFiles,
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,

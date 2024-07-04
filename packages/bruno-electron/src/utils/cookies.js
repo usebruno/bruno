@@ -64,9 +64,22 @@ const getDomainsWithCookies = () => {
   });
 };
 
+const deleteCookiesForDomain = (domain) => {
+  return new Promise((resolve, reject) => {
+    cookieJar.store.removeCookies(domain, null, (err) => {
+      if (err) {
+        return reject(err);
+      }
+
+      return resolve();
+    });
+  });
+};
+
 module.exports = {
   addCookieToJar,
   getCookiesForUrl,
   getCookieStringForUrl,
-  getDomainsWithCookies
+  getDomainsWithCookies,
+  deleteCookiesForDomain
 };

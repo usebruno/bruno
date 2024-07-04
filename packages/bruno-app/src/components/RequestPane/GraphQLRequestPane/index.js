@@ -23,11 +23,13 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const query = item.draft ? get(item, 'draft.request.body.graphql.query') : get(item, 'request.body.graphql.query');
+  const query = item.draft
+    ? get(item, 'draft.request.body.graphql.query', '')
+    : get(item, 'request.body.graphql.query', '');
   const variables = item.draft
     ? get(item, 'draft.request.body.graphql.variables')
     : get(item, 'request.body.graphql.variables');
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [schema, setSchema] = useState(null);
 
   useEffect(() => {
@@ -61,7 +63,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         return (
           <QueryEditor
             collection={collection}
-            theme={storedTheme}
+            theme={displayedTheme}
             schema={schema}
             width={leftPaneWidth}
             onSave={onSave}

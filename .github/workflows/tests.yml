@@ -1,0 +1,85 @@
+name: Tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-test:
+    name: Unit Tests
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # build libraries
+      - name: Build libraries
+        run: |
+          npm run build --workspace=packages/bruno-common
+          npm run build --workspace=packages/bruno-query
+
+      # test
+      - name: Test Package bruno-query
+        run: npm run test --workspace=packages/bruno-query
+      - name: Test Package bruno-lang
+        run: npm run test --workspace=packages/bruno-lang
+      - name: Test Package bruno-schema
+        run: npm run test --workspace=packages/bruno-schema
+      - name: Test Package bruno-app
+        run: npm run test --workspace=packages/bruno-app
+      - name: Test Package bruno-js
+        run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-common
+        run: npm run test --workspace=packages/bruno-common
+      - name: Test Package bruno-cli
+        run: npm run test --workspace=packages/bruno-cli
+      - name: Test Package bruno-electron
+        run: npm run test --workspace=packages/bruno-electron
+
+  cli-test:
+    name: CLI Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Build Libraries
+        run: |
+          npm run build --workspace=packages/bruno-query
+          npm run build --workspace=packages/bruno-common
+
+      - name: Run tests
+        run: |
+          cd packages/bruno-tests/collection
+          npm install
+          node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
+
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: always
+  prettier:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Run Prettier
+        run: npm run test:prettier:web

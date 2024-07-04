@@ -62,8 +62,16 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
       const brunoConfig = await getCollectionConfigFile(collectionPath);
       const uid = generateUidBasedOnHash(collectionPath);
 
+      if (!brunoConfig.ignore || brunoConfig.ignore.length === 0) {
+        // 5 Feb 2024:
+        // bruno.json now supports an "ignore" field to specify which folders to ignore
+        // if the ignore field is not present, we default to ignoring node_modules and .git
+        // this is to maintain backwards compatibility with older collections
+        brunoConfig.ignore = ['node_modules', '.git'];
+      }
+
       win.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', win, collectionPath, uid);
+      ipcMain.emit('main:collection-opened', win, collectionPath, uid, brunoConfig);
     } catch (err) {
       if (!options.dontSendDisplayErrors) {
         win.webContents.send('main:display-error', {

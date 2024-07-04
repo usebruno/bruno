@@ -1,7 +1,7 @@
-import find from 'lodash/find';
-import filter from 'lodash/filter';
-import last from 'lodash/last';
 import { createSlice } from '@reduxjs/toolkit';
+import filter from 'lodash/filter';
+import find from 'lodash/find';
+import last from 'lodash/last';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -38,7 +38,8 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request'
+        type: action.payload.type || 'request',
+        ...(action.payload.folderUid ? { folderUid: action.payload.folderUid } : {})
       });
       state.activeTabUid = action.payload.uid;
     },

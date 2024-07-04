@@ -54,7 +54,7 @@ const buildEmptyJsonBody = (bodySchema) => {
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.operationId || _operationObject.summary || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
@@ -92,7 +92,17 @@ const transformOpenapiRequestItem = (request) => {
         name: param.name,
         value: '',
         description: param.description || '',
-        enabled: param.required
+        enabled: param.required,
+        type: 'query'
+      });
+    } else if (param.in === 'path') {
+      brunoRequestItem.request.params.push({
+        uid: uuid(),
+        name: param.name,
+        value: '',
+        description: param.description || '',
+        enabled: param.required,
+        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -168,6 +178,7 @@ const transformOpenapiRequestItem = (request) => {
         each(bodySchema.properties || {}, (prop, name) => {
           brunoRequestItem.request.body.multipartForm.push({
             uid: uuid(),
+            type: 'text',
             name: name,
             value: '',
             description: prop.description || '',
@@ -377,7 +388,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));
