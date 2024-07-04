@@ -231,6 +231,39 @@ const requestSchema = Yup.object({
   .noUnknown(true)
   .strict();
 
+const folderRootSchema = Yup.object({
+  request: Yup.object({
+    headers: Yup.array().of(keyValueSchema).required('headers are required'),
+    auth: authSchema,
+    script: Yup.object({
+      req: Yup.string().nullable(),
+      res: Yup.string().nullable()
+    })
+      .noUnknown(true)
+      .strict(),
+    vars: Yup.object({
+      req: Yup.array().of(varsSchema).nullable(),
+      res: Yup.array().of(varsSchema).nullable()
+    })
+      .noUnknown(true)
+      .strict()
+      .nullable(),
+    tests: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable(),
+  docs: Yup.string().nullable(),
+  meta: Yup.object({
+    name: Yup.string().nullable()
+  })
+    .noUnknown(true)
+    .strict()
+    .nullable()
+})
+  .noUnknown(true)
+  .nullable();
+
 const itemSchema = Yup.object({
   uid: uidSchema,
   type: Yup.string().oneOf(['http-request', 'graphql-request', 'folder', 'js']).required('type is required'),
@@ -247,6 +280,11 @@ const itemSchema = Yup.object({
     then: Yup.string(),
     // For all other types, the fileContent field is not required and can be null.
     otherwise: Yup.string().nullable()
+  }),
+  root: Yup.mixed().when('type', {
+    is: 'folder',
+    then: folderRootSchema,
+    otherwise: Yup.mixed().nullable().notRequired()
   }),
   items: Yup.lazy(() => Yup.array().of(itemSchema)),
   filename: Yup.string().nullable(),
@@ -270,7 +308,8 @@ const collectionSchema = Yup.object({
     items: Yup.array()
   }),
   collectionVariables: Yup.object(),
-  brunoConfig: Yup.object()
+  brunoConfig: Yup.object(),
+  root: folderRootSchema
 })
   .noUnknown(true)
   .strict();

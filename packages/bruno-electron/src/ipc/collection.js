@@ -439,6 +439,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
+            const folderBruFilePath = path.join(folderPath, 'folder.bru');
+            const folderContent = jsonToCollectionBru(item.root);
+            console.log('folder COntent', item.root, folderContent);
+            fs.writeFileSync(folderBruFilePath, folderContent);
+
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
@@ -487,6 +492,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+
+      const collectionContent = jsonToCollectionBru(collection.root);
+      await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
       ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
