@@ -27,10 +27,11 @@ const collectionBruToJson = (bru) => {
     // add meta if it exists
     // this is only for folder bru file
     // in the future, all of this will be replaced by standard bru lang
+    const sequence = _.get(json, 'meta.seq');
     if (json.meta) {
       transformedJson.meta = {
         name: json.meta.name,
-        seq: json.meta.seq
+        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
     }
 
@@ -61,10 +62,11 @@ const jsonToCollectionBru = (json) => {
     // add meta if it exists
     // this is only for folder bru file
     // in the future, all of this will be replaced by standard bru lang
+    const sequence = _.get(json, 'meta.seq');
     if (json.meta) {
       collectionBruJson.meta = {
         name: json.meta.name,
-        seq: json.meta.seq
+        seq: !isNaN(sequence) ? Number(sequence) : 1
       };
     }
 
@@ -123,7 +125,6 @@ const bruToJson = (bru) => {
     }
 
     const sequence = _.get(json, 'meta.seq');
-
     const transformedJson = {
       type: requestType,
       name: _.get(json, 'meta.name'),
@@ -170,11 +171,12 @@ const jsonToBru = (json) => {
     type = 'http';
   }
 
+  const sequence = _.get(json, 'seq');
   const bruJson = {
     meta: {
       name: _.get(json, 'name'),
       type: type,
-      seq: _.get(json, 'seq')
+      seq: !isNaN(sequence) ? Number(sequence) : 1
     },
     http: {
       method: _.lowerCase(_.get(json, 'request.method')),

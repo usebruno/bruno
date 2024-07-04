@@ -119,8 +119,7 @@ const Collection = ({ collection, searchText }) => {
     return items.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  const requestItems = sortRequestItems(filter(collection.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(collection.items, (i) => isItemAFolder(i)));
+  const items = sortRequestItems(filter(collection.items, (i) => isItemARequest(i) || isItemAFolder(i)));
 
   return (
     <StyledWrapper className="flex flex-col">
@@ -235,13 +234,8 @@ const Collection = ({ collection, searchText }) => {
       <div>
         {!collectionIsCollapsed ? (
           <div>
-            {folderItems && folderItems.length
-              ? folderItems.map((i) => {
-                  return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-                })
-              : null}
-            {requestItems && requestItems.length
-              ? requestItems.map((i) => {
+            {items && items.length
+              ? items.map((i) => {
                   return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
                 })
               : null}
