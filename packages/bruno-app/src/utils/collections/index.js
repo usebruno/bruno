@@ -386,9 +386,9 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             headers: si?.root?.request?.headers,
             script: si?.root?.request?.script,
             vars: si?.root?.request?.vars,
-            tests: si?.root?.request?.tests,
-            docs: si?.root?.request?.docs
+            tests: si?.root?.request?.tests
           },
+          docs: si?.root?.request?.docs,
           meta: {
             name: si?.root?.meta?.name
           }
