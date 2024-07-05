@@ -1,0 +1,179 @@
+name: Release Nightly
+
+on:
+  schedule:
+    - cron: 0 0 * * *
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release'
+        required: false
+        default: nightly
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  pull_request:
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  tagname:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag.outputs.tag }}
+    steps:
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+
+      - if: github.event_name == 'schedule'
+        run: echo 'TAG_NAME=nightly' >> $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
+
+      - if: github.event_name == 'pull_request'
+        run: echo 'TAG_NAME=debug' >> $GITHUB_ENV
+
+      - id: vars
+        shell: bash
+        run: echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - if: env.TAG_NAME == 'nightly'
+        run: echo 'TAG_NAME=nightly-${{ steps.vars.outputs.sha_short }}' >> $GITHUB_ENV
+
+      - id: tag
+        run: echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+  windows:
+    runs-on: windows-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch dependencies
+        run: npm i
+
+      - name: Build packages
+        run: |
+          npm run build:graphql-docs
+          npm run build:bruno-query
+          npm run build:bruno-common
+
+      - name: Build app
+        run: |
+          npm run build:electron -- win
+          ls ./packages/bruno-electron/out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-windows
+          path: |
+            ./packages/bruno-electron/out/bruno_*
+          retention-days: 1
+
+  linux:
+    runs-on: ubuntu-latest
+    container: node:20.11
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+      DEBIAN_FRONTEND: noninteractive
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch dependencies
+        run: npm i
+
+      - name: Build packages
+        run: |
+          npm run build:graphql-docs
+          npm run build:bruno-query
+          npm run build:bruno-common
+
+      - name: Build app
+        run: |
+          npm run build:electron -- linux
+          npm run build:electron -- deb
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-linux
+          path: |
+            ./packages/bruno-electron/out/bruno_*
+          retention-days: 1
+
+  macos:
+    runs-on: macos-latest
+    needs: tagname
+    env:
+      RELEASE_TAG_NAME: ${{ needs.tagname.outputs.tag_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch dependencies
+        run: |
+          npm i
+
+      - name: Build packages
+        run: |
+          npm run build:graphql-docs
+          npm run build:bruno-query
+          npm run build:bruno-common
+
+      - name: Build app
+        run: |
+          npm run build:electron -- mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-macos
+          path: |
+            ./packages/bruno-electron/out/bruno_*
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    if: github.event_name != 'pull_request'
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+    steps:
+      # Must perform checkout first, since it deletes the target directory
+      # before running, and would therefore delete the downloaded artifacts
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+
+      - if: github.event_name == 'workflow_dispatch'
+        run: echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+
+      - if: github.event_name == 'schedule'
+        run: echo 'TAG_NAME=nightly' >> $GITHUB_ENV
+
+      - if: github.event_name == 'push'
+        run: |
+          TAG_NAME=${{ github.ref }}
+          echo "TAG_NAME=${TAG_NAME#refs/tags/}" >> $GITHUB_ENV
+
+      - run: |
+          (echo 'SUBJECT=Bruno development build';
+           echo 'PRERELEASE=--prerelease') >> $GITHUB_ENV
+          gh release delete nightly --yes || true
+          git push origin :nightly || true
+
+      - name: Publish release
+        env:
+          DEBUG: api
+        run: |
+          gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA build-linux/* build-windows/* build-macos/*
