@@ -168,7 +168,7 @@ const jsonToBru = (json) => {
     type = 'http';
   }
 
-  const sequence = _.get(json, 'meta.seq');
+  const sequence = _.get(json, 'seq');
   const bruJson = {
     meta: {
       name: _.get(json, 'name'),
