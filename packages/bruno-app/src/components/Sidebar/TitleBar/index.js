@@ -82,16 +82,12 @@ const TitleBar = () => {
       ) : null}
 
       <div className="flex items-center">
-        <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
-          <Bruno width={30} />
-        </div>
-        <div
-          onClick={handleTitleClick}
-          className="flex items-center font-medium select-none cursor-pointer"
-          style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
-        >
+        <button className="flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+          <span aria-hidden>
+            <Bruno width={30} />
+          </span>
           bruno
-        </div>
+        </button>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div
