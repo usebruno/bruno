@@ -417,7 +417,7 @@ const handler = async function (argv) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
         const files = fs.readdirSync(filename);
-        const bruFiles = files.filter((file) => file.endsWith('.bru'));
+        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
 
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
