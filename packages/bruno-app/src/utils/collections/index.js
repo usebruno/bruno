@@ -10,6 +10,7 @@ import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
+import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -98,7 +99,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => i.pathname === pathname);
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
