@@ -534,6 +534,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
+            // If folder has a root element, then I should write its folder.bru file
+            if (item.root) {
+              const _folderContent = jsonToCollectionBru(item.root, true);
+              if (_folderContent) {
+                const _folderPath = path.join(folderPath, `folder.bru`);
+                fs.writeFileSync(_folderPath, _folderContent);
+              }
+            }
+
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
@@ -542,6 +551,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       };
 
       await createDirectory(collectionPath);
+
+      // If initial folder has a root element, then I should write its folder.bru file
+      if (itemFolder.root) {
+        const _folderContent = jsonToCollectionBru(itemFolder.root, true);
+        if (_folderContent) {
+          const _folderPath = path.join(collectionPath, `folder.bru`);
+          fs.writeFileSync(_folderPath, _folderContent);
+        }
+      }
 
       // create folder and files based on another folder
       await parseCollectionItems(itemFolder.items, collectionPath);
