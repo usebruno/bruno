@@ -233,6 +233,7 @@ const requestSchema = Yup.object({
 
 const folderRootSchema = Yup.object({
   request: Yup.object({
+    headers: Yup.array().of(keyValueSchema),
     auth: authSchema,
     script: Yup.object({
       req: Yup.string().nullable(),
