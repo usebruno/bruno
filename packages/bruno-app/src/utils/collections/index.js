@@ -387,7 +387,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         };
 
         let { request, meta } = si?.root || {};
-        let { headers, script, vars, tests } = request || {};
+        let { headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level headers
         if (headers?.length) {
@@ -458,7 +458,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   };
 
   let { request, docs, meta } = collection?.root || {};
-  let { auth, headers, script, vars, tests } = request || {};
+  let { auth, headers, script = {}, vars = {}, tests } = request || {};
 
   // collection level auth
   if (auth?.mode) {
