@@ -382,17 +382,54 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
       if (si.type == 'folder' && si?.root) {
         di.root = {
-          request: {
-            headers: si?.root?.request?.headers,
-            script: si?.root?.request?.script,
-            vars: si?.root?.request?.vars,
-            tests: si?.root?.request?.tests
-          },
-          docs: si?.root?.request?.docs,
-          meta: {
-            name: si?.root?.meta?.name
-          }
+          request: {}
         };
+
+        let { request, docs, meta } = si?.root || {};
+        let { headers, script, vars, tests } = request || {};
+
+        // folder level headers
+        if (headers?.length) {
+          di.root.request.headers = headers;
+        }
+        // folder level script
+        if (Object.keys(script)?.length) {
+          di.root.request.script = {};
+          if (script?.req?.length) {
+            di.root.request.script.req = script?.req;
+          }
+          if (script?.res?.length) {
+            di.root.request.script.res = script?.res;
+          }
+        }
+        // folder level vars
+        if (Object.keys(vars)?.length) {
+          di.root.request.vars = {};
+          if (vars?.req?.length) {
+            di.root.request.vars.req = vars?.req;
+          }
+          if (vars?.res?.length) {
+            di.root.request.vars.res = vars?.res;
+          }
+        }
+        // folder level tests
+        if (tests?.length) {
+          di.root.request.tests = tests;
+        }
+        // folder level docs
+        if (docs?.length) {
+          di.root.docs = docs;
+        }
+        if (meta?.name) {
+          di.root.meta = {};
+          di.root.meta.name = meta?.name;
+        }
+        if (!Object.keys(di.root.request)?.length) {
+          delete di.root.request;
+        }
+        if (!Object.keys(di.root)?.length) {
+          delete di.root;
+        }
       }
 
       if (si.type === 'js') {
@@ -417,24 +454,59 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
+
   collectionToSave.root = {
-    request: {
-      auth: collection?.root?.request?.auth,
-      headers: collection?.root?.request?.headers,
-      script: collection?.root?.request?.script,
-      vars: collection?.root?.request?.vars,
-      tests: collection?.root?.request?.tests
-    },
-    docs: collection?.root?.request?.docs,
-    meta: {
-      name: collection?.root?.meta?.name || collection?.name
-    }
+    request: {}
   };
 
-  if (!collection?.root?.request?.auth?.mode) {
-    collectionToSave.root.request.auth = {
-      mode: 'none'
-    };
+  let { auth, request, docs, meta } = collection?.root || {};
+  let { headers, script, vars, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionToSave.root.request.auth = auth;
+  }
+  // collection level headers
+  if (headers?.length) {
+    collectionToSave.root.request.headers = headers;
+  }
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionToSave.root.request.script = {};
+    if (script?.req?.length) {
+      collectionToSave.root.request.script.req = script?.req;
+    }
+    if (script?.res?.length) {
+      collectionToSave.root.request.script.res = script?.res;
+    }
+  }
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionToSave.root.request.vars = {};
+    if (vars?.req?.length) {
+      collectionToSave.root.request.vars.req = vars?.req;
+    }
+    if (vars?.res?.length) {
+      collectionToSave.root.request.vars.res = vars?.res;
+    }
+  }
+  // collection level tests
+  if (tests?.length) {
+    collectionToSave.root.request.tests = tests;
+  }
+  // collection level docs
+  if (docs?.length) {
+    collectionToSave.root.docs = docs;
+  }
+  if (meta?.name) {
+    collectionToSave.root.meta = {};
+    collectionToSave.root.meta.name = meta?.name;
+  }
+  if (!Object.keys(collectionToSave.root.request)?.length) {
+    delete collectionToSave.root.request;
+  }
+  if (!Object.keys(collectionToSave.root)?.length) {
+    delete collectionToSave.root;
   }
 
   collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
