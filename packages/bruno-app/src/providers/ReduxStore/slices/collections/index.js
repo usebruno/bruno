@@ -1310,7 +1310,7 @@ export const collectionsSlice = createSlice({
       }
 
       if (isFolderRoot) {
-        const folderPath = path.dirname(file.meta.pathname);
+        const folderPath = getDirectoryName(file.meta.pathname);
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           folderItem.root = file.data;
