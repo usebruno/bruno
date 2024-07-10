@@ -459,8 +459,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     request: {}
   };
 
-  let { auth, request, docs, meta } = collection?.root || {};
-  let { headers, script, vars, tests } = request || {};
+  let { request, docs, meta } = collection?.root || {};
+  let { auth, headers, script, vars, tests } = request || {};
 
   // collection level auth
   if (auth?.mode) {
