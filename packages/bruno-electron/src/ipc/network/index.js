@@ -1030,8 +1030,8 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testFile = compact([
-              get(collectionRoot, 'request.tests'),
-              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests')
+              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
+              get(collectionRoot, 'request.tests')
             ]).join(os.EOL);
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();

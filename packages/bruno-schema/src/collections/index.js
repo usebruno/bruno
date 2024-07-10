@@ -188,7 +188,8 @@ const authSchema = Yup.object({
   oauth2: oauth2Schema.nullable()
 })
   .noUnknown(true)
-  .strict();
+  .strict()
+  .nullable();
 
 const requestParamsSchema = Yup.object({
   uid: uidSchema,
@@ -233,14 +234,15 @@ const requestSchema = Yup.object({
 
 const folderRootSchema = Yup.object({
   request: Yup.object({
-    headers: Yup.array().of(keyValueSchema),
+    headers: Yup.array().of(keyValueSchema).nullable(),
     auth: authSchema,
     script: Yup.object({
       req: Yup.string().nullable(),
       res: Yup.string().nullable()
     })
       .noUnknown(true)
-      .strict(),
+      .strict()
+      .nullable(),
     vars: Yup.object({
       req: Yup.array().of(varsSchema).nullable(),
       res: Yup.array().of(varsSchema).nullable()
