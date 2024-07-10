@@ -82,7 +82,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.data = _interpolate(request.data);
   }
 
-  each(request.pathParams, (param) => {
+  each(request?.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
 
@@ -107,7 +107,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
           return '/' + path;
         } else {
           const name = path.slice(1);
-          const existingPathParam = request.pathParams.find((param) => param.type === 'path' && param.name === name);
+          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
           return existingPathParam ? '/' + existingPathParam.value : '';
         }
       })
