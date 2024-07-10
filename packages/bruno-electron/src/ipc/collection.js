@@ -536,10 +536,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             // If folder has a root element, then I should write its folder.bru file
             if (item.root) {
-              const _folderContent = jsonToCollectionBru(item.root, true);
-              if (_folderContent) {
-                const _folderPath = path.join(folderPath, `folder.bru`);
-                fs.writeFileSync(_folderPath, _folderContent);
+              const folderContent = jsonToCollectionBru(item.root, true);
+              if (folderContent) {
+                const bruFolderPath = path.join(folderPath, `folder.bru`);
+                fs.writeFileSync(bruFolderPath, folderContent);
               }
             }
 
@@ -554,10 +554,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // If initial folder has a root element, then I should write its folder.bru file
       if (itemFolder.root) {
-        const _folderContent = jsonToCollectionBru(itemFolder.root, true);
-        if (_folderContent) {
-          const _folderPath = path.join(collectionPath, `folder.bru`);
-          fs.writeFileSync(_folderPath, _folderContent);
+        const folderContent = jsonToCollectionBru(itemFolder.root, true);
+        if (folderContent) {
+          const bruFolderPath = path.join(collectionPath, `folder.bru`);
+          fs.writeFileSync(bruFolderPath, folderContent);
         }
       }
 
