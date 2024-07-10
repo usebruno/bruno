@@ -416,10 +416,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         if (tests?.length) {
           di.root.request.tests = tests;
         }
-        // folder level docs
-        if (docs?.length) {
-          di.root.docs = docs;
-        }
+
         if (meta?.name) {
           di.root.meta = {};
           di.root.meta.name = meta?.name;
