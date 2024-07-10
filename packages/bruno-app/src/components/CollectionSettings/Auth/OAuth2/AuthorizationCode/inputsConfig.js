@@ -22,6 +22,10 @@ const inputsConfig = [
   {
     key: 'scope',
     label: 'Scope'
+  },
+  {
+    key: 'state',
+    label: 'State'
   }
 ];
 

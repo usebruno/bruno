@@ -16,7 +16,7 @@ import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
 
-const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
+const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid}) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -99,11 +99,15 @@ const RequestTab = ({ tab, tabIndex, collectionRequestTabs, collection }) => {
 
     return color;
   };
-
-  if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        {tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+        ) : (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        )}
       </StyledWrapper>
     );
   }

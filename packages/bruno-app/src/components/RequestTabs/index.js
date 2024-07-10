@@ -75,7 +75,6 @@ const RequestTabs = () => {
       'has-chevrons': showChevrons
     });
   };
-
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
@@ -117,6 +116,7 @@ const RequestTabs = () => {
                           key={tab.uid}
                           tab={tab}
                           collection={activeCollection}
+                          folderUid={tab.folderUid}
                         />
                       </li>
                     );
