@@ -83,6 +83,7 @@
     "@babel/preset-env": "^7.16.4",
     "@babel/preset-react": "^7.16.0",
     "@babel/runtime": "^7.16.3",
+    "@biomejs/biome": "1.8.3",
     "autoprefixer": "^10.4.17",
     "babel-loader": "^8.2.3",
     "cross-env": "^7.0.3",
