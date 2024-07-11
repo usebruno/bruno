@@ -797,8 +797,8 @@ export const getAllVariables = (collection, item) => {
 
   return {
     ...environmentVariables,
-    ...collection.collectionVariables,
     ...requestVariables,
+    ...collection.collectionVariables,
     pathParams: {
       ...pathParams
     },
