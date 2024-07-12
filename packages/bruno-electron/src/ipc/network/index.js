@@ -10,7 +10,7 @@ const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, cloneDeep } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -328,7 +328,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // run pre-request script
     let scriptResult;
-    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime();
       scriptResult = await scriptRuntime.runRequestScript(
@@ -409,9 +409,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     // run post-response script
     let scriptResult;
-    const responseScript = compact([get(request, 'script.res'), get(collectionRoot, 'request.script.res')]).join(
-      os.EOL
-    );
+    const responseScript = get(request, 'script.res');
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
       scriptResult = await scriptRuntime.runResponseScript(
@@ -592,10 +590,7 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // run tests
-      const testFile = compact([
-        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-        get(collectionRoot, 'request.tests')
-      ]).join(os.EOL);
+      const testFile = get(item, 'request.tests');
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime();
         const testResults = await testRuntime.runTests(
@@ -1029,10 +1024,7 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run tests
-            const testFile = compact([
-              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-              get(collectionRoot, 'request.tests')
-            ]).join(os.EOL);
+            const testFile = get(item, 'request.tests');
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
