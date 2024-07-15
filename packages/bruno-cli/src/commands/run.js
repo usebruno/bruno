@@ -312,7 +312,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const collectionVariables = {};
+    const runtimeVariables = {};
     let envVars = {};
 
     if (env) {
@@ -462,7 +462,7 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        collectionVariables,
+        runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,

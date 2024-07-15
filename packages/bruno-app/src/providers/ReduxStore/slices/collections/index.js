@@ -200,7 +200,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, collectionVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -230,7 +230,7 @@ export const collectionsSlice = createSlice({
           });
         }
 
-        collection.collectionVariables = collectionVariables;
+        collection.runtimeVariables = runtimeVariables;
       }
     },
     processEnvUpdateEvent: (state, action) => {
