@@ -22,14 +22,12 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
+    }
+  }
 
-      &:nth-child(1) {
-        width: 30%;
-      }
-
-      &:nth-child(3) {
-        width: 70px;
-      }
+  td {
+    &:nth-child(1) {
+      padding: 0 0 0 8px;
     }
   }
 
@@ -56,6 +54,19 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+  }
+
+  .full-width-div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: blue;
+  }
+  .direction-rtl {
+    direction: rtl;
+    white-space: nowrap; /* Prevents line breaks for demonstration */
   }
 `;
 
