@@ -1,11 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import StyledWrapper from './StyledWrapper';
-import { useRef } from 'react';
-import { useEffect } from 'react';
-import { useCallback } from 'react';
 
 const Table = ({ minColumnWidth = 1, headers = [], children }) => {
-  const [tableHeight, setTableHeight] = useState('auto');
   const [activeColumnIndex, setActiveColumnIndex] = useState(null);
   const tableRef = useRef(null);
 
@@ -14,11 +10,36 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
     ref: useRef()
   }));
 
+  const updateDivHeights = () => {
+    if (tableRef.current) {
+      const height = tableRef.current.offsetHeight;
+      columns.forEach((col) => {
+        if (col.ref.current) {
+          col.ref.current.querySelector('.resizer').style.height = `${height}px`;
+        }
+      });
+    }
+  };
+
+  useEffect(() => {
+    updateDivHeights();
+    window.addEventListener('resize', updateDivHeights);
+
+    return () => {
+      window.removeEventListener('resize', updateDivHeights);
+    };
+  }, [columns]);
+
   useEffect(() => {
     if (tableRef.current) {
-      setTableHeight(tableRef.current.offsetHeight);
+      const observer = new MutationObserver(updateDivHeights);
+      observer.observe(tableRef.current, { childList: true, subtree: true });
+
+      return () => {
+        observer.disconnect();
+      };
     }
-  }, []);
+  }, [columns]);
 
   const handleMouseDown = (index) => (e) => {
     setActiveColumnIndex(index);
@@ -45,7 +66,7 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
   const handleMouseUp = useCallback(() => {
     setActiveColumnIndex(null);
     removeListeners();
-  }, [setActiveColumnIndex, removeListeners]);
+  }, [removeListeners]);
 
   const removeListeners = useCallback(() => {
     window.removeEventListener('mousemove', handleMouseMove);
@@ -72,9 +93,8 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
                 <th ref={ref} key={name} title={name}>
                   <span>{name}</span>
                   <div
-                    style={{ height: tableHeight }}
+                    className="resizer absolute cursor-col-resize w-[4px] right-[-2px] top-0 z-10 opacity-50 hover:bg-blue-500 active:bg-blue-500"
                     onMouseDown={handleMouseDown(i)}
-                    className={`absolute cursor-col-resize w-[4px] right-[-2px] top-0 z-10 opacity-50 hover:bg-blue-500 active:bg-blue-500`}
                   ></div>
                 </th>
               ))}
