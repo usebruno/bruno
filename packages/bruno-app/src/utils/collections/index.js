@@ -850,11 +850,6 @@ const mergeFolderLevelVars = (request, requestTreePath = []) => {
       });
     }
   }
-  let requestReqVars = request?.vars?.req || [];
-  for (let _var of requestReqVars) {
-    if (_var.enabled) {
-      requestVariables[_var.name] = _var.value;
-    }
-  }
+
   return requestVariables;
 };
