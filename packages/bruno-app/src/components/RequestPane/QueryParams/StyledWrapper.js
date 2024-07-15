@@ -55,19 +55,6 @@ const Wrapper = styled.div`
     position: relative;
     top: 1px;
   }
-
-  .full-width-div {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 1px;
-    background-color: blue;
-  }
-  .direction-rtl {
-    direction: rtl;
-    white-space: nowrap; /* Prevents line breaks for demonstration */
-  }
 `;
 
 export default Wrapper;
