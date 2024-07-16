@@ -43,7 +43,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
       }
     }
 
-    if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
+    if (prevEnvUids && prevEnvUids.length && envUids.length <= prevEnvUids.length) {
       setSelectedEnvironment(environments && environments.length ? environments[0] : null);
     }
   }, [envUids, environments, prevEnvUids]);
