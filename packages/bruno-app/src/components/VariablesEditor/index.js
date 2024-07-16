@@ -73,7 +73,7 @@ const CollectionVariables = ({ collection, theme }) => {
 
   return (
     <>
-      <h1 className="font-semibold mb-2">Collection Variables</h1>
+      <h1 className="font-semibold mb-2">Runtime Variables</h1>
       {collectionVariablesFound ? (
         <KeyValueExplorer data={collectionVariableArray} theme={theme} />
       ) : (

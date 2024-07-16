@@ -7,30 +7,41 @@ const fs = require('fs');
 const path = require('path');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
 
-const mergeFolderLevelHeaders = (request, requestTreePath) => {
-  let folderHeaders = new Map();
-
+const mergeHeaders = (collection, request, requestTreePath) => {
+  let headers = new Map();
+  each(get(collection, 'root.request.headers', []), (h) => {
+    if (h.enabled && h.name.length > 0) {
+      headers.set(h.name, h.value);
+      if (h.name.toLowerCase() === 'content-type') {
+        contentTypeDefined = true;
+      }
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let headers = get(i, 'root.request.headers', []);
-      headers.forEach((header) => {
+      let _headers = get(i, 'root.request.headers', []);
+      _headers.forEach((header) => {
         if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
+          headers.set(header.name, header.value);
         }
       });
     } else {
-      let headers = get(i, 'request.headers', []);
-      headers.forEach((header) => {
+      let _headers = get(i, 'request.headers', []);
+      _headers.forEach((header) => {
         if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
+          headers.set(header.name, header.value);
         }
       });
     }
   }
 
-  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
+  let mergedHeaders = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
   let requestHeaders = request.headers || [];
   let requestHeadersMap = new Map();
+
+  mergedHeaders.forEach((header) => {
+    requestHeadersMap.set(header.name, header.value);
+  });
 
   for (let header of requestHeaders) {
     if (header.enabled) {
@@ -38,33 +49,35 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
     }
   }
 
-  mergedFolderHeaders.forEach((header) => {
-    requestHeadersMap.set(header.name, header.value);
-  });
-
   request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeFolderLevelVars = (request, requestTreePath) => {
-  let folderReqVars = new Map();
+const mergeVars = (collection, request, requestTreePath) => {
+  let reqVars = new Map();
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      reqVars.set(_var.name, _var.value);
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
         }
       });
     } else {
       let vars = get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
+  let mergedFolderReqVars = Array.from(reqVars, ([name, value]) => ({ name, value, enabled: true }));
   let requestReqVars = request?.vars?.req || [];
   let requestReqVarsMap = new Map();
   for (let _var of requestReqVars) {
@@ -82,25 +95,31 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
     type: 'request'
   }));
 
-  let folderResVars = new Map();
+  let resVars = new Map();
+  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     } else {
       let vars = get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
+  let mergedFolderResVars = Array.from(resVars, ([name, value]) => ({ name, value, enabled: true }));
   let requestResVars = request?.vars?.res || [];
   let requestResVarsMap = new Map();
   for (let _var of requestResVars) {
@@ -119,39 +138,47 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
   }));
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath) => {
-  let folderCombinedPreReqScript = [];
-  let folderCombinedPostResScript = [];
-  let folderCombinedTests = [];
+const mergeScripts = (collection, request, requestTreePath) => {
+  let combinedPreReqScript = [];
+  let combinedPostResScript = [];
+  let combinedTests = [];
+
+  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
+  combinedPreReqScript.push(collectionPreReqScript);
+  let collectionPreResScript = get(collection, 'root.request.script.res', '');
+  combinedPostResScript.push(collectionPreResScript);
+  let collectionTests = get(collection, 'root.request.tests', '');
+  combinedTests.push(collectionTests);
+
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let preReqScript = get(i, 'root.request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
-        folderCombinedPreReqScript.push(preReqScript);
+        combinedPreReqScript.push(preReqScript);
       }
 
       let postResScript = get(i, 'root.request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
-        folderCombinedPostResScript.push(postResScript);
+        combinedPostResScript.push(postResScript);
       }
 
       let tests = get(i, 'root.request.tests', '');
       if (tests && tests?.trim?.() !== '') {
-        folderCombinedTests.push(tests);
+        combinedTests.push(tests);
       }
     }
   }
 
-  if (folderCombinedPreReqScript.length) {
-    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  if (combinedPreReqScript.length) {
+    request.script.req = compact([...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
   }
 
-  if (folderCombinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+  if (combinedPostResScript.length) {
+    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse()]).join(os.EOL);
   }
 
-  if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+  if (combinedTests.length) {
+    request.tests = compact([request?.tests || '', ...combinedTests.reverse()]).join(os.EOL);
   }
 };
 
@@ -291,21 +318,11 @@ const prepareRequest = (item, collection) => {
   let contentTypeDefined = false;
   let url = request.url;
 
-  // collection headers
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    }
-  });
-
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath);
-    mergeFolderLevelVars(request, requestTreePath);
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath);
+    mergeVars(collection, request, requestTreePath);
   }
 
   each(request.headers, (h) => {

@@ -10,6 +10,7 @@ import ProxySettings from './ProxySettings';
 import ClientCertSettings from './ClientCertSettings';
 import Headers from './Headers';
 import Auth from './Auth';
+import Vars from './Vars';
 import Script from './Script';
 import Test from './Tests';
 import Docs from './Docs';
@@ -80,6 +81,9 @@ const CollectionSettings = ({ collection }) => {
       case 'auth': {
         return <Auth collection={collection} />;
       }
+      case 'vars': {
+        return <Vars collection={collection} />;
+      }
       case 'script': {
         return <Script collection={collection} />;
       }
@@ -124,6 +128,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
+        </div>
+        <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+          Vars
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
