@@ -18,13 +18,15 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
-    } else {
-      let headers = get(i, 'request.headers', []);
+    } else if (i.uid === request.uid) {
+      let headers = request.header ?? [];
       headers.forEach((header) => {
         if (header.enabled) {
           folderHeaders.set(header.name, header.value);
         }
       });
+    } else {
+      throw new Error(`Cannot extract headers from item ${i}`);
     }
   }
 
@@ -55,13 +57,15 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderReqVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.req', []);
+    } else if (i.uid === request.uid) {
+      let vars = request.vars?.req ?? [];
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderReqVars.set(_var.name, _var.value);
         }
       });
+    } else {
+      throw new Error(`Cannot extract req vars from item ${i}`);
     }
   }
   let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
@@ -91,13 +95,15 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderResVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.res', []);
+    } else if (i.uid === request.uid) {
+      let vars = request.vars?.req ?? [];
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderResVars.set(_var.name, _var.value);
         }
       });
+    } else {
+      throw new Error(`Cannot extract res vars from item ${i}`);
     }
   }
   let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
