@@ -717,7 +717,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             type: action.payload.type,
             name: '',
-            value: '',
+            value: action.payload.value,
             description: '',
             enabled: true
           });
