@@ -39,13 +39,14 @@ class TestRuntime {
     request,
     response,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
     scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -74,7 +75,7 @@ class TestRuntime {
       return {
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         results: __brunoTestResults.getResults()
       };
     }
@@ -145,7 +146,7 @@ class TestRuntime {
     return {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
+      runtimeVariables: cleanJson(runtimeVariables),
       results: cleanJson(__brunoTestResults.getResults())
     };
   }

@@ -24,7 +24,7 @@ const createHeaders = (headers) => {
 
 const createQuery = (queryParams = []) => {
   return queryParams
-    .filter((param) => param.enabled)
+    .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
       name: param.name,
       value: param.value
@@ -51,7 +51,7 @@ const createPostData = (body) => {
 export const buildHarRequest = ({ request, headers }) => {
   return {
     method: request.method,
-    url: request.url,
+    url: encodeURI(request.url),
     httpVersion: 'HTTP/1.1',
     cookies: [],
     headers: createHeaders(headers),
