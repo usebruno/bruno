@@ -83,7 +83,14 @@ const getEnvVars = (environment = {}) => {
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
-const configureRequest = async (collectionUid, request, envVars, runtimeVariables, processEnvVars, collectionPath) => {
+const configureRequest = async (
+  collectionUid,
+  request,
+  envVars,
+  runtimeVariables,
+  processEnvVars,
+  collectionPath
+) => {
   if (!protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
   }
@@ -309,7 +316,14 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      varsRuntime.runPreRequestVars(preRequestVars, request, envVars, runtimeVariables, collectionPath, processEnvVars);
+      varsRuntime.runPreRequestVars(
+        preRequestVars,
+        request,
+        envVars,
+        runtimeVariables,
+        collectionPath,
+        processEnvVars
+      );
     }
 
     // run pre-request script
