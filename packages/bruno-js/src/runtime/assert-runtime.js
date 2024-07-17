@@ -167,10 +167,10 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
   }
 
   const interpolationContext = {
-    requestVariables: context.bru.requestVariables,
     runtimeVariables: context.bru.runtimeVariables,
     envVariables: context.bru.envVariables,
-    processEnvVars: context.bru.processEnvVars
+    processEnvVars: context.bru.processEnvVars,
+    resolvedRequestVariables: context.bru.resolvedRequestVariables
   };
 
   // gracefully allow both a,b as well as [a, b]
@@ -205,13 +205,13 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 
 class AssertRuntime {
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
-    const requestVariables = request?.requestVariables || {};
+    const resolvedRequestVariables = request?.resolvedRequestVariables || {};
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
     if (!enabledAssertions.length) {
       return [];
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, resolvedRequestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -222,10 +222,10 @@ class AssertRuntime {
     };
 
     const context = {
-      ...envVariables,
-      ...requestVariables,
-      ...runtimeVariables,
       ...processEnvVars,
+      ...envVariables,
+      ...resolvedRequestVariables,
+      ...runtimeVariables,
       ...bruContext
     };
 

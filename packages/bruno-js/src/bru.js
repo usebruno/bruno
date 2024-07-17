@@ -4,11 +4,23 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables) {
+  constructor(
+    envVariables,
+    runtimeVariables,
+    processEnvVars,
+    collectionPath,
+    resolvedRequestVariables,
+    requestVariables,
+    folderVariables,
+    collectionVariables
+  ) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.requestVariables = requestVariables || {};
+    this.folderVariables = folderVariables || {};
+    this.collectionVariables = collectionVariables || {};
+    this.resolvedRequestVariables = resolvedRequestVariables || {};
     this.collectionPath = collectionPath;
   }
 
@@ -18,14 +30,14 @@ class Bru {
     }
 
     const combinedVars = {
-      ...this.envVariables,
-      ...this.requestVariables,
-      ...this.runtimeVariables,
       process: {
         env: {
           ...this.processEnvVars
         }
-      }
+      },
+      ...this.envVariables,
+      ...this.resolvedRequestVariables,
+      ...this.runtimeVariables
     };
 
     return interpolate(str, combinedVars);
@@ -97,8 +109,20 @@ class Bru {
     return this._interpolate(this.requestVariables[key]);
   }
 
+  getCollectionVar(key) {
+    return this._interpolate(this.collectionVariables[key]);
+  }
+
+  getFolderVar(key) {
+    return this._interpolate(this.folderVariables[key]);
+  }
+
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
+  }
+
+  getResolvedRequestVar(key) {
+    return this._interpolate(this.resolvedRequestVariables[key]);
   }
 }
 

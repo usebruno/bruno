@@ -788,24 +788,26 @@ export const getTotalRequestCountInCollection = (collection) => {
 
 export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
-  let requestVariables = {};
+  let resolvedRequestVariables = {};
   if (item?.request) {
     const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
+    resolvedRequestVariables = mergeVars(collection, item?.request, requestTreePath);
   }
   const pathParams = getPathParams(item);
 
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+
   return {
-    ...environmentVariables,
-    ...requestVariables,
-    ...collection.runtimeVariables,
-    pathParams: {
-      ...pathParams
-    },
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
+    },
+    ...environmentVariables,
+    ...resolvedRequestVariables,
+    ...runtimeVariables,
+    pathParams: {
+      ...pathParams
     }
   };
 };
@@ -831,25 +833,30 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const mergeFolderLevelVars = (request, requestTreePath = []) => {
-  let requestVariables = {};
+const mergeVars = (collection, request, requestTreePath = []) => {
+  let resolvedRequestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      resolvedRequestVariables[_var.name] = _var.value;
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          requestVariables[_var.name] = _var.value;
+          resolvedRequestVariables[_var.name] = _var.value;
         }
       });
     } else {
       let vars = get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          requestVariables[_var.name] = _var.value;
+          resolvedRequestVariables[_var.name] = _var.value;
         }
       });
     }
   }
-
-  return requestVariables;
+  return resolvedRequestVariables;
 };
