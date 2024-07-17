@@ -309,7 +309,7 @@ const collectionSchema = Yup.object({
   runnerResult: Yup.object({
     items: Yup.array()
   }),
-  collectionVariables: Yup.object(),
+  runtimeVariables: Yup.object(),
   brunoConfig: Yup.object(),
   root: folderRootSchema
 })
