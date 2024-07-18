@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { machineIdSync } = require('@usebruno/node-machine-id');
+
 const { safeStorage } = require('electron');
 
 // Constants for algorithm identification
