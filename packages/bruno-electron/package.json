@@ -61,7 +61,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
+    "electron": "31.2.1",
     "electron-builder": "23.0.2",
     "electron-icon-maker": "^0.0.5"
   }
