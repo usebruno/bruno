@@ -37,7 +37,7 @@ Libraries we use
 
 ### Dependencies
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
