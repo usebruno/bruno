@@ -37,20 +37,16 @@ Kullandığımız kütüphaneler
 
 ### Bağımlılıklar
 
-[Node v18.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
+[Node v20.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
 
 ## Gelişim
 
 Bruno bir masaüstü uygulaması olarak geliştirilmektedir. Next.js uygulamasını bir terminalde çalıştırarak uygulamayı yüklemeniz ve ardından electron uygulamasını başka bir terminalde çalıştırmanız gerekir.
 
-### Bağımlılıklar
-
-- NodeJS v18
-
 ### Yerel Geliştirme
 
 ```bash
-# nodejs 18 sürümünü kullan
+# nodejs 20 sürümünü kullan
 nvm use
 
 # deps yükleyin

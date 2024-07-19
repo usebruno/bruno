@@ -37,7 +37,7 @@ Libraries we use
 
 ### Dependencies
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
@@ -46,7 +46,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ### Local Development
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps

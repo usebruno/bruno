@@ -37,14 +37,14 @@ Bibliotecile pe care le folosim
 
 ### Dependențele
 
-Veți avea nevoie de [Node v18.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
+Veți avea nevoie de [Node v20.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
 
 ## Dezvoltarea
 
 Bruno este dezvoltat ca o aplicație desktop. Ca să porniți aplicatia trebuie să rulați aplicația Next.js într-un terminal și apoi să rulați aplicația electron într-un alt terminal.
 
 ```shell
-# folosiți nodejs versiunea 18
+# folosiți nodejs versiunea 20
 nvm use
 
 # instalați dependențele
