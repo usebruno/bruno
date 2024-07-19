@@ -168,7 +168,6 @@ const GlobalStyle = createGlobalStyle`
   // (macos scrollbar styling is the ideal style reference)
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-width: thin;
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
     
