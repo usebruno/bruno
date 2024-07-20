@@ -42,6 +42,14 @@ const jsonToBru = (json) => {
     bru += '}\n\n';
   }
 
+  if (tags) {
+    bru += 'tags [\n';
+    for (const tag of tags) {
+      bru += `  ${tag}\n`;
+    }
+    bru += ']\n\n';
+  }
+
   if (http && http.method) {
     bru += `${http.method} {
   url: ${http.url}`;

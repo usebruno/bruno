@@ -149,7 +149,8 @@ const bruToJson = (data, parsed = false) => {
         vars: _.get(json, 'vars', {}),
         assertions: _.get(json, 'assertions', []),
         tests: _.get(json, 'tests', ''),
-        docs: _.get(json, 'docs', '')
+        docs: _.get(json, 'docs', ''),
+        tags: _.get(json, 'tags', [])
       }
     };
 
@@ -215,7 +216,8 @@ const jsonToBru = async (json) => {
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
     settings: _.get(json, 'settings', {}),
-    docs: _.get(json, 'request.docs', '')
+    docs: _.get(json, 'request.docs', ''),
+    tags: _.get(json, 'request.tags', [])
   };
 
   const bru = jsonToBruV2(bruJson);
@@ -257,7 +259,8 @@ const jsonToBruViaWorker = async (json) => {
     assertions: _.get(json, 'request.assertions', []),
     tests: _.get(json, 'request.tests', ''),
     settings: _.get(json, 'settings', {}),
-    docs: _.get(json, 'request.docs', '')
+    docs: _.get(json, 'request.docs', ''),
+    tags: _.get(json, 'request.tags', [])
   };
 
   const bru = await bruParserWorker?.jsonToBru(bruJson)
