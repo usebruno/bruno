@@ -4,7 +4,7 @@ const { safeParseJson, outdentString } = require('./utils');
 
 /**
  * A Bru file is made up of blocks.
- * There are two types of blocks
+ * There are three types of blocks
  *
  * 1. Dictionary Blocks - These are blocks that have key value pairs
  * ex:
@@ -19,6 +19,13 @@ const { safeParseJson, outdentString } = require('./utils');
  *   "username": "John Nash",
  *   "password": "governingdynamics
  *  }
+
+ * 3. List Blocks - These are blocks that have a list of items
+ * ex:
+ *  tags [
+ *   regression
+ *   smoke-test
+ *  ]
  *
  */
 const grammar = ohm.grammar(`Bru {
@@ -59,6 +66,13 @@ const grammar = ohm.grammar(`Bru {
   textline = textchar*
   textchar = ~nl any
 
+  // List
+  listend = nl "]"
+  list = st* "[" listitems? listend
+  listitems = (~listend nl)* listitem (~listend stnl* listitem)* (~listend space)*
+  listitem = st* textchar+ st*
+
+  tags = "tags" list
   meta = "meta" dictionary
   settings = "settings" dictionary
 
@@ -298,6 +312,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   assertkey(chars) {
     return chars.sourceString ? chars.sourceString.trim() : '';
   },
+  list(_1, _2, listitems, _3) {
+    return listitems.ast.flat()
+  },
+  listitems(_1, listitem, _2, rest, _3) {
+    return [listitem.ast, ...rest.ast]
+  },
+  listitem(_1, textchar, _2) {
+    return textchar.sourceString;
+  },
   textblock(line, _1, rest) {
     return [line.ast, ...rest.ast].join('\n');
   },
@@ -318,6 +341,9 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   _iter(...elements) {
     return elements.map((e) => e.ast);
+  },
+  tags(_1, list) {
+    return { tags: list.ast };
   },
   meta(_1, dictionary) {
     let meta = mapPairListToKeyValPair(dictionary.ast);

@@ -6,6 +6,7 @@ const { getRunnerSummary } = require('@usebruno/common/runner');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { parseEnv, getEnvVars } = require('../utils/bru');
+const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
@@ -199,6 +200,14 @@ const builder = async (yargs) => {
       type:"number",
       description: "Delay between each requests (in miliseconds)"
     })
+    .option('tags', {
+      type: 'string',
+      description: 'Tags to include in the run'
+    })
+    .option('exclude-tags', {
+      type: 'string',
+      description: 'Tags to exclude from the run'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run request.bru --env-file env.bru', 'Run a request with the environment from env.bru file')
@@ -241,7 +250,11 @@ const builder = async (yargs) => {
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
     .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
-    .example('$0 run --noproxy', 'Run requests with system proxy disabled');
+    .example('$0 run --noproxy', 'Run requests with system proxy disabled')
+    .example(
+      '$0 run folder --tags=hello,world --exclude-tags=skip',
+      'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
+    );
 };
 
 const handler = async function (argv) {
@@ -268,7 +281,9 @@ const handler = async function (argv) {
       reporterSkipHeaders,
       clientCertConfig,
       noproxy,
-      delay
+      delay,
+      tags: includeTags,
+      excludeTags
     } = argv;
     const collectionPath = process.cwd();
 
@@ -353,7 +368,7 @@ const handler = async function (argv) {
           if (!match) {
             console.error(
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-                chalk.dim(`${value}`)
+              chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -388,6 +403,9 @@ const handler = async function (argv) {
       }
     }
     options['ignoreTruststore'] = ignoreTruststore;
+
+    includeTags = includeTags ? includeTags.split(',') : [];
+    excludeTags = excludeTags ? excludeTags.split(',') : [];
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
@@ -444,6 +462,10 @@ const handler = async function (argv) {
         console.error(chalk.red(`Path not found: ${resolvedPath}`));
         process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
+
+      requestItems = requestItems.filter((item) => {
+        return isRequestTagsIncluded(item.tags, includeTags, excludeTags);
+      });
     }
 
     requestItems = getCallStack(resolvedPaths, collection, { recursive });
