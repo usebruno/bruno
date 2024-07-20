@@ -4,6 +4,7 @@
     "type": "http",
     "seq": "1"
   },
+  "tags": ["foo", "bar"],
   "http": {
     "method": "get",
     "url": "https://api.textlocal.in/send/:id",

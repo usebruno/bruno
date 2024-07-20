@@ -30,7 +30,7 @@ const getValueString = (value) => {
 };
 
 const jsonToBru = (json) => {
-  const { meta, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
+  const { meta, tags, http, params, headers, auth, body, script, tests, vars, assertions, docs } = json;
 
   let bru = '';
 
@@ -40,6 +40,14 @@ const jsonToBru = (json) => {
       bru += `  ${key}: ${meta[key]}\n`;
     }
     bru += '}\n\n';
+  }
+
+  if (tags) {
+    bru += 'tags [\n';
+    for (const tag of tags) {
+      bru += `  ${tag}\n`;
+    }
+    bru += ']\n\n';
   }
 
   if (http && http.method) {
