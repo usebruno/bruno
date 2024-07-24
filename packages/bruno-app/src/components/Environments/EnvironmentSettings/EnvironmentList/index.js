@@ -25,7 +25,6 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
   useEffect(() => {
     if (selectedEnvironment) {
       setOriginalEnvironmentVariables(selectedEnvironment.variables);
-      setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
       return;
     }
 
@@ -36,6 +35,12 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
       setSelectedEnvironment(environments?.length ? environments[0] : null);
     }
   }, [collection, selectedEnvironment]);
+
+  useEffect(() => {
+    if (selectedEnvironment) {
+      setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
+    }
+  }, [environments]);
 
   useEffect(() => {
     // check env add
