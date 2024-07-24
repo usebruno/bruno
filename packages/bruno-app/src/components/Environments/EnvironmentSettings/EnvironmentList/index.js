@@ -118,7 +118,7 @@ const EnvironmentList = ({ collection, isModified, setIsModified }) => {
                 <span className="break-all">{env.name}</span>
               </div>
             ))}
-            <div className="btn-create-environment" onClick={() => handleCreateEnvClick(true)}>
+            <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
             </div>
 
