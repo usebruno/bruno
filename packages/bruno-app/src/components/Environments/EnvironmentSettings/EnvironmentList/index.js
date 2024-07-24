@@ -45,6 +45,14 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose }) => 
   }, [activeEnvironmentUid, selectedEnvironment]);
 
   useEffect(() => {
+    //FIXME check if still useful
+    if (selectedEnvironment) {
+      setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
+    }
+  }, [environments]);
+
+  useEffect(() => {
+    // check env add
     if (prevEnvUids?.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
