@@ -3,17 +3,17 @@ import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
-import { useDispatch } from 'react-redux';
-import { findItemInCollection } from 'utils/collections';
-import StyledWrapper from './StyledWrapper';
-import RequestTabNotFound from './RequestTabNotFound';
-import ConfirmRequestClose from './ConfirmRequestClose';
-import SpecialTab from './SpecialTab';
 import { useTheme } from 'providers/Theme';
+import { useDispatch } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
+import { findItemInCollection } from 'utils/collections';
+import ConfirmRequestClose from './ConfirmRequestClose';
+import RequestTabNotFound from './RequestTabNotFound';
+import SpecialTab from './SpecialTab';
+import StyledWrapper from './StyledWrapper';
 
-const RequestTab = ({ tab, collection }) => {
+const RequestTab = ({ tab, collection, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
@@ -26,6 +26,19 @@ const RequestTab = ({ tab, collection }) => {
         tabUids: [tab.uid]
       })
     );
+  };
+
+  const handleMouseUp = (e) => {
+    if (e.button === 1) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      dispatch(
+        closeTabs({
+          tabUids: [tab.uid]
+        })
+      );
+    }
   };
 
   const getMethodColor = (method = '') => {
@@ -67,11 +80,15 @@ const RequestTab = ({ tab, collection }) => {
 
     return color;
   };
-
-  if (['collection-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
+  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
-        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        {tab.type === 'folder-settings' ? (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
+        ) : (
+          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
+        )}
       </StyledWrapper>
     );
   }
@@ -92,6 +109,7 @@ const RequestTab = ({ tab, collection }) => {
     <StyledWrapper className="flex items-center justify-between tab-container px-1">
       {showConfirmClose && (
         <ConfirmRequestClose
+          item={item}
           onCancel={() => setShowConfirmClose(false)}
           onCloseWithoutSave={() => {
             dispatch(
@@ -123,7 +141,18 @@ const RequestTab = ({ tab, collection }) => {
           }}
         />
       )}
-      <div className="flex items-baseline tab-label pl-2">
+      <div
+        className="flex items-baseline tab-label pl-2"
+        onMouseUp={(e) => {
+          if (!item.draft) return handleMouseUp(e);
+
+          if (e.button === 1) {
+            e.stopPropagation();
+            e.preventDefault();
+            setShowConfirmClose(true);
+          }
+        }}
+      >
         <span className="tab-method uppercase" style={{ color: getMethodColor(method), fontSize: 12 }}>
           {method}
         </span>
@@ -136,6 +165,8 @@ const RequestTab = ({ tab, collection }) => {
         onClick={(e) => {
           if (!item.draft) return handleCloseClick(e);
 
+          e.stopPropagation();
+          e.preventDefault();
           setShowConfirmClose(true);
         }}
       >

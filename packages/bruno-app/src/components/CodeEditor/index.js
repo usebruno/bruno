@@ -43,6 +43,7 @@ if (!SERVER_RENDERED) {
     'req.getUrl()',
     'req.setUrl(url)',
     'req.getMethod()',
+    'req.getAuthMode()',
     'req.setMethod(method)',
     'req.getHeader(name)',
     'req.getHeaders()',
@@ -57,10 +58,14 @@ if (!SERVER_RENDERED) {
     'bru.cwd()',
     'bru.getEnvName(key)',
     'bru.getProcessEnv(key)',
+    'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.hasVar(key)',
     'bru.getVar(key)',
-    'bru.setVar(key,value)'
+    'bru.setVar(key,value)',
+    'bru.deleteVar(key)',
+    'bru.setNextRequest(requestName)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -103,6 +108,12 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
   }
 
   componentDidMount() {
@@ -118,7 +129,7 @@ export default class CodeEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-      lint: { esversion: 11 },
+      lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -209,7 +220,7 @@ export default class CodeEditor extends React.Component {
       return found;
     });
     if (editor) {
-      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -224,7 +235,7 @@ export default class CodeEditor extends React.Component {
         let curWord = start != end && currentLine.slice(start, end);
         //Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
@@ -299,7 +310,7 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);

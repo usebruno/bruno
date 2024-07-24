@@ -1,5 +1,5 @@
 import { forOwn } from 'lodash';
-import { safeStringifyJSON } from 'utils/common';
+import { convertToCodeMirrorJson } from 'utils/common';
 import curlToJson from './curl-to-json';
 
 export const getRequestFromCurlCommand = (curlCommand) => {
@@ -37,7 +37,7 @@ export const getRequestFromCurlCommand = (curlCommand) => {
     if (parsedBody && contentType && typeof contentType === 'string') {
       if (contentType.includes('application/json')) {
         body.mode = 'json';
-        body.json = safeStringifyJSON(parsedBody);
+        body.json = convertToCodeMirrorJson(parsedBody);
       } else if (contentType.includes('text/xml')) {
         body.mode = 'xml';
         body.xml = parsedBody;

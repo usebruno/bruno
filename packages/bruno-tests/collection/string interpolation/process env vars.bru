@@ -1,0 +1,41 @@
+meta {
+  name: process env vars
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "bark": "{{bark}}",
+    "bark2": "{{process.env.PROC_ENV_VAR}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return json", function() {
+    expect(res.getBody()).to.eql({
+      "bark": "woof",
+      "bark2": "woof"
+    });
+  });
+  
+}

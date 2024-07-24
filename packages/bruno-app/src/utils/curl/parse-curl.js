@@ -12,6 +12,9 @@ import * as querystring from 'query-string';
 import yargs from 'yargs-parser';
 
 const parseCurlCommand = (curlCommand) => {
+  // catch escape sequences (e.g. -H $'cookie: it=\'\'')
+  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+
   // Remove newlines (and from continuations)
   curlCommand = curlCommand.replace(/\\\r|\\\n/g, '');
 
@@ -30,7 +33,7 @@ const parseCurlCommand = (curlCommand) => {
   curlCommand = curlCommand.trim();
 
   const parsedArguments = yargs(curlCommand, {
-    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's'],
+    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's', 'G', 'get'],
     alias: {
       H: 'header',
       A: 'user-agent'
@@ -116,15 +119,16 @@ const parseCurlCommand = (curlCommand) => {
     cookies = cookie.parse(cookieString.replace(/^Cookie: /gi, ''), cookieParseOptions);
   }
   let method;
-  if (parsedArguments.X === 'POST') {
+  let parsedMethodArgument = parsedArguments.X || parsedArguments.request || parsedArguments.T;
+  if (parsedMethodArgument === 'POST') {
     method = 'post';
-  } else if (parsedArguments.X === 'PUT' || parsedArguments.T) {
+  } else if (parsedMethodArgument === 'PUT') {
     method = 'put';
-  } else if (parsedArguments.X === 'PATCH') {
+  } else if (parsedMethodArgument === 'PATCH') {
     method = 'patch';
-  } else if (parsedArguments.X === 'DELETE') {
+  } else if (parsedMethodArgument === 'DELETE') {
     method = 'delete';
-  } else if (parsedArguments.X === 'OPTIONS') {
+  } else if (parsedMethodArgument === 'OPTIONS') {
     method = 'options';
   } else if (
     (parsedArguments.d ||
@@ -150,7 +154,10 @@ const parseCurlCommand = (curlCommand) => {
   // NB: the -G flag does not change the http verb. It just moves the data into the url.
   if (parsedArguments.G || parsedArguments.get) {
     urlObject.query = urlObject.query ? urlObject.query : '';
-    const option = 'd' in parsedArguments ? 'd' : 'data' in parsedArguments ? 'data' : null;
+    let option = null;
+    if ('d' in parsedArguments) option = 'd';
+    if ('data' in parsedArguments) option = 'data';
+    if ('data-urlencode' in parsedArguments) option = 'data-urlencode';
     if (option) {
       let urlQueryString = '';
 
@@ -216,6 +223,8 @@ const parseCurlCommand = (curlCommand) => {
   } else if (parsedArguments['data-raw']) {
     request.data = parsedArguments['data-raw'];
     request.isDataRaw = true;
+  } else if (parsedArguments['data-urlencode']) {
+    request.data = parsedArguments['data-urlencode'];
   }
 
   if (parsedArguments.u) {

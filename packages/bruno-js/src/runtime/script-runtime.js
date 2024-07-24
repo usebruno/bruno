@@ -16,6 +16,7 @@ const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
+const addFormats = require('ajv-formats');
 const atob = require('atob');
 const btoa = require('btoa');
 const lodash = require('lodash');
@@ -37,13 +38,14 @@ class ScriptRuntime {
     script,
     request,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
     scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -102,6 +104,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
@@ -123,7 +126,7 @@ class ScriptRuntime {
     return {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
+      runtimeVariables: cleanJson(runtimeVariables),
       nextRequestName: bru.nextRequest
     };
   }
@@ -133,13 +136,14 @@ class ScriptRuntime {
     request,
     response,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
     scriptingConfig
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -194,6 +198,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
@@ -216,7 +221,7 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
+      runtimeVariables: cleanJson(runtimeVariables),
       nextRequestName: bru.nextRequest
     };
   }

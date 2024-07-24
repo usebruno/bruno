@@ -55,6 +55,7 @@ const DigestAuth = ({ item, collection }) => {
           onChange={(val) => handleUsernameChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -67,6 +68,7 @@ const DigestAuth = ({ item, collection }) => {
           onChange={(val) => handlePasswordChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
     </StyledWrapper>

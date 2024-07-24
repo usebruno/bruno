@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Timeline = ({ request, response }) => {
   const requestHeaders = [];
-  const responseHeaders = response.headers || [];
+  const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
 
   request = request || {};
   response = response || {};

@@ -12,33 +12,66 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
-export const defineCodeMirrorBrunoVariablesMode = (variables, mode) => {
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
-    let variablesOverlay = {
-      token: function (stream, state) {
+    const { pathParams = {}, ...variables } = _variables || {};
+    const variablesOverlay = {
+      token: function (stream) {
         if (stream.match('{{', true)) {
           let ch;
           let word = '';
           while ((ch = stream.next()) != null) {
-            if (ch == '}' && stream.next() == '}') {
+            if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-              let found = pathFoundInVariables(word, variables);
-              if (found) {
-                return 'variable-valid random-' + (Math.random() + 1).toString(36).substring(9);
-              } else {
-                return 'variable-invalid random-' + (Math.random() + 1).toString(36).substring(9);
-              }
-              // Random classname added so adjacent variables are not rendered in the same SPAN by CodeMirror.
+              const found = pathFoundInVariables(word, variables);
+              const status = found ? 'valid' : 'invalid';
+              const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+              return `variable-${status} ${randomClass}`;
             }
             word += ch;
           }
         }
-        while (stream.next() != null && !stream.match('{{', false)) {}
+        stream.skipTo('{{') || stream.skipToEnd();
         return null;
       }
     };
 
-    return CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+    const urlPathParamsOverlay = {
+      token: function (stream) {
+        if (stream.match('/:', true)) {
+          let ch;
+          let word = '';
+          while ((ch = stream.next()) != null) {
+            if (ch === '/' || ch === '?' || ch === '&' || ch === '=') {
+              stream.backUp(1);
+              const found = pathFoundInVariables(word, pathParams);
+              const status = found ? 'valid' : 'invalid';
+              const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+              return `variable-${status} ${randomClass}`;
+            }
+            word += ch;
+          }
+
+          // If we've consumed all characters and the word is not empty, it might be a path parameter at the end of the URL.
+          if (word) {
+            const found = pathFoundInVariables(word, pathParams);
+            const status = found ? 'valid' : 'invalid';
+            const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
+            return `variable-${status} ${randomClass}`;
+          }
+        }
+        stream.skipTo('/:') || stream.skipToEnd();
+        return null;
+      }
+    };
+
+    let baseMode = CodeMirror.overlayMode(CodeMirror.getMode(config, parserConfig.backdrop || mode), variablesOverlay);
+
+    if (highlightPathParams) {
+      return CodeMirror.overlayMode(baseMode, urlPathParamsOverlay);
+    } else {
+      return baseMode;
+    }
   });
 };
 

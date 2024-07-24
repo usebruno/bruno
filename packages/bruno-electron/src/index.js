@@ -1,15 +1,17 @@
 const path = require('path');
 const { format } = require('url');
-const { BrowserWindow, app, Menu } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
+const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
 const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
+const registerNotificationsIpc = require('./ipc/notifications');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -19,21 +21,25 @@ const contentSecurityPolicy = [
   "script-src * 'unsafe-inline' 'unsafe-eval'",
   "connect-src * 'unsafe-inline'",
   "font-src 'self' https:",
-  "form-action 'none'",
-  "img-src 'self' blob: data: https:",
+  // this has been commented out to make oauth2 work
+  // "form-action 'none'",
+  // we make an exception and allow http for images so that
+  // they can be used as link in the embedded markdown editors
+  "img-src 'self' blob: data: http: https:",
+  "media-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];
 
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
-Menu.setApplicationMenu(menu);
 
 let mainWindow;
 let watcher;
 
 // Prepare the renderer once the app is ready
 app.on('ready', async () => {
+  Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
   mainWindow = new BrowserWindow({
@@ -97,6 +103,10 @@ app.on('ready', async () => {
 
   mainWindow.on('maximize', () => saveMaximized(true));
   mainWindow.on('unmaximize', () => saveMaximized(false));
+  mainWindow.on('close', (e) => {
+    e.preventDefault();
+    ipcMain.emit('main:start-quit-flow');
+  });
 
   mainWindow.webContents.on('will-redirect', (event, url) => {
     event.preventDefault();
@@ -107,14 +117,20 @@ app.on('ready', async () => {
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     require('electron').shell.openExternal(details.url);
-    return { action: 'allow' };
+    return { action: 'deny' };
   });
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
+  registerNotificationsIpc(mainWindow, watcher);
 });
 
 // Quit the app once all windows are closed
 app.on('window-all-closed', app.quit);
+
+// Open collection from Recent menu (#1521)
+app.on('open-file', (event, path) => {
+  openCollection(mainWindow, watcher, path);
+});

@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
-const { ipcMain, shell, dialog } = require('electron');
+const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
 const {
@@ -10,6 +10,7 @@ const {
   hasBruExtension,
   isDirectory,
   browseDirectory,
+  browseFiles,
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName
@@ -38,6 +39,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  // browse directory for file
+  ipcMain.handle('renderer:browse-files', async (event, pathname, request, filters) => {
+    try {
+      const filePaths = await browseFiles(mainWindow, filters);
+
+      return filePaths;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
   // create collection
   ipcMain.handle(
     'renderer:create-collection',
@@ -58,13 +70,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         const brunoConfig = {
           version: '1',
           name: collectionName,
-          type: 'collection'
+          type: 'collection',
+          ignore: ['node_modules', '.git']
         };
         const content = await stringifyJson(brunoConfig);
         await writeFile(path.join(dirPath, 'bruno.json'), content);
 
         mainWindow.webContents.send('main:collection-opened', dirPath, uid, brunoConfig);
-        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid);
+        ipcMain.emit('main:collection-opened', mainWindow, dirPath, uid, brunoConfig);
       } catch (error) {
         return Promise.reject(error);
       }
@@ -139,6 +152,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
+  ipcMain.handle('renderer:save-folder-root', async (event, folder) => {
+    try {
+      const { name: folderName, root: folderRoot, pathname: folderPathname } = folder;
+      const folderBruFilePath = path.join(folderPathname, 'folder.bru');
+
+      folderRoot.meta = {
+        name: folderName
+      };
+
+      const content = jsonToCollectionBru(
+        folderRoot,
+        true // isFolder
+      );
+      await writeFile(folderBruFilePath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
   ipcMain.handle('renderer:save-collection-root', async (event, collectionPathname, collectionRoot) => {
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
@@ -173,6 +204,25 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const content = jsonToBru(request);
       await writeFile(pathname, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // save multiple requests
+  ipcMain.handle('renderer:save-multiple-requests', async (event, requestsToSave) => {
+    try {
+      for (let r of requestsToSave) {
+        const request = r.item;
+        const pathname = r.pathname;
+
+        if (!fs.existsSync(pathname)) {
+          throw new Error(`path: ${pathname} does not exist`);
+        }
+
+        const content = jsonToBru(request);
+        await writeFile(pathname, content);
+      }
     } catch (error) {
       return Promise.reject(error);
     }
@@ -392,9 +442,23 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
+            if (item?.root?.meta?.name) {
+              const folderBruFilePath = path.join(folderPath, 'folder.bru');
+              const folderContent = jsonToCollectionBru(
+                item.root,
+                true // isFolder
+              );
+              fs.writeFileSync(folderBruFilePath, folderContent);
+            }
+
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
+          }
+          // Handle items of type 'js'
+          if (item.type === 'js') {
+            const filePath = path.join(currentPath, `${item.name}.js`);
+            fs.writeFileSync(filePath, item.fileContent);
           }
         });
       };
@@ -412,19 +476,35 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         });
       };
 
+      const getBrunoJsonConfig = (collection) => {
+        let brunoConfig = collection.brunoConfig;
+
+        if (!brunoConfig) {
+          brunoConfig = {
+            version: '1',
+            name: collection.name,
+            type: 'collection',
+            ignore: ['node_modules', '.git']
+          };
+        }
+
+        return brunoConfig;
+      };
+
       await createDirectory(collectionPath);
 
       const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = {
-        version: '1',
-        name: collectionName,
-        type: 'collection'
-      };
-      const content = await stringifyJson(brunoConfig);
-      await writeFile(path.join(collectionPath, 'bruno.json'), content);
+      const brunoConfig = getBrunoJsonConfig(collection);
+      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+
+      // Write the Bruno configuration to a file
+      await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+
+      const collectionContent = jsonToCollectionBru(collection.root);
+      await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid);
+      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
       lastOpenedCollections.add(collectionPath);
 
@@ -454,6 +534,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
+            // If folder has a root element, then I should write its folder.bru file
+            if (item.root) {
+              const folderContent = jsonToCollectionBru(item.root, true);
+              if (folderContent) {
+                const bruFolderPath = path.join(folderPath, `folder.bru`);
+                fs.writeFileSync(bruFolderPath, folderContent);
+              }
+            }
+
             if (item.items && item.items.length) {
               parseCollectionItems(item.items, folderPath);
             }
@@ -462,6 +551,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       };
 
       await createDirectory(collectionPath);
+
+      // If initial folder has a root element, then I should write its folder.bru file
+      if (itemFolder.root) {
+        const folderContent = jsonToCollectionBru(itemFolder.root, true);
+        if (folderContent) {
+          const bruFolderPath = path.join(collectionPath, `folder.bru`);
+          fs.writeFileSync(bruFolderPath, folderContent);
+        }
+      }
 
       // create folder and files based on another folder
       await parseCollectionItems(itemFolder.items, collectionPath);
@@ -551,7 +649,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const jsonData = fs.readFileSync(filePaths[0], 'utf8');
-      return JSON.parse(jsonData);
+      return safeParseJSON(jsonData);
     } catch (err) {
       return Promise.reject(new Error('Failed to load GraphQL schema file'));
     }
@@ -581,9 +679,23 @@ const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) =
     shell.openExternal(docsURL);
   });
 
-  ipcMain.on('main:collection-opened', (win, pathname, uid) => {
-    watcher.addWatcher(win, pathname, uid);
+  ipcMain.on('main:collection-opened', (win, pathname, uid, brunoConfig) => {
+    watcher.addWatcher(win, pathname, uid, brunoConfig);
     lastOpenedCollections.add(pathname);
+    app.addRecentDocument(pathname);
+  });
+
+  // The app listen for this event and allows the user to save unsaved requests before closing the app
+  ipcMain.on('main:start-quit-flow', () => {
+    mainWindow.webContents.send('main:start-quit-flow');
+  });
+
+  ipcMain.handle('main:complete-quit-flow', () => {
+    mainWindow.destroy();
+  });
+
+  ipcMain.handle('main:force-quit', () => {
+    process.exit();
   });
 };
 
