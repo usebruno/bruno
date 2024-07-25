@@ -352,6 +352,10 @@ const runSingleRequest = async function (
         scriptingConfig
       );
       testResults = get(result, 'results', []);
+
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     if (testResults?.length) {
