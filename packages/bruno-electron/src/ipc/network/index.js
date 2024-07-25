@@ -1047,6 +1047,10 @@ const registerNetworkIpc = (mainWindow) => {
                 scriptingConfig
               );
 
+              if (testResults?.nextRequestName !== undefined) {
+                nextRequestName = testResults.nextRequestName;
+              }
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
                 testResults: testResults.results,

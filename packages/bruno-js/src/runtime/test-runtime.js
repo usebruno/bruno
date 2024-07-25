@@ -76,7 +76,8 @@ class TestRuntime {
         request,
         envVariables,
         runtimeVariables,
-        results: __brunoTestResults.getResults()
+        results: __brunoTestResults.getResults(),
+        nextRequestName: bru.nextRequest
       };
     }
 
@@ -147,7 +148,8 @@ class TestRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      results: cleanJson(__brunoTestResults.getResults())
+      results: cleanJson(__brunoTestResults.getResults()),
+      nextRequestName: bru.nextRequest
     };
   }
 }
