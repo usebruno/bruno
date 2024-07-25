@@ -408,10 +408,13 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    const responseScript = compact(scriptingConfig.flow === 'natural' ? [
+      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
+    ] : [
+      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
+    ]).join(os.EOL);
+
     let scriptResult;
-    const responseScript = compact([get(request, 'script.res'), get(collectionRoot, 'request.script.res')]).join(
-      os.EOL
-    );
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime();
       scriptResult = await scriptRuntime.runResponseScript(
@@ -592,10 +595,13 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // run tests
-      const testFile = compact([
-        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-        get(collectionRoot, 'request.tests')
+      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+      const testFile = compact(scriptingConfig.flow === 'natural' ? [
+        get(collectionRoot, 'request.tests'), testScript,
+      ] : [
+        testScript, get(collectionRoot, 'request.tests')
       ]).join(os.EOL);
+
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime();
         const testResults = await testRuntime.runTests(
@@ -1029,10 +1035,13 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run tests
-            const testFile = compact([
-              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-              get(collectionRoot, 'request.tests')
+            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+            const testFile = compact(scriptingConfig.flow === 'natural' ? [
+              get(collectionRoot, 'request.tests'), testScript
+            ] : [
+              testScript, get(collectionRoot, 'request.tests')
             ]).join(os.EOL);
+
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime();
               const testResults = await testRuntime.runTests(
