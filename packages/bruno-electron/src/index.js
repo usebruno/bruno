@@ -50,6 +50,7 @@ app.on('ready', async () => {
     height,
     minWidth: 1000,
     minHeight: 640,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
