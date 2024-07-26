@@ -35,6 +35,7 @@
     "decomment": "^0.9.5",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
+    "http-cookie-agent": "^6.0.5",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
     "inquirer": "^9.1.4",
@@ -43,6 +44,7 @@
     "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
+    "tough-cookie": "^4.1.4",
     "vm2": "^3.9.13",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"

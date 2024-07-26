@@ -19,6 +19,7 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
+const { getWrappedAgent } = require('../utils/http-agent-util');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const runSingleRequest = async function (
@@ -179,21 +180,16 @@ const runSingleRequest = async function (
         proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
       }
 
-      if (socksEnabled) {
-        request.httpsAgent = new SocksProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new SocksProxyAgent(proxyUri);
-      } else {
-        request.httpsAgent = new PatchedHttpsProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new HttpProxyAgent(proxyUri);
-      }
+      const httpsAgentClass = socksEnabled ? SocksProxyAgent: PatchedHttpsProxyAgent;
+      const httpAgentClass = socksEnabled ? SocksProxyAgent : HttpProxyAgent;
+      request.httpsAgent = getWrappedAgent(httpsAgentClass,
+        proxyUri,
+        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+      );
+      request.httpAgent = getWrappedAgent(httpAgentClass, proxyUri);
+
     } else if (Object.keys(httpsAgentRequestFields).length > 0) {
-      request.httpsAgent = new https.Agent({
+      request.httpsAgent = getWrappedAgent(https.Agent, null, {
         ...httpsAgentRequestFields
       });
     }
@@ -206,7 +202,7 @@ const runSingleRequest = async function (
     let response, responseTime;
     try {
       // run request
-      const axiosInstance = makeAxiosInstance();
+      const axiosInstance = makeAxiosInstance(options);
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
