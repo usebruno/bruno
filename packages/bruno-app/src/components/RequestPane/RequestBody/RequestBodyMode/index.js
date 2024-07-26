@@ -133,6 +133,15 @@ const RequestBodyMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('rawFile');
+            }}
+          >
+            Raw File
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('none');
             }}
           >

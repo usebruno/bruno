@@ -68,6 +68,10 @@ const RequestBody = ({ item, collection }) => {
     return <MultipartFormParams item={item} collection={collection} />;
   }
 
+  if (bodyMode === 'rawFile') {
+    return <RawFileParams item={item} collection={collection} />;
+  }
+
   return <StyledWrapper className="w-full">No Body</StyledWrapper>;
 };
 export default RequestBody;

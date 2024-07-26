@@ -629,6 +629,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'Multipart Form';
       break;
     }
+    case 'rawFile': {
+      label = 'Raw File';
+      break;
+    }
   }
 
   return label;
