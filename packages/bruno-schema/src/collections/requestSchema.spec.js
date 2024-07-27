@@ -9,6 +9,7 @@ describe('Request Schema Validation', () => {
       method: 'GET',
       headers: [],
       params: [],
+      tags: ['smoke-test'],
       body: {
         mode: 'none'
       }
