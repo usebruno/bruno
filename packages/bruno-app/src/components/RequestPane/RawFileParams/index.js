@@ -17,4 +17,5 @@ const RawFileParams = ({ item, collection }) => {
 
         </StyledWrapper>
     );
-}
+};
+export default RawFileParams;
