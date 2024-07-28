@@ -33,7 +33,11 @@ const Tags = ({ item, collection }) => {
     return null;
   }
 
-  return <TagList tags={tags} onTagRemove={handleRemove} onTagAdd={handleAdd} />;
+  return (
+    <div>
+      <TagList tags={tags} onTagRemove={handleRemove} onTagAdd={handleAdd} />
+    </div>
+  );
 };
 
 export default Tags;
