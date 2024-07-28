@@ -402,7 +402,11 @@ const builder = async (yargs) => {
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
     )
     .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations')
-    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.');
+    .example('$0 run folder --delay delayInMs', 'Run a folder with given miliseconds delay between each requests.')
+    .example(
+      '$0 run folder --tags=hello,world --exclude-tags=skip',
+      'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
+    );
 };
 
 const handler = async function (argv) {
