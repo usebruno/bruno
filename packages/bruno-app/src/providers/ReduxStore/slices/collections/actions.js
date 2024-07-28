@@ -731,7 +731,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           xml: null,
           sparql: null,
           multipartForm: null,
-          formUrlEncoded: null
+          formUrlEncoded: null,
+          rawFile: null
         }
       }
     };
