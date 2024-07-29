@@ -36,7 +36,6 @@
     "content-disposition": "^0.5.4",
     "decomment": "^0.9.5",
     "dotenv": "^16.0.3",
-    "electron-is-dev": "^2.0.0",
     "electron-notarize": "^1.2.2",
     "electron-store": "^8.1.0",
     "electron-util": "^0.17.2",
