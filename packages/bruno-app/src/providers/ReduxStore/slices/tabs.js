@@ -38,7 +38,8 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request'
+        type: action.payload.type || 'request',
+        ...(action.payload.folderUid ? { folderUid: action.payload.folderUid } : {})
       });
       state.activeTabUid = action.payload.uid;
     },

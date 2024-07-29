@@ -179,6 +179,17 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const getFolderRoot = (dir) => {
+  const folderRootPath = path.join(dir, 'folder.bru');
+  const exists = fs.existsSync(folderRootPath);
+  if (!exists) {
+    return {};
+  }
+
+  const content = fs.readFileSync(folderRootPath, 'utf8');
+  return collectionBruToJson(content);
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -189,6 +200,12 @@ const builder = async (yargs) => {
     .option('cacert', {
       type: 'string',
       description: 'CA certificate to verify peer against'
+    })
+    .option('ignore-truststore', {
+      type: 'boolean',
+      default: false,
+      description:
+        'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
     })
     .option('env', {
       describe: 'Environment variables',
@@ -241,12 +258,33 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
-    .example('$0 run request.bru --tests-only', 'Run all requests that have a test');
+
+    .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
+    .example(
+      '$0 run request.bru --cacert myCustomCA.pem',
+      'Use a custom CA certificate in combination with the default truststore when validating the peer of this request.'
+    )
+    .example(
+      '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
+      'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
+    );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, testsOnly, bail } = argv;
+    let {
+      filename,
+      cacert,
+      ignoreTruststore,
+      env,
+      envVar,
+      insecure,
+      r: recursive,
+      output: outputPath,
+      format,
+      testsOnly,
+      bail
+    } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -274,7 +312,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const collectionVariables = {};
+    const runtimeVariables = {};
     let envVars = {};
 
     if (env) {
@@ -337,6 +375,7 @@ const handler = async function (argv) {
         }
       }
     }
+    options['ignoreTruststore'] = ignoreTruststore;
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
@@ -378,7 +417,7 @@ const handler = async function (argv) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
         const files = fs.readdirSync(filename);
-        const bruFiles = files.filter((file) => file.endsWith('.bru'));
+        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
 
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
@@ -423,7 +462,7 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        collectionVariables,
+        runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,

@@ -1,4 +1,5 @@
 import { uuid } from 'utils/common';
+import path from 'path';
 import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
@@ -32,6 +33,8 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
+
+      collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -89,12 +92,25 @@ export const collectionsSlice = createSlice({
       }
     },
     updateSettingsSelectedTab: (state, action) => {
-      const { collectionUid, tab } = action.payload;
+      const { collectionUid, folderUid, tab } = action.payload;
 
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+      }
+    },
+    updatedFolderSettingsSelectedTab: (state, action) => {
+      const { collectionUid, folderUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const folder = findItemInCollection(collection, folderUid);
+
+        if (folder) {
+          collection.folderLevelSettingsSelectedTab[folderUid] = tab;
+        }
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -184,7 +200,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, collectionVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -214,7 +230,7 @@ export const collectionsSlice = createSlice({
           });
         }
 
-        collection.collectionVariables = collectionVariables;
+        collection.runtimeVariables = runtimeVariables;
       }
     },
     processEnvUpdateEvent: (state, action) => {
@@ -701,7 +717,7 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             type: action.payload.type,
             name: '',
-            value: '',
+            value: action.payload.value,
             description: '',
             enabled: true
           });
@@ -1114,6 +1130,135 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.docs', action.payload.docs);
       }
     },
+    addFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        const headers = get(folder, 'root.request.headers', []);
+        headers.push({
+          uid: uuid(),
+          name: '',
+          value: '',
+          description: '',
+          enabled: true
+        });
+        set(folder, 'root.request.headers', headers);
+      }
+    },
+    updateFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        const headers = get(folder, 'root.request.headers', []);
+        const header = find(headers, (h) => h.uid === action.payload.header.uid);
+        if (header) {
+          header.name = action.payload.header.name;
+          header.value = action.payload.header.value;
+          header.description = action.payload.header.description;
+          header.enabled = action.payload.header.enabled;
+        }
+      }
+    },
+    deleteFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        let headers = get(folder, 'root.request.headers', []);
+        headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
+        set(folder, 'root.request.headers', headers);
+      }
+    },
+    addFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          const vars = get(folder, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(folder, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    deleteFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateFolderRequestScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.req', action.payload.script);
+      }
+    },
+    updateFolderResponseScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.res', action.payload.script);
+      }
+    },
+    updateFolderTests: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.tests', action.payload.tests);
+      }
+    },
     addCollectionHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1155,11 +1300,20 @@ export const collectionsSlice = createSlice({
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
-
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
+        }
+        return;
+      }
+
+      if (isFolderRoot) {
+        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          folderItem.root = file.data;
         }
         return;
       }
@@ -1187,7 +1341,7 @@ export const collectionsSlice = createSlice({
           currentSubItems = childItem.items;
         }
 
-        if (!currentSubItems.find((f) => f.name === file.meta.name)) {
+        if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
           // the add event might get triggered first, before the unlink event
           // this results in duplicate uids causing react renderer to go mad
@@ -1474,6 +1628,7 @@ export const {
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
@@ -1521,6 +1676,15 @@ export const {
   addVar,
   updateVar,
   deleteVar,
+  addFolderHeader,
+  updateFolderHeader,
+  deleteFolderHeader,
+  addFolderVar,
+  updateFolderVar,
+  deleteFolderVar,
+  updateFolderRequestScript,
+  updateFolderResponseScript,
+  updateFolderTests,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
