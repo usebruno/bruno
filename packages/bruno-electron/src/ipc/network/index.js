@@ -408,7 +408,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'natural' ? [
+    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
       get(collectionRoot, 'request.script.res'), get(request, 'script.res')
     ] : [
       get(request, 'script.res'), get(collectionRoot, 'request.script.res')
@@ -596,7 +596,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // run tests
       const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'natural' ? [
+      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
         get(collectionRoot, 'request.tests'), testScript,
       ] : [
         testScript, get(collectionRoot, 'request.tests')
@@ -1036,7 +1036,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'natural' ? [
+            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
               get(collectionRoot, 'request.tests'), testScript
             ] : [
               testScript, get(collectionRoot, 'request.tests')
