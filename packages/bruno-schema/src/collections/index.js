@@ -75,7 +75,7 @@ const multipartFormSchema = Yup.object({
 
 const requestBodySchema = Yup.object({
   mode: Yup.string()
-    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql'])
+    .oneOf(['none', 'json', 'text', 'xml', 'formUrlEncoded', 'multipartForm', 'graphql', 'sparql', 'rawFile'])
     .required('mode is required'),
   json: Yup.string().nullable(),
   text: Yup.string().nullable(),
