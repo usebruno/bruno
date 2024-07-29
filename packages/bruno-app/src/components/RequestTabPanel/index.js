@@ -20,8 +20,8 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 import StyledWrapper from './StyledWrapper';
 import FolderSettings from 'components/FolderSettings';
 
-const MIN_LEFT_PANE_WIDTH = 300;
-const MIN_RIGHT_PANE_WIDTH = 350;
+const MIN_LEFT_PANE_WIDTH = 100;
+const MIN_RIGHT_PANE_WIDTH = 220;
 const DEFAULT_PADDING = 5;
 
 const RequestTabPanel = () => {
