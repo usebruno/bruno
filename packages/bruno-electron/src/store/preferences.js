@@ -35,7 +35,8 @@ const defaultPreferences = {
       username: '',
       password: ''
     },
-    bypassProxy: ''
+    bypassProxy: '',
+    useSystemProxy: false
   }
 };
 
@@ -66,7 +67,8 @@ const preferencesSchema = Yup.object().shape({
       username: Yup.string().max(1024),
       password: Yup.string().max(1024)
     }).optional(),
-    bypassProxy: Yup.string().optional().max(1024)
+    bypassProxy: Yup.string().optional().max(1024),
+    useSystemProxy: Yup.boolean().nullable()
   })
 });
 
@@ -129,11 +131,18 @@ const preferencesUtil = {
   getGlobalProxyConfig: () => {
     return get(getPreferences(), 'proxy', {});
   },
+  shouldUseSystemProxyEnvConfig: () => {
+    return get(getPreferences(), 'proxy.useSystemProxy', false);
+  },
   shouldStoreCookies: () => {
     return get(getPreferences(), 'request.storeCookies', true);
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  getSystemProxyEnvVariables: () => {
+    const { http_proxy, https_proxy } = process.env;
+    return { http_proxy, https_proxy };
   }
 };
 

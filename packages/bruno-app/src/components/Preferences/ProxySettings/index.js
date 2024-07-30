@@ -11,6 +11,8 @@ import { useState } from 'react';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
+  const systemProxyEnvVariables = useSelector((state) => state.app.systemProxyEnvVariables);
+  const { http_proxy, https_proxy } = systemProxyEnvVariables || {};
   const dispatch = useDispatch();
 
   const proxySchema = Yup.object({
@@ -49,7 +51,8 @@ const ProxySettings = ({ close }) => {
         })
       })
       .optional(),
-    bypassProxy: Yup.string().optional().max(1024)
+    bypassProxy: Yup.string().optional().max(1024),
+    useSystemProxy: Yup.boolean()
   });
 
   const formik = useFormik({
@@ -63,7 +66,8 @@ const ProxySettings = ({ close }) => {
         username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
         password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || '',
+      useSystemProxy: preferences.proxy.useSystemProxy || false
     },
     validationSchema: proxySchema,
     onSubmit: (values) => {
@@ -103,7 +107,8 @@ const ProxySettings = ({ close }) => {
         username: preferences.proxy.auth ? preferences.proxy.auth.username || '' : '',
         password: preferences.proxy.auth ? preferences.proxy.auth.password || '' : ''
       },
-      bypassProxy: preferences.proxy.bypassProxy || ''
+      bypassProxy: preferences.proxy.bypassProxy || '',
+      useSystemProxy: preferences.proxy.useSystemProxy || false
     });
   }, [preferences]);
 
@@ -290,6 +295,28 @@ const ProxySettings = ({ close }) => {
           {formik.touched.bypassProxy && formik.errors.bypassProxy ? (
             <div className="ml-3 text-red-500">{formik.errors.bypassProxy}</div>
           ) : null}
+        </div>
+        <div className="mb-3 flex items-start">
+          <label className="settings-label" htmlFor="useSystemProxy">
+            System Proxy
+          </label>
+          <div className="flex flex-col gap-2 justify-start items-start">
+            <input
+              type="checkbox"
+              name="useSystemProxy"
+              checked={formik.values.useSystemProxy}
+              onChange={formik.handleChange}
+              className="mt-1"
+            />
+            <div className="flex flex-row gap-4">
+              <div className="opacity-50 w-[80px]">http_proxy</div>
+              <div className="opacity-80">{http_proxy || '-'}</div>
+            </div>
+            <div className="flex flex-row gap-4">
+              <div className="opacity-50 w-[80px]">https_proxy</div>
+              <div className="opacity-80">{https_proxy || '-'}</div>
+            </div>
+          </div>
         </div>
         <div className="mt-6">
           <button type="submit" className="submit btn btn-md btn-secondary">

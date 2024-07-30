@@ -168,7 +168,26 @@ const configureRequest = async (
     proxyEnabled = get(proxyConfig, 'enabled', false);
   }
   const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-  if (proxyEnabled === true && shouldProxy) {
+  
+  let systemProxyEnabled = preferencesUtil.shouldUseSystemProxyEnvConfig();
+  if (systemProxyEnabled && shouldProxy) {
+    const { http_proxy, https_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    try {
+      new URL(http_proxy);
+    } catch (error) {
+      throw new Error('Invalid system http_proxy');
+    }
+    try {
+      new URL(https_proxy);
+    } catch (error) {
+      throw new Error('Invalid system https_proxy');
+    }
+    request.httpsAgent = new PatchedHttpsProxyAgent(
+      https_proxy,
+      Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+    );
+    request.httpAgent = new HttpProxyAgent(http_proxy);
+  } else if (proxyEnabled === true && shouldProxy) {
     const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
     const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
     const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
