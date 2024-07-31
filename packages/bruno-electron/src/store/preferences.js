@@ -141,8 +141,12 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.sendCookies', true);
   },
   getSystemProxyEnvVariables: () => {
-    const { http_proxy, https_proxy } = process.env;
-    return { http_proxy, https_proxy };
+    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
+    return {
+      http_proxy: http_proxy || HTTP_PROXY,
+      https_proxy: https_proxy || HTTPS_PROXY,
+      no_proxy: no_proxy || NO_PROXY
+    };
   }
 };
 

@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .settings-label {
-    width: 120px;
+    width: 150px;
   }
 
   .textbox {
