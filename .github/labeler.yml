@@ -1,0 +1,51 @@
+docs:
+  - changed-files:
+      - any-glob-to-any-file: 'docs/**'
+
+packages/bruno-app:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-app/**'
+
+packages/bruno-cli:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-cli/**'
+
+packages/bruno-common:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-common/**'
+
+packages/bruno-docs:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-docs/**'
+
+packages/bruno-electron:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-electron/**'
+
+packages/bruno-graphql-docs:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-graphql-docs/**'
+
+packages/bruno-js:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-js/**'
+
+packages/bruno-lang:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-lang/**'
+
+packages/bruno-query:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-query/**'
+
+packages/bruno-schema:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-schema/**'
+
+packages/bruno-tests:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-tests/**'
+
+packages/bruno-toml:
+  - changed-files:
+      - any-glob-to-any-file: 'packages/bruno-toml/**'
