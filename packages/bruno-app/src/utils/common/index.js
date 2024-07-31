@@ -1,5 +1,6 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
+import { stringify } from 'lossless-json';
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {
@@ -43,9 +44,9 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
   try {
     if (indent) {
-      return JSON.stringify(obj, null, 2);
+      return stringify(obj, null, 2);
     }
-    return JSON.stringify(obj);
+    return stringify(obj);
   } catch (e) {
     return obj;
   }
