@@ -192,10 +192,7 @@ export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    const externalSecrets = getExternalCollectionSecretsForActiveEnvironment({ collection });
-    const secretVariables = getFormattedCollectionSecretVariables({ externalSecrets });
-
-    _sendCollectionOauth2Request(collection, environment, collectionCopy.runtimeVariables, itemUid, secretVariables)
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         if (response?.data?.error) {
           toast.error(response?.data?.error);
