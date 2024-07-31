@@ -10,8 +10,8 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
     mainWindow.webContents.send('main:load-preferences', preferences);
 
     const systemProxyVars = preferencesUtil.getSystemProxyEnvVariables();
-    const { http_proxy, https_proxy } = systemProxyVars || {};
-    mainWindow.webContents.send('main:load-system-proxy-env', { http_proxy, https_proxy });
+    const { http_proxy, https_proxy, no_proxy } = systemProxyVars || {};
+    mainWindow.webContents.send('main:load-system-proxy-env', { http_proxy, https_proxy, no_proxy });
 
     // reload last opened collections
     const lastOpened = lastOpenedCollections.getAll();
