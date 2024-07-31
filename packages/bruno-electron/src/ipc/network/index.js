@@ -174,17 +174,21 @@ const configureRequest = async (
     const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
     if (shouldUseSystemProxy) {
       try {
-        http_proxy && http_proxy?.length > 0 && new URL(http_proxy);
-        request.httpAgent = new HttpProxyAgent(http_proxy);
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          request.httpAgent = new HttpProxyAgent(http_proxy);
+        }
       } catch (error) {
         throw new Error('Invalid system http_proxy');
       }
       try {
-        https_proxy && https_proxy?.length > 0 && new URL(https_proxy);
-        request.httpsAgent = new PatchedHttpsProxyAgent(
-          https_proxy,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
