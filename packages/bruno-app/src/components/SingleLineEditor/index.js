@@ -26,6 +26,18 @@ class SingleLineEditor extends Component {
     /** @type {import("codemirror").Editor} */
     const variables = getAllVariables(this.props.collection, this.props.item);
 
+    const runHandler = () => {
+      if (this.props.onRun) {
+        this.props.onRun();
+      }
+    };
+    const saveHandler = () => {
+      if (this.props.onSave) {
+        this.props.onSave();
+      }
+    };
+    const noopHandler = () => {};
+
     this.editor = CodeMirror(this.editorRef.current, {
       lineWrapping: false,
       lineNumbers: false,
@@ -37,21 +49,9 @@ class SingleLineEditor extends Component {
       scrollbarStyle: null,
       tabindex: 0,
       extraKeys: {
-        Enter: () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Ctrl-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
+        Enter: runHandler,
+        'Ctrl-Enter': runHandler,
+        'Cmd-Enter': runHandler,
         'Alt-Enter': () => {
           if (this.props.allowNewlines) {
             this.editor.setValue(this.editor.getValue() + '\n');
@@ -60,23 +60,11 @@ class SingleLineEditor extends Component {
             this.props.onRun();
           }
         },
-        'Shift-Enter': () => {
-          if (this.props.onRun) {
-            this.props.onRun();
-          }
-        },
-        'Cmd-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Ctrl-S': () => {
-          if (this.props.onSave) {
-            this.props.onSave();
-          }
-        },
-        'Cmd-F': () => {},
-        'Ctrl-F': () => {},
+        'Shift-Enter': runHandler,
+        'Cmd-S': saveHandler,
+        'Ctrl-S': saveHandler,
+        'Cmd-F': noopHandler,
+        'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
         Tab: false,
         'Shift-Tab': false
