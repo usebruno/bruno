@@ -43,7 +43,6 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   // collection variables + folder variables + request variables
   const resolvedRequestVariables = request?.resolvedRequestVariables || {};
   let { collection } = request;
-  console.log('interpolate vars', request.collectionVariables, request.folderVariables, request.requestVariables);
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -113,7 +112,6 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
     let uid = request?.headersWithDetails?.findLast((h) => h?.name === key)?.uid;
-    console.log('request headers', uid, key, value);
     request.headers[_interpolate(key, uid)] = _interpolate(value, uid);
   });
   request?.headersWithDetails && delete request.headersWithDetails;

@@ -69,7 +69,6 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
 
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
-    console.log('save reuqest full', collectionCopy, item, itemUid);
 
     if (!item) {
       return reject(new Error('Not able to locate item'));
@@ -1126,6 +1125,5 @@ export const requestVariablesUpdateEvent =
   ({ requestVariables, itemUid, collectionUid }) =>
   (dispatch, getState) => {
     dispatch(requestVariablesUpdate({ requestVariables, itemUid, collectionUid }));
-    console.log('save request through requestVariablesUpdateEvent', requestVariables, itemUid, collectionUid);
     dispatch(saveRequest(itemUid, collectionUid, true));
   };

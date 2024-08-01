@@ -42,7 +42,6 @@ const mergeHeaders = (collection, request, requestTreePath) => {
     ...(_value?.uid ? { uid: _value?.uid } : {})
   }));
 
-  console.log('merged headers', request.headers);
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
