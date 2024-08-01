@@ -4,6 +4,9 @@ const StyledWrapper = styled.div`
   div.CodeMirror {
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
+    display: flex;
+    height: 100vh;
+    flex-flow: column;
   }
 
   textarea.cm-editor {
