@@ -42,14 +42,34 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 
 ![bruno](assets/images/landing-2.png) <br /><br />
 
-### Golden Edition ✨
+## Golden Edition ✨
 
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
 You can buy the [Golden Edition](https://www.usebruno.com/pricing) for a one-time payment of **$19**! <br/>
 
-### Installation
+## Table of Contents
+- [Installation](#installation)
+- [Features](#features)
+  - [Run across multiple platforms 🖥️](#run-across-multiple-platforms-%EF%B8%8F)
+  - [Collaborate via Git 👩‍💻🧑‍💻](#collaborate-via-git-)
+- [Sponsors](#sponsors)
+  - [Gold Sponsors](#gold-sponsors)
+  - [Silver Sponsors](#silver-sponsors)
+  - [Bronze Sponsors](#bronze-sponsors)
+- [Important Links 📌](#important-links-)
+- [Showcase 🎥](#showcase-)
+- [Support ❤️](#support-%EF%B8%8F)
+- [Share Testimonials 📣](#share-testimonials-)
+- [Publishing to New Package Managers](#publishing-to-new-package-managers)
+- [Stay in touch 🌐](#stay-in-touch-)
+- [Trademark](#trademark)
+- [Contribute 👩‍💻🧑‍💻](#contribute-)
+- [Authors](#authors)
+- [License 📄](#license-)
+
+## Installation
 
 Bruno is available as binary download [on our website](https://www.usebruno.com/downloads) for Mac, Windows and Linux.
 
@@ -85,6 +105,8 @@ sudo apt update
 sudo apt install bruno
 ```
 
+## Features
+
 ### Run across multiple platforms 🖥️
 
 ![bruno](assets/images/run-anywhere.png) <br /><br />
@@ -95,7 +117,7 @@ Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
 
-### Sponsors
+## Sponsors
 
 #### Gold Sponsors
 
@@ -111,7 +133,7 @@ Or any version control system of your choice
     <img src="assets/images/sponsors/zuplo.png" width="120"/>
 </a>
 
-### Important Links 📌
+## Important Links 📌
 
 - [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
 - [Roadmap](https://github.com/usebruno/bruno/discussions/384)
@@ -122,32 +144,32 @@ Or any version control system of your choice
 - [Download](https://www.usebruno.com/downloads)
 - [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
-### Showcase 🎥
+## Showcase 🎥
 
 - [Testimonials](https://github.com/usebruno/bruno/discussions/343)
 - [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
 - [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
 
-### Support ❤️
+## Support ❤️
 
 If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
 
-### Share Testimonials 📣
+## Share Testimonials 📣
 
 If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
 
-### Publishing to New Package Managers
+## Publishing to New Package Managers
 
 Please see [here](publishing.md) for more information.
 
-### Stay in touch 🌐
+## Stay in touch 🌐
 
 [𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
 [Website](https://www.usebruno.com) <br />
 [Discord](https://discord.com/invite/KgcZUncpjq) <br />
 [LinkedIn](https://www.linkedin.com/company/usebruno)
 
-### Trademark
+## Trademark
 
 **Name**
 
@@ -157,13 +179,13 @@ Please see [here](publishing.md) for more information.
 
 The logo is sourced from [OpenMoji](https://openmoji.org/library/emoji-1F436/). License: CC [BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
 
-### Contribute 👩‍💻🧑‍💻
+## Contribute 👩‍💻🧑‍💻
 
 I am happy that you are looking to improve bruno. Please check out the [contributing guide](contributing.md)
 
 Even if you are not able to make contributions via code, please don't hesitate to file bugs and feature requests that needs to be implemented to solve your use case.
 
-### Authors
+## Authors
 
 <div align="center">
     <a href="https://github.com/usebruno/bruno/graphs/contributors">
@@ -171,6 +193,6 @@ Even if you are not able to make contributions via code, please don't hesitate t
     </a>
 </div>
 
-### License 📄
+## License 📄
 
 [MIT](license.md)
