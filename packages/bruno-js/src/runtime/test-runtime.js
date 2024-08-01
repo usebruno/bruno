@@ -47,7 +47,7 @@ class TestRuntime {
   ) {
     const resolvedRequestVariables = request?.resolvedRequestVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const folderVariables = request?.folderVariables || {};
+    const folderVariables = request?.folderVariables || [];
     const collectionVariables = request?.collectionVariables || {};
     const bru = new Bru(
       envVariables,

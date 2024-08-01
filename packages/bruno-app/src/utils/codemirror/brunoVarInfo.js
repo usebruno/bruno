@@ -30,7 +30,7 @@ if (!SERVER_RENDERED) {
 
     if (str.startsWith('{{')) {
       variableName = str.replace('{{', '').replace('}}', '').trim();
-      variableValue = interpolate(get(options.variables, variableName), options.variables);
+      variableValue = interpolate(`{{${variableName}}}`, options.variables);
     } else if (str.startsWith('/:')) {
       variableName = str.replace('/:', '').trim();
       variableValue =
@@ -84,9 +84,9 @@ if (!SERVER_RENDERED) {
     if (target.nodeName !== 'SPAN' || state.hoverTimeout !== undefined) {
       return;
     }
-    if (!target.classList.contains('cm-variable-valid')) {
-      return;
-    }
+    // if (!target.classList.contains('cm-variable-valid')) {
+    //   return;
+    // }
 
     const box = target.getBoundingClientRect();
 

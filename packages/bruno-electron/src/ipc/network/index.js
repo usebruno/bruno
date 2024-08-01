@@ -83,14 +83,7 @@ const getEnvVars = (environment = {}) => {
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
-const configureRequest = async (
-  collectionUid,
-  request,
-  envVars,
-  runtimeVariables,
-  processEnvVars,
-  collectionPath
-) => {
+const configureRequest = async (collectionUid, request, envVars, runtimeVariables, processEnvVars, collectionPath) => {
   if (!protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
   }
@@ -316,37 +309,42 @@ const registerNetworkIpc = (mainWindow) => {
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
       const varsRuntime = new VarsRuntime();
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
+      varsRuntime.runPreRequestVars(preRequestVars, request, envVars, runtimeVariables, collectionPath, processEnvVars);
     }
 
     // run pre-request script
     let scriptResult;
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      scriptResult = await scriptRuntime.runRequestScript(
-        decomment(requestScript),
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig
-      );
-
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        requestUid,
-        collectionUid
+      requestScript?.forEach(async (rs) => {
+        const scriptRuntime = new ScriptRuntime();
+        scriptResult = await scriptRuntime.runRequestScript(
+          decomment(rs),
+          request,
+          envVars,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: scriptResult.envVariables,
+          runtimeVariables: scriptResult.runtimeVariables,
+          collectionVariables: scriptResult.collectionVariables,
+          requestVariables: scriptResult.requestVariables,
+          requestUid,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:collection-variables-update', {
+          collectionVariables: scriptResult.collectionVariables,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:request-variables-update', {
+          requestVariables: scriptResult.requestVariables,
+          itemUid: request?.uid,
+          collectionUid
+        });
       });
     }
 
@@ -411,24 +409,26 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const responseScript = get(request, 'script.res');
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
-      scriptResult = await scriptRuntime.runResponseScript(
-        decomment(responseScript),
-        request,
-        response,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        onConsoleLog,
-        processEnvVars,
-        scriptingConfig
-      );
+      responseScript?.forEach(async (rs) => {
+        const scriptRuntime = new ScriptRuntime();
+        scriptResult = await scriptRuntime.runResponseScript(
+          decomment(rs),
+          request,
+          response,
+          envVars,
+          runtimeVariables,
+          collectionPath,
+          onConsoleLog,
+          processEnvVars,
+          scriptingConfig
+        );
 
-      mainWindow.webContents.send('main:script-environment-update', {
-        envVariables: scriptResult.envVariables,
-        runtimeVariables: scriptResult.runtimeVariables,
-        requestUid,
-        collectionUid
+        mainWindow.webContents.send('main:script-environment-update', {
+          envVariables: scriptResult.envVariables,
+          runtimeVariables: scriptResult.runtimeVariables,
+          requestUid,
+          collectionUid
+        });
       });
     }
     return scriptResult;
@@ -450,7 +450,9 @@ const registerNetworkIpc = (mainWindow) => {
     });
 
     const collectionRoot = get(collection, 'root', {});
-    const request = prepareRequest(item, collection);
+    let request = prepareRequest(item, collection);
+    request.collection = cloneDeep(collection);
+    request.uid = item?.uid;
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);

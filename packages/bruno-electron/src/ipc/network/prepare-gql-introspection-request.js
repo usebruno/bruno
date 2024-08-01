@@ -5,7 +5,7 @@ const { setAuthHeaders } = require('./prepare-request');
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = interpolate(endpoint, envVars);
+    endpoint = interpolate(endpoint, { envVars });
   }
 
   const queryParams = {

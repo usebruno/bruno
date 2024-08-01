@@ -16,9 +16,11 @@ const interpolateString = (str, { envVars, runtimeVariables, processEnvVars }) =
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
     envVars[key] = interpolate(value, {
-      process: {
-        env: {
-          ...processEnvVars
+      processEnvVars: {
+        process: {
+          env: {
+            ...processEnvVars
+          }
         }
       }
     });
@@ -26,13 +28,15 @@ const interpolateString = (str, { envVars, runtimeVariables, processEnvVars }) =
 
   // runtimeVariables take precedence over envVars
   const combinedVars = {
-    ...envVars,
-    ...runtimeVariables,
-    process: {
-      env: {
-        ...processEnvVars
+    processEnvVars: {
+      process: {
+        env: {
+          ...processEnvVars
+        }
       }
-    }
+    },
+    envVars,
+    runtimeVariables
   };
 
   return interpolate(str, combinedVars);

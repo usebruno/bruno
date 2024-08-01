@@ -97,6 +97,7 @@ const Headers = ({ collection, folder }) => {
                         }
                         autocomplete={headerAutoCompleteList}
                         collection={collection}
+                        item={{ ...folder?.root, uid: folder?.uid }}
                       />
                     </td>
                     <td>
@@ -116,6 +117,7 @@ const Headers = ({ collection, folder }) => {
                           )
                         }
                         collection={collection}
+                        item={{ ...folder?.root, uid: folder?.uid }}
                       />
                     </td>
                     <td>

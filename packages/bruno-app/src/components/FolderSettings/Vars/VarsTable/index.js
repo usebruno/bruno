@@ -130,6 +130,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                           )
                         }
                         collection={collection}
+                        item={{ ...folder?.root, uid: folder?.uid }}
                       />
                     </td>
                     <td>

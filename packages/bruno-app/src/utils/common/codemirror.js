@@ -1,4 +1,6 @@
 import get from 'lodash/get';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -12,7 +14,7 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
-export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
+export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams, variablePrecedence) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
     const { pathParams = {}, ...variables } = _variables || {};
     const variablesOverlay = {
@@ -23,7 +25,8 @@ export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPa
           while ((ch = stream.next()) != null) {
             if (ch === '}' && stream.peek() === '}') {
               stream.eat('}');
-              const found = pathFoundInVariables(word, variables);
+              const interpolatedWord = interpolate(`{{${word}}}`, variables);
+              const found = interpolatedWord && !interpolatedWord.includes('{{') && !interpolatedWord.includes('}}');
               const status = found ? 'valid' : 'invalid';
               const randomClass = `random-${(Math.random() + 1).toString(36).substring(9)}`;
               return `variable-${status} ${randomClass}`;

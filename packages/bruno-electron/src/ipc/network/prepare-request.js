@@ -11,7 +11,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
   each(get(collection, 'root.request.headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
-      headers.set(h.name, h.value);
+      headers.set(h.name, { value: h.value });
       if (h.name.toLowerCase() === 'content-type') {
         contentTypeDefined = true;
       }
@@ -22,46 +22,35 @@ const mergeHeaders = (collection, request, requestTreePath) => {
       let _headers = get(i, 'root.request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name, { value: header.value, uid: i?.uid });
         }
       });
     } else {
       let _headers = get(i, 'request.headers', []);
       _headers.forEach((header) => {
         if (header.enabled) {
-          headers.set(header.name, header.value);
+          headers.set(header.name, { value: header.value });
         }
       });
     }
   }
 
-  let mergedHeaders = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
-  let requestHeaders = request.headers || [];
-  let requestHeadersMap = new Map();
+  request.headers = Array.from(headers, ([name, _value]) => ({
+    name,
+    value: _value?.value,
+    enabled: true,
+    ...(_value?.uid ? { uid: _value?.uid } : {})
+  }));
 
-  mergedHeaders.forEach((header) => {
-    requestHeadersMap.set(header.name, header.value);
-  });
-
-  for (let header of requestHeaders) {
-    if (header.enabled) {
-      requestHeadersMap.set(header.name, header.value);
-    }
-  }
-
-  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
+  console.log('merged headers', request.headers);
 };
 
 const mergeVars = (collection, request, requestTreePath) => {
   let reqVars = new Map();
-  let collectionVariables = {};
-  let folderVariables = {};
-  let requestVariables = {};
   let collectionRequestVars = get(collection, 'root.request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       reqVars.set(_var.name, _var.value);
-      collectionVariables[_var?.name] = _var?.value;
     }
   });
   for (let i of requestTreePath) {
@@ -70,7 +59,6 @@ const mergeVars = (collection, request, requestTreePath) => {
       vars.forEach((_var) => {
         if (_var.enabled) {
           reqVars.set(_var.name, _var.value);
-          folderVariables[_var?.name] = _var?.value;
         }
       });
     } else {
@@ -78,7 +66,6 @@ const mergeVars = (collection, request, requestTreePath) => {
       vars.forEach((_var) => {
         if (_var.enabled) {
           reqVars.set(_var.name, _var.value);
-          requestVariables[_var?.name] = _var?.value;
         }
       });
     }
@@ -89,9 +76,6 @@ const mergeVars = (collection, request, requestTreePath) => {
     enabled: true,
     type: 'request'
   }));
-  request.collectionVariables = collectionVariables;
-  request.folderVariables = folderVariables;
-  request.requestVariables = requestVariables;
 
   let resVars = new Map();
   let collectionResponseVars = get(collection, 'root.request.vars.res', []);
@@ -123,6 +107,29 @@ const mergeVars = (collection, request, requestTreePath) => {
     enabled: true,
     type: 'response'
   }));
+
+  // ---------------------------------------------------------------
+  let collectionVariables = [];
+  let folderVariables = [];
+  let requestVariables = [];
+  collectionVariables = collectionRequestVars.filter((v) => v?.enabled);
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let _folderVariables = [];
+      let folderRequestVars = get(i, 'root.request.vars.req', []);
+      _folderVariables = folderRequestVars.filter((v) => v?.enabled);
+      folderVariables.push(_folderVariables);
+    } else {
+      let rRequestVars = get(i, 'request.vars.req', []);
+      requestVariables = rRequestVars?.filter((v) => v?.enabled);
+    }
+  }
+  // ---------------------------------------------------------------
+
+  request.collectionVariables = collectionVariables;
+  request.folderVariables = folderVariables;
+  request.requestVariables = requestVariables;
 };
 
 const mergeScripts = (collection, request, requestTreePath) => {
@@ -156,12 +163,13 @@ const mergeScripts = (collection, request, requestTreePath) => {
     }
   }
 
+  // inject the uid for requestTreePathCalc and getAllVariables for bru.getFolderVar
   if (combinedPreReqScript.length) {
-    request.script.req = compact([...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+    request.script.req = [...combinedPreReqScript, request?.script?.req || ''];
   }
 
   if (combinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse()]).join(os.EOL);
+    request.script.res = [request?.script?.res || '', ...combinedPostResScript.reverse()];
   }
 
   if (combinedTests.length) {
@@ -326,6 +334,7 @@ const prepareRequest = (item, collection) => {
     method: request.method,
     url,
     headers,
+    headersWithDetails: request.headers,
     pathParams: request?.params?.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };

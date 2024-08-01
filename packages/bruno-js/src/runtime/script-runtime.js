@@ -46,7 +46,7 @@ class ScriptRuntime {
   ) {
     const resolvedRequestVariables = request?.resolvedRequestVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const folderVariables = request?.folderVariables || {};
+    const folderVariables = request?.folderVariables || [];
     const collectionVariables = request?.collectionVariables || {};
     const bru = new Bru(
       envVariables,
@@ -138,6 +138,8 @@ class ScriptRuntime {
     return {
       request,
       envVariables: cleanJson(envVariables),
+      collectionVariables: cleanJson(collectionVariables),
+      requestVariables: cleanJson(requestVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       nextRequestName: bru.nextRequest
     };
@@ -156,7 +158,7 @@ class ScriptRuntime {
   ) {
     const resolvedRequestVariables = request?.resolvedRequestVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const folderVariables = request?.folderVariables || {};
+    const folderVariables = request?.folderVariables || [];
     const collectionVariables = request?.collectionVariables || {};
     const bru = new Bru(
       envVariables,
@@ -245,6 +247,8 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
+      collectionVariables: cleanJson(collectionVariables),
+      requestVariables: cleanJson(requestVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       nextRequestName: bru.nextRequest
     };

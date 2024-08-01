@@ -1,58 +1,160 @@
-/**
- * The interpolation function expects a string with placeholders and an object with the values to replace the placeholders.
- * The keys passed can have dot notation too.
- *
- * Ex: interpolate('Hello, my name is ${user.name} and I am ${user.age} years old', {
- *  "user.name": "Bruno",
- *  "user": {
- *   "age": 4
- *  }
- * });
- * Output: Hello, my name is Bruno and I am 4 years old
- */
-
-import { Set } from 'typescript';
 import { flattenObject } from '../utils';
 
-const interpolate = (str: string, obj: Record<string, any>): string => {
-  if (!str || typeof str !== 'string' || !obj || typeof obj !== 'object') {
+type T_Variables = {
+  processEnvVars?: Record<string, any>;
+  envVars?: Record<string, any>;
+  collectionVariables?: Record<string, any>;
+  folderVariables?: Record<string, any>[];
+  requestVariables?: Record<string, any>;
+  runtimeVariables?: Record<string, any>;
+};
+
+type T_VariablesEnumerated = {
+  processEnvVars?: Record<string, any>;
+  envVars?: Record<string, any>;
+  collectionVariables?: Record<string, any>;
+  [key: `folderVariables${number}`]: Record<string, any>;
+  requestVariables?: Record<string, any>;
+  runtimeVariables?: Record<string, any>;
+};
+
+const interpolate = (str: string, variables: T_Variables): string => {
+  if (
+    !str ||
+    typeof str !== 'string' ||
+    !variables ||
+    typeof variables !== 'object' ||
+    !Object.keys(variables || {})?.length
+  ) {
     return str;
   }
 
-  const flattenedObj = flattenObject(obj);
+  let { folderVariables = [], ...enumeratedVariables } = variables;
+  enumeratedVariables = {
+    ...enumeratedVariables,
+    ...folderVariables?.reduce((acc: Record<string, any>, fv: Record<string, any>, idx: number) => {
+      acc[`folderVariables${idx}`] = fv;
+      return acc;
+    }, {})
+  };
 
-  return replace(str, flattenedObj);
-};
+  let variableGroupPrecedenceOrder = [
+    'processEnvVars',
+    'envVars',
+    'collectionVariables',
+    ...(folderVariables?.map((_: Record<string, any>, idx: number) => `folderVariables${idx}`) || []),
+    'requestVariables',
+    'runtimeVariables'
+  ];
 
-const replace = (
-  str: string,
-  flattenedObj: Record<string, any>,
-  visited = new Set<String>(),
-  results = new Map<string, string>()
-): string => {
-  const patternRegex = /\{\{([^}]+)\}\}/g;
+  const allowedVariableGroupsForInterpolation: Record<string, string[]> = {
+    processEnvVars: [],
+    envVars: ['processEnvVars'],
+    collectionVariables: ['processEnvVars', 'envVars', 'runtimeVariables'],
+    ...folderVariables?.reduce((acc: Record<string, any>, fv: Record<string, any>, idx: number) => {
+      acc[`folderVariables${idx}`] = [
+        'processEnvVars',
+        'envVars',
+        'collectionVariables',
+        ...Array.from({ length: idx })?.map((_, jdx) => `folderVariables${jdx}`),
+        'runtimeVariables'
+      ];
+      return acc;
+    }, {}),
+    requestVariables: [
+      'processEnvVars',
+      'envVars',
+      'collectionVariables',
+      ...(folderVariables?.map((_: Record<string, any>, idx: number) => `folderVariables${idx}`) || []),
+      'runtimeVariables'
+    ],
+    runtimeVariables: [
+      'processEnvVars',
+      'envVars',
+      'collectionVariables',
+      ...(folderVariables?.map((_: Record<string, any>, idx: number) => `folderVariables${idx}`) || []),
+      'requestVariables'
+    ]
+  };
 
-  return str.replace(patternRegex, (match, placeholder) => {
-    const replacement = flattenedObj[placeholder];
+  const getVariableGroupsBasedonPrecedence = (variables: T_VariablesEnumerated, str: string) => {
+    const variableGroupKeyIndex = Object.entries(variables)?.findIndex(([key, value]) => {
+      return value && typeof value === 'object' && Object.keys(flattenObject(value))?.includes(str) ? key : false;
+    });
 
-    if (results.has(match)) {
-      return results.get(match);
-    }
+    const variableGroupKey = Object.entries(variables)?.[variableGroupKeyIndex]?.[0] as keyof T_VariablesEnumerated;
 
-    if (patternRegex.test(replacement) && !visited.has(match)) {
-      visited.add(match);
-      const result = replace(replacement, flattenedObj, visited, results);
+    return (
+      allowedVariableGroupsForInterpolation?.[variableGroupKey]?.reduce(
+        (acc: Record<string, any>, k: string) => {
+          let key = k as keyof T_VariablesEnumerated;
+          if (variables[key]) {
+            acc[key] = variables[key];
+          }
+          return acc;
+        },
+        {
+          [variableGroupKey]: variables[variableGroupKey]
+        }
+      ) || {}
+    );
+  };
+
+  const flattenVariableGroups = (variables: T_VariablesEnumerated): Record<string, any> => {
+    let _variables = variableGroupPrecedenceOrder
+      ?.map((k) => {
+        let key = k as keyof T_VariablesEnumerated;
+        return variables[key] || {};
+      })
+      ?.reduce((acc, v) => {
+        acc = {
+          ...acc,
+          ...v
+        };
+        return acc;
+      }, {});
+    return flattenObject(_variables);
+  };
+
+  const replace = (
+    str: string,
+    variables: T_VariablesEnumerated,
+    visited = new Set<String>(),
+    results = new Map<string, string>()
+  ): string => {
+    const patternRegex = /\{\{([^}]+)\}\}/g;
+
+    return str.replace(patternRegex, (match, placeholder: string) => {
+      const relevantVariableGroups = getVariableGroupsBasedonPrecedence(variables, placeholder);
+      const flattenedVariableGroups = flattenVariableGroups(relevantVariableGroups);
+
+      if (results.has(match)) {
+        return results.get(match);
+      }
+
+      const replacement = flattenedVariableGroups[placeholder];
+
+      if (replacement === undefined) {
+        return match; // No replacement found, return the original match
+      }
+      patternRegex.lastIndex = 0;
+      if (patternRegex.test(replacement) && !visited.has(match)) {
+        visited.add(match);
+        const result = replace(replacement, relevantVariableGroups, visited, results);
+        results.set(match, result);
+        visited.delete(placeholder);
+        return result;
+      }
+
+      // visited.add(match);
+      const result = replacement !== undefined ? replacement : match;
       results.set(match, result);
 
       return result;
-    }
+    });
+  };
 
-    visited.add(match);
-    const result = replacement !== undefined ? replacement : match;
-    results.set(match, result);
-
-    return result;
-  });
+  return replace(str, enumeratedVariables);
 };
 
 export default interpolate;

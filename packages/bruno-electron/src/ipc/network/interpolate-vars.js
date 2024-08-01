@@ -1,5 +1,32 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep, find, get } = require('lodash');
+const { getTreePathFromCollectionToItem } = require('../../utils/collection');
+
+const mergeVarsForARequestTreePath = (collection, requestTreePath = []) => {
+  let collectionVariables = [];
+  let folderVariables = [];
+  let requestVariables = [];
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionVariables = collectionRequestVars.filter((v) => v?.enabled);
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let _folderVariables = [];
+      let folderRequestVars = get(i, 'root.request.vars.req', []);
+      _folderVariables = folderRequestVars.filter((v) => v?.enabled);
+
+      folderVariables.push(_folderVariables);
+    } else {
+      let rRequestVars = get(i, 'request.vars.req', []);
+      requestVariables = rRequestVars?.filter((v) => v?.enabled);
+    }
+  }
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
+};
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -15,6 +42,8 @@ const getContentType = (headers = {}) => {
 const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
   // collection variables + folder variables + request variables
   const resolvedRequestVariables = request?.resolvedRequestVariables || {};
+  let { collection } = request;
+  console.log('interpolate vars', request.collectionVariables, request.folderVariables, request.requestVariables);
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -22,31 +51,60 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   // so we need to interpolate envVars first with processEnvVars
   forOwn(envVars, (value, key) => {
     envVars[key] = interpolate(value, {
-      process: {
-        env: {
-          ...processEnvVars
+      processEnvVars: {
+        process: {
+          env: {
+            ...processEnvVars
+          }
         }
       }
     });
   });
 
-  const _interpolate = (str) => {
+  const _interpolate = (str, itemUid) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
-    // runtimeVariables take precedence over envVars
-    const combinedVars = {
-      process: {
-        env: {
-          ...processEnvVars
-        }
-      },
-      ...envVars,
-      ...resolvedRequestVariables,
-      ...runtimeVariables
+    const getVariablesKeyValuePairs = (variables) => {
+      if (!variables) return variables;
+      return variables?.reduce((acc, v) => {
+        return {
+          ...acc,
+          [v?.name]: v?.value
+        };
+      }, {});
     };
 
+    let combinedVars = {};
+
+    if (itemUid) {
+      const requestTreePath = getTreePathFromCollectionToItem(collection, { uid: itemUid });
+      let { collectionVariables, folderVariables, requestVariables } = mergeVarsForARequestTreePath(
+        collection,
+        requestTreePath
+      );
+      combinedVars = {
+        processEnvVars,
+        envVars,
+        collectionVariables: { ...getVariablesKeyValuePairs(collectionVariables) },
+        folderVariables: [...folderVariables?.map((fv) => getVariablesKeyValuePairs(fv))],
+        requestVariables: { ...getVariablesKeyValuePairs(requestVariables) },
+        runtimeVariables
+      };
+      // console.log('combinedVars', collectionVariables, folderVariables, requestVariables, combinedVars);
+    } else {
+      let { collectionVariables, folderVariables, requestVariables } = request;
+      combinedVars = {
+        processEnvVars,
+        envVars,
+        collectionVariables: { ...getVariablesKeyValuePairs(collectionVariables) },
+        folderVariables: [...folderVariables?.map((fv) => getVariablesKeyValuePairs(fv))],
+        requestVariables: { ...getVariablesKeyValuePairs(requestVariables) },
+        runtimeVariables
+      };
+      // console.log('combinedVars', collectionVariables, folderVariables, requestVariables, combinedVars);
+    }
     return interpolate(str, combinedVars);
   };
 
@@ -54,8 +112,11 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
 
   forOwn(request.headers, (value, key) => {
     delete request.headers[key];
-    request.headers[_interpolate(key)] = _interpolate(value);
+    let uid = request?.headersWithDetails?.findLast((h) => h?.name === key)?.uid;
+    console.log('request headers', uid, key, value);
+    request.headers[_interpolate(key, uid)] = _interpolate(value, uid);
   });
+  request?.headersWithDetails && delete request.headersWithDetails;
 
   const contentType = getContentType(request.headers);
 

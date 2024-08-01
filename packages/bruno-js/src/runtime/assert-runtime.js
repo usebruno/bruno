@@ -170,7 +170,9 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     runtimeVariables: context.bru.runtimeVariables,
     envVariables: context.bru.envVariables,
     processEnvVars: context.bru.processEnvVars,
-    resolvedRequestVariables: context.bru.resolvedRequestVariables
+    collectionVariables: context.bru.collectionVariables,
+    folderVariables: context.bru.folderVariables,
+    requestVariables: context.bru.requestVariables
   };
 
   // gracefully allow both a,b as well as [a, b]
@@ -211,7 +213,19 @@ class AssertRuntime {
       return [];
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, resolvedRequestVariables);
+    const requestVariables = request?.requestVariables || {};
+    const folderVariables = request?.folderVariables || [];
+    const collectionVariables = request?.collectionVariables || {};
+    const bru = new Bru(
+      envVariables,
+      runtimeVariables,
+      processEnvVars,
+      undefined,
+      resolvedRequestVariables,
+      requestVariables,
+      folderVariables,
+      collectionVariables
+    );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 

@@ -3,6 +3,16 @@ const { interpolate } = require('@usebruno/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
+const getVariablesKeyValuePairs = (variables) => {
+  if (!variables) return variables;
+  return variables?.reduce((acc, v) => {
+    return {
+      ...acc,
+      [v?.name]: v?.value
+    };
+  }, {});
+};
+
 class Bru {
   constructor(
     envVariables,
@@ -18,7 +28,7 @@ class Bru {
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.requestVariables = requestVariables || {};
-    this.folderVariables = folderVariables || {};
+    this.folderVariables = folderVariables || [];
     this.collectionVariables = collectionVariables || {};
     this.resolvedRequestVariables = resolvedRequestVariables || {};
     this.collectionPath = collectionPath;
@@ -30,14 +40,18 @@ class Bru {
     }
 
     const combinedVars = {
-      process: {
-        env: {
-          ...this.processEnvVars
+      processEnvVars: {
+        process: {
+          env: {
+            ...this.processEnvVars
+          }
         }
       },
-      ...this.envVariables,
-      ...this.resolvedRequestVariables,
-      ...this.runtimeVariables
+      envVariables: { ...this.envVariables },
+      collectionVariables: { ...getVariablesKeyValuePairs(this.collectionVariables) },
+      folderVariables: [...this.folderVariables?.map((fv) => getVariablesKeyValuePairs(fv))],
+      requestVariables: { ...getVariablesKeyValuePairs(this.requestVariables) },
+      runtimeVariables: { ...this.runtimeVariables }
     };
 
     return interpolate(str, combinedVars);
@@ -106,15 +120,70 @@ class Bru {
   }
 
   getRequestVar(key) {
-    return this._interpolate(this.requestVariables[key]);
+    return this.requestVariables?.findLast((v) => v?.name === key)?.value;
+  }
+
+  setRequestVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    let existingVar = false;
+    this.requestVariables?.forEach((v) => {
+      if (v?.name === key && value?.toString) {
+        existingVar = true;
+        v.value = value?.toString();
+      }
+    });
+    if (!existingVar) {
+      this.requestVariables?.push({
+        name: key,
+        value: value?.toString()
+      });
+    }
   }
 
   getCollectionVar(key) {
-    return this._interpolate(this.collectionVariables[key]);
+    return this.collectionVariables?.findLast((v) => v?.name === key)?.value;
+  }
+
+  setCollectionVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    let existingVar = false;
+    this.collectionVariables?.forEach((v) => {
+      if (v?.name === key && value?.toString) {
+        existingVar = true;
+        v.value = value?.toString();
+      }
+    });
+    if (!existingVar) {
+      this.collectionVariables?.push({
+        name: key,
+        value: value?.toString()
+      });
+    }
   }
 
   getFolderVar(key) {
-    return this._interpolate(this.folderVariables[key]);
+    return null;
+    // return this._interpolate(this.folderVariables[key]);
   }
 
   setNextRequest(nextRequest) {
@@ -122,7 +191,8 @@ class Bru {
   }
 
   getResolvedRequestVar(key) {
-    return this._interpolate(this.resolvedRequestVariables[key]);
+    return null;
+    // return this._interpolate(this.resolvedRequestVariables[key]);
   }
 }
 

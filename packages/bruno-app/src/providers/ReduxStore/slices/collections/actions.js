@@ -30,7 +30,9 @@ import {
   removeCollection as _removeCollection,
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
+  collectionVariablesUpdate,
   requestCancelled,
+  requestVariablesUpdate,
   resetRunResults,
   responseReceived,
   updateLastAction
@@ -67,6 +69,8 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
 
     const collectionCopy = cloneDeep(collection);
     const item = findItemInCollection(collectionCopy, itemUid);
+    console.log('save reuqest full', collectionCopy, item, itemUid);
+
     if (!item) {
       return reject(new Error('Not able to locate item'));
     }
@@ -1110,3 +1114,18 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
   });
 };
+
+export const collectionVariablesUpdateEvent =
+  ({ collectionVariables, collectionUid }) =>
+  (dispatch, getState) => {
+    dispatch(collectionVariablesUpdate({ collectionVariables, collectionUid }));
+    saveCollectionRoot(collectionUid);
+  };
+
+export const requestVariablesUpdateEvent =
+  ({ requestVariables, itemUid, collectionUid }) =>
+  (dispatch, getState) => {
+    dispatch(requestVariablesUpdate({ requestVariables, itemUid, collectionUid }));
+    console.log('save request through requestVariablesUpdateEvent', requestVariables, itemUid, collectionUid);
+    dispatch(saveRequest(itemUid, collectionUid, true));
+  };

@@ -229,8 +229,34 @@ export const collectionsSlice = createSlice({
             }
           });
         }
-
         collection.runtimeVariables = runtimeVariables;
+      }
+    },
+    collectionVariablesUpdate: (state, action) => {
+      const { collectionVariables, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        if (collectionVariables?.length && collection?.root?.request?.vars) {
+          collection.root.request.vars.req = collectionVariables?.map((cv) => ({
+            ...cv,
+            value: cv?.value?.toString()
+          }));
+        }
+      }
+    },
+    requestVariablesUpdate: (state, action) => {
+      const { requestVariables, itemUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+        if (item) {
+          if (requestVariables?.length && item?.request?.vars) {
+            item.request.vars.req = requestVariables?.map((rv) => ({
+              ...rv,
+              value: rv?.value?.toString()
+            }));
+          }
+        }
       }
     },
     processEnvUpdateEvent: (state, action) => {
@@ -1702,6 +1728,8 @@ export const {
   renameItem,
   cloneItem,
   scriptEnvironmentUpdateEvent,
+  collectionVariablesUpdate,
+  requestVariablesUpdate,
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,
