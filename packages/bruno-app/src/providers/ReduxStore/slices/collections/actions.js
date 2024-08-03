@@ -1014,6 +1014,16 @@ export const browseFiles =
     });
   };
 
+  export const browseFile =
+  (filters = []) =>
+  (dispatch, getState) => {
+    const { ipcRenderer } = window;
+
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('renderer:browse-file', filters).then(resolve).catch(reject);
+    });
+  };
+
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
 

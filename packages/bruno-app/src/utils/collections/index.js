@@ -698,7 +698,6 @@ export const refreshUidsInItem = (item) => {
   each(get(item, 'request.params'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.multipartForm'), (param) => (param.uid = uuid()));
   each(get(item, 'request.body.formUrlEncoded'), (param) => (param.uid = uuid()));
-  each(get(item, 'request.body.rawFile'), (param) => (param.uid = uuid()));
 
   return item;
 };
