@@ -117,14 +117,18 @@ const browseFiles = async (win, filters) => {
 };
 
 const browseFile = async (win, filters) => {
-  const { filePath } = await dialog.showOpenDialog(win, {
+  const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile'],
     filters
   });
 
-  if(!filePath) {
+  if(!filePaths) {
     return null;
   }
+
+  const filePath = normalizeAndResolvePath(filePaths[0]);
+
+  return isFile(filePath) ? filePath : null;
 }
 
 const chooseFileToSave = async (win, preferredFileName = '') => {
