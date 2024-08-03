@@ -16,6 +16,9 @@ const bodyTextBegin = regex(/^body\s*\(\s*type\s*=\s*text\s*\)\s*\r?\n/);
 // body(type=xml)
 const bodyXmlBegin = regex(/^body\s*\(\s*type\s*=\s*xml\s*\)\s*\r?\n/);
 
+// body(type=rawFile)
+const bodyRawFile = regex(/^body\s*\(\s*type\s*=\s*raw-file\s*\)\s*\r?\n/);
+
 const bodyEnd = regex(/^[\r?\n]+\/body\s*[\r?\n]*/);
 
 const bodyJsonTag = between(bodyJsonBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyJson) => {
@@ -61,6 +64,15 @@ const bodyXmlTag = between(bodyXmlBegin)(bodyEnd)(everyCharUntil(bodyEnd)).map((
     }
   };
 });
+
+
+const bodyRawFileTag = between(bodyRawFile)(bodyEnd)(everyCharUntil(bodyEnd)).map((bodyRawFile)) => {
+  return {
+    body: {
+      rawFile: bodyRawFile
+    }
+  }
+}
 
 /**
  * We have deprecated form-url-encoded type in body tag, it was a misspelling on my part
@@ -118,6 +130,7 @@ module.exports = {
   bodyGraphqlVarsTag,
   bodyTextTag,
   bodyXmlTag,
+  bodyRawFileTag,
   bodyFormUrlEncodedTagDeprecated,
   bodyFormUrlEncodedTag,
   bodyMultipartFormTag
