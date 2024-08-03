@@ -762,23 +762,6 @@ export const collectionsSlice = createSlice({
         }
       }
     },
-    updateRawFile: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-
-      if(collection) {
-        const item = findItemInCollection(collection, action.payload.itemUid);
-
-        if (item && isItemARequest(item)) {
-          if (!item.draft) {
-            item.draft = cloneDeep(item);
-          }
-          const param = find(item.draft.request.body.rawFile, (p) => p.uid === action.payload.param.uid);
-          if (param) {
-            param.value = action.payload.param.value;
-          }
-        }
-      }
-    },
     updateRequestAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1682,7 +1665,6 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
-  updateRawFile,
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,

@@ -3,23 +3,20 @@ import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { updateRawFile } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
-import FilePickerEditor from 'components/FilePickerEditor';
+import RawFilePickerEditor from 'components/RawFilePickerEditor';
+import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 
 const RawFileParams = ({ item, collection }) => {
     const dispatch = useDispatch();
     const { storedTheme } = useTheme();
     const fileName = item.draft ? get(item, 'draft.request.body.rawFile') : get(item, 'request.body.rawFile') || [];
 
-    const handleFileChange = (e, __filename) => {
-        const fileName = cloneDeep(__filename);
-        fileName.value = e.target.value;
-
+    const handleFileChange = (e) => {
         dispatch(
-            updateRawFile({
-                param: fileName,
+            updateRequestBody({
+                content: e.target.value,
                 itemUid: item.uid,
                 collectionUid: collection.uid
             })
@@ -28,16 +25,15 @@ const RawFileParams = ({ item, collection }) => {
 
     return (
         <StyledWrapper>
-            <FilePickerEditor
-                value={ fileName ? fileName.value : null }
+            <RawFilePickerEditor
+                value={ fileName ? fileName : null }
                 onChange={(newValue) =>
                     handleFileChange(
                         {
                             target: {
                                 value: newValue
                             }
-                        },
-                        fileName
+                        }
                     )
                 }
                 collection={collection} />
