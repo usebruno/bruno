@@ -119,7 +119,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
   }));
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath) => {
+const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
   let folderCombinedTests = [];
@@ -147,11 +147,19 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
   }
 
   if (folderCombinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    if (scriptFlow === 'natural') {
+      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    } else {
+      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    }
   }
 
   if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    if (scriptFlow === 'natural') {
+      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
+    } else {
+      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    }
   }
 };
 
@@ -301,10 +309,12 @@ const prepareRequest = (item, collection) => {
     }
   });
 
+  // scriptFlow is either "sandwich" or "natural"
+  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath);
+    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
     mergeFolderLevelVars(request, requestTreePath);
   }
 
