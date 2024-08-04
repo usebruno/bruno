@@ -24,7 +24,7 @@ const RawFileParams = ({ item, collection }) => {
     };
 
     return (
-        <StyledWrapper>
+        <StyledWrapper className="w-full">
             <RawFilePickerEditor
                 value={ fileName ? fileName : null }
                 onChange={(newValue) =>
