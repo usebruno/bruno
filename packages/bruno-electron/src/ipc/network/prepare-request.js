@@ -392,8 +392,8 @@ const prepareRequest = (item, collection) => {
   }
 
   if(request.body.mode === 'rawFile') {
-    if (request.body.rawFile && request.body.rawFile.value) {
-      axiosRequest.data = fs.readFileSync(request.body.rawFile.value);
+    if (request.body.rawFile) {
+      axiosRequest.data = fs.readFileSync(request.body.rawFile);
       fileLength = axiosRequest.data.length;
       axiosRequest.headers['content-length'] = fileLength;
     } else {
