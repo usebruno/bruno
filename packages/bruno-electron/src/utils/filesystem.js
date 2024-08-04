@@ -122,7 +122,7 @@ const browseFile = async (win, filters) => {
     filters
   });
 
-  if(!filePaths) {
+  if (!filePaths || filePaths[0] === undefined) {
     return null;
   }
 

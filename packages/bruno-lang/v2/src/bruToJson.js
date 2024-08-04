@@ -24,7 +24,7 @@ const { outdentString } = require('../../v1/src/utils');
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | params | headers | auths | bodies | varsandassert | script | tests | docs)*
   auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
-  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
+  bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | bodyrawfile | body
   bodyforms = bodyformurlencoded | bodymultipart
   params = paramspath | paramsquery
 
@@ -93,6 +93,7 @@ const grammar = ohm.grammar(`Bru {
   bodyjson = "body:json" st* "{" nl* textblock tagend
   bodytext = "body:text" st* "{" nl* textblock tagend
   bodyxml = "body:xml" st* "{" nl* textblock tagend
+  bodyrawfile = "body:raw-file" st* "{" nl* textblock tagend
   bodysparql = "body:sparql" st* "{" nl* textblock tagend
   bodygraphql = "body:graphql" st* "{" nl* textblock tagend
   bodygraphqlvars = "body:graphql:vars" st* "{" nl* textblock tagend
@@ -525,6 +526,13 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     return {
       body: {
         xml: outdentString(textblock.sourceString)
+      }
+    };
+  },
+  bodyrawfile(_1, _2, _3, _4, textblock, _5) {
+    return {
+      body: {
+        rawFile: outdentString(textblock.sourceString)
       }
     };
   },
