@@ -77,8 +77,7 @@ describe('bruToJson', () => {
               name: 'password',
               value: 'governingdynamics'
             }
-          ],
-          rawFile: '/test/file.txt'
+          ]
         },
         script: "const foo='bar';",
         tests: "bruno.test('200 ok', () => {});"
