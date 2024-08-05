@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
+import { uuid } from 'utils/common/index';
 
 const formatResponse = (data, mode, filter) => {
   if (data === undefined) {
@@ -59,18 +60,18 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
 
   const allowedPreviewModes = useMemo(() => {
     // Always show raw
-    const allowedPreviewModes = ['raw'];
+    const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
 
     if (mode.includes('html') && typeof data === 'string') {
-      allowedPreviewModes.unshift('preview-web');
+      allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
     } else if (mode.includes('image')) {
-      allowedPreviewModes.unshift('preview-image');
+      allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });
     } else if (contentType.includes('pdf')) {
-      allowedPreviewModes.unshift('preview-pdf');
+      allowedPreviewModes.unshift({ mode: 'preview-pdf', name: 'PDF', uid: uuid() });
     } else if (contentType.includes('audio')) {
-      allowedPreviewModes.unshift('preview-audio');
+      allowedPreviewModes.unshift({ mode: 'preview-audio', name: 'Audio', uid: uuid() });
     } else if (contentType.includes('video')) {
-      allowedPreviewModes.unshift('preview-video');
+      allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
     }
 
     return allowedPreviewModes;
@@ -79,7 +80,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const [previewTab, setPreviewTab] = useState(allowedPreviewModes[0]);
   // Ensure the active Tab is always allowed
   useEffect(() => {
-    if (!allowedPreviewModes.includes(previewTab)) {
+    if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
       setPreviewTab(allowedPreviewModes[0]);
     }
   }, [previewTab, allowedPreviewModes]);
@@ -91,12 +92,15 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
 
     return allowedPreviewModes.map((previewMode) => (
       <div
-        className={classnames('select-none capitalize', previewMode === previewTab ? 'active' : 'cursor-pointer')}
+        className={classnames(
+          'select-none capitalize',
+          previewMode?.uid === previewTab?.uid ? 'active' : 'cursor-pointer'
+        )}
         role="tab"
         onClick={() => setPreviewTab(previewMode)}
-        key={previewMode}
+        key={previewMode?.uid}
       >
-        {previewMode.replace(/-(.*)/, ' ')}
+        {previewMode?.name}
       </div>
     ));
   }, [allowedPreviewModes, previewTab]);
