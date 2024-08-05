@@ -1,8 +1,9 @@
 import React, { Component } from 'react';
 import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
-import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
+import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -20,6 +21,10 @@ class SingleLineEditor extends Component {
     this.cachedValue = props.value || '';
     this.editorRef = React.createRef();
     this.variables = {};
+
+    this.state = {
+      maskInput: props.isSecret || false // Always mask the input by default (if it's a secret)
+    };
   }
   componentDidMount() {
     // Initialize CodeMirror as a single line editor
@@ -81,7 +86,23 @@ class SingleLineEditor extends Component {
     this.editor.setValue(String(this.props.value) || '');
     this.editor.on('change', this._onEdit);
     this.addOverlay(variables);
+    this._enableMaskedEditor(this.props.isSecret);
+    this.setState({ maskInput: this.props.isSecret });
   }
+
+  /** Enable or disable masking the rendered content of the editor */
+  _enableMaskedEditor = (enabled) => {
+    if (typeof enabled !== 'boolean') return;
+
+    console.log('Enabling masked editor: ' + enabled);
+    if (enabled == true) {
+      if (!this.maskedEditor) this.maskedEditor = new MaskedEditor(this.editor, '*');
+      this.maskedEditor.enable();
+    } else {
+      this.maskedEditor?.disable();
+      this.maskedEditor = null;
+    }
+  };
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
@@ -110,6 +131,12 @@ class SingleLineEditor extends Component {
       this.cachedValue = String(this.props.value);
       this.editor.setValue(String(this.props.value) || '');
     }
+    if (!isEqual(this.props.isSecret, prevProps.isSecret)) {
+      // If the secret flag has changed, update the editor to reflect the change
+      this._enableMaskedEditor(this.props.isSecret);
+      // also set the maskInput flag to the new value
+      this.setState({ maskInput: this.props.isSecret });
+    }
     this.ignoreChangeEvent = false;
   }
 
@@ -123,8 +150,35 @@ class SingleLineEditor extends Component {
     this.editor.setOption('mode', 'brunovariables');
   };
 
+  toggleVisibleSecret = () => {
+    const isVisible = !this.state.maskInput;
+    this.setState({ maskInput: isVisible });
+    this._enableMaskedEditor(isVisible);
+  };
+
+  /**
+   * @brief Eye icon to show/hide the secret value
+   * @returns ReactComponent The eye icon
+   */
+  secretEye = (isSecret) => {
+    return isSecret === true ? (
+      <button className="mx-2" onClick={() => this.toggleVisibleSecret()}>
+        {this.state.maskInput === true ? (
+          <IconEyeOff size={18} strokeWidth={2} />
+        ) : (
+          <IconEye size={18} strokeWidth={2} />
+        )}
+      </button>
+    ) : null;
+  };
+
   render() {
-    return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
+    return (
+      <div className="flex flex-row justify-between w-full">
+        <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        {this.secretEye(this.props.isSecret)}
+      </div>
+    );
   }
 }
 export default SingleLineEditor;

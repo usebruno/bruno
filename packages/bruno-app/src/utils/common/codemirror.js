@@ -12,6 +12,64 @@ const pathFoundInVariables = (path, obj) => {
   return value !== undefined;
 };
 
+/**
+ * Changes the render behaviour for a given CodeMirror editor.
+ * Replaces all **rendered** characters, not the actual value, with the provided character.
+ */
+export class MaskedEditor {
+  /**
+   * @param {import('codemirror').Editor} editor CodeMirror editor instance
+   * @param {string} maskChar Target character being applied to all content
+   */
+  constructor(editor, maskChar) {
+    this.editor = editor;
+    this.maskChar = maskChar;
+    this.enabled = false;
+  }
+
+  /**
+   * Set and apply new masking character
+   */
+  enable = () => {
+    this.enabled = true;
+    this.editor.setValue(this.editor.getValue());
+    this.editor.on('inputRead', this.maskContent);
+    this.update();
+  };
+
+  /** Disables masking of the editor field. */
+  disable = () => {
+    this.enabled = false;
+    this.editor.off('inputRead', this.maskContent);
+    this.editor.setValue(this.editor.getValue());
+  };
+
+  /** Updates the rendered content if enabled. */
+  update = () => {
+    if (this.enabled) this.maskContent();
+  };
+
+  /** Replaces all rendered characters, with the provided character. */
+  maskContent = () => {
+    const content = this.editor.getValue();
+    this.editor.operation(() => {
+      // Clear previous masked text
+      this.editor.getAllMarks().forEach((mark) => mark.clear());
+      // Apply new masked text
+      for (let i = 0; i < content.length; i++) {
+        if (content[i] !== '\n') {
+          const maskedNode = document.createTextNode(this.maskChar);
+          this.editor.markText(
+            { line: this.editor.posFromIndex(i).line, ch: this.editor.posFromIndex(i).ch },
+            { line: this.editor.posFromIndex(i + 1).line, ch: this.editor.posFromIndex(i + 1).ch },
+            { replacedWith: maskedNode, handleMouseEvents: true }
+          );
+        }
+      }
+    });
+  };
+}
+
 export const defineCodeMirrorBrunoVariablesMode = (_variables, mode, highlightPathParams) => {
   CodeMirror.defineMode('brunovariables', function (config, parserConfig) {
     const { pathParams = {}, ...variables } = _variables || {};
