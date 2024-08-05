@@ -173,13 +173,18 @@ export const exportCollection = (collection) => {
 
   const generateHost = (url) => {
     try {
-      const { hostname } = new URL(url);
-      return hostname.split('.');
+      if (url.includes('{{') && url.includes('}}')) {
+        return url;
+      } else {
+        const { hostname } = new URL(url);
+        return hostname.split('.');
+      }
     } catch (error) {
       console.error(`Invalid URL: ${url}`, error);
       return [];
     }
   };
+
 
   const generatePathParams = (params) => {
     return params.filter((param) => param.type === 'path').map((param) => `:${param.name}`);
