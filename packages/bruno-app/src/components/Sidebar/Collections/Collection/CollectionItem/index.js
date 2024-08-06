@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -51,8 +51,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   const [{ isOver }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
-    drop: (draggedItem) => {
+    drop: async (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
+        // save unsaved request changes before moving the request item
+        if (draggedItem.draft) {
+          await dispatch(saveRequest(draggedItem.uid, collection.uid, true));
+        }
         dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
       }
     },
