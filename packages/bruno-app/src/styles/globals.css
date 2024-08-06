@@ -58,9 +58,12 @@ body::-webkit-scrollbar-thumb,
   border-radius: 5rem;
 }
 
-* {
-  /* This ensures that scrollbars are only visible when the user starts to scroll,
-  providing a cleaner and more minimalistic appearance. */
+/*
+ * Mac-specific scrollbar styling
+ * This ensures that scrollbars are only visible when the user starts to scroll,
+ * providing a cleaner and more minimalistic appearance.
+ */
+body.os-mac * {
   scrollbar-width: thin;
 }
 
