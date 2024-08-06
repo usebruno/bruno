@@ -92,8 +92,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
         }
       });
     } else if (i.uid === request.uid) {
-      let vars = request.vars?.req ?? [];
-      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderResVars.set(_var.name, _var.value);
