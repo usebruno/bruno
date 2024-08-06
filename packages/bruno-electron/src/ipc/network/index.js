@@ -38,7 +38,6 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
-const { parse, LosslessNumber } = require('lossless-json');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -286,11 +285,7 @@ const parseDataFromResponse = (response) => {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    data = parse(data, null, (value) => {
-      // By default, this will return the LosslessNumber object, but because it's passed into ipc we
-      // need to convert it into a number because LosslessNumber is converted into an object
-      return new LosslessNumber(value).valueOf();
-    });
+    data = JSON.parse(data);
   } catch {}
 
   return { data, dataBuffer };
