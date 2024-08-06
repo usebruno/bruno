@@ -18,8 +18,8 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
-    } else {
-      let headers = get(i, 'request.headers', []);
+    } else if (i.uid === request.uid) {
+      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       headers.forEach((header) => {
         if (header.enabled) {
           folderHeaders.set(header.name, header.value);
@@ -55,8 +55,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderReqVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.req', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderReqVars.set(_var.name, _var.value);
@@ -91,8 +91,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderResVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.res', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderResVars.set(_var.name, _var.value);
