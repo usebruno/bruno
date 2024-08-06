@@ -68,6 +68,7 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
+  mainWindow.show();
   const url = isDev
     ? 'http://localhost:3000'
     : format({
