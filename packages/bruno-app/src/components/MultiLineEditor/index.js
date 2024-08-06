@@ -30,6 +30,7 @@ class MultiLineEditor extends Component {
       lineWrapping: false,
       lineNumbers: false,
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
+      placeholder: this.props.placeholder,
       mode: 'brunovariables',
       brunoVarInfo: {
         variables
