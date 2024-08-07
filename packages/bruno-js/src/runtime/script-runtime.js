@@ -47,6 +47,8 @@ class ScriptRuntime {
     const resolvedRequestVariables = request?.resolvedRequestVariables || {};
     const requestVariables = request?.requestVariables || {};
     const folderVariables = request?.folderVariables || [];
+    const currentFolderIdx = request?.folderIdx;
+    const currentFolderVariables = request?.folderVariables?.[currentFolderIdx] || [];
     const collectionVariables = request?.collectionVariables || {};
     const bru = new Bru(
       envVariables,
@@ -56,7 +58,8 @@ class ScriptRuntime {
       resolvedRequestVariables,
       requestVariables,
       folderVariables,
-      collectionVariables
+      collectionVariables,
+      currentFolderVariables
     );
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -139,6 +142,7 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       collectionVariables: cleanJson(collectionVariables),
+      folderVariables: cleanJson(folderVariables),
       requestVariables: cleanJson(requestVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       nextRequestName: bru.nextRequest
@@ -160,6 +164,8 @@ class ScriptRuntime {
     const requestVariables = request?.requestVariables || {};
     const folderVariables = request?.folderVariables || [];
     const collectionVariables = request?.collectionVariables || {};
+    const currentFolderIdx = request?.folderIdx;
+    const currentFolderVariables = request?.folderVariables?.[currentFolderIdx] || [];
     const bru = new Bru(
       envVariables,
       runtimeVariables,
@@ -168,7 +174,8 @@ class ScriptRuntime {
       resolvedRequestVariables,
       requestVariables,
       folderVariables,
-      collectionVariables
+      collectionVariables,
+      currentFolderVariables
     );
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

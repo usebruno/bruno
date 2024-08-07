@@ -17,6 +17,7 @@ import {
 import {
   collectionAddEnvFileEvent,
   collectionVariablesUpdateEvent,
+  folderVariablesUpdateEvent,
   openCollectionEvent,
   requestVariablesUpdateEvent
 } from 'providers/ReduxStore/slices/collections/actions';
@@ -117,6 +118,10 @@ const useIpcEvents = () => {
       dispatch(requestVariablesUpdateEvent(val));
     });
 
+    const removeFolderVariablesUpdateListener = ipcRenderer.on('main:folder-variables-update', (val) => {
+      dispatch(folderVariablesUpdateEvent(val));
+    });
+
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
       dispatch(collectionRenamedEvent(val));
     });
@@ -161,6 +166,7 @@ const useIpcEvents = () => {
       removeScriptEnvUpdateListener();
       removeCollectionVariablesUpdateListener();
       removeRequestVariablesUpdateListener();
+      removeFolderVariablesUpdateListener();
       removeCollectionRenamedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();

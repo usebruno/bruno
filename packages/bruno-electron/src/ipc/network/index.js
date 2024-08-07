@@ -316,8 +316,10 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
-      requestScript?.forEach(async (rs) => {
+      requestScript?.forEach(async (rs, idx) => {
         const scriptRuntime = new ScriptRuntime();
+        // adjust index by 1 to compensate for collection pre-request script
+        request.folderIdx = idx - 1;
         scriptResult = await scriptRuntime.runRequestScript(
           decomment(rs),
           request,
@@ -331,8 +333,6 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: scriptResult.envVariables,
           runtimeVariables: scriptResult.runtimeVariables,
-          collectionVariables: scriptResult.collectionVariables,
-          requestVariables: scriptResult.requestVariables,
           requestUid,
           collectionUid
         });
@@ -343,6 +343,10 @@ const registerNetworkIpc = (mainWindow) => {
         mainWindow.webContents.send('main:request-variables-update', {
           requestVariables: scriptResult.requestVariables,
           itemUid: request?.uid,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:folder-variables-update', {
+          folderVariables: scriptResult?.folderVariables,
           collectionUid
         });
       });
@@ -410,6 +414,8 @@ const registerNetworkIpc = (mainWindow) => {
     const responseScript = get(request, 'script.res');
     if (responseScript?.length) {
       responseScript?.forEach(async (rs) => {
+        // adjust index by 1 to compensate for collection pre-request script
+        request.folderIdx = idx - 1;
         const scriptRuntime = new ScriptRuntime();
         scriptResult = await scriptRuntime.runResponseScript(
           decomment(rs),
@@ -427,6 +433,19 @@ const registerNetworkIpc = (mainWindow) => {
           envVariables: scriptResult.envVariables,
           runtimeVariables: scriptResult.runtimeVariables,
           requestUid,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:collection-variables-update', {
+          collectionVariables: scriptResult.collectionVariables,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:request-variables-update', {
+          requestVariables: scriptResult.requestVariables,
+          itemUid: request?.uid,
+          collectionUid
+        });
+        mainWindow.webContents.send('main:folder-variables-update', {
+          folderVariables: scriptResult?.folderVariables,
           collectionUid
         });
       });

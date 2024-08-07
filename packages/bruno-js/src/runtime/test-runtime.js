@@ -49,6 +49,8 @@ class TestRuntime {
     const requestVariables = request?.requestVariables || {};
     const folderVariables = request?.folderVariables || [];
     const collectionVariables = request?.collectionVariables || {};
+    const currentFolderIdx = request?.folderIdx;
+    const currentFolderVariables = request?.folderVariables?.[currentFolderIdx] || [];
     const bru = new Bru(
       envVariables,
       runtimeVariables,
@@ -57,7 +59,8 @@ class TestRuntime {
       resolvedRequestVariables,
       requestVariables,
       folderVariables,
-      collectionVariables
+      collectionVariables,
+      currentFolderVariables
     );
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);

@@ -1,5 +1,6 @@
 const { cloneDeep } = require('lodash');
 const { interpolate } = require('@usebruno/common');
+const { uuid } = require('../../bruno-electron/src/utils/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
@@ -22,13 +23,15 @@ class Bru {
     resolvedRequestVariables,
     requestVariables,
     folderVariables,
-    collectionVariables
+    collectionVariables,
+    currentFolderVariables
   ) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.requestVariables = requestVariables || {};
     this.folderVariables = folderVariables || [];
+    this.currentFolderVariables = currentFolderVariables || [];
     this.collectionVariables = collectionVariables || {};
     this.resolvedRequestVariables = resolvedRequestVariables || {};
     this.collectionPath = collectionPath;
@@ -145,9 +148,46 @@ class Bru {
     if (!existingVar) {
       this.requestVariables?.push({
         name: key,
-        value: value?.toString()
+        value: value?.toString(),
+        enabled: true,
+        local: false,
+        uid: uuid()
       });
     }
+  }
+
+  getFolderVar(key) {
+    return this.currentFolderVariables?.findLast((v) => v?.name === key)?.value;
+  }
+
+  setFolderVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a variable without specifying a name is not allowed.');
+    }
+
+    if (variableNameRegex.test(key) === false) {
+      throw new Error(
+        `Variable name: "${key}" contains invalid characters!` +
+          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+      );
+    }
+
+    let existingVar = false;
+    this.currentFolderVariables?.forEach((v) => {
+      if (v?.name === key && value?.toString) {
+        existingVar = true;
+        v.value = value?.toString();
+      }
+    });
+    // if (!existingVar) {
+    //   this.currentFolderVariables?.push({
+    //     name: key,
+    //     value: value?.toString(),
+    //     enabled: true,
+    //     local: false,
+    //     uid: uuid()
+    //   });
+    // }
   }
 
   getCollectionVar(key) {
@@ -176,21 +216,19 @@ class Bru {
     if (!existingVar) {
       this.collectionVariables?.push({
         name: key,
-        value: value?.toString()
+        value: value?.toString(),
+        enabled: true,
+        local: false,
+        uid: uuid()
       });
     }
-  }
-
-  getFolderVar(key) {
-    return null;
-    // return this._interpolate(this.folderVariables[key]);
   }
 
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
   }
 
-  getResolvedRequestVar(key) {
+  resolveVar(key) {
     return null;
     // return this._interpolate(this.resolvedRequestVariables[key]);
   }

@@ -31,6 +31,7 @@ import {
   selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
   collectionVariablesUpdate,
+  folderVariablesUpdate,
   requestCancelled,
   requestVariablesUpdate,
   resetRunResults,
@@ -1125,5 +1126,12 @@ export const requestVariablesUpdateEvent =
   ({ requestVariables, itemUid, collectionUid }) =>
   (dispatch, getState) => {
     dispatch(requestVariablesUpdate({ requestVariables, itemUid, collectionUid }));
+    dispatch(saveRequest(itemUid, collectionUid, true));
+  };
+
+export const folderVariablesUpdateEvent =
+  ({ folderVariables, itemUid, collectionUid }) =>
+  (dispatch, getState) => {
+    dispatch(folderVariablesUpdate({ folderVariables, itemUid, collectionUid }));
     dispatch(saveRequest(itemUid, collectionUid, true));
   };

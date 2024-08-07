@@ -11,6 +11,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
 import slash from 'utils/common/slash';
+import { forEach } from 'lodash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -880,4 +881,21 @@ const mergeVars = (collection, requestTreePath = []) => {
     folderVariables,
     requestVariables
   };
+};
+
+export const findFolderItemInCollectionUsingPreVarUid = (collection, preVarUid) => {
+  let folderItemFound;
+  let flattenedItems = flattenItems(collection.items);
+  forEach(flattenedItems, (i) => {
+    const folderPreVars = i?.root?.request?.vars?.req;
+    if (folderPreVars) {
+      forEach(folderPreVars, (pv) => {
+        console.log('pv', pv?.uid, preVarUid);
+        if (pv?.uid === preVarUid) {
+          folderItemFound = i;
+        }
+      });
+    }
+  });
+  return folderItemFound;
 };

@@ -18,6 +18,7 @@ import {
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 import toast from 'react-hot-toast';
+import { findFolderItemInCollectionUsingPreVarUid } from 'utils/collections/index';
 
 const initialState = {
   collections: [],
@@ -257,6 +258,26 @@ export const collectionsSlice = createSlice({
             }));
           }
         }
+      }
+    },
+    folderVariablesUpdate: (state, action) => {
+      const { folderVariables, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        folderVariables?.forEach((fv) => {
+          let firstPreVar = fv?.[0];
+          if (firstPreVar?.uid) {
+            const matchingFolderItem = findFolderItemInCollectionUsingPreVarUid(collection, firstPreVar?.uid);
+            if (matchingFolderItem) {
+              if (matchingFolderItem?.root?.request?.vars) {
+                matchingFolderItem.root.request.vars.req = fv?.map((rv) => ({
+                  ...rv,
+                  value: rv?.value?.toString()
+                }));
+              }
+            }
+          }
+        });
       }
     },
     processEnvUpdateEvent: (state, action) => {
@@ -1730,6 +1751,7 @@ export const {
   scriptEnvironmentUpdateEvent,
   collectionVariablesUpdate,
   requestVariablesUpdate,
+  folderVariablesUpdate,
   processEnvUpdateEvent,
   requestCancelled,
   responseReceived,

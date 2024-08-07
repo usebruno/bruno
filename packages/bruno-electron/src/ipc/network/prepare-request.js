@@ -136,26 +136,26 @@ const mergeScripts = (collection, request, requestTreePath) => {
   let combinedPostResScript = [];
   let combinedTests = [];
 
-  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
+  let collectionPreReqScript = get(collection, 'root.request.script.req', '// placeholder pre-request script - collection');
   combinedPreReqScript.push(collectionPreReqScript);
-  let collectionPreResScript = get(collection, 'root.request.script.res', '');
-  combinedPostResScript.push(collectionPreResScript);
-  let collectionTests = get(collection, 'root.request.tests', '');
+  let collectionPostResScript = get(collection, 'root.request.script.res', '// placeholder post-response script - collection');
+  combinedPostResScript.push(collectionPostResScript);
+  let collectionTests = get(collection, 'root.request.tests', '// placeholder  tests - collection');
   combinedTests.push(collectionTests);
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
+      let preReqScript = get(i, 'root.request.script.req', `// placeholder pre-request script - folder`);
       if (preReqScript && preReqScript.trim() !== '') {
         combinedPreReqScript.push(preReqScript);
       }
 
-      let postResScript = get(i, 'root.request.script.res', '');
+      let postResScript = get(i, 'root.request.script.res', `// placeholder post-response script - folder`);
       if (postResScript && postResScript.trim() !== '') {
         combinedPostResScript.push(postResScript);
       }
 
-      let tests = get(i, 'root.request.tests', '');
+      let tests = get(i, 'root.request.tests', '// placeholder tests - request');
       if (tests && tests?.trim?.() !== '') {
         combinedTests.push(tests);
       }
@@ -164,15 +164,15 @@ const mergeScripts = (collection, request, requestTreePath) => {
 
   // inject the uid for requestTreePathCalc and getAllVariables for bru.getFolderVar
   if (combinedPreReqScript.length) {
-    request.script.req = [...combinedPreReqScript, request?.script?.req || ''];
+    request.script.req = [...combinedPreReqScript, request?.script?.req || '// placeholder pre-request script - request'];
   }
 
   if (combinedPostResScript.length) {
-    request.script.res = [request?.script?.res || '', ...combinedPostResScript.reverse()];
+    request.script.res = [request?.script?.res || '// placeholder post-response script - request', ...combinedPostResScript.reverse()];
   }
 
   if (combinedTests.length) {
-    request.tests = compact([request?.tests || '', ...combinedTests.reverse()]).join(os.EOL);
+    request.tests = compact([request?.tests || 'placeholder tests - request', ...combinedTests.reverse()]).join(os.EOL);
   }
 };
 
