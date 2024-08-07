@@ -56,11 +56,31 @@ class BrunoRequest {
     this.req.headers[name] = value;
   }
 
-  getBody() {
+  /**
+   * Get the body of the request
+   * 
+   * @param {*} options 
+   * @param {boolean} options.raw - If true, return the raw body without parsing it
+   * @returns 
+   */
+  getBody(options = {}) {
+    let headers = this.req.headers;
+    const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+    const hasJSONContentType = contentType.includes('json');
+
+    if (hasJSONContentType && !options.raw) {
+      return JSON.parse(this.req.data);
+    }
+
     return this.req.data;
   }
 
   setBody(data) {
+    if (typeof data === 'object') {
+      this.req.data = JSON.stringify(data);
+      return;
+    }
+
     this.req.data = data;
   }
 

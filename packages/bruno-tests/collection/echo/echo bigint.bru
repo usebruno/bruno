@@ -1,0 +1,44 @@
+meta {
+  name: echo bigint
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+headers {
+  foo: bar
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": 990531470713421825
+  }
+}
+
+body:text {
+  {
+    "hello": 990531470713421825
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:pre-request {
+  bru.setVar("foo", "foo-world-2");
+}
