@@ -464,13 +464,17 @@ class Watcher {
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
         .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
         .on('error', (error) => {
-          if (error.code === 'ENOSPC' && !startedNewWatcher) {
+          // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
+          // To prevent loops `!forcePolling` is checked.
+          if (error.code === 'ENOSPC' && !startedNewWatcher && !forcePolling) {
+            // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
+            // Multiple watcher being started `startedNewWatcher` is set to prevent this.
             startedNewWatcher = true;
             watcher.close();
-            console.log(
+            console.error(
               `\nCould not start watcher for ${watchPath}:`,
               'ENOSPC: System limit for number of file watchers reached!',
-              'Trying again with polling, this method will be slower!\n',
+              'Trying again with polling, this will be slower!\n',
               'Update you system config to allow more concurrently watched files with:',
               '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
             );
