@@ -60,6 +60,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
                 id="environment-name"
                 type="text"
                 name="name"
+                placeholder="Enter Env. Name"
                 ref={inputRef}
                 className="block textbox w-full"
                 autoComplete="off"

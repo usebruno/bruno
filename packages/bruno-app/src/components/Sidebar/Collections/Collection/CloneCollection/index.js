@@ -107,6 +107,7 @@ const CloneCollection = ({ onClose, collection }) => {
             id="collection-location"
             type="text"
             name="collectionLocation"
+            placeholder="👆🏻 Click to add Location"
             readOnly={true}
             className="block textbox mt-2 w-full cursor-pointer"
             autoComplete="off"
