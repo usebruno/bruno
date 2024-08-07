@@ -16,6 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const TAB_SIZE = 2;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -121,7 +122,7 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       lineNumbers: true,
       lineWrapping: true,
-      tabSize: 2,
+      tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
       keyMap: 'sublime',
       autoCloseBrackets: true,
@@ -169,7 +170,33 @@ export default class CodeEditor extends React.Component {
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        'Cmd-I': 'unfoldAll',
+        'Cmd-/': (cm) => {
+          // comment/uncomment every selected line(s)
+          const selections = cm.listSelections();
+          selections.forEach((range) => {
+            for (let i = range.from().line; i <= range.to().line; i++) {
+              const selectedLine = cm.getLine(i);
+              // if commented line, remove comment
+              if (selectedLine.trim().startsWith('//')) {
+                cm.replaceRange(
+                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
+                  { line: i, ch: 0 },
+                  { line: i, ch: selectedLine.length }
+                );
+                continue;
+              }
+              // otherwise add comment
+              cm.replaceRange(
+                selectedLine.search(/\S|$/) >= TAB_SIZE
+                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
+                  : '// ' + selectedLine,
+                { line: i, ch: 0 },
+                { line: i, ch: selectedLine.length }
+              );
+            }
+          });
+        }
       },
       foldOptions: {
         widget: (from, to) => {
@@ -289,7 +316,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className="h-full w-full flex flex-col relative"
         aria-label="Code Editor"
         font={this.props.font}
         ref={(node) => {

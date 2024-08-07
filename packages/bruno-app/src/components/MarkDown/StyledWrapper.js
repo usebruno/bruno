@@ -2,7 +2,6 @@ import styled from 'styled-components';
 
 const StyledMarkdownBodyWrapper = styled.div`
   background: transparent;
-  height: inherit;
   .markdown-body {
     background: transparent;
     overflow-y: auto;
