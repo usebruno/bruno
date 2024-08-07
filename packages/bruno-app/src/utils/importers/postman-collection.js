@@ -54,7 +54,7 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
-const translationLog = {};
+let translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
@@ -180,12 +180,27 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         if (bodyMode) {
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
+
             each(i.request.body.formdata, (param) => {
+              const isFile = param.type === 'file';
+              let value;
+              let type;
+
+              if (isFile) {
+                // If param.src is an array, keep it as it is.
+                // If param.src is a string, convert it into an array with a single element.
+                value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                type = 'file';
+              } else {
+                value = param.value;
+                type = 'text';
+              }
+
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                type: 'text',
+                type: type,
                 name: param.key,
-                value: param.value,
+                value: value,
                 description: param.description,
                 enabled: !param.disabled
               });
@@ -379,9 +394,13 @@ const importCollection = (options) => {
       .then((collection) => resolve({ collection, translationLog }))
       .catch((err) => {
         console.log(err);
+        translationLog = {};
         reject(new BrunoError('Import collection failed'));
       })
-      .then(() => logTranslationDetails(translationLog));
+      .then(() => {
+        logTranslationDetails(translationLog);
+        translationLog = {};
+      });
   });
 };
 

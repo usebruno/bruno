@@ -14,10 +14,10 @@ import {
   findParentItemInCollection,
   getItemsToResequence,
   isItemAFolder,
+  refreshUidsInItem,
   isItemARequest,
   moveCollectionItem,
   moveCollectionItemToRootOfCollection,
-  refreshUidsInItem,
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
@@ -41,6 +41,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { name } from 'file-loader';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -143,7 +144,42 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
-export const sendCollectionOauth2Request = (collectionUid) => (dispatch, getState) => {
+export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const folder = findItemInCollection(collection, folderUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    if (!folder) {
+      return reject(new Error('Folder not found'));
+    }
+    console.log(collection);
+
+    const { ipcRenderer } = window;
+
+    const folderData = {
+      name: folder.name,
+      pathname: folder.pathname,
+      root: folder.root
+    };
+    console.log(folderData);
+
+    ipcRenderer
+      .invoke('renderer:save-folder-root', folderData)
+      .then(() => toast.success('Folder Settings saved successfully'))
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
+
+export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -156,7 +192,7 @@ export const sendCollectionOauth2Request = (collectionUid) => (dispatch, getStat
 
     const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
 
-    _sendCollectionOauth2Request(collection, environment, collectionCopy.collectionVariables)
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         if (response?.data?.error) {
           toast.error(response?.data?.error);
@@ -184,9 +220,8 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
     const itemCopy = cloneDeep(item || {});
     const collectionCopy = cloneDeep(collection);
 
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
-
-    sendNetworkRequest(itemCopy, collection, environment, collectionCopy.collectionVariables)
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         return dispatch(
           responseReceived({
@@ -276,7 +311,7 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
         folder,
         collectionCopy,
         environment,
-        collectionCopy.collectionVariables,
+        collectionCopy.runtimeVariables,
         recursive
       )
       .then(resolve)
@@ -998,7 +1033,7 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     name: brunoConfig.name,
     pathname: pathname,
     items: [],
-    collectionVariables: {},
+    runtimeVariables: {},
     brunoConfig: brunoConfig
   };
 
