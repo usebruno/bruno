@@ -1,4 +1,5 @@
 const { customAlphabet } = require('nanoid');
+const { stringify, parse, LosslessNumber } = require('lossless-json');
 
 // a customized version of nanoid without using _ and -
 const uuid = () => {
@@ -9,25 +10,21 @@ const uuid = () => {
   return customNanoId();
 };
 
-const stringifyJson = async (str) => {
-  try {
-    return JSON.stringify(str, null, 2);
-  } catch (err) {
-    return Promise.reject(err);
-  }
+const stringifyJson = (data) => {
+  return stringify(data);
 };
 
-const parseJson = async (obj) => {
-  try {
-    return JSON.parse(obj);
-  } catch (err) {
-    return Promise.reject(err);
-  }
+const parseJson = (data) => {
+  return parse(data, null, (value) => {
+    // By default, this will return the LosslessNumber object for big ints
+    // need to convert it into a number
+    return new LosslessNumber(value).valueOf();
+  });
 };
 
 const safeStringifyJSON = (data) => {
   try {
-    return JSON.stringify(data);
+    return stringify(data);
   } catch (e) {
     return data;
   }
@@ -35,7 +32,11 @@ const safeStringifyJSON = (data) => {
 
 const safeParseJSON = (data) => {
   try {
-    return JSON.parse(data);
+    return parse(data, null, (value) => {
+      // By default, this will return the LosslessNumber object for big ints
+      // need to convert it into a number
+      return new LosslessNumber(value).valueOf();
+    });
   } catch (e) {
     return data;
   }

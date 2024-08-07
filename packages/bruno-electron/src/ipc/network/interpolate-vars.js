@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep, find } = require('lodash');
+const { each, forOwn, cloneDeep } = require('lodash');
+const { parseJson, stringifyJson } = require('../../utils/common');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -61,9 +62,9 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   if (contentType.includes('json')) {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
+        let parsed = stringifyJson(request.data);
         parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        request.data = parseJson(parsed);
       } catch (err) {}
     }
 
@@ -75,9 +76,9 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
+        let parsed = stringifyJson(request.data);
         parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        request.data = parseJson(parsed);
       } catch (err) {}
     }
   } else {

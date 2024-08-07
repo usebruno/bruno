@@ -1,7 +1,7 @@
 const os = require('os');
 const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
+const { parseJson } = require('../../utils/common');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -349,7 +349,7 @@ const prepareRequest = (item, collection) => {
       jsonBody = request?.body?.json;
     }
     try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
+      axiosRequest.data = parseJson(jsonBody);
     } catch (error) {
       axiosRequest.data = jsonBody;
     }

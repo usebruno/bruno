@@ -1,6 +1,7 @@
 const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
+const { safeStringifyJSON } = require('../../utils/common');
 const connectionCache = new Map(); // Cache to store checkConnection() results
 
 const LOCAL_IPV6 = '::1';
@@ -49,7 +50,22 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create();
+  const instance = axios.create({
+    transformRequest: function transformRequest(data, headers) {
+      const isObject = (thing) => thing !== null && typeof thing === 'object';
+      const hasJSONContentType = () => {
+        const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+        return contentType.includes('application/json');
+      };
+
+      if (isObject(data) && hasJSONContentType()) {
+        headers.setContentType('application/json', false);
+        return safeStringifyJSON(data);
+      }
+
+      axios.defaults.transformRequest.forEach((tr) => tr(data, headers));
+    }
+  });
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
