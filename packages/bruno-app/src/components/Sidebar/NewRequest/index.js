@@ -12,6 +12,8 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import { variableNameRegex } from 'utils/common/regex';
+import { isWindowsOS } from 'utils/common/platform';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -58,6 +60,12 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           name: 'requestName',
           message: `The request names - collection and folder is reserved in bruno`,
           test: (value) => {
+            if (isWindowsOS() && variableNameRegex.test(value) === false) {
+              toast.error(
+                `Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."`
+              );
+              return false;
+            }
             const trimmedValue = value ? value.trim().toLowerCase() : '';
             return !['collection', 'folder'].includes(trimmedValue);
           }
