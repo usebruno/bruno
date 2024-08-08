@@ -52,6 +52,16 @@ const languages = [
     name: 'Shell-httpie',
     target: 'shell',
     client: 'httpie'
+  },
+  {
+    name: 'Powershell-WebRequest',
+    target: 'powershell',
+    client: 'webrequest'
+  },
+  {
+    name: 'Powershell-Restmethod',
+    target: 'powershell',
+    client: 'restmethod'
   }
 ];
 
