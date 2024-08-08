@@ -158,7 +158,7 @@ const darkTheme = {
   modal: {
     title: {
       color: '#ccc',
-      bg: 'rgb(48, 48, 49)',
+      bg: 'rgb(38, 38, 39)',
       iconColor: '#ccc'
     },
     body: {
