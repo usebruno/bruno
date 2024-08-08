@@ -413,7 +413,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const responseScript = get(request, 'script.res');
     if (responseScript?.length) {
-      responseScript?.forEach(async (rs) => {
+      responseScript?.forEach(async (rs, idx) => {
         // adjust index by 1 to compensate for collection pre-request script
         request.folderIdx = idx - 1;
         const scriptRuntime = new ScriptRuntime();
