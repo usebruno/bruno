@@ -168,7 +168,8 @@ class BrunoRequest {
     return obj !== null && typeof obj === 'object';
   }
   
-  disableResponseJsonParse() {
+
+  disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
   }
 }
