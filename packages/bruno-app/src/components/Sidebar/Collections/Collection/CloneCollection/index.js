@@ -128,7 +128,7 @@ const CloneCollection = ({ onClose, collection }) => {
             <span className="font-semibold">Folder Name</span>
             <InfoTip
               text="This folder will be created under the selected location"
-              infotipId="collection-folder-name-tooltip"
+              infotipId="collection-folder-name-infotip"
             />
           </label>
           <input

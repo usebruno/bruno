@@ -74,7 +74,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
-            className="tooltip mr-3"
+            className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
               if (!item.draft) return;
@@ -87,7 +87,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               size={22}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
             />
-            <span className="tooltiptext text-xs">
+            <span className="infotiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
