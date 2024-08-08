@@ -167,6 +167,10 @@ class BrunoRequest {
   __isObject(obj) {
     return obj !== null && typeof obj === 'object';
   }
+  
+  disableResponseJsonParse() {
+    this.req.__brunoDisableParsingResponseJson = true;
+  }
 }
 
 module.exports = BrunoRequest;
