@@ -30,9 +30,12 @@ const readFile = (files) => {
   });
 };
 
-const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
+const ensureUrl = (url) => (url.startsWith('http') ? url : `http://${url}`);
+
+const ensureUrlOrVariable = (url) => {
+  let protUrl = !!url.match('^{{.*}}') ? url : ensureUrl(url);
+
+  // replace any double or triple slashes. This also handles the default {{baseUrl}}// case
   return protUrl.replace(/([^:]\/)\/+/g, '$1');
 };
 
@@ -64,7 +67,7 @@ const transformOpenapiRequestItem = (request) => {
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + request.path),
+      url: ensureUrlOrVariable(request.global.server + '/' + request.path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -331,10 +334,9 @@ const parseOpenApiCollection = (data) => {
         return;
       }
 
-      // TODO what if info.title not defined?
-      brunoCollection.name = collectionData.info.title;
+      brunoCollection.name = collectionData.info ? collectionData.info.title : '';
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '{{baseUrl}}';
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
