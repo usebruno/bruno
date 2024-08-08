@@ -61,7 +61,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           test: (value) => {
             if (variableNameRegex.test(value) === false) {
               toast.error(
-                `Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."`
+                `Request name contains invalid characters! Request names must only contain alpha-numeric characters, "-", "_", "."`
               );
               return false;
             }
