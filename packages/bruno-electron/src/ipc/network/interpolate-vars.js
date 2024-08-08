@@ -59,14 +59,6 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   const contentType = getContentType(request.headers);
 
   if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
-
     if (typeof request.data === 'string') {
       if (request.data.length) {
         request.data = _interpolate(request.data);
