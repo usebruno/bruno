@@ -464,9 +464,10 @@ class Watcher {
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
         .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
         .on('error', (error) => {
+          // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
           // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
           // To prevent loops `!forcePolling` is checked.
-          if (error.code === 'ENOSPC' && !startedNewWatcher && !forcePolling) {
+          if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
             // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
             // Multiple watcher being started `startedNewWatcher` is set to prevent this.
             startedNewWatcher = true;
