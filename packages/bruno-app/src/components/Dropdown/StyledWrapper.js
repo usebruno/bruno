@@ -40,8 +40,13 @@ const Wrapper = styled.div`
           color: ${(props) => props.theme.dropdown.iconColor};
         }
 
-        &:hover {
+        &:hover:not(:disabled) {
           background-color: ${(props) => props.theme.dropdown.hoverBg};
+        }
+
+        &:disabled {
+          cursor: not-allowed;
+          color: gray;
         }
 
         &.border-top {
