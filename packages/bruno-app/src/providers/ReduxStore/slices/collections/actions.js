@@ -729,7 +729,8 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           xml: null,
           sparql: null,
           multipartForm: null,
-          formUrlEncoded: null
+          formUrlEncoded: null,
+          rawFile: null
         }
       }
     };
@@ -1008,6 +1009,16 @@ export const browseFiles =
 
     return new Promise((resolve, reject) => {
       ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+    });
+  };
+
+  export const browseFile =
+  (filters = []) =>
+  (dispatch, getState) => {
+    const { ipcRenderer } = window;
+
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('renderer:browse-file', filters).then(resolve).catch(reject);
     });
   };
 

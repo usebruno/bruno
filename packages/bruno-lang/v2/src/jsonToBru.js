@@ -232,6 +232,14 @@ ${indentString(body.sparql)}
 `;
   }
 
+  if (body && body.rawFile && body.rawFile.length) {
+    bru += `body:raw-file {
+${indentString(body.rawFile)}
+}
+
+`;
+  }
+
   if (body && body.formUrlEncoded && body.formUrlEncoded.length) {
     bru += `body:form-urlencoded {\n`;
 

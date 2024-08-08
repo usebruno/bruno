@@ -294,7 +294,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
             graphql: si.request.body.graphql,
             sparql: si.request.body.sparql,
             formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm),
+            rawFile: si.request.body.rawFile
           },
           script: si.request.script,
           vars: si.request.vars,
@@ -627,6 +628,10 @@ export const humanizeRequestBodyMode = (mode) => {
     }
     case 'multipartForm': {
       label = 'Multipart Form';
+      break;
+    }
+    case 'rawFile': {
+      label = 'Raw File';
       break;
     }
   }
