@@ -19,7 +19,8 @@ const isDotEnvFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
 
-  return dirname === collectionPath && basename === '.env';
+  //return dirname === collectionPath && basename === '.env';
+  return dirname === collectionPath && basename.endsWith('.env');
 };
 
 const isBrunoConfigFile = (pathname, collectionPath) => {
@@ -193,21 +194,34 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
   }
 
   if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+    let jsonDataEnvVars = {};
 
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...process.env,
+    const dotEnvFiles = fs.readdirSync(collectionPath).filter((file) => file.endsWith('.env'), 'utf8');
+
+    for (const dotEnvFile of dotEnvFiles) {
+      try {
+        const dotEnvPath = `${path.resolve(collectionPath, dotEnvFile)}`;
+        console.log(`dotEnvPath: ${dotEnvPath}`);
+        const content = fs.readFileSync(dotEnvPath, 'utf8');
+
+        const jsonData = dotenvToJson(content);
+
+        jsonDataEnvVars = {
+          ...jsonDataEnvVars,
           ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
-    } catch (err) {
-      console.error(err);
+        };
+        setDotEnvVars(collectionUid, jsonDataEnvVars);
+        const payload = {
+          collectionUid,
+          processEnvVariables: {
+            ...process.env,
+            ...jsonDataEnvVars
+          }
+        };
+        win.webContents.send('main:process-env-update', payload);
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
 
@@ -323,21 +337,35 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
   }
 
   if (isDotEnvFile(pathname, collectionPath)) {
-    try {
-      const content = fs.readFileSync(pathname, 'utf8');
-      const jsonData = dotenvToJson(content);
+    let jsonDataEnvVars = {};
 
-      setDotEnvVars(collectionUid, jsonData);
-      const payload = {
-        collectionUid,
-        processEnvVariables: {
-          ...process.env,
+    const dotEnvFiles = fs.readdirSync(collectionPath).filter((file) => file.endsWith('.env'), 'utf8');
+
+    for (const dotEnvFile of dotEnvFiles) {
+      try {
+        const dotEnvPath = `${path.resolve(collectionPath, dotEnvFile)}`;
+        console.log(`dotEnvPath: ${dotEnvPath}`);
+        const content = fs.readFileSync(dotEnvPath, 'utf8');
+
+        const jsonData = dotenvToJson(content);
+
+        jsonDataEnvVars = {
+          ...jsonDataEnvVars,
           ...jsonData
-        }
-      };
-      win.webContents.send('main:process-env-update', payload);
-    } catch (err) {
-      console.error(err);
+        };
+        setDotEnvVars(collectionUid, jsonDataEnvVars);
+        const payload = {
+          collectionUid,
+          processEnvVariables: {
+            ...process.env,
+            ...jsonDataEnvVars
+            //...jsonData
+          }
+        };
+        win.webContents.send('main:process-env-update', payload);
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
 
