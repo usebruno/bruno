@@ -56,7 +56,6 @@ const NewFolder = ({ collection, item, onClose }) => {
             id="collection-name"
             type="text"
             name="folderName"
-            placeholder="Enter Name"
             ref={inputRef}
             className="block textbox mt-2 w-full"
             autoComplete="off"

@@ -124,7 +124,6 @@ const ClientCertSettings = ({ clientCertConfig, onUpdate, onRemove }) => {
             id="domain"
             type="text"
             name="domain"
-            placeholder="*.example.org"
             className="block textbox non-passphrase-input"
             onChange={formik.handleChange}
             value={formik.values.domain || ''}

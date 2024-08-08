@@ -53,7 +53,6 @@ const CopyEnvironment = ({ collection, environment, onClose }) => {
               id="environment-name"
               type="text"
               name="name"
-              placeholder="Enter Env Name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off"

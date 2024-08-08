@@ -74,7 +74,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-name"
             type="text"
             name="collectionName"
-            placeholder="Enter Name"
             ref={inputRef}
             className="block textbox mt-2 w-full"
             onChange={(e) => {
@@ -100,7 +99,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-location"
             type="text"
             name="collectionLocation"
-            placeholder="👆🏻 Click to add Location"
             readOnly={true}
             className="block textbox mt-2 w-full cursor-pointer"
             autoComplete="off"
@@ -130,7 +128,6 @@ const CreateCollection = ({ onClose }) => {
             id="collection-folder-name"
             type="text"
             name="collectionFolderName"
-            placeholder="Enter Name"
             className="block textbox mt-2 w-full"
             onChange={formik.handleChange}
             autoComplete="off"
