@@ -285,7 +285,9 @@ const parseDataFromResponse = (response) => {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    data = JSON.parse(data);
+    if(!response?.__brunoDisableResponseJsonParse) {
+      data = JSON.parse(data);
+    }
   } catch {}
 
   return { data, dataBuffer };
@@ -534,6 +536,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
+      response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
       const { data, dataBuffer } = parseDataFromResponse(response);
       response.data = data;
 
@@ -694,6 +697,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
+      response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
       const { data } = parseDataFromResponse(response);
       response.data = data;
 
@@ -948,6 +952,7 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
+              response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
               const { data, dataBuffer } = parseDataFromResponse(response);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
