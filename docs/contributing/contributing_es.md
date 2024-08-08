@@ -37,20 +37,16 @@ Librerías que utilizamos:
 
 ### Dependencias
 
-Necesitarás [Node v18.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
+Necesitarás [Node v20.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
 
 ## Desarrollo
 
 Bruno está siendo desarrollado como una aplicación de escritorio. Para ejecutarlo, primero debes ejecutar la aplicación de nextjs en una terminal y luego ejecutar la aplicación de electron en otra terminal.
 
-### Dependencias
-
-- NodeJS v18
-
 ### Desarrollo local
 
 ```bash
-# Utiliza la versión 18 de nodejs
+# Utiliza la versión 20 de nodejs
 nvm use
 
 # Instala las dependencias

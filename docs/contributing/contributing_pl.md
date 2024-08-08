@@ -37,20 +37,16 @@ Biblioteki, których używamy
 
 ### Zależności
 
-Będziesz potrzebować [Node v18.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
+Będziesz potrzebować [Node v20.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
 
 ## Rozwój
 
 Bruno jest rozwijane jako aplikacja desktopowa. Musisz załadować aplikację, uruchamiając aplikację Next.js w jednym terminalu, a następnie uruchomić aplikację electron w innym terminalu.
 
-### Zależności
-
-- NodeJS v18
-
 ### Lokalny Rozwój
 
 ```bash
-# użyj wersji nodejs 18
+# użyj wersji nodejs 20
 nvm use
 
 # zainstaluj zależności

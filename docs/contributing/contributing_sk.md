@@ -19,15 +19,11 @@ Balíčky, ktoré používame:
 
 ### Závislosti
 
-Budete potrebovať [NodeJS v18.x alebo najnovšiu verziu LTS](https://nodejs.org/en/) a npm versiu 8.x. V projekte používame pracovné priestory npm
+Budete potrebovať [NodeJS v20.x alebo najnovšiu verziu LTS](https://nodejs.org/en/) a npm versiu 8.x. V projekte používame pracovné priestory npm
 
 ## Vývoj
 
 Bruno sa vyvíja ako desktopová aplikácia. Aplikáciu je potrebné načítať spustením aplikácie Next.js v jednom termináli a potom spustiť aplikáciu electron v inom termináli.
-
-### Závislosti
-
-- NodeJS v18
 
 ### Miestny vývoj
 

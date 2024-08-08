@@ -37,7 +37,7 @@ Le librerie che utilizziamo sono:
 
 ### Dependences
 
-Hai bisogno di [Node v18.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
+Hai bisogno di [Node v20.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
 
 ### Iniziamo a codificare
 
@@ -56,14 +56,10 @@ Si prega di fare riferimento alla [documentazione di sviluppo](docs/development_
 
 Bruno è sviluppato come un'applicazione "heavy". È necessario caricare l'applicazione avviando Next.js in una finestra del terminale e quindi avviare l'applicazione Electron in un altro terminale.
 
-### Sviluppo
-
-- NodeJS v18
-
 ### Sviluppo locale
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps
