@@ -15,6 +15,7 @@ import Tests from 'components/RequestPane/Tests';
 import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
+import Tags from 'components/RequestPane/Tags/index';
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -58,6 +59,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
       }
       case 'docs': {
         return <Documentation item={item} collection={collection} />;
+      }
+      case 'tags': {
+        return <Tags item={item} collection={collection} />;
       }
       default: {
         return <div className="mt-4">404 | Not found</div>;
@@ -129,6 +133,9 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
+        </div>
+        <div className={getTabClassname('tags')} role="tab" onClick={() => selectTab('tags')}>
+          Tags
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">

@@ -38,6 +38,7 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
+const { isRequestTagsIncluded } = require('@usebruno/common');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -825,7 +826,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, tags) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -866,6 +867,15 @@ const registerNetworkIpc = (mainWindow) => {
           // sort requests by seq property
           folderRequests.sort((a, b) => {
             return a.seq - b.seq;
+          });
+        }
+
+        // Filter requests based on tags
+        if (tags && tags.include && tags.exclude) {
+          const includeTags = tags.include ? tags.include : [];
+          const excludeTags = tags.exclude ? tags.exclude : [];
+          folderRequests = folderRequests.filter(({ request }) => {
+            return isRequestTagsIncluded(request.tags, includeTags, excludeTags)
           });
         }
 

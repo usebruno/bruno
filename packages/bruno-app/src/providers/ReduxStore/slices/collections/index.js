@@ -1616,6 +1616,40 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    addRequestTag: (state, action) => {
+      const { tag, collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.tags = item.draft.request.tags || [];
+          if (!item.draft.request.tags.includes(tag.trim())) {
+            item.draft.request.tags.push(tag.trim());
+          }
+        }
+      }
+    },
+    deleteRequestTag: (state, action) => {
+      const { tag, collectionUid, itemUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.tags = item.draft.request.tags || [];
+          item.draft.request.tags = item.draft.request.tags.filter((t) => t !== tag.trim());
+        }
+      }
     }
   }
 });
@@ -1705,7 +1739,9 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  addRequestTag,
+  deleteRequestTag
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;
