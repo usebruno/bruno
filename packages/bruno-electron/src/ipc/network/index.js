@@ -267,7 +267,7 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const parseDataFromResponse = (response) => {
+const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
@@ -285,7 +285,7 @@ const parseDataFromResponse = (response) => {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if(!response?.__brunoDisableResponseJsonParse) {
+    if(!disableParsingResponseJson) {
       data = JSON.parse(data);
     }
   } catch {}
@@ -536,8 +536,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
-      const { data, dataBuffer } = parseDataFromResponse(response);
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -697,8 +696,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
-      const { data } = parseDataFromResponse(response);
+      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       await runPostResponse(
@@ -952,8 +950,7 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
-              response.__brunoDisableResponseJsonParse = request.__brunoDisableResponseJsonParse;
-              const { data, dataBuffer } = parseDataFromResponse(response);
+              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 

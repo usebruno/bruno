@@ -169,7 +169,7 @@ class BrunoRequest {
   }
   
   disableResponseJsonParse() {
-    this.req.__brunoDisableResponseJsonParse = true;
+    this.req.__brunoDisableParsingResponseJson = true;
   }
 }
 
