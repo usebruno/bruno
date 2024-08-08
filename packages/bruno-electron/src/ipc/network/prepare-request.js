@@ -1,7 +1,7 @@
 const os = require('os');
 const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
+const JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -258,6 +258,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
+              clientSecretMethod: get(request, 'auth.oauth2.clientSecretMethod'),
               scope: get(request, 'auth.oauth2.scope')
             };
             break;
@@ -269,6 +270,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
+              clientSecretMethod: get(request, 'auth.oauth2.clientSecretMethod'),
               scope: get(request, 'auth.oauth2.scope'),
               state: get(request, 'auth.oauth2.state'),
               pkce: get(request, 'auth.oauth2.pkce')
@@ -280,6 +282,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
+              clientSecretMethod: get(request, 'auth.oauth2.clientSecretMethod'),
               scope: get(request, 'auth.oauth2.scope')
             };
             break;
