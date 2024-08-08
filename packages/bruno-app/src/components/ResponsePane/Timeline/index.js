@@ -33,7 +33,8 @@ const Timeline = ({ request, response }) => {
 
         {request.data ? (
           <pre className="line request">
-            <span className="arrow">{'>'}</span> data <pre>{request.data}</pre>
+            <span className="arrow">{'>'}</span> data{' '}
+            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{request.data}</pre>
           </pre>
         ) : null}
       </div>

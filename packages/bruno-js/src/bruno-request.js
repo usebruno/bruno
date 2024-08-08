@@ -25,7 +25,7 @@ class BrunoRequest {
      * It must be noted that the request data is always a string and is what gets sent over the network
      * If the user wants to access the raw data, they can use getBody({raw: true}) method 
      */
-    const isJson = hasJSONContentType(this.req.headers);
+    const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
       this.body = this.__safeParseJSON(req.data);
     }
@@ -99,7 +99,7 @@ class BrunoRequest {
       return this.req.data;
     }
 
-    const isJson = hasJSONContentType(this.req.headers);
+    const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson) {
       return this.__safeParseJSON(this.req.data);
     }
@@ -124,7 +124,7 @@ class BrunoRequest {
       return;
     }
 
-    const isJson = hasJSONContentType(this.req.headers);
+    const isJson = this.hasJSONContentType(this.req.headers);
     if (isJson && this.__isObject(data)) {
       this.body = data;
       this.req.data = this.__safeStringifyJSON(data);
