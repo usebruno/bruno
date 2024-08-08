@@ -200,6 +200,16 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
     }
   }
 
+  if (auth && auth.apikey) {
+    bru += `auth:apikey {
+${indentString(`key: ${auth?.apikey?.key || ''}`)}
+${indentString(`value: ${auth?.apikey?.value || ''}`)}
+${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
+}
+
+`;
+  }
+
   if (body && body.json && body.json.length) {
     bru += `body:json {
 ${indentString(body.json)}
