@@ -698,7 +698,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body } = params;
+  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -730,6 +730,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           sparql: null,
           multipartForm: null,
           formUrlEncoded: null
+        },
+        auth: auth ?? {
+          mode: 'none'
         }
       }
     };

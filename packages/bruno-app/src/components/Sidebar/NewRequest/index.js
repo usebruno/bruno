@@ -109,7 +109,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             collectionUid: collection.uid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
-            body: request.body
+            body: request.body,
+            auth: request.auth
           })
         )
           .then(() => onClose())
