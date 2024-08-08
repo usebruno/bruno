@@ -964,6 +964,9 @@ const registerNetworkIpc = (mainWindow) => {
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 
+              response.responseTime = response.headers.get('request-duration');
+              response.headers.delete('request-duration');
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
