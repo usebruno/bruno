@@ -74,6 +74,7 @@ const PresetsSettings = ({ collection }) => {
                 id="request-url"
                 type="text"
                 name="requestUrl"
+                placeholder='Enter Request URL'
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
