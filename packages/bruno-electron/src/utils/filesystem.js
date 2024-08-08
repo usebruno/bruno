@@ -147,6 +147,19 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
+const renameDirectory = async (oldDir, newDir) => {
+  if (!oldDir || !newDir) {
+    throw new Error(`directory: path is null`);
+  }
+  if (!fs.existsSync(oldDir)) {
+    throw new Error(`directory: ${oldDir} does not exist`);
+  }
+  if (fs.existsSync(newDir)) {
+    throw new Error(`directory: ${newDir} already exists`);
+  }
+  fs.renameSync(oldDir, newDir);
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -164,5 +177,6 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  renameDirectory
 };
