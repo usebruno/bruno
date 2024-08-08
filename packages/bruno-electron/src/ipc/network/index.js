@@ -347,6 +347,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
         mainWindow.webContents.send('main:folder-variables-update', {
           folderVariables: scriptResult?.folderVariables,
+          itemUid: request?.uid,
           collectionUid
         });
       });
@@ -446,6 +447,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
         mainWindow.webContents.send('main:folder-variables-update', {
           folderVariables: scriptResult?.folderVariables,
+          itemUid: request?.uid,
           collectionUid
         });
       });
