@@ -6,6 +6,7 @@
     "packages/bruno-electron",
     "packages/bruno-cli",
     "packages/bruno-common",
+    "packages/bruno-converters",
     "packages/bruno-schema",
     "packages/bruno-query",
     "packages/bruno-js",
@@ -33,6 +34,7 @@
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
     "build:bruno-common": "npm run build --workspace=packages/bruno-common",
+    "build:bruno-converters": "npm run build --workspace=packages/bruno-converters",
     "build:bruno-query": "npm run build --workspace=packages/bruno-query",
     "build:graphql-docs": "npm run build --workspace=packages/bruno-graphql-docs",
     "build:electron": "node ./scripts/build-electron.js",
@@ -47,7 +49,6 @@
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install"
   },
-  
   "overrides": {
     "rollup": "3.2.5"
   },
