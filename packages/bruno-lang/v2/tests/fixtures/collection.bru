@@ -26,6 +26,18 @@ auth:digest {
   password: secret
 }
 
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  authorization_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  client_id: client_id_1
+  client_secret: client_secret_1
+  client_secret_method: client_credentials_post
+  scope: read write
+  pkce: false
+}
+
 vars:pre-request {
   departingDate: 2020-01-01
   ~returningDate: 2020-01-02

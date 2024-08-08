@@ -7,8 +7,7 @@ import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { clearOauth2Cache } from 'utils/network/index';
-import toast from 'react-hot-toast';
+import ClientCredentialsMethodSelector from 'components/RequestPane/Auth/OAuth2/ClientCredentialsMethodSelector';
 
 const OAuth2AuthorizationCode = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -22,7 +21,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce } = oAuth;
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, clientSecretMethod, scope, state, pkce } =
+    oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -37,6 +37,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           state,
           scope,
           pkce,
@@ -59,22 +60,13 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          clientSecretMethod,
           state,
           scope,
           pkce: !Boolean(oAuth?.['pkce'])
         }
       })
     );
-  };
-
-  const handleClearCache = (e) => {
-    clearOauth2Cache(collection?.uid)
-      .then(() => {
-        toast.success('cleared cache successfully');
-      })
-      .catch((err) => {
-        toast.error(err.message);
-      });
   };
 
   return (
@@ -108,14 +100,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           onChange={handlePKCEToggle}
         />
       </div>
-      <div className="flex flex-row gap-4">
-        <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-          Get Access Token
-        </button>
-        <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
-          Clear Cache
-        </button>
-      </div>
+      <ClientCredentialsMethodSelector item={item} collection={collection} oAuth={oAuth} />
     </StyledWrapper>
   );
 };
