@@ -167,37 +167,63 @@ const configureRequest = async (
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
     proxyEnabled = get(proxyConfig, 'enabled', false);
   }
-  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-  if (proxyEnabled === true && shouldProxy) {
-    const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-    const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-    const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-    const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-    const socksEnabled = proxyProtocol.includes('socks');
 
-    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-    let proxyUri;
-    if (proxyAuthEnabled) {
-      const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-      const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
-
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-    } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+  let systemProxyEnabled = preferencesUtil.shouldUseSystemProxyEnvConfig();
+  if (systemProxyEnabled) {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          request.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
     }
+  } else if (proxyEnabled === true) {
+    const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
+    if (shouldProxy) {
+      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const socksEnabled = proxyProtocol.includes('socks');
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      let proxyUri;
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-    if (socksEnabled) {
-      request.httpsAgent = new SocksProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new SocksProxyAgent(proxyUri);
-    } else {
-      request.httpsAgent = new PatchedHttpsProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new HttpProxyAgent(proxyUri);
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+      } else {
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+      }
+      if (socksEnabled) {
+        request.httpsAgent = new SocksProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new SocksProxyAgent(proxyUri);
+      } else {
+        request.httpsAgent = new PatchedHttpsProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new HttpProxyAgent(proxyUri);
+      }
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
