@@ -20,7 +20,11 @@ const darkTheme = {
   input: {
     bg: 'rgb(65, 65, 65)',
     border: 'rgb(65, 65, 65)',
-    focusBorder: 'rgb(65, 65, 65)'
+    focusBorder: 'rgb(65, 65, 65)',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    }
   },
 
   variables: {
