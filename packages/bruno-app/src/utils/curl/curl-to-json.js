@@ -123,8 +123,7 @@ const curlToJson = (curlCommand) => {
     request.urlWithoutQuery = 'http://' + request.urlWithoutQuery;
   }
 
-  requestJson.url = request.urlWithoutQuery.replace(/\/$/, '');
-  requestJson.raw_url = request.url;
+  requestJson.url = request.urlWithoutQuery
   requestJson.method = request.method;
 
   if (request.cookies) {
