@@ -1165,12 +1165,22 @@ const registerNetworkIpc = (mainWindow) => {
         return `response.${extension}`;
       };
 
-      const fileName =
-        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+      const getEncodingFormat = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = mime.extension(contentType) || 'txt';
+        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
+      };
 
+      const determineFileName = () => {
+        return (
+          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
+        );
+      };
+
+      const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, getEncodingFormat()));
       }
     } catch (error) {
       return Promise.reject(error);
