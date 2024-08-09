@@ -27,6 +27,10 @@ class BrunoResponse {
   getResponseTime() {
     return this.res ? this.res.responseTime : null;
   }
+
+  getDataBuffer() {
+    return this.res ? this.res.dataBuffer : null;
+  }
 }
 
 module.exports = BrunoResponse;
