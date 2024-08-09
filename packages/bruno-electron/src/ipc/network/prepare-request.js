@@ -7,111 +7,82 @@ const fs = require('fs');
 const path = require('path');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
 
-const mergeFolderLevelHeaders = (request, requestTreePath) => {
-  let folderHeaders = new Map();
+const mergeHeaders = (request, requestTreePath) => {
+  let headers = new Map();
 
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
-      let headers = get(i, 'root.request.headers', []);
-      headers.forEach((header) => {
+      // all folder headers
+      let _headers = get(i, 'root.request.headers', []);
+      _headers.forEach((header) => {
         if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
+          headers.set(header.name, header.value);
         }
       });
-    } else if (i.uid === request.uid) {
-      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
-      headers.forEach((header) => {
+    } else {
+      // request headers
+      const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
+      _headers.forEach((header) => {
         if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
+          headers.set(header.name, header.value);
         }
       });
     }
   }
 
-  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
-  let requestHeaders = request.headers || [];
-  let requestHeadersMap = new Map();
-
-  for (let header of requestHeaders) {
-    if (header.enabled) {
-      requestHeadersMap.set(header.name, header.value);
-    }
-  }
-
-  mergedFolderHeaders.forEach((header) => {
-    requestHeadersMap.set(header.name, header.value);
-  });
-
-  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
+  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeFolderLevelVars = (request, requestTreePath) => {
-  let folderReqVars = new Map();
+const mergeVars = (request, requestTreePath) => {
+  let reqVars = new Map();
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
+      // all folder pre-request vars
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
         }
       });
-    } else if (i.uid === request.uid) {
+    } else {
+      // pre-request vars of the request
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestReqVars = request?.vars?.req || [];
-  let requestReqVarsMap = new Map();
-  for (let _var of requestReqVars) {
-    if (_var.enabled) {
-      requestReqVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderReqVars.forEach((_var) => {
-    requestReqVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.req = Array.from(requestReqVarsMap, ([name, value]) => ({
+  request.vars.req = Array.from(reqVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
     type: 'request'
   }));
 
-  let folderResVars = new Map();
+  let resVars = new Map();
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
+      // all folder post-response vars
       let vars = get(i, 'root.request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
-    } else if (i.uid === request.uid) {
+    } else {
+      // post-response vars of the request
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestResVars = request?.vars?.res || [];
-  let requestResVarsMap = new Map();
-  for (let _var of requestResVars) {
-    if (_var.enabled) {
-      requestResVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderResVars.forEach((_var) => {
-    requestResVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.res = Array.from(requestResVarsMap, ([name, value]) => ({
+  
+  request.vars.res = Array.from(resVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
@@ -119,7 +90,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
   }));
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
+const mergeScripts = (request, requestTreePath, scriptFlow) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
   let folderCombinedTests = [];
@@ -313,9 +284,9 @@ const prepareRequest = (item, collection) => {
   const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
-    mergeFolderLevelVars(request, requestTreePath);
+    mergeHeaders(request, requestTreePath);
+    mergeScripts(request, requestTreePath, scriptFlow);
+    mergeVars(request, requestTreePath);
   }
 
   each(request.headers, (h) => {
