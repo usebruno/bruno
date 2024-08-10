@@ -14,6 +14,8 @@ const Wrapper = styled.div`
       display: none;
     }
 
+    scrollbar-width: none;
+
     li {
       display: inline-flex;
       max-width: 150px;

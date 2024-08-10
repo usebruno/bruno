@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { get } from 'lodash';
 import { useDispatch } from 'react-redux';
 import { refreshScreenWidth } from 'providers/ReduxStore/slices/app';
 import ConfirmAppClose from './ConfirmAppClose';
@@ -16,6 +17,13 @@ export const AppProvider = (props) => {
 
   useEffect(() => {
     dispatch(refreshScreenWidth());
+  }, []);
+
+  useEffect(() => {
+    const platform = get(navigator, 'platform', '');
+    if(platform && platform.toLowerCase().indexOf('mac') > -1) {
+      document.body.classList.add('os-mac');
+    }
   }, []);
 
   useEffect(() => {

@@ -45,7 +45,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
-        const { key, label } = input;
+        const { key, label, isSecret } = input;
         return (
           <div className="flex flex-col w-full gap-1" key={`input-${key}`}>
             <label className="block font-medium">{label}</label>
@@ -58,6 +58,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
                 onRun={handleRun}
                 collection={collection}
                 item={item}
+                isSecret={isSecret}
               />
             </div>
           </div>

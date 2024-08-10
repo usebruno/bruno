@@ -161,7 +161,16 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form
+          className="bruno-form"
+          onSubmit={formik.handleSubmit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              formik.handleSubmit();
+            }
+          }}
+        >
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
@@ -220,6 +229,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               id="request-name"
               type="text"
               name="requestName"
+              placeholder="Request Name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off"
@@ -252,6 +262,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                       id="request-url"
                       type="text"
                       name="requestUrl"
+                      placeholder="Request URL"
                       className="px-3 w-full "
                       autoComplete="off"
                       autoCorrect="off"

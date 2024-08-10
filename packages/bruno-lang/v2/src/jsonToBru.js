@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const getValueString = (value) => {
-  const hasNewLines = value.includes('\n');
+  const hasNewLines = value?.includes('\n');
 
   if (!hasNewLines) {
     return value;
@@ -269,7 +269,6 @@ ${indentString(body.rawFile)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
-
             if (item.type === 'text') {
               return `${enabled}${item.name}: ${getValueString(item.value)}`;
             }
