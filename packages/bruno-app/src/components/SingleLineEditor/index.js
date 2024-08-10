@@ -174,7 +174,7 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className="flex flex-row justify-between w-full">
+      <div className="flex flex-row justify-between w-full pr-2 overflow-x-auto">
         <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
         {this.secretEye(this.props.isSecret)}
       </div>
