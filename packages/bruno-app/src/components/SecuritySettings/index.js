@@ -30,7 +30,7 @@ const SecuritySettings = ({ collection }) => {
       <div className='font-semibold mt-2'>Scripting Sandbox</div>
 
       <div className='mt-4'>
-        Bruno allows JavaScript code to be executed within Variables, Scripts, Tests, and Assertions. <br/>
+      The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
       </div>
 
       <div className="flex flex-col mt-4">
@@ -70,7 +70,7 @@ const SecuritySettings = ({ collection }) => {
             </span>
           </label>
           <p className='text-sm text-muted mt-1'>
-            JavaScript code has access to the filesystem, execute system commands and access sensitive information.
+            JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
           </p>
         </div>
         <button onClick={handleSave} className="submit btn btn-sm btn-secondary w-fit mt-6">

@@ -2,8 +2,9 @@ import { saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collec
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import { useState } from 'react';
-import Portal from 'components/Portal/index';
-import Modal from 'components/Modal/index';
+import Portal from 'components/Portal';
+import Modal from 'components/Modal';
+import StyledWrapper from './StyledWrapper';
 
 const AppModeModal = ({ collection, onClose }) => {
   const dispatch = useDispatch();
@@ -31,7 +32,7 @@ const AppModeModal = ({ collection, onClose }) => {
     <Portal>
       <Modal
         size="sm"
-        title={'App Mode'}
+        title={'Scripting Sandbox'}
         confirmText="Save"
         handleConfirm={handleSave}
         hideCancel={true}
@@ -39,61 +40,58 @@ const AppModeModal = ({ collection, onClose }) => {
         disableCloseOnOutsideClick={true}
         disableEscapeKey={true}
       >
-        <div className="flex flex-col gap-4">
-          <div className="text-xs opacity-70">Choose a app mode for this collection.</div>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="restricted" className="flex flex-row gap-2 cursor-pointer items-start">
-                <input
-                  type="radio"
-                  id="restricted"
-                  name="appMode"
-                  value="restricted"
-                  checked={selectedAppMode === 'restricted'}
-                  onChange={handleAppModeChange}
-                  className="cursor-pointer mt-1"
-                />
-                <div className="flex flex-col gap-1">
-                  Restricted
-                  <div className="opacity-50 text-xs">Code execution is not allowed.</div>
-                </div>
-              </label>
-              <label htmlFor="safe" className="flex flex-row gap-2 cursor-pointer items-start">
-                <input
-                  type="radio"
-                  id="safe"
-                  name="appMode"
-                  value="safe"
-                  checked={selectedAppMode === 'safe'}
-                  onChange={handleAppModeChange}
-                  className="cursor-pointer mt-1"
-                />
-                <div className="flex flex-col gap-1">
-                  Safe
-                  <div className="opacity-50 text-xs">Code is executed in isolated-vm.</div>
-                </div>
-              </label>
-              <label htmlFor="developer" className="flex flex-row gap-2 cursor-pointer items-start">
-                <input
-                  type="radio"
-                  id="developer"
-                  name="appMode"
-                  value="developer"
-                  checked={selectedAppMode === 'developer'}
-                  onChange={handleAppModeChange}
-                  className="cursor-pointer mt-1"
-                />
-                <div className="flex flex-col gap-1">
-                  Developer
-                  <div className="opacity-50 text-xs">Code execution is fully anabled.</div>
-                </div>
-              </label>
-            </div>
-            {/* <button onClick={handleSave} className="submit btn btn-sm btn-secondary w-fit">
-              Save
-            </button> */}
+        <StyledWrapper>
+          <div>
+            The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
           </div>
-        </div>
+
+          <div className='text-muted mt-6'>
+            Please choose the security level for the JavaScript code execution.
+          </div>
+
+          <div className="flex flex-col mt-4">
+            <label htmlFor="safe" className="flex flex-row items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                id="safe"
+                name="appMode"
+                value="safe"
+                checked={selectedAppMode === 'safe'}
+                onChange={handleAppModeChange}
+                className="cursor-pointer"
+              />
+              <span className={selectedAppMode === 'safe' ? 'font-medium' : 'font-normal'}>
+                Safe Mode
+              </span>
+              <span className='beta-tag'>BETA</span>
+            </label>
+            <p className='text-sm text-muted mt-1'>
+              JavaScript code is executed in a secure sandbox and cannot excess your filesystem or execute system commands.
+            </p>
+
+            <label htmlFor="developer" className="flex flex-row gap-2 mt-6 cursor-pointer">
+              <input
+                type="radio"
+                id="developer"
+                name="appMode"
+                value="developer"
+                checked={selectedAppMode === 'developer'}
+                onChange={handleAppModeChange}
+                className="cursor-pointer"
+              />
+              <span className={selectedAppMode === 'developer' ? 'font-medium' : 'font-normal'}>
+                Developer Mode
+                <span className='ml-1 developer-mode-warning'>(use only if you trust the collections authors)</span>
+              </span>
+            </label>
+            <p className='text-sm text-muted mt-1'>
+              JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
+            </p>
+            <small className='text-muted mt-6'>
+              * SAFE mode has been introduced v1.25 onwards and is in beta. Please report any issues on github.
+            </small>
+          </div>
+        </StyledWrapper>
       </Modal>
     </Portal>
   );
