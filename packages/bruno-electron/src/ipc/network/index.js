@@ -315,7 +315,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run pre-request vars
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
@@ -330,7 +330,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
@@ -382,7 +382,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
@@ -416,7 +416,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     let scriptResult;
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
       scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
@@ -459,7 +459,7 @@ const registerNetworkIpc = (mainWindow) => {
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
-    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
     try {
       const controller = new AbortController();
@@ -575,7 +575,7 @@ const registerNetworkIpc = (mainWindow) => {
       // run assertions
       const assertions = get(request, 'assertions');
       if (assertions) {
-        const assertRuntime = new AssertRuntime();
+        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
         const results = assertRuntime.runAssertions(
           assertions,
           request,
@@ -603,7 +603,7 @@ const registerNetworkIpc = (mainWindow) => {
       ]).join(os.EOL);
 
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
+        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
         const testResults = await testRuntime.runTests(
           decomment(testFile),
           request,
@@ -660,7 +660,7 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
       await runPreRequest(
         request,
@@ -765,7 +765,7 @@ const registerNetworkIpc = (mainWindow) => {
       const runtimeVariables = collection.runtimeVariables;
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collection.uid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
 
       await runPreRequest(
         request,
@@ -831,7 +831,7 @@ const registerNetworkIpc = (mainWindow) => {
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
       const collectionRoot = get(collection, 'root', {});
 
       const abortController = new AbortController();
@@ -1028,7 +1028,10 @@ const registerNetworkIpc = (mainWindow) => {
             // run assertions
             const assertions = get(item, 'request.assertions');
             if (assertions) {
-              const assertRuntime = new AssertRuntime();
+              const assertRuntime = new AssertRuntime({
+                runtime: scriptingConfig?.runtime,
+                mode: scriptingConfig?.appMode
+              });
               const results = assertRuntime.runAssertions(
                 assertions,
                 request,
@@ -1055,7 +1058,10 @@ const registerNetworkIpc = (mainWindow) => {
             ]).join(os.EOL);
 
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime();
+              const testRuntime = new TestRuntime({
+                runtime: scriptingConfig?.runtime,
+                mode: scriptingConfig?.appMode
+              });
               const testResults = await testRuntime.runTests(
                 decomment(testFile),
                 request,

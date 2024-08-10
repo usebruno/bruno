@@ -5,6 +5,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
+const { isolatedVMStrictInstance } = require('../sandbox/isolatedvm');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -161,7 +162,58 @@ const isUnaryOperator = (operator) => {
   return unaryOperators.includes(operator);
 };
 
-const evaluateRhsOperand = (rhsOperand, operator, context) => {
+const toNumber = (value) => {
+  const num = Number(value);
+  return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
+};
+
+const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
+  let value;
+  if (mode === 'restricted') {
+    let _value = _.get(context, v, v);
+    if (_value && typeof _value == 'object') {
+      value = JSON.stringify(_value);
+    } else if (Number.isNaN(Number(_value))) {
+      value = _value;
+    } else {
+      value = toNumber(_value);
+    }
+  } else if (mode === 'safe') {
+    value = isolatedVMStrictInstance.execute({
+      script: v,
+      context,
+      scriptType: 'template-literal'
+    });
+  } else {
+    value = evaluateJsTemplateLiteral(v, context);
+  }
+  return value;
+};
+
+const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
+  let value;
+  if (mode === 'restricted') {
+    let _value = _.get(context, v, v);
+    if (_value && typeof _value == 'object') {
+      value = JSON.stringify(_value);
+    } else if (Number.isNaN(Number(_value))) {
+      value = _value;
+    } else {
+      value = toNumber(_value);
+    }
+  } else if (mode === 'safe') {
+    value = isolatedVMStrictInstance.execute({
+      script: v,
+      context,
+      scriptType: 'expression'
+    });
+  } else {
+    value = evaluateJsExpression(v, context);
+  }
+  return value;
+};
+
+const evaluateRhsOperand = (rhsOperand, operator, context, runtime, mode) => {
   if (isUnaryOperator(operator)) {
     return;
   }
@@ -181,13 +233,27 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 
     return rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(
+          interpolateString(v.trim(), interpolationContext),
+          context,
+          runtime,
+          mode
+        )
+      );
   }
 
   if (operator === 'between') {
     const [lhs, rhs] = rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(
+          interpolateString(v.trim(), interpolationContext),
+          context,
+          runtime,
+          mode
+        )
+      );
     return [lhs, rhs];
   }
 
@@ -200,10 +266,20 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return interpolateString(rhsOperand, interpolationContext);
   }
 
-  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, interpolationContext), context);
+  return evaluateJsTemplateLiteralBasedOnRuntime(
+    interpolateString(rhsOperand, interpolationContext),
+    context,
+    runtime,
+    mode
+  );
 };
 
 class AssertRuntime {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
+  }
+
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
     const requestVariables = request?.requestVariables || {};
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
@@ -238,8 +314,8 @@ class AssertRuntime {
       const { operator, value: rhsOperand } = parseAssertionOperator(rhsExpr);
 
       try {
-        const lhs = evaluateJsExpression(lhsExpr, context);
-        const rhs = evaluateRhsOperand(rhsOperand, operator, context);
+        const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime, this.mode);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime, this.mode);
 
         switch (operator) {
           case 'eq':
