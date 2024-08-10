@@ -4,10 +4,11 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables) {
     this.envVariables = envVariables || {};
-    this.collectionVariables = collectionVariables || {};
+    this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
+    this.requestVariables = requestVariables || {};
     this.collectionPath = collectionPath;
   }
 
@@ -18,7 +19,8 @@ class Bru {
 
     const combinedVars = {
       ...this.envVariables,
-      ...this.collectionVariables,
+      ...this.requestVariables,
+      ...this.runtimeVariables,
       process: {
         env: {
           ...this.processEnvVars
@@ -41,6 +43,10 @@ class Bru {
     return this.processEnvVars[key];
   }
 
+  hasEnvVar(key) {
+    return Object.hasOwn(this.envVariables, key);
+  }
+
   getEnvVar(key) {
     return this._interpolate(this.envVariables[key]);
   }
@@ -51,6 +57,10 @@ class Bru {
     }
 
     this.envVariables[key] = value;
+  }
+
+  hasVar(key) {
+    return Object.hasOwn(this.runtimeVariables, key);
   }
 
   setVar(key, value) {
@@ -65,7 +75,7 @@ class Bru {
       );
     }
 
-    this.collectionVariables[key] = value;
+    this.runtimeVariables[key] = value;
   }
 
   getVar(key) {
@@ -76,7 +86,15 @@ class Bru {
       );
     }
 
-    return this._interpolate(this.collectionVariables[key]);
+    return this._interpolate(this.runtimeVariables[key]);
+  }
+
+  deleteVar(key) {
+    delete this.runtimeVariables[key];
+  }
+
+  getRequestVar(key) {
+    return this._interpolate(this.requestVariables[key]);
   }
 
   setNextRequest(nextRequest) {

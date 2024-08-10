@@ -1,13 +1,17 @@
 const { interpolate } = require('@usebruno/common');
 
-const interpolateString = (str, { envVariables = {}, collectionVariables = {}, processEnvVars = {} }) => {
+const interpolateString = (
+  str,
+  { envVariables = {}, runtimeVariables = {}, processEnvVars = {}, requestVariables = {} }
+) => {
   if (!str || !str.length || typeof str !== 'string') {
     return str;
   }
 
   const combinedVars = {
     ...envVariables,
-    ...collectionVariables,
+    ...requestVariables,
+    ...runtimeVariables,
     process: {
       env: {
         ...processEnvVars

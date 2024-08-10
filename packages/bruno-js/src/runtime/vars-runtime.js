@@ -62,13 +62,16 @@ class VarsRuntime {
     this.mode = props?.mode || 'developer';
   }
 
-  runPreRequestVars(vars, request, envVariables, collectionVariables, collectionPath, processEnvVars) {
+  runPreRequestVars(vars, request, envVariables, runtimeVariables, collectionPath, processEnvVars) {
+    if (!request?.requestVariables) {
+      request.requestVariables = {};
+    }
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars);
     const req = new BrunoRequest(request);
 
     const bruContext = {
@@ -78,27 +81,24 @@ class VarsRuntime {
 
     const context = {
       ...envVariables,
-      ...collectionVariables,
+      ...runtimeVariables,
       ...bruContext
     };
 
     _.each(enabledVars, (v) => {
       const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime, this.mode);
-      bru.setVar(v.name, value);
+      request?.requestVariables && (request.requestVariables[v.name] = value);
     });
-
-    return {
-      collectionVariables
-    };
   }
 
-  runPostResponseVars(vars, request, response, envVariables, collectionVariables, collectionPath, processEnvVars) {
+  runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {
+    const requestVariables = request?.requestVariables || {};
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -110,7 +110,7 @@ class VarsRuntime {
 
     const context = {
       ...envVariables,
-      ...collectionVariables,
+      ...runtimeVariables,
       ...bruContext
     };
 
@@ -133,7 +133,7 @@ class VarsRuntime {
 
     return {
       envVariables,
-      collectionVariables,
+      runtimeVariables,
       error
     };
   }

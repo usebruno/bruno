@@ -27,13 +27,13 @@ vars:pre-request {
 assert {
   res.status: eq 200
   res.responseTime: lte 2000
-  ~res.body: eq {{pong}}
+  res.body: eq {{pong}}
 }
 
 tests {
   test("should ping pong", function() {
     const data = res.getBody();
-    expect(data).to.equal(bru.getVar("pong"));
+    expect(data).to.equal(bru.getRequestVar("pong"));
   });
 }
 

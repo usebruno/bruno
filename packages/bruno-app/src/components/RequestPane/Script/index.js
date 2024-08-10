@@ -40,8 +40,8 @@ const Script = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col">
-      <div className="flex-1 mt-2">
-        <div className="mb-1 title text-xs">Pre Request</div>
+      <div className="flex flex-col flex-1 mt-2 gap-y-2">
+        <div className="title text-xs">Pre Request</div>
         <CodeEditor
           collection={collection}
           value={requestScript || ''}
@@ -53,8 +53,8 @@ const Script = ({ item, collection }) => {
           onSave={onSave}
         />
       </div>
-      <div className="flex-1 mt-6">
-        <div className="mt-1 mb-1 title text-xs">Post Response</div>
+      <div className="flex flex-col flex-1 mt-2 gap-y-2">
+        <div className="title text-xs">Post Response</div>
         <CodeEditor
           collection={collection}
           value={responseScript || ''}

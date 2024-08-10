@@ -50,6 +50,7 @@ const CodeView = ({ language, item }) => {
         </CopyToClipboard>
         <CodeEditor
           readOnly
+          collection={collection}
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
           theme={displayedTheme}
