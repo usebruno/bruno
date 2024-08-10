@@ -9,7 +9,7 @@ class CollectionSecurityStore {
     });
   }
 
-  storeSecurityConfigForCollection(collectionPathname, securityConfig) {
+  setSecurityConfigForCollection(collectionPathname, securityConfig) {
     const collections = this.store.get('collections') || [];
     const collection = _.find(collections, (c) => c.path === collectionPathname);
 

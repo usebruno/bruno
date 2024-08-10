@@ -315,7 +315,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run pre-request vars
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
@@ -330,7 +330,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
@@ -382,7 +382,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
@@ -416,7 +416,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     let scriptResult;
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
@@ -575,7 +575,7 @@ const registerNetworkIpc = (mainWindow) => {
       // run assertions
       const assertions = get(request, 'assertions');
       if (assertions) {
-        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
         const results = assertRuntime.runAssertions(
           assertions,
           request,
@@ -603,7 +603,7 @@ const registerNetworkIpc = (mainWindow) => {
       ]).join(os.EOL);
 
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime, mode: scriptingConfig?.appMode });
+        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
           decomment(testFile),
           request,
@@ -1028,10 +1028,7 @@ const registerNetworkIpc = (mainWindow) => {
             // run assertions
             const assertions = get(item, 'request.assertions');
             if (assertions) {
-              const assertRuntime = new AssertRuntime({
-                runtime: scriptingConfig?.runtime,
-                mode: scriptingConfig?.appMode
-              });
+              const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
               const results = assertRuntime.runAssertions(
                 assertions,
                 request,
@@ -1058,10 +1055,7 @@ const registerNetworkIpc = (mainWindow) => {
             ]).join(os.EOL);
 
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime({
-                runtime: scriptingConfig?.runtime,
-                mode: scriptingConfig?.appMode
-              });
+              const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
                 decomment(testFile),
                 request,

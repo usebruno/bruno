@@ -17,7 +17,7 @@
     "install:isolated-vm": "cd ./node_modules/isolated-vm && npm install",
     "prebuild:isolated-vm:dev": "node ./scripts/prebuild-isolated-vm-for-dev.js",
     "prebuild:isolated-vm:prod": "node ./scripts/prebuild-isolated-vm-for-prod-builds.js",
-    "build:isolated-vm:inbuilt-modules": "node ./src/sandbox/isolatedvm/utils/bundleLibraries.js"
+    "build:isolated-vm:inbuilt-modules": "node ./src/sandbox/isolatedvm/utils/bundle-libraries.js"
   },
   "dependencies": {
     "@faker-js/faker": "^8.4.1",

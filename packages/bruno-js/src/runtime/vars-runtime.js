@@ -5,55 +5,28 @@ const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } 
 
 const { isolatedVMStrictInstance } = require('../sandbox/isolatedvm');
 
-const toNumber = (value) => {
-  const num = Number(value);
-  return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
-};
-
-const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
-  let value;
-  if (mode === 'restricted') {
-    let _value = _.get(context, v, v);
-    if (_value && typeof _value == 'object') {
-      value = JSON.stringify(_value);
-    } else if (Number.isNaN(Number(_value))) {
-      value = _value;
-    } else {
-      value = toNumber(_value);
-    }
-  } else if (mode === 'safe') {
-    value = isolatedVMStrictInstance.execute({
-      script: v,
+const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
+  if(runtime === 'isolated-vm') {
+    return isolatedVMStrictInstance.execute({
+      script: literal,
       context,
       scriptType: 'template-literal'
     });
-  } else {
-    value = evaluateJsTemplateLiteral(v, context);
   }
-  return value;
+
+  return evaluateJsTemplateLiteral(literal, context);
 };
 
-const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
-  let value;
-  if (mode === 'restricted') {
-    let _value = _.get(context, v, v);
-    if (_value && typeof _value == 'object') {
-      value = JSON.stringify(_value);
-    } else if (Number.isNaN(Number(_value))) {
-      value = _value;
-    } else {
-      value = toNumber(_value);
-    }
-  } else if (mode === 'safe') {
-    value = isolatedVMStrictInstance.execute({
-      script: v,
+const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
+  if(runtime === 'isolated-vm') {
+    return isolatedVMStrictInstance.execute({
+      script: expr,
       context,
       scriptType: 'expression'
     });
-  } else {
-    value = evaluateJsExpression(v, context);
   }
-  return value;
+
+  return evaluateJsExpression(expr, context);
 };
 
 class VarsRuntime {
@@ -86,7 +59,7 @@ class VarsRuntime {
     };
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime, this.mode);
+      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
       request?.requestVariables && (request.requestVariables[v.name] = value);
     });
   }
@@ -117,7 +90,7 @@ class VarsRuntime {
     const errors = new Map();
     _.each(enabledVars, (v) => {
       try {
-        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime, this.mode);
+        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
         bru.setVar(v.name, value);
       } catch (error) {
         errors.set(v.name, error);

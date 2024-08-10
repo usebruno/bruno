@@ -33,7 +33,6 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
-      collection.securitySettingsSelectedTab = 'appMode';
 
       collection.showAppModeModal = !collection?.securityConfig?.appMode;
 
@@ -1629,15 +1628,6 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
-    },
-    updateSecuritySettingsSelectedTab: (state, action) => {
-      const { collectionUid, tab } = action.payload;
-
-      const collection = findCollectionByUid(state.collections, collectionUid);
-
-      if (collection) {
-        collection.securitySettingsSelectedTab = tab;
-      }
     }
   }
 });
@@ -1729,7 +1719,6 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateSecuritySettingsSelectedTab,
   setShowAppModeModal
 } = collectionsSlice.actions;
 

@@ -28,12 +28,11 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { isolatedVMAsyncInstance, executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
+const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 
 class ScriptRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
-    this.mode = props?.mode || 'developer';
   }
 
   // This approach is getting out of hand
@@ -48,14 +47,6 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
-    if (this.mode === 'restricted') {
-      return {
-        request,
-        envVariables: cleanJson(envVariables),
-        collectionVariables: cleanJson(collectionVariables),
-        nextRequestName: undefined
-      };
-    }
     const requestVariables = request?.requestVariables || {};
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
@@ -98,7 +89,7 @@ class ScriptRuntime {
       };
     }
 
-    if (this.mode == 'safe') {
+    if (this.runtime === 'isolated-vm') {
       // Reuses the same instance of IsolatedVMAsync
       // TODO: Test for performance
       // await isolatedVMAsyncInstance.execute({
@@ -113,52 +104,53 @@ class ScriptRuntime {
         modules: {},
         scriptType: 'jsScript'
       });
-    } else {
-      const vm = new NodeVM({
-        sandbox: context,
-        require: {
-          context: 'sandbox',
-          external: true,
-          root: [collectionPath, ...additionalContextRootsAbsolute],
-          mock: {
-            // node libs
-            path,
-            stream,
-            util,
-            url,
-            http,
-            https,
-            punycode,
-            zlib,
-            // 3rd party libs
-            ajv,
-            'ajv-formats': addFormats,
-            atob,
-            btoa,
-            lodash,
-            moment,
-            uuid,
-            nanoid,
-            axios,
-            chai,
-            'node-fetch': fetch,
-            'crypto-js': CryptoJS,
-            ...whitelistedModules,
-            fs: allowScriptFilesystemAccess ? fs : undefined,
-            'node-vault': NodeVault
-          }
-        }
-      });
-      const asyncVM = vm.run(
-        `module.exports = async () => { 
-          console?.debug && console.debug('vm2:pre-request:execution-start');
-          ${script}
-          console?.debug && console.debug('vm2:pre-request:execution-end:');
-        }`,
-        path.join(collectionPath, 'vm.js')
-      );
-      await asyncVM();
+
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        nextRequestName: bru.nextRequest
+      };
     }
+
+    // default runtime is vm2
+    const vm = new NodeVM({
+      sandbox: context,
+      require: {
+        context: 'sandbox',
+        external: true,
+        root: [collectionPath, ...additionalContextRootsAbsolute],
+        mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
+          ajv,
+          'ajv-formats': addFormats,
+          atob,
+          btoa,
+          lodash,
+          moment,
+          uuid,
+          nanoid,
+          axios,
+          chai,
+          'node-fetch': fetch,
+          'crypto-js': CryptoJS,
+          ...whitelistedModules,
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
+        }
+      }
+    });
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
+    await asyncVM();
 
     return {
       request,
@@ -179,14 +171,6 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
-    if (this.mode === 'restricted') {
-      return {
-        request,
-        envVariables: cleanJson(envVariables),
-        collectionVariables: cleanJson(collectionVariables),
-        nextRequestName: undefined
-      };
-    }
     const requestVariables = request?.requestVariables || {};
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables);
     const req = new BrunoRequest(request);
@@ -226,7 +210,7 @@ class ScriptRuntime {
       };
     }
 
-    if (this.mode == 'safe') {
+    if (this.runtime === 'isolated-vm') {
       // Reuses the same instance of IsolatedVMAsync
       // TODO: Test for performance
       // await isolatedVMAsyncInstance.execute({
@@ -241,53 +225,53 @@ class ScriptRuntime {
         modules: {},
         scriptType: 'jsScript'
       });
-    } else {
-      // DEVELOPER MODE
-      const vm = new NodeVM({
-        sandbox: context,
-        require: {
-          context: 'sandbox',
-          external: true,
-          root: [collectionPath],
-          mock: {
-            // node libs
-            path,
-            stream,
-            util,
-            url,
-            http,
-            https,
-            punycode,
-            zlib,
-            // 3rd party libs
-            ajv,
-            'ajv-formats': addFormats,
-            atob,
-            btoa,
-            lodash,
-            moment,
-            uuid,
-            nanoid,
-            axios,
-            'node-fetch': fetch,
-            'crypto-js': CryptoJS,
-            ...whitelistedModules,
-            fs: allowScriptFilesystemAccess ? fs : undefined,
-            'node-vault': NodeVault
-          }
-        }
-      });
 
-      const asyncVM = vm.run(
-        `module.exports = async () => { 
-          console?.debug && console.debug('vm2:post-response:execution-start:');
-          ${script}
-          console?.debug && console.debug('vm2:post-response:execution-end:');
-        }`,
-        path.join(collectionPath, 'vm.js')
-      );
-      await asyncVM();
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        nextRequestName: bru.nextRequest
+      };
     }
+
+    // default runtime is vm2
+    const vm = new NodeVM({
+      sandbox: context,
+      require: {
+        context: 'sandbox',
+        external: true,
+        root: [collectionPath],
+        mock: {
+          // node libs
+          path,
+          stream,
+          util,
+          url,
+          http,
+          https,
+          punycode,
+          zlib,
+          // 3rd party libs
+          ajv,
+          'ajv-formats': addFormats,
+          atob,
+          btoa,
+          lodash,
+          moment,
+          uuid,
+          nanoid,
+          axios,
+          'node-fetch': fetch,
+          'crypto-js': CryptoJS,
+          ...whitelistedModules,
+          fs: allowScriptFilesystemAccess ? fs : undefined,
+          'node-vault': NodeVault
+        }
+      }
+    });
+
+    const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
+    await asyncVM();
 
     return {
       response,

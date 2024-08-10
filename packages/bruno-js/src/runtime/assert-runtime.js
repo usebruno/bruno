@@ -162,58 +162,31 @@ const isUnaryOperator = (operator) => {
   return unaryOperators.includes(operator);
 };
 
-const toNumber = (value) => {
-  const num = Number(value);
-  return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
-};
-
-const evaluateJsTemplateLiteralBasedOnRuntime = (v, context, runtime, mode) => {
-  let value;
-  if (mode === 'restricted') {
-    let _value = _.get(context, v, v);
-    if (_value && typeof _value == 'object') {
-      value = JSON.stringify(_value);
-    } else if (Number.isNaN(Number(_value))) {
-      value = _value;
-    } else {
-      value = toNumber(_value);
-    }
-  } else if (mode === 'safe') {
-    value = isolatedVMStrictInstance.execute({
-      script: v,
+const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
+  if(runtime === 'isolated-vm') {
+    return isolatedVMStrictInstance.execute({
+      script: literal,
       context,
       scriptType: 'template-literal'
     });
-  } else {
-    value = evaluateJsTemplateLiteral(v, context);
   }
-  return value;
+
+  return evaluateJsTemplateLiteral(literal, context);
 };
 
-const evaluateJsExpressionBasedOnRuntime = (v, context, runtime, mode) => {
-  let value;
-  if (mode === 'restricted') {
-    let _value = _.get(context, v, v);
-    if (_value && typeof _value == 'object') {
-      value = JSON.stringify(_value);
-    } else if (Number.isNaN(Number(_value))) {
-      value = _value;
-    } else {
-      value = toNumber(_value);
-    }
-  } else if (mode === 'safe') {
-    value = isolatedVMStrictInstance.execute({
-      script: v,
+const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime) => {
+  if(runtime === 'isolated-vm') {
+    return isolatedVMStrictInstance.execute({
+      script: expr,
       context,
       scriptType: 'expression'
     });
-  } else {
-    value = evaluateJsExpression(v, context);
   }
-  return value;
-};
 
-const evaluateRhsOperand = (rhsOperand, operator, context, runtime, mode) => {
+  return evaluateJsExpression(expr, context);
+}
+
+const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
   if (isUnaryOperator(operator)) {
     return;
   }
@@ -237,8 +210,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime, mode) => {
         evaluateJsTemplateLiteralBasedOnRuntime(
           interpolateString(v.trim(), interpolationContext),
           context,
-          runtime,
-          mode
+          runtime
         )
       );
   }
@@ -250,8 +222,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime, mode) => {
         evaluateJsTemplateLiteralBasedOnRuntime(
           interpolateString(v.trim(), interpolationContext),
           context,
-          runtime,
-          mode
+          runtime
         )
       );
     return [lhs, rhs];
@@ -269,15 +240,13 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime, mode) => {
   return evaluateJsTemplateLiteralBasedOnRuntime(
     interpolateString(rhsOperand, interpolationContext),
     context,
-    runtime,
-    mode
+    runtime
   );
 };
 
 class AssertRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
-    this.mode = props?.mode || 'developer';
   }
 
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
@@ -314,8 +283,8 @@ class AssertRuntime {
       const { operator, value: rhsOperand } = parseAssertionOperator(rhsExpr);
 
       try {
-        const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime, this.mode);
-        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime, this.mode);
+        const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime);
 
         switch (operator) {
           case 'eq':
