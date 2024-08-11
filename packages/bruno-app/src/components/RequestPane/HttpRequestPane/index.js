@@ -16,6 +16,8 @@ import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 
+const CONTENT_INDICATOR = '\u25CF';
+
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -82,12 +84,17 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
 
   const isMultipleContentTab = ['params', 'script', 'vars', 'auth', 'docs'].includes(focusedTab.requestPaneTab);
 
-  // get the length of active params, headers, asserts and vars
-  const params = item.draft ? get(item, 'draft.request.params', []) : get(item, 'request.params', []);
-  const headers = item.draft ? get(item, 'draft.request.headers', []) : get(item, 'request.headers', []);
-  const assertions = item.draft ? get(item, 'draft.request.assertions', []) : get(item, 'request.assertions', []);
-  const requestVars = item.draft ? get(item, 'draft.request.vars.req', []) : get(item, 'request.vars.req', []);
-  const responseVars = item.draft ? get(item, 'draft.request.vars.res', []) : get(item, 'request.vars.res', []);
+  // get the length of active params, headers, asserts and vars as well as the contents of the body, tests and script
+  const getPropertyFromDraftOrRequest = (propertyKey) =>
+    item.draft ? get(item, `draft.${propertyKey}`, []) : get(item, propertyKey, []);
+  const params = getPropertyFromDraftOrRequest('request.params');
+  const body = getPropertyFromDraftOrRequest('request.body');
+  const headers = getPropertyFromDraftOrRequest('request.headers');
+  const script = getPropertyFromDraftOrRequest('request.script');
+  const assertions = getPropertyFromDraftOrRequest('request.assertions');
+  const tests = getPropertyFromDraftOrRequest('request.tests');
+  const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
+  const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -105,6 +112,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
+          {body.mode !== 'none' && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
@@ -119,6 +127,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
+          {(script.req || script.res) && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert
@@ -126,6 +135,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
+          {tests && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
