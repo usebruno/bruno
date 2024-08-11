@@ -1,33 +1,32 @@
 import { useState } from 'react';
 import { saveCollectionSecurityConfig } from 'providers/ReduxStore/slices/collections/actions';
-import classnames from 'classnames';
+import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { useDispatch } from 'react-redux';
 
 const SecuritySettings = ({ collection }) => {
   const dispatch = useDispatch();
-  const [selectedAppMode, setSelectedAppMode] = useState(collection?.securityConfig?.appMode || 'developer');
+  const [jsSandboxMode, setJsSandboxMode] = useState(collection?.securityConfig?.jsSandboxMode || 'safe');
 
-  const handleAppModeChange = (e) => {
-    setSelectedAppMode(e.target.value);
+  const handleChange = (e) => {
+    setJsSandboxMode(e.target.value);
   };
 
   const handleSave = () => {
     dispatch(
       saveCollectionSecurityConfig(collection?.uid, {
-        appMode: selectedAppMode,
-        runtime: selectedAppMode === 'developer' ? 'vm2' : selectedAppMode === 'safe' ? 'isolated-vm' : undefined
+        jsSandboxMode: jsSandboxMode
       })
     )
       .then(() => {
-        toast.success('App Mode updated successfully');
+        toast.success('Sandbox mode updated successfully');
       })
-      .catch((err) => console.log(err) && toast.error('Failed to update JS AppMode'));
+      .catch((err) => console.log(err) && toast.error('Failed to update sandbox mode'));
   };
 
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
-      <div className='font-semibold mt-2'>Scripting Sandbox</div>
+      <div className='font-semibold mt-2'>JavaScript Sandbox</div>
 
       <div className='mt-4'>
       The collection might include JavaScript code in Variables, Scripts, Tests, and Assertions.
@@ -39,13 +38,13 @@ const SecuritySettings = ({ collection }) => {
             <input
               type="radio"
               id="safe"
-              name="appMode"
+              name="jsSandboxMode"
               value="safe"
-              checked={selectedAppMode === 'safe'}
-              onChange={handleAppModeChange}
+              checked={jsSandboxMode === 'safe'}
+              onChange={handleChange}
               className="cursor-pointer"
             />
-            <span className={selectedAppMode === 'safe' ? 'font-medium' : 'font-normal'}>
+            <span className={jsSandboxMode === 'safe' ? 'font-medium' : 'font-normal'}>
               Safe Mode
             </span>
             <span className='beta-tag'>BETA</span>
@@ -58,13 +57,13 @@ const SecuritySettings = ({ collection }) => {
             <input
               type="radio"
               id="developer"
-              name="appMode"
+              name="jsSandboxMode"
               value="developer"
-              checked={selectedAppMode === 'developer'}
-              onChange={handleAppModeChange}
+              checked={jsSandboxMode === 'developer'}
+              onChange={handleChange}
               className="cursor-pointer"
             />
-            <span className={selectedAppMode === 'developer' ? 'font-medium' : 'font-normal'}>
+            <span className={jsSandboxMode === 'developer' ? 'font-medium' : 'font-normal'}>
               Developer Mode
               <span className='ml-1 developer-mode-warning'>(use only if you trust the collections authors)</span>
             </span>
@@ -76,6 +75,9 @@ const SecuritySettings = ({ collection }) => {
         <button onClick={handleSave} className="submit btn btn-sm btn-secondary w-fit mt-6">
           Save
         </button>
+        <small className='text-muted mt-6'>
+          * SAFE mode has been introduced v1.25 onwards and is in beta. Please report any issues on github.
+        </small>
       </div>
     </StyledWrapper>
   );

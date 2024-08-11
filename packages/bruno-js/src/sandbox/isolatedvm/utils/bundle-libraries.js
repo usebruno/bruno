@@ -6,9 +6,6 @@ const { terser } = require('rollup-plugin-terser');
 
 const bundleLibraries = async () => {
   const codeScript = `
-    import isNumber from "is-number";
-    global.isNumber = isNumber;
-    import { faker } from "@faker-js/faker";
     import { expect, assert } from 'chai';
     import { Buffer } from "buffer";
     import moment from "moment";
@@ -16,15 +13,12 @@ const bundleLibraries = async () => {
     import atob from "atob";
     global.expect = expect;
     global.assert = assert;
-    global.faker = faker;
     global.moment = moment;
     global.btoa = btoa;
     global.atob = atob;
     global.Buffer = Buffer;
     global.requireObject = {
       'chai': { expect, assert },
-      'faker': faker,
-      '@faker-js/faker': { faker },
       'moment': moment,
       'buffer': { Buffer },
       'btoa': btoa,

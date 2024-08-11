@@ -16,7 +16,9 @@ class CollectionSecurityStore {
     if (!collection) {
       collections.push({
         path: collectionPathname,
-        securityConfig
+        securityConfig: {
+          jsSandboxMode: securityConfig.jsSandboxMode
+        }
       });
 
       this.store.set('collections', collections);

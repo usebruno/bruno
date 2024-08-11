@@ -33,9 +33,6 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
-
-      collection.showAppModeModal = !collection?.securityConfig?.appMode;
-
       collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
@@ -52,10 +49,6 @@ export const collectionsSlice = createSlice({
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
       }
-    },
-    setShowAppModeModal: (state, action) => {
-      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
-      collection.showAppModeModal = action.payload.showAppModeModal;
     },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
@@ -1718,8 +1711,7 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs,
-  setShowAppModeModal
+  updateRequestDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

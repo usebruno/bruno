@@ -81,6 +81,11 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+  return securityConfig.jsSandboxMode === 'safe' ? 'isolated-vm' : 'vm2';
+};
+
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const configureRequest = async (
@@ -459,7 +464,8 @@ const registerNetworkIpc = (mainWindow) => {
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
-    const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
+    const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
       const controller = new AbortController();
@@ -660,7 +666,8 @@ const registerNetworkIpc = (mainWindow) => {
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -765,7 +772,8 @@ const registerNetworkIpc = (mainWindow) => {
       const runtimeVariables = collection.runtimeVariables;
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collection.uid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -831,7 +839,8 @@ const registerNetworkIpc = (mainWindow) => {
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
-      const scriptingConfig = { ...get(brunoConfig, 'scripts', {}), ...get(collection, 'securityConfig', {}) };
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
 
       const abortController = new AbortController();

@@ -670,7 +670,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:save-collection-security-config', async (event, collectionPath, securityConfig) => {
     try {
-      collectionSecurityStore.setSecurityConfigForCollection(collectionPath, securityConfig);
+      collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
+        jsSandboxMode: securityConfig.jsSandboxMode
+      });
     } catch (error) {
       return Promise.reject(error);
     }
