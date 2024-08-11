@@ -88,6 +88,8 @@ function decryptString(str) {
   if (algo === ELECTRONSAFESTORAGE_ALGO) {
     if (safeStorage && safeStorage.isEncryptionAvailable()) {
       return safeStorageDecrypt(encryptedString);
+    } else {
+      return '';
     }
   }
 
