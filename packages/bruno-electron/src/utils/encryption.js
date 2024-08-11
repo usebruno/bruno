@@ -86,7 +86,9 @@ function decryptString(str) {
   }
 
   if (algo === ELECTRONSAFESTORAGE_ALGO) {
-    return safeStorageDecrypt(encryptedString);
+    if (safeStorage && safeStorage.isEncryptionAvailable()) {
+      return safeStorageDecrypt(encryptedString);
+    }
   }
 
   if (algo === AES256_ALGO) {
