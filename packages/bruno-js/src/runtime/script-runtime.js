@@ -90,14 +90,6 @@ class ScriptRuntime {
     }
 
     if (this.runtime === 'isolated-vm') {
-      // Reuses the same instance of IsolatedVMAsync
-      // TODO: Test for performance
-      // await isolatedVMAsyncInstance.execute({
-      //   script,
-      //   context,
-      //   modules: {}, // todo: module support?
-      //   scriptType: 'jsScript'
-      // });
       await executeInIsolatedVMAsync({
         script: script,
         context: context,
@@ -211,14 +203,6 @@ class ScriptRuntime {
     }
 
     if (this.runtime === 'isolated-vm') {
-      // Reuses the same instance of IsolatedVMAsync
-      // TODO: Test for performance
-      // await isolatedVMAsyncInstance.execute({
-      //   script,
-      //   context,
-      //   modules: {}, // todo: module support?
-      //   scriptType: 'jsScript'
-      // });
       await executeInIsolatedVMAsync({
         script: script,
         context: context,

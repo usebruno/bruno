@@ -3,7 +3,7 @@ const os = require('os');
 
 const platform = os.platform();
 const arch = os.arch();
-const target = '21.1.1';
+const target = '23.3.3';
 
 const command = `cd ./node_modules/isolated-vm && rm -rf prebuilds && mkdir prebuilds && npm run prebuild -- --platform=${platform} --arch=${arch} --target=${target} --runtime=electron`;
 

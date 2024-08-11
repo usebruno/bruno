@@ -3,11 +3,11 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
-const { isolatedVMStrictInstance } = require('../sandbox/isolatedvm');
+const { executeInIsolatedVMStrict } = require('../sandbox/isolatedvm');
 
 const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
   if(runtime === 'isolated-vm') {
-    return isolatedVMStrictInstance.execute({
+    return executeInIsolatedVMStrict({
       script: literal,
       context,
       scriptType: 'template-literal'
@@ -19,7 +19,7 @@ const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
 
 const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
   if(runtime === 'isolated-vm') {
-    return isolatedVMStrictInstance.execute({
+    return executeInIsolatedVMStrict({
       script: expr,
       context,
       scriptType: 'expression'

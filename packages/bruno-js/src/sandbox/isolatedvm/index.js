@@ -80,8 +80,6 @@ class IsolatedVMStrict {
   }
 }
 
-const isolatedVMStrictInstance = new IsolatedVMStrict();
-
 const executeInIsolatedVMStrict = ({ script: externalScript, context: externalContext, scriptType = 'script' }) => {
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
@@ -229,8 +227,6 @@ class IsolatedVMAsync {
   }
 }
 
-const isolatedVMAsyncInstance = new IsolatedVMAsync();
-
 const executeInIsolatedVMAsync = async ({
   script: externalScript,
   context: externalContext,
@@ -327,7 +323,5 @@ const executeInIsolatedVMAsync = async ({
 
 module.exports = {
   executeInIsolatedVMStrict,
-  isolatedVMStrictInstance,
-  executeInIsolatedVMAsync,
-  isolatedVMAsyncInstance
+  executeInIsolatedVMAsync
 };

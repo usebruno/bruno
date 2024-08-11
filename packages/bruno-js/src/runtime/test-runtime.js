@@ -109,14 +109,6 @@ class TestRuntime {
     }
 
     if (this.mode == 'safe') {
-      // Reuses the same instance of IsolatedVMAsync
-      // TODO: Test for performance
-      // await isolatedVMAsyncInstance.execute({
-      //   script: testsFile,
-      //   context: context,
-      //   modules: {},
-      //   scriptType: 'jsScript'
-      // });
       await executeInIsolatedVMAsync({
         script: testsFile,
         context: context,

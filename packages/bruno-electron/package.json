@@ -31,7 +31,6 @@
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
     "axios": "^1.5.1",
-    "browserify": "^17.0.0",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "content-disposition": "^0.5.4",
@@ -65,7 +64,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
+    "electron": "23.3.3",
     "electron-builder": "23.0.2",
     "electron-icon-maker": "^0.0.5"
   }
