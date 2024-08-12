@@ -4,7 +4,6 @@ const addBrunoRequestShimToContext = require('./shims/bruno-request');
 const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addTestShimToContext = require('./shims/test');
-const fs = require('fs');
 const addLibraryShimsToContext = require('./shims/lib');
 
 // execute `npm run build:isolated-vm:inbuilt-modules` if the below file doesn't exist
@@ -243,12 +242,16 @@ const executeInIsolatedVMAsync = async ({
     await context.global.set('global', context.global.derefInto());
 
     context.evalSync(`
-    let bru = {};
-    let req = {};
-    let res = {};
-    let console = {};
-    global.requireObject = {};
-  `);
+      let bru = {};
+      let req = {};
+      let res = {};
+      let console = {};
+      global.requireObject = {};
+      global.require = (module) => {
+        return global.requireObject[module];
+      }
+    `);
+    await addLibraryShimsToContext(this.context);
 
     context.global.setSync('log', function (...args) {
       console.debug(...args);
