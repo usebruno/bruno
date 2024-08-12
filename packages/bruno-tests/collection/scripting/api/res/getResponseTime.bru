@@ -1,17 +1,13 @@
 meta {
-  name: echo json
+  name: getResponseTime
   type: http
-  seq: 2
+  seq: 5
 }
 
 post {
   url: {{host}}/api/echo/json
   body: json
   auth: none
-}
-
-headers {
-  foo: bar
 }
 
 auth:basic {
@@ -33,16 +29,11 @@ assert {
   res.status: eq 200
 }
 
-script:pre-request {
-  bru.setVar("foo", "foo-world-2");
-}
-
 tests {
-  test("should return json", function() {
-    const data = res.getBody();
-    expect(res.getBody()).to.eql({
-      "hello": "bruno"
-    });
+  test("res.getResponseTime()", function() {
+    const responseTime = res.getResponseTime();
+    expect(typeof responseTime).to.eql("number");
+    expect(responseTime > 0).to.be.true;
   });
   
 }

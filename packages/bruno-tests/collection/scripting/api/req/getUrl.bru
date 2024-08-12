@@ -1,0 +1,32 @@
+meta {
+  name: getUrl
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+auth:awsv4 {
+  accessKeyId: a
+  secretAccessKey: b
+  sessionToken: c
+  service: d
+  region: e
+  profileName: f
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("req.getUrl()", function() {
+    const url = req.getUrl();
+    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+  });
+}

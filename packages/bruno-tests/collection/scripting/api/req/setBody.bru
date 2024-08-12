@@ -1,17 +1,13 @@
 meta {
-  name: echo json
+  name: setBody
   type: http
-  seq: 2
+  seq: 10
 }
 
 post {
   url: {{host}}/api/echo/json
   body: json
   auth: none
-}
-
-headers {
-  foo: bar
 }
 
 auth:basic {
@@ -34,14 +30,16 @@ assert {
 }
 
 script:pre-request {
-  bru.setVar("foo", "foo-world-2");
+  req.setBody({
+    "bruno": "is awesome"
+  });
 }
 
 tests {
-  test("should return json", function() {
+  test("req.setBody()", function() {
     const data = res.getBody();
-    expect(res.getBody()).to.eql({
-      "hello": "bruno"
+    expect(data).to.eql({
+      "bruno": "is awesome"
     });
   });
   

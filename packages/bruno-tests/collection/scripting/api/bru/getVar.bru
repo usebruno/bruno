@@ -1,0 +1,27 @@
+meta {
+  name: getVar
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+auth:awsv4 {
+  accessKeyId: a
+  secretAccessKey: b
+  sessionToken: c
+  service: d
+  region: e
+  profileName: f
+}
+
+tests {
+  test("should get var in scripts", function() {
+    const testSetVar = bru.getVar("testSetVar");
+    expect(testSetVar).to.equal("bruno-test-87267");
+  });
+}

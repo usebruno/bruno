@@ -1,17 +1,13 @@
 meta {
-  name: echo json
+  name: getHeaders
   type: http
-  seq: 2
+  seq: 3
 }
 
 post {
   url: {{host}}/api/echo/json
   body: json
   auth: none
-}
-
-headers {
-  foo: bar
 }
 
 auth:basic {
@@ -33,16 +29,11 @@ assert {
   res.status: eq 200
 }
 
-script:pre-request {
-  bru.setVar("foo", "foo-world-2");
-}
-
 tests {
-  test("should return json", function() {
-    const data = res.getBody();
-    expect(res.getBody()).to.eql({
-      "hello": "bruno"
-    });
+  test("res.getHeaders(name)", function() {
+    const h = res.getHeaders();
+    expect(h['x-powered-by']).to.eql('Express');
+    expect(h['content-length']).to.eql('17');
   });
   
 }
