@@ -247,11 +247,7 @@ const executeInIsolatedVMAsync = async ({
       let res = {};
       let console = {};
       global.requireObject = {};
-      global.require = (module) => {
-        return global.requireObject[module];
-      }
     `);
-    await addLibraryShimsToContext(this.context);
 
     context.global.setSync('log', function (...args) {
       console.debug(...args);
@@ -278,6 +274,8 @@ const executeInIsolatedVMAsync = async ({
         }
       `
     );
+
+    await addLibraryShimsToContext(context);
 
     test && __brunoTestResults && (await addTestShimToContext(context, __brunoTestResults));
 

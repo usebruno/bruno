@@ -22,7 +22,8 @@ const addAxiosShimToContext = async (context) => {
         let args = argStrings?.map((arg) => JSON.parse(arg));
         const res = await axios(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
@@ -37,7 +38,8 @@ const addAxiosShimToContext = async (context) => {
         const res = await axios
           .get(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
@@ -52,7 +54,8 @@ const addAxiosShimToContext = async (context) => {
         const res = await axios
           .post(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
@@ -67,7 +70,8 @@ const addAxiosShimToContext = async (context) => {
         const res = await axios
           .put(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
@@ -82,7 +86,8 @@ const addAxiosShimToContext = async (context) => {
         const res = await axios
           .delete(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
@@ -97,7 +102,8 @@ const addAxiosShimToContext = async (context) => {
         const res = await axios
           .patch(...args)
           .then((response) => {
-            return cleanJson(response?.data);
+            const { status, headers, data } = response || {};
+            return cleanJson({ status, headers, data });
           })
           .catch((err) => {
             return {
