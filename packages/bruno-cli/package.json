@@ -14,8 +14,7 @@
     "url": "git+https://github.com/usebruno/bruno.git"
   },
   "scripts": {
-    "test": "jest",
-    "postinstall": "cd node_modules/isolated-vm && npm rebuild"
+    "test": "jest"
   },
   "files": [
     "src",
