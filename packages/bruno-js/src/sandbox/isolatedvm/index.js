@@ -7,7 +7,7 @@ const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 
 // execute `npm run build:isolated-vm:inbuilt-modules` if the below file doesn't exist
-const getBundledCode = require('../../bundle-browser-rollup');
+const getBundledCode = require('../bundle-browser-rollup');
 const addSleepShimToContext = require('./shims/sleep');
 
 const toNumber = (value) => {

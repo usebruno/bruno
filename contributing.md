@@ -57,6 +57,9 @@ npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
 
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
+
 # run next app (terminal 1)
 npm run dev:web
 

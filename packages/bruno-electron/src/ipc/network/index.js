@@ -83,7 +83,7 @@ const getEnvVars = (environment = {}) => {
 
 const getJsSandboxRuntime = (collection) => {
   const securityConfig = get(collection, 'securityConfig', {});
-  return securityConfig.jsSandboxMode === 'safe' ? 'isolated-vm' : 'vm2';
+  return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;

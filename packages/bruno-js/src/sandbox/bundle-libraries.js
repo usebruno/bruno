@@ -11,13 +11,13 @@ const bundleLibraries = async () => {
     import moment from "moment";
     import btoa from "btoa";
     import atob from "atob";
-    global.expect = expect;
-    global.assert = assert;
-    global.moment = moment;
-    global.btoa = btoa;
-    global.atob = atob;
-    global.Buffer = Buffer;
-    global.requireObject = {
+    globalThis.expect = expect;
+    globalThis.assert = assert;
+    globalThis.moment = moment;
+    globalThis.btoa = btoa;
+    globalThis.atob = atob;
+    globalThis.Buffer = Buffer;
+    globalThis.requireObject = {
       'chai': { expect, assert },
       'moment': moment,
       'buffer': { Buffer },
@@ -54,7 +54,7 @@ const bundleLibraries = async () => {
       ]
     },
     output: {
-      file: './src/bundle-browser-rollup.js',
+      file: './src/sandbox/bundle-browser-rollup.js',
       format: 'iife',
       name: 'MyBundle'
     }
@@ -64,7 +64,7 @@ const bundleLibraries = async () => {
     const bundle = await rollup.rollup(config.input);
     const { output } = await bundle.generate(config.output);
     fs.writeFileSync(
-      './src/bundle-browser-rollup.js',
+      './src/sandbox/bundle-browser-rollup.js',
       `
       const getBundledCode = () => {
         return function(){

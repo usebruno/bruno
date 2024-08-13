@@ -42,7 +42,7 @@ const runSingleRequest = async function (
     // todo: allow to override from cli args
     // we will default to vm2 (developer-mode) for 1.x version for backward compatibility
     // 2.x will default to isolated-vm (safe mode)
-    scriptingConfig.runtime = 'vm2';
+    scriptingConfig.runtime = 'isolated-vm';
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427

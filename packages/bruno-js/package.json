@@ -12,12 +12,10 @@
   },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js",
-    "rebuild:electron": "cd ./node_modules/isolated-vm && npx electron-rebuild",
-    "postinstall": "npm run isolated-vm:install && npm run isolated-vm:prebuild:dev && npm run isolated-vm:bundle-libraries",
+    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js",
     "isolated-vm:install": "cd ./node_modules/isolated-vm && npm install",
     "isolated-vm:prebuild:dev": "node ./scripts/prebuild-isolated-vm-for-dev.js",
-    "isolated-vm:prebuild:prod": "node ./scripts/prebuild-isolated-vm-for-prod-builds.js",
-    "isolated-vm:bundle-libraries": "node ./src/sandbox/isolatedvm/utils/bundle-libraries.js"
+    "isolated-vm:prebuild:prod": "node ./scripts/prebuild-isolated-vm-for-prod-builds.js"
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
@@ -37,6 +35,7 @@
     "nanoid": "3.3.4",
     "node-fetch": "2.*",
     "node-vault": "^0.10.2",
+    "quickjs-emscripten": "^0.29.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {
