@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "arcsecond": "^5.0.0",
-    "dotenv": "^16.3.1",
+    "dotenv": "^16.4.5",
     "lodash": "^4.17.21",
     "ohm-js": "^16.6.0"
   }
