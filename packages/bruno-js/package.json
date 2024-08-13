@@ -8,28 +8,28 @@
     "package.json"
   ],
   "peerDependencies": {
-    "@n8n/vm2": "^3.9.23"
+    "@n8n/vm2": "^3.9.25"
   },
   "scripts": {
     "test": "jest --testPathIgnorePatterns test.js"
   },
   "dependencies": {
-    "@usebruno/common": "0.1.0",
+    "@usebruno/common": "0.2.0",
     "@usebruno/query": "0.1.0",
-    "ajv": "^8.12.0",
+    "ajv": "^8.17.1",
     "ajv-formats": "^2.1.1",
     "atob": "^2.1.2",
-    "axios": "^1.5.1",
+    "axios": "^1.7.3",
     "btoa": "^1.2.1",
-    "chai": "^4.3.7",
+    "chai": "^4.5.0",
     "chai-string": "^1.5.0",
-    "crypto-js": "^4.1.1",
+    "crypto-js": "^4.2.0",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
-    "moment": "^2.29.4",
+    "moment": "^2.30.1",
     "nanoid": "3.3.4",
     "node-fetch": "2.*",
     "node-vault": "^0.10.2",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.1"
   }
 }
