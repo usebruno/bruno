@@ -5,28 +5,7 @@ meta {
 }
 
 get {
-  url: https://testbench-sanity.usebruno.com/ping
+  url: {{host}}/ping
   body: none
   auth: none
-}
-
-script:pre-request {
-  // const moment = require("moment");
-  // function a() {
-    // return moment().format("hh:mm");
-    // return test;
-  // }
-  // a();
-}
-
-tests {
-  test("should get var in scripts", function() {
-    expect("bruno-test-87267").to.equal("bruno-test-87267");
-  });
-  // const moment = require("moment");
-  // function a() {
-    // return moment().format("hh:mm");
-    // return test;
-  // }
-  // a();
 }

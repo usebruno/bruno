@@ -54,7 +54,7 @@ const bundleLibraries = async () => {
       ]
     },
     output: {
-      file: './src/bundle-browser-rollup.js',
+      file: './src/sandbox/bundle-browser-rollup.js',
       format: 'iife',
       name: 'MyBundle'
     }
@@ -64,7 +64,7 @@ const bundleLibraries = async () => {
     const bundle = await rollup.rollup(config.input);
     const { output } = await bundle.generate(config.output);
     fs.writeFileSync(
-      './src/bundle-browser-rollup.js',
+      './src/sandbox/bundle-browser-rollup.js',
       `
       const getBundledCode = () => {
         return function(){
