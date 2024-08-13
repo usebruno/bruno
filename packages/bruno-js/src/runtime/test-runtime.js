@@ -108,7 +108,7 @@ class TestRuntime {
       };
     }
 
-    if (this.mode == 'safe') {
+    if (this.runtime === 'isolated-vm') {
       await executeInIsolatedVMAsync({
         script: testsFile,
         context: context,

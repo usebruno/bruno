@@ -5,56 +5,28 @@ meta {
 }
 
 get {
-  url: {{host}}/ping
+  url: https://testbench-sanity.usebruno.com/ping
   body: none
   auth: none
 }
 
-auth:awsv4 {
-  accessKeyId: a
-  secretAccessKey: b
-  sessionToken: c
-  service: d
-  region: e
-  profileName: f
-}
-
-vars:pre-request {
-  m4: true
-  pong: pong
-}
-
-assert {
-  res.status: eq 200
-  res.responseTime: lte 2000
-  res.body: eq {{pong}}
+script:pre-request {
+  // const moment = require("moment");
+  // function a() {
+    // return moment().format("hh:mm");
+    // return test;
+  // }
+  // a();
 }
 
 tests {
-  test("should ping pong", function() {
-    const data = res.getBody();
-    expect(data).to.equal(bru.getRequestVar("pong"));
+  test("should get var in scripts", function() {
+    expect("bruno-test-87267").to.equal("bruno-test-87267");
   });
-}
-
-docs {
-  # API Documentation
-  
-  ## Introduction
-  
-  Welcome to the API documentation for [Your API Name]. This document provides instructions on how to make requests to the API and covers available authentication methods.
-  
-  ## Authentication
-  
-  Before making requests to the API, you need to authenticate your application. [Your API Name] supports the following authentication methods:
-  
-  ### API Key
-  
-  To use API key authentication, include your API key in the request headers as follows:
-  
-  ```http
-  GET /api/endpoint
-  Host: api.example.com
-  Authorization: Bearer YOUR_API_KEY
-  
+  // const moment = require("moment");
+  // function a() {
+    // return moment().format("hh:mm");
+    // return test;
+  // }
+  // a();
 }
