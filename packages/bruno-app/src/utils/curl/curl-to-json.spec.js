@@ -76,7 +76,7 @@ describe('curlToJson', () => {
     });
   });
 
-  it('should return a parse a simple curl command', () => {
+  it('should return and parse a simple curl command with a trailing slash', () => {
     const curlCommand = 'curl https://www.usebruno.com/';
     const result = curlToJson(curlCommand);
 
