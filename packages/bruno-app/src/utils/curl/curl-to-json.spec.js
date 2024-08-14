@@ -75,4 +75,15 @@ describe('curlToJson', () => {
       }
     });
   });
+
+  it('should return a parse a simple curl command', () => {
+    const curlCommand = 'curl https://www.usebruno.com/';
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://www.usebruno.com/',
+      raw_url: 'https://www.usebruno.com/',
+      method: 'get'
+    });
+  });
 });
