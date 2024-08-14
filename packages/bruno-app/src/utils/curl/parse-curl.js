@@ -148,7 +148,6 @@ const parseCurlCommand = (curlCommand) => {
 
   const compressed = !!parsedArguments.compressed;
   const urlObject = URL.parse(url || '');
-  console.log('url object', urlObject);
 
   // if GET request with data, convert data to query string
   // NB: the -G flag does not change the http verb. It just moves the data into the url.
@@ -194,7 +193,7 @@ const parseCurlCommand = (curlCommand) => {
   if (!url?.includes(`${urlHost}/`)) {
     if (urlWithoutQuery && urlHost) {
       const [beforeHost, afterHost] = urlWithoutQuery.split(urlHost);
-      urlWithoutQuery = beforeHost + urlHost + afterHost.slice(1);
+      urlWithoutQuery = beforeHost + urlHost + afterHost?.slice(1);
     }
   }
 
