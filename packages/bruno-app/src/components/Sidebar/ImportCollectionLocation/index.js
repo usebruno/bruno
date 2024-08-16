@@ -124,7 +124,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        formik.setFieldValue('collectionLocation', dirPath);
+        if (typeof dirPath === 'string') {
+          formik.setFieldValue('collectionLocation', dirPath);
+        }
       })
       .catch((error) => {
         formik.setFieldValue('collectionLocation', '');
