@@ -39,7 +39,7 @@ import {
 import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 
@@ -708,10 +708,19 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     }
 
     const parts = splitOnFirst(requestUrl, '?');
-    const params = parseQueryParams(parts[1]);
-    each(params, (urlParam) => {
+    const queryParams = parseQueryParams(parts[1]);
+    each(queryParams, (urlParam) => {
       urlParam.enabled = true;
+      urlParam.type = 'query';
     });
+
+    const pathParams = parsePathParams(requestUrl);
+    each(pathParams, (pathParm) => {
+      pathParams.enabled = true;
+      pathParm.type = 'path'
+    });
+
+    const params = [...queryParams, ...pathParams];
 
     const item = {
       uid: uuid(),
