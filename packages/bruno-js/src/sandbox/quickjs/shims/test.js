@@ -34,7 +34,7 @@ const addBruShimToContext = (vm, __brunoTestResults) => {
       globalThis.Test = (__brunoTestResults) => async (description, callback) => {
         try {
           await callback();
-          __brunoTestResults.__bruno__addResult({ description, status: "pass" });
+          __brunoTestResults.addResult({ description, status: "pass" });
         } catch (error) {
           if (error instanceof DummyChaiAssertionError) {
             const { message, actual, expected } = error;
