@@ -96,14 +96,14 @@ class ScriptRuntime {
         modules: {},
         scriptType: 'jsScript'
       });
-    }
 
-    return {
-      request,
-      envVariables: cleanJson(envVariables),
-      runtimeVariables: cleanJson(runtimeVariables),
-      nextRequestName: bru.nextRequest
-    };
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        nextRequestName: bru.nextRequest
+      };
+    }
 
     // default runtime is vm2
     const vm = new NodeVM({
