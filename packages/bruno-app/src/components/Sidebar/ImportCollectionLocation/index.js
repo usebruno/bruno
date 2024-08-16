@@ -115,7 +115,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
       collectionLocation: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(500, 'must be 500 characters or less')
-        .required('name is required')
+        .required('Location is required')
     }),
     onSubmit: (values) => {
       handleSubmit(values.collectionLocation);
