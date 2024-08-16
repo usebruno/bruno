@@ -10,5 +10,7 @@ export default {
   collectionImportedSuccessfully: 'Collection imported successfully',
   errorWhileOpeningCollection: 'An error occurred while opening the collection',
   errorWhileImportingCollection:
-    'An error occurred while importing the collection. Check the logs for more information.'
+    'An error occurred while importing the collection. Check the logs for more information.',
+  discord: 'Discord',
+  twitter: 'Twitter'
 };
