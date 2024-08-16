@@ -30,7 +30,6 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
@@ -109,17 +108,12 @@ class TestRuntime {
       };
     }
 
-    if (this.runtime === 'isolated-vm') {
-      await executeInIsolatedVMAsync({
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
         script: testsFile,
         context: context,
         modules: {},
         scriptType: 'jsScript'
-      });
-    } else if(this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: testsFile,
-        context: context
       });
     } else {
       // default runtime is vm2

@@ -8,16 +8,15 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
   });
 
   context.evalSync(`
-    global.expect = require('chai').expect;
-    global.assert = require('chai').assert;
+    globalThis.expect = require('chai').expect;
+    globalThis.assert = require('chai').assert;
 
-    global.__brunoTestResults = {
-        addResult: global.addResult,
-        getResults: global.getResults,
+    globalThis.__brunoTestResults = {
+      addResult: globalThis.__bruno__addResult,
+      getResults: globalThis.__bruno__getResults,
     }
 
-
-    global.DummyChaiAssertionError = class DummyChaiAssertionError extends Error {
+    globalThis.DummyChaiAssertionError = class DummyChaiAssertionError extends Error {
       constructor(message, props, ssf) {
         super(message);
         this.name = "AssertionError";
@@ -25,7 +24,7 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
       }
     }
 
-    global.Test = (__brunoTestResults) => async (description, callback) => {
+    globalThis.Test = (__brunoTestResults) => async (description, callback) => {
       try {
         await callback();
         __brunoTestResults.addResult({ description, status: "pass" });
@@ -40,17 +39,17 @@ const addTestShimToContext = async (context, __brunoTestResults) => {
             expected,
           });
         } else {
-          __brunoTestResults.addResult({
+          globalThis.__bruno__addResult({
             description,
             status: "fail",
             error: error.message || "An unexpected error occurred.",
           });
         }
-        console.log(error);
+        // console.log(error);
       }
     };
-    
-    global.test = Test(__brunoTestResults);
+
+    globalThis.test = Test(__brunoTestResults);
   `);
 };
 

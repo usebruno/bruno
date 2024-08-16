@@ -2,18 +2,16 @@ const marshallToVm = (value, vm) => {
   if (value === undefined) {
     return vm.undefined;
   }
-
   if (value === null) {
     return vm.null;
   }
-
-  if (typeof value === "string") {
+  if (typeof value === 'string') {
     return vm.newString(value);
-  } else if (typeof value === "number") {
+  } else if (typeof value === 'number') {
     return vm.newNumber(value);
-  } else if (typeof value === "boolean") {
+  } else if (typeof value === 'boolean') {
     return vm.newBoolean(value);
-  } else if (typeof value === "object") {
+  } else if (typeof value === 'object') {
     if (Array.isArray(value)) {
       const arr = vm.newArray();
       for (let i = 0; i < value.length; i++) {
