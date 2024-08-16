@@ -1,7 +1,9 @@
+const addAxiosShimToContext = require('./axios');
 const addNanoidShimToContext = require('./nanoid');
 
-const addLibraryShimsToContext = async (context) => {
-  await addNanoidShimToContext(context);
+const addLibraryShimsToContext = async (vm) => {
+  await addNanoidShimToContext(vm);
+  await addAxiosShimToContext(vm);
 };
 
 module.exports = addLibraryShimsToContext;

@@ -8,6 +8,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 
 // execute `npm run build:isolated-vm:inbuilt-modules` if the below file doesn't exist
 const getBundledCode = require('../../bundle-browser-rollup');
+const addSleepShimToContext = require('./shims/sleep');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -32,17 +33,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    const logHandle = vm.newFunction('log', (...args) => {
-      const nativeArgs = args.map(vm.dump);
-      console.log(...nativeArgs);
-    });
-    vm.setProp(vm.global, 'log', logHandle);
-    logHandle.dispose();
-
-    ////////////////////////////////////////////////////////////////////////////////
 
     const templateLiteralText = `\`${externalScript}\`;`;
 
@@ -81,15 +71,15 @@ const executeQuickJsVmAsync = async ({
     const vm = module.newContext();
 
     const bundledCode = getBundledCode?.toString() || '';
-    let bundledScript = `
-      (${bundledCode})()
-    `;
 
-    bundledScript += `
-      globalThis.require = (module) => {
-        return globalThis.requireObject[module];
-      }
-    `;
+    vm.evalCode(
+      `
+        (${bundledCode})()
+        globalThis.require = (module) => {
+          return globalThis.requireObject[module];
+        }
+      `
+    );
 
     const { bru, req, res, test, __brunoTestResults, console: consoleFn } = externalContext;
 
@@ -97,72 +87,13 @@ const executeQuickJsVmAsync = async ({
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
+    addSleepShimToContext(vm);
 
-    // await addLibraryShimsToContext(context);
+    await addLibraryShimsToContext(vm);
 
     test && __brunoTestResults && addTestShimToContext(vm, __brunoTestResults);
 
-    bundledScript += `
-    globalThis.expect = require('chai').expect;
-    globalThis.assert = require('chai').assert;
-
-    globalThis.__brunoTestResults = {
-      addResult: globalThis.__bruno__addResult,
-      getResults: globalThis.__bruno__getResults,
-    }
-
-    globalThis.DummyChaiAssertionError = class DummyChaiAssertionError extends Error {
-      constructor(message, props, ssf) {
-        super(message);
-        this.name = "AssertionError";
-        Object.assign(this, props);
-      }
-    }
-
-    globalThis.Test = (__brunoTestResults) => async (description, callback) => {
-      try {
-        await callback();
-        __brunoTestResults.addResult({ description, status: "pass" });
-      } catch (error) {
-        if (error instanceof DummyChaiAssertionError) {
-          const { message, actual, expected } = error;
-          __brunoTestResults.addResult({
-            description,
-            status: "fail",
-            error: message,
-            actual,
-            expected,
-          });
-        } else {
-          globalThis.__bruno__addResult({
-            description,
-            status: "fail",
-            error: error.message || "An unexpected error occurred.",
-          });
-        }
-      }
-    };
-
-    globalThis.test = Test(__brunoTestResults);
-  `;
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    const sleep = vm.newFunction('sleep', (timer) => {
-      const t = vm.getString(timer);
-      const promise = vm.newPromise();
-      setTimeout(() => {
-        promise.resolve(vm.newString('slept'));
-      }, t);
-      promise.settled.then(vm.runtime.executePendingJobs);
-      return promise.handle;
-    });
-    sleep.consume((handle) => vm.setProp(vm.global, 'sleep', handle));
-
-    ////////////////////////////////////////////////////////////////////////////////
-
     const script = `
-      ${bundledScript}
       (async () => {
         const setTimeout = async(fn, timer) => {
           v = await sleep(timer);
