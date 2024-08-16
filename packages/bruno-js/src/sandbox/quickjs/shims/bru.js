@@ -1,65 +1,70 @@
 const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
+  const bruObject = vm.newObject();
+
   let cwd = vm.newFunction('cwd', function () {
     return marshallToVm(bru.cwd(), vm);
   });
-  vm.setProp(vm.global, "__bruno__cwd", cwd)
+  vm.setProp(bruObject, 'cwd', cwd);
   cwd.dispose();
 
   let getEnvName = vm.newFunction('getEnvName', function () {
     return marshallToVm(bru.getEnvName(), vm);
   });
-  vm.setProp(vm.global, "__bruno__getEnvName", getEnvName);
+  vm.setProp(bruObject, 'getEnvName', getEnvName);
   getEnvName.dispose();
 
   let getProcessEnv = vm.newFunction('getProcessEnv', function (key) {
     return marshallToVm(bru.getProcessEnv(vm.dump(key)), vm);
   });
-  vm.setProp(vm.global, "__bruno__getProcessEnv", getProcessEnv);
+  vm.setProp(bruObject, 'getProcessEnv', getProcessEnv);
   getProcessEnv.dispose();
 
   let getEnvVar = vm.newFunction('getEnvVar', function (key) {
     return marshallToVm(bru.getEnvVar(vm.dump(key)), vm);
   });
-  vm.setProp(vm.global, "__bruno__getEnvVar", getEnvVar);
+  vm.setProp(bruObject, 'getEnvVar', getEnvVar);
   getEnvVar.dispose();
 
   let setEnvVar = vm.newFunction('setEnvVar', function (key, value) {
     bru.setEnvVar(vm.dump(key), vm.dump(value));
   });
-  vm.setProp(vm.global, "__bruno__setEnvVar", setEnvVar);
+  vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
 
   let getVar = vm.newFunction('getVar', function (key) {
     return marshallToVm(bru.getVar(vm.dump(key)), vm);
   });
-  vm.setProp(vm.global, "__bruno__getVar", getVar);
+  vm.setProp(bruObject, 'getVar', getVar);
   getVar.dispose();
 
   let setVar = vm.newFunction('setVar', function (key, value) {
     bru.setVar(vm.dump(key), vm.dump(value));
   });
-  vm.setProp(vm.global, "__bruno__setVar", setVar);
+  vm.setProp(bruObject, 'setVar', setVar);
   setVar.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
   });
-  vm.setProp(vm.global, "__bruno__setNextRequest", setNextRequest);
+  vm.setProp(bruObject, 'setNextRequest', setNextRequest);
   setNextRequest.dispose();
 
   let visualize = vm.newFunction('visualize', function (htmlString) {
     bru.visualize(vm.dump(htmlString));
   });
-  vm.setProp(vm.global, "__bruno__visualize", visualize);
+  vm.setProp(bruObject, 'visualize', visualize);
   visualize.dispose();
 
   let getSecretVar = vm.newFunction('getSecretVar', function (key) {
     return marshallToVm(bru.getSecretVar(vm.dump(key)), vm);
   });
-  vm.setProp(vm.global, "__bruno__getSecretVar", getSecretVar);
+  vm.setProp(bruObject, 'getSecretVar', getSecretVar);
   getSecretVar.dispose();
+
+  vm.setProp(vm.global, 'bru', bruObject);
+  bruObject.dispose();
 };
 
 module.exports = addBruShimToContext;

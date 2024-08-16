@@ -28,7 +28,7 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
-const { executeInIsolatedVMAsync } = require('../sandbox/isolatedvm');
+const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
   constructor(props) {
@@ -89,21 +89,21 @@ class ScriptRuntime {
       };
     }
 
-    if (this.runtime === 'isolated-vm') {
-      await executeInIsolatedVMAsync({
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
         script: script,
         context: context,
         modules: {},
         scriptType: 'jsScript'
       });
-
-      return {
-        request,
-        envVariables: cleanJson(envVariables),
-        runtimeVariables: cleanJson(runtimeVariables),
-        nextRequestName: bru.nextRequest
-      };
     }
+
+    return {
+      request,
+      envVariables: cleanJson(envVariables),
+      runtimeVariables: cleanJson(runtimeVariables),
+      nextRequestName: bru.nextRequest
+    };
 
     // default runtime is vm2
     const vm = new NodeVM({
@@ -202,8 +202,8 @@ class ScriptRuntime {
       };
     }
 
-    if (this.runtime === 'isolated-vm') {
-      await executeInIsolatedVMAsync({
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
         script: script,
         context: context,
         modules: {},
