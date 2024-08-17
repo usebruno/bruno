@@ -34,8 +34,7 @@ const RawFilePickerEditor = ({ value, onChange, collection }) => {
 
     return filename.length > 0 ? (
       <div
-        className="btn btn-secondary px-1"
-        style={{ fontWeight: 400, width: '100%', textOverflow: 'ellipsis', overflowX: 'hidden' }}
+        className="btn btn-secondary px-1 font-normal w-full text-ellipsis overflow-x-hidden"
         title={title}
       >
         <button className="align-middle" onClick={clear}>
@@ -45,7 +44,7 @@ const RawFilePickerEditor = ({ value, onChange, collection }) => {
           {filename}
       </div>
     ) : (
-      <button className="btn btn-secondary px-1" style={{ width: '100%' }} onClick={browse}>
+      <button className="btn btn-secondary px-1 w-full" onClick={browse}>
         Select Files
       </button>
     );
