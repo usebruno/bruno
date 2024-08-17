@@ -61,7 +61,7 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const getMethodColor = (method = '') => {
-    const { theme } = useTheme();
+    const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
     return theme.request.methods[method.toLocaleLowerCase()];
   };
 
