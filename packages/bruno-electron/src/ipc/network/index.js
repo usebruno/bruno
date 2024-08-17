@@ -408,7 +408,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'natural' ? [
+    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
       get(collectionRoot, 'request.script.res'), get(request, 'script.res')
     ] : [
       get(request, 'script.res'), get(collectionRoot, 'request.script.res')
@@ -596,7 +596,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // run tests
       const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'natural' ? [
+      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
         get(collectionRoot, 'request.tests'), testScript,
       ] : [
         testScript, get(collectionRoot, 'request.tests')
@@ -825,7 +825,7 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
@@ -944,6 +944,18 @@ const registerNetworkIpc = (mainWindow) => {
             timeStart = Date.now();
             let response, responseTime;
             try {
+              if (delay && !Number.isNaN(delay) && delay > 0) {
+                const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
+
+                const cancellationPromise = new Promise((_, reject) => {
+                  abortController.signal.addEventListener('abort', () => {
+                    reject(new Error('Cancelled'));
+                  });
+                });
+
+                await Promise.race([delayPromise, cancellationPromise]);
+              }
+
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               timeEnd = Date.now();
@@ -1036,7 +1048,7 @@ const registerNetworkIpc = (mainWindow) => {
 
             // run tests
             const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'natural' ? [
+            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
               get(collectionRoot, 'request.tests'), testScript
             ] : [
               testScript, get(collectionRoot, 'request.tests')
@@ -1153,12 +1165,22 @@ const registerNetworkIpc = (mainWindow) => {
         return `response.${extension}`;
       };
 
-      const fileName =
-        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+      const getEncodingFormat = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = mime.extension(contentType) || 'txt';
+        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
+      };
 
+      const determineFileName = () => {
+        return (
+          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
+        );
+      };
+
+      const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, getEncodingFormat()));
       }
     } catch (error) {
       return Promise.reject(error);

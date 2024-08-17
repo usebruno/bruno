@@ -100,6 +100,11 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  input::placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity:  ${(props) => props.theme.input.placeholder.opacity};
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;

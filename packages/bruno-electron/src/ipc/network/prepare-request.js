@@ -18,8 +18,8 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
-    } else {
-      let headers = get(i, 'request.headers', []);
+    } else if (i.uid === request.uid) {
+      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       headers.forEach((header) => {
         if (header.enabled) {
           folderHeaders.set(header.name, header.value);
@@ -55,8 +55,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderReqVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.req', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderReqVars.set(_var.name, _var.value);
@@ -91,8 +91,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderResVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.res', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderResVars.set(_var.name, _var.value);
@@ -147,7 +147,7 @@ const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   }
 
   if (folderCombinedPostResScript.length) {
-    if (scriptFlow === 'natural') {
+    if (scriptFlow === 'sequential') {
       request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
     } else {
       request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
@@ -155,7 +155,7 @@ const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   }
 
   if (folderCombinedTests.length) {
-    if (scriptFlow === 'natural') {
+    if (scriptFlow === 'sequential') {
       request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
     } else {
       request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
@@ -309,7 +309,7 @@ const prepareRequest = (item, collection) => {
     }
   });
 
-  // scriptFlow is either "sandwich" or "natural"
+  // scriptFlow is either "sandwich" or "sequential"
   const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {

@@ -91,13 +91,13 @@ const Collections = () => {
         <input
           type="text"
           name="search"
+          placeholder="search"
           id="search"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
           className="block w-full pl-7 py-1 sm:text-sm"
-          placeholder="search"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />
