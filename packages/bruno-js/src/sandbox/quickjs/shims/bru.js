@@ -63,6 +63,17 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getSecretVar', getSecretVar);
   getSecretVar.dispose();
 
+  const sleep = vm.newFunction('sleep', (timer) => {
+    const t = vm.getString(timer);
+    const promise = vm.newPromise();
+    setTimeout(() => {
+      promise.resolve(vm.newString('slept'));
+    }, t);
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
+
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 };

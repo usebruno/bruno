@@ -21,6 +21,10 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util'
 const path = require('path');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
+const onConsoleLog = (type, args) => {
+  console[type](...args);
+};
+
 const runSingleRequest = async function (
   filename,
   bruJson,
@@ -83,7 +87,7 @@ const runSingleRequest = async function (
         envVariables,
         runtimeVariables,
         collectionPath,
-        null,
+        onConsoleLog,
         processEnvVars,
         scriptingConfig
       );
