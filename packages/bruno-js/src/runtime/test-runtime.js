@@ -104,6 +104,7 @@ class TestRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
+        debug: customLogger('debug'),
         error: customLogger('error')
       };
     }

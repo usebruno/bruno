@@ -1,29 +1,31 @@
 const addConsoleShimToContext = (vm, console) => {
+  if (!console) return;
+
   const consoleHandle = vm.newObject();
 
   const logHandle = vm.newFunction('log', (...args) => {
     const nativeArgs = args.map(vm.dump);
-    console?.log && console.log(...nativeArgs);
+    console?.log?.(...nativeArgs);
   });
 
   const debugHandle = vm.newFunction('debug', (...args) => {
     const nativeArgs = args.map(vm.dump);
-    console?.debug && console.debug(...nativeArgs);
+    console?.debug?.(...nativeArgs);
   });
 
   const infoHandle = vm.newFunction('info', (...args) => {
     const nativeArgs = args.map(vm.dump);
-    console?.info && console.info(...nativeArgs);
+    console?.info?.(...nativeArgs);
   });
 
   const warnHandle = vm.newFunction('warn', (...args) => {
     const nativeArgs = args.map(vm.dump);
-    console?.warn && console.warn(...nativeArgs);
+    console?.warn?.(...nativeArgs);
   });
 
   const errorHandle = vm.newFunction('error', (...args) => {
     const nativeArgs = args.map(vm.dump);
-    console?.error && console.error(...nativeArgs);
+    console?.error?.(...nativeArgs);
   });
 
   vm.setProp(consoleHandle, 'log', logHandle);
