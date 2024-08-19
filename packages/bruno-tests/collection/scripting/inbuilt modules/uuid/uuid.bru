@@ -1,0 +1,17 @@
+meta {
+  name: uuid
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { v4 } = require("uuid");
+   
+  req.setHeader("transaction-id", v4());
+}

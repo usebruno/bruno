@@ -4,11 +4,11 @@ const { marshallToVm } = require('../../utils');
 const addNanoidShimToContext = async (vm) => {
   let _nanoid = vm.newFunction('nanoid', function () {
     let v = nanoid();
-    console.log(v);
     return marshallToVm(v, vm);
   });
   vm.setProp(vm.global, '__bruno__nanoid', _nanoid);
   _nanoid.dispose();
+
   vm.evalCode(
     `
       globalThis.nanoid = {};
