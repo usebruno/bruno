@@ -93,14 +93,12 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           fn.apply();
         }
         await sleep(0);
-        console?.debug?.('quick-js:execution-start:');
         try {
           ${externalScript}
         }
         catch(error) {
           console?.debug?.('quick-js:execution-end:with-error', error?.message);
         }
-        console?.debug?.('quick-js:execution-end:');
         return 'done';
       })()
     `;
