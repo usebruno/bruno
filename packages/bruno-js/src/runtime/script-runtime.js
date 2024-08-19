@@ -92,7 +92,8 @@ class ScriptRuntime {
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
-        context: context
+        context: context,
+        collectionPath
       });
 
       return {
@@ -203,7 +204,8 @@ class ScriptRuntime {
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
-        context: context
+        context: context,
+        collectionPath
       });
 
       return {
