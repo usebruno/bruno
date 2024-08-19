@@ -112,9 +112,7 @@ class TestRuntime {
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: testsFile,
-        context: context,
-        modules: {},
-        scriptType: 'jsScript'
+        context: context
       });
     } else {
       // default runtime is vm2

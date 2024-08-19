@@ -92,9 +92,7 @@ class ScriptRuntime {
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
-        context: context,
-        modules: {},
-        scriptType: 'jsScript'
+        context: context
       });
 
       return {
@@ -205,9 +203,7 @@ class ScriptRuntime {
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
-        context: context,
-        modules: {},
-        scriptType: 'jsScript'
+        context: context
       });
 
       return {

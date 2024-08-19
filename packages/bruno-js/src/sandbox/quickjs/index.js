@@ -6,7 +6,7 @@ const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
 
-// execute `npm run build:isolated-vm:inbuilt-modules` if the below file doesn't exist
+// execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../../bundle-browser-rollup');
 const addSleepShimToContext = require('./shims/sleep');
 
@@ -20,7 +20,7 @@ const toNumber = (value) => {
   return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
 };
 
-const executeQuickJsVm = ({ script: externalScript, context: externalContext, scriptType = 'script' }) => {
+const executeQuickJsVm = ({ script: externalScript, context: externalContext, scriptType = 'template-literal' }) => {
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
@@ -35,7 +35,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     res && addBrunoResponseShimToContext(vm, res);
 
     const templateLiteralText = `\`${externalScript}\`;`;
-
     const jsExpressionText = `${externalScript};`;
 
     let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
@@ -54,15 +53,9 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   } catch (error) {
     console.error('Error executing the script!', error);
   }
-  // });
 };
 
-const executeQuickJsVmAsync = async ({
-  script: externalScript,
-  context: externalContext,
-  modules = {},
-  scriptType = 'script'
-}) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext }) => {
   if (!isNaN(Number(externalScript))) {
     return toNumber(externalScript);
   }
@@ -119,7 +112,7 @@ const executeQuickJsVmAsync = async ({
     const resolvedHandle = vm.unwrapResult(resolvedResult);
     resolvedHandle.dispose();
     // vm.dispose();
-    return 'foo';
+    return;
   } catch (error) {
     console.error('Error executing the script!', error);
   }
