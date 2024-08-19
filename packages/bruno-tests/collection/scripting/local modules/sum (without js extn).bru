@@ -1,7 +1,7 @@
 meta {
-  name: sum
+  name: sum (without js extn)
   type: http
-  seq: 1
+  seq: 2
 }
 
 post {
@@ -22,9 +22,12 @@ assert {
 }
 
 script:pre-request {
-  const math = require("./lib/math.js");  
+  const math = require("./lib/math");
+  console.log(math, 'math');
+  
   const body = req.getBody();
   body.sum = math.sum(body.a, body.b);
+  body.areaOfCircle = math.areaOfCircle(2);
   
   req.setBody(body);
 }
@@ -35,7 +38,8 @@ tests {
     expect(res.getBody()).to.eql({
       "a": 1,
       "b": 2,
-      "sum": 3
+      "sum": 3,
+      "areaOfCircle": 12.56
     });
   });
 }

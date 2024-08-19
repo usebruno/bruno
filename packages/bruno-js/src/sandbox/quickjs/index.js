@@ -4,6 +4,7 @@ const addConsoleShimToContext = require('./shims/console');
 const addBrunoResponseShimToContext = require('./shims/bruno-response');
 const addTestShimToContext = require('./shims/test');
 const addLibraryShimsToContext = require('./shims/lib');
+const addLocalModuleLoaderShimToContext = require('./shims/local-module');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
@@ -54,7 +55,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext }) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath }) => {
   if (!isNaN(Number(externalScript))) {
     return toNumber(externalScript);
   }
@@ -63,13 +64,35 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const vm = module.newContext();
 
     const bundledCode = getBundledCode?.toString() || '';
+    const moduleLoaderCode = function() {
+      return `
+        globalThis.require = (mod) => {
+          let lib = globalThis.requireObject[mod];
+          if (lib) {
+            return lib;
+          }
+          else {
+            // fetch local module
+            let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
+
+            // compile local module as iife
+            (function (){
+              const initModuleExportsCode = "const module = { exports: {} };"
+              const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
+              eval(initModuleExportsCode + localModuleCode + copyModuleExportsCode);
+            })();
+
+            // resolve module
+            return globalThis.requireObject[mod];
+          }
+        }
+      `;
+    };
 
     vm.evalCode(
       `
         (${bundledCode})()
-        globalThis.require = (module) => {
-          return globalThis.requireObject[module];
-        }
+        ${moduleLoaderCode()}
       `
     );
 
@@ -79,6 +102,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
+    addLocalModuleLoaderShimToContext(vm, collectionPath);
 
     await addLibraryShimsToContext(vm);
 
