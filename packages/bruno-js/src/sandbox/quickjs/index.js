@@ -55,10 +55,7 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   }
 };
 
-const executeQuickJsVmAsync = async ({
-  script: externalScript,
-  context: externalContext
-}) => {
+const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext }) => {
   if (!isNaN(Number(externalScript))) {
     return toNumber(externalScript);
   }
@@ -96,12 +93,14 @@ const executeQuickJsVmAsync = async ({
           fn.apply();
         }
         await sleep(0);
+        console?.debug?.('quick-js:execution-start:');
         try {
           ${externalScript}
         }
         catch(error) {
-          console?.debug && console.debug('quick-js:execution-end:with-error', error?.message);
+          console?.debug?.('quick-js:execution-end:with-error', error?.message);
         }
+        console?.debug?.('quick-js:execution-end:');
         return 'done';
       })()
     `;
