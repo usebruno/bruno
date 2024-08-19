@@ -8,7 +8,7 @@
   "author": "Anoop M D <anoop.md1421@gmail.com> (https://helloanoop.com/)",
   "scripts": {
     "clean": "rimraf dist",
-    "dev": "electron --no-node-snapshot .",
+    "dev": "electron .",
     "dist:mac": "electron-builder --mac --config electron-builder-config.js",
     "dist:win": "electron-builder --win --config electron-builder-config.js",
     "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
@@ -64,8 +64,7 @@
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "23.3.3",
-    "electron-builder": "23.0.2",
-    "electron-icon-maker": "^0.0.5"
+    "electron": "31.2.1",
+    "electron-builder": "23.0.2"
   }
 }

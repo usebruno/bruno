@@ -7,7 +7,7 @@ const addLibraryShimsToContext = require('./shims/lib');
 const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscripten');
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
-const getBundledCode = require('../../bundle-browser-rollup');
+const getBundledCode = require('../bundle-browser-rollup');
 const addSleepShimToContext = require('./shims/sleep');
 
 let QuickJSSyncContext;

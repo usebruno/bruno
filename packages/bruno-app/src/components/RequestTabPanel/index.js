@@ -18,7 +18,7 @@ import CollectionSettings from 'components/CollectionSettings';
 import { DocExplorer } from '@usebruno/graphql-docs';
 
 import StyledWrapper from './StyledWrapper';
-import SecuritySettings from 'components/SecuritySettings/index';
+import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;

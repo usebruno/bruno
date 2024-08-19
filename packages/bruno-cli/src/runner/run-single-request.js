@@ -29,7 +29,8 @@ const runSingleRequest = async function (
   envVariables,
   processEnvVars,
   brunoConfig,
-  collectionRoot
+  collectionRoot,
+  runtime
 ) {
   try {
     let request;
@@ -38,11 +39,7 @@ const runSingleRequest = async function (
     request = prepareRequest(bruJson.request, collectionRoot);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
-
-    // todo: allow to override from cli args
-    // we will default to vm2 (developer-mode) for 1.x version for backward compatibility
-    // 2.x will default to isolated-vm (safe mode)
-    scriptingConfig.runtime = 'quickjs';
+    scriptingConfig.runtime = runtime;
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427

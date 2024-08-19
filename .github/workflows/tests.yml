@@ -26,12 +26,6 @@ jobs:
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
 
-      # rebuild isolated-vm for bruno-js
-      - name: Rebuild bruno-js isolated-vm
-        run: |
-          cd packages/bruno-js/node_modules/isolated-vm
-          npm run rebuild || true
-
       # tests
       - name: Test Package bruno-js
         run: npm run test --workspace=packages/bruno-js
@@ -69,12 +63,6 @@ jobs:
         run: |
           npm run build --workspace=packages/bruno-query
           npm run build --workspace=packages/bruno-common
-
-      # rebuild isolated-vm for bruno-js
-      - name: Rebuild bruno-js isolated-vm
-        run: |
-          cd packages/bruno-js/node_modules/isolated-vm
-          npm run rebuild || true
 
       - name: Run tests
         run: |
