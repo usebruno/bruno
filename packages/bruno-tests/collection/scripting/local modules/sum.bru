@@ -25,7 +25,7 @@ script:pre-request {
   const math = require("./lib/math");
   
   const body = req.getBody();
-  body.sum = body.a + body.b;
+  body.sum = math.sum(body.a, body.b);
   
   req.setBody(body);
 }
