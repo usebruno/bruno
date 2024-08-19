@@ -8,7 +8,6 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
-const addSleepShimToContext = require('./shims/sleep');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -80,7 +79,6 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
-    addSleepShimToContext(vm);
 
     await addLibraryShimsToContext(vm);
 
@@ -89,10 +87,10 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const script = `
       (async () => {
         const setTimeout = async(fn, timer) => {
-          v = await sleep(timer);
+          v = await bru.sleep(timer);
           fn.apply();
         }
-        await sleep(0);
+        await bru.sleep(0);
         try {
           ${externalScript}
         }
