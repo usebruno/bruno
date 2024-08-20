@@ -1,7 +1,4 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme/index';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
 
 /**
  * Assertion operators
@@ -81,16 +78,10 @@ const AssertionOperator = ({ operator, onChange }) => {
     }
   };
 
-  const { storedTheme } = useTheme();
-
   return (
     <select value={operator} onChange={handleChange} className="mousetrap">
       {operators.map((operator) => (
-        <option
-          style={{ backgroundColor: storedTheme === 'dark' ? darkTheme.bg : lightTheme.bg }}
-          key={operator}
-          value={operator}
-        >
+        <option key={operator} value={operator}>
           {getLabel(operator)}
         </option>
       ))}
