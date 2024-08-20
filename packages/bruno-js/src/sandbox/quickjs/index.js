@@ -72,7 +72,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           if (lib) {
             return lib;
           }
-          else if(mod?.startsWith('.')) {
+          else if(mod?.startsWith('.') || mod?.startsWith?.(bru.cwd())){
             // fetch local module
             let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
 
