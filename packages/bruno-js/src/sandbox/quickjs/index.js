@@ -72,7 +72,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
           if (lib) {
             return lib;
           }
-          else {
+          else if(mod?.startsWith('.')) {
             // fetch local module
             let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
 
@@ -82,10 +82,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
               const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
               const patchedRequire = ${`
                 "\\n;" +
-                "let require = (subModule) =>" +
-                " subModule?.startsWith?.('.')" +
-                "   ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))" +
-                "   : globalThis.require(subModule);"
+                "let require = (subModule) => globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))" +
                 "\\n;" 
               `}
               eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
@@ -145,6 +142,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     return;
   } catch (error) {
     console.error('Error executing the script!', error);
+    throw new Error(error);
   }
 };
 

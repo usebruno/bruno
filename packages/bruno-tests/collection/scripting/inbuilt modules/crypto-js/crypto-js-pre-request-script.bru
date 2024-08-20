@@ -26,6 +26,7 @@ script:pre-request {
 tests {
   test("crypto message", function() {
     const data = bru.getVar('crypto-test-message');
+    bru.setVar('crypto-test-message', null);
     expect(data).to.eql('my message');
   });
   

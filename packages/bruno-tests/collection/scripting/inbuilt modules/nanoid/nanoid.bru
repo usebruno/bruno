@@ -20,6 +20,7 @@ tests {
   test("nanoid var", function() {
     const id = bru.getVar('nanoid-test-id');
     let isValidNanoid = /^[a-zA-Z0-9_-]{21}$/.test(id)
+    bru.setVar('nanoid-test-id', null);
     expect(isValidNanoid).to.eql(true);
   });
 }
