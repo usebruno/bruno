@@ -224,6 +224,11 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
+        <div>
+          Hint: Path variables are automatically added whenever the
+          <code className="font-mono font-medium text-gray-700 mx-2">:name</code>
+          template is used in the URL.
+        </div>
       </div>
     </StyledWrapper>
   );
