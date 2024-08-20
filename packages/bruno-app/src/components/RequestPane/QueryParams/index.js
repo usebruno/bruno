@@ -106,68 +106,68 @@ const QueryParams = ({ item, collection }) => {
         <div className="mb-1 title text-xs">Query</div>
         <table>
           <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-              <td></td>
-            </tr>
+          <tr>
+            <td>Name</td>
+            <td>Value</td>
+            <td></td>
+          </tr>
           </thead>
           <tbody>
-            {queryParams && queryParams.length
-              ? queryParams.map((param, index) => {
-                  return (
-                    <tr key={param.uid}>
-                      <td>
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          value={param.name}
-                          className="mousetrap"
-                          onChange={(e) => handleQueryParamChange(e, param, 'name')}
-                        />
-                      </td>
-                      <td>
-                        <SingleLineEditor
-                          value={param.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handleQueryParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              param,
-                              'value'
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                          item={item}
-                        />
-                      </td>
-                      <td>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={param.enabled}
-                            tabIndex="-1"
-                            className="mr-3 mousetrap"
-                            onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
-                          />
-                          <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
-                            <IconTrash strokeWidth={1.5} size={20} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              : null}
+          {queryParams && queryParams.length
+            ? queryParams.map((param, index) => {
+              return (
+                <tr key={param.uid}>
+                  <td>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={param.name}
+                      className="mousetrap"
+                      onChange={(e) => handleQueryParamChange(e, param, 'name')}
+                    />
+                  </td>
+                  <td>
+                    <SingleLineEditor
+                      value={param.value}
+                      theme={storedTheme}
+                      onSave={onSave}
+                      onChange={(newValue) =>
+                        handleQueryParamChange(
+                          {
+                            target: {
+                              value: newValue
+                            }
+                          },
+                          param,
+                          'value'
+                        )
+                      }
+                      onRun={handleRun}
+                      collection={collection}
+                      item={item}
+                    />
+                  </td>
+                  <td>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={param.enabled}
+                        tabIndex="-1"
+                        className="mr-3 mousetrap"
+                        onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
+                      />
+                      <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
+                        <IconTrash strokeWidth={1.5} size={20} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+            : null}
           </tbody>
         </table>
         <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
@@ -176,54 +176,59 @@ const QueryParams = ({ item, collection }) => {
         <div className="mb-1 title text-xs">Path</div>
         <table>
           <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-            </tr>
+          <tr>
+            <td>Name</td>
+            <td>Value</td>
+          </tr>
           </thead>
           <tbody>
-            {pathParams && pathParams.length
-              ? pathParams.map((path, index) => {
-                  return (
-                    <tr key={path.uid}>
-                      <td>
-                        <input
-                          type="text"
-                          autoComplete="off"
-                          autoCorrect="off"
-                          autoCapitalize="off"
-                          spellCheck="false"
-                          value={path.name}
-                          className="mousetrap"
-                          readOnly={true}
-                        />
-                      </td>
-                      <td>
-                        <SingleLineEditor
-                          value={path.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handlePathParamChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              path
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                          item={item}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })
-              : null}
+          {pathParams && pathParams.length
+            ? pathParams.map((path, index) => {
+              return (
+                <tr key={path.uid}>
+                  <td>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      value={path.name}
+                      className="mousetrap"
+                      readOnly={true}
+                    />
+                  </td>
+                  <td>
+                    <SingleLineEditor
+                      value={path.value}
+                      theme={storedTheme}
+                      onSave={onSave}
+                      onChange={(newValue) =>
+                        handlePathParamChange(
+                          {
+                            target: {
+                              value: newValue
+                            }
+                          },
+                          path
+                        )
+                      }
+                      onRun={handleRun}
+                      collection={collection}
+                      item={item}
+                    />
+                  </td>
+                </tr>
+              );
+            })
+            : null}
           </tbody>
         </table>
+        <div className="pr-2 py-3 mt-2 title text-xs">
+          Hint: Path variables are automatically added whenever the
+          <code className="font-mono font-medium text-gray-700 mx-2">:name</code>
+          template is used in the URL.
+        </div>
       </div>
     </StyledWrapper>
   );
