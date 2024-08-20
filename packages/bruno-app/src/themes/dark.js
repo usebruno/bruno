@@ -1,4 +1,5 @@
 const darkTheme = {
+  name: 'dark',
   brand: '#546de5',
   text: '#d4d4d4',
   textLink: '#569cd6',

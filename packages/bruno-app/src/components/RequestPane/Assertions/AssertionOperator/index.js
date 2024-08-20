@@ -81,13 +81,17 @@ const AssertionOperator = ({ operator, onChange }) => {
     }
   };
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
+  const effectiveTheme = displayedTheme === darkTheme.name ? darkTheme : lightTheme;
 
   return (
     <select value={operator} onChange={handleChange} className="mousetrap">
       {operators.map((operator) => (
         <option
-          style={{ backgroundColor: storedTheme === 'dark' ? darkTheme.bg : lightTheme.bg }}
+          style={{
+            color: effectiveTheme.dropdown.color,
+            backgroundColor: effectiveTheme.dropdown.bg
+          }}
           key={operator}
           value={operator}
         >

@@ -1,4 +1,5 @@
 const lightTheme = {
+  name: 'light',
   brand: '#546de5',
   text: 'rgb(52, 52, 52)',
   textLink: '#1663bb',
