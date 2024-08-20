@@ -84,6 +84,9 @@ class TestRuntime {
       };
     }
 
+    // add 'await' prefix to the test function calls
+    testsFile = testsFile.replace(/^(?!\s*await\s)(test\([^)]*\))/gm, 'await $1');
+
     const context = {
       test,
       bru,

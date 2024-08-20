@@ -9,6 +9,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
+const addPathShimToContext = require('./shims/lib/path');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -64,14 +65,14 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const vm = module.newContext();
 
     const bundledCode = getBundledCode?.toString() || '';
-    const moduleLoaderCode = function() {
+    const moduleLoaderCode = function () {
       return `
         globalThis.require = (mod) => {
           let lib = globalThis.requireObject[mod];
           if (lib) {
             return lib;
           }
-          else {
+          else if(mod?.startsWith('.') || mod?.startsWith?.(bru.cwd())){
             // fetch local module
             let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
 
@@ -79,7 +80,12 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
             (function (){
               const initModuleExportsCode = "const module = { exports: {} };"
               const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
-              eval(initModuleExportsCode + localModuleCode + copyModuleExportsCode);
+              const patchedRequire = ${`
+                "\\n;" +
+                "let require = (subModule) => globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))" +
+                "\\n;" 
+              `}
+              eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
             })();
 
             // resolve module
@@ -103,6 +109,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
+    addPathShimToContext(vm);
 
     await addLibraryShimsToContext(vm);
 
@@ -135,6 +142,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     return;
   } catch (error) {
     console.error('Error executing the script!', error);
+    throw new Error(error);
   }
 };
 

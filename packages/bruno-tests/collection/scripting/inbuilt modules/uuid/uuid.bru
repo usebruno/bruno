@@ -13,5 +13,14 @@ get {
 script:pre-request {
   const { v4 } = require("uuid");
    
-  req.setHeader("transaction-id", v4());
+  bru.setVar("uuid-test-id", v4());
+}
+
+tests {
+  test("uuid var", function() {
+    const id = bru.getVar('uuid-test-id');
+    let isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    bru.setVar('uuid-test-id', null);
+    expect(isValidUuid).to.eql(true);
+  });
 }

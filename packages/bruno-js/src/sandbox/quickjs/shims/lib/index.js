@@ -1,13 +1,13 @@
 const addAxiosShimToContext = require('./axios');
 const addNanoidShimToContext = require('./nanoid');
-const addNodeFetchShimToContext = require('./node-fetch');
+const addPathShimToContext = require('./path');
 const addUuidShimToContext = require('./uuid');
 
 const addLibraryShimsToContext = async (vm) => {
   await addNanoidShimToContext(vm);
   await addAxiosShimToContext(vm);
-  await addNodeFetchShimToContext(vm);
   await addUuidShimToContext(vm);
+  await addPathShimToContext(vm);
 };
 
 module.exports = addLibraryShimsToContext;
