@@ -1,4 +1,4 @@
-const { PI } = require('./lib/constants');
+const { PI } = require('./constants');
 
 const sum = (a, b) => a + b;
 const areaOfCircle = (radius) => PI * radius * radius;

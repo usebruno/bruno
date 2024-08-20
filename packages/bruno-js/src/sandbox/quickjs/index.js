@@ -9,6 +9,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
+const addPathShimToContext = require('./shims/lib/path');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -64,7 +65,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     const vm = module.newContext();
 
     const bundledCode = getBundledCode?.toString() || '';
-    const moduleLoaderCode = function() {
+    const moduleLoaderCode = function () {
       return `
         globalThis.require = (mod) => {
           let lib = globalThis.requireObject[mod];
@@ -79,7 +80,15 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
             (function (){
               const initModuleExportsCode = "const module = { exports: {} };"
               const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
-              eval(initModuleExportsCode + localModuleCode + copyModuleExportsCode);
+              const patchedRequire = ${`
+                "\\n;" +
+                "let require = (subModule) =>" +
+                " subModule?.startsWith?.('.')" +
+                "   ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))" +
+                "   : globalThis.require(subModule);"
+                "\\n;" 
+              `}
+              eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
             })();
 
             // resolve module
@@ -103,6 +112,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     res && addBrunoResponseShimToContext(vm, res);
     consoleFn && addConsoleShimToContext(vm, consoleFn);
     addLocalModuleLoaderShimToContext(vm, collectionPath);
+    addPathShimToContext(vm);
 
     await addLibraryShimsToContext(vm);
 
