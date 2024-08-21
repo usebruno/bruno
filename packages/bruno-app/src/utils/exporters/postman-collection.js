@@ -1,8 +1,8 @@
 import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../../utils/collections/export';
 
-export const exportCollection = (collection) => {
+export const convertCollection = (collection) => {
   delete collection.uid;
   delete collection.processEnvVariables;
   deleteUidsInItems(collection.items);
@@ -171,18 +171,47 @@ export const exportCollection = (collection) => {
     }
   };
 
-  const generateHost = (url) => {
+  const generateProtocol = (url) => {
+    if (url.startsWith('https://')) {
+      return 'https';
+    } else if (url.startsWith('http://')) {
+      return 'http';
+    }
+    return null;
+  };
+
+  const generateAuthFromUrl = (url) => {
     try {
-      const { hostname } = new URL(url);
-      return hostname.split('.');
-    } catch (error) {
-      console.error(`Invalid URL: ${url}`, error);
-      return [];
+      const { username, password } = new URL(url);
+      if (username === '' && password === '') return null;
+      return {
+        user: username,
+        password: password
+      }
+    } catch (e) {
+      return null;
     }
   };
 
-  const generatePathParams = (params) => {
-    return params.filter((param) => param.type === 'path').map((param) => `:${param.name}`);
+  const fixHostForParsing = (url) => {
+    let updatedUrl = url;
+    if (url.startsWith('/')) {
+      updatedUrl = 'https://placeholder/' + url;
+    } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      updatedUrl = 'https://' + url;
+    }
+    return updatedUrl;
+  }
+
+  const generateHost = (url) => {
+    if (url.startsWith('/')) return null;
+    const { hostname } = new URL(fixHostForParsing(url));
+    return hostname.split('.');
+  };
+
+  const generatePathParams = (url) => {
+    const { pathname } = new URL(fixHostForParsing(url));
+    return pathname.split('/').filter(param => param !== '');
   };
 
   const generateQueryParams = (params) => {
@@ -203,15 +232,17 @@ export const exportCollection = (collection) => {
       header: generateHeaders(itemRequest.headers),
       url: {
         raw: itemRequest.url,
+        auth: generateAuthFromUrl(itemRequest.url),
+        protocol: generateProtocol(itemRequest.url),
         host: generateHost(itemRequest.url),
-        path: generatePathParams(itemRequest.params),
+        path: generatePathParams(itemRequest.url),
         query: generateQueryParams(itemRequest.params),
         variable: generateVariables(itemRequest.params)
       },
       auth: generateAuth(itemRequest.auth)
     };
 
-    if (itemRequest.body.mode != 'none') {
+    if (itemRequest.body.mode !== 'none') {
       requestObject.body = generateBody(itemRequest.body);
     }
     return requestObject;
@@ -237,6 +268,12 @@ export const exportCollection = (collection) => {
   collectionToExport.info = generateInfoSection();
   collectionToExport.item = generateItemSection(collection.items);
   collectionToExport.variable = generateCollectionVars(collection);
+
+  return collectionToExport;
+};
+
+export const exportCollection = (collection) => {
+  const collectionToExport = convertCollection(collection);
 
   const fileName = `${collection.name}.json`;
   const fileBlob = new Blob([JSON.stringify(collectionToExport, null, 2)], { type: 'application/json' });
