@@ -69,10 +69,11 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
       return `
         globalThis.require = (mod) => {
           let lib = globalThis.requireObject[mod];
+          let isModuleAPath = (module) => (module?.startsWith('.') || module?.startsWith?.(bru.cwd()))
           if (lib) {
             return lib;
           }
-          else if(mod?.startsWith('.') || mod?.startsWith?.(bru.cwd())){
+          else if (isModuleAPath(mod)) {
             // fetch local module
             let localModuleCode = globalThis.__brunoLoadLocalModule(mod);
 
@@ -82,7 +83,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
               const copyModuleExportsCode = "\\n;globalThis.requireObject[mod] = module.exports;";
               const patchedRequire = ${`
                 "\\n;" +
-                "let require = (subModule) => globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule))" +
+                "let require = (subModule) => isModuleAPath(subModule) ? globalThis.require(path.resolve(bru.cwd(), mod, '..', subModule)) : globalThis.require(subModule)" +
                 "\\n;" 
               `}
               eval(initModuleExportsCode + patchedRequire + localModuleCode + copyModuleExportsCode);
