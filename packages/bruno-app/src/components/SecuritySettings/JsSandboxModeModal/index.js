@@ -87,7 +87,7 @@ const JsSandboxModeModal = ({ collection, onClose }) => {
               JavaScript code has access to the filesystem, can execute system commands and access sensitive information.
             </p>
             <small className='text-muted mt-6'>
-              * SAFE mode has been introduced v1.25 onwards and is in beta. Please report any issues on github.
+              * SAFE mode has been introduced v1.26 onwards and is in beta. Please report any issues on github.
             </small>
           </div>
         </StyledWrapper>

@@ -76,7 +76,7 @@ const SecuritySettings = ({ collection }) => {
           Save
         </button>
         <small className='text-muted mt-6'>
-          * SAFE mode has been introduced v1.25 onwards and is in beta. Please report any issues on github.
+          * SAFE mode has been introduced v1.26 onwards and is in beta. Please report any issues on github.
         </small>
       </div>
     </StyledWrapper>
