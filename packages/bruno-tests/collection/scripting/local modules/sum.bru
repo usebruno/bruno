@@ -38,4 +38,22 @@ tests {
       "sum": 3
     });
   });
+  
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+  
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
 }
