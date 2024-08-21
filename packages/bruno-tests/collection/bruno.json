@@ -3,22 +3,19 @@
   "name": "bruno-testbench",
   "type": "collection",
   "proxy": {
-    "bypassProxy": "",
-    "enabled": "global",
+    "enabled": false,
+    "protocol": "http",
+    "hostname": "{{proxyHostname}}",
+    "port": 4000,
     "auth": {
       "enabled": false,
-      "username": "",
-      "password": ""
+      "username": "anoop",
+      "password": "password"
     },
-    "port": null,
-    "hostname": "",
-    "protocol": "http"
+    "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": [
-      "crypto",
-      "buffer"
-    ],
+    "moduleWhitelist": ["crypto", "buffer"],
     "filesystemAccess": {
       "allow": true
     }
@@ -30,9 +27,5 @@
   "presets": {
     "requestType": "http",
     "requestUrl": "http://localhost:6000"
-  },
-  "ignore": [
-    "node_modules",
-    ".git"
-  ]
+  }
 }
