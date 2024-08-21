@@ -1,0 +1,40 @@
+meta {
+  name: getBody
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("req.getBody()", function() {
+    const data = res.getBody();
+    expect(data).to.eql({
+      "hello": "bruno"
+    });
+  });
+  
+}

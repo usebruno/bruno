@@ -47,7 +47,6 @@
     "test:prettier:web": "npm run test:prettier --workspace=packages/bruno-app",
     "prepare": "husky install"
   },
-  
   "overrides": {
     "rollup": "3.2.5"
   },
