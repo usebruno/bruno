@@ -63,6 +63,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getSecretVar', getSecretVar);
   getSecretVar.dispose();
 
+  let getRequestVar = vm.newFunction('getRequestVar', function (key) {
+    return marshallToVm(bru.getRequestVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getRequestVar', getRequestVar);
+  getRequestVar.dispose();
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();

@@ -10,7 +10,7 @@ const marshallToVm = (value, vm) => {
   } else if (typeof value === 'number') {
     return vm.newNumber(value);
   } else if (typeof value === 'boolean') {
-    return vm.newBoolean(value);
+    return value ? vm.true : vm.false;
   } else if (typeof value === 'object') {
     if (Array.isArray(value)) {
       const arr = vm.newArray();
