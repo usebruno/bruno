@@ -399,19 +399,9 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       const filename = resolveRequestFilename(newName);
       newPathname = path.join(dirname, filename);
     }
-
-    function normalizePath(pathname) {
-      // Convert WSL path to Windows UNC path
-      return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
-    }
-
-    // Normalize the paths
-    const pathname = normalizePath(item.pathname);
-    newPathname = normalizePath(newPathname);
-
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
   });
 };
 
