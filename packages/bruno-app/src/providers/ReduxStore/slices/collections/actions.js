@@ -373,6 +373,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   });
 };
 
+// rename item
 export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -397,9 +398,19 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
       const filename = resolveRequestFilename(newName);
       newPathname = path.join(dirname, filename);
     }
+
+    function normalizePath(pathname) {
+      // Convert WSL path to Windows UNC path
+      return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
+    }
+
+    // Normalize the paths
+    const pathname = normalizePath(item.pathname);
+    newPathname = normalizePath(newPathname);
+
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', pathname, newPathname, newName).then(resolve).catch(reject);
   });
 };
 
@@ -717,7 +728,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     const pathParams = parsePathParams(requestUrl);
     each(pathParams, (pathParm) => {
       pathParams.enabled = true;
-      pathParm.type = 'path'
+      pathParm.type = 'path';
     });
 
     const params = [...queryParams, ...pathParams];
