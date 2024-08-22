@@ -29,7 +29,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -1189,7 +1189,13 @@ const registerNetworkIpc = (mainWindow) => {
       const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, getEncodingFormat()));
+        const encoding = getEncodingFormat();
+        const data = Buffer.from(response.dataBuffer, 'base64')
+        if (encoding === 'utf-8') {
+          await writeFile(filePath, data);
+        } else {
+          await writeBinaryFile(filePath, data);
+        }
       }
     } catch (error) {
       return Promise.reject(error);
