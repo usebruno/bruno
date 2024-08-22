@@ -37,7 +37,7 @@ Bruno는 Next.js와 React로 구축되었습니다. 또한, (로컬 컬렉션을
 
 ### 의존성
 
-[Node v18.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
+[Node v20.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
 
 ## 개발
 
