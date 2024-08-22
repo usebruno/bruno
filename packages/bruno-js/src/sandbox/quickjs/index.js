@@ -10,6 +10,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
+const { isBoolean, parseBoolean } = require('../../utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -25,6 +26,15 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
+
+  if (isBoolean(externalScript)) {
+    try {
+      return parseBoolean(externalScript);
+    } catch (error) {}
+  }
+
+  if (externalScript === 'null') return null;
+  if (externalScript === 'undefined') return undefined;
 
   const vm = QuickJSSyncContext;
 
@@ -60,6 +70,16 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
   if (!isNaN(Number(externalScript))) {
     return toNumber(externalScript);
   }
+
+  if (isBoolean(externalScript)) {
+    try {
+      return parseBoolean(externalScript);
+    } catch (error) {}
+  }
+
+  if (externalScript === 'null') return null;
+  if (externalScript === 'undefined') return undefined;
+
   try {
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();

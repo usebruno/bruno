@@ -146,11 +146,36 @@ const appendAwaitToTestFunc = (str) => {
   return str.replace(/(?<!\.\s*)(?<!await\s)(test\()/g, 'await $1');
 };
 
+const isBoolean = (value) => {
+  if (typeof value === 'boolean') {
+    return true;
+  }
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim().toLowerCase();
+    return trimmedValue === 'true' || trimmedValue === 'false';
+  }
+  return false;
+}
+
+const parseBoolean = (value) => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const trimmedValue = value.trim().toLowerCase();
+    if (trimmedValue === 'true') return true;
+    if (trimmedValue === 'false') return false;
+  }
+  throw new Error("Invalid boolean value");
+}
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
   cleanJson,
-  appendAwaitToTestFunc
+  appendAwaitToTestFunc,
+  isBoolean,
+  parseBoolean
 };

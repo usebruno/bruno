@@ -3,7 +3,9 @@ const {
   evaluateJsExpression,
   internalExpressionCache: cache,
   createResponseParser,
-  appendAwaitToTestFunc
+  appendAwaitToTestFunc,
+  isBoolean,
+  parseBoolean
 } = require('../src/utils');
 
 describe('utils', () => {
@@ -206,6 +208,114 @@ describe('utils', () => {
           });
         });
       `);
+    });
+  });
+
+  describe('parseBoolean function', () => {
+    it('should return true for boolean true', () => {
+      expect(parseBoolean(true)).toBe(true);
+    });
+
+    it('should return false for boolean false', () => {
+      expect(parseBoolean(false)).toBe(false);
+    });
+
+    it('should return true for string "true" (with no spaces)', () => {
+      expect(parseBoolean('true')).toBe(true);
+    });
+
+    it('should return false for string "false" (with no spaces)', () => {
+      expect(parseBoolean('false')).toBe(false);
+    });
+
+    it('should return true for string " true " (with leading and trailing spaces)', () => {
+      expect(parseBoolean(' true ')).toBe(true);
+    });
+
+    it('should return false for string " false " (with leading and trailing spaces)', () => {
+      expect(parseBoolean(' false ')).toBe(false);
+    });
+
+    it('should return true for string "TRUE" (case insensitive)', () => {
+      expect(parseBoolean('TRUE')).toBe(true);
+    });
+
+    it('should return false for string "FALSE" (case insensitive)', () => {
+      expect(parseBoolean('FALSE')).toBe(false);
+    });
+
+    it('should throw an error for invalid string', () => {
+      expect(() => parseBoolean('hello')).toThrow('Invalid boolean value');
+    });
+
+    it('should throw an error for non-boolean values like numbers', () => {
+      expect(() => parseBoolean(123)).toThrow('Invalid boolean value');
+    });
+
+    it('should throw an error for objects', () => {
+      expect(() => parseBoolean({})).toThrow('Invalid boolean value');
+    });
+
+    it('should throw an error for arrays', () => {
+      expect(() => parseBoolean([])).toThrow('Invalid boolean value');
+    });
+  });
+
+  describe('isBoolean', () => {
+    it('should return true for boolean true', () => {
+      expect(isBoolean(true)).toBe(true);
+    });
+
+    it('should return true for boolean false', () => {
+      expect(isBoolean(false)).toBe(true);
+    });
+
+    it('should return true for string "true"', () => {
+      expect(isBoolean('true')).toBe(true);
+    });
+
+    it('should return true for string "false"', () => {
+      expect(isBoolean('false')).toBe(true);
+    });
+
+    it('should return true for string " true " (with spaces)', () => {
+      expect(isBoolean(' true ')).toBe(true);
+    });
+
+    it('should return true for string " false " (with spaces)', () => {
+      expect(isBoolean(' false ')).toBe(true);
+    });
+
+    it('should return true for string "TRUE" (case insensitive)', () => {
+      expect(isBoolean('TRUE')).toBe(true);
+    });
+
+    it('should return true for string "FALSE" (case insensitive)', () => {
+      expect(isBoolean('FALSE')).toBe(true);
+    });
+
+    it('should return false for invalid string like "hello"', () => {
+      expect(isBoolean('hello')).toBe(false);
+    });
+
+    it('should return false for number', () => {
+      expect(isBoolean(1)).toBe(false);
+    });
+
+    it('should return false for object', () => {
+      expect(isBoolean({})).toBe(false);
+    });
+
+    it('should return false for array', () => {
+      expect(isBoolean([])).toBe(false);
+    });
+
+    it('should return false for null', () => {
+      expect(isBoolean(null)).toBe(false);
+    });
+
+    it('should return false for undefined', () => {
+      expect(isBoolean(undefined)).toBe(false);
     });
   });
 });
