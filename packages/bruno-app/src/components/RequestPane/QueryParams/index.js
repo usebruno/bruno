@@ -226,11 +226,11 @@ const QueryParams = ({ item, collection }) => {
         </table>
         {!(pathParams && pathParams.length) ?
           <div className="title pr-2 py-3 mt-2 text-xs">
-            Hint: Path variables are automatically added whenever the
-            <code className="font-mono font-medium text-gray-700 dark:text-gray-400 mx-2">:name</code>
+            Path variables are automatically added whenever the
+            <code className="font-mono mx-2">:name</code>
             template is used in the URL, for example:
-            <code className="font-mono font-medium text-gray-700 dark:text-gray-400 mx-2">
-              https://example.com/v1/users/<span className="font-extrabold">:id</span>
+            <code className="font-mono mx-2">
+              https://example.com/v1/users/<span>:id</span>
             </code>
           </div>
         : null}
