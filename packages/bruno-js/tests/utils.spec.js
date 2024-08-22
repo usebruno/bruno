@@ -236,14 +236,6 @@ describe('utils', () => {
       expect(parseBoolean(' false ')).toBe(false);
     });
 
-    it('should return true for string "TRUE" (case insensitive)', () => {
-      expect(parseBoolean('TRUE')).toBe(true);
-    });
-
-    it('should return false for string "FALSE" (case insensitive)', () => {
-      expect(parseBoolean('FALSE')).toBe(false);
-    });
-
     it('should throw an error for invalid string', () => {
       expect(() => parseBoolean('hello')).toThrow('Invalid boolean value');
     });
@@ -284,14 +276,6 @@ describe('utils', () => {
 
     it('should return true for string " false " (with spaces)', () => {
       expect(isBoolean(' false ')).toBe(true);
-    });
-
-    it('should return true for string "TRUE" (case insensitive)', () => {
-      expect(isBoolean('TRUE')).toBe(true);
-    });
-
-    it('should return true for string "FALSE" (case insensitive)', () => {
-      expect(isBoolean('FALSE')).toBe(true);
     });
 
     it('should return false for invalid string like "hello"', () => {

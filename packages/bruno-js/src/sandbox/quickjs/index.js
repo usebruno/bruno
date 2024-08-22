@@ -33,8 +33,8 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
     } catch (error) {}
   }
 
-  if (externalScript === 'null') return null;
-  if (externalScript === 'undefined') return undefined;
+  if (externalScript?.trim() === 'null') return null;
+  if (externalScript?.trim() === 'undefined') return undefined;
 
   const vm = QuickJSSyncContext;
 
@@ -77,8 +77,8 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
     } catch (error) {}
   }
 
-  if (externalScript === 'null') return null;
-  if (externalScript === 'undefined') return undefined;
+  if (externalScript?.trim() === 'null') return null;
+  if (externalScript?.trim() === 'undefined') return undefined;
 
   try {
     const module = await newQuickJSWASMModule();

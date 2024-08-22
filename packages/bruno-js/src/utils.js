@@ -151,7 +151,7 @@ const isBoolean = (value) => {
     return true;
   }
   if (typeof value === 'string') {
-    const trimmedValue = value.trim().toLowerCase();
+    const trimmedValue = value.trim();
     return trimmedValue === 'true' || trimmedValue === 'false';
   }
   return false;
@@ -162,7 +162,7 @@ const parseBoolean = (value) => {
     return value;
   }
   if (typeof value === 'string') {
-    const trimmedValue = value.trim().toLowerCase();
+    const trimmedValue = value.trim();
     if (trimmedValue === 'true') return true;
     if (trimmedValue === 'false') return false;
   }
