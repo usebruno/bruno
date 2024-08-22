@@ -7,7 +7,7 @@ import RequestHeaders from 'components/RequestPane/RequestHeaders';
 import RequestBody from 'components/RequestPane/RequestBody';
 import RequestBodyMode from 'components/RequestPane/RequestBody/RequestBodyMode';
 import Auth from 'components/RequestPane/Auth';
-import AuthMode from 'components/RequestPane/Auth/AuthMode';
+import DotIcon from 'components/Icons/Dot';
 import Vars from 'components/RequestPane/Vars';
 import Assertions from 'components/RequestPane/Assertions';
 import Script from 'components/RequestPane/Script';
@@ -16,7 +16,11 @@ import StyledWrapper from './StyledWrapper';
 import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 
-const CONTENT_INDICATOR = '\u25CF';
+const ContentIndicator = () => {
+  return <sup className="ml-[.125rem] opacity-80 font-medium">
+    <DotIcon width="10"></DotIcon>
+  </sup>
+};
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const dispatch = useDispatch();
@@ -112,11 +116,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('body')} role="tab" onClick={() => selectTab('body')}>
           Body
-          {body.mode !== 'none' && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
+          {body.mode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
-          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
+          {activeHeadersLength > 0 && <sup className="ml-[.125rem] font-medium">{activeHeadersLength}</sup>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
@@ -127,7 +131,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => selectTab('script')}>
           Script
-          {(script.req || script.res) && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
+          {(script.req || script.res) && <ContentIndicator />}
         </div>
         <div className={getTabClassname('assert')} role="tab" onClick={() => selectTab('assert')}>
           Assert
@@ -135,7 +139,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && <sup className="ml-1 font-medium">{CONTENT_INDICATOR}</sup>}
+          {tests && <ContentIndicator />}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
