@@ -386,7 +386,7 @@ const parseOpenApiCollection = (data) => {
             .map(([method, operationObject]) => {
               return {
                 method: method,
-                path: path,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
                   server: baseUrl,
