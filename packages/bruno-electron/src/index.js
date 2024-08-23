@@ -24,7 +24,9 @@ const contentSecurityPolicy = [
   "font-src 'self' https:",
   // this has been commented out to make oauth2 work
   // "form-action 'none'",
-  "img-src 'self' blob: data: https:",
+  // we make an exception and allow http for images so that
+  // they can be used as link in the embedded markdown editors
+  "img-src 'self' blob: data: http: https:",
   "media-src 'self' blob: data: https:",
   "style-src 'self' 'unsafe-inline' https:"
 ];
@@ -48,6 +50,7 @@ app.on('ready', async () => {
     height,
     minWidth: 1000,
     minHeight: 640,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -65,6 +68,9 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  })
   const url = isDev
     ? 'http://localhost:3000'
     : format({

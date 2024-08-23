@@ -142,10 +142,15 @@ const cleanJson = (data) => {
   }
 };
 
+const appendAwaitToTestFunc = (str) => {
+  return str.replace(/(?<!\.\s*)(?<!await\s)(test\()/g, 'await $1');
+};
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
-  cleanJson
+  cleanJson,
+  appendAwaitToTestFunc
 };

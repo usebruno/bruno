@@ -10,6 +10,7 @@ import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
+import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -98,7 +99,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => i.pathname === pathname);
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
@@ -228,13 +229,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const copyQueryParams = (params) => {
+  const copyParams = (params) => {
     return map(params, (param) => {
       return {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
+        type: param.type,
         enabled: param.enabled
       };
     });
@@ -267,6 +269,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
+      if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -274,80 +280,158 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         seq: si.seq
       };
 
-      // if items is draft, then take data from draft to save
-      // The condition "!options.ignoreDraft" may appear confusing
-      // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
-      // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if (si.draft && !options.ignoreDraft) {
-        if (si.draft.request) {
-          di.request = {
-            url: si.draft.request.url,
-            method: si.draft.request.method,
-            headers: copyHeaders(si.draft.request.headers),
-            params: copyQueryParams(si.draft.request.params),
-            body: {
-              mode: si.draft.request.body.mode,
-              json: si.draft.request.body.json,
-              text: si.draft.request.body.text,
-              xml: si.draft.request.body.xml,
-              graphql: si.draft.request.body.graphql,
-              sparql: si.draft.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.draft.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.draft.request, 'auth.basic.username', ''),
-                password: get(si.draft.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.draft.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.draft.request.script,
-            vars: si.draft.request.vars,
-            assertions: si.draft.request.assertions,
-            tests: si.draft.request.tests
-          };
+      if (si.request) {
+        di.request = {
+          url: si.request.url,
+          method: si.request.method,
+          headers: copyHeaders(si.request.headers),
+          params: copyParams(si.request.params),
+          body: {
+            mode: si.request.body.mode,
+            json: si.request.body.json,
+            text: si.request.body.text,
+            xml: si.request.body.xml,
+            graphql: si.request.body.graphql,
+            sparql: si.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+          },
+          script: si.request.script,
+          vars: si.request.vars,
+          assertions: si.request.assertions,
+          tests: si.request.tests
+        };
+
+        // Handle auth object dynamically
+        di.request.auth = {
+          mode: get(si.request, 'auth.mode', 'none')
+        };
+
+        switch (di.request.auth.mode) {
+          case 'awsv4':
+            di.request.auth.awsv4 = {
+              accessKeyId: get(si.request, 'auth.awsv4.accessKeyId', ''),
+              secretAccessKey: get(si.request, 'auth.awsv4.secretAccessKey', ''),
+              sessionToken: get(si.request, 'auth.awsv4.sessionToken', ''),
+              service: get(si.request, 'auth.awsv4.service', ''),
+              region: get(si.request, 'auth.awsv4.region', ''),
+              profileName: get(si.request, 'auth.awsv4.profileName', '')
+            };
+            break;
+          case 'basic':
+            di.request.auth.basic = {
+              username: get(si.request, 'auth.basic.username', ''),
+              password: get(si.request, 'auth.basic.password', '')
+            };
+            break;
+          case 'bearer':
+            di.request.auth.bearer = {
+              token: get(si.request, 'auth.bearer.token', '')
+            };
+            break;
+          case 'digest':
+            di.request.auth.digest = {
+              username: get(si.request, 'auth.digest.username', ''),
+              password: get(si.request, 'auth.digest.password', '')
+            };
+            break;
+          case 'oauth2':
+            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            switch (grantType) {
+              case 'password':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  username: get(si.request, 'auth.oauth2.username', ''),
+                  password: get(si.request, 'auth.oauth2.password', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+              case 'authorization_code':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                };
+                break;
+              case 'client_credentials':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+            }
+            break;
+          default:
+            break;
         }
-      } else {
-        if (si.request) {
-          di.request = {
-            url: si.request.url,
-            method: si.request.method,
-            headers: copyHeaders(si.request.headers),
-            params: copyQueryParams(si.request.params),
-            body: {
-              mode: si.request.body.mode,
-              json: si.request.body.json,
-              text: si.request.body.text,
-              xml: si.request.body.xml,
-              graphql: si.request.body.graphql,
-              sparql: si.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.request, 'auth.basic.username', ''),
-                password: get(si.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.request.script,
-            vars: si.request.vars,
-            assertions: si.request.assertions,
-            tests: si.request.tests
-          };
+
+        if (di.request.body.mode === 'json') {
+          di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
       }
 
-      if (di.request && di.request.body.mode === 'json') {
-        di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+      if (si.type == 'folder' && si?.root) {
+        di.root = {
+          request: {}
+        };
+
+        let { request, meta } = si?.root || {};
+        let { headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level headers
+        if (headers?.length) {
+          di.root.request.headers = headers;
+        }
+        // folder level script
+        if (Object.keys(script)?.length) {
+          di.root.request.script = {};
+          if (script?.req?.length) {
+            di.root.request.script.req = script?.req;
+          }
+          if (script?.res?.length) {
+            di.root.request.script.res = script?.res;
+          }
+        }
+        // folder level vars
+        if (Object.keys(vars)?.length) {
+          di.root.request.vars = {};
+          if (vars?.req?.length) {
+            di.root.request.vars.req = vars?.req;
+          }
+          if (vars?.res?.length) {
+            di.root.request.vars.res = vars?.res;
+          }
+        }
+        // folder level tests
+        if (tests?.length) {
+          di.root.request.tests = tests;
+        }
+
+        if (meta?.name) {
+          di.root.meta = {};
+          di.root.meta.name = meta?.name;
+        }
+        if (!Object.keys(di.root.request)?.length) {
+          delete di.root.request;
+        }
+        if (!Object.keys(di.root)?.length) {
+          delete di.root;
+        }
+      }
+
+      if (si.type === 'js') {
+        di.fileContent = si.raw;
       }
 
       destItems.push(di);
@@ -369,8 +453,68 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
 
-  copyItems(collection.items, collectionToSave.items);
+  collectionToSave.root = {
+    request: {}
+  };
 
+  let { request, docs, meta } = collection?.root || {};
+  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionToSave.root.request.auth = auth;
+  }
+  // collection level headers
+  if (headers?.length) {
+    collectionToSave.root.request.headers = headers;
+  }
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionToSave.root.request.script = {};
+    if (script?.req?.length) {
+      collectionToSave.root.request.script.req = script?.req;
+    }
+    if (script?.res?.length) {
+      collectionToSave.root.request.script.res = script?.res;
+    }
+  }
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionToSave.root.request.vars = {};
+    if (vars?.req?.length) {
+      collectionToSave.root.request.vars.req = vars?.req;
+    }
+    if (vars?.res?.length) {
+      collectionToSave.root.request.vars.res = vars?.res;
+    }
+  }
+  // collection level tests
+  if (tests?.length) {
+    collectionToSave.root.request.tests = tests;
+  }
+  // collection level docs
+  if (docs?.length) {
+    collectionToSave.root.docs = docs;
+  }
+  if (meta?.name) {
+    collectionToSave.root.meta = {};
+    collectionToSave.root.meta.name = meta?.name;
+  }
+  if (!Object.keys(collectionToSave.root.request)?.length) {
+    delete collectionToSave.root.request;
+  }
+  if (!Object.keys(collectionToSave.root)?.length) {
+    delete collectionToSave.root;
+  }
+
+  collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
+
+  // delete proxy password if present
+  if (collectionToSave?.brunoConfig?.proxy?.auth?.password) {
+    delete collectionToSave.brunoConfig.proxy.auth.password;
+  }
+
+  copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
 
@@ -402,6 +546,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: param.type,
       enabled: param.enabled
     });
   });
@@ -616,6 +761,18 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+const getPathParams = (item) => {
+  let pathParams = {};
+  if (item && item.request && item.request.params) {
+    item.request.params.forEach((param) => {
+      if (param.type === 'path' && param.name && param.value) {
+        pathParams[param.name] = param.value;
+      }
+    });
+  }
+  return pathParams;
+};
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
@@ -629,12 +786,22 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection) => {
+export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  let requestVariables = {};
+  if (item?.request) {
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
+  }
+  const pathParams = getPathParams(item);
 
   return {
     ...environmentVariables,
-    ...collection.collectionVariables,
+    ...requestVariables,
+    ...collection.runtimeVariables,
+    pathParams: {
+      ...pathParams
+    },
     process: {
       env: {
         ...collection.processEnvVariables
@@ -652,4 +819,37 @@ export const maskInputValue = (value) => {
     .split('')
     .map(() => '*')
     .join('');
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollection(collection, _item?.uid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+const mergeFolderLevelVars = (request, requestTreePath = []) => {
+  let requestVariables = {};
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+
+  return requestVariables;
 };
