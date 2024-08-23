@@ -11,7 +11,7 @@
     "@usebruno/vm2": "^3.9.13"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
+    "test": "node --experimental-vm-modules $(npx --no-install which jest) --coverage --testPathIgnorePatterns test.js",
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {
@@ -43,5 +43,22 @@
     "rollup-plugin-terser": "^7.0.2",
     "stream": "^0.0.2",
     "util": "^0.12.5"
+  },
+  "jest": {
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "jest",
+          "outputName": "results.xml"
+        }
+      ]
+    ],
+    "collectCoverage": true,
+    "coverageReporters": [
+      "text", "cobertura"
+    ],
+    "coverageDirectory": "./coverage"
   }
 }

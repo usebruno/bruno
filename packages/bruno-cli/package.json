@@ -14,7 +14,7 @@
     "url": "git+https://github.com/usebruno/bruno.git"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx --no-install which jest) --coverage"
   },
   "files": [
     "src",
@@ -45,5 +45,22 @@
     "@usebruno/vm2": "^3.9.13",
     "xmlbuilder": "^15.1.1",
     "yargs": "^17.6.2"
+  },
+  "jest": {
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "jest",
+          "outputName": "results.xml"
+        }
+      ]
+    ],
+    "collectCoverage": true,
+    "coverageReporters": [
+      "text", "cobertura"
+    ],
+    "coverageDirectory": "./coverage"
   }
 }

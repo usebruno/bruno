@@ -12,7 +12,7 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "test": "jest",
+    "test": "jest --coverage",
     "test:watch": "jest --watch",
     "prebuild": "npm run clean",
     "build": "rollup -c",

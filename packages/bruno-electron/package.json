@@ -16,10 +16,25 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "node --experimental-vm-modules $(npx which jest)"
+    "test": "node --experimental-vm-modules $(npx --no-install which jest) --coverage"
   },
   "jest": {
-    "modulePaths": ["node_modules"]
+    "modulePaths": ["node_modules"],
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "jest",
+          "outputName": "results.xml"
+        }
+      ]
+    ],
+    "collectCoverage": true,
+    "coverageReporters": [
+      "text", "cobertura"
+    ],
+    "coverageDirectory": "./coverage"
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.658.1",
