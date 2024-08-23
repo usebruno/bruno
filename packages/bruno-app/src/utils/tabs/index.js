@@ -11,3 +11,7 @@ export const isItemAFolder = (item) => {
 export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.uid === item.uid);
 };
+
+export const isFolderSettingsOpenedInTabs = (tabs, { collectionUid, folderUid, type }) => {
+  return tabs.find((tab) => tab.collectionUid === collectionUid && tab.folderUid === folderUid && tab.type === type);
+};

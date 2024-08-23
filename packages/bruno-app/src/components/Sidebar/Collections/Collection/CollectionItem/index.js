@@ -17,7 +17,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
+import { isItemARequest, isItemAFolder, itemIsOpenedInTabs, isFolderSettingsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
@@ -189,16 +189,27 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
+  
   const viewFolderSettings = () => {
-    dispatch(
-      addTab({
-        uid: uuid(),
-        collectionUid: collection.uid,
-        folderUid: item.uid,
-        type: 'folder-settings'
-      })
-    );
+    const newTabUid = uuid();
+    const { uid: collectionUid } = collection;
+    const { uid: folderUid } = item;
+    const tabType = 'folder-settings';
+
+    const existingTab = isFolderSettingsOpenedInTabs(tabs, { collectionUid, folderUid, type: tabType });
+
+    if (!existingTab) {
+      dispatch(
+        addTab({
+          uid: newTabUid,
+          collectionUid,
+          folderUid,
+          type: tabType
+        })
+      );
+    }
   };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
