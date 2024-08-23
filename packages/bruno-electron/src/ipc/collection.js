@@ -13,7 +13,9 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  isWSLPath,
+  normalizeWslPath,
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -326,6 +328,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
+      // Normalize paths if they are WSL paths
+      if (isWSLPath(oldPath)) {
+        oldPath = normalizeWslPath(oldPath);
+      }
+      if (isWSLPath(newPath)) {
+        newPath = normalizeWslPath(newPath);
+      }
+
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }

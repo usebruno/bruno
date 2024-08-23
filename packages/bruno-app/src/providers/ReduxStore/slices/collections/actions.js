@@ -374,6 +374,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   });
 };
 
+// rename item
 export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -718,7 +719,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     const pathParams = parsePathParams(requestUrl);
     each(pathParams, (pathParm) => {
       pathParams.enabled = true;
-      pathParm.type = 'path'
+      pathParm.type = 'path';
     });
 
     const params = [...queryParams, ...pathParams];
