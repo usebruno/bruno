@@ -11,7 +11,7 @@
     "@n8n/vm2": "^3.9.23"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
+    "test": "node --experimental-vm-modules $(npx --no-install which jest) --testPathIgnorePatterns test.js",
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {
