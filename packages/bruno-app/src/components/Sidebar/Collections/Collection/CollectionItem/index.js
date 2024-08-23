@@ -189,24 +189,25 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
-  
+
   const viewFolderSettings = () => {
-    const newTabUid = uuid();
-    const { uid: collectionUid } = collection;
-    const { uid: folderUid } = item;
-    const tabType = 'folder-settings';
-
-    const existingTab = isFolderSettingsOpenedInTabs(tabs, { collectionUid, folderUid, type: tabType });
-
-    if (!existingTab) {
+    if (isItemAFolder(item)) {
+      if (itemIsOpenedInTabs(item, tabs)) {
+        dispatch(
+          focusTab({
+            uid: item.uid
+          })
+        );
+        return;
+      }
       dispatch(
         addTab({
-          uid: newTabUid,
-          collectionUid,
-          folderUid,
-          type: tabType
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
         })
       );
+      return;
     }
   };
 
