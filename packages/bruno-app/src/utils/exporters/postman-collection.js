@@ -208,7 +208,7 @@ export const exportCollection = (collection) => {
       method: itemRequest.method,
       header: generateHeaders(itemRequest.headers),
       auth: generateAuth(itemRequest.auth),
-      description: itemRequest.docs
+      description: itemRequest.docs,
       url: {
         raw: itemRequest.url,
         host: generateHost(itemRequest.url),
