@@ -1,6 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import CodeEditor from 'components/CodeEditor';
 import { updateCollectionTests } from 'providers/ReduxStore/slices/collections';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
@@ -11,7 +11,8 @@ const Tests = ({ collection }) => {
   const dispatch = useDispatch();
   const tests = get(collection, 'root.request.tests', '');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
     dispatch(
@@ -26,13 +27,15 @@ const Tests = ({ collection }) => {
 
   return (
     <StyledWrapper className="w-full flex flex-col h-full">
+      <div className="text-xs mb-4 text-muted">These tests will run any time a request in this collection is sent.</div>
       <CodeEditor
         collection={collection}
         value={tests || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         onEdit={onEdit}
         mode="javascript"
         onSave={handleSave}
+        font={get(preferences, 'font.codeFont', 'default')}
       />
 
       <div className="mt-6">

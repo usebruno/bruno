@@ -39,7 +39,7 @@ const formatResponse = (data, mode, filter) => {
     return safeStringifyJSON(parsed, true);
   }
 
-  if (['text', 'html'].includes(mode) || typeof data === 'string') {
+  if (typeof data === 'string') {
     return data;
   }
 
@@ -48,10 +48,10 @@ const formatResponse = (data, mode, filter) => {
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType);
+  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -67,6 +67,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift('preview-image');
     } else if (contentType.includes('pdf')) {
       allowedPreviewModes.unshift('preview-pdf');
+    } else if (contentType.includes('audio')) {
+      allowedPreviewModes.unshift('preview-audio');
+    } else if (contentType.includes('video')) {
+      allowedPreviewModes.unshift('preview-video');
     }
 
     return allowedPreviewModes;
@@ -132,9 +136,11 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             collection={collection}
             allowedPreviewModes={allowedPreviewModes}
             disableRunEventListener={disableRunEventListener}
-            storedTheme={storedTheme}
+            displayedTheme={displayedTheme}
           />
-          {queryFilterEnabled && <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} />}
+          {queryFilterEnabled && (
+            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+          )}
         </>
       )}
     </StyledWrapper>

@@ -6,9 +6,8 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
-import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -25,6 +24,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
+import { uuid } from 'utils/common';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -189,6 +189,16 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
+  const viewFolderSettings = () => {
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        folderUid: item.uid,
+        type: 'folder-settings'
+      })
+    );
+  };
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -346,6 +356,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Delete
               </div>
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    viewFolderSettings();
+                  }}
+                >
+                  Settings
+                </div>
+              )}
             </Dropdown>
           </div>
         </div>

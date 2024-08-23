@@ -1,0 +1,23 @@
+meta {
+  name: Test Redirect
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/redirect-to-ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: 200
+  res.body: pong
+}
+
+tests {
+  test("should redirect to ping", function() {
+    const data = res.getBody();
+    expect(data).to.equal('pong');
+  });
+}
