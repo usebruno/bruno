@@ -6,7 +6,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 
-const JsSandboxModeModal = ({ collection, onClose }) => {
+const JsSandboxModeModal = ({ collection }) => {
   const dispatch = useDispatch();
   const [jsSandboxMode, setJsSandboxMode] = useState(collection?.securityConfig?.jsSandboxMode || 'safe');
 
@@ -22,7 +22,6 @@ const JsSandboxModeModal = ({ collection, onClose }) => {
     )
       .then(() => {
         toast.success('Sandbox mode updated successfully');
-        onClose();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update sandbox mode'));
   };
