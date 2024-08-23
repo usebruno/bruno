@@ -137,6 +137,11 @@ export const exportCollection = (collection) => {
             }
           }
         };
+      case 'graphql':
+        return {
+          mode: 'graphql',
+          graphql: body.graphql
+        };
     }
   };
 
