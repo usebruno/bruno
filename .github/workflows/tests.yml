@@ -44,6 +44,25 @@ jobs:
           files: packages/*/jest/results.xml
           comment_mode: always
 
+      - name: Publish Coverage Report
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          format: cobertura
+          flag-name: run-${{ join(matrix.*, '-') }}
+          parallel: true
+
+  finish:
+    needs: unit-test
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+    - name: Coveralls Finished
+      uses: coverallsapp/github-action@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        parallel-finished: true
+
   cli-test:
     name: CLI Tests
     runs-on: ubuntu-latest
