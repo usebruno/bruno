@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import StyledWrapper from './StyledWrapper';
 
-const ModalHeader = ({ title, handleCancel }) => (
+const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
-    {title ? <div className="bruno-modal-header-title">{title}</div> : null}
-    {handleCancel ? (
+    {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
+    {handleCancel && !hideClose ? (
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
         ×
       </div>
@@ -54,6 +54,7 @@ const ModalFooter = ({
 const Modal = ({
   size,
   title,
+  customHeader,
   confirmText,
   cancelText,
   handleCancel,
@@ -62,6 +63,10 @@ const Modal = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
+  hideClose,
+  disableCloseOnOutsideClick,
+  disableEscapeKey,
+  onClick,
   closeModalFadeTimeout = 500
 }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -78,12 +83,13 @@ const Modal = ({
   };
 
   useEffect(() => {
+    if (disableEscapeKey) return;
     document.addEventListener('keydown', escFunction, false);
 
     return () => {
       document.removeEventListener('keydown', escFunction, false);
     };
-  }, []);
+  }, [disableEscapeKey, document]);
 
   let classes = 'bruno-modal';
   if (isClosing) {
@@ -93,9 +99,14 @@ const Modal = ({
     classes += ' modal-footer-none';
   }
   return (
-    <StyledWrapper className={classes}>
+    <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
       <div className={`bruno-modal-card modal-${size}`}>
-        <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} />
+        <ModalHeader
+          title={title}
+          hideClose={hideClose}
+          handleCancel={() => closeModal({ type: 'icon' })}
+          customHeader={customHeader}
+        />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}
@@ -111,9 +122,13 @@ const Modal = ({
       {/* Clicking on backdrop closes the modal */}
       <div
         className="bruno-modal-backdrop"
-        onClick={() => {
-          closeModal({ type: 'backdrop' });
-        }}
+        onClick={
+          disableCloseOnOutsideClick
+            ? null
+            : () => {
+                closeModal({ type: 'backdrop' });
+              }
+        }
       />
     </StyledWrapper>
   );

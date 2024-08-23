@@ -92,7 +92,12 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
   }
 
   if (!isNaN(templateLiteral)) {
-    return Number(templateLiteral);
+    const number = Number(templateLiteral);
+    // Check if the number is too high. Too high number might get altered, see #1000
+    if (number > Number.MAX_SAFE_INTEGER) {
+      return templateLiteral;
+    }
+    return number;
   }
 
   templateLiteral = '`' + templateLiteral + '`';
@@ -137,10 +142,15 @@ const cleanJson = (data) => {
   }
 };
 
+const appendAwaitToTestFunc = (str) => {
+  return str.replace(/(?<!\.\s*)(?<!await\s)(test\()/g, 'await $1');
+};
+
 module.exports = {
   evaluateJsExpression,
   evaluateJsTemplateLiteral,
   createResponseParser,
   internalExpressionCache,
-  cleanJson
+  cleanJson,
+  appendAwaitToTestFunc
 };

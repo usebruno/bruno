@@ -6,6 +6,8 @@ import { savePreferences } from 'providers/ReduxStore/slices/app';
 
 import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
+import { IconEye, IconEyeOff } from '@tabler/icons';
+import { useState } from 'react';
 
 const ProxySettings = ({ close }) => {
   const preferences = useSelector((state) => state.app.preferences);
@@ -88,6 +90,8 @@ const ProxySettings = ({ close }) => {
       });
   };
 
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
   useEffect(() => {
     formik.setValues({
       enabled: preferences.proxy.enabled || false,
@@ -127,7 +131,7 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              http
+              HTTP
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -138,18 +142,18 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              https
+              HTTPS
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
                 name="protocol"
-                value="socks5"
+                value="socks4"
                 checked={formik.values.protocol === 'socks4'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks4
+              SOCKS4
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -160,10 +164,11 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks5
+              SOCKS5
             </label>
           </div>
         </div>
+
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="hostname">
             Hostname
@@ -240,18 +245,27 @@ const ProxySettings = ({ close }) => {
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
-            <input
-              id="auth.password"
-              type="text"
-              name="auth.password"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.auth.password}
-              onChange={formik.handleChange}
-            />
+            <div className="textbox flex flex-row items-center w-[13.2rem] h-[2.25rem] relative">
+              <input
+                id="auth.password"
+                type={passwordVisible ? `text` : 'password'}
+                name="auth.password"
+                className="outline-none w-[10.5rem] bg-transparent"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.auth.password}
+                onChange={formik.handleChange}
+              />
+              <button
+                type="button"
+                className="btn btn-sm absolute right-0"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+              >
+                {passwordVisible ? <IconEyeOff size={18} strokeWidth={2} /> : <IconEye size={18} strokeWidth={2} />}
+              </button>
+            </div>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}

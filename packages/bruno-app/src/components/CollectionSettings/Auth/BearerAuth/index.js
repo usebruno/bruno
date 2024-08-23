@@ -11,7 +11,7 @@ const BearerAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const bearerToken = get(collection, 'root.request.auth.bearer.token');
+  const bearerToken = get(collection, 'root.request.auth.bearer.token', '');
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
@@ -37,6 +37,7 @@ const BearerAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleTokenChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>
