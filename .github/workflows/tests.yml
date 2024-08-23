@@ -13,6 +13,9 @@ jobs:
     name: Unit Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ['bruno-js', 'bruno-cli', 'bruno-query', 'bruno-lang', 'bruno-schema', 'bruno-app', 'bruno-common', 'bruno-electron']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,23 +34,15 @@ jobs:
           npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
       # tests
-      - name: Test Package bruno-js
-        run: npm run test --workspace=packages/bruno-js
-      - name: Test Package bruno-cli
-        run: npm run test --workspace=packages/bruno-cli
+      - name: Test Package ${{ matrix.package }}
+        run: npm run test --workspace=packages/${{ matrix.package }}
 
-      - name: Test Package bruno-query
-        run: npm run test --workspace=packages/bruno-query
-      - name: Test Package bruno-lang
-        run: npm run test --workspace=packages/bruno-lang
-      - name: Test Package bruno-schema
-        run: npm run test --workspace=packages/bruno-schema
-      - name: Test Package bruno-app
-        run: npm run test --workspace=packages/bruno-app
-      - name: Test Package bruno-common
-        run: npm run test --workspace=packages/bruno-common
-      - name: Test Package bruno-electron
-        run: npm run test --workspace=packages/bruno-electron
+      - name: Publish Test Report
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: packages/*/jest/results.xml
+          comment_mode: always
 
   cli-test:
     name: CLI Tests
