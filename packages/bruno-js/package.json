@@ -11,7 +11,7 @@
     "@n8n/vm2": "^3.9.23"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
+    "test": "node --experimental-vm-modules $(npx --no-install which jest) --coverage --testPathIgnorePatterns test.js",
     "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {
@@ -49,5 +49,22 @@
     "terser": "^5.31.1",
     "uglify-js": "^3.18.0",
     "util": "^0.12.5"
+  },
+  "jest": {
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "jest",
+          "outputName": "results.xml"
+        }
+      ]
+    ],
+    "collectCoverage": true,
+    "coverageReporters": [
+      "text", "cobertura"
+    ],
+    "coverageDirectory": "./coverage"
   }
 }
