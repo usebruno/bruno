@@ -1,7 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
-import * as React from 'react';
+import React from 'react';
 
 const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const markdownItOptions = {
@@ -9,12 +9,27 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
       return link.replace(/^\./, collectionPath);
     }
   };
-  const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
+
+  const handleOnClick = (event) => {
+    const target = event.target;
+    if (target.tagName === 'A') {
+      event.preventDefault();
+      const href = target.getAttribute('href');
+      if (href) {
+        window.open(href, '_blank');
+        return;
+      }
+    }
+  };
+
   const handleOnDoubleClick = (event) => {
-    if (event?.detail === 2) {
+    if (event.detail === 2) {
       onDoubleClick();
     }
   };
+
+  const md = new MarkdownIt(markdownItOptions).use(MarkdownItReplaceLink);
+
   const htmlFromMarkdown = md.render(content || '');
 
   return (
@@ -22,7 +37,8 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
       <div
         className="markdown-body"
         dangerouslySetInnerHTML={{ __html: htmlFromMarkdown }}
-        onClick={handleOnDoubleClick}
+        onClick={handleOnClick}
+        onDoubleClick={handleOnDoubleClick}
       />
     </StyledWrapper>
   );

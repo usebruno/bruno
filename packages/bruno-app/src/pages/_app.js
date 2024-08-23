@@ -14,6 +14,7 @@ import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
 import 'react-tooltip/dist/react-tooltip.css';
 import '@usebruno/graphql-docs/dist/esm/index.css';
+import { DictionaryProvider } from 'providers/Dictionary/index';
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -59,13 +60,15 @@ function MyApp({ Component, pageProps }) {
         <NoSsr>
           <Provider store={ReduxStore}>
             <ThemeProvider>
-              <ToastProvider>
-                <AppProvider>
-                  <HotkeysProvider>
-                    <Component {...pageProps} />
-                  </HotkeysProvider>
-                </AppProvider>
-              </ToastProvider>
+              <DictionaryProvider>
+                <ToastProvider>
+                  <AppProvider>
+                    <HotkeysProvider>
+                      <Component {...pageProps} />
+                    </HotkeysProvider>
+                  </AppProvider>
+                </ToastProvider>
+              </DictionaryProvider>
             </ThemeProvider>
           </Provider>
         </NoSsr>

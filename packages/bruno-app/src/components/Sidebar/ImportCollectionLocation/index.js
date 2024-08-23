@@ -65,20 +65,18 @@ const TranslationLog = ({ translationLog }) => {
                 </div>
                 <div className="flex flex-col">
                   {value.script && (
-                    <div className="flex items-center text-xs font-light mb-1">
-                      <span className="mr-2">
-                        test :
-                        {value.script.map((scriptValue, index) => (
-                          <span className="flex items-center" key={`script_${name}_${index}`}>
-                            <span className="text-xs font-light">{scriptValue}</span>
-                            {index < value.script.length - 1 && <> - </>}
-                          </span>
-                        ))}
-                      </span>
+                    <div className="flex items-center text-xs font-light mb-1 flex-wrap">
+                      <span className="mr-2">script :</span>
+                      {value.script.map((scriptValue, index) => (
+                        <span className="flex items-center" key={`script_${name}_${index}`}>
+                          <span className="text-xs font-light">{scriptValue}</span>
+                          {index < value.script.length - 1 && <> - </>}
+                        </span>
+                      ))}
                     </div>
                   )}
                   {value.test && (
-                    <div className="flex items-center text-xs font-light mb-1">
+                    <div className="flex items-center text-xs font-light mb-1 flex-wrap">
                       <span className="mr-2">test :</span>
                       {value.test.map((testValue, index) => (
                         <div className="flex items-center" key={`test_${name}_${index}`}>
@@ -117,7 +115,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
       collectionLocation: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(500, 'must be 500 characters or less')
-        .required('name is required')
+        .required('Location is required')
     }),
     onSubmit: (values) => {
       handleSubmit(values.collectionLocation);
@@ -126,7 +124,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        formik.setFieldValue('collectionLocation', dirPath);
+        if (typeof dirPath === 'string' && dirPath.length > 0) {
+          formik.setFieldValue('collectionLocation', dirPath);
+        }
       })
       .catch((error) => {
         formik.setFieldValue('collectionLocation', '');
@@ -162,7 +162,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
               type="text"
               name="collectionLocation"
               readOnly={true}
-              className="block textbox mt-2 w-full"
+              className="block textbox mt-2 w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
