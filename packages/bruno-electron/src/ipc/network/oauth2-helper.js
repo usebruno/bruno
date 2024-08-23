@@ -32,9 +32,6 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
     client_secret: clientSecret,
     state: state
   };
-  if (scope) {
-    data['scope'] = scope;
-  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }

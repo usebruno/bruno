@@ -1,0 +1,68 @@
+meta {
+  name: data types - request vars
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "boolean": false,
+    "number": 1,
+    "string": "bruno",
+    "array": [1, 2, 3, 4, 5],
+    "object": {
+      "hello": "bruno"
+    },
+    "null": null
+  }
+}
+
+vars:pre-request {
+  number: 1
+  boolean: false
+  undefined: undefined
+  null: null
+  string: foo
+}
+
+assert {
+  req.body.boolean: isBoolean false
+  req.body.number: isNumber 1
+  req.body.undefined: isUndefined undefined
+  req.body.string: isString bruno
+  req.body.null: isNull null
+  req.body.array: isArray
+  req.body.boolean: eq false
+  req.body.number: eq 1
+  req.body.undefined: eq undefined
+  req.body.string: eq bruno
+  req.body.null: eq null
+}
+
+tests {
+  test("boolean pre var", function() {
+    expect(bru.getRequestVar('boolean')).to.eql(false);
+  });
+  
+  test("number pre var", function() {
+    expect(bru.getRequestVar('number')).to.eql(1);
+  });
+  
+  test("null pre var", function() {
+    expect(bru.getRequestVar('null')).to.eql(null);
+  });
+  
+  test("undefined pre var", function() {
+    expect(bru.getRequestVar('undefined')).to.eql(undefined);
+  });
+  
+  test("string pre var", function() {
+    expect(bru.getRequestVar('string')).to.eql('foo');
+  });
+}

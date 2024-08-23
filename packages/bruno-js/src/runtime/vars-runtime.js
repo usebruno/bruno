@@ -3,7 +3,38 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 
+const { executeQuickJsVm } = require('../sandbox/quickjs');
+
+const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
+  if (runtime === 'quickjs') {
+    return executeQuickJsVm({
+      script: literal,
+      context,
+      scriptType: 'template-literal'
+    });
+  }
+
+  return evaluateJsTemplateLiteral(literal, context);
+};
+
+const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
+  if (runtime === 'quickjs') {
+    return executeQuickJsVm({
+      script: expr,
+      context,
+      scriptType: 'expression'
+    });
+  }
+
+  return evaluateJsExpression(expr, context);
+};
+
 class VarsRuntime {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+    this.mode = props?.mode || 'developer';
+  }
+
   runPreRequestVars(vars, request, envVariables, runtimeVariables, collectionPath, processEnvVars) {
     if (!request?.requestVariables) {
       request.requestVariables = {};
@@ -28,7 +59,7 @@ class VarsRuntime {
     };
 
     _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteral(v.value, context);
+      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
       request?.requestVariables && (request.requestVariables[v.name] = value);
     });
   }
@@ -59,7 +90,7 @@ class VarsRuntime {
     const errors = new Map();
     _.each(enabledVars, (v) => {
       try {
-        const value = evaluateJsExpression(v.value, context);
+        const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
         bru.setVar(v.name, value);
       } catch (error) {
         errors.set(v.name, error);
