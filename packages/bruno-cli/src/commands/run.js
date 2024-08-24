@@ -11,6 +11,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
+const { outputJSON } = require('fs-extra');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -226,14 +227,42 @@ const builder = async (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to write file results to',
-      type: 'string'
+      describe: 'Default path to write file results to. Can specify different outputs for different formatters using --output.formatter',
+      type: 'string',
+      coerce: function (arg) {
+        const outputs = {};
+
+        if (typeof(arg) === "string") {
+          outputs.default = arg;
+        } else if (typeof(arg) === "object" && Array.isArray(arg)) {
+          for (const output of arg) {
+            if (typeof(output) === "string") {
+              outputs.default = output;
+            } else if (typeof(output) === "object") {
+              const keys = Object.keys(output);
+              for (const key of keys)
+              {
+                outputs[key] = output[key];
+
+                // Ensure there's always a default.
+                if (!outputs.default) {
+                  outputs.default = output[key];
+                }
+              }
+            }
+          }
+        } else {
+          return arg;
+        }
+
+        return outputs;
+      }
     })
     .option('format', {
       alias: 'f',
       describe: 'Format of the file results; available formats are "json" (default), "junit" or "html"',
       default: 'json',
-      type: 'string'
+      type: 'array'
     })
     .option('insecure', {
       type: 'boolean',
@@ -267,6 +296,10 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
+    .example(
+      '$0 run request.bru --output results.xml --output.html results.html --format html --format junit',
+      'Run a request and write the results to results.html in html format in the current directory'
+    )
 
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
@@ -289,7 +322,7 @@ const handler = async function (argv) {
       envVar,
       insecure,
       r: recursive,
-      output: outputPath,
+      output: outputPaths,
       format,
       sandbox,
       testsOnly,
@@ -387,10 +420,25 @@ const handler = async function (argv) {
     }
     options['ignoreTruststore'] = ignoreTruststore;
 
-    if (['json', 'junit', 'html'].indexOf(format) === -1) {
-      console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
+    
+    let formats;
+    if (typeof format === 'string') {
+      formats = [format];
+    } else if (typeof format === 'object' && Array.isArray(format)) {
+      formats = format;
+    } else {
+      console.error(chalk.red(`Format was not recognized`));
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
+
+    formats.forEach(format => {
+      if (['json', 'junit', 'html'].indexOf(format) === -1) {
+        console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
+        process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+      }
+    });
+
+
 
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
@@ -524,8 +572,8 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    if (outputPath && outputPath.length) {
-      const outputDir = path.dirname(outputPath);
+    if (outputPaths && outputPaths.default && outputPaths.default.length) {
+      const outputDir = path.dirname(outputPaths.default);
       const outputDirExists = await exists(outputDir);
       if (!outputDirExists) {
         console.error(chalk.red(`Output directory ${outputDir} does not exist`));
@@ -537,15 +585,26 @@ const handler = async function (argv) {
         results
       };
 
-      if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
-      } else if (format === 'junit') {
-        makeJUnitOutput(results, outputPath);
-      } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+      const reporters = {
+        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        'junit': (path) => makeJUnitOutput(results, path),
+        'html': (path) => makeHtmlOutput(outputJson, path),
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      for (const f of formats)
+      {
+        const path = outputPaths[f] || outputPaths.default;
+        const reporter = reporters[f];
+
+        if (!reporter) {
+          console.error(chalk.red(`Reporter ${f} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+        }
+
+        reporter(path);
+
+        console.log(chalk.dim(chalk.grey(`Wrote results to ${path}`)));
+      }
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
