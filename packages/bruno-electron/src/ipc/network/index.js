@@ -162,38 +162,13 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
-  if (proxyEnabled === 'global') {
+  let proxyMode = get(proxyConfig, 'enabled', 'global');
+  if (proxyMode === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyEnabled = get(proxyConfig, 'enabled', false);
+    proxyMode = get(proxyConfig, 'mode', false);
   }
 
-  let systemProxyEnabled = preferencesUtil.shouldUseSystemProxyEnvConfig();
-  if (systemProxyEnabled) {
-    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
-    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
-    if (shouldUseSystemProxy) {
-      try {
-        if (http_proxy?.length) {
-          new URL(http_proxy);
-          request.httpAgent = new HttpProxyAgent(http_proxy);
-        }
-      } catch (error) {
-        throw new Error('Invalid system http_proxy');
-      }
-      try {
-        if (https_proxy?.length) {
-          new URL(https_proxy);
-          request.httpsAgent = new PatchedHttpsProxyAgent(
-            https_proxy,
-            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-          );
-        }
-      } catch (error) {
-        throw new Error('Invalid system https_proxy');
-      }
-    }
-  } else if (proxyEnabled === true) {
+  if (proxyMode === true) {
     const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
@@ -225,12 +200,35 @@ const configureRequest = async (
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
     }
+  } else if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          request.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
+    }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
       ...httpsAgentRequestFields
     });
   }
-
   const axiosInstance = makeAxiosInstance();
 
   if (request.oauth2) {
