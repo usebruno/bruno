@@ -419,7 +419,6 @@ const handler = async function (argv) {
     }
     options['ignoreTruststore'] = ignoreTruststore;
 
-    
     let formats;
     if (typeof format === 'string') {
       formats = [format];
