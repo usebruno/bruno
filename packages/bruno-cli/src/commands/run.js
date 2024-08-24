@@ -11,7 +11,6 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const { outputJSON } = require('fs-extra');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -591,13 +590,13 @@ const handler = async function (argv) {
         'html': (path) => makeHtmlOutput(outputJson, path),
       }
 
-      for (const f of formats)
+      for (const formatter of formats)
       {
-        const path = outputPaths[f] || outputPaths.default;
-        const reporter = reporters[f];
+        const path = outputPaths[formatter] || outputPaths.default;
+        const reporter = reporters[formatter];
 
         if (!reporter) {
-          console.error(chalk.red(`Reporter ${f} does not exist`));
+          console.error(chalk.red(`Reporter ${formatter} does not exist`));
           process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
         }
 
