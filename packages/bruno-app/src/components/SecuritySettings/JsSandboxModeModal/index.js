@@ -64,7 +64,7 @@ const JsSandboxModeModal = ({ collection }) => {
               <span className='beta-tag'>BETA</span>
             </label>
             <p className='text-sm text-muted mt-1'>
-              JavaScript code is executed in a secure sandbox and cannot excess your filesystem or execute system commands.
+              JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
             </p>
 
             <label htmlFor="developer" className="flex flex-row gap-2 mt-6 cursor-pointer">
