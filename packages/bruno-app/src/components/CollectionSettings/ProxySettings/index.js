@@ -7,17 +7,19 @@ import toast from 'react-hot-toast';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
 import { useMemo } from 'react';
+import { cloneDeep } from 'lodash';
 
 const ProxySettings = ({ proxyConfig: _proxyConfig, onUpdate }) => {
   const proxyConfig = useMemo(() => {
+    const proxyConfigCopy = cloneDeep(_proxyConfig);
     // backward compatibility check
-    if (_proxyConfig?.enabled == 'true') _proxyConfig.enabled = true;
-    if (_proxyConfig?.enabled == 'false') _proxyConfig.enabled = false;
+    if (proxyConfigCopy?.enabled == 'true') proxyConfigCopy.enabled = true;
+    if (proxyConfigCopy?.enabled == 'false') proxyConfigCopy.enabled = false;
 
-    _proxyConfig.enabled = ['string', 'boolean'].includes(typeof _proxyConfig?.enabled)
-      ? _proxyConfig?.enabled
+    proxyConfigCopy.enabled = ['string', 'boolean'].includes(typeof proxyConfigCopy?.enabled)
+      ? proxyConfigCopy?.enabled
       : 'global';
-    return _proxyConfig;
+    return proxyConfigCopy;
   }, [_proxyConfig]);
 
   const proxySchema = Yup.object({

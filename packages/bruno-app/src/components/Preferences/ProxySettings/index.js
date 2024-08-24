@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
 import { useMemo } from 'react';
+import { cloneDeep } from 'lodash';
 
 const ProxySettings = ({ close }) => {
   const _preferences = useSelector((state) => state.app.preferences);
@@ -17,13 +18,14 @@ const ProxySettings = ({ close }) => {
   const dispatch = useDispatch();
 
   const preferences = useMemo(() => {
+    const preferencesCopy = cloneDeep(_preferences);
     // backward compatibility check
-    if (typeof _preferences?.proxy?.enabled === 'boolean') {
-      _preferences.proxy.mode = _preferences?.proxy?.enabled;
+    if (typeof preferencesCopy?.proxy?.enabled === 'boolean') {
+      preferencesCopy.proxy.mode = preferencesCopy?.proxy?.enabled;
     } else {
-      _preferences.proxy.mode = false;
+      preferencesCopy.proxy.mode = false;
     }
-    return _preferences;
+    return preferencesCopy;
   }, [_preferences]);
 
   const proxySchema = Yup.object({
