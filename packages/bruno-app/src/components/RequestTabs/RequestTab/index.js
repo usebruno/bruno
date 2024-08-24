@@ -62,45 +62,11 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const getMethodColor = (method = '') => {
     const theme = storedTheme === 'dark' ? darkTheme : lightTheme;
-
-    let color = '';
-    method = method.toLocaleLowerCase();
-
-    switch (method) {
-      case 'get': {
-        color = theme.request.methods.get;
-        break;
-      }
-      case 'post': {
-        color = theme.request.methods.post;
-        break;
-      }
-      case 'put': {
-        color = theme.request.methods.put;
-        break;
-      }
-      case 'delete': {
-        color = theme.request.methods.delete;
-        break;
-      }
-      case 'patch': {
-        color = theme.request.methods.patch;
-        break;
-      }
-      case 'options': {
-        color = theme.request.methods.options;
-        break;
-      }
-      case 'head': {
-        color = theme.request.methods.head;
-        break;
-      }
-    }
-
-    return color;
+    return theme.request.methods[method.toLocaleLowerCase()];
   };
+
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
-  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner'].includes(tab.type)) {
+  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper className="flex items-center justify-between tab-container px-1">
         {tab.type === 'folder-settings' ? (

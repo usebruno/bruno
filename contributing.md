@@ -37,7 +37,7 @@ Libraries we use
 
 ### Dependencies
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
@@ -56,6 +56,9 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
 # run next app (terminal 1)
 npm run dev:web

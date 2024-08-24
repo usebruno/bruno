@@ -1,5 +1,5 @@
 {
-  "version": "v1.25.0",
+  "version": "v1.26.1",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -16,7 +16,7 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "jest"
+    "test": "node --experimental-vm-modules $(npx which jest)"
   },
   "jest": {
     "modulePaths": ["node_modules"]
@@ -65,7 +65,6 @@
   },
   "devDependencies": {
     "electron": "31.2.1",
-    "electron-builder": "23.0.2",
-    "electron-icon-maker": "^0.0.5"
+    "electron-builder": "23.0.2"
   }
 }

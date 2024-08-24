@@ -190,6 +190,10 @@ const getFolderRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const getJsSandboxRuntime = (sandbox) => {
+  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -215,6 +219,11 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('sandbox', {
+      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      default: 'developer',
+      type: 'string'
+    })
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
@@ -232,7 +241,7 @@ const builder = async (yargs) => {
     })
     .option('tests-only', {
       type: 'boolean',
-      description: 'Only run requests that have a test'
+      description: 'Only run requests that have a test or active assertion'
     })
     .option('bail', {
       type: 'boolean',
@@ -282,6 +291,7 @@ const handler = async function (argv) {
       r: recursive,
       output: outputPath,
       format,
+      sandbox,
       testsOnly,
       bail
     } = argv;
@@ -451,6 +461,7 @@ const handler = async function (argv) {
       }
     }
 
+    const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
@@ -466,7 +477,8 @@ const handler = async function (argv) {
         envVars,
         processEnvVars,
         brunoConfig,
-        collectionRoot
+        collectionRoot,
+        runtime
       );
 
       results.push({

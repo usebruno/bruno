@@ -100,6 +100,10 @@ class Bru {
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
   }
+
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 }
 
 module.exports = Bru;

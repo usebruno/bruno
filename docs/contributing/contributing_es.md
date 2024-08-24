@@ -37,7 +37,7 @@ Librerías que utilizamos:
 
 ### Dependencias
 
-Necesitarás [Node v18.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
+Necesitarás [Node v20.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
 
 ## Desarrollo
 
