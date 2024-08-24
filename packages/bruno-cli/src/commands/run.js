@@ -602,7 +602,7 @@ const handler = async function (argv) {
 
         reporter(path);
 
-        console.log(chalk.dim(chalk.grey(`Wrote results to ${path}`)));
+        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${path}`)));
       }
     }
 
