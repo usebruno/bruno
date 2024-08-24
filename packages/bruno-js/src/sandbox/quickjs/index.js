@@ -160,6 +160,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
         }
         catch(error) {
           console?.debug?.('quick-js:execution-end:with-error', error?.message);
+          throw new Error(error?.message);
         }
         return 'done';
       })()

@@ -20,6 +20,7 @@
     "@jest/globals": "^29.2.0",
     "@playwright/test": "^1.27.1",
     "@types/jest": "^29.5.11",
+    "concurrently": "^8.2.2",
     "fs-extra": "^11.1.1",
     "husky": "^8.0.3",
     "jest": "^29.2.0",
@@ -29,6 +30,7 @@
     "ts-jest": "^29.0.5"
   },
   "scripts": {
+    "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
