@@ -23,7 +23,9 @@ const ProxySettings = ({ close }) => {
     if (typeof preferencesCopy?.proxy?.enabled === 'boolean') {
       preferencesCopy.proxy.mode = preferencesCopy?.proxy?.enabled;
     } else {
-      preferencesCopy.proxy.mode = false;
+      preferencesCopy.proxy.mode = ['string', 'boolean'].includes(typeof preferencesCopy?.proxy?.mode)
+        ? preferencesCopy?.proxy?.mode
+        : false;
     }
     return preferencesCopy;
   }, [_preferences]);
