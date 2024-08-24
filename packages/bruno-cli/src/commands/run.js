@@ -436,8 +436,6 @@ const handler = async function (argv) {
       }
     });
 
-
-
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
