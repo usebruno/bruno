@@ -3,6 +3,7 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const commonjs = require('@rollup/plugin-commonjs');
 const fs = require('fs');
 const { terser } = require('rollup-plugin-terser');
+const args = process?.argv?.slice(2);
 
 const bundleLibraries = async () => {
   const codeScript = `
@@ -65,6 +66,10 @@ const bundleLibraries = async () => {
   };
 
   try {
+    if (fs.existsSync('./src/sandbox/bundle-browser-rollup.js') && !args?.includes('--force')) {
+      console.debug('sandbox: bundled libraries already exists');
+      return;
+    }
     const bundle = await rollup.rollup(config.input);
     const { output } = await bundle.generate(config.output);
     fs.writeFileSync(

@@ -31,7 +31,7 @@
   },
   "scripts": {
     "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
-    "dev:web": "npm run dev --workspace=packages/bruno-app",
+    "dev:web": "npm run sandbox:bundle-libraries-if-not-exists --workspace=packages/bruno-js && npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
     "prettier:web": "npm run prettier --workspace=packages/bruno-app",
     "dev:electron": "npm run dev --workspace=packages/bruno-electron",
@@ -51,7 +51,7 @@
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup":"3.29.4"
+    "rollup": "3.29.4"
   },
   "dependencies": {
     "json-bigint": "^1.0.0",

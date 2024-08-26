@@ -12,7 +12,8 @@
   },
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
-    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js"
+    "sandbox:bundle-libraries": "node ./src/sandbox/bundle-libraries.js --force",
+    "sandbox:bundle-libraries-if-not-exists": "node ./src/sandbox/bundle-libraries.js"
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
