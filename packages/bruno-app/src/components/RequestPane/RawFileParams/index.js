@@ -10,7 +10,6 @@ import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index
 
 const RawFileParams = ({ item, collection }) => {
     const dispatch = useDispatch();
-    const { storedTheme } = useTheme();
     const fileName = item.draft ? get(item, 'draft.request.body.rawFile') : get(item, 'request.body.rawFile') || [];
 
     const handleFileChange = (e) => {
