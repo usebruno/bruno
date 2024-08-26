@@ -45,7 +45,7 @@ const RawFilePickerEditor = ({ value, onChange, collection }) => {
       </div>
     ) : (
       <button className="btn btn-secondary px-1 w-full" onClick={browse}>
-        Select Files
+        Select File
       </button>
     );
 };
