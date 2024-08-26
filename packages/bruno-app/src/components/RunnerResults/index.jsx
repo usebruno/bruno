@@ -172,14 +172,16 @@ export default function RunnerResults({ collection }) {
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'error' && item.status !== 'completed' && item.status != 'skipped' ? (
-                      <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
-                    ) : (
-                      <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                        (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
-                        <span>{get(item.responseReceived, 'statusText')}</span>)
-                      </span>
-                    )}
+                    {item.status !== 'skipped' ? (
+                      item.status !== 'error' && item.status !== 'completed' ? (
+                        <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
+                      ) : (
+                        <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
+                          (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
+                          <span>{get(item.responseReceived, 'statusText')}</span>)
+                        </span>
+                      )
+                    ) : null}
                   </div>
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 

@@ -908,10 +908,6 @@ const registerNetworkIpc = (mainWindow) => {
             if (preRequestScriptResult?.isSkippedRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'request-skipped',
-                responseReceived: {
-                  status: 'Skipped',
-                  statusText: 'OK'
-                },
                 ...eventData
               });
 
