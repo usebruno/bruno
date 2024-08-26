@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const getValueString = (value) => {
-  const hasNewLines = value.includes('\n');
+  const hasNewLines = value?.includes('\n');
 
   if (!hasNewLines) {
     return value;
@@ -261,9 +261,8 @@ ${indentString(body.sparql)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
-
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${item.value}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}`;
             }
 
             if (item.type === 'file') {

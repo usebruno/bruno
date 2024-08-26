@@ -6,11 +6,30 @@ const StyledWrapper = styled.div`
     border: solid 1px ${(props) => props.theme.codemirror.border};
     font-family: ${(props) => (props.font ? props.font : 'default')};
     line-break: anywhere;
+    flex: 1 1 0;
   }
 
   .CodeMirror-overlayscroll-horizontal div,
   .CodeMirror-overlayscroll-vertical div {
     background: #d2d7db;
+  }
+
+  .CodeMirror-dialog {
+    overflow: visible;
+  }
+
+  #search-results-count {
+    display: inline-block;
+    position: absolute;
+    top: calc(100% + 1px);
+    right: 0;
+    border-width: 0 0 1px 1px;
+    border-style: solid;
+    border-color: ${(props) => props.theme.codemirror.border};
+    padding: 0.1em 0.8em;
+    background-color: ${(props) => props.theme.codemirror.bg};
+    color: rgb(102, 102, 102);
+    white-space: nowrap;
   }
 
   textarea.cm-editor {

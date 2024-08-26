@@ -14,7 +14,7 @@
     "url": "git+https://github.com/usebruno/bruno.git"
   },
   "scripts": {
-    "test": "jest"
+    "test": "node --experimental-vm-modules $(npx which jest)"
   },
   "files": [
     "src",
