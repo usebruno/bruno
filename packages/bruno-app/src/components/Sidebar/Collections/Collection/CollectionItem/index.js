@@ -17,7 +17,7 @@ import CloneCollectionItem from './CloneCollectionItem';
 import DeleteCollectionItem from './DeleteCollectionItem';
 import RunCollectionItem from './RunCollectionItem';
 import GenerateCodeItem from './GenerateCodeItem';
-import { isItemARequest, isItemAFolder, itemIsOpenedInTabs, isFolderSettingsOpenedInTabs } from 'utils/tabs';
+import { isItemARequest, isItemAFolder, itemIsOpenedInTabs } from 'utils/tabs';
 import { doesRequestMatchSearchText, doesFolderHaveItemsMatchSearchText } from 'utils/collections/search';
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
