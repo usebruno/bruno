@@ -5,55 +5,7 @@ import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { find, get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
-
-// Todo: Fix this
-// import { interpolate } from '@usebruno/common';
-import brunoCommon from '@usebruno/common';
-const { interpolate } = brunoCommon;
-
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
-  if (!url || !url.length || typeof url !== 'string') {
-    return;
-  }
-
-  return interpolate(url, {
-    ...envVars,
-    ...collectionVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
-
-// interpolate URL paths
-const interpolateUrlPathParams = (url, params) => {
-  const getInterpolatedBasePath = (pathname, params) => {
-    return pathname
-      .split('/')
-      .map((segment) => {
-        if (segment.startsWith(':')) {
-          const pathParamName = segment.slice(1);
-          const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
-          return pathParam ? pathParam.value : segment;
-        }
-        return segment;
-      })
-      .join('/');
-  };
-
-  let uri;
-  try {
-    uri = new URL(url);
-  } catch (error) {
-    uri = new URL(`http://${url}`);
-  }
-
-  const basePath = getInterpolatedBasePath(uri.pathname, params);
-
-  return `${uri.origin}${basePath}${uri?.search || ''}`;
-};
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 
 const languages = [
   {
@@ -117,7 +69,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   const requestUrl =
     get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
 
-  // interpolate the query params
+  // interpolate the url
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
     envVars,
@@ -174,7 +126,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             ) : (
               <div className="flex flex-col justify-center items-center w-full">
                 <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {url}</h1>
+                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
                   <p className="text-gray-500">Please check the URL and try again</p>
                 </div>
               </div>
