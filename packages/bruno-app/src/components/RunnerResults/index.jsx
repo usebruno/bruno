@@ -105,7 +105,7 @@ export default function RunnerResults({ collection }) {
   const failedRequests = items.filter((item) => {
     return (item.status !== 'error' && item.testStatus === 'fail') || item.assertionStatus === 'fail';
   });
-  const skipedRequests = items.filter((item) => {
+  const skippedRequests = items.filter((item) => {
     return item.status == 'skipped';
   });
 
@@ -151,7 +151,7 @@ export default function RunnerResults({ collection }) {
         >
           <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}, Skipped:{' '}
-            {skipedRequests.length}
+            {skippedRequests.length}
           </div>
           {items.map((item) => {
             return (
