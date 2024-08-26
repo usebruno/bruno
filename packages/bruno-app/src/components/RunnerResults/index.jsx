@@ -187,7 +187,7 @@ export default function RunnerResults({ collection }) {
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'skipped' ? (
+                    {item.status !== 'skipped' && (
                       item.status !== 'error' && item.status !== 'completed' ? (
                         <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                       ) : item.responseReceived?.status ? (
@@ -200,7 +200,7 @@ export default function RunnerResults({ collection }) {
                         (request failed)
                         </span>
                       )
-                    ) : null}
+                    )}
                   </div>
                   {item.status == 'error' ? <div className="error-message pl-8 pt-2 text-xs">{item.error}</div> : null}
 
