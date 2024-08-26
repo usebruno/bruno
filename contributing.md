@@ -34,6 +34,7 @@ Libraries we use
 - Schema Validation - Yup
 - Request Client - axios
 - Filesystem Watcher - chokidar
+- i18n - i18next
 
 ### Dependencies
 
