@@ -13,7 +13,9 @@ post {
 body:json {
   {
     "boolean": false,
-    "number": 1,
+    "number_1": 1,
+    "number_2": 0,
+    "number_3": -1,
     "string": "bruno",
     "array": [1, 2, 3, 4, 5],
     "object": {
@@ -24,25 +26,38 @@ body:json {
 }
 
 vars:pre-request {
-  number: 1
   boolean: false
   undefined: undefined
   null: null
   string: foo
+  number_1: 1
+  number_2: 0
+  number_3: -1
 }
 
 assert {
   req.body.boolean: isBoolean false
-  req.body.number: isNumber 1
+  req.body.number_1: isNumber 1
   req.body.undefined: isUndefined undefined
   req.body.string: isString bruno
   req.body.null: isNull null
   req.body.array: isArray
   req.body.boolean: eq false
-  req.body.number: eq 1
+  req.body.number_1: eq 1
   req.body.undefined: eq undefined
   req.body.string: eq bruno
   req.body.null: eq null
+  req.body.number_2: eq 0
+  req.body.number_3: eq -1
+  req.body.number_2: isNumber
+  req.body.number_3: isNumber
+  boolean: eq false
+  undefined: eq undefined
+  null: eq null
+  string: eq foo
+  number_1: eq 1
+  number_2: eq 0
+  number_3: eq -1
 }
 
 tests {
@@ -51,7 +66,9 @@ tests {
   });
   
   test("number pre var", function() {
-    expect(bru.getRequestVar('number')).to.eql(1);
+    expect(bru.getRequestVar('number_1')).to.eql(1);
+    expect(bru.getRequestVar('number_2')).to.eql(0);
+    expect(bru.getRequestVar('number_3')).to.eql(-1);
   });
   
   test("null pre var", function() {
