@@ -134,13 +134,12 @@ const browseFile = async (win, filters) => {
     filters
   });
 
-  if (!filePaths || filePaths[0] === undefined) {
-    return null;
+  if (!filePaths || !filePaths[0]) {
+    return false;
   }
 
-  const filePath = normalizeAndResolvePath(filePaths[0]);
-
-  return isFile(filePath) ? filePath : null;
+  const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+  return isFile(resolvedPath) ? resolvedPath : false;
 }
 
 const chooseFileToSave = async (win, preferredFileName = '') => {
