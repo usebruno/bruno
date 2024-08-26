@@ -18,10 +18,13 @@ const RawFilePickerEditor = ({ value, onChange, collection }) => {
             .then((filePath) => {
                 const collectionDir = collection.pathname;
 
-                filePath = filePath.startsWith(collectionDir) ? 
+// When the user closes the dialog without selecting anything filePath will be false
+
+if (typeof filePath === 'string') {
+    filePath = filePath.startsWith(collectionDir) ? 
                     path.relative(slash(collectionDir), slash(filePath)) : filePath;
 
-                onChange(filePath);
+    onChange(filePath);
             })
             .catch((error) => {
                 console.error(error);
