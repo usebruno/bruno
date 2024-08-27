@@ -7,7 +7,6 @@
     "build": "next build && next export",
     "start": "next start",
     "lint": "next lint",
-    "test": "npx jest@latest",
     "test:prettier": "prettier --check \"./src/**/*.{js,jsx,json,ts,tsx}\"",
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
