@@ -67,7 +67,7 @@ if (!SERVER_RENDERED) {
     'bru.setVar(key,value)',
     'bru.deleteVar(key)',
     'bru.setNextRequest(requestName)',
-    'req.disableParsingResponseJson()'
+    'req.disableParsingResponseJson()',
     'bru.getRequestVar(key)',
     'bru.sleep(ms)'
   ];
