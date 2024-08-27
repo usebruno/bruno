@@ -1,6 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
+import Tooltip from 'components/Tooltip';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -174,7 +175,22 @@ const QueryParams = ({ item, collection }) => {
         <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={handleAddQueryParam}>
           +&nbsp;<span>Add Param</span>
         </button>
-        <div className="mb-1 title text-xs">Path</div>
+        <div className="mb-2 title text-xs flex items-stretch">
+          <span>Path</span>
+          <Tooltip
+            text={`
+            <div>
+              Path variables are automatically added whenever the
+              <code className="font-mono mx-2">:name</code>
+              template is used in the URL. <br/> For example:
+              <code className="font-mono mx-2">
+                https://example.com/v1/users/<span>:id</span>
+              </code>
+            </div>
+          `}
+            tooltipId="path-param-tooltip"
+          />
+        </div>
         <table>
           <thead>
             <tr>
@@ -216,6 +232,7 @@ const QueryParams = ({ item, collection }) => {
                           }
                           onRun={handleRun}
                           collection={collection}
+                          item={item}
                         />
                       </td>
                     </tr>
@@ -224,6 +241,11 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
+        {!(pathParams && pathParams.length) ?
+          <div className="title pr-2 py-3 mt-2 text-xs">
+            
+          </div>
+        : null}
       </div>
     </StyledWrapper>
   );

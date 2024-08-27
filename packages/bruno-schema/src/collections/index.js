@@ -48,7 +48,7 @@ const varsSchema = Yup.object({
 
 const requestUrlSchema = Yup.string().min(0).defined();
 const requestMethodSchema = Yup.string()
-  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+  .oneOf(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE'])
   .required('method is required');
 
 const graphqlBodySchema = Yup.object({
@@ -309,7 +309,7 @@ const collectionSchema = Yup.object({
   runnerResult: Yup.object({
     items: Yup.array()
   }),
-  collectionVariables: Yup.object(),
+  runtimeVariables: Yup.object(),
   brunoConfig: Yup.object(),
   root: folderRootSchema
 })

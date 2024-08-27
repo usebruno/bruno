@@ -1,7 +1,6 @@
 const os = require('os');
 const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -18,8 +17,8 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
-    } else {
-      let headers = get(i, 'request.headers', []);
+    } else if (i.uid === request.uid) {
+      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       headers.forEach((header) => {
         if (header.enabled) {
           folderHeaders.set(header.name, header.value);
@@ -55,8 +54,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderReqVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.req', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderReqVars.set(_var.name, _var.value);
@@ -91,8 +90,8 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
           folderResVars.set(_var.name, _var.value);
         }
       });
-    } else {
-      let vars = get(i, 'request.vars.res', []);
+    } else if (i.uid === request.uid) {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
           folderResVars.set(_var.name, _var.value);
@@ -119,7 +118,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
   }));
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath) => {
+const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
   let folderCombinedTests = [];
@@ -147,11 +146,19 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
   }
 
   if (folderCombinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    if (scriptFlow === 'sequential') {
+      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    } else {
+      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    }
   }
 
   if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    if (scriptFlow === 'sequential') {
+      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
+    } else {
+      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    }
   }
 };
 
@@ -301,10 +308,12 @@ const prepareRequest = (item, collection) => {
     }
   });
 
+  // scriptFlow is either "sandwich" or "sequential"
+  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath);
+    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
     mergeFolderLevelVars(request, requestTreePath);
   }
 
@@ -332,16 +341,10 @@ const prepareRequest = (item, collection) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    let jsonBody;
     try {
-      jsonBody = decomment(request?.body?.json);
+      axiosRequest.data = decomment(request?.body?.json);
     } catch (error) {
-      jsonBody = request?.body?.json;
-    }
-    try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
-    } catch (error) {
-      axiosRequest.data = jsonBody;
+      axiosRequest.data = request?.body?.json;
     }
   }
 

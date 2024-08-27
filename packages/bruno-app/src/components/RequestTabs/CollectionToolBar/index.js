@@ -5,6 +5,7 @@ import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 
 const CollectionToolBar = ({ collection }) => {
   const dispatch = useDispatch();
@@ -47,6 +48,9 @@ const CollectionToolBar = ({ collection }) => {
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
         <div className="flex flex-1 items-center justify-end">
+          <span className="mr-2">
+            <JsSandboxMode collection={collection} />
+          </span>
           <span className="mr-2">
             <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
           </span>

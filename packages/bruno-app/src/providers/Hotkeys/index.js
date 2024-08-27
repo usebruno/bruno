@@ -154,6 +154,31 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid]);
 
+  // close all tabs
+  useEffect(() => {
+    Mousetrap.bind(['command+shift+w', 'ctrl+shift+w'], (e) => {
+      const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+      if (activeTab) {
+        const collection = findCollectionByUid(collections, activeTab.collectionUid);
+
+        if (collection) {
+          const tabUids = tabs.filter((tab) => tab.collectionUid === collection.uid).map((tab) => tab.uid);
+          dispatch(
+            closeTabs({
+              tabUids: tabUids
+            })
+          );
+        }
+      }
+
+      return false; // this stops the event bubbling
+    });
+
+    return () => {
+      Mousetrap.unbind(['command+shift+w', 'ctrl+shift+w']);
+    };
+  }, [activeTabUid, tabs, collections, dispatch]);
+
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
       {showSaveRequestModal && (

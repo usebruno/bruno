@@ -21,15 +21,20 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util'
 const path = require('path');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
+const onConsoleLog = (type, args) => {
+  console[type](...args);
+};
+
 const runSingleRequest = async function (
   filename,
   bruJson,
   collectionPath,
-  collectionVariables,
+  runtimeVariables,
   envVariables,
   processEnvVars,
   brunoConfig,
-  collectionRoot
+  collectionRoot,
+  runtime
 ) {
   try {
     let request;
@@ -38,6 +43,7 @@ const runSingleRequest = async function (
     request = prepareRequest(bruJson.request, collectionRoot);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = runtime;
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -57,12 +63,12 @@ const runSingleRequest = async function (
     // run pre-request vars
     const preRequestVars = get(bruJson, 'request.vars.req');
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -74,14 +80,14 @@ const runSingleRequest = async function (
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
     if (requestScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
-        null,
+        onConsoleLog,
         processEnvVars,
         scriptingConfig
       );
@@ -91,7 +97,7 @@ const runSingleRequest = async function (
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+    interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
     if (!protocolRegex.test(request.url)) {
       request.url = `http://${request.url}`;
@@ -120,7 +126,7 @@ const runSingleRequest = async function (
 
     const interpolationOptions = {
       envVars: envVariables,
-      collectionVariables,
+      runtimeVariables,
       processEnvVars
     };
 
@@ -276,13 +282,13 @@ const runSingleRequest = async function (
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -294,13 +300,13 @@ const runSingleRequest = async function (
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
     if (responseScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
@@ -315,13 +321,13 @@ const runSingleRequest = async function (
     let assertionResults = [];
     const assertions = get(bruJson, 'request.assertions');
     if (assertions) {
-      const assertRuntime = new AssertRuntime();
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
       assertionResults = assertRuntime.runAssertions(
         assertions,
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars
       );
 
@@ -339,19 +345,23 @@ const runSingleRequest = async function (
     let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
     if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime();
+      const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
         decomment(testFile),
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
         scriptingConfig
       );
       testResults = get(result, 'results', []);
+
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     if (testResults?.length) {

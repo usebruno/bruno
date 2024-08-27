@@ -37,7 +37,7 @@ Kullandığımız kütüphaneler
 
 ### Bağımlılıklar
 
-[Node v18.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
+[Node v20.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
 
 ## Gelişim
 

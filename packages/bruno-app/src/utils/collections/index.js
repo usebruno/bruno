@@ -788,11 +788,17 @@ export const getTotalRequestCountInCollection = (collection) => {
 
 export const getAllVariables = (collection, item) => {
   const environmentVariables = getEnvironmentVariables(collection);
+  let requestVariables = {};
+  if (item?.request) {
+    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
+  }
   const pathParams = getPathParams(item);
 
   return {
     ...environmentVariables,
-    ...collection.collectionVariables,
+    ...requestVariables,
+    ...collection.runtimeVariables,
     pathParams: {
       ...pathParams
     },
@@ -813,4 +819,37 @@ export const maskInputValue = (value) => {
     .split('')
     .map(() => '*')
     .join('');
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollection(collection, _item?.uid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+const mergeFolderLevelVars = (request, requestTreePath = []) => {
+  let requestVariables = {};
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+
+  return requestVariables;
 };

@@ -29,7 +29,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -81,13 +81,18 @@ const getEnvVars = (environment = {}) => {
   };
 };
 
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+  return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
+};
+
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const configureRequest = async (
   collectionUid,
   request,
   envVars,
-  collectionVariables,
+  runtimeVariables,
   processEnvVars,
   collectionPath
 ) => {
@@ -118,7 +123,7 @@ const configureRequest = async (
   const brunoConfig = getBrunoConfig(collectionUid);
   const interpolationOptions = {
     envVars,
-    collectionVariables,
+    runtimeVariables,
     processEnvVars
   };
 
@@ -211,7 +216,7 @@ const configureRequest = async (
     let requestCopy = cloneDeep(request);
     switch (request?.oauth2?.grantType) {
       case 'authorization_code':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
           await resolveOAuth2AuthorizationCodeAccessToken(requestCopy, collectionUid);
         request.method = 'POST';
@@ -220,7 +225,7 @@ const configureRequest = async (
         request.url = authorizationCodeAccessTokenUrl;
         break;
       case 'client_credentials':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
           await transformClientCredentialsRequest(requestCopy);
         request.method = 'POST';
@@ -229,7 +234,7 @@ const configureRequest = async (
         request.url = clientCredentialsAccessTokenUrl;
         break;
       case 'password':
-        interpolateVars(requestCopy, envVars, collectionVariables, processEnvVars);
+        interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
         const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
           requestCopy
         );
@@ -267,7 +272,7 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const parseDataFromResponse = (response) => {
+const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
@@ -285,7 +290,9 @@ const parseDataFromResponse = (response) => {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    data = JSON.parse(data);
+    if(!disableParsingResponseJson) {
+      data = JSON.parse(data);
+    }
   } catch {}
 
   return { data, dataBuffer };
@@ -308,19 +315,19 @@ const registerNetworkIpc = (mainWindow) => {
     collectionPath,
     collectionRoot,
     collectionUid,
-    collectionVariables,
+    runtimeVariables,
     processEnvVars,
     scriptingConfig
   ) => {
     // run pre-request vars
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
         envVars,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -330,12 +337,12 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
         envVars,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         onConsoleLog,
         processEnvVars,
@@ -344,14 +351,14 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
-        collectionVariables: scriptResult.collectionVariables,
+        runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
       });
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVars, collectionVariables, processEnvVars);
+    interpolateVars(request, envVars, runtimeVariables, processEnvVars);
 
     // if this is a graphql request, parse the variables, only after interpolation
     // https://github.com/usebruno/bruno/issues/884
@@ -375,20 +382,20 @@ const registerNetworkIpc = (mainWindow) => {
     collectionPath,
     collectionRoot,
     collectionUid,
-    collectionVariables,
+    runtimeVariables,
     processEnvVars,
     scriptingConfig
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
         envVars,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -396,7 +403,7 @@ const registerNetworkIpc = (mainWindow) => {
       if (result) {
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: result.envVariables,
-          collectionVariables: result.collectionVariables,
+          runtimeVariables: result.runtimeVariables,
           requestUid,
           collectionUid
         });
@@ -408,18 +415,21 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
+    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
+      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
+    ] : [
+      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
+    ]).join(os.EOL);
+
     let scriptResult;
-    const responseScript = compact([get(request, 'script.res'), get(collectionRoot, 'request.script.res')]).join(
-      os.EOL
-    );
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
         response,
         envVars,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         onConsoleLog,
         processEnvVars,
@@ -428,7 +438,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       mainWindow.webContents.send('main:script-environment-update', {
         envVariables: scriptResult.envVariables,
-        collectionVariables: scriptResult.collectionVariables,
+        runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
       });
@@ -437,7 +447,7 @@ const registerNetworkIpc = (mainWindow) => {
   };
 
   // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, collectionVariables) => {
+  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
@@ -457,6 +467,7 @@ const registerNetworkIpc = (mainWindow) => {
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
       const controller = new AbortController();
@@ -470,7 +481,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
@@ -479,7 +490,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid,
         request,
         envVars,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         collectionPath
       );
@@ -531,7 +542,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response);
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -564,7 +575,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
@@ -572,13 +583,13 @@ const registerNetworkIpc = (mainWindow) => {
       // run assertions
       const assertions = get(request, 'assertions');
       if (assertions) {
-        const assertRuntime = new AssertRuntime();
+        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
         const results = assertRuntime.runAssertions(
           assertions,
           request,
           response,
           envVars,
-          collectionVariables,
+          runtimeVariables,
           processEnvVars
         );
 
@@ -592,18 +603,21 @@ const registerNetworkIpc = (mainWindow) => {
       }
 
       // run tests
-      const testFile = compact([
-        item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-        get(collectionRoot, 'request.tests')
+      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
+        get(collectionRoot, 'request.tests'), testScript,
+      ] : [
+        testScript, get(collectionRoot, 'request.tests')
       ]).join(os.EOL);
+
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
+        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
           decomment(testFile),
           request,
           response,
           envVars,
-          collectionVariables,
+          runtimeVariables,
           collectionPath,
           onConsoleLog,
           processEnvVars,
@@ -620,7 +634,7 @@ const registerNetworkIpc = (mainWindow) => {
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: testResults.envVariables,
-          collectionVariables: testResults.collectionVariables,
+          runtimeVariables: testResults.runtimeVariables,
           requestUid,
           collectionUid
         });
@@ -642,7 +656,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, collectionVariables) => {
+  ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
     try {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
@@ -655,6 +669,7 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -663,17 +678,17 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
 
-      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
         request,
         envVars,
-        collection.collectionVariables,
+        collection.runtimeVariables,
         processEnvVars,
         collectionPath
       );
@@ -688,7 +703,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      const { data } = parseDataFromResponse(response);
+      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       await runPostResponse(
@@ -699,7 +714,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
@@ -756,10 +771,11 @@ const registerNetworkIpc = (mainWindow) => {
       const requestUid = uuid();
       const collectionPath = collection.pathname;
       const collectionUid = collection.uid;
-      const collectionVariables = collection.collectionVariables;
+      const runtimeVariables = collection.runtimeVariables;
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collection.uid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -768,17 +784,17 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
 
-      interpolateVars(request, envVars, collection.collectionVariables, processEnvVars);
+      interpolateVars(request, envVars, collection.runtimeVariables, processEnvVars);
       const axiosInstance = await configureRequest(
         collection.uid,
         request,
         envVars,
-        collection.collectionVariables,
+        collection.runtimeVariables,
         processEnvVars,
         collectionPath
       );
@@ -792,7 +808,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         collectionRoot,
         collectionUid,
-        collectionVariables,
+        runtimeVariables,
         processEnvVars,
         scriptingConfig
       );
@@ -819,13 +835,14 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, collectionVariables, recursive) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
 
       const abortController = new AbortController();
@@ -902,7 +919,7 @@ const registerNetworkIpc = (mainWindow) => {
               collectionPath,
               collectionRoot,
               collectionUid,
-              collectionVariables,
+              runtimeVariables,
               processEnvVars,
               scriptingConfig
             );
@@ -930,7 +947,7 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               request,
               envVars,
-              collectionVariables,
+              runtimeVariables,
               processEnvVars,
               collectionPath
             );
@@ -938,11 +955,23 @@ const registerNetworkIpc = (mainWindow) => {
             timeStart = Date.now();
             let response, responseTime;
             try {
+              if (delay && !Number.isNaN(delay) && delay > 0) {
+                const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
+
+                const cancellationPromise = new Promise((_, reject) => {
+                  abortController.signal.addEventListener('abort', () => {
+                    reject(new Error('Cancelled'));
+                  });
+                });
+
+                await Promise.race([delayPromise, cancellationPromise]);
+              }
+
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response);
+              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 
@@ -998,7 +1027,7 @@ const registerNetworkIpc = (mainWindow) => {
               collectionPath,
               collectionRoot,
               collectionUid,
-              collectionVariables,
+              runtimeVariables,
               processEnvVars,
               scriptingConfig
             );
@@ -1010,13 +1039,13 @@ const registerNetworkIpc = (mainWindow) => {
             // run assertions
             const assertions = get(item, 'request.assertions');
             if (assertions) {
-              const assertRuntime = new AssertRuntime();
+              const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
               const results = assertRuntime.runAssertions(
                 assertions,
                 request,
                 response,
                 envVars,
-                collectionVariables,
+                runtimeVariables,
                 processEnvVars
               );
 
@@ -1029,23 +1058,30 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             // run tests
-            const testFile = compact([
-              item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests'),
-              get(collectionRoot, 'request.tests')
+            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
+            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
+              get(collectionRoot, 'request.tests'), testScript
+            ] : [
+              testScript, get(collectionRoot, 'request.tests')
             ]).join(os.EOL);
+
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime();
+              const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
                 decomment(testFile),
                 request,
                 response,
                 envVars,
-                collectionVariables,
+                runtimeVariables,
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
                 scriptingConfig
               );
+
+              if (testResults?.nextRequestName !== undefined) {
+                nextRequestName = testResults.nextRequestName;
+              }
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'test-results',
@@ -1055,7 +1091,7 @@ const registerNetworkIpc = (mainWindow) => {
 
               mainWindow.webContents.send('main:script-environment-update', {
                 envVariables: testResults.envVariables,
-                collectionVariables: testResults.collectionVariables,
+                runtimeVariables: testResults.runtimeVariables,
                 collectionUid
               });
             }
@@ -1140,12 +1176,28 @@ const registerNetworkIpc = (mainWindow) => {
         return `response.${extension}`;
       };
 
-      const fileName =
-        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+      const getEncodingFormat = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = mime.extension(contentType) || 'txt';
+        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
+      };
 
+      const determineFileName = () => {
+        return (
+          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
+        );
+      };
+
+      const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+        const encoding = getEncodingFormat();
+        const data = Buffer.from(response.dataBuffer, 'base64')
+        if (encoding === 'utf-8') {
+          await writeFile(filePath, data);
+        } else {
+          await writeBinaryFile(filePath, data);
+        }
       }
     } catch (error) {
       return Promise.reject(error);
