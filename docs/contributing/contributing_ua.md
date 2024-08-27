@@ -37,7 +37,7 @@ Bruno побудований на Next.js та React. Також для деск
 
 ### Залежності
 
-Вам знадобиться [Node v18.x або остання LTS версія](https://nodejs.org/en/) та npm 8.x. Ми використовуєм npm workspaces в цьому проекті
+Вам знадобиться [Node v20.x або остання LTS версія](https://nodejs.org/en/) та npm 8.x. Ми використовуєм npm workspaces в цьому проекті
 
 ### Починаєм писати код
 

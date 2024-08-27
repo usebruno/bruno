@@ -37,7 +37,7 @@ Bruno 使用 Next.js 和 React 構建。我們使用 Electron 來封裝及發佈
 
 ### 依賴關係
 
-您需要使用 [Node v18.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
+您需要使用 [Node v20.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
 
 ## 開發
 
