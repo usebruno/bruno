@@ -49,7 +49,7 @@ const Docs = ({ collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <Markdown onDoubleClick={toggleViewMode} content={docs} />
+        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
       )}
     </StyledWrapper>
   );

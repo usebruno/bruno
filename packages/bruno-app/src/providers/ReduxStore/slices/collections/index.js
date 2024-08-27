@@ -33,7 +33,6 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
-
       collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
@@ -49,6 +48,12 @@ export const collectionsSlice = createSlice({
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    setCollectionSecurityConfig: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.securityConfig = action.payload.securityConfig;
       }
     },
     brunoConfigUpdateEvent: (state, action) => {
@@ -1566,29 +1571,29 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-sent') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
         }
 
         if (type === 'response-received') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
         }
 
         if (type === 'test-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testResults = action.payload.testResults;
         }
 
         if (type === 'assertion-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
         }
 
         if (type === 'error') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
@@ -1622,6 +1627,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,

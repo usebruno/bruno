@@ -37,7 +37,7 @@ Le librerie che utilizziamo sono:
 
 ### Dependences
 
-Hai bisogno di [Node v18.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
+Hai bisogno di [Node v20.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
 
 ### Iniziamo a codificare
 

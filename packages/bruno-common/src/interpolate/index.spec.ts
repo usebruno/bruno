@@ -294,7 +294,7 @@ describe('interpolate - recursive', () => {
 
     const result = interpolate(inputString, inputObject);
 
-    expect(result).toBe('{{recursion2}}');
+    expect(result).toBe('{{recursion3}}');
   });
 
   it('should replace repetead placeholders with 1 level of recursion with values from the object', () => {
@@ -334,5 +334,23 @@ describe('interpolate - recursive', () => {
     const result = interpolate(inputString, inputObject);
 
     expect(result).toBe(new Array(24).fill('repetead4').join(' '));
+  });
+
+  it('should replace mutiple interdependent variables in the same input string', () => {
+    const inputString = `{
+      "x": "{{v2}} {{v1}}"
+    }`;
+    const inputObject = {
+      foo: 'bar',
+      v1: '{{foo}}',
+      v2: '{{bar}}',
+      bar: 'baz'
+    };
+
+    const result = interpolate(inputString, inputObject);
+
+    expect(result).toBe(`{
+      "x": "baz bar"
+    }`);
   });
 });

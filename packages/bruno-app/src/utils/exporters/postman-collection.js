@@ -12,6 +12,7 @@ export const exportCollection = (collection) => {
   const generateInfoSection = () => {
     return {
       name: collection.name,
+      description: collection.root?.docs,
       schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
     };
   };
@@ -137,6 +138,11 @@ export const exportCollection = (collection) => {
             }
           }
         };
+      case 'graphql':
+        return {
+          mode: 'graphql',
+          graphql: body.graphql
+        };
     }
   };
 
@@ -201,6 +207,8 @@ export const exportCollection = (collection) => {
     const requestObject = {
       method: itemRequest.method,
       header: generateHeaders(itemRequest.headers),
+      auth: generateAuth(itemRequest.auth),
+      description: itemRequest.docs,
       url: {
         raw: itemRequest.url,
         host: generateHost(itemRequest.url),
