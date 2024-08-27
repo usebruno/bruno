@@ -182,13 +182,13 @@ const ProxySettings = ({ close }) => {
               </div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="https_proxy">
-                  http_proxy
+                  https_proxy
                 </label>
                 <div className="opacity-80">{https_proxy || '-'}</div>
               </div>
               <div className="mb-3 flex items-center">
                 <label className="settings-label" htmlFor="no_proxy">
-                  http_proxy
+                  no_proxy
                 </label>
                 <div className="opacity-80">{no_proxy || '-'}</div>
               </div>
