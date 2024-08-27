@@ -93,7 +93,7 @@ const printRunSummary = (results) => {
   };
 };
 
-const getBruFilesRecursively = (dir, testsOnly) => {
+const getBruFilesRecursively = (dir, testsOnly, ignoredPatterns) => {
   const environmentsPath = 'environments';
 
   const getFilesInOrder = (dir) => {
@@ -101,22 +101,25 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
     const traverse = (currentPath) => {
       const filesInCurrentDir = fs.readdirSync(currentPath);
-
       if (currentPath.includes('node_modules')) {
         return;
       }
-
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
         const stats = fs.lstatSync(filePath);
 
-        // todo: we might need a ignore config inside bruno.json
+        const normalizedPath = filePath.replace(/\\/g, '/');
+        const relativePath = path.relative(currentPath, normalizedPath);
         if (
           stats.isDirectory() &&
           filePath !== environmentsPath &&
           !filePath.startsWith('.git') &&
-          !filePath.startsWith('node_modules')
-        ) {
+          !filePath.startsWith('node_modules') &&
+          !ignoredPatterns?.some((ignoredPattern) => {
+            const normalizedIgnorePattern = ignoredPattern.replace(/\\/g, '/');
+            return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
+          }))
+        {
           traverse(filePath);
         }
       }
@@ -457,7 +460,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename, testsOnly);
+        bruJsons = getBruFilesRecursively(filename, testsOnly, brunoConfig?.ignore);
       }
     }
 
