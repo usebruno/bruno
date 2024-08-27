@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import Tooltip from 'components/Tooltip';
+import Toolhint from 'components/Toolhint';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
@@ -175,7 +175,7 @@ const QueryParams = ({ item, collection }) => {
         </button>
         <div className="mb-2 title text-xs flex items-stretch">
           <span>Path</span>
-          <Tooltip
+          <Toolhint
             text={`
             <div>
               Path variables are automatically added whenever the
@@ -186,7 +186,7 @@ const QueryParams = ({ item, collection }) => {
               </code>
             </div>
           `}
-            tooltipId="path-param-tooltip"
+            toolhintId="path-param-Toolhint"
           />
         </div>
         <table>
