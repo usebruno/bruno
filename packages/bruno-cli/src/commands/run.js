@@ -412,6 +412,8 @@ const handler = async function (argv) {
     }
 
     let formats = {};
+
+    // Maintains back compat with --format and --output
     if (outputPath && outputPath.length) {
       formats[format] = outputPath;
     }
