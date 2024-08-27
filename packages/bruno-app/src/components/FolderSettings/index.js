@@ -19,8 +19,8 @@ const FolderSettings = ({ collection, folder }) => {
   const setTab = (tab) => {
     dispatch(
       updatedFolderSettingsSelectedTab({
-        collectionUid: collection.uid,
-        folderUid: folder.uid,
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid,
         tab
       })
     );

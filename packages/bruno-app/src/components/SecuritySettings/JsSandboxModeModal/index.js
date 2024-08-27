@@ -6,7 +6,7 @@ import Portal from 'components/Portal';
 import Modal from 'components/Modal';
 import StyledWrapper from './StyledWrapper';
 
-const JsSandboxModeModal = ({ collection, onClose }) => {
+const JsSandboxModeModal = ({ collection }) => {
   const dispatch = useDispatch();
   const [jsSandboxMode, setJsSandboxMode] = useState(collection?.securityConfig?.jsSandboxMode || 'safe');
 
@@ -22,7 +22,6 @@ const JsSandboxModeModal = ({ collection, onClose }) => {
     )
       .then(() => {
         toast.success('Sandbox mode updated successfully');
-        onClose();
       })
       .catch((err) => console.log(err) && toast.error('Failed to update sandbox mode'));
   };
@@ -65,7 +64,7 @@ const JsSandboxModeModal = ({ collection, onClose }) => {
               <span className='beta-tag'>BETA</span>
             </label>
             <p className='text-sm text-muted mt-1'>
-              JavaScript code is executed in a secure sandbox and cannot excess your filesystem or execute system commands.
+              JavaScript code is executed in a secure sandbox and cannot access your filesystem or execute system commands.
             </p>
 
             <label htmlFor="developer" className="flex flex-row gap-2 mt-6 cursor-pointer">

@@ -37,7 +37,7 @@ Bibliotecile pe care le folosim
 
 ### Dependențele
 
-Veți avea nevoie de [Node v18.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
+Veți avea nevoie de [Node v20.x sau cea mai recentă versiune LTS](https://nodejs.org/en/) și npm 8.x. Noi folosim spații de lucru npm în proiect
 
 ## Dezvoltarea
 

@@ -15,7 +15,7 @@ const BrunoRequest = require('../bruno-request');
 const BrunoResponse = require('../bruno-response');
 const Test = require('../test');
 const TestResults = require('../test-results');
-const { cleanJson, appendAwaitToTestFunc } = require('../utils');
+const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
@@ -84,8 +84,6 @@ class TestRuntime {
       };
     }
 
-    // add 'await' prefix to the test function calls
-    testsFile = appendAwaitToTestFunc(testsFile);
 
     const context = {
       test,

@@ -10,6 +10,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
+const { marshallToVm } = require('./utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -21,22 +22,45 @@ const toNumber = (value) => {
   return Number.isInteger(num) ? parseInt(value, 10) : parseFloat(value);
 };
 
+const removeQuotes = (str) => {
+  if ((str.startsWith('"') && str.endsWith('"')) || (str.startsWith("'") && str.endsWith("'"))) {
+    return str.slice(1, -1);
+  }
+  return str;
+};
+
 const executeQuickJsVm = ({ script: externalScript, context: externalContext, scriptType = 'template-literal' }) => {
+  if (!externalScript?.length || typeof externalScript !== 'string') {
+    return externalScript;
+  }
+  externalScript = externalScript?.trim();
+
   if (!isNaN(Number(externalScript))) {
     return Number(externalScript);
   }
 
+  if (externalScript === 'true') return true;
+  if (externalScript === 'false') return false;
+  if (externalScript === 'null') return null;
+  if (externalScript === 'undefined') return undefined;
+
+  externalScript = removeQuotes(externalScript);
+
   const vm = QuickJSSyncContext;
 
   try {
-    const { bru, req, res } = externalContext;
+    const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
 
-    const templateLiteralText = `\`${externalScript}\`;`;
-    const jsExpressionText = `${externalScript};`;
+    Object.entries(variables)?.forEach(([key, value]) => {
+      vm.setProp(vm.global, key, marshallToVm(value, vm));
+    });
+
+    const templateLiteralText = `\`${externalScript}\``;
+    const jsExpressionText = `${externalScript}`;
 
     let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
 
@@ -47,7 +71,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
       return e;
     } else {
       let v = vm.dump(result.value);
-      let vString = v.toString();
       result.value.dispose();
       return v;
     }
@@ -57,9 +80,22 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
 };
 
 const executeQuickJsVmAsync = async ({ script: externalScript, context: externalContext, collectionPath }) => {
+  if (!externalScript?.length || typeof externalScript !== 'string') {
+    return externalScript;
+  }
+  externalScript = externalScript?.trim();
+
   if (!isNaN(Number(externalScript))) {
     return toNumber(externalScript);
   }
+
+  if (externalScript === 'true') return true;
+  if (externalScript === 'false') return false;
+  if (externalScript === 'null') return null;
+  if (externalScript === 'undefined') return undefined;
+
+  externalScript = removeQuotes(externalScript);
+
   try {
     const module = await newQuickJSWASMModule();
     const vm = module.newContext();
@@ -91,6 +127,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
             // resolve module
             return globalThis.requireObject[mod];
+          }
+          else {
+            throw new Error("Cannot find module " + mod);
           }
         }
       `;
@@ -128,6 +167,7 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
         }
         catch(error) {
           console?.debug?.('quick-js:execution-end:with-error', error?.message);
+          throw new Error(error?.message);
         }
         return 'done';
       })()

@@ -19,6 +19,10 @@ const addLocalModuleLoaderShimToContext = (vm, collectionPath) => {
       throw new Error('Access to files outside of the collectionPath is not allowed.');
     }
 
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Cannot find module ${filename}`);
+    }
+
     let code = fs.readFileSync(filePath).toString();
 
     return marshallToVm(code, vm);
