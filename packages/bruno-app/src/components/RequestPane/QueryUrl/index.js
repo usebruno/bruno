@@ -74,7 +74,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
-            className="tooltip mr-3"
+            className="tooltip mx-3"
             onClick={(e) => {
               e.stopPropagation();
               if (!item.draft) return;

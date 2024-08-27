@@ -29,7 +29,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -79,6 +79,11 @@ const getEnvVars = (environment = {}) => {
     ...envVars,
     __name__: environment.name
   };
+};
+
+const getJsSandboxRuntime = (collection) => {
+  const securityConfig = get(collection, 'securityConfig', {});
+  return securityConfig.jsSandboxMode === 'safe' ? 'quickjs' : 'vm2';
 };
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
@@ -317,7 +322,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run pre-request vars
     const preRequestVars = get(request, 'vars.req', []);
     if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPreRequestVars(
         preRequestVars,
         request,
@@ -332,7 +337,7 @@ const registerNetworkIpc = (mainWindow) => {
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
     if (requestScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
         decomment(requestScript),
         request,
@@ -384,7 +389,7 @@ const registerNetworkIpc = (mainWindow) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       const result = varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
@@ -418,7 +423,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     let scriptResult;
     if (responseScript?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runResponseScript(
         decomment(responseScript),
         request,
@@ -462,6 +467,7 @@ const registerNetworkIpc = (mainWindow) => {
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
     const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
       const controller = new AbortController();
@@ -577,7 +583,7 @@ const registerNetworkIpc = (mainWindow) => {
       // run assertions
       const assertions = get(request, 'assertions');
       if (assertions) {
-        const assertRuntime = new AssertRuntime();
+        const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
         const results = assertRuntime.runAssertions(
           assertions,
           request,
@@ -605,7 +611,7 @@ const registerNetworkIpc = (mainWindow) => {
       ]).join(os.EOL);
 
       if (typeof testFile === 'string') {
-        const testRuntime = new TestRuntime();
+        const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
           decomment(testFile),
           request,
@@ -663,6 +669,7 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -768,6 +775,7 @@ const registerNetworkIpc = (mainWindow) => {
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collection.uid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
       await runPreRequest(
         request,
@@ -827,13 +835,14 @@ const registerNetworkIpc = (mainWindow) => {
 
   ipcMain.handle(
     'renderer:run-collection-folder',
-    async (event, folder, collection, environment, runtimeVariables, recursive) => {
+    async (event, folder, collection, environment, runtimeVariables, recursive, delay) => {
       const collectionUid = collection.uid;
       const collectionPath = collection.pathname;
       const folderUid = folder ? folder.uid : null;
       const cancelTokenUid = uuid();
       const brunoConfig = getBrunoConfig(collectionUid);
       const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
 
       const abortController = new AbortController();
@@ -946,6 +955,18 @@ const registerNetworkIpc = (mainWindow) => {
             timeStart = Date.now();
             let response, responseTime;
             try {
+              if (delay && !Number.isNaN(delay) && delay > 0) {
+                const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
+
+                const cancellationPromise = new Promise((_, reject) => {
+                  abortController.signal.addEventListener('abort', () => {
+                    reject(new Error('Cancelled'));
+                  });
+                });
+
+                await Promise.race([delayPromise, cancellationPromise]);
+              }
+
               /** @type {import('axios').AxiosResponse} */
               response = await axiosInstance(request);
               timeEnd = Date.now();
@@ -1018,7 +1039,7 @@ const registerNetworkIpc = (mainWindow) => {
             // run assertions
             const assertions = get(item, 'request.assertions');
             if (assertions) {
-              const assertRuntime = new AssertRuntime();
+              const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
               const results = assertRuntime.runAssertions(
                 assertions,
                 request,
@@ -1045,7 +1066,7 @@ const registerNetworkIpc = (mainWindow) => {
             ]).join(os.EOL);
 
             if (typeof testFile === 'string') {
-              const testRuntime = new TestRuntime();
+              const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
                 decomment(testFile),
                 request,
@@ -1155,12 +1176,28 @@ const registerNetworkIpc = (mainWindow) => {
         return `response.${extension}`;
       };
 
-      const fileName =
-        getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader();
+      const getEncodingFormat = () => {
+        const contentType = getHeaderValue('content-type');
+        const extension = mime.extension(contentType) || 'txt';
+        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
+      };
 
+      const determineFileName = () => {
+        return (
+          getFileNameFromContentDispositionHeader() || getFileNameFromUrlPath() || getFileNameBasedOnContentTypeHeader()
+        );
+      };
+
+      const fileName = determineFileName();
       const filePath = await chooseFileToSave(mainWindow, fileName);
       if (filePath) {
-        await writeBinaryFile(filePath, Buffer.from(response.dataBuffer, 'base64'));
+        const encoding = getEncodingFormat();
+        const data = Buffer.from(response.dataBuffer, 'base64')
+        if (encoding === 'utf-8') {
+          await writeFile(filePath, data);
+        } else {
+          await writeBinaryFile(filePath, data);
+        }
       }
     } catch (error) {
       return Promise.reject(error);
