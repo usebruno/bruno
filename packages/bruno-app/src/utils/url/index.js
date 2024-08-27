@@ -45,7 +45,7 @@ export const parsePathParams = (url) => {
     uri = new URL(uri);
   } catch (e) {
     // URL is non-parsable, is it incomplete? Ignore.
-    return;
+    return [];
   }
 
   let paths = uri.pathname.split('/');
