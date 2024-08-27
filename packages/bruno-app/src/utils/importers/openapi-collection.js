@@ -59,12 +59,15 @@ const transformOpenapiRequestItem = (request) => {
     operationName = `${request.method} ${request.path}`;
   }
 
+  // replace OpenAPI links in path by Bruno variables
+  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
+
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + request.path),
+      url: ensureUrl(request.global.server + '/' + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -81,6 +84,9 @@ const transformOpenapiRequestItem = (request) => {
         xml: null,
         formUrlEncoded: [],
         multipartForm: []
+      },
+      script: {
+        res: null
       }
     }
   };
@@ -92,7 +98,17 @@ const transformOpenapiRequestItem = (request) => {
         name: param.name,
         value: '',
         description: param.description || '',
-        enabled: param.required
+        enabled: param.required,
+        type: 'query'
+      });
+    } else if (param.in === 'path') {
+      brunoRequestItem.request.params.push({
+        uid: uuid(),
+        name: param.name,
+        value: '',
+        description: param.description || '',
+        enabled: param.required,
+        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -183,6 +199,26 @@ const transformOpenapiRequestItem = (request) => {
       brunoRequestItem.request.body.mode = 'xml';
       brunoRequestItem.request.body.xml = '';
     }
+  }
+
+  // build the extraction scripts from responses that have links
+  // https://swagger.io/docs/specification/links/
+  let script = [];
+  each(_operationObject.responses || [], (response, responseStatus) => {
+    if (Object.hasOwn(response, 'links')) {
+      // only extract if the status code matches the response
+      script.push(`if (res.status === ${responseStatus}) {`);
+      each(response.links, (link) => {
+        each(link.parameters || [], (expression, parameter) => {
+          let value = openAPIRuntimeExpressionToScript(expression);
+          script.push(`  bru.setVar('${link.operationId}_${parameter}', ${value});`);
+        });
+      });
+      script.push(`}`);
+    }
+  });
+  if (script.length > 0) {
+    brunoRequestItem.request.script.res = script.join('\n');
   }
 
   return brunoRequestItem;
@@ -295,6 +331,18 @@ const getSecurity = (apiSpec) => {
   };
 };
 
+const openAPIRuntimeExpressionToScript = (expression) => {
+  // see https://swagger.io/docs/specification/links/#runtime-expressions
+  if (expression === '$response.body') {
+    return 'res.body';
+  } else if (expression.startsWith('$response.body#')) {
+    let pointer = expression.substring(15);
+    // could use https://www.npmjs.com/package/json-pointer for better support
+    return `res.body${pointer.replace('/', '.')}`;
+  }
+  return expression;
+};
+
 const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
@@ -338,7 +386,7 @@ const parseOpenApiCollection = (data) => {
             .map(([method, operationObject]) => {
               return {
                 method: method,
-                path: path,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
                   server: baseUrl,
@@ -378,7 +426,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));

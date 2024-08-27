@@ -1,0 +1,37 @@
+meta {
+  name: echo xml parsed(self closing tags)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{host}}/api/echo/xml-parsed
+  body: xml
+  auth: none
+}
+
+body:xml {
+  <hello>
+    <world>bruno</world>
+    <world/>
+  </hello>
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return parsed xml", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "hello": {
+        "world": [
+          "bruno",
+          ""
+        ]
+      }
+    });
+  });
+  
+}

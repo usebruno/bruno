@@ -62,10 +62,10 @@ const EnvVariables = ({ collection, theme }) => {
   );
 };
 
-const CollectionVariables = ({ collection, theme }) => {
-  const collectionVariablesFound = Object.keys(collection.collectionVariables).length > 0;
+const RuntimeVariables = ({ collection, theme }) => {
+  const runtimeVariablesFound = Object.keys(collection.runtimeVariables).length > 0;
 
-  const collectionVariableArray = Object.entries(collection.collectionVariables).map(([name, value]) => ({
+  const runtimeVariableArray = Object.entries(collection.runtimeVariables).map(([name, value]) => ({
     name,
     value,
     secret: false
@@ -73,11 +73,11 @@ const CollectionVariables = ({ collection, theme }) => {
 
   return (
     <>
-      <h1 className="font-semibold mb-2">Collection Variables</h1>
-      {collectionVariablesFound ? (
-        <KeyValueExplorer data={collectionVariableArray} theme={theme} />
+      <h1 className="font-semibold mb-2">Runtime Variables</h1>
+      {runtimeVariablesFound ? (
+        <KeyValueExplorer data={runtimeVariableArray} theme={theme} />
       ) : (
-        <div className="muted text-xs">No collection variables found</div>
+        <div className="muted text-xs">No runtime variables found</div>
       )}
     </>
   );
@@ -90,13 +90,13 @@ const VariablesEditor = ({ collection }) => {
 
   return (
     <StyledWrapper className="px-4 py-4">
-      <CollectionVariables collection={collection} theme={reactInspectorTheme} />
+      <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
-        Note: As of today, collection variables can only be set via the API -{' '}
-        <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
-        In the next release, we will add a UI to set and modify collection variables.
+        Note: As of today, runtime variables can only be set via the API - <span className="font-medium">getVar()</span>{' '}
+        and <span className="font-medium">setVar()</span>. <br />
+        In the next release, we will add a UI to set and modify runtime variables.
       </div>
     </StyledWrapper>
   );

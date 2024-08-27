@@ -29,7 +29,6 @@ export const updateUidsInCollection = (_collection) => {
       item.uid = uuid();
 
       each(get(item, 'request.headers'), (header) => (header.uid = uuid()));
-      each(get(item, 'request.query'), (param) => (param.uid = uuid()));
       each(get(item, 'request.params'), (param) => (param.uid = uuid()));
       each(get(item, 'request.vars.req'), (v) => (v.uid = uuid()));
       each(get(item, 'request.vars.res'), (v) => (v.uid = uuid()));
@@ -66,8 +65,13 @@ export const transformItemsInCollection = (collection) => {
 
       if (['http', 'graphql'].includes(item.type)) {
         item.type = `${item.type}-request`;
+
         if (item.request.query) {
-          item.request.params = item.request.query;
+          item.request.params = item.request.query.map((queryItem) => ({
+            ...queryItem,
+            type: 'query',
+            uid: queryItem.uid || uuid()
+          }));
         }
 
         delete item.request.query;

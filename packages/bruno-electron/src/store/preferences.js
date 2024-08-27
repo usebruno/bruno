@@ -16,14 +16,15 @@ const defaultPreferences = {
       filePath: null
     },
     keepDefaultCaCertificates: {
-      enabled: false
+      enabled: true
     },
     storeCookies: true,
     sendCookies: true,
     timeout: 0
   },
   font: {
-    codeFont: 'default'
+    codeFont: 'default',
+    codeFontSize: 14
   },
   proxy: {
     enabled: false,
@@ -54,7 +55,8 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
-    codeFont: Yup.string().nullable()
+    codeFont: Yup.string().nullable(),
+    codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
     enabled: Yup.boolean(),
@@ -118,7 +120,7 @@ const preferencesUtil = {
     return get(getPreferences(), 'request.customCaCertificate.enabled', false);
   },
   shouldKeepDefaultCaCertificates: () => {
-    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', false);
+    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', true);
   },
   getCustomCaCertificateFilePath: () => {
     return get(getPreferences(), 'request.customCaCertificate.filePath', null);

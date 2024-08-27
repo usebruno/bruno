@@ -17,7 +17,7 @@ const StyledWrapper = styled.div`
       overflow: hidden !important;
       ${'' /* padding-bottom: 50px !important; */}
       position: relative;
-      display: contents;
+      display: block;
       margin: 0px;
       padding: 0px;
     }
