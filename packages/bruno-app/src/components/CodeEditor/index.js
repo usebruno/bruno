@@ -333,6 +333,7 @@ export default class CodeEditor extends React.Component {
         className="h-full w-full flex flex-col relative"
         aria-label="Code Editor"
         font={this.props.font}
+        fontSize={this.props.fontSize}
         ref={(node) => {
           this._node = node;
         }}
