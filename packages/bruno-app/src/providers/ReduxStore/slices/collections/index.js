@@ -33,7 +33,6 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
-
       collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
@@ -49,6 +48,12 @@ export const collectionsSlice = createSlice({
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    setCollectionSecurityConfig: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.securityConfig = action.payload.securityConfig;
       }
     },
     brunoConfigUpdateEvent: (state, action) => {
@@ -1622,6 +1627,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,

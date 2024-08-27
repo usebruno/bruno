@@ -13,15 +13,19 @@ const {
   browseFiles,
   createDirectory,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  isWSLPath,
+  normalizeWslPath,
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const CollectionSecurityStore = require('../store/collection-security');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
+const collectionSecurityStore = new CollectionSecurityStore();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -324,6 +328,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
+      // Normalize paths if they are WSL paths
+      if (isWSLPath(oldPath)) {
+        oldPath = normalizeWslPath(oldPath);
+      }
+      if (isWSLPath(newPath)) {
+        newPath = normalizeWslPath(newPath);
+      }
+
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
@@ -661,6 +673,24 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       const domainsWithCookies = await getDomainsWithCookies();
       mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:save-collection-security-config', async (event, collectionPath, securityConfig) => {
+    try {
+      collectionSecurityStore.setSecurityConfigForCollection(collectionPath, {
+        jsSandboxMode: securityConfig.jsSandboxMode
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:get-collection-security-config', async (event, collectionPath) => {
+    try {
+      return collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
     } catch (error) {
       return Promise.reject(error);
     }

@@ -110,7 +110,14 @@ const RequestTabs = () => {
                         role="tab"
                         onClick={() => handleClick(tab)}
                       >
-                        <RequestTab key={tab.uid} tab={tab} collection={activeCollection} folderUid={tab.folderUid} />
+                        <RequestTab
+                          collectionRequestTabs={collectionRequestTabs}
+                          tabIndex={index}
+                          key={tab.uid}
+                          tab={tab}
+                          collection={activeCollection}
+                          folderUid={tab.folderUid}
+                        />
                       </li>
                     );
                   })

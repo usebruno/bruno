@@ -23,6 +23,10 @@ const StyledWrapper = styled.div`
         color: ${(props) => props.theme.tabs.active.color} !important;
         border-bottom: solid 2px ${(props) => props.theme.tabs.active.border} !important;
       }
+
+      .content-indicator {
+        color: ${(props) => props.theme.text}
+      }
     }
   }
 `;
