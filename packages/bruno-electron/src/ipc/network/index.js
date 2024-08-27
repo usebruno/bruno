@@ -472,7 +472,7 @@ const registerNetworkIpc = (mainWindow) => {
       request.signal = controller.signal;
       saveCancelToken(cancelTokenUid, controller);
 
-      await runPreRequest(
+      const preRequestScriptResult = await runPreRequest(
         request,
         requestUid,
         envVars,
@@ -483,6 +483,16 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         scriptingConfig
       );
+
+      if (preRequestScriptResult?.isSkippedRequest) {
+        return {
+          data: undefined, 
+          status: 'Request skipped', 
+          statusText: 'Request skipped', 
+          size: 0, 
+          duration: 0
+        };
+      }
 
       const axiosInstance = await configureRequest(
         collectionUid,
@@ -842,7 +852,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
-
+      runtimeVariables["run-folder-event"] = true;
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
 
