@@ -3,7 +3,7 @@ const path = require('path');
 const isDev = require('electron-is-dev');
 
 if (isDev) {
-  if (!fs.existsSync('./src/sandbox/bundle-browser-rollup.js')) {
+  if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
     console.log('JS Sandbox libraries have not been bundled yet');
     console.log('Please run the below command \nnpm run sandbox:bundle-libraries --workspace=packages/bruno-js');
     throw new Error('JS Sandbox libraries have not been bundled yet');
