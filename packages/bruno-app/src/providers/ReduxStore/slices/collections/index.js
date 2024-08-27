@@ -1577,9 +1577,8 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-skipped') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'skipped';
-          item.responseReceived = action.payload.responseReceived;
         }
 
         if (type === 'response-received') {
