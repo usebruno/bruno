@@ -226,7 +226,7 @@ const builder = async (yargs) => {
     })
     .option('output', {
       alias: 'o',
-      describe: 'Path to write file results to. Required when using --format',
+      describe: 'Path to write file results to',
       type: 'string'
     })
     .option('format', {
