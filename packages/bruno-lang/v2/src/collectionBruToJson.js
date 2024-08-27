@@ -221,7 +221,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenKey = _.find(auth, { name: 'token' });
     const prefixKey = _.find(auth, { name: 'prefix' });
     const token = tokenKey ? tokenKey.value : '';
-    const prefix = prefixKey ? prefixKey.value : '';
+    const prefix = prefixKey ? prefixKey.value : 'Bearer';
     return {
       auth: {
         bearer: {
