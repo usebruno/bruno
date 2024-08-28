@@ -5,6 +5,7 @@ const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
 const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
 const { interpolateString } = require('../interpolate-string');
+const { executeQuickJsVm } = require('../sandbox/quickjs');
 
 const { expect } = chai;
 chai.use(require('chai-string'));
@@ -66,6 +67,7 @@ chai.use(function (chai, utils) {
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
+ * isArray     : is array
  */
 const parseAssertionOperator = (str = '') => {
   if (!str || typeof str !== 'string' || !str.length) {
@@ -101,7 +103,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const unaryOperators = [
@@ -114,7 +117,8 @@ const parseAssertionOperator = (str = '') => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const [operator, ...rest] = str.trim().split(' ');
@@ -151,19 +155,45 @@ const isUnaryOperator = (operator) => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   return unaryOperators.includes(operator);
 };
 
-const evaluateRhsOperand = (rhsOperand, operator, context) => {
+const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
+  if (runtime === 'quickjs') {
+    return executeQuickJsVm({
+      script: literal,
+      context,
+      scriptType: 'template-literal'
+    });
+  }
+
+  return evaluateJsTemplateLiteral(literal, context);
+};
+
+const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime) => {
+  if (runtime === 'quickjs') {
+    return executeQuickJsVm({
+      script: expr,
+      context,
+      scriptType: 'expression'
+    });
+  }
+
+  return evaluateJsExpression(expr, context);
+};
+
+const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
   if (isUnaryOperator(operator)) {
     return;
   }
 
   const interpolationContext = {
-    collectionVariables: context.bru.collectionVariables,
+    requestVariables: context.bru.requestVariables,
+    runtimeVariables: context.bru.runtimeVariables,
     envVariables: context.bru.envVariables,
     processEnvVars: context.bru.processEnvVars
   };
@@ -176,13 +206,17 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
 
     return rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(v.trim(), interpolationContext), context, runtime)
+      );
   }
 
   if (operator === 'between') {
     const [lhs, rhs] = rhsOperand
       .split(',')
-      .map((v) => evaluateJsTemplateLiteral(interpolateString(v.trim(), interpolationContext), context));
+      .map((v) =>
+        evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(v.trim(), interpolationContext), context, runtime)
+      );
     return [lhs, rhs];
   }
 
@@ -195,17 +229,22 @@ const evaluateRhsOperand = (rhsOperand, operator, context) => {
     return interpolateString(rhsOperand, interpolationContext);
   }
 
-  return evaluateJsTemplateLiteral(interpolateString(rhsOperand, interpolationContext), context);
+  return evaluateJsTemplateLiteralBasedOnRuntime(interpolateString(rhsOperand, interpolationContext), context, runtime);
 };
 
 class AssertRuntime {
-  runAssertions(assertions, request, response, envVariables, collectionVariables, collectionPath) {
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
+
+  runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
+    const requestVariables = request?.requestVariables || {};
     const enabledAssertions = _.filter(assertions, (a) => a.enabled);
     if (!enabledAssertions.length) {
       return [];
     }
 
-    const bru = new Bru(envVariables, collectionVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined, requestVariables);
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
 
@@ -217,7 +256,9 @@ class AssertRuntime {
 
     const context = {
       ...envVariables,
-      ...collectionVariables,
+      ...requestVariables,
+      ...runtimeVariables,
+      ...processEnvVars,
       ...bruContext
     };
 
@@ -230,8 +271,8 @@ class AssertRuntime {
       const { operator, value: rhsOperand } = parseAssertionOperator(rhsExpr);
 
       try {
-        const lhs = evaluateJsExpression(lhsExpr, context);
-        const rhs = evaluateRhsOperand(rhsOperand, operator, context);
+        const lhs = evaluateJsExpressionBasedOnRuntime(lhsExpr, context, this.runtime);
+        const rhs = evaluateRhsOperand(rhsOperand, operator, context, this.runtime);
 
         switch (operator) {
           case 'eq':
@@ -312,6 +353,9 @@ class AssertRuntime {
             break;
           case 'isBoolean':
             expect(lhs).to.be.a('boolean');
+            break;
+          case 'isArray':
+            expect(lhs).to.be.a('array');
             break;
           default:
             expect(lhs).to.equal(rhs);

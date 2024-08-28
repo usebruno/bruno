@@ -4,16 +4,17 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
+import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { uuid } from 'utils/common';
 import { variableNameRegex } from 'utils/common/regex';
-import { maskInputValue } from 'utils/collections';
+import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import cloneDeep from 'lodash/cloneDeep';
+import toast from 'react-hot-toast';
 
-const EnvironmentVariables = ({ environment, collection }) => {
+const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
@@ -47,10 +48,16 @@ const EnvironmentVariables = ({ environment, collection }) => {
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
+          setIsModified(false);
         })
         .catch(() => toast.error('An error occurred while saving the changes'));
     }
   });
+
+  // Effect to track modifications.
+  React.useEffect(() => {
+    setIsModified(formik.dirty);
+  }, [formik.dirty]);
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
@@ -85,16 +92,20 @@ const EnvironmentVariables = ({ environment, collection }) => {
     addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [formik.values]);
 
+  const handleReset = () => {
+    formik.resetForm({ originalEnvironmentVariables });
+  };
+
   return (
     <StyledWrapper className="w-full mt-6 mb-6">
       <div className="h-[50vh] overflow-y-auto w-full">
         <table>
           <thead>
             <tr>
-              <td>Enabled</td>
+              <td className="text-center">Enabled</td>
               <td>Name</td>
               <td>Value</td>
-              <td>Secret</td>
+              <td className="text-center">Secret</td>
               <td></td>
             </tr>
           </thead>
@@ -104,7 +115,7 @@ const EnvironmentVariables = ({ environment, collection }) => {
                 <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.enabled`}
                     checked={variable.enabled}
                     onChange={formik.handleChange}
@@ -125,23 +136,22 @@ const EnvironmentVariables = ({ environment, collection }) => {
                   />
                   <ErrorMessage name={`${index}.name`} />
                 </td>
-                <td>
-                  {variable.secret ? (
-                    <div className="overflow-hidden text-ellipsis">{maskInputValue(variable.value)}</div>
-                  ) : (
+                <td className="flex flex-row flex-nowrap">
+                  <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
                       collection={collection}
                       name={`${index}.value`}
                       value={variable.value}
+                      isSecret={variable.secret}
                       onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
                     />
-                  )}
+                  </div>
                 </td>
-                <td>
+                <td className="text-center">
                   <input
                     type="checkbox"
-                    className="mr-3 mousetrap"
+                    className="mousetrap"
                     name={`${index}.secret`}
                     checked={variable.secret}
                     onChange={formik.handleChange}
@@ -170,6 +180,9 @@ const EnvironmentVariables = ({ environment, collection }) => {
       <div>
         <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
           Save
+        </button>
+        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+          Reset
         </button>
       </div>
     </StyledWrapper>
