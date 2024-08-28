@@ -312,8 +312,6 @@ const handler = async function (argv) {
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
 
-    console.log(filenames)
-
     if (filenames && filenames.length) {
       for (const filename of filenames) {
         const pathExists = await exists(filename);
