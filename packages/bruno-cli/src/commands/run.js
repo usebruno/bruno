@@ -251,7 +251,7 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
-    .example('$0 run folder folder2 request.bru -r', 'Run all request in multiple file and/or folder')
+    .example('$0 run folder folder2 request.bru -r', 'Run all requests in multiple files and/or folders')
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -418,7 +418,7 @@ const handler = async function (argv) {
 
       const _isFile = isFile(filename);
       if (_isFile) {
-        console.log(chalk.yellow('Running Request \n'));
+        console.log(chalk.yellow(`Adding Request ${filename}`));
         const bruContent = fs.readFileSync(filename, 'utf8');
         const bruJson = bruToJson(bruContent);
         bruJsons.push({
@@ -430,7 +430,7 @@ const handler = async function (argv) {
       const _isDirectory = isDirectory(filename);
       if (_isDirectory) {
         if (!recursive) {
-          console.log(chalk.yellow('Running Folder \n'));
+          console.log(chalk.yellow(`Adding Folder ${filename}`));
           const files = fs.readdirSync(filename);
           const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
           const directoryBruJsons = [];
@@ -470,6 +470,8 @@ const handler = async function (argv) {
         }
       }
     }
+
+    console.log();
 
     const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;
