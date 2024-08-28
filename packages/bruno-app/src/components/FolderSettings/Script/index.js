@@ -54,6 +54,7 @@ const Script = ({ collection, folder }) => {
           mode="javascript"
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
         />
       </div>
       <div className="flex flex-col flex-1 mt-2 gap-y-2">
@@ -66,6 +67,7 @@ const Script = ({ collection, folder }) => {
           mode="javascript"
           onSave={handleSave}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
         />
       </div>
 

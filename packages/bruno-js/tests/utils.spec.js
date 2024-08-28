@@ -1,10 +1,5 @@
 const { describe, it, expect } = require('@jest/globals');
-const {
-  evaluateJsExpression,
-  internalExpressionCache: cache,
-  createResponseParser,
-  appendAwaitToTestFunc
-} = require('../src/utils');
+const { evaluateJsExpression, internalExpressionCache: cache, createResponseParser } = require('../src/utils');
 
 describe('utils', () => {
   describe('expression evaluation', () => {
@@ -140,72 +135,6 @@ describe('utils', () => {
     it('should allow json-query', () => {
       const value = res.jq('order.items[amount > 10].amount');
       expect(value).toBe(20);
-    });
-  });
-
-  describe('appendAwaitToTestFunc function', () => {
-    it('example 1', () => {
-      const inputTestsString = `
-        test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-      `;
-      const ouutputTestsString = appendAwaitToTestFunc(inputTestsString);
-      expect(ouutputTestsString).toBe(`
-        await test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-      `);
-    });
-
-    it('example 2', () => {
-      const inputTestsString = `
-        await test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-        test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-        test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-      `;
-      const ouutputTestsString = appendAwaitToTestFunc(inputTestsString);
-      expect(ouutputTestsString).toBe(`
-        await test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-        await test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-        await test("should return json", function() {
-          const data = res.getBody();
-          expect(res.getBody()).to.eql({
-            "hello": "bruno"
-          });
-        });
-      `);
     });
   });
 });
