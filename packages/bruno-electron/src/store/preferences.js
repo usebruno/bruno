@@ -11,12 +11,20 @@ const { get } = require('lodash');
 const defaultPreferences = {
   request: {
     sslVerification: true,
+    customCaCertificate: {
+      enabled: false,
+      filePath: null
+    },
+    keepDefaultCaCertificates: {
+      enabled: true
+    },
     storeCookies: true,
     sendCookies: true,
     timeout: 0
   },
   font: {
-    codeFont: 'default'
+    codeFont: 'default',
+    codeFontSize: 14
   },
   proxy: {
     enabled: false,
@@ -35,12 +43,20 @@ const defaultPreferences = {
 const preferencesSchema = Yup.object().shape({
   request: Yup.object().shape({
     sslVerification: Yup.boolean(),
+    customCaCertificate: Yup.object({
+      enabled: Yup.boolean(),
+      filePath: Yup.string().nullable()
+    }),
+    keepDefaultCaCertificates: Yup.object({
+      enabled: Yup.boolean()
+    }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
-    codeFont: Yup.string().nullable()
+    codeFont: Yup.string().nullable(),
+    codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
     enabled: Yup.boolean(),
@@ -99,6 +115,15 @@ const savePreferences = async (newPreferences) => {
 const preferencesUtil = {
   shouldVerifyTls: () => {
     return get(getPreferences(), 'request.sslVerification', true);
+  },
+  shouldUseCustomCaCertificate: () => {
+    return get(getPreferences(), 'request.customCaCertificate.enabled', false);
+  },
+  shouldKeepDefaultCaCertificates: () => {
+    return get(getPreferences(), 'request.keepDefaultCaCertificates.enabled', true);
+  },
+  getCustomCaCertificateFilePath: () => {
+    return get(getPreferences(), 'request.customCaCertificate.filePath', null);
   },
   getRequestTimeout: () => {
     return get(getPreferences(), 'request.timeout', 0);

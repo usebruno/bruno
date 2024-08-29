@@ -1,51 +1,48 @@
-import path from 'path';
-import toast from 'react-hot-toast';
-import trim from 'lodash/trim';
+import { collectionSchema, environmentSchema, itemSchema } from '@usebruno/schema';
+import cloneDeep from 'lodash/cloneDeep';
+import filter from 'lodash/filter';
 import find from 'lodash/find';
 import get from 'lodash/get';
-import filter from 'lodash/filter';
-import { uuid } from 'utils/common';
-import cloneDeep from 'lodash/cloneDeep';
+import trim from 'lodash/trim';
+import path from 'path';
+import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import toast from 'react-hot-toast';
 import {
-  findItemInCollection,
-  moveCollectionItem,
-  getItemsToResequence,
-  moveCollectionItemToRootOfCollection,
   findCollectionByUid,
-  transformRequestToSaveToFilesystem,
-  findParentItemInCollection,
   findEnvironmentInCollection,
-  isItemARequest,
+  findItemInCollection,
+  findParentItemInCollection,
+  getItemsToResequence,
   isItemAFolder,
-  refreshUidsInItem
+  refreshUidsInItem,
+  isItemARequest,
+  moveCollectionItem,
+  moveCollectionItemToRootOfCollection,
+  transformRequestToSaveToFilesystem
 } from 'utils/collections';
-import { collectionSchema, itemSchema, environmentSchema, environmentsSchema } from '@usebruno/schema';
-import { waitForNextTick } from 'utils/common';
-import { getDirectoryName, isWindowsOS, PATH_SEPARATOR } from 'utils/common/platform';
-import { sendNetworkRequest, cancelNetworkRequest } from 'utils/network';
+import { uuid, waitForNextTick } from 'utils/common';
+import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
+import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
-  updateLastAction,
-  updateNextAction,
-  resetRunResults,
-  requestCancelled,
-  responseReceived,
-  newItem as _newItem,
-  cloneItem as _cloneItem,
-  deleteItem as _deleteItem,
-  saveRequest as _saveRequest,
-  selectEnvironment as _selectEnvironment,
+  collectionAddEnvFileEvent as _collectionAddEnvFileEvent,
   createCollection as _createCollection,
-  renameCollection as _renameCollection,
   removeCollection as _removeCollection,
+  selectEnvironment as _selectEnvironment,
   sortCollections as _sortCollections,
-  collectionAddEnvFileEvent as _collectionAddEnvFileEvent
+  requestCancelled,
+  resetRunResults,
+  responseReceived,
+  updateLastAction,
+  setCollectionSecurityConfig
 } from './index';
 
+import { each } from 'lodash';
 import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst } from 'utils/url/index';
-import { each } from 'lodash';
+import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
+import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
+import { name } from 'file-loader';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -60,7 +57,7 @@ export const renameCollection = (newName, collectionUid) => (dispatch, getState)
   });
 };
 
-export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
+export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -81,7 +78,11 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
     itemSchema
       .validate(itemToSave)
       .then(() => ipcRenderer.invoke('renderer:save-request', item.pathname, itemToSave))
-      .then(() => toast.success('Request saved successfully'))
+      .then(() => {
+        if (!saveSilently) {
+          toast.success('Request saved successfully');
+        }
+      })
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save request!');
@@ -90,10 +91,41 @@ export const saveRequest = (itemUid, collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveMultipleRequests = (items) => (dispatch, getState) => {
+  const state = getState();
+  const { collections } = state.collections;
+
+  return new Promise((resolve, reject) => {
+    const itemsToSave = [];
+    each(items, (item) => {
+      const collection = findCollectionByUid(collections, item.collectionUid);
+      if (collection) {
+        const itemToSave = transformRequestToSaveToFilesystem(item);
+        const itemIsValid = itemSchema.validateSync(itemToSave);
+        if (itemIsValid) {
+          itemsToSave.push({
+            item: itemToSave,
+            pathname: item.pathname
+          });
+        }
+      }
+    });
+
+    const { ipcRenderer } = window;
+
+    ipcRenderer
+      .invoke('renderer:save-multiple-requests', itemsToSave)
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save requests!');
+        reject(err);
+      });
+  });
+};
+
 export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
-  console.log(collection.root);
 
   return new Promise((resolve, reject) => {
     if (!collection) {
@@ -113,6 +145,70 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   });
 };
 
+export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+  const folder = findItemInCollection(collection, folderUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    if (!folder) {
+      return reject(new Error('Folder not found'));
+    }
+    console.log(collection);
+
+    const { ipcRenderer } = window;
+
+    const folderData = {
+      name: folder.name,
+      pathname: folder.pathname,
+      root: folder.root
+    };
+    console.log(folderData);
+
+    ipcRenderer
+      .invoke('renderer:save-folder-root', folderData)
+      .then(() => toast.success('Folder Settings saved successfully'))
+      .then(resolve)
+      .catch((err) => {
+        toast.error('Failed to save folder settings!');
+        reject(err);
+      });
+  });
+};
+
+export const sendCollectionOauth2Request = (collectionUid, itemUid) => (dispatch, getState) => {
+  const state = getState();
+  const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+  return new Promise((resolve, reject) => {
+    if (!collection) {
+      return reject(new Error('Collection not found'));
+    }
+
+    const collectionCopy = cloneDeep(collection);
+
+    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
+
+    _sendCollectionOauth2Request(collection, environment, collectionCopy.runtimeVariables)
+      .then((response) => {
+        if (response?.data?.error) {
+          toast.error(response?.data?.error);
+        } else {
+          toast.success('Request made successfully');
+        }
+        return response;
+      })
+      .then(resolve)
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  });
+};
+
 export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -122,12 +218,11 @@ export const sendRequest = (item, collectionUid) => (dispatch, getState) => {
       return reject(new Error('Collection not found'));
     }
 
-    const itemCopy = cloneDeep(item);
+    const itemCopy = cloneDeep(item || {});
     const collectionCopy = cloneDeep(collection);
 
-    const environment = findEnvironmentInCollection(collectionCopy, collection.activeEnvironmentUid);
-
-    sendNetworkRequest(itemCopy, collection, environment, collectionCopy.collectionVariables)
+    const environment = findEnvironmentInCollection(collectionCopy, collectionCopy.activeEnvironmentUid);
+    sendNetworkRequest(itemCopy, collectionCopy, environment, collectionCopy.runtimeVariables)
       .then((response) => {
         return dispatch(
           responseReceived({
@@ -183,7 +278,11 @@ export const cancelRequest = (cancelTokenUid, item, collection) => (dispatch) =>
     .catch((err) => console.log(err));
 };
 
-export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dispatch, getState) => {
+export const cancelRunnerExecution = (cancelTokenUid) => (dispatch) => {
+  cancelNetworkRequest(cancelTokenUid).catch((err) => console.log(err));
+};
+
+export const runCollectionFolder = (collectionUid, folderUid, recursive, delay) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
@@ -213,8 +312,9 @@ export const runCollectionFolder = (collectionUid, folderUid, recursive) => (dis
         folder,
         collectionCopy,
         environment,
-        collectionCopy.collectionVariables,
-        recursive
+        collectionCopy.runtimeVariables,
+        recursive,
+        delay
       )
       .then(resolve)
       .catch((err) => {
@@ -274,6 +374,7 @@ export const newFolder = (folderName, collectionUid, itemUid) => (dispatch, getS
   });
 };
 
+// rename item
 export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
@@ -355,6 +456,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -375,6 +485,15 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
           .then(() => ipcRenderer.invoke('renderer:new-request', fullName, itemToSave))
           .then(resolve)
           .catch(reject);
+
+        dispatch(
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
+          })
+        );
       } else {
         return reject(new Error('Duplicate request names are not allowed under the same folder'));
       }
@@ -581,7 +700,7 @@ export const moveItemToRootOfCollection = (collectionUid, draggedItemUid) => (di
 };
 
 export const newHttpRequest = (params) => (dispatch, getState) => {
-  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body } = params;
+  const { requestName, requestType, requestUrl, requestMethod, collectionUid, itemUid, headers, body, auth } = params;
 
   return new Promise((resolve, reject) => {
     const state = getState();
@@ -591,12 +710,20 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
     }
 
     const parts = splitOnFirst(requestUrl, '?');
-    const params = parseQueryParams(parts[1]);
-    each(params, (urlParam) => {
+    const queryParams = parseQueryParams(parts[1]);
+    each(queryParams, (urlParam) => {
       urlParam.enabled = true;
+      urlParam.type = 'query';
     });
 
-    const collectionCopy = cloneDeep(collection);
+    const pathParams = parsePathParams(requestUrl);
+    each(pathParams, (pathParm) => {
+      pathParams.enabled = true;
+      pathParm.type = 'path';
+    });
+
+    const params = [...queryParams, ...pathParams];
+
     const item = {
       uid: uuid(),
       type: requestType,
@@ -614,6 +741,9 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           sparql: null,
           multipartForm: null,
           formUrlEncoded: null
+        },
+        auth: auth ?? {
+          mode: 'none'
         }
       }
     };
@@ -633,17 +763,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         const { ipcRenderer } = window;
 
         ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-        // the useCollectionNextAction() will track this and open the new request in a new tab
-        // once the request is created
+        // task middleware will track this and open the new request in a new tab once request is created
         dispatch(
-          updateNextAction({
-            nextAction: {
-              type: 'OPEN_REQUEST',
-              payload: {
-                pathname: fullName
-              }
-            },
-            collectionUid
+          insertTaskIntoQueue({
+            uid: uuid(),
+            type: 'OPEN_REQUEST',
+            collectionUid,
+            itemPathname: fullName
           })
         );
       } else {
@@ -663,18 +789,13 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           const { ipcRenderer } = window;
 
           ipcRenderer.invoke('renderer:new-request', fullName, item).then(resolve).catch(reject);
-
-          // the useCollectionNextAction() will track this and open the new request in a new tab
-          // once the request is created
+          // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
-            updateNextAction({
-              nextAction: {
-                type: 'OPEN_REQUEST',
-                payload: {
-                  pathname: fullName
-                }
-              },
-              collectionUid
+            insertTaskIntoQueue({
+              uid: uuid(),
+              type: 'OPEN_REQUEST',
+              collectionUid,
+              itemPathname: fullName
             })
           );
         } else {
@@ -894,6 +1015,16 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseFiles =
+  (filters = []) =>
+  (dispatch, getState) => {
+    const { ipcRenderer } = window;
+
+    return new Promise((resolve, reject) => {
+      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+    });
+  };
+
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
 
@@ -917,16 +1048,18 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
     name: brunoConfig.name,
     pathname: pathname,
     items: [],
-    collectionVariables: {},
+    runtimeVariables: {},
     brunoConfig: brunoConfig
   };
 
   return new Promise((resolve, reject) => {
-    collectionSchema
-      .validate(collection)
-      .then(() => dispatch(_createCollection(collection)))
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('renderer:get-collection-security-config', pathname).then((securityConfig) => {
+      collectionSchema
+        .validate(collection)
+        .then(() => dispatch(_createCollection({ ...collection, securityConfig })))
+        .then(resolve)
+        .catch(reject);
+    });
   });
 };
 
@@ -940,7 +1073,17 @@ export const createCollection = (collectionName, collectionFolderName, collectio
       .catch(reject);
   });
 };
+export const cloneCollection = (collectionName, collectionFolderName, collectionLocation, perviousPath) => () => {
+  const { ipcRenderer } = window;
 
+  return ipcRenderer.invoke(
+    'renderer:clone-collection',
+    collectionName,
+    collectionFolderName,
+    collectionLocation,
+    perviousPath
+  );
+};
 export const openCollection = () => () => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
@@ -979,5 +1122,21 @@ export const importCollection = (collection, collectionLocation) => (dispatch, g
     const { ipcRenderer } = window;
 
     ipcRenderer.invoke('renderer:import-collection', collection, collectionLocation).then(resolve).catch(reject);
+  });
+};
+
+export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    const state = getState();
+    const collection = findCollectionByUid(state.collections.collections, collectionUid);
+
+    ipcRenderer
+      .invoke('renderer:save-collection-security-config', collection?.pathname, securityConfig)
+      .then(async () => {
+        await dispatch(setCollectionSecurityConfig({ collectionUid, securityConfig }));
+        resolve();
+      })
+      .catch(reject);
   });
 };

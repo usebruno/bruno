@@ -16,6 +16,7 @@ import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const TAB_SIZE = 2;
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
@@ -43,6 +44,7 @@ if (!SERVER_RENDERED) {
     'req.getUrl()',
     'req.setUrl(url)',
     'req.getMethod()',
+    'req.getAuthMode()',
     'req.setMethod(method)',
     'req.getHeader(name)',
     'req.getHeaders()',
@@ -57,10 +59,17 @@ if (!SERVER_RENDERED) {
     'bru.cwd()',
     'bru.getEnvName(key)',
     'bru.getProcessEnv(key)',
+    'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.hasVar(key)',
     'bru.getVar(key)',
-    'bru.setVar(key,value)'
+    'bru.setVar(key,value)',
+    'bru.deleteVar(key)',
+    'bru.setNextRequest(requestName)',
+    'req.disableParsingResponseJson()',
+    'bru.getRequestVar(key)',
+    'bru.sleep(ms)'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -103,6 +112,13 @@ export default class CodeEditor extends React.Component {
     // unnecessary updates during the update lifecycle.
     this.cachedValue = props.value || '';
     this.variables = {};
+    this.searchResultsCountElementId = 'search-results-count';
+
+    this.lintOptions = {
+      esversion: 11,
+      expr: true,
+      asi: true
+    };
   }
 
   componentDidMount() {
@@ -110,7 +126,7 @@ export default class CodeEditor extends React.Component {
       value: this.props.value || '',
       lineNumbers: true,
       lineWrapping: true,
-      tabSize: 2,
+      tabSize: TAB_SIZE,
       mode: this.props.mode || 'application/ld+json',
       keyMap: 'sublime',
       autoCloseBrackets: true,
@@ -118,7 +134,7 @@ export default class CodeEditor extends React.Component {
       showCursorWhenSelecting: true,
       foldGutter: true,
       gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter', 'CodeMirror-lint-markers'],
-      lint: { esversion: 11 },
+      lint: this.lintOptions,
       readOnly: this.props.readOnly,
       scrollbarStyle: 'overlay',
       theme: this.props.theme === 'dark' ? 'monokai' : 'default',
@@ -143,8 +159,16 @@ export default class CodeEditor extends React.Component {
             this.props.onSave();
           }
         },
-        'Cmd-F': 'findPersistent',
-        'Ctrl-F': 'findPersistent',
+        'Cmd-F': (cm) => {
+          cm.execCommand('findPersistent');
+          this._bindSearchHandler();
+          this._appendSearchResultsCount();
+        },
+        'Ctrl-F': (cm) => {
+          cm.execCommand('findPersistent');
+          this._bindSearchHandler();
+          this._appendSearchResultsCount();
+        },
         'Cmd-H': 'replace',
         'Ctrl-H': 'replace',
         Tab: function (cm) {
@@ -158,7 +182,33 @@ export default class CodeEditor extends React.Component {
         'Ctrl-Y': 'foldAll',
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
-        'Cmd-I': 'unfoldAll'
+        'Cmd-I': 'unfoldAll',
+        'Cmd-/': (cm) => {
+          // comment/uncomment every selected line(s)
+          const selections = cm.listSelections();
+          selections.forEach((range) => {
+            for (let i = range.from().line; i <= range.to().line; i++) {
+              const selectedLine = cm.getLine(i);
+              // if commented line, remove comment
+              if (selectedLine.trim().startsWith('//')) {
+                cm.replaceRange(
+                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
+                  { line: i, ch: 0 },
+                  { line: i, ch: selectedLine.length }
+                );
+                continue;
+              }
+              // otherwise add comment
+              cm.replaceRange(
+                selectedLine.search(/\S|$/) >= TAB_SIZE
+                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
+                  : '// ' + selectedLine,
+                { line: i, ch: 0 },
+                { line: i, ch: selectedLine.length }
+              );
+            }
+          });
+        }
       },
       foldOptions: {
         widget: (from, to) => {
@@ -209,7 +259,7 @@ export default class CodeEditor extends React.Component {
       return found;
     });
     if (editor) {
-      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      editor.setOption('lint', this.props.mode && editor.getValue().trim().length > 0 ? this.lintOptions : false);
       editor.on('change', this._onEdit);
       this.addOverlay();
     }
@@ -224,7 +274,7 @@ export default class CodeEditor extends React.Component {
         let curWord = start != end && currentLine.slice(start, end);
         //Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
@@ -270,6 +320,8 @@ export default class CodeEditor extends React.Component {
       this.editor.off('change', this._onEdit);
       this.editor = null;
     }
+
+    this._unbindSearchHandler();
   }
 
   render() {
@@ -278,9 +330,10 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full"
+        className="h-full w-full flex flex-col relative"
         aria-label="Code Editor"
         font={this.props.font}
+        fontSize={this.props.fontSize}
         ref={(node) => {
           this._node = node;
         }}
@@ -299,11 +352,69 @@ export default class CodeEditor extends React.Component {
 
   _onEdit = () => {
     if (!this.ignoreChangeEvent && this.editor) {
-      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? { esversion: 11 } : false);
+      this.editor.setOption('lint', this.editor.getValue().trim().length > 0 ? this.lintOptions : false);
       this.cachedValue = this.editor.getValue();
       if (this.props.onEdit) {
         this.props.onEdit(this.cachedValue);
       }
+    }
+  };
+
+  /**
+   * Bind handler to search input to count number of search results
+   */
+  _bindSearchHandler = () => {
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', this._countSearchResults);
+    }
+  };
+
+  /**
+   * Unbind handler to search input to count number of search results
+   */
+  _unbindSearchHandler = () => {
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput) {
+      searchInput.removeEventListener('input', this._countSearchResults);
+    }
+  };
+
+  /**
+   * Append search results count to search dialog
+   */
+  _appendSearchResultsCount = () => {
+    const dialog = document.querySelector('.CodeMirror-dialog.CodeMirror-dialog-top');
+
+    if (dialog) {
+      const searchResultsCount = document.createElement('span');
+      searchResultsCount.id = this.searchResultsCountElementId;
+      dialog.appendChild(searchResultsCount);
+
+      this._countSearchResults();
+    }
+  };
+
+  /**
+   * Count search results and update state
+   */
+  _countSearchResults = () => {
+    let count = 0;
+
+    const searchInput = document.querySelector('.CodeMirror-search-field');
+
+    if (searchInput && searchInput.value.length > 0) {
+      const text = new RegExp(searchInput.value, 'gi');
+      const matches = this.editor.getValue().match(text);
+      count = matches ? matches.length : 0;
+    }
+
+    const searchResultsCountElement = document.querySelector(`#${this.searchResultsCountElementId}`);
+
+    if (searchResultsCountElement) {
+      searchResultsCountElement.innerText = `${count} results`;
     }
   };
 }

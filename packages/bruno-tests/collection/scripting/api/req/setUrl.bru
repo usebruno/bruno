@@ -1,0 +1,28 @@
+meta {
+  name: setUrl
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping/invalid
+  body: none
+  auth: none
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.setUrl("https://testbench-sanity.usebruno.com/ping");
+}
+
+tests {
+  test("req.setUrl()", function() {
+    const url = req.getUrl();
+    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+  });
+}
