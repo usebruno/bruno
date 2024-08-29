@@ -801,8 +801,8 @@ export const getAllVariables = (collection, item) => {
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
 
   return {
-    ...envVariables,
     ...collectionVariables,
+    ...envVariables,
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,

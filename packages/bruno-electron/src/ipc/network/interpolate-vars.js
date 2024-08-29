@@ -38,8 +38,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVariables,
       ...collectionVariables,
+      ...envVariables,
       ...folderVariables,
       ...requestVariables,
       ...runtimeVariables,

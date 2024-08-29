@@ -65,8 +65,8 @@ class VarsRuntime {
     // folder variables
     folderVariables = Object.entries(folderVariables)?.reduce((acc, [key, value]) => {
       let _context = {
-        ...envVariables,
         ...collectionVariables,
+        ...envVariables,
         ...runtimeVariables,
         ...bruContext
       };
@@ -77,8 +77,8 @@ class VarsRuntime {
     // request variables
     requestVariables = Object.entries(requestVariables)?.reduce((acc, [key, value]) => {
       let _context = {
-        ...envVariables,
         ...collectionVariables,
+        ...envVariables,
         ...folderVariables,
         ...runtimeVariables,
         ...bruContext

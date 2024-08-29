@@ -9,8 +9,8 @@ const interpolateString = (
   }
 
   const combinedVars = {
-    ...envVariables,
     ...collectionVariables,
+    ...envVariables,
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,

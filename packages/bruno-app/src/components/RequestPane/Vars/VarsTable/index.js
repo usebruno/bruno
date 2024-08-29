@@ -132,6 +132,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         }
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
                       />
                     </td>
                     <td>
