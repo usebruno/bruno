@@ -258,9 +258,9 @@ class AssertRuntime {
 
     const context = {
       ...envVariables,
+      ...collectionVariables,
       ...folderVariables,
       ...requestVariables,
-      ...collectionVariables,
       ...runtimeVariables,
       ...processEnvVars,
       ...bruContext

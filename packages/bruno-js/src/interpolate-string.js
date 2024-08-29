@@ -9,16 +9,16 @@ const interpolateString = (
   }
 
   const combinedVars = {
-    ...folderVariables,
-    ...requestVariables,
     ...envVariables,
     ...collectionVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
     process: {
       env: {
         ...processEnvVars
       }
-    },
-    ...runtimeVariables
+    }
   };
 
   return interpolate(str, combinedVars);

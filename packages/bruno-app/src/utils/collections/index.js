@@ -801,11 +801,11 @@ export const getAllVariables = (collection, item) => {
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
 
   return {
+    ...envVariables,
+    ...collectionVariables,
     ...folderVariables,
     ...requestVariables,
     ...runtimeVariables,
-    ...envVariables,
-    ...collectionVariables,
     pathParams: {
       ...pathParams
     },
