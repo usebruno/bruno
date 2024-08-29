@@ -85,6 +85,24 @@ const flattenDataForDotNotation = (data) => {
   return result;
 };
 
+/**
+ * @param {object} requestObj The request body object
+ * @returns {object} Returns an obj with repeating key as a array of values
+ * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
+ */
+const createPayload = (requestObj) => {
+  return requestObj.reduce((acc, p) => {
+    if (!acc[p.name]) {
+      acc[p.name] = p.value;
+    } else if (Array.isArray(acc[p.name])) {
+      acc[p.name].push(p.value);
+    } else {
+      acc[p.name] = [acc[p.name], p.value];
+    }
+    return acc;
+  }, {});
+};
+
 module.exports = {
   uuid,
   stringifyJson,
@@ -93,5 +111,6 @@ module.exports = {
   safeParseJSON,
   simpleHash,
   generateUidBasedOnHash,
-  flattenDataForDotNotation
+  flattenDataForDotNotation,
+  createPayload,
 };
