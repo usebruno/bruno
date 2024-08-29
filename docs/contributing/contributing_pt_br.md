@@ -1,3 +1,21 @@
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| [Deutsch](./contributing_de.md)
+| [Français](./contributing_fr.md)
+| **Português (BR)**
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
+
 ## Vamos tornar o Bruno melhor, juntos!!
 
 Estamos felizes que você queira ajudar a melhorar o Bruno. Abaixo estão as diretrizes e orientações para começar a executar o Bruno no seu computador.
@@ -19,7 +37,7 @@ Bibliotecas que utilizamos:
 
 ### Dependências
 
-Você precisará do [Node v18.x (ou da versão LTS mais recente)](https://nodejs.org/en/) e do npm na versão 8.x. Nós utilizamos npm workspaces no projeto.
+Você precisará do [Node v20.x (ou da versão LTS mais recente)](https://nodejs.org/en/) e do npm na versão 8.x. Nós utilizamos npm workspaces no projeto.
 
 ## Desenvolvimento
 

@@ -42,6 +42,7 @@ if (!SERVER_RENDERED) {
 
   require('utils/codemirror/brunoVarInfo');
   require('utils/codemirror/javascript-lint');
+  require('utils/codemirror/autocomplete');
 }
 
 export default function Main() {

@@ -59,7 +59,9 @@ export const tabsSlice = createSlice({
         return;
       }
 
-      if (['variables', 'collection-settings', 'collection-runner'].includes(action.payload.type)) {
+      if (
+        ['variables', 'collection-settings', 'collection-runner', 'security-settings'].includes(action.payload.type)
+      ) {
         const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
         if (tab) {
           focusTabWithStack(state, tab.uid);
@@ -73,7 +75,8 @@ export const tabsSlice = createSlice({
         requestPaneWidth: null,
         requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response',
-        type: action.payload.type || 'request'
+        type: action.payload.type || 'request',
+        ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
       });
       focusTabWithStack(state, action.payload.uid);
     },
@@ -107,6 +110,26 @@ export const tabsSlice = createSlice({
           state.ctrlTabIndex = null;
           return;
       }
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+
+      const direction = action.payload.direction;
+
+      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+
+      let toBeActivatedTabIndex = 0;
+
+      if (direction == 'pageup') {
+        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
+      } else if (direction == 'pagedown') {
+        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      }
+
+      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -180,6 +203,7 @@ export const {
   addTab,
   focusTab,
   ctrlTab,
+  switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,

@@ -1,5 +1,20 @@
-[English](/contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | [Türkçe](docs/contributing/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
-| [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md) | **한국어**
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| [Deutsch](./contributing_de.md)
+| [Français](./contributing_fr.md)
+| [Português (BR)](./contributing_pt_br.md)
+| **한국어**
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
 
 ## 함께 Bruno를 더 좋게 만들어요!!
 
@@ -22,7 +37,7 @@ Bruno는 Next.js와 React로 구축되었습니다. 또한, (로컬 컬렉션을
 
 ### 의존성
 
-[Node v18.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
+[Node v20.x 혹은 최신 LTS version](https://nodejs.org/en/)과 npm 8.x 버전이 필요합니다. 우리는 이 프로젝트에서 npm workspaces를 사용합니다.
 
 ## 개발
 

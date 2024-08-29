@@ -20,7 +20,11 @@ const lightTheme = {
   input: {
     bg: 'white',
     border: '#ccc',
-    focusBorder: '#8b8b8b'
+    focusBorder: '#8b8b8b',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.8
+    }
   },
 
   menubar: {
