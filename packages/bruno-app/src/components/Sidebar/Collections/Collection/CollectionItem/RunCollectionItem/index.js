@@ -57,16 +57,16 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
                   Cancel
                 </button>
               </span>
-                <span>
-                  <button type="submit" disabled={!recursiveRunLength} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
-                    Recursive Run
-                  </button>
-                </span>
-                <span>
-                  <button type="submit" disabled={!runLength} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
-                    Run
-                  </button>
-                </span>
+              <span>
+                <button type="submit" disabled={!recursiveRunLength} className="submit btn btn-md btn-secondary mr-3" onClick={() => onSubmit(true)}>
+                  Recursive Run
+                </button>
+              </span>
+              <span>
+                <button type="submit" disabled={!runLength} className="submit btn btn-md btn-secondary" onClick={() => onSubmit(false)}>
+                  Run
+                </button>
+              </span>
             </div>
           </div>
         )}
