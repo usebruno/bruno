@@ -453,7 +453,8 @@ class Watcher {
           stabilityThreshold: 80,
           pollInterval: 10
         },
-        depth: 20
+        depth: 20,
+        disableGlobbing: true
       });
 
       let startedNewWatcher = false;
