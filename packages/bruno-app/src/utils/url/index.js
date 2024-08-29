@@ -18,16 +18,17 @@ const hasLength = (str) => {
 };
 
 export const parseQueryParams = (query) => {
-  if (!query || !query.length) {
+  try {
+    if (!query || !query.length) {
+      return [];
+    }
+
+    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
+      .map(([name, value]) => ({ name, value }));
+  } catch (error) {
+    console.error('Error parsing query params:', error);
     return [];
   }
-
-  let params = query.split('&').map((param) => {
-    let [name, value = ''] = param.split('=');
-    return { name, value };
-  });
-
-  return filter(params, (p) => hasLength(p.name));
 };
 
 export const parsePathParams = (url) => {
