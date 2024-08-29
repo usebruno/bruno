@@ -787,24 +787,31 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  const environmentVariables = getEnvironmentVariables(collection);
+  const envVariables = getEnvironmentVariables(collection);
+  let collectionVariables = {};
+  let folderVariables = {};
   let requestVariables = {};
-  if (item?.request) {
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
-  }
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  const { collectionVariables: cv, folderVariables: fv, requestVariables: rv } = mergeVars(collection, requestTreePath);
+  collectionVariables = cv;
+  folderVariables = fv;
+  requestVariables = rv;
   const pathParams = getPathParams(item);
 
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+
   return {
-    ...environmentVariables,
+    ...folderVariables,
     ...requestVariables,
-    ...collection.runtimeVariables,
+    ...runtimeVariables,
+    ...envVariables,
+    ...collectionVariables,
     pathParams: {
       ...pathParams
     },
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
   };
@@ -831,14 +838,22 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const mergeFolderLevelVars = (request, requestTreePath = []) => {
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
   let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          requestVariables[_var.name] = _var.value;
+          folderVariables[_var.name] = _var.value;
         }
       });
     } else {
@@ -850,6 +865,9 @@ const mergeFolderLevelVars = (request, requestTreePath = []) => {
       });
     }
   }
-
-  return requestVariables;
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
 };

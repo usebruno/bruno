@@ -3,29 +3,32 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
-import { addFolderVar, deleteFolderVar, updateFolderVar } from 'providers/ReduxStore/slices/collections/index';
+import {
+  addCollectionVar,
+  deleteCollectionVar,
+  updateCollectionVar
+} from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ folder, collection, vars, varType }) => {
+const VarsTable = ({ collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
   const addVar = () => {
     dispatch(
-      addFolderVar({
+      addCollectionVar({
         collectionUid: collection.uid,
-        folderUid: folder.uid,
         type: varType
       })
     );
   };
 
-  const onSave = () => dispatch(saveFolderRoot(collection.uid, folder.uid));
+  const onSave = () => dispatch(saveCollectionRoot(collection.uid));
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
     switch (type) {
@@ -52,10 +55,9 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
       }
     }
     dispatch(
-      updateFolderVar({
+      updateCollectionVar({
         type: varType,
         var: _var,
-        folderUid: folder.uid,
         collectionUid: collection.uid
       })
     );
@@ -63,10 +65,9 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
 
   const handleRemoveVar = (_var) => {
     dispatch(
-      deleteFolderVar({
+      deleteCollectionVar({
         type: varType,
         varUid: _var.uid,
-        folderUid: folder.uid,
         collectionUid: collection.uid
       })
     );
@@ -89,7 +90,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
+                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
                 </div>
               </td>
             )}
@@ -130,7 +131,6 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                           )
                         }
                         collection={collection}
-                        item={folder}
                       />
                     </td>
                     <td>

@@ -4,10 +4,12 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, requestVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
+    this.collectionVariables = collectionVariables || {};
+    this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
     this.collectionPath = collectionPath;
   }
@@ -18,14 +20,16 @@ class Bru {
     }
 
     const combinedVars = {
-      ...this.envVariables,
+      ...this.folderVariables,
       ...this.requestVariables,
-      ...this.runtimeVariables,
+      ...this.envVariables,
+      ...this.collectionVariables,
       process: {
         env: {
           ...this.processEnvVars
         }
-      }
+      },
+      ...this.runtimeVariables
     };
 
     return interpolate(str, combinedVars);
@@ -91,6 +95,14 @@ class Bru {
 
   deleteVar(key) {
     delete this.runtimeVariables[key];
+  }
+
+  getCollectionVar(key) {
+    return this._interpolate(this.collectionVariables[key]);
+  }
+
+  getFolderVar(key) {
+    return this._interpolate(this.folderVariables[key]);
   }
 
   getRequestVar(key) {

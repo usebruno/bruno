@@ -36,15 +36,14 @@ class VarsRuntime {
   }
 
   runPreRequestVars(vars, request, envVariables, runtimeVariables, collectionPath, processEnvVars) {
-    if (!request?.requestVariables) {
-      request.requestVariables = {};
-    }
+    let { collectionVariables = {}, folderVariables = {}, requestVariables = {} } = request;
+
     const enabledVars = _.filter(vars, (v) => v.enabled);
     if (!enabledVars.length) {
       return;
     }
 
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined);
     const req = new BrunoRequest(request);
 
     const bruContext = {
@@ -52,16 +51,45 @@ class VarsRuntime {
       req
     };
 
-    const context = {
-      ...envVariables,
-      ...runtimeVariables,
-      ...bruContext
-    };
+    // collection variables
+    collectionVariables = Object.entries(collectionVariables)?.reduce((acc, [key, value]) => {
+      let _context = {
+        ...envVariables,
+        ...runtimeVariables,
+        ...bruContext
+      };
+      acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
+      return acc;
+    }, {});
 
-    _.each(enabledVars, (v) => {
-      const value = evaluateJsTemplateLiteralBasedOnRuntime(v.value, context, this.runtime);
-      request?.requestVariables && (request.requestVariables[v.name] = value);
-    });
+    // folder variables
+    folderVariables = Object.entries(folderVariables)?.reduce((acc, [key, value]) => {
+      let _context = {
+        ...envVariables,
+        ...collectionVariables,
+        ...runtimeVariables,
+        ...bruContext
+      };
+      acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
+      return acc;
+    }, {});
+
+    // request variables
+    requestVariables = Object.entries(requestVariables)?.reduce((acc, [key, value]) => {
+      let _context = {
+        ...envVariables,
+        ...collectionVariables,
+        ...folderVariables,
+        ...runtimeVariables,
+        ...bruContext
+      };
+      acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
+      return acc;
+    }, {});
+
+    request.collectionVariables = collectionVariables;
+    request.folderVariables = folderVariables;
+    request.requestVariables = requestVariables;
   }
 
   runPostResponseVars(vars, request, response, envVariables, runtimeVariables, collectionPath, processEnvVars) {

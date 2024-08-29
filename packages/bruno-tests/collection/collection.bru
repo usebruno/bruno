@@ -10,6 +10,10 @@ auth:bearer {
   token: {{bearer_auth_token}}
 }
 
+vars:pre-request {
+  collection_pre_var: ${`collection_pre_var` + `_` + `value`}
+}
+
 docs {
   # bruno-testbench 🐶
   
