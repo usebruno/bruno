@@ -224,7 +224,7 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -248,7 +248,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
       let ref = components;
 
       for (const key of refKeys) {
-        if (ref[key]) {
+        if (ref && ref[key]) {
           ref = ref[key];
         } else {
           // Handle invalid references gracefully?
