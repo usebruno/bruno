@@ -23,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSON.parse(graphqlSource);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -54,22 +54,36 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+/**
+ * Ensures a unique name by appending a counter to the base name if necessary.
+ *
+ * @param {string} baseName - The base name to ensure uniqueness for.
+ * @param {object} nameMap - An object that keeps track of existing names.
+ * @returns {string} - A unique name.
+ */
+const ensureUniqueName = (baseName, nameMap) => {
+  let name = baseName;
+  let count = 1;
+
+  while (nameMap[name]) {
+    name = `${baseName}_${count}`;
+    count++;
+  }
+
+  nameMap[name] = true;
+  return name;
+};
+
 let translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
+  const requestNameMap = {};
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
-      const baseFolderName = i.name;
-      let folderName = baseFolderName;
-      let count = 1;
-
-      while (folderMap[folderName]) {
-        folderName = `${baseFolderName}_${count}`;
-        count++;
-      }
+      const folderName = ensureUniqueName(i.name, folderMap);
 
       const brunoFolderItem = {
         uid: uuid(),
@@ -91,9 +105,11 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           url = get(i, 'request.url.raw') || '';
         }
 
+        const requestName = ensureUniqueName(i.name, requestNameMap);
+
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
