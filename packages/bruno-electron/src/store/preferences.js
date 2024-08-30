@@ -1,6 +1,6 @@
 const Yup = require('yup');
 const Store = require('electron-store');
-const { get } = require('lodash');
+const { get, merge } = require('lodash');
 
 /**
  * The preferences are stored in the electron store 'preferences.json'.
@@ -81,10 +81,22 @@ class PreferencesStore {
   }
 
   getPreferences() {
-    return {
-      ...defaultPreferences,
-      ...this.store.get('preferences')
-    };
+    let preferences = this.store.get('preferences', {});
+
+    // This to support the old preferences format
+    // In the old format, we had a proxy.enabled flag
+    // In the new format, this maps to proxy.mode = 'on'
+    if (preferences?.proxy?.enabled) {
+      preferences.proxy.mode = 'on';
+    }
+
+    // Delete the proxy.enabled property if it exists, regardless of its value
+    // This is a part of migration to the new preferences format
+    if (preferences?.proxy && 'enabled' in preferences.proxy) {
+      delete preferences.proxy.enabled;
+    }
+
+    return merge({}, defaultPreferences, preferences);
   }
 
   savePreferences(newPreferences) {

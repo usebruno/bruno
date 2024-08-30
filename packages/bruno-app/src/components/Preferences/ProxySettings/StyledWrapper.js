@@ -20,6 +20,12 @@ const StyledWrapper = styled.div`
       outline: none !important;
     }
   }
+
+  .system-proxy-settings {
+    label {
+      color: ${(props) => props.theme.colors.text.yellow};
+    }
+  }
 `;
 
 export default StyledWrapper;
