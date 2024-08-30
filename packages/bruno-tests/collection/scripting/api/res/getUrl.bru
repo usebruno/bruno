@@ -1,0 +1,23 @@
+meta {
+  name: getUrl
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+tests {
+  test("res.getUrl()", function() {
+    const url = res.getUrl();
+    expect(url).to.equal("https://testbench-sanity.usebruno.com/ping");
+  });
+}

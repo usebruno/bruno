@@ -7,16 +7,19 @@ const addBrunoResponseShimToContext = (vm, res) => {
   const headers = marshallToVm(res?.headers, vm);
   const body = marshallToVm(res?.body, vm);
   const responseTime = marshallToVm(res?.responseTime, vm);
+  const url = marshallToVm(res?.url, vm);
 
   vm.setProp(resObject, 'status', status);
   vm.setProp(resObject, 'headers', headers);
   vm.setProp(resObject, 'body', body);
   vm.setProp(resObject, 'responseTime', responseTime);
+  vm.setProp(resObject, 'url', url);
 
   status.dispose();
   headers.dispose();
   body.dispose();
   responseTime.dispose();
+  url.dispose();
 
   let getStatus = vm.newFunction('getStatus', function () {
     return marshallToVm(res.getStatus(), vm);
@@ -47,6 +50,12 @@ const addBrunoResponseShimToContext = (vm, res) => {
   });
   vm.setProp(resObject, 'getResponseTime', getResponseTime);
   getResponseTime.dispose();
+
+  let getUrl = vm.newFunction('getUrl', function () {
+    return marshallToVm(res.getUrl(), vm);
+  });
+  vm.setProp(resObject, 'getUrl', getUrl);
+  getUrl.dispose();
 
   vm.setProp(vm.global, 'res', resObject);
   resObject.dispose();
