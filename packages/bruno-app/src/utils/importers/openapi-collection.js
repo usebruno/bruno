@@ -41,9 +41,12 @@ const buildEmptyJsonBody = (bodySchema) => {
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
-      // handle arrays
     } else if (prop.type === 'array') {
-      _jsonBody[name] = [];
+      if (prop.items && prop.items.type === 'object') {
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+      } else {
+        _jsonBody[name] = [];
+      }
     } else {
       _jsonBody[name] = '';
     }
@@ -355,6 +358,7 @@ const parseOpenApiCollection = (data) => {
   return new Promise((resolve, reject) => {
     try {
       const collectionData = resolveRefs(data);
+      console.log(collectionData, "llllllllllllllllllll")
       if (!collectionData) {
         reject(new BrunoError('Invalid OpenAPI collection. Failed to resolve refs.'));
         return;
