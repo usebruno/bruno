@@ -2,6 +2,7 @@ const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
+const electron_1 = require("electron");
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -50,6 +51,7 @@ const checkConnection = (host, port) =>
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
   const instance = axios.create();
+  const version = electron_1?.app?.getVersion()?.substring(1) ?? "";
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
@@ -69,6 +71,7 @@ function makeAxiosInstance() {
     }
 
     config.headers['request-start-time'] = Date.now();
+    config.headers['user-agent'] = `bruno-runtime/${version}`;
     return config;
   });
 
