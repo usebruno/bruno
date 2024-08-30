@@ -26,7 +26,7 @@ const defaultPreferences = {
     codeFont: 'default'
   },
   proxy: {
-    mode: false,
+    mode: 'off',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -57,7 +57,7 @@ const preferencesSchema = Yup.object().shape({
     codeFont: Yup.string().nullable()
   }),
   proxy: Yup.object({
-    mode: Yup.mixed().oneOf([false, true, 'system']),
+    mode: Yup.string().oneOf(['off', 'on', 'system']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string().max(1024),
     port: Yup.number().min(1).max(65535).nullable(),

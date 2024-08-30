@@ -125,18 +125,18 @@ const ProxySettings = ({ proxyConfig: _proxyConfig, onUpdate }) => {
             />
           </label>
           <div className="flex items-center">
-            <label className="flex items-center">
+            <label className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="enabled"
                 value="global"
                 checked={formik.values.enabled === 'global'}
                 onChange={formik.handleChange}
-                className="mr-1"
+                className="mr-1 cursor-pointer"
               />
               global
             </label>
-            <label className="flex items-center ml-4">
+            <label className="flex items-center ml-4 cursor-pointer">
               <input
                 type="radio"
                 name="enabled"
@@ -145,11 +145,11 @@ const ProxySettings = ({ proxyConfig: _proxyConfig, onUpdate }) => {
                 onChange={(e) => {
                   formik.setFieldValue('enabled', true);
                 }}
-                className="mr-1"
+                className="mr-1 cursor-pointer"
               />
               enabled
             </label>
-            <label className="flex items-center ml-4">
+            <label className="flex items-center ml-4 cursor-pointer">
               <input
                 type="radio"
                 name="enabled"
@@ -158,7 +158,7 @@ const ProxySettings = ({ proxyConfig: _proxyConfig, onUpdate }) => {
                 onChange={(e) => {
                   formik.setFieldValue('enabled', false);
                 }}
-                className="mr-1"
+                className="mr-1 cursor-pointer"
               />
               disabled
             </label>

@@ -21,21 +21,20 @@ const ProxySettings = ({ close }) => {
     const preferencesCopy = cloneDeep(_preferences);
     // backward compatibility check
     if (typeof preferencesCopy?.proxy?.enabled === 'boolean') {
-      preferencesCopy.proxy.mode = preferencesCopy?.proxy?.enabled;
+      preferencesCopy.proxy.mode = preferencesCopy?.proxy?.enabled ? 'on' : 'off';
     } else {
-      preferencesCopy.proxy.mode = ['string', 'boolean'].includes(typeof preferencesCopy?.proxy?.mode)
-        ? preferencesCopy?.proxy?.mode
-        : false;
+      preferencesCopy.proxy.mode =
+        typeof preferencesCopy?.proxy?.mode === 'string' ? preferencesCopy?.proxy?.mode : 'off';
     }
     return preferencesCopy;
   }, [_preferences]);
 
   const proxySchema = Yup.object({
-    mode: Yup.mixed().oneOf([false, true, 'system']),
+    mode: Yup.string().oneOf(['off', 'on', 'system']),
     protocol: Yup.string().required().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
       .when('enabled', {
-        is: true,
+        is: 'on',
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
@@ -48,7 +47,7 @@ const ProxySettings = ({ close }) => {
       .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
       .when('enabled', {
-        is: true,
+        is: 'on',
         then: Yup.object({
           enabled: Yup.boolean(),
           username: Yup.string()
@@ -137,9 +136,9 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="false"
-                checked={formik.values.mode === false}
+                checked={formik.values.mode === 'off'}
                 onChange={(e) => {
-                  formik.setFieldValue('mode', false);
+                  formik.setFieldValue('mode', 'off');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -150,9 +149,9 @@ const ProxySettings = ({ close }) => {
                 type="radio"
                 name="mode"
                 value="true"
-                checked={formik.values.mode === true}
+                checked={formik.values.mode === 'on'}
                 onChange={(e) => {
-                  formik.setFieldValue('mode', true);
+                  formik.setFieldValue('mode', 'on');
                 }}
                 className="mr-1 cursor-pointer"
               />
@@ -195,7 +194,7 @@ const ProxySettings = ({ close }) => {
             </div>
           </div>
         ) : null}
-        {formik?.values?.mode === true ? (
+        {formik?.values?.mode === 'on' ? (
           <>
             <div className="mb-3 flex items-center">
               <label className="settings-label" htmlFor="protocol">

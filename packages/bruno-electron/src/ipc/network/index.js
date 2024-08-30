@@ -168,7 +168,9 @@ const configureRequest = async (
     proxyMode = get(proxyConfig, 'mode', false);
   }
 
-  if (proxyMode === true) {
+  // proxyMode is true, if the collection-level proxy is enabled.
+  // proxyMode is 'on', if the app-level proxy mode is turned on.
+  if (proxyMode === true || proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
