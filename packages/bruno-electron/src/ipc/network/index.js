@@ -165,17 +165,32 @@ const configureRequest = async (
     }
   }
 
-  // proxy configuration
-  let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyMode = get(proxyConfig, 'enabled', 'global');
-  if (proxyMode === 'global') {
+  /**
+   * Proxy configuration
+   * 
+   * Preferences proxyMode has three possible values: on, off, system
+   * Collection proxyMode has three possible values: true, false, global
+   * 
+   * When collection proxyMode is true, it overrides the app-level proxy settings
+   * When collection proxyMode is false, it ignores the app-level proxy settings
+   * When collection proxyMode is global, it uses the app-level proxy settings
+   * 
+   * Below logic calculates the proxyMode and proxyConfig to be used for the request
+   */
+  let proxyMode = 'off';
+  let proxyConfig = {};
+
+  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
+  if (collectionProxyEnabled === true) {
+    proxyConfig = collectionProxyConfig;
+    proxyMode = 'on';
+  } else if (collectionProxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyMode = get(proxyConfig, 'mode', false);
+    proxyMode = get(proxyConfig, 'mode', 'off');
   }
 
-  // proxyMode is true, if the collection-level proxy is enabled.
-  // proxyMode is 'on', if the app-level proxy mode is turned on.
-  if (proxyMode === true || proxyMode === 'on') {
+  if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);

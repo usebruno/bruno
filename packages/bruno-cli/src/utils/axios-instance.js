@@ -8,9 +8,7 @@ const axios = require('axios');
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create({
-    proxy: false
-  });
+  const instance = axios.create();
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
