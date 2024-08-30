@@ -247,7 +247,7 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
-    .option('collection-path', {
+    .option('collection', {
       type: 'string',
       description: 'Path to the folder where the bruno collection is stored, default to current working directory',
       default: ''
@@ -299,7 +299,7 @@ const handler = async function (argv) {
       sandbox,
       testsOnly,
       bail,
-      collectionPath
+      collection: collectionPath
     } = argv;
 
     collectionPath = (!collectionPath) ? process.cwd(): collectionPath;
