@@ -9,6 +9,7 @@ import StyledWrapper from './StyledWrapper';
 import 'codemirror/theme/material.css';
 import 'codemirror/theme/monokai.css';
 import 'codemirror/addon/scroll/simplescrollbars.css';
+import CtrlTabPopup from 'components/CtrlTabPopup';
 
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 if (!SERVER_RENDERED) {
@@ -60,6 +61,7 @@ export default function Main() {
   return (
     <div>
       <StyledWrapper className={className}>
+        <CtrlTabPopup />
         <Sidebar />
         <section className="flex flex-grow flex-col overflow-auto">
           {showHomePage ? (
