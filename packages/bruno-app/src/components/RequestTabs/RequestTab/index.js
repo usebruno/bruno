@@ -213,7 +213,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
     try {
       const item = findItemInCollection(collection, tabUid);
       // silently save unsaved changes before closing the tab
-      if (item.draft) {
+      if (item?.draft) {
         await dispatch(saveRequest(item.uid, collection.uid, true));
       }
 
