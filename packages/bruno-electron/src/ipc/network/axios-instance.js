@@ -50,7 +50,9 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create();
+  const instance = axios.create({
+    proxy: false
+  });
   const version = electron_1?.app?.getVersion()?.substring(1) ?? "";
 
   instance.interceptors.request.use(async (config) => {
