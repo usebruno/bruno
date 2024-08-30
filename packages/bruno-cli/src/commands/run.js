@@ -247,6 +247,11 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('collection', {
+      type: 'string',
+      description: 'Path to the folder where the bruno collection is stored, default to current working directory',
+      default: ''
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -294,9 +299,11 @@ const handler = async function (argv) {
       format,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      collection: collectionPath
     } = argv;
-    const collectionPath = process.cwd();
+
+    collectionPath = (!collectionPath) ? process.cwd(): collectionPath;
 
     // todo
     // right now, bru must be run from the root of the collection
@@ -314,7 +321,8 @@ const handler = async function (argv) {
 
     if (filenames && filenames.length) {
       for (const filename of filenames) {
-        const pathExists = await exists(filename);
+        const filenamePath = path.join(collectionPath, filename);
+        const pathExists = await exists(filenamePath);
         if (!pathExists) {
           console.error(chalk.red(`File or directory ${filename} does not exist`));
           process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
@@ -415,8 +423,8 @@ const handler = async function (argv) {
     let bruJsons = [];
 
     for (const filename of filenames) {
-
-      const _isFile = isFile(filename);
+      const filenamePath = path.join(collectionPath, filename);
+      const _isFile = isFile(filenamePath);
       if (_isFile) {
         console.log(chalk.yellow(`Adding Request ${filename}`));
         const bruContent = fs.readFileSync(filename, 'utf8');
@@ -427,17 +435,17 @@ const handler = async function (argv) {
         });
       }
 
-      const _isDirectory = isDirectory(filename);
+      const _isDirectory = isDirectory(filenamePath);
       if (_isDirectory) {
         if (!recursive) {
           console.log(chalk.yellow(`Adding Folder ${filename}`));
-          const files = fs.readdirSync(filename);
+          const files = fs.readdirSync(filenamePath);
           const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
           const directoryBruJsons = [];
 
           for (const bruFile of bruFiles) {
             const bruFilepath = path.join(filename, bruFile);
-            const bruContent = fs.readFileSync(bruFilepath, 'utf8');
+            const bruContent = fs.readFileSync(path.join(collectionPath, bruFilepath), 'utf8');
             const bruJson = bruToJson(bruContent);
             const requestHasTests = bruJson.request?.tests;
             const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
