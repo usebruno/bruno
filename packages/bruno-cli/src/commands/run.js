@@ -11,7 +11,7 @@ const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
-const command = 'run [filename]';
+const command = 'run [filenames ...]';
 const desc = 'Run a request';
 
 const printRunSummary = (results) => {
@@ -256,6 +256,7 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run folder folder2 request.bru -r', 'Run all requests in multiple files and/or folders')
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -287,7 +288,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      filenames,
       cacert,
       ignoreTruststore,
       env,
@@ -318,15 +319,17 @@ const handler = async function (argv) {
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
 
-    if (filename && filename.length) {
-      const filenamePath = path.join(collectionPath, filename);
-      const pathExists = await exists(filenamePath);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+    if (filenames && filenames.length) {
+      for (const filename of filenames) {
+        const filenamePath = path.join(collectionPath, filename);
+        const pathExists = await exists(filenamePath);
+        if (!pathExists) {
+          console.error(chalk.red(`File or directory ${filename} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
       }
     } else {
-      filename = './';
+      filenames = ['./'];
       recursive = true;
     }
 
@@ -415,60 +418,68 @@ const handler = async function (argv) {
       });
     }
 
-    const filenamePath = path.join(collectionPath, filename);
-    const _isFile = isFile(filenamePath);
     let results = [];
 
     let bruJsons = [];
 
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filenamePath, 'utf8');
-      const bruJson = bruToJson(bruContent);
-      bruJsons.push({
-        bruFilepath: filename,
-        bruJson
-      });
-    }
+    for (const filename of filenames) {
+      const filenamePath = path.join(collectionPath, filename);
+      const _isFile = isFile(filenamePath);
+      if (_isFile) {
+        console.log(chalk.yellow(`Adding Request ${filename}`));
+        const bruContent = fs.readFileSync(filename, 'utf8');
+        const bruJson = bruToJson(bruContent);
+        bruJsons.push({
+          bruFilepath: filename,
+          bruJson
+        });
+      }
 
-    const _isDirectory = isDirectory(filenamePath);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-        const files = fs.readdirSync(filenamePath);
-        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
+      const _isDirectory = isDirectory(filenamePath);
+      if (_isDirectory) {
+        if (!recursive) {
+          console.log(chalk.yellow(`Adding Folder ${filename}`));
+          const files = fs.readdirSync(filenamePath);
+          const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
+          const directoryBruJsons = [];
 
-        for (const bruFile of bruFiles) {
-          const bruFilepath = path.join(filename, bruFile);
-          const bruContent = fs.readFileSync(path.join(collectionPath, bruFilepath), 'utf8');
-          const bruJson = bruToJson(bruContent);
-          const requestHasTests = bruJson.request?.tests;
-          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
-          if (testsOnly) {
-            if (requestHasTests || requestHasActiveAsserts) {
-              bruJsons.push({
+          for (const bruFile of bruFiles) {
+            const bruFilepath = path.join(filename, bruFile);
+            const bruContent = fs.readFileSync(path.join(collectionPath, bruFilepath), 'utf8');
+            const bruJson = bruToJson(bruContent);
+            const requestHasTests = bruJson.request?.tests;
+            const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+            if (testsOnly) {
+              if (requestHasTests || requestHasActiveAsserts) {
+                directoryBruJsons.push({
+                  bruFilepath,
+                  bruJson
+                });
+              }
+            } else {
+              directoryBruJsons.push({
                 bruFilepath,
                 bruJson
               });
             }
-          } else {
-            bruJsons.push({
-              bruFilepath,
-              bruJson
-            });
           }
-        }
-        bruJsons.sort((a, b) => {
-          const aSequence = a.bruJson.seq || 0;
-          const bSequence = b.bruJson.seq || 0;
-          return aSequence - bSequence;
-        });
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filenamePath, testsOnly);
+          directoryBruJsons.sort((a, b) => {
+            const aSequence = a.bruJson.seq || 0;
+            const bSequence = b.bruJson.seq || 0;
+            return aSequence - bSequence;
+          });
+
+          bruJsons = [...bruJsons, ...directoryBruJsons];
+        } else {
+          console.log(chalk.yellow('Running Folder Recursively \n'));
+
+          bruJsons = [ ...bruJsons, ...getBruFilesRecursively(filename, testsOnly)];
+        }
       }
     }
+
+    console.log();
 
     const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;
