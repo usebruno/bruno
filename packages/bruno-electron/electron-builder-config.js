@@ -27,7 +27,15 @@ const config = {
     hardenedRuntime: true,
     identity: 'Anoop MD (W7LPPWA48L)',
     entitlements: 'resources/entitlements.mac.plist',
-    entitlementsInherit: 'resources/entitlements.mac.plist'
+    entitlementsInherit: 'resources/entitlements.mac.plist',
+    "protocols": [
+      {
+        "name": "bruno",
+        "schemes": [
+          "bruno"
+        ]
+      }
+    ]
   },
   linux: {
     artifactName: '${name}_${version}_${arch}_linux.${ext}',

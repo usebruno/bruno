@@ -56,6 +56,10 @@ const openCollectionDialog = async (win, watcher) => {
   }
 };
 
+const openRemoteCollection = async (win, watcher, collectionUrl, options = {}) => {
+
+}
+
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
   if (!watcher.hasWatcher(collectionPath)) {
     try {

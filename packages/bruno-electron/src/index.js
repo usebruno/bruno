@@ -148,3 +148,10 @@ app.on('window-all-closed', app.quit);
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, watcher, path);
 });
+
+// Open remote file
+app.setAsDefaultProtocolClient('bruno');
+app.on('open-url', (event, url) => {
+  console.log("BRUNO URL ", url);
+  openCollection(mainWindow, watcher, url);
+});

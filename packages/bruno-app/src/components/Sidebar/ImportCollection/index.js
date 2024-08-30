@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFormik } from 'formik';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
@@ -7,6 +8,13 @@ import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
+
+  const formik = useFormik({
+    initialValues: {
+      url: ''
+    }
+  })
+
   const [options, setOptions] = useState({
     enablePostmanTranslations: {
       enabled: true,
@@ -23,6 +31,14 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       .catch((err) => toastError(err, 'Import collection failed'));
   };
 
+  const handleImportRemoteBrunoCollection = () => {
+    importBrunoCollection("http://127.0.0.1:8000/bruno.json")
+      .then(({ collection }) => {
+        handleSubmit({ collection });
+      })
+      .catch((err) => toastError(err, 'Import collection failed'));
+  };
+ 
   const handleImportPostmanCollection = () => {
     importPostmanCollection(options)
       .then(({ collection, translationLog }) => {
@@ -76,6 +92,30 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
           <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
           <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
           <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
+        </div>
+        <div className='flex flex-col'>
+          <div>
+            <label htmlFor="url">
+              Url
+            </label>
+            <input
+              id="url"
+              type="text"
+              name="url"
+              placeholder="*.example.org"
+              className="block textbox non-passphrase-input"
+              onChange={formik.handleChange}
+              value={formik.values.url || ''}
+            />
+          </div>
+
+          <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
+            <div>{formik.values.url}</div>
+            <CollectionButton onClick={handleImportRemoteBrunoCollection}>Bruno Collection</CollectionButton>
+            <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>
+            <CollectionButton onClick={handleImportInsomniaCollection}>Insomnia Collection</CollectionButton>
+            <CollectionButton onClick={handleImportOpenapiCollection}>OpenAPI V3 Spec</CollectionButton>
+          </div>
         </div>
         <div className="flex justify-start w-full mt-4 max-w-[450px]">
           {Object.entries(options || {}).map(([key, option]) => (
