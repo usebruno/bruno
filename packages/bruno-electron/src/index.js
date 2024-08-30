@@ -1,5 +1,15 @@
+const fs = require('fs');
 const path = require('path');
 const isDev = require('electron-is-dev');
+
+if (isDev) {
+  if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
+    console.log('JS Sandbox libraries have not been bundled yet');
+    console.log('Please run the below command \nnpm run sandbox:bundle-libraries --workspace=packages/bruno-js');
+    throw new Error('JS Sandbox libraries have not been bundled yet');
+  }
+}
+
 const { format } = require('url');
 const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
@@ -50,6 +60,7 @@ app.on('ready', async () => {
     height,
     minWidth: 1000,
     minHeight: 640,
+    show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: true,
@@ -67,6 +78,9 @@ app.on('ready', async () => {
     mainWindow.maximize();
   }
 
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
   const url = isDev
     ? 'http://localhost:3000'
     : format({

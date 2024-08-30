@@ -28,9 +28,12 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
-  constructor() {}
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
 
   // This approach is getting out of hand
   // Need to refactor this to use a single arg (object) instead of 7
@@ -86,6 +89,22 @@ class ScriptRuntime {
       };
     }
 
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        nextRequestName: bru.nextRequest
+      };
+    }
+
+    // default runtime is vm2
     const vm = new NodeVM({
       sandbox: context,
       require: {
@@ -123,6 +142,7 @@ class ScriptRuntime {
     });
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
+
     return {
       request,
       envVariables: cleanJson(envVariables),
@@ -176,10 +196,27 @@ class ScriptRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
-        error: customLogger('error')
+        error: customLogger('error'),
+        debug: customLogger('debug')
       };
     }
 
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        nextRequestName: bru.nextRequest
+      };
+    }
+
+    // default runtime is vm2
     const vm = new NodeVM({
       sandbox: context,
       require: {

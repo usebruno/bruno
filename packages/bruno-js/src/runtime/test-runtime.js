@@ -30,9 +30,12 @@ const axios = require('axios');
 const fetch = require('node-fetch');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class TestRuntime {
-  constructor() {}
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
 
   async runTests(
     testsFile,
@@ -76,9 +79,11 @@ class TestRuntime {
         request,
         envVariables,
         runtimeVariables,
-        results: __brunoTestResults.getResults()
+        results: __brunoTestResults.getResults(),
+        nextRequestName: bru.nextRequest
       };
     }
+
 
     const context = {
       test,
@@ -100,54 +105,63 @@ class TestRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
+        debug: customLogger('debug'),
         error: customLogger('error')
       };
     }
 
-    const vm = new NodeVM({
-      sandbox: context,
-      require: {
-        context: 'sandbox',
-        external: true,
-        root: [collectionPath, ...additionalContextRootsAbsolute],
-        mock: {
-          // node libs
-          path,
-          stream,
-          util,
-          url,
-          http,
-          https,
-          punycode,
-          zlib,
-          // 3rd party libs
-          ajv,
-          'ajv-formats': addFormats,
-          btoa,
-          atob,
-          lodash,
-          moment,
-          uuid,
-          nanoid,
-          axios,
-          chai,
-          'node-fetch': fetch,
-          'crypto-js': CryptoJS,
-          ...whitelistedModules,
-          fs: allowScriptFilesystemAccess ? fs : undefined,
-          'node-vault': NodeVault
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: testsFile,
+        context: context
+      });
+    } else {
+      // default runtime is vm2
+      const vm = new NodeVM({
+        sandbox: context,
+        require: {
+          context: 'sandbox',
+          external: true,
+          root: [collectionPath, ...additionalContextRootsAbsolute],
+          mock: {
+            // node libs
+            path,
+            stream,
+            util,
+            url,
+            http,
+            https,
+            punycode,
+            zlib,
+            // 3rd party libs
+            ajv,
+            'ajv-formats': addFormats,
+            btoa,
+            atob,
+            lodash,
+            moment,
+            uuid,
+            nanoid,
+            axios,
+            chai,
+            'node-fetch': fetch,
+            'crypto-js': CryptoJS,
+            ...whitelistedModules,
+            fs: allowScriptFilesystemAccess ? fs : undefined,
+            'node-vault': NodeVault
+          }
         }
-      }
-    });
-
-    const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
-    await asyncVM();
+      });
+      const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
+      await asyncVM();
+    }
 
     return {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      results: cleanJson(__brunoTestResults.getResults())
+      results: cleanJson(__brunoTestResults.getResults()),
+      nextRequestName: bru.nextRequest
     };
   }
 }
