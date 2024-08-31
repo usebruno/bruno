@@ -15,7 +15,7 @@ const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
-const { openCollection } = require('./app/collections');
+const { openCollection, importCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
@@ -23,6 +23,7 @@ const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
+const { registerOpenURL } = require('./open-url');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -150,8 +151,4 @@ app.on('open-file', (event, path) => {
 });
 
 // Open remote file
-app.setAsDefaultProtocolClient('bruno');
-app.on('open-url', (event, url) => {
-  console.log("BRUNO URL ", url);
-  openCollection(mainWindow, watcher, url);
-});
+registerOpenURL(app);

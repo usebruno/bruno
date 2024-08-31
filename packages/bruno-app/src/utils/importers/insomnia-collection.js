@@ -1,10 +1,9 @@
 import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, loadFile } from './common';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -241,10 +240,9 @@ const parseInsomniaCollection = (data) => {
   });
 };
 
-const importCollection = () => {
+const importCollection = (url) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
-      .then(readFile)
+    loadFile(url, readFile, { accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
       .then(parseInsomniaCollection)
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)

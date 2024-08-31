@@ -27,7 +27,8 @@ const initialState = {
     }
   },
   cookies: [],
-  taskQueue: []
+  taskQueue: [],
+  importEventQueue: [],
 };
 
 export const appSlice = createSlice({
@@ -72,6 +73,12 @@ export const appSlice = createSlice({
     },
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
+    },
+    insertImportEventIntoQueue: (state, action) => {
+      state.importEventQueue.push(action.payload);
+    },
+    removeAllImportEventFromQueue: (state, action) => {
+      state.importEventQueue = [];
     }
   }
 });
@@ -89,7 +96,10 @@ export const {
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
-  removeAllTasksFromQueue
+  removeAllTasksFromQueue,
+  insertImportEventIntoQueue,
+  removeAllImportEventFromQueue,
+
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

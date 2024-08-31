@@ -1,6 +1,5 @@
-import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
+import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection, loadFile } from './common';
 
 const readFile = (files) => {
   console.log(files);
@@ -24,38 +23,11 @@ const parseJsonCollection = (str) => {
   });
 };
 
-const readRemoteFile = (remoteFile) => {
+
+
+const importCollection = (url) => {
   return new Promise((resolve, reject) => {
-
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', remoteFile, true);
-    xhr.responseType = 'blob';
-
-    xhr.onload = async function () {
-      if (xhr.status === 200) {
-        const blob = xhr.response;
-        resolve(await blob.text());
-      } else {
-        console.error('File download failed:', xhr.status);
-        reject();
-      }
-    };
-
-    xhr.onerror = function () {
-      console.error('File download failed');
-      reject();
-    };
-
-    xhr.send();
-  });
-
-};
-
-const importCollection = (remoteFile) => {
-  return new Promise((resolve, reject) => {
-    ((!remoteFile) ? 
-      (fileDialog({ accept: 'application/json' }).then(readFile)) :
-      (readRemoteFile(remoteFile)))
+    loadFile(url, readFile, { accept: 'application/json'})
       .then(parseJsonCollection)
       .then(hydrateSeqInCollection)
       .then(updateUidsInCollection)

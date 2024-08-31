@@ -14,7 +14,7 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, importCollectionEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -87,6 +87,11 @@ const useIpcEvents = () => {
       dispatch(openCollectionEvent(uid, pathname, brunoConfig));
     });
 
+    const removeImportCollectionListener = ipcRenderer.on('main:collection-imported', (url) => {
+      console.log("importing", url);
+      dispatch(importCollectionEvent(url));
+    });
+
     const removeCollectionAlreadyOpenedListener = ipcRenderer.on('main:collection-already-opened', (pathname) => {
       toast.success('Collection is already opened');
     });
@@ -144,6 +149,7 @@ const useIpcEvents = () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
       removeCollectionAlreadyOpenedListener();
+      removeImportCollectionListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
       removeCollectionRenamedListener();
