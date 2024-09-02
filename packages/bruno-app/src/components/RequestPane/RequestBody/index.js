@@ -51,6 +51,7 @@ const RequestBody = ({ item, collection }) => {
           collection={collection}
           theme={displayedTheme}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           value={bodyContent[bodyMode] || ''}
           onEdit={onEdit}
           onRun={onRun}

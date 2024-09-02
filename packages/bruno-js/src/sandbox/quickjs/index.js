@@ -10,6 +10,7 @@ const { newQuickJSWASMModule, memoizePromiseFactory } = require('quickjs-emscrip
 // execute `npm run sandbox:bundle-libraries` if the below file doesn't exist
 const getBundledCode = require('../bundle-browser-rollup');
 const addPathShimToContext = require('./shims/lib/path');
+const { marshallToVm } = require('./utils');
 
 let QuickJSSyncContext;
 const loader = memoizePromiseFactory(() => newQuickJSWASMModule());
@@ -48,14 +49,18 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
   const vm = QuickJSSyncContext;
 
   try {
-    const { bru, req, res } = externalContext;
+    const { bru, req, res, ...variables } = externalContext;
 
     bru && addBruShimToContext(vm, bru);
     req && addBrunoRequestShimToContext(vm, req);
     res && addBrunoResponseShimToContext(vm, res);
 
-    const templateLiteralText = `\`${externalScript}\`;`;
-    const jsExpressionText = `${externalScript};`;
+    Object.entries(variables)?.forEach(([key, value]) => {
+      vm.setProp(vm.global, key, marshallToVm(value, vm));
+    });
+
+    const templateLiteralText = `\`${externalScript}\``;
+    const jsExpressionText = `${externalScript}`;
 
     let scriptText = scriptType === 'template-literal' ? templateLiteralText : jsExpressionText;
 
@@ -66,7 +71,6 @@ const executeQuickJsVm = ({ script: externalScript, context: externalContext, sc
       return e;
     } else {
       let v = vm.dump(result.value);
-      let vString = v.toString();
       result.value.dispose();
       return v;
     }
@@ -123,6 +127,9 @@ const executeQuickJsVmAsync = async ({ script: externalScript, context: external
 
             // resolve module
             return globalThis.requireObject[mod];
+          }
+          else {
+            throw new Error("Cannot find module " + mod);
           }
         }
       `;

@@ -23,7 +23,6 @@ import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import '@fontsource/inter/900.css';
-import { DictionaryProvider } from 'providers/Dictionary/index';
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -69,15 +68,13 @@ function MyApp({ Component, pageProps }) {
         <NoSsr>
           <Provider store={ReduxStore}>
             <ThemeProvider>
-              <DictionaryProvider>
-                <ToastProvider>
-                  <AppProvider>
-                    <HotkeysProvider>
-                      <Component {...pageProps} />
-                    </HotkeysProvider>
-                  </AppProvider>
-                </ToastProvider>
-              </DictionaryProvider>
+              <ToastProvider>
+                <AppProvider>
+                  <HotkeysProvider>
+                    <Component {...pageProps} />
+                  </HotkeysProvider>
+                </AppProvider>
+              </ToastProvider>
             </ThemeProvider>
           </Provider>
         </NoSsr>

@@ -41,12 +41,32 @@ export const tabsSlice = createSlice({
         requestPaneTab: action.payload.requestPaneTab || 'params',
         responsePaneTab: 'response',
         type: action.payload.type || 'request',
-        ...(action.payload.folderUid ? { folderUid: action.payload.folderUid } : {})
+        ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
       });
       state.activeTabUid = action.payload.uid;
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+
+      const direction = action.payload.direction;
+
+      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+
+      let toBeActivatedTabIndex = 0;
+
+      if (direction == 'pageup') {
+        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
+      } else if (direction == 'pagedown') {
+        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      }
+
+      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -111,6 +131,7 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTab,
   updateResponsePaneTab,
