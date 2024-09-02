@@ -9,7 +9,7 @@ const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson, bruToRunConfigJson } = require('@usebruno/lang');
+const { dotenvToJson, bruToRunConfigJson, bruToRunConfigJsonV2 } = require('@usebruno/lang');
 const constants = require('../constants');
 const command = 'run [filenames ...]';
 const desc = 'Run a request';
@@ -325,8 +325,33 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const runtimeVariables = {};
+    let runtimeVariables = {};
     let envVars = {};
+
+    // TODO: better way to find if runs
+    if (filenames[0].startsWith("runs/")) {
+      if (filenames.length > 1) {
+          console.error(chalk.red(`If passings runs , only one can be provided`));
+          // TODO: specific error if it stays
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+       
+      }
+
+      const bruContent = fs.readFileSync(filenames[0], 'utf8');
+      const bruJson = bruToRunConfigJsonV2(bruContent);
+
+      if (bruJson.environment) {
+        env = bruJson.environment;
+      }
+
+      if (bruJson.requests && bruJson.requests.length > 0) {
+        filenames = bruJson.requests.map(r => r.request);
+        runtimeVariables = bruJson.vars;
+        for (const variable of bruJson.vars) {
+          runtimeVariables[variable.name] = variable.value;
+        }
+      }
+    }
 
     if (env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
@@ -417,6 +442,7 @@ const handler = async function (argv) {
     for (const filename of filenames) {
 
       const _isFile = isFile(filename);
+
       if (_isFile) {
         console.log(chalk.yellow(`Adding Request ${filename}`));
         const bruContent = fs.readFileSync(filename, 'utf8');
@@ -470,8 +496,6 @@ const handler = async function (argv) {
         }
       }
     }
-
-    console.log();
 
     const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;

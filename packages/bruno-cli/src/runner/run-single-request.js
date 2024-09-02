@@ -209,6 +209,8 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
+    console.log(request);
+
     let response, responseTime;
     try {
       // run request
