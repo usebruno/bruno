@@ -62,7 +62,9 @@ function makeAxiosInstance() {
         return data;
       }
 
-      axios.defaults.transformRequest.forEach((tr) => tr(data, headers));
+      axios.defaults.transformRequest.forEach((tr) => data = tr(data, headers));
+      return data;
+
     }
   });
 
