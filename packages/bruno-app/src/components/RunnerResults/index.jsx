@@ -9,6 +9,8 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import { addTab } from 'providers/ReduxStore/slices/tabs';
+import { getDefaultRequestPaneTab } from 'utils/collections/index';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -80,6 +82,16 @@ export default function RunnerResults({ collection }) {
 
   const runCollection = () => {
     dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+  };
+
+  const selectCollection = (item) => {
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        requestPaneTab: getDefaultRequestPaneTab(item)
+      })
+    );
   };
 
   const runAgain = () => {
@@ -176,7 +188,8 @@ export default function RunnerResults({ collection }) {
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 cursor-pointer ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      onClick={() => selectCollection(item)}
                     >
                       {item.relativePath}
                     </span>
