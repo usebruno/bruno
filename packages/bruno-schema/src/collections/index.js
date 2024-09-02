@@ -1,5 +1,6 @@
 const Yup = require('yup');
 const { uidSchema } = require('../common');
+const { runsSchema } = require('./run');
 
 const environmentVariablesSchema = Yup.object({
   uid: uidSchema,
@@ -305,6 +306,7 @@ const collectionSchema = Yup.object({
     .matches(/^[a-zA-Z0-9]*$/, 'uid must be alphanumeric')
     .nullable(),
   environments: environmentsSchema,
+  runs: runsSchema,
   pathname: Yup.string().nullable(),
   runnerResult: Yup.object({
     items: Yup.array()

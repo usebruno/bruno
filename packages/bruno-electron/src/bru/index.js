@@ -73,6 +73,16 @@ const jsonToCollectionBru = (json, isFolder) => {
   }
 };
 
+const bruToRunConfigJson = (bru) => {
+  try {
+    const json = bruToEnvJsonV2(bru);
+
+    return json;
+  } catch (error) {
+    return Promise.reject(error);
+  }
+};
+
 const bruToEnvJson = (bru) => {
   try {
     const json = bruToEnvJsonV2(bru);

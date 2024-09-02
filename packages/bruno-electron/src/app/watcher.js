@@ -37,6 +37,15 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   return dirname === envDirectory && hasBruExtension(basename);
 };
 
+const isBrunoRunConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const runsDirectory = path.join(collectionPath, 'runs');
+  const basename = path.basename(pathname);
+
+  return dirname === runsDirectory && hasBruExtension(basename);
+
+};
+
 const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
@@ -83,6 +92,32 @@ const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
 
   return secrets && secrets.length > 0;
+};
+
+const addRunConfigFile = async (win, pathname, collectionUid, collectionPath) => {
+  try {
+    const basename = path.basename(pathname);
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: basename
+      }
+    };
+
+    let bruContent = fs.readFileSync(pathname, 'utf8');
+
+    file.data = bruToJson(bruContent)
+    file.data.name = basename.substring(0, basename.length - 4);
+    file.data.uid = getRequestUid(pathname);
+
+    console.log("config file ", file.data);
+
+    win.webContents.send('main:collection-tree-updated', 'addRunConfigFile', file);
+  } catch (err) {
+    console.log(err);
+  }
+
 };
 
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
@@ -237,6 +272,10 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       console.error(err);
       return;
     }
+  }
+
+  if (isBrunoRunConfigFile(pathname, collectionPath)) {
+    return addRunConfigFile(win, pathname, collectionUid, collectionPath);
   }
 
   // Is this a folder.bru file?

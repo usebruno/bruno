@@ -3,6 +3,8 @@ const jsonToBruV2 = require('../v2/src/jsonToBru');
 const bruToEnvJsonV2 = require('../v2/src/envToJson');
 const envJsonToBruV2 = require('../v2/src/jsonToEnv');
 const dotenvToJson = require('../v2/src/dotenvToJson');
+const bruToRunConfigJsonV2 = require('../v2/src/runToJson');
+const runConfigToBru = require('../v2/src/jsonToRun');
 
 const collectionBruToJson = require('../v2/src/collectionBruToJson');
 const jsonToCollectionBru = require('../v2/src/jsonToCollectionBru');
@@ -15,6 +17,9 @@ module.exports = {
   jsonToBruV2,
   bruToEnvJsonV2,
   envJsonToBruV2,
+
+  bruToRunConfigJsonV2,
+  runConfigToBru,
 
   collectionBruToJson,
   jsonToCollectionBru,

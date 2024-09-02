@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const Mustache = require('mustache');
-const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
+const { bruToEnvJsonV2, bruToJsonV2, bruToRunConfigJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
 
 // override the default escape function to prevent escaping
 Mustache.escape = function (value) {
@@ -73,6 +73,15 @@ const bruToJson = (bru) => {
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
 
     return transformedJson;
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
+
+
+const bruToRunConfigJson = (bru) => {
+  try {
+    return bruToRunConfigJsonV2(bru);
   } catch (err) {
     return Promise.reject(err);
   }
