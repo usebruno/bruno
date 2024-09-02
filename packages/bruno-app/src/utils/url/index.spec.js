@@ -49,6 +49,23 @@ describe('Url Utils - parseQueryParams', () => {
       { name: 'b', value: '2' }
     ]);
   });
+
+  it('should parse query with "=" character - case 9', () => {
+    const params = parseQueryParams('a=1&b={color=red,size=large}&c=3');
+    expect(params).toEqual([
+      { name: 'a', value: '1' },
+      { name: 'b', value: '{color=red,size=large}' },
+      { name: 'c', value: '3' }
+    ]);
+  });
+
+  it('should parse query with fragment - case 10', () => {
+    const params = parseQueryParams('a=1&b=2#I-AM-FRAGMENT');
+    expect(params).toEqual([
+      { name: 'a', value: '1' },
+      { name: 'b', value: '2' }
+    ]);
+  });
 });
 
 describe('Url Utils - parsePathParams', () => {

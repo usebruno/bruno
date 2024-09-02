@@ -165,51 +165,92 @@ const configureRequest = async (
     }
   }
 
-  // proxy configuration
-  let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
-  if (proxyEnabled === 'global') {
+  /**
+   * Proxy configuration
+   * 
+   * Preferences proxyMode has three possible values: on, off, system
+   * Collection proxyMode has three possible values: true, false, global
+   * 
+   * When collection proxyMode is true, it overrides the app-level proxy settings
+   * When collection proxyMode is false, it ignores the app-level proxy settings
+   * When collection proxyMode is global, it uses the app-level proxy settings
+   * 
+   * Below logic calculates the proxyMode and proxyConfig to be used for the request
+   */
+  let proxyMode = 'off';
+  let proxyConfig = {};
+
+  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
+  if (collectionProxyEnabled === true) {
+    proxyConfig = collectionProxyConfig;
+    proxyMode = 'on';
+  } else if (collectionProxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyEnabled = get(proxyConfig, 'enabled', false);
+    proxyMode = get(proxyConfig, 'mode', 'off');
   }
-  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-  if (proxyEnabled === true && shouldProxy) {
-    const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-    const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-    const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-    const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-    const socksEnabled = proxyProtocol.includes('socks');
 
-    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-    let proxyUri;
-    if (proxyAuthEnabled) {
-      const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-      const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+  if (proxyMode === 'on') {
+    const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
+    if (shouldProxy) {
+      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const socksEnabled = proxyProtocol.includes('socks');
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      let proxyUri;
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-    } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+      } else {
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+      }
+      if (socksEnabled) {
+        request.httpsAgent = new SocksProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new SocksProxyAgent(proxyUri);
+      } else {
+        request.httpsAgent = new PatchedHttpsProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new HttpProxyAgent(proxyUri);
+      }
     }
-
-    if (socksEnabled) {
-      request.httpsAgent = new SocksProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new SocksProxyAgent(proxyUri);
-    } else {
-      request.httpsAgent = new PatchedHttpsProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new HttpProxyAgent(proxyUri);
+  } else if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          request.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
       ...httpsAgentRequestFields
     });
   }
-
   const axiosInstance = makeAxiosInstance();
 
   if (request.oauth2) {
