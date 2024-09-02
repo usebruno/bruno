@@ -14,7 +14,7 @@ export const getLanguages = () => {
           client: clients[0]
         }]
         : clients.map(client => ({
-          name: `${title} - ${client}`,
+          name: `${title}-${client}`,
           target: key,
           client
         }));
