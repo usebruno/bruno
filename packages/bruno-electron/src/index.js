@@ -23,7 +23,6 @@ const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
-const { registerOpenURL } = require('./open-url');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -151,4 +150,14 @@ app.on('open-file', (event, path) => {
 });
 
 // Open remote file
+function registerOpenURL(app) {
+  app.setAsDefaultProtocolClient('bruno');
+  app.on('open-url', (event, url) => {
+    const openUrl = new URL(url);
+      
+    const collectionUrl = openUrl.searchParams.get('url');
+    importCollection(mainWindow, collectionUrl);
+  });
+}
+
 registerOpenURL(app);

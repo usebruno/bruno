@@ -75,16 +75,14 @@ export const appSlice = createSlice({
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
     },
-<<<<<<< HEAD
     insertImportEventIntoQueue: (state, action) => {
       state.importEventQueue.push(action.payload);
     },
     removeAllImportEventFromQueue: (state, action) => {
       state.importEventQueue = [];
-=======
+    },
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
->>>>>>> c5c343c543db520e53e02f4da24919c1f96eea69
     }
   }
 });
@@ -103,13 +101,9 @@ export const {
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
-<<<<<<< HEAD
   insertImportEventIntoQueue,
   removeAllImportEventFromQueue,
-
-=======
   updateSystemProxyEnvVariables
->>>>>>> c5c343c543db520e53e02f4da24919c1f96eea69
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {
