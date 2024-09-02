@@ -2,7 +2,6 @@ import { targets } from 'httpsnippet';
 
 export const getLanguages = () => {
   const allLanguages = [];
-  console.log(Object.values(targets));
   for (const target of Object.values(targets)) {
     const { key, title } = target.info;
     const clients = Object.keys(target.clientsById);
