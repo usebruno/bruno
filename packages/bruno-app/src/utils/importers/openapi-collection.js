@@ -37,15 +37,12 @@ const ensureUrl = (url) => {
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
-  console.log(bodySchema)
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
     } else if (prop.type === 'array') {
-      console.log("here array")
       if (prop.items && prop.items.type === 'object') {
-        console.log("here object")
         _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
       } else {
         _jsonBody[name] = [];
