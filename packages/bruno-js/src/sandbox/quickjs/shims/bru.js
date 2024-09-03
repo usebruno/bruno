@@ -69,6 +69,18 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getRequestVar', getRequestVar);
   getRequestVar.dispose();
 
+  let getFolderVar = vm.newFunction('getFolderVar', function (key) {
+    return marshallToVm(bru.getFolderVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getFolderVar', getFolderVar);
+  getFolderVar.dispose();
+
+  let getCollectionVar = vm.newFunction('getCollectionVar', function (key) {
+    return marshallToVm(bru.getCollectionVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
+  getCollectionVar.dispose();
+
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);
     const promise = vm.newPromise();

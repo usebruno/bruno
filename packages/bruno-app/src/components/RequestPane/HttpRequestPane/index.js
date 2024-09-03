@@ -97,6 +97,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const script = getPropertyFromDraftOrRequest('request.script');
   const assertions = getPropertyFromDraftOrRequest('request.assertions');
   const tests = getPropertyFromDraftOrRequest('request.tests');
+  const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
 
@@ -139,10 +140,11 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => selectTab('tests')}>
           Tests
-          {tests && <ContentIndicator />}
+          {tests && tests.length > 0 && <ContentIndicator />}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => selectTab('docs')}>
           Docs
+          {docs && docs.length > 0 && <ContentIndicator />}
         </div>
         {focusedTab.requestPaneTab === 'body' ? (
           <div className="flex flex-grow justify-end items-center">
