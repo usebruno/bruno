@@ -305,7 +305,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url || '/';
+  return url.endsWith('/') ? url : `${url}/`;
 };
 
 const getSecurity = (apiSpec) => {
