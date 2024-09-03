@@ -10,15 +10,20 @@ get {
   auth: none
 }
 
+headers {
+  request_pre_var: {{request_pre_var}}
+}
+
 vars:pre-request {
-  request_pre_var: ${`request_pre_var` + `_` + `value` + '_and_' + collection_pre_var}
+  request_pre_var: {{folder_pre_var}}
   request_pre_var_token: request_pre_var_token_value
+  request_pre_var_1: request_pre_var_1_value
+  request_pre_var_2: {{request_pre_var_1}}
 }
 
 assert {
   collection_pre_var: eq collection_pre_var_value
   folder_pre_var: eq folder_pre_var_value
-  request_pre_var: eq request_pre_var_value_and_collection_pre_var_value
 }
 
 tests {
@@ -33,7 +38,11 @@ tests {
   
   
   test("request pre var bru function", function() {
-    expect(bru.getRequestVar('request_pre_var')).to.eql('request_pre_var_value_and_collection_pre_var_value');
+    expect(bru.getRequestVar('request_pre_var')).to.eql('folder_pre_var_value');
+  });
+  
+  test("request pre var self-interpoaltion", function() {
+    expect(bru.getRequestVar('request_pre_var_2')).to.eql('request_pre_var_1_value');
   });
   
 }

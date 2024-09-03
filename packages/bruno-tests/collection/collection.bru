@@ -12,7 +12,7 @@ auth:bearer {
 }
 
 vars:pre-request {
-  collection_pre_var: ${`collection_pre_var` + `_` + `value`}
+  collection_pre_var: collection_pre_var_value
   collection_pre_var_token: {{request_pre_var_token}}
 }
 

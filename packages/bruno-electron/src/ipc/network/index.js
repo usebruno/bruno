@@ -290,10 +290,10 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if(!disableParsingResponseJson) {
+    if (!disableParsingResponseJson) {
       data = JSON.parse(data);
     }
-  } catch {}
+  } catch { }
 
   return { data, dataBuffer };
 };
@@ -319,20 +319,6 @@ const registerNetworkIpc = (mainWindow) => {
     processEnvVars,
     scriptingConfig
   ) => {
-    // run pre-request vars
-    const preRequestVars = get(request, 'vars.req', []);
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
-
     // run pre-request script
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
@@ -1160,7 +1146,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           const disposition = contentDispositionParser.parse(contentDisposition);
           return disposition && disposition.parameters['filename'];
-        } catch (error) {}
+        } catch (error) { }
       };
 
       const getFileNameFromUrlPath = () => {
