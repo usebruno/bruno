@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -67,7 +66,7 @@ const transformOpenapiRequestItem = (request) => {
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + path),
+      url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -306,7 +305,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url;
+  return url.endsWith('/') ? url : `${url}/`;
 };
 
 const getSecurity = (apiSpec) => {
