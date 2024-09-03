@@ -141,6 +141,7 @@ ${indentString(`password: ${auth?.basic?.password || ''}`)}
 
   if (auth && auth.bearer) {
     bru += `auth:bearer {
+${indentString(`prefix: ${auth?.bearer?.prefix || 'Bearer'}`)}
 ${indentString(`token: ${auth?.bearer?.token || ''}`)}
 }
 

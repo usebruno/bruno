@@ -67,6 +67,7 @@
       "password": "secret"
     },
     "bearer": {
+      "prefix": "Token",
       "token": "123"
     },
     "digest": {

@@ -107,6 +107,7 @@ const authBasicSchema = Yup.object({
   .strict();
 
 const authBearerSchema = Yup.object({
+  prefix: Yup.string().nullable(),
   token: Yup.string().nullable()
 })
   .noUnknown(true)
