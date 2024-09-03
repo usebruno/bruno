@@ -1,5 +1,6 @@
 headers {
   check: again
+  token: {{collection_pre_var_token}}
 }
 
 auth {
@@ -8,6 +9,11 @@ auth {
 
 auth:bearer {
   token: {{bearer_auth_token}}
+}
+
+vars:pre-request {
+  collection_pre_var: collection_pre_var_value
+  collection_pre_var_token: {{request_pre_var_token}}
 }
 
 docs {
