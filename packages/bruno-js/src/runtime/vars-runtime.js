@@ -1,21 +1,9 @@
 const _ = require('lodash');
 const Bru = require('../bru');
 const BrunoRequest = require('../bruno-request');
-const { evaluateJsTemplateLiteral, evaluateJsExpression, createResponseParser } = require('../utils');
+const { evaluateJsExpression, createResponseParser } = require('../utils');
 
 const { executeQuickJsVm } = require('../sandbox/quickjs');
-
-const evaluateJsTemplateLiteralBasedOnRuntime = (literal, context, runtime) => {
-  if (runtime === 'quickjs') {
-    return executeQuickJsVm({
-      script: literal,
-      context,
-      scriptType: 'template-literal'
-    });
-  }
-
-  return evaluateJsTemplateLiteral(literal, context);
-};
 
 const evaluateJsExpressionBasedOnRuntime = (expr, context, runtime, mode) => {
   if (runtime === 'quickjs') {
