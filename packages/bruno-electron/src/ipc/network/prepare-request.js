@@ -6,7 +6,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
-const { createPayload } = require('../../utils/common');
+const { buildFormUrlEncodedPayload } = require('../../utils/common');
 
 const mergeFolderLevelHeaders = (request, requestTreePath) => {
   let folderHeaders = new Map();
@@ -382,7 +382,8 @@ const prepareRequest = (item, collection) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
-    axiosRequest.data = createPayload(request.body.formUrlEncoded);
+    const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
 
   if (request.body.mode === 'multipartForm') {
