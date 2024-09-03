@@ -15,6 +15,7 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
+import { Divider } from 'components/Divider/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -287,9 +288,7 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
         >
           Clone Request
         </button>
-        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
-          Close
-        </button>
+        <Divider />
         <button disabled={!hasOtherTabs} className="dropdown-item w-full" onClick={handleCloseOtherTabs}>
           Close Others
         </button>
@@ -299,11 +298,15 @@ function RequestTabMenu({ onDropdownCreate, collectionRequestTabs, tabIndex, col
         <button disabled={!hasRightTabs} className="dropdown-item w-full" onClick={handleCloseTabsToTheRight}>
           Close to the Right
         </button>
-        <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
-          Close Saved
+        <Divider />
+        <button className="dropdown-item w-full" onClick={(e) => handleCloseTab(e, currentTabUid)}>
+          Close
         </button>
         <button className="dropdown-item w-full" onClick={handleCloseAllTabs}>
           Close All
+        </button>
+        <button className="dropdown-item w-full" onClick={handleCloseSavedTabs}>
+          Close Saved
         </button>
       </Dropdown>
     </Fragment>

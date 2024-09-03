@@ -265,6 +265,10 @@ const lightTheme = {
 
   scrollbar: {
     color: 'rgb(152 151 149)'
+  },
+
+  divider: {
+    borderColor: '#404040'
   }
 };
 

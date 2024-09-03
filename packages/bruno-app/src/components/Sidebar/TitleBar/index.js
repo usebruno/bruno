@@ -11,6 +11,7 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { Divider } from 'components/Divider/index';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -121,6 +122,7 @@ const TitleBar = () => {
             >
               Import Collection
             </div>
+            <Divider />
             <div
               className="dropdown-item"
               onClick={(e) => {

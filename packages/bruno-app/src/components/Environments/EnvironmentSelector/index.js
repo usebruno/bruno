@@ -8,6 +8,7 @@ import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { Divider } from 'components/Divider/index';
 
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
@@ -77,7 +78,8 @@ const EnvironmentSelector = ({ collection }) => {
             <IconDatabaseOff size={18} strokeWidth={1.5} />
             <span className="ml-2">No Environment</span>
           </div>
-          <div className="dropdown-item border-top" onClick={handleSettingsIconClick}>
+          <Divider/>
+          <div className="dropdown-item" onClick={handleSettingsIconClick}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>

@@ -261,6 +261,10 @@ const darkTheme = {
 
   scrollbar: {
     color: 'rgb(52 51 49)'
+  },
+
+  divider: {
+    borderColor: '#a3a3a3'
   }
 };
 
