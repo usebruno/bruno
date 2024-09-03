@@ -37,12 +37,15 @@ const ensureUrl = (url) => {
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
+  console.log(bodySchema)
   let _jsonBody = {};
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
     } else if (prop.type === 'array') {
+      console.log("here array")
       if (prop.items && prop.items.type === 'object') {
+        console.log("here object")
         _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
       } else {
         _jsonBody[name] = [];
@@ -167,6 +170,9 @@ const transformOpenapiRequestItem = (request) => {
       if (bodySchema && bodySchema.type === 'object') {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
+      }
+      if (bodySchema && bodySchema.type === 'array') {
+        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
       }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
