@@ -23,10 +23,11 @@ const defaultPreferences = {
     timeout: 0
   },
   font: {
-    codeFont: 'default'
+    codeFont: 'default',
+    codeFontSize: 14
   },
   proxy: {
-    enabled: false,
+    mode: 'off',
     protocol: 'http',
     hostname: '',
     port: null,
@@ -54,10 +55,11 @@ const preferencesSchema = Yup.object().shape({
     timeout: Yup.number()
   }),
   font: Yup.object().shape({
-    codeFont: Yup.string().nullable()
+    codeFont: Yup.string().nullable(),
+    codeFontSize: Yup.number().min(1).max(32).nullable()
   }),
   proxy: Yup.object({
-    enabled: Yup.boolean(),
+    mode: Yup.string().oneOf(['off', 'on', 'system']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string().max(1024),
     port: Yup.number().min(1).max(65535).nullable(),
@@ -134,6 +136,14 @@ const preferencesUtil = {
   },
   shouldSendCookies: () => {
     return get(getPreferences(), 'request.sendCookies', true);
+  },
+  getSystemProxyEnvVariables: () => {
+    const { http_proxy, HTTP_PROXY, https_proxy, HTTPS_PROXY, no_proxy, NO_PROXY } = process.env;
+    return {
+      http_proxy: http_proxy || HTTP_PROXY,
+      https_proxy: https_proxy || HTTPS_PROXY,
+      no_proxy: no_proxy || NO_PROXY
+    };
   }
 };
 

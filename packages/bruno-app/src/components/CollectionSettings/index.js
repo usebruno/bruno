@@ -95,6 +95,7 @@ const CollectionSettings = ({ collection }) => {
       case 'clientCert': {
         return (
           <ClientCertSettings
+            root={collection.pathname}
             clientCertConfig={clientCertConfig}
             onUpdate={onClientCertSettingsUpdate}
             onRemove={onClientCertSettingsRemove}

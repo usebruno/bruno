@@ -10,6 +10,8 @@ import {
 } from 'providers/ReduxStore/slices/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
+import ToolHint from 'components/ToolHint';
+import { useTheme } from 'providers/Theme';
 
 const PAGE_SIZE = 5;
 
@@ -20,6 +22,7 @@ const Notifications = () => {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const { storedTheme } = useTheme();
 
   const notificationsStartIndex = (pageNumber - 1) * PAGE_SIZE;
   const notificationsEndIndex = pageNumber * PAGE_SIZE;
@@ -85,21 +88,22 @@ const Notifications = () => {
   return (
     <StyledWrapper>
       <a
-        title="Notifications"
         className="relative cursor-pointer"
         onClick={() => {
           dispatch(fetchNotifications());
           setShowNotificationsModal(true);
         }}
       >
-        <IconBell
-          size={18}
-          strokeWidth={1.5}
-          className={`mr-2 hover:text-gray-700 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
-        />
-        {unreadNotifications.length > 0 && (
-          <span className="notification-count text-xs">{unreadNotifications.length}</span>
-        )}
+        <ToolHint text="Notifications" toolhintId="Notifications" offset={8} >
+          <IconBell
+            size={18}
+            strokeWidth={1.5}
+            className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
+          />
+          {unreadNotifications.length > 0 && (
+            <span className="notification-count text-xs">{unreadNotifications.length}</span>
+          )}
+        </ToolHint>
       </a>
 
       {showNotificationsModal && (
@@ -129,9 +133,8 @@ const Notifications = () => {
                     {notifications?.slice(notificationsStartIndex, notificationsEndIndex)?.map((notification) => (
                       <li
                         key={notification.id}
-                        className={`p-4 flex flex-col justify-center ${
-                          selectedNotification?.id == notification.id ? 'active' : notification.read ? 'read' : ''
-                        }`}
+                        className={`p-4 flex flex-col justify-center ${selectedNotification?.id == notification.id ? 'active' : notification.read ? 'read' : ''
+                          }`}
                         onClick={handleNotificationItemClick(notification)}
                       >
                         <div className="notification-title w-full">{notification?.title}</div>
@@ -141,9 +144,8 @@ const Notifications = () => {
                   </ul>
                   <div className="w-full pagination flex flex-row gap-4 justify-center p-2 items-center text-xs">
                     <button
-                      className={`pl-2 pr-2 py-3 select-none ${
-                        pageNumber <= 1 ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
-                      }`}
+                      className={`pl-2 pr-2 py-3 select-none ${pageNumber <= 1 ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
+                        }`}
                       onClick={handlePrev}
                     >
                       {'Prev'}
@@ -159,9 +161,8 @@ const Notifications = () => {
                       </div>
                     </div>
                     <button
-                      className={`pl-2 pr-2 py-3 select-none ${
-                        pageNumber == totalPages ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
-                      }`}
+                      className={`pl-2 pr-2 py-3 select-none ${pageNumber == totalPages ? 'opacity-50' : 'text-link cursor-pointer hover:underline'
+                        }`}
                       onClick={handleNext}
                     >
                       {'Next'}

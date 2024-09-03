@@ -167,49 +167,75 @@ const configureRequest = async (
 
   // proxy configuration
   let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyEnabled = get(proxyConfig, 'enabled', 'global');
-  if (proxyEnabled === 'global') {
+  let proxyMode = get(proxyConfig, 'enabled', 'global');
+  if (proxyMode === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyEnabled = get(proxyConfig, 'enabled', false);
+    proxyMode = get(proxyConfig, 'mode', false);
   }
-  const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
-  if (proxyEnabled === true && shouldProxy) {
-    const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
-    const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
-    const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
-    const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
-    const socksEnabled = proxyProtocol.includes('socks');
 
-    let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-    let proxyUri;
-    if (proxyAuthEnabled) {
-      const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
-      const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+  // proxyMode is true, if the collection-level proxy is enabled.
+  // proxyMode is 'on', if the app-level proxy mode is turned on.
+  if (proxyMode === true || proxyMode === 'on') {
+    const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
+    if (shouldProxy) {
+      const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+      const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+      const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+      const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+      const socksEnabled = proxyProtocol.includes('socks');
+      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+      let proxyUri;
+      if (proxyAuthEnabled) {
+        const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+        const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
 
-      proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-    } else {
-      proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+      } else {
+        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+      }
+      if (socksEnabled) {
+        request.httpsAgent = new SocksProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new SocksProxyAgent(proxyUri);
+      } else {
+        request.httpsAgent = new PatchedHttpsProxyAgent(
+          proxyUri,
+          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+        );
+        request.httpAgent = new HttpProxyAgent(proxyUri);
+      }
     }
-
-    if (socksEnabled) {
-      request.httpsAgent = new SocksProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new SocksProxyAgent(proxyUri);
-    } else {
-      request.httpsAgent = new PatchedHttpsProxyAgent(
-        proxyUri,
-        Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-      );
-      request.httpAgent = new HttpProxyAgent(proxyUri);
+  } else if (proxyMode === 'system') {
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
+    const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+    if (shouldUseSystemProxy) {
+      try {
+        if (http_proxy?.length) {
+          new URL(http_proxy);
+          request.httpAgent = new HttpProxyAgent(http_proxy);
+        }
+      } catch (error) {
+        throw new Error('Invalid system http_proxy');
+      }
+      try {
+        if (https_proxy?.length) {
+          new URL(https_proxy);
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            https_proxy,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+        }
+      } catch (error) {
+        throw new Error('Invalid system https_proxy');
+      }
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
       ...httpsAgentRequestFields
     });
   }
-
   const axiosInstance = makeAxiosInstance();
 
   if (request.oauth2) {
@@ -272,7 +298,7 @@ const configureRequest = async (
   return axiosInstance;
 };
 
-const parseDataFromResponse = (response) => {
+const parseDataFromResponse = (response, disableParsingResponseJson = false) => {
   // Parse the charset from content type: https://stackoverflow.com/a/33192813
   const charsetMatch = /charset=([^()<>@,;:"/[\]?.=\s]*)/i.exec(response.headers['content-type'] || '');
   // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/exec#using_exec_with_regexp_literals
@@ -290,7 +316,9 @@ const parseDataFromResponse = (response) => {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    data = JSON.parse(data);
+    if(!disableParsingResponseJson) {
+      data = JSON.parse(data);
+    }
   } catch {}
 
   return { data, dataBuffer };
@@ -540,7 +568,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // Continue with the rest of the request lifecycle - post response vars, script, assertions, tests
 
-      const { data, dataBuffer } = parseDataFromResponse(response);
+      const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       response.responseTime = responseTime;
@@ -701,7 +729,7 @@ const registerNetworkIpc = (mainWindow) => {
         }
       }
 
-      const { data } = parseDataFromResponse(response);
+      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
       response.data = data;
 
       await runPostResponse(
@@ -969,7 +997,7 @@ const registerNetworkIpc = (mainWindow) => {
               response = await axiosInstance(request);
               timeEnd = Date.now();
 
-              const { data, dataBuffer } = parseDataFromResponse(response);
+              const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 

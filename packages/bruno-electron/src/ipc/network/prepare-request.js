@@ -1,7 +1,6 @@
 const os = require('os');
 const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -344,16 +343,10 @@ const prepareRequest = (item, collection) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    let jsonBody;
     try {
-      jsonBody = decomment(request?.body?.json);
+      axiosRequest.data = decomment(request?.body?.json);
     } catch (error) {
-      jsonBody = request?.body?.json;
-    }
-    try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
-    } catch (error) {
-      axiosRequest.data = jsonBody;
+      axiosRequest.data = request?.body?.json;
     }
   }
 
