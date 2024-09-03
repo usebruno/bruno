@@ -247,6 +247,12 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('collection-dir', {
+      alias: "dir",
+      default: "./",
+      describe: 'Specify the root directory of the Bruno collection',
+      type: 'string'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -276,7 +282,9 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
-    );
+    )
+    .example('$0 run request.bru --dir /path/to/collection', 'Run a request specifying the collection directory')
+    .example('$0 run folder -r --dir /path/to/collection', 'Run all requests in a folder recursively, specifying the collection directory')
 };
 
 const handler = async function (argv) {
@@ -293,13 +301,17 @@ const handler = async function (argv) {
       format,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      dir: collectionDir
     } = argv;
-    const collectionPath = process.cwd();
 
-    // todo
-    // right now, bru must be run from the root of the collection
-    // will add support in the future to run it from anywhere inside the collection
+    const collectionPath = collectionDir ? path.resolve(collectionDir) : process.cwd();
+
+    if (collectionDir && !fs.existsSync(collectionPath)) {
+      console.error(chalk.red(`The specified collection directory does not exist: ${collectionPath}`));
+      process.exit(constants.EXIT_STATUS.ERROR_COLLECTION_DIR_NOT_FOUND);
+    }
+
     const brunoJsonPath = path.join(collectionPath, 'bruno.json');
     const brunoJsonExists = await exists(brunoJsonPath);
     if (!brunoJsonExists) {
@@ -307,9 +319,11 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     }
 
-    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
-    const brunoConfig = JSON.parse(brunoConfigFile);
-    const collectionRoot = getCollectionRoot(collectionPath);
+    if (!filename) {
+      filename = './';
+      recursive = true;
+    }
+    filename = path.resolve(collectionPath, filename);
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -321,6 +335,10 @@ const handler = async function (argv) {
       filename = './';
       recursive = true;
     }
+
+    const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
+    const brunoConfig = JSON.parse(brunoConfigFile);
+    const collectionRoot = getCollectionRoot(collectionPath);
 
     const runtimeVariables = {};
     let envVars = {};
