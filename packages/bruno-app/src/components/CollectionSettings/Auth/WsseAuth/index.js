@@ -1,4 +1,3 @@
-//TODO: wsse
 import React from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';

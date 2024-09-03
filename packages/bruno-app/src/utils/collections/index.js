@@ -522,7 +522,7 @@ export const humanizeRequestAuthMode = (mode) => {
       break;
     }
     case 'wsse': {
-      label = 'wsse Auth';
+      label = 'WSSE Auth';
       break;
     }
   }

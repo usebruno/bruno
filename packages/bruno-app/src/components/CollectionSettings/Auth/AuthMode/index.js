@@ -59,7 +59,7 @@ const AuthMode = ({ collection }) => {
               onModeChange('wsse');
             }}
           >
-            Wsse Auth
+            WSSE Auth
           </div>
           <div
             className="dropdown-item"

@@ -34,6 +34,9 @@ const Auth = ({ collection }) => {
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
       }
+      case 'wsseauth': {
+        return <WsseAuth collection={collection} />;
+      }
     }
   };
 
