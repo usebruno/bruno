@@ -88,6 +88,22 @@ const getJsSandboxRuntime = (collection) => {
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
+const saveCookies = (url, headers) => {
+  if (preferencesUtil.shouldStoreCookies()) {
+    let setCookieHeaders = [];
+    if (headers['set-cookie']) {
+      setCookieHeaders = Array.isArray(headers['set-cookie'])
+        ? headers['set-cookie']
+        : [headers['set-cookie']];
+      for (let setCookieHeader of setCookieHeaders) {
+        if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+          addCookieToJar(setCookieHeader, url);
+        }
+      }
+    }
+  }
+}
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -590,17 +606,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // save cookies
       if (preferencesUtil.shouldStoreCookies()) {
-        let setCookieHeaders = [];
-        if (response.headers['set-cookie']) {
-          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-            ? response.headers['set-cookie']
-            : [response.headers['set-cookie']];
-          for (let setCookieHeader of setCookieHeaders) {
-            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
-            }
-          }
-        }
+        saveCookies(request.url, response.headers);
       }
 
       // send domain cookies to renderer
@@ -1015,6 +1021,16 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
+
+              // save cookies
+              if (preferencesUtil.shouldStoreCookies()) {
+                saveCookies(request.url, response.headers);
+              }
+
+              // send domain cookies to renderer
+              const domainsWithCookies = await getDomainsWithCookies();
+
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
