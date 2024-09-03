@@ -268,7 +268,7 @@ const lightTheme = {
   },
 
   divider: {
-    borderColor: '#404040'
+    borderColor: '#0a0a0a'
   }
 };
 
