@@ -11,13 +11,14 @@ get {
 }
 
 vars:pre-request {
-  request_pre_var: ${`request_pre_var` + `_` + `value`}
+  request_pre_var: ${`request_pre_var` + `_` + `value` + '_and_' + collection_pre_var}
+  request_pre_var_token: request_pre_var_token_value
 }
 
 assert {
   collection_pre_var: eq collection_pre_var_value
   folder_pre_var: eq folder_pre_var_value
-  request_pre_var: eq request_pre_var_value
+  request_pre_var: eq request_pre_var_value_and_collection_pre_var_value
 }
 
 tests {
@@ -32,7 +33,7 @@ tests {
   
   
   test("request pre var bru function", function() {
-    expect(bru.getRequestVar('request_pre_var')).to.eql('request_pre_var_value');
+    expect(bru.getRequestVar('request_pre_var')).to.eql('request_pre_var_value_and_collection_pre_var_value');
   });
   
 }

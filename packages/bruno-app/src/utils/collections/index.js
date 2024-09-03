@@ -788,14 +788,8 @@ export const getTotalRequestCountInCollection = (collection) => {
 
 export const getAllVariables = (collection, item) => {
   const envVariables = getEnvironmentVariables(collection);
-  let collectionVariables = {};
-  let folderVariables = {};
-  let requestVariables = {};
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-  const { collectionVariables: cv, folderVariables: fv, requestVariables: rv } = mergeVars(collection, requestTreePath);
-  collectionVariables = cv;
-  folderVariables = fv;
-  requestVariables = rv;
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
 
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;

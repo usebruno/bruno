@@ -38,11 +38,6 @@ class VarsRuntime {
   runPreRequestVars(vars, request, envVariables, runtimeVariables, collectionPath, processEnvVars) {
     let { collectionVariables = {}, folderVariables = {}, requestVariables = {} } = request;
 
-    const enabledVars = _.filter(vars, (v) => v.enabled);
-    if (!enabledVars.length) {
-      return;
-    }
-
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, undefined);
     const req = new BrunoRequest(request);
 
@@ -51,38 +46,36 @@ class VarsRuntime {
       req
     };
 
+    let _context = {
+      ...envVariables,
+      ...runtimeVariables,
+      ...bruContext
+    };
+
     // collection variables
     collectionVariables = Object.entries(collectionVariables)?.reduce((acc, [key, value]) => {
-      let _context = {
-        ...envVariables,
-        ...runtimeVariables,
-        ...bruContext
-      };
       acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
       return acc;
     }, {});
+
+    _context = {
+      ..._context,
+      ...collectionVariables,
+    }
 
     // folder variables
     folderVariables = Object.entries(folderVariables)?.reduce((acc, [key, value]) => {
-      let _context = {
-        ...collectionVariables,
-        ...envVariables,
-        ...runtimeVariables,
-        ...bruContext
-      };
       acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
       return acc;
     }, {});
 
+    _context = {
+      ..._context,
+      ...folderVariables,
+    }
+
     // request variables
     requestVariables = Object.entries(requestVariables)?.reduce((acc, [key, value]) => {
-      let _context = {
-        ...collectionVariables,
-        ...envVariables,
-        ...folderVariables,
-        ...runtimeVariables,
-        ...bruContext
-      };
       acc[key] = evaluateJsTemplateLiteralBasedOnRuntime(value, _context);
       return acc;
     }, {});
