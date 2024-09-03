@@ -20,16 +20,16 @@ class Bru {
     }
 
     const combinedVars = {
+      ...this.collectionVariables,
+      ...this.envVariables,
       ...this.folderVariables,
       ...this.requestVariables,
-      ...this.envVariables,
-      ...this.collectionVariables,
+      ...this.runtimeVariables,
       process: {
         env: {
           ...this.processEnvVars
         }
-      },
-      ...this.runtimeVariables
+      }
     };
 
     return interpolate(str, combinedVars);
@@ -75,7 +75,7 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
@@ -86,7 +86,7 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
