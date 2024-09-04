@@ -1302,6 +1302,71 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.headers', headers);
       }
     },
+    addCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          const vars = get(collection, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(collection, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (type === 'request') {
+        let vars = get(collection, 'root.request.vars.req', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.req', vars);
+      } else if (type === 'response') {
+        let vars = get(collection, 'root.request.vars.res', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.res', vars);
+      }
+    },
+    deleteCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          let vars = get(collection, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(collection, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -1694,6 +1759,9 @@ export const {
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
+  addCollectionVar,
+  updateCollectionVar,
+  deleteCollectionVar,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,

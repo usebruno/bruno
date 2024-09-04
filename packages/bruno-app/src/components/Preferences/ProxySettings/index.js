@@ -8,26 +8,13 @@ import StyledWrapper from './StyledWrapper';
 import { useDispatch, useSelector } from 'react-redux';
 import { IconEye, IconEyeOff } from '@tabler/icons';
 import { useState } from 'react';
-import { useMemo } from 'react';
-import { cloneDeep } from 'lodash';
 
 const ProxySettings = ({ close }) => {
-  const _preferences = useSelector((state) => state.app.preferences);
+  const preferences = useSelector((state) => state.app.preferences);
   const systemProxyEnvVariables = useSelector((state) => state.app.systemProxyEnvVariables);
   const { http_proxy, https_proxy, no_proxy } = systemProxyEnvVariables || {};
   const dispatch = useDispatch();
-
-  const preferences = useMemo(() => {
-    const preferencesCopy = cloneDeep(_preferences);
-    // backward compatibility check
-    if (typeof preferencesCopy?.proxy?.enabled === 'boolean') {
-      preferencesCopy.proxy.mode = preferencesCopy?.proxy?.enabled ? 'on' : 'off';
-    } else {
-      preferencesCopy.proxy.mode =
-        typeof preferencesCopy?.proxy?.mode === 'string' ? preferencesCopy?.proxy?.mode : 'off';
-    }
-    return preferencesCopy;
-  }, [_preferences]);
+  console.log(preferences);
 
   const proxySchema = Yup.object({
     mode: Yup.string().oneOf(['off', 'on', 'system']),
@@ -142,7 +129,7 @@ const ProxySettings = ({ close }) => {
                 }}
                 className="mr-1 cursor-pointer"
               />
-              off
+              Off
             </label>
             <label className="flex items-center ml-4 cursor-pointer">
               <input
@@ -155,7 +142,7 @@ const ProxySettings = ({ close }) => {
                 }}
                 className="mr-1 cursor-pointer"
               />
-              on
+              On
             </label>
             <label className="flex items-center ml-4 cursor-pointer">
               <input
@@ -166,26 +153,30 @@ const ProxySettings = ({ close }) => {
                 onChange={formik.handleChange}
                 className="mr-1 cursor-pointer"
               />
-              system
+              System Proxy
             </label>
           </div>
         </div>
         {formik?.values?.mode === 'system' ? (
-          <div className="mb-3 flex items-start pb-3">
-            <div className="flex flex-col gap-2 justify-start items-start">
-              <div className="mb-3 flex items-center">
+          <div className="mb-3 pt-1 text-muted system-proxy-settings">
+            <small>
+              Below values are sourced from your system environment variables and cannot be directly updated in Bruno.<br/>
+              Please refer to your OS documentation to change these values.
+            </small>
+            <div className="flex flex-col justify-start items-start pt-2">
+              <div className="mb-1 flex items-center">
                 <label className="settings-label" htmlFor="http_proxy">
                   http_proxy
                 </label>
                 <div className="opacity-80">{http_proxy || '-'}</div>
               </div>
-              <div className="mb-3 flex items-center">
+              <div className="mb-1 flex items-center">
                 <label className="settings-label" htmlFor="https_proxy">
                   https_proxy
                 </label>
                 <div className="opacity-80">{https_proxy || '-'}</div>
               </div>
-              <div className="mb-3 flex items-center">
+              <div className="mb-1 flex items-center">
                 <label className="settings-label" htmlFor="no_proxy">
                   no_proxy
                 </label>

@@ -88,6 +88,22 @@ const getJsSandboxRuntime = (collection) => {
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
+const saveCookies = (url, headers) => {
+  if (preferencesUtil.shouldStoreCookies()) {
+    let setCookieHeaders = [];
+    if (headers['set-cookie']) {
+      setCookieHeaders = Array.isArray(headers['set-cookie'])
+        ? headers['set-cookie']
+        : [headers['set-cookie']];
+      for (let setCookieHeader of setCookieHeaders) {
+        if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+          addCookieToJar(setCookieHeader, url);
+        }
+      }
+    }
+  }
+}
+
 const configureRequest = async (
   collectionUid,
   request,
@@ -165,17 +181,32 @@ const configureRequest = async (
     }
   }
 
-  // proxy configuration
-  let proxyConfig = get(brunoConfig, 'proxy', {});
-  let proxyMode = get(proxyConfig, 'enabled', 'global');
-  if (proxyMode === 'global') {
+  /**
+   * Proxy configuration
+   * 
+   * Preferences proxyMode has three possible values: on, off, system
+   * Collection proxyMode has three possible values: true, false, global
+   * 
+   * When collection proxyMode is true, it overrides the app-level proxy settings
+   * When collection proxyMode is false, it ignores the app-level proxy settings
+   * When collection proxyMode is global, it uses the app-level proxy settings
+   * 
+   * Below logic calculates the proxyMode and proxyConfig to be used for the request
+   */
+  let proxyMode = 'off';
+  let proxyConfig = {};
+
+  const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+  const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', 'global');
+  if (collectionProxyEnabled === true) {
+    proxyConfig = collectionProxyConfig;
+    proxyMode = 'on';
+  } else if (collectionProxyEnabled === 'global') {
     proxyConfig = preferencesUtil.getGlobalProxyConfig();
-    proxyMode = get(proxyConfig, 'mode', false);
+    proxyMode = get(proxyConfig, 'mode', 'off');
   }
 
-  // proxyMode is true, if the collection-level proxy is enabled.
-  // proxyMode is 'on', if the app-level proxy mode is turned on.
-  if (proxyMode === true || proxyMode === 'on') {
+  if (proxyMode === 'on') {
     const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
     if (shouldProxy) {
       const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
@@ -316,10 +347,10 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if(!disableParsingResponseJson) {
+    if (!disableParsingResponseJson) {
       data = JSON.parse(data);
     }
-  } catch {}
+  } catch { }
 
   return { data, dataBuffer };
 };
@@ -345,20 +376,6 @@ const registerNetworkIpc = (mainWindow) => {
     processEnvVars,
     scriptingConfig
   ) => {
-    // run pre-request vars
-    const preRequestVars = get(request, 'vars.req', []);
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
-
     // run pre-request script
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
@@ -575,17 +592,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // save cookies
       if (preferencesUtil.shouldStoreCookies()) {
-        let setCookieHeaders = [];
-        if (response.headers['set-cookie']) {
-          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-            ? response.headers['set-cookie']
-            : [response.headers['set-cookie']];
-          for (let setCookieHeader of setCookieHeaders) {
-            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
-            }
-          }
-        }
+        saveCookies(request.url, response.headers);
       }
 
       // send domain cookies to renderer
@@ -1001,6 +1008,16 @@ const registerNetworkIpc = (mainWindow) => {
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
 
+              // save cookies
+              if (preferencesUtil.shouldStoreCookies()) {
+                saveCookies(request.url, response.headers);
+              }
+
+              // send domain cookies to renderer
+              const domainsWithCookies = await getDomainsWithCookies();
+
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
+
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
                 responseReceived: {
@@ -1186,7 +1203,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           const disposition = contentDispositionParser.parse(contentDisposition);
           return disposition && disposition.parameters['filename'];
-        } catch (error) {}
+        } catch (error) { }
       };
 
       const getFileNameFromUrlPath = () => {
