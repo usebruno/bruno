@@ -335,12 +335,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (isWSLPath(newPath)) {
         newPath = normalizeWslPath(newPath);
       }
-
-      if (!fs.existsSync(oldPath)) {
-        throw new Error(`path: ${oldPath} does not exist`);
-      }
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${oldPath} already exists`);
+      var sameName = oldPath.replaceAll('\\', '/').toUpperCase() === newPath.replaceAll('\\', '/').toUpperCase();
+      if (!sameName)
+      {
+        if (!fs.existsSync(oldPath)) {
+          throw new Error(`path: ${oldPath} does not exist`);
+        }
+        if (fs.existsSync(newPath)) {
+          throw new Error(`path: ${oldPath} already exists`);
+        }
       }
 
       // if its directory, rename and return
@@ -364,12 +367,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
-
+      
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
     } catch (error) {
       return Promise.reject(error);
     }
