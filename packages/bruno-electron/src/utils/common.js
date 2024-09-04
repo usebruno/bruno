@@ -86,12 +86,12 @@ const flattenDataForDotNotation = (data) => {
 };
 
 /**
- * @param {object} requestObj The request body object
+ * @param {Array.<object>} params The request body Array
  * @returns {object} Returns an obj with repeating key as a array of values
  * {item: 2, item: 3, item1: 4} becomes {item: [2,3], item1: 4}
  */
-const buildFormUrlEncodedPayload = (requestObj) => {
-  return requestObj.reduce((acc, p) => {
+const buildFormUrlEncodedPayload = (params) => {
+  return params.reduce((acc, p) => {
     if (!acc[p.name]) {
       acc[p.name] = p.value;
     } else if (Array.isArray(acc[p.name])) {
@@ -112,5 +112,5 @@ module.exports = {
   simpleHash,
   generateUidBasedOnHash,
   flattenDataForDotNotation,
-  buildFormUrlEncodedPayload,
+  buildFormUrlEncodedPayload
 };
