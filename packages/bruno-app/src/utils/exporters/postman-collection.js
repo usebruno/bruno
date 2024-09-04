@@ -177,20 +177,6 @@ export const exportCollection = (collection) => {
     }
   };
 
-  const generateHost = (url) => {
-    try {
-      const { hostname } = new URL(url);
-      return hostname.split('.');
-    } catch (error) {
-      console.error(`Invalid URL: ${url}`, error);
-      return [];
-    }
-  };
-
-  const generatePathParams = (params) => {
-    return params.filter((param) => param.type === 'path').map((param) => `:${param.name}`);
-  };
-
   const generateQueryParams = (params) => {
     return params
       .filter((param) => param.type === 'query')
@@ -203,20 +189,37 @@ export const exportCollection = (collection) => {
       .map(({ name, value, description }) => ({ key: name, value, description }));
   };
 
+  const transformUrl = (url, params) => {
+    const postmanUrl = { raw: url };
+    const urlParts = url.split(/:\/\//);
+    let rawHostAndPath;
+
+    if (urlParts.length === 1) {
+      rawHostAndPath = urlParts[0];
+    } else if (urlParts.length === 2) {
+      postmanUrl.protocol = urlParts[0];
+      rawHostAndPath = urlParts[1];
+    } else {
+      console.error(`Invalid URL: ${url}`);
+      return {};
+    }
+
+    const hostAndPath = rawHostAndPath.split(/\/(.+)/);
+    postmanUrl.host = hostAndPath[0].split(/\./);
+    postmanUrl.path = hostAndPath[1] === undefined ? [] : hostAndPath[1].split(/\//);
+    postmanUrl.query = generateQueryParams(params);
+    postmanUrl.variable = generateVariables(params);
+
+    return postmanUrl;
+  };
+
   const generateRequestSection = (itemRequest) => {
     const requestObject = {
       method: itemRequest.method,
       header: generateHeaders(itemRequest.headers),
       auth: generateAuth(itemRequest.auth),
       description: itemRequest.docs,
-      url: {
-        raw: itemRequest.url,
-        host: generateHost(itemRequest.url),
-        path: generatePathParams(itemRequest.params),
-        query: generateQueryParams(itemRequest.params),
-        variable: generateVariables(itemRequest.params)
-      },
-      auth: generateAuth(itemRequest.auth)
+      url: transformUrl(itemRequest.url, itemRequest.params)
     };
 
     if (itemRequest.body.mode != 'none') {
