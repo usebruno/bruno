@@ -1,0 +1,21 @@
+meta {
+  name: Basic Auth 400
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/basic/protected
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: bruno
+  password: invalid
+}
+
+assert {
+  res.status: 401
+  res.body: Unauthorized
+}

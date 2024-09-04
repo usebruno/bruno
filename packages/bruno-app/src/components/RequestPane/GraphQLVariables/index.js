@@ -10,7 +10,7 @@ import StyledWrapper from './StyledWrapper';
 const GraphQLVariables = ({ variables, item, collection }) => {
   const dispatch = useDispatch();
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -31,8 +31,9 @@ const GraphQLVariables = ({ variables, item, collection }) => {
       <CodeEditor
         collection={collection}
         value={variables || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
         mode="javascript"
         onRun={onRun}

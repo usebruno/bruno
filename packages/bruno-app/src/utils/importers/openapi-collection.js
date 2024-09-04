@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -54,22 +53,26 @@ const buildEmptyJsonBody = (bodySchema) => {
 const transformOpenapiRequestItem = (request) => {
   let _operationObject = request.operationObject;
 
-  let operationName = _operationObject.operationId || _operationObject.summary || _operationObject.description;
+  let operationName = _operationObject.summary || _operationObject.operationId || _operationObject.description;
   if (!operationName) {
     operationName = `${request.method} ${request.path}`;
   }
+
+  // replace OpenAPI links in path by Bruno variables
+  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
 
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + request.path),
+      url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
         basic: null,
-        bearer: null
+        bearer: null,
+        digest: null
       },
       headers: [],
       params: [],
@@ -80,6 +83,9 @@ const transformOpenapiRequestItem = (request) => {
         xml: null,
         formUrlEncoded: [],
         multipartForm: []
+      },
+      script: {
+        res: null
       }
     }
   };
@@ -91,7 +97,17 @@ const transformOpenapiRequestItem = (request) => {
         name: param.name,
         value: '',
         description: param.description || '',
-        enabled: param.required
+        enabled: param.required,
+        type: 'query'
+      });
+    } else if (param.in === 'path') {
+      brunoRequestItem.request.params.push({
+        uid: uuid(),
+        name: param.name,
+        value: '',
+        description: param.description || '',
+        enabled: param.required,
+        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -167,6 +183,7 @@ const transformOpenapiRequestItem = (request) => {
         each(bodySchema.properties || {}, (prop, name) => {
           brunoRequestItem.request.body.multipartForm.push({
             uid: uuid(),
+            type: 'text',
             name: name,
             value: '',
             description: prop.description || '',
@@ -183,20 +200,46 @@ const transformOpenapiRequestItem = (request) => {
     }
   }
 
+  // build the extraction scripts from responses that have links
+  // https://swagger.io/docs/specification/links/
+  let script = [];
+  each(_operationObject.responses || [], (response, responseStatus) => {
+    if (Object.hasOwn(response, 'links')) {
+      // only extract if the status code matches the response
+      script.push(`if (res.status === ${responseStatus}) {`);
+      each(response.links, (link) => {
+        each(link.parameters || [], (expression, parameter) => {
+          let value = openAPIRuntimeExpressionToScript(expression);
+          script.push(`  bru.setVar('${link.operationId}_${parameter}', ${value});`);
+        });
+      });
+      script.push(`}`);
+    }
+  });
+  if (script.length > 0) {
+    brunoRequestItem.request.script.res = script.join('\n');
+  }
+
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components) => {
+const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
 
   if (Array.isArray(spec)) {
-    return spec.map((item) => resolveRefs(item, components));
+    return spec.map((item) => resolveRefs(item, components, visitedItems));
   }
 
   if ('$ref' in spec) {
     const refPath = spec.$ref;
+
+    if (visitedItems.has(refPath)) {
+      return spec;
+    } else {
+      visitedItems.add(refPath);
+    }
 
     if (refPath.startsWith('#/components/')) {
       // Local reference within components
@@ -212,7 +255,7 @@ const resolveRefs = (spec, components = spec.components) => {
         }
       }
 
-      return resolveRefs(ref, components);
+      return resolveRefs(ref, components, visitedItems);
     } else {
       // Handle external references (not implemented here)
       // You would need to fetch the external reference and resolve it.
@@ -222,7 +265,7 @@ const resolveRefs = (spec, components = spec.components) => {
 
   // Recursively resolve references in nested objects
   for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components);
+    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
   }
 
   return spec;
@@ -262,16 +305,11 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url;
+  return url.endsWith('/') ? url : `${url}/`;
 };
 
 const getSecurity = (apiSpec) => {
-  let supportedSchemes = apiSpec.security || [];
-  if (supportedSchemes.length === 0) {
-    return {
-      supported: []
-    };
-  }
+  let defaultSchemes = apiSpec.security || [];
 
   let securitySchemes = get(apiSpec, 'components.securitySchemes', {});
   if (Object.keys(securitySchemes) === 0) {
@@ -281,7 +319,7 @@ const getSecurity = (apiSpec) => {
   }
 
   return {
-    supported: supportedSchemes.map((scheme) => {
+    supported: defaultSchemes.map((scheme) => {
       var schemeName = Object.keys(scheme)[0];
       return securitySchemes[schemeName];
     }),
@@ -290,6 +328,18 @@ const getSecurity = (apiSpec) => {
       return securitySchemes[schemeName];
     }
   };
+};
+
+const openAPIRuntimeExpressionToScript = (expression) => {
+  // see https://swagger.io/docs/specification/links/#runtime-expressions
+  if (expression === '$response.body') {
+    return 'res.body';
+  } else if (expression.startsWith('$response.body#')) {
+    let pointer = expression.substring(15);
+    // could use https://www.npmjs.com/package/json-pointer for better support
+    return `res.body${pointer.replace('/', '.')}`;
+  }
+  return expression;
 };
 
 const parseOpenApiCollection = (data) => {
@@ -335,7 +385,7 @@ const parseOpenApiCollection = (data) => {
             .map(([method, operationObject]) => {
               return {
                 method: method,
-                path: path,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
                   server: baseUrl,
@@ -375,7 +425,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));

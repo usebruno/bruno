@@ -4,7 +4,7 @@ import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { IconChevronRight, IconChevronLeft } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { closeTabs, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import CollectionToolBar from './CollectionToolBar';
 import RequestTab from './RequestTab';
@@ -31,14 +31,6 @@ const RequestTabs = () => {
     dispatch(
       focusTab({
         uid: tab.uid
-      })
-    );
-  };
-
-  const handleCloseClick = (tab) => {
-    dispatch(
-      closeTabs({
-        tabUids: [tab.uid]
       })
     );
   };
@@ -83,7 +75,6 @@ const RequestTabs = () => {
       'has-chevrons': showChevrons
     });
   };
-
   // Todo: Must support ephemeral requests
   return (
     <StyledWrapper className={getRootClassname()}>
@@ -118,9 +109,15 @@ const RequestTabs = () => {
                         className={getTabClassname(tab, index)}
                         role="tab"
                         onClick={() => handleClick(tab)}
-                        onAuxClick={() => handleCloseClick(tab)}
                       >
-                        <RequestTab key={tab.uid} tab={tab} collection={activeCollection} />
+                        <RequestTab
+                          collectionRequestTabs={collectionRequestTabs}
+                          tabIndex={index}
+                          key={tab.uid}
+                          tab={tab}
+                          collection={activeCollection}
+                          folderUid={tab.folderUid}
+                        />
                       </li>
                     );
                   })

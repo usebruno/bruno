@@ -33,7 +33,8 @@ const Wrapper = styled.div`
       overflow: hidden;
     }
 
-    &:hover {
+    &:hover,
+    &.item-hovered {
       background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
       .menu-icon {
         .dropdown {
@@ -64,7 +65,7 @@ const Wrapper = styled.div`
     div.dropdown-item.delete-item {
       color: ${(props) => props.theme.colors.danger};
       &:hover {
-        background-color: ${(props) => props.theme.colors.bg.danger};
+        background-color: ${(props) => props.theme.colors.bg.danger} !important;
         color: white;
       }
     }

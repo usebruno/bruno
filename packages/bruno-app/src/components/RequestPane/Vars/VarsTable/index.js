@@ -6,8 +6,10 @@ import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import Tooltip from 'components/Tooltip';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
+import toast from 'react-hot-toast';
+import { variableNameRegex } from 'utils/common/regex';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -29,7 +31,16 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     const _var = cloneDeep(v);
     switch (type) {
       case 'name': {
-        _var.name = e.target.value;
+        const value = e.target.value;
+
+        if (variableNameRegex.test(value) === false) {
+          toast.error(
+            'Variable contains invalid characters! Variables must only contain alpha-numeric characters, "-", "_", "."'
+          );
+          return;
+        }
+
+        _var.name = value;
         break;
       }
       case 'value': {
@@ -72,14 +83,14 @@ const VarsTable = ({ item, collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Value</span>
-                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var" />
+                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
                 </div>
               </td>
             ) : (
               <td>
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var" />
+                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
                 </div>
               </td>
             )}
@@ -88,7 +99,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
         </thead>
         <tbody>
           {vars && vars.length
-            ? vars.map((_var, index) => {
+            ? vars.map((_var) => {
                 return (
                   <tr key={_var.uid}>
                     <td>
@@ -121,6 +132,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                         }
                         onRun={handleRun}
                         collection={collection}
+                        item={item}
                       />
                     </td>
                     <td>
