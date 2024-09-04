@@ -60,20 +60,6 @@ const runSingleRequest = async function (
       request.data = form;
     }
 
-    // run pre-request vars
-    const preRequestVars = get(bruJson, 'request.vars.req');
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
-
     // run pre request script
     const requestScriptFile = compact([
       get(collectionRoot, 'request.script.req'),
@@ -276,7 +262,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars
