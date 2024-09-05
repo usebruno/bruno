@@ -118,6 +118,7 @@ export const tabsSlice = createSlice({
             state.activeTabUid = collectionTabs[state.ctrlTabIndex].uid;
             state.ctrlTabIndex = null;
           }
+          state.ctrlTabIndex = null;
           break;
         }
         
@@ -164,13 +165,7 @@ export const tabsSlice = createSlice({
         state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
       }
 
-      // Update ctrlTabIndex to match the new position of activeTabUid
-      if (state.activeTabUid) {
-        // state.ctrlTabIndex = state.tabs.findIndex((tab) => tab.uid === state.activeTabUid);
-        state.ctrlTabIndex = null;
-      } else {
-        state.ctrlTabIndex = null; // Reset if no tabs left
-      }
+      state.ctrlTabIndex = null;
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
