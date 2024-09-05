@@ -503,6 +503,39 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+
+    moveQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.params;
+
+          item.draft.request.params = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+
+          // update request url
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          if (query && query.length) {
+            item.draft.request.url = parts[0] + '?' + query;
+          } else {
+            item.draft.request.url = parts[0];
+          }
+        }
+      }
+    },
+
     updateQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1302,6 +1335,71 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.headers', headers);
       }
     },
+    addCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          const vars = get(collection, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(collection, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (type === 'request') {
+        let vars = get(collection, 'root.request.vars.req', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.req', vars);
+      } else if (type === 'response') {
+        let vars = get(collection, 'root.request.vars.res', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.res', vars);
+      }
+    },
+    deleteCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          let vars = get(collection, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(collection, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
@@ -1655,6 +1753,7 @@ export const {
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  moveQueryParam,
   updateQueryParam,
   deleteQueryParam,
   updatePathParam,
@@ -1694,6 +1793,9 @@ export const {
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
+  addCollectionVar,
+  updateCollectionVar,
+  deleteCollectionVar,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
