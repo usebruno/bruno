@@ -2,6 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import filter from 'lodash/filter';
 import find from 'lodash/find';
 import last from 'lodash/last';
+import { act } from 'react';
 
 // todo: errors should be tracked in each slice and displayed as toasts
 
@@ -54,6 +55,7 @@ export const tabsSlice = createSlice({
         return;
       }
 
+
       const direction = action.payload.direction;
 
       const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
@@ -72,12 +74,15 @@ export const tabsSlice = createSlice({
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
       if (tab) {
+
         tab.requestPaneWidth = action.payload.requestPaneWidth;
       }
     },
     updateRequestPaneTab: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
 
+      console.log("MIN", action.payload.min);
+      console.log("MAX", action.payload.max);
       if (tab) {
         tab.requestPaneTab = action.payload.requestPaneTab;
       }
