@@ -29,9 +29,11 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
     code: authorizationCode,
     redirect_uri: callbackUrl,
     client_id: clientId,
-    client_secret: clientSecret,
-    state: state
+    client_secret: clientSecret
   };
+  if (state) {
+    data.state = state;
+  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
