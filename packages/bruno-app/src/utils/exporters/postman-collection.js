@@ -189,19 +189,20 @@ export const exportCollection = (collection) => {
       .map(({ name, value, description }) => ({ key: name, value, description }));
   };
 
-/**
- * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
- *
- * @param {string} url - The raw URL to be transformed.
- * @param {Object} params - The params object.
- * @returns {Object} An object containing the URL's protocol, host, path, query, and variables.
- */
+  /**
+   * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
+   *
+   * @param {string} url - The raw URL to be transformed.
+   * @param {Object} params - The params object.
+   * @returns {Object} An object containing the URL's protocol, host, path, query, and variables.
+   */
   const transformUrl = (url, params) => {
     const urlRegexPatterns = {
-      protocolSeparator: /:\/\//,
-      hostPathSeparator: /\/(.+)/,
+      protocolAndRestSeparator: /:\/\//,
+      hostAndPathSeparator: /\/(.+)/,
       domainSegmentSeparator: /\./,
-      pathSegmentSeparator: /\//
+      pathSegmentSeparator: /\//,
+      queryStringSeparator: /\?/
     };
 
     const postmanUrl = { raw: url };
@@ -213,11 +214,12 @@ export const exportCollection = (collection) => {
      * @returns {Object} An object containing the protocol and the raw host/path string.
      */
     const splitUrl = (url) => {
-      const urlParts = url.split(urlRegexPatterns.protocolSeparator);
+      const urlParts = url.split(urlRegexPatterns.protocolAndRestSeparator);
       if (urlParts.length === 1) {
         return { protocol: '', rawHostAndPath: urlParts[0] };
       } else if (urlParts.length === 2) {
-        return { protocol: urlParts[0], rawHostAndPath: urlParts[1] };
+        const [hostAndPath, _] = urlParts[1].split(urlRegexPatterns.queryStringSeparator);
+        return { protocol: urlParts[0], rawHostAndPath: hostAndPath };
       } else {
         throw new Error(`Invalid URL format: ${url}`);
       }
@@ -230,7 +232,7 @@ export const exportCollection = (collection) => {
      * @returns {Object} An object containing the host and path.
      */
     const splitHostAndPath = (rawHostAndPath) => {
-      const [host, path = ''] = rawHostAndPath.split(urlRegexPatterns.hostPathSeparator);
+      const [host, path = ''] = rawHostAndPath.split(urlRegexPatterns.hostAndPathSeparator);
       return { host, path };
     };
 
