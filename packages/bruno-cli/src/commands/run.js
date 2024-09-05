@@ -307,14 +307,14 @@ const handler = async function (argv) {
     const collectionPath = collectionDir ? path.resolve(collectionDir) : process.cwd();
 
     if (collectionDir && !fs.existsSync(collectionPath)) {
-      console.error(chalk.red(`The specified collection directory does not exist: ${collectionPath}`));
+      console.error(chalk.red(`Could not find the specified collection directory: ${collectionPath}`));
       process.exit(constants.EXIT_STATUS.ERROR_COLLECTION_DIR_NOT_FOUND);
     }
 
     const brunoJsonPath = path.join(collectionPath, 'bruno.json');
     const brunoJsonExists = await exists(brunoJsonPath);
     if (!brunoJsonExists) {
-      console.error(chalk.red(`You can run only at the root of a collection`));
+      console.error(chalk.red(`Please navigate into the root directory or specify using --dir`));
       process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     }
 

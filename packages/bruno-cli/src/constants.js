@@ -23,6 +23,8 @@ const EXIT_STATUS = {
   ERROR_INCORRECT_ENV_OVERRIDE: 8,
   // Invalid output format requested
   ERROR_INCORRECT_OUTPUT_FORMAT: 9,
+  // Invalid directory specified, specified directory does not contain bruno.json file
+  ERROR_COLLECTION_DIR_NOT_FOUND: 10,
   // Everything else
   ERROR_GENERIC: 255,
 };
