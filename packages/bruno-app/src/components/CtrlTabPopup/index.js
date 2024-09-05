@@ -66,7 +66,7 @@ export default function CtrlTabPopup() {
     }
   }, [ctrlTabIndex, popupTabs]);
 
-  const shouldShowPopup = ctrlTabIndex !== null && ctrlTabIndex >= 0 && tabs.length > 0;
+  const shouldShowPopup = ctrlTabIndex !== null && ctrlTabIndex >= 0 && tabs.length > 1;
 
   if (!shouldShowPopup) return null;
 

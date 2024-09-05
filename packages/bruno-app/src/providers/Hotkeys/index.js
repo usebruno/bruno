@@ -174,7 +174,7 @@ export const HotkeysProvider = (props) => {
       (e) => {
         if (isCtrlPressed) {
           setTabPressCount((prevCount) => prevCount + 1);
-          if ((tabPressCount + 1) === 1) {
+          if (tabPressCount === 0) {
             dispatch(ctrlTab(CTRL_TAB_ACTIONS.ENTER));
           } else {
             // Dispatch `plus` action on subsequent presses

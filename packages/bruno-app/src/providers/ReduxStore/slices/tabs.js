@@ -24,17 +24,33 @@ export const CTRL_TAB_ACTIONS = Object.freeze({
   SWITCH: 'switch'
 });
 
+const getCollectionTabs = (state) => {
+  const activeTab = state.tabs.find((t) => t.uid === state.activeTabUid);
+  if (!activeTab) return [];
+  return state.tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
+};
+
 const moveCtrlTabIndex = (state, step) => {
-  if (state.ctrlTabIndex !== null) {
-    state.ctrlTabIndex = (state.ctrlTabIndex + step + state.tabs.length) % state.tabs.length;
+  const collectionTabs = getCollectionTabs(state);
+  if (collectionTabs.length <= 1 || state.ctrlTabIndex === null) {
+    return;
   }
+  // Update the ctrlTabIndex within the collection
+  state.ctrlTabIndex = (state.ctrlTabIndex + step + collectionTabs.length) % collectionTabs.length;
 };
 
 const moveActiveTab = (state, step) => {
-  const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+  const collectionTabs = getCollectionTabs(state);
+  // If there are 1 or fewer tabs in the collection, do nothing
+  if (collectionTabs.length <= 1) {
+    return;
+  }
+
+  const activeTabIndex = collectionTabs.findIndex((t) => t.uid === state.activeTabUid);
+
   if (activeTabIndex !== -1) {
-    const nextIndex = (activeTabIndex + step + state.tabs.length) % state.tabs.length;
-    state.activeTabUid = state.tabs[nextIndex].uid;
+    const nextIndex = (activeTabIndex + step + collectionTabs.length) % collectionTabs.length;
+    state.activeTabUid = collectionTabs[nextIndex].uid;
   }
 };
 
@@ -74,30 +90,37 @@ export const tabsSlice = createSlice({
       state.activeTabUid = action.payload.uid;
     },
     ctrlTab: (state, action) => {
-      if (!state.tabs || state.tabs.length < 2) {
+      if (!state.tabs.length) {
         state.activeTabUid = null;
         return;
       }
 
       switch (action.payload) {
-        case CTRL_TAB_ACTIONS.ENTER:
-          state.ctrlTabIndex =
-            state.ctrlTabIndex === null
-              ? state.tabs.findIndex((tab) => tab.uid === state.activeTabUid)
-              : state.ctrlTabIndex;
+        case CTRL_TAB_ACTIONS.ENTER: {
+          const collectionTabs = getCollectionTabs(state);
+          if (state.ctrlTabIndex === null) {
+            state.ctrlTabIndex = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
+          }
           break;
+        }
+        
         case CTRL_TAB_ACTIONS.PLUS:
           moveCtrlTabIndex(state, 1);
           break;
+          
         case CTRL_TAB_ACTIONS.MINUS:
           moveCtrlTabIndex(state, -1);
           break;
-        case CTRL_TAB_ACTIONS.SWITCH:
-          if (state.ctrlTabIndex !== null) {
-            state.activeTabUid = state.tabs[state.ctrlTabIndex].uid;
+          
+        case CTRL_TAB_ACTIONS.SWITCH: {
+          const collectionTabs = getCollectionTabs(state);
+          if (state.ctrlTabIndex !== null && collectionTabs.length > 1) {
+            state.activeTabUid = collectionTabs[state.ctrlTabIndex].uid;
             state.ctrlTabIndex = null;
           }
           break;
+        }
+        
         default:
           return;
       }
