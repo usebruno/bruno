@@ -23,7 +23,7 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
   let requestCopy = cloneDeep(request);
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, state, pkce } = oAuth;
+  const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
@@ -31,9 +31,6 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
     client_id: clientId,
     client_secret: clientSecret
   };
-  if (state) {
-    data.state = state;
-  }
   if (pkce) {
     data['code_verifier'] = codeVerifier;
   }
