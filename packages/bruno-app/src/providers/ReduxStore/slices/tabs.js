@@ -8,7 +8,6 @@ import last from 'lodash/last';
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  ctrlTabStack: [],
   ctrlTabIndex: null
 };
 
@@ -18,36 +17,33 @@ const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
 
 const uidToTab = (state, uid) => find(state.tabs, (tab) => tab.uid === uid);
 
-const focusTabWithStack = (state, uid) => {
+export const CTRL_TAB_ACTIONS = Object.freeze({
+  ENTER: 'enter',
+  PLUS: 'plus', // Ctrl+Tab
+  MINUS: 'minus', // Ctrl+Shift+Tab
+  SWITCH: 'switch'
+});
+
+const moveCtrlTabIndex = (state, step) => {
+  if (state.ctrlTabIndex !== null) {
+    state.ctrlTabIndex = (state.ctrlTabIndex + step + state.tabs.length) % state.tabs.length;
+  }
+};
+
+const moveActiveTab = (state, step) => {
+  const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
+  if (activeTabIndex !== -1) {
+    const nextIndex = (activeTabIndex + step + state.tabs.length) % state.tabs.length;
+    state.activeTabUid = state.tabs[nextIndex].uid;
+  }
+};
+
+const focusTabLinear = (state, uid) => {
   if (state.activeTabUid === uid) {
     return;
   }
-  if (state.activeTabUid) {
-    const previousTab = uidToTab(state, state.activeTabUid);
-    const currentTab = uidToTab(state, uid);
-    state.ctrlTabStack = [
-      ...filter(state.ctrlTabStack, (tab) => tab.uid !== state.activeTabUid && tab.uid !== uid),
-      ...(previousTab ? [previousTab] : []), // if previousTab is undefined, it means the tab was closed while focused
-      currentTab
-    ];
-  }
   state.activeTabUid = uid;
 };
-
-const removeClosedTabs = (state, filterFunction) => {
-  state.tabs = filter(state.tabs, filterFunction);
-  state.ctrlTabStack = filter(state.ctrlTabStack, filterFunction);
-  if (state.ctrlTabStack.length < 2) {
-    state.ctrlTabIndex = null;
-  }
-};
-
-export const CTRL_TAB_ACTIONS = Object.freeze({
-  ENTER: 'enter',
-  PLUS: 'plus',
-  MINUS: 'minus',
-  SWITCH: 'switch'
-});
 
 export const tabsSlice = createSlice({
   name: 'tabs',
@@ -64,7 +60,7 @@ export const tabsSlice = createSlice({
       ) {
         const tab = tabTypeAlreadyExists(state.tabs, action.payload.collectionUid, action.payload.type);
         if (tab) {
-          focusTabWithStack(state, tab.uid);
+          state.activeTabUid = tab.uid;
           return;
         }
       }
@@ -78,58 +74,45 @@ export const tabsSlice = createSlice({
         type: action.payload.type || 'request',
         ...(action.payload.uid ? { folderUid: action.payload.uid } : {})
       });
-      focusTabWithStack(state, action.payload.uid);
+      state.activeTabUid = action.payload.uid;
     },
     focusTab: (state, action) => {
-      focusTabWithStack(state, action.payload.uid);
-    },
-    focusCtrlTab: (state, action) => {
-      focusTabWithStack(state, action.payload.uid);
-      state.ctrlTabIndex = null;
+      state.activeTabUid = action.payload.uid;
     },
     ctrlTab: (state, action) => {
-      if (state.ctrlTabStack.length < 2) {
-        return;
-      }
-      switch (action.payload) {
-        case CTRL_TAB_ACTIONS.ENTER:
-          state.ctrlTabIndex = -2;
-          return;
-        case CTRL_TAB_ACTIONS.PLUS:
-          state.ctrlTabIndex = (state.ctrlTabIndex - 1) % state.ctrlTabStack.length;
-          return;
-        case CTRL_TAB_ACTIONS.MINUS:
-          state.ctrlTabIndex = (state.ctrlTabIndex + 1) % state.ctrlTabStack.length;
-          return;
-        case CTRL_TAB_ACTIONS.SWITCH:
-          if (state.ctrlTabIndex === null) {
-            // if already switched (eg, from click), do nothing
-            return;
-          }
-          focusTabWithStack(state, state.ctrlTabStack.at(state.ctrlTabIndex).uid);
-          state.ctrlTabIndex = null;
-          return;
-      }
-    },
-    switchTab: (state, action) => {
-      if (!state.tabs || !state.tabs.length) {
+      if (!state.tabs || state.tabs.length < 2) {
         state.activeTabUid = null;
         return;
       }
 
-      const direction = action.payload.direction;
-
-      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
-
-      let toBeActivatedTabIndex = 0;
-
-      if (direction == 'pageup') {
-        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
-      } else if (direction == 'pagedown') {
-        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      switch (action.payload) {
+        case CTRL_TAB_ACTIONS.ENTER:
+          state.ctrlTabIndex =
+            state.ctrlTabIndex === null
+              ? state.tabs.findIndex((tab) => tab.uid === state.activeTabUid)
+              : state.ctrlTabIndex;
+          break;
+        case CTRL_TAB_ACTIONS.PLUS:
+          moveCtrlTabIndex(state, 1);
+          break;
+        case CTRL_TAB_ACTIONS.MINUS:
+          moveCtrlTabIndex(state, -1);
+          break;
+        case CTRL_TAB_ACTIONS.SWITCH:
+          if (state.ctrlTabIndex !== null) {
+            state.activeTabUid = state.tabs[state.ctrlTabIndex].uid;
+            state.ctrlTabIndex = null;
+          }
+          break;
+        default:
+          return;
       }
+    },
+    switchTab: (state, action) => {
+      if (!state.tabs.length) return;
 
-      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
+      const direction = action.payload.direction;
+      direction === 'pageup' ? moveActiveTab(state, -1) : moveActiveTab(state, 1);
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -156,48 +139,35 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // remove the tabs from the state
-      removeClosedTabs(state, (t) => !tabUids.includes(t.uid));
+      // Remove closed tabs
+      state.tabs = state.tabs.filter((t) => !tabUids.includes(t.uid));
 
-      if (activeTab && state.tabs.length) {
-        const { collectionUid } = activeTab;
-        const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
-
-        // if the active tab no longer exists, set the active tab to the last tab in the list
-        // this implies that the active tab was closed
-        if (!activeTabStillExists) {
-          // load sibling tabs of the current collection
-          const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
-
-          // if there are sibling tabs, set the active tab to the last sibling tab
-          // otherwise, set the active tab to the last tab in the list
-          if (siblingTabs && siblingTabs.length) {
-            focusTabWithStack(state, last(siblingTabs).uid);
-          } else {
-            focusTabWithStack(state, last(state.tabs).uid);
-          }
-        }
+      // Reset the active tab if necessary
+      if (state.activeTabUid && !state.tabs.find((t) => t.uid === state.activeTabUid)) {
+        state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
       }
 
-      if (!state.tabs || !state.tabs.length) {
-        state.activeTabUid = null;
+      // Update ctrlTabIndex to match the new position of activeTabUid
+      if (state.activeTabUid) {
+        // state.ctrlTabIndex = state.tabs.findIndex((tab) => tab.uid === state.activeTabUid);
+        state.ctrlTabIndex = null;
+      } else {
+        state.ctrlTabIndex = null; // Reset if no tabs left
       }
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
-      removeClosedTabs(state, (t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = null;
+      state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
+      state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
+
+      if (state.activeTabUid) {
+        state.ctrlTabIndex = state.tabs.findIndex((tab) => tab.uid === state.activeTabUid);
+      } else {
+        state.ctrlTabIndex = null; // Reset if no tabs left
+      }
     }
   }
 });
-
-export const selectCtrlTabAction = (uid) => (dispatch) => {
-  dispatch(
-    tabsSlice.actions.focusCtrlTab({
-      uid
-    })
-  );
-};
 
 export const {
   addTab,

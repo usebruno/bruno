@@ -9,7 +9,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { CTRL_TAB_ACTIONS, closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { CTRL_TAB_ACTIONS, closeTabs, switchTab, ctrlTab} from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -22,6 +22,8 @@ export const HotkeysProvider = (props) => {
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
+  const [tabPressCount, setTabPressCount] = useState(0);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
 
   const getCurrentCollectionItems = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -154,47 +156,56 @@ export const HotkeysProvider = (props) => {
     };
   }, [activeTabUid]);
 
+  // switch tab hotkey
   useEffect(() => {
-    const shortcuts = ['mod+tab'];
-    const shiftedShortcuts = ['shift+mod+tab'];
+    // Handle Ctrl keydown
+    Mousetrap.bind(
+      'ctrl',
+      () => {
+        setIsCtrlPressed(true);
+        setTabPressCount(0);
+      },
+      'keydown'
+    );
 
-    const bindCtrlTabShortcut = () => {
-      Mousetrap.bind(shortcuts, () => {
-        dispatch(ctrlTab(CTRL_TAB_ACTIONS.ENTER));
-        Mousetrap.unbind(shortcuts);
+    // Handle Ctrl+Tab keydown
+    Mousetrap.bind(
+      'ctrl+tab',
+      (e) => {
+        if (isCtrlPressed) {
+          setTabPressCount((prevCount) => prevCount + 1);
+          if ((tabPressCount + 1) === 1) {
+            dispatch(ctrlTab(CTRL_TAB_ACTIONS.ENTER));
+          } else {
+            // Dispatch `plus` action on subsequent presses
+            dispatch(ctrlTab(CTRL_TAB_ACTIONS.PLUS));
+          }
+          e.preventDefault(); // Prevent default tab switching behavior
+        }
+      },
+      'keydown'
+    );
 
-        Mousetrap.bind(shortcuts, () => {
-          dispatch(ctrlTab(CTRL_TAB_ACTIONS.PLUS));
-          return false; // this stops the event bubbling
-        });
-        Mousetrap.bind(shiftedShortcuts, () => {
-          dispatch(ctrlTab(CTRL_TAB_ACTIONS.MINUS));
-          return false; // this stops the event bubbling
-        });
+    // Handle Ctrl keyup
+    Mousetrap.bind(
+      'ctrl',
+      () => {
+        if (isCtrlPressed) {
+          dispatch(ctrlTab(CTRL_TAB_ACTIONS.SWITCH));
+          setIsCtrlPressed(false);
+          setTabPressCount(0);
+        }
+      },
+      'keyup'
+    );
 
-        Mousetrap.bind(
-          ['mod'],
-          () => {
-            dispatch(ctrlTab(CTRL_TAB_ACTIONS.SWITCH));
-            Mousetrap.unbind(['mod'], 'keyup');
-            Mousetrap.unbind(shortcuts);
-            Mousetrap.unbind(shiftedShortcuts);
-
-            bindCtrlTabShortcut();
-            return false; // this stops the event bubbling
-          },
-          'keyup'
-        );
-
-        return false; // this stops the event bubbling
-      });
-    };
-    bindCtrlTabShortcut();
-
+    // Cleanup Mousetrap bindings when the component unmounts
     return () => {
-      Mousetrap.unbind(shortcuts);
+      Mousetrap.unbind('ctrl', 'keydown');
+      Mousetrap.unbind('ctrl+tab', 'keydown');
+      Mousetrap.unbind('ctrl', 'keyup');
     };
-  }, []);
+  }, [isCtrlPressed, tabPressCount]);
 
   // Switch to the previous tab
   useEffect(() => {

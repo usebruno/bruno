@@ -1,29 +1,13 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { findItemInCollection, findCollectionByUid } from 'utils/collections';
 import { useDispatch, useSelector } from 'react-redux';
 import classnames from 'classnames';
 import StyledWrapper from './StyledWrapper';
 import reverse from 'lodash/reverse';
 import { getSpecialTabName, isSpecialTab, isItemAFolder } from 'utils/tabs';
-import { selectCtrlTabAction } from 'providers/ReduxStore/slices/tabs';
+import { focusTab } from 'providers/ReduxStore/slices/tabs';
 
-export const tabStackToPopupTabs = (collections, ctrlTabStack) => {
-  if (!collections) {
-    return [];
-  }
-
-  return ctrlTabStack
-    .map((tab) => {
-      const collection = findCollectionByUid(collections, tab.collectionUid);
-      return { collection, tab: findItemInCollection(collection, tab.uid) ?? tab };
-    })
-    .map(({ collection, tab }) => ({
-      tabName: isSpecialTab(tab) ? getSpecialTabName(tab.type) : tab.name,
-      path: getItemPath(collection, tab),
-      uid: tab.uid
-    }));
-};
-
+// Recursive function to get the path of an item within a collection
 const getItemPath = (collection, item) => {
   if (isSpecialTab(item)) {
     return collection.name;
@@ -32,42 +16,82 @@ const getItemPath = (collection, item) => {
     return collection.name;
   }
 
-  return (
-    collection.name + '/' + collection.items.map((i) => (isItemAFolder(i) ? getItemPath(i, item) : null)).find(Boolean)
-  );
+  const path = collection.items
+    .map((i) => (isItemAFolder(i) ? getItemPath(i, item) : null))
+    .find(Boolean);
+
+  return path ? `${collection.name}/${path}` : collection.name;
 };
 
-// required in cases where we remove a tab from the stack but the user is still holding ctrl
-const tabStackToUniqueId = (ctrlTabStack) => ctrlTabStack.map((tab) => tab.uid).join('-');
+// Function to transform active tabs into popup-friendly format
+const activeTabsToPopupTabs = (collections, tabs) => {
+  if (!collections) return [];
+
+  return tabs
+    .map((tab) => {
+      const collection = findCollectionByUid(collections, tab.collectionUid);
+      if (!collection) return null;
+
+      const foundTab = findItemInCollection(collection, tab.uid) ?? tab;
+      if (!foundTab) return null;
+
+      return { collection, tab: foundTab };
+    })
+    .filter(Boolean)
+    .map(({ collection, tab }) => ({
+      tabName: isSpecialTab(tab) ? getSpecialTabName(tab.type) : tab.name,
+      path: getItemPath(collection, tab),
+      uid: tab.uid,
+    }));
+};
 
 export default function CtrlTabPopup() {
   const ctrlTabIndex = useSelector((state) => state.tabs.ctrlTabIndex);
-  const ctrlTabStack = useSelector((state) => state.tabs.ctrlTabStack);
+  const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const dispatch = useDispatch();
 
-  if (ctrlTabIndex === null) {
+  // Memoize the result of activeTabsToPopupTabs to avoid recalculations
+  const popupTabs = useMemo(() => activeTabsToPopupTabs(collections, tabs), [collections, tabs]);
+
+  useEffect(() => {
+    // Check for valid ctrlTabIndex and focus on the appropriate tab
+    if (popupTabs.length > 0 && ctrlTabIndex !== null && ctrlTabIndex >= 0) {
+      if (ctrlTabIndex < popupTabs.length) {
+        const element = document.getElementById(`tab-${popupTabs[ctrlTabIndex].uid}`);
+        if (element) {
+          element.focus();
+        }
+      }
+    }
+  }, [ctrlTabIndex, popupTabs]);
+
+  const shouldShowPopup = ctrlTabIndex !== null && ctrlTabIndex >= 0 && tabs.length > 0;
+
+  if (!shouldShowPopup) return null;
+
+  if (ctrlTabIndex < 0 || ctrlTabIndex >= popupTabs.length) {
+    console.warn("Invalid ctrlTabIndex", ctrlTabIndex);
     return null;
   }
 
-  const popupTabs = tabStackToPopupTabs(collections, ctrlTabStack);
-
-  const currentTabbedTab = popupTabs.at(ctrlTabIndex);
+  const currentTabbedTab = popupTabs[ctrlTabIndex];
 
   return (
     <div className="absolute flex justify-center top-1 w-full">
       <StyledWrapper
-        key={'dialog' + ctrlTabIndex + tabStackToUniqueId(ctrlTabStack)}
-        className="flex flex-col rounded isolate z-10 p-1 overflow-y-auto max-h-80 w-96"
+        key={`dialog-${ctrlTabIndex}-${popupTabs.map((tab) => tab.uid).join('-')}`}
+        className="flex flex-col isolate z-10 p-1"
       >
-        {reverse(popupTabs).map((popupTab) => (
+        {popupTabs.map((popupTab) => (
           <button
+            id={`tab-${popupTab.uid}`}
+            title={popupTab.path}
             key={popupTab.uid}
-            autoFocus={currentTabbedTab === popupTab}
-            onClick={() => dispatch(selectCtrlTabAction(popupTab.uid))}
+            onClick={() => dispatch(focusTab({ uid: popupTab.uid }))}
             type="button"
             className={classnames('py-0.5 px-5 rounded text-left truncate', {
-              'is-active': currentTabbedTab === popupTab
+              'is-active': currentTabbedTab === popupTab,
             })}
           >
             <strong className="font-medium">{popupTab.tabName}</strong>
