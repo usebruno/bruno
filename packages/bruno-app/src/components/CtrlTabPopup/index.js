@@ -23,11 +23,22 @@ const getItemPath = (collection, item) => {
   return path ? `${collection.name}/${path}` : collection.name;
 };
 
-// Function to transform active tabs into popup-friendly format
-const activeTabsToPopupTabs = (collections, tabs) => {
-  if (!collections) return [];
+const getCollectionTabs = (tabs, activeTabUid) => {
+  const activeTab = tabs.find((t) => t.uid === activeTabUid);
+  if (!activeTab) return [];
 
-  return tabs
+  // Filter tabs that belong to the same collection as the active tab (CtrlTabIndex)
+  return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
+};
+
+// Function to transform active tabs into popup format
+const activeTabsToPopupTabs = (collections, tabs, activeTabUid) => {
+  if (!collections || !tabs) return [];
+
+  // Get tabs within the same collection as the active tab
+  const collectionTabs = getCollectionTabs(tabs, activeTabUid);
+
+  return collectionTabs
     .map((tab) => {
       const collection = findCollectionByUid(collections, tab.collectionUid);
       if (!collection) return null;
@@ -49,10 +60,11 @@ export default function CtrlTabPopup() {
   const ctrlTabIndex = useSelector((state) => state.tabs.ctrlTabIndex);
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
+  const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const dispatch = useDispatch();
 
   // Memoize the result of activeTabsToPopupTabs to avoid recalculations
-  const popupTabs = useMemo(() => activeTabsToPopupTabs(collections, tabs), [collections, tabs]);
+  const popupTabs = useMemo(() => activeTabsToPopupTabs(collections, tabs, activeTabUid), [collections, tabs, activeTabUid]);
 
   useEffect(() => {
     // Check for valid ctrlTabIndex and focus on the appropriate tab
