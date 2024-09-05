@@ -248,8 +248,7 @@ const builder = async (yargs) => {
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
     .option('collection-dir', {
-      alias: "dir",
-      default: "./",
+      alias: 'dir',
       describe: 'Specify the root directory of the Bruno collection',
       type: 'string'
     })
