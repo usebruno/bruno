@@ -232,17 +232,31 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
+
   const viewFolderSettings = () => {
-    dispatch(
-      addTab({
-        uid: uuid(),
-        collectionUid: collection.uid,
-        folderUid: item.uid,
-        type: 'folder-settings'
-      })
-    );
+    if (isItemAFolder(item)) {
+      if (itemIsOpenedInTabs(item, tabs)) {
+        dispatch(
+          focusTab({
+            uid: item.uid
+          })
+        );
+        return;
+      }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
+        })
+      );
+      return;
+    }
   };
   const items = sortRequestItems(filter(item.items, (i) => isItemARequest(i) || isItemAFolder(i)));
+
+  //const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
+  //const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className={className}>

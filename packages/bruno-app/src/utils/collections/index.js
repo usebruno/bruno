@@ -10,6 +10,7 @@ import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
+import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -98,7 +99,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => i.pathname === pathname);
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
@@ -393,6 +394,55 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         }
       }
 
+      if (si.type == 'folder' && si?.root) {
+        di.root = {
+          request: {}
+        };
+
+        let { request, meta } = si?.root || {};
+        let { headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level headers
+        if (headers?.length) {
+          di.root.request.headers = headers;
+        }
+        // folder level script
+        if (Object.keys(script)?.length) {
+          di.root.request.script = {};
+          if (script?.req?.length) {
+            di.root.request.script.req = script?.req;
+          }
+          if (script?.res?.length) {
+            di.root.request.script.res = script?.res;
+          }
+        }
+        // folder level vars
+        if (Object.keys(vars)?.length) {
+          di.root.request.vars = {};
+          if (vars?.req?.length) {
+            di.root.request.vars.req = vars?.req;
+          }
+          if (vars?.res?.length) {
+            di.root.request.vars.res = vars?.res;
+          }
+        }
+        // folder level tests
+        if (tests?.length) {
+          di.root.request.tests = tests;
+        }
+
+        if (meta?.name) {
+          di.root.meta = {};
+          di.root.meta.name = meta?.name;
+        }
+        if (!Object.keys(di.root.request)?.length) {
+          delete di.root.request;
+        }
+        if (!Object.keys(di.root)?.length) {
+          delete di.root;
+        }
+      }
+
       if (si.type === 'js') {
         di.fileContent = si.raw;
       }
@@ -415,6 +465,60 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.items = [];
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
+
+  collectionToSave.root = {
+    request: {}
+  };
+
+  let { request, docs, meta } = collection?.root || {};
+  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionToSave.root.request.auth = auth;
+  }
+  // collection level headers
+  if (headers?.length) {
+    collectionToSave.root.request.headers = headers;
+  }
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionToSave.root.request.script = {};
+    if (script?.req?.length) {
+      collectionToSave.root.request.script.req = script?.req;
+    }
+    if (script?.res?.length) {
+      collectionToSave.root.request.script.res = script?.res;
+    }
+  }
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionToSave.root.request.vars = {};
+    if (vars?.req?.length) {
+      collectionToSave.root.request.vars.req = vars?.req;
+    }
+    if (vars?.res?.length) {
+      collectionToSave.root.request.vars.res = vars?.res;
+    }
+  }
+  // collection level tests
+  if (tests?.length) {
+    collectionToSave.root.request.tests = tests;
+  }
+  // collection level docs
+  if (docs?.length) {
+    collectionToSave.root.docs = docs;
+  }
+  if (meta?.name) {
+    collectionToSave.root.meta = {};
+    collectionToSave.root.meta.name = meta?.name;
+  }
+  if (!Object.keys(collectionToSave.root.request)?.length) {
+    delete collectionToSave.root.request;
+  }
+  if (!Object.keys(collectionToSave.root)?.length) {
+    delete collectionToSave.root;
+  }
 
   collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
 
@@ -696,18 +800,25 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  const environmentVariables = getEnvironmentVariables(collection);
+  const envVariables = getEnvironmentVariables(collection);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
 
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+
   return {
-    ...environmentVariables,
-    ...collection.collectionVariables,
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
     pathParams: {
       ...pathParams
     },
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
   };
@@ -722,4 +833,48 @@ export const maskInputValue = (value) => {
     .split('')
     .map(() => '*')
     .join('');
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollection(collection, _item?.uid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
+  let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
 };

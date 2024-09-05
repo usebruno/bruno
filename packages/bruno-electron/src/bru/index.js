@@ -14,7 +14,6 @@ const collectionBruToJson = (bru) => {
 
     const transformedJson = {
       request: {
-        params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
         auth: _.get(json, 'auth', {}),
         script: _.get(json, 'script', {}),
@@ -41,12 +40,10 @@ const collectionBruToJson = (bru) => {
   }
 };
 
-const jsonToCollectionBru = (json) => {
+const jsonToCollectionBru = (json, isFolder) => {
   try {
     const collectionBruJson = {
-      params: _.get(json, 'request.params', []),
       headers: _.get(json, 'request.headers', []),
-      auth: _.get(json, 'request.auth', {}),
       script: {
         req: _.get(json, 'request.script.req', ''),
         res: _.get(json, 'request.script.res', '')
@@ -62,12 +59,16 @@ const jsonToCollectionBru = (json) => {
     // add meta if it exists
     // this is only for folder bru file
     // in the future, all of this will be replaced by standard bru lang
-    const sequence = _.get(json, 'meta.seq');
-    if (json.meta) {
+    if (json?.meta) {
+      const sequence = _.get(json, 'meta.seq');
       collectionBruJson.meta = {
         name: json.meta.name,
         seq: !isNaN(sequence) ? Number(sequence) : 1
       };
+    }
+
+    if (!isFolder) {
+      collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
     return _jsonToCollectionBru(collectionBruJson);

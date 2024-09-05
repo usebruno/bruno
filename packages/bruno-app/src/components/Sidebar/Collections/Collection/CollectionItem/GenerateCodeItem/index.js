@@ -73,7 +73,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
     envVars,
-    collectionVariables: collection.collectionVariables,
+    runtimeVariables: collection.runtimeVariables,
     processEnvVars: collection.processEnvVariables
   });
 
