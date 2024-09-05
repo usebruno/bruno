@@ -54,17 +54,14 @@ function makeAxiosInstance() {
       // doesn't apply the default transformRequest if the data is a string, so that axios doesn't add quotes see :
       // https://github.com/usebruno/bruno/issues/2043
       // https://github.com/axios/axios/issues/4034
-      const hasJSONContentType = () => {
-        const contentType = (headers && headers['Content-Type']) || '';
-        return contentType.indexOf('application/json') > -1;
-      };
-      if (typeof data === 'string' && hasJSONContentType()) {
+      const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+      const hasJSONContentType = contentType.includes('json');
+      if (typeof data === 'string' && hasJSONContentType) {
         return data;
       }
 
       axios.defaults.transformRequest.forEach((tr) => data = tr(data, headers));
       return data;
-
     }
   });
 
