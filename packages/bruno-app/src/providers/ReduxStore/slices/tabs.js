@@ -172,11 +172,7 @@ export const tabsSlice = createSlice({
       state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
       state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
 
-      if (state.activeTabUid) {
-        state.ctrlTabIndex = state.tabs.findIndex((tab) => tab.uid === state.activeTabUid);
-      } else {
-        state.ctrlTabIndex = null; // Reset if no tabs left
-      }
+      state.ctrlTabIndex = null;
     }
   }
 });
