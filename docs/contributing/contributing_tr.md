@@ -1,4 +1,20 @@
-[English](../../contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | **Türkçe** | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md) | [简体中文](docs/contributing/contributing_cn.md) | [正體中文](docs/contributing/contributing_zhtw.md)
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| **Türkçe**
+| [Deutsch](./contributing_de.md)
+| [Français](./contributing_fr.md)
+| [Português (BR)](./contributing_pt_br.md)
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
 
 ## Bruno'yu birlikte daha iyi hale getirelim!!!
 
@@ -21,7 +37,7 @@ Kullandığımız kütüphaneler
 
 ### Bağımlılıklar
 
-[Node v18.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
+[Node v20.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
 
 ## Gelişim
 
@@ -56,7 +72,6 @@ npm run dev:electron
 ### Sorun Giderme
 
 `npm install`'ı çalıştırdığınızda `Unsupported platform` hatası ile karşılaşabilirsiniz. Bunu düzeltmek için `node_modules` ve `package-lock.json` dosyalarını silmeniz ve `npm install` dosyasını çalıştırmanız gerekecektir. Bu, uygulamayı çalıştırmak için gereken tüm gerekli paketleri yüklemelidir.
-
 
 ```shell
 #  Alt dizinlerdeki node_modules öğelerini silme

@@ -1,0 +1,28 @@
+meta {
+  name: setMethod
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.setMethod("GET");
+}
+
+tests {
+  test("req.setMethod()()", function() {
+    const method = req.getMethod();
+    expect(method).to.equal("GET");
+  });
+}
