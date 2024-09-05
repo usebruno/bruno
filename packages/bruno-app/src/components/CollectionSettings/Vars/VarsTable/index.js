@@ -3,30 +3,32 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
-import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
+import {
+  addCollectionVar,
+  deleteCollectionVar,
+  updateCollectionVar
+} from 'providers/ReduxStore/slices/collections/index';
 
-const VarsTable = ({ item, collection, vars, varType }) => {
+const VarsTable = ({ collection, vars, varType }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const handleAddVar = () => {
+  const addVar = () => {
     dispatch(
-      addVar({
-        type: varType,
-        itemUid: item.uid,
-        collectionUid: collection.uid
+      addCollectionVar({
+        collectionUid: collection.uid,
+        type: varType
       })
     );
   };
 
-  const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
-  const handleRun = () => dispatch(sendRequest(item, collection.uid));
+  const onSave = () => dispatch(saveCollectionRoot(collection.uid));
   const handleVarChange = (e, v, type) => {
     const _var = cloneDeep(v);
     switch (type) {
@@ -53,10 +55,9 @@ const VarsTable = ({ item, collection, vars, varType }) => {
       }
     }
     dispatch(
-      updateVar({
+      updateCollectionVar({
         type: varType,
         var: _var,
-        itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
@@ -64,10 +65,9 @@ const VarsTable = ({ item, collection, vars, varType }) => {
 
   const handleRemoveVar = (_var) => {
     dispatch(
-      deleteVar({
+      deleteCollectionVar({
         type: varType,
         varUid: _var.uid,
-        itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
@@ -90,7 +90,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
+                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
                 </div>
               </td>
             )}
@@ -130,9 +130,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                             'value'
                           )
                         }
-                        onRun={handleRun}
                         collection={collection}
-                        item={item}
                       />
                     </td>
                     <td>
@@ -155,7 +153,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
             : null}
         </tbody>
       </table>
-      <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={handleAddVar}>
+      <button className="btn-add-var text-link pr-2 py-3 mt-2 select-none" onClick={addVar}>
         + Add
       </button>
     </StyledWrapper>

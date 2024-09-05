@@ -138,31 +138,46 @@ export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   if (draggedItemParent) {
     draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
     draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
-    draggedItem.pathname = path.join(draggedItemParent.pathname, draggedItem.filename);
+    draggedItem.pathname = path.join(draggedItemParent.pathname, path.basename(draggedItem.pathname));
   } else {
     collection.items = sortBy(collection.items, (item) => item.seq);
     collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
   }
 
-  if (targetItem.type === 'folder') {
-    targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
-    targetItem.items.push(draggedItem);
-    draggedItem.pathname = path.join(targetItem.pathname, draggedItem.filename);
-  } else {
-    let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
+  let targetItemParent = findParentItemInCollection(collection, targetItem.uid);
 
-    if (targetItemParent) {
-      targetItemParent.items = sortBy(targetItemParent.items, (item) => item.seq);
-      let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
-      targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(targetItemParent.pathname, draggedItem.filename);
-    } else {
-      collection.items = sortBy(collection.items, (item) => item.seq);
-      let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
-      collection.items.splice(targetItemIndex + 1, 0, draggedItem);
-      draggedItem.pathname = path.join(collection.pathname, draggedItem.filename);
-    }
+  if (targetItemParent) {
+    targetItemParent.items = sortBy(targetItemParent.items, (item) => item.seq);
+    let targetItemIndex = findIndex(targetItemParent.items, (i) => i.uid === targetItem.uid);
+    targetItemParent.items.splice(targetItemIndex + 1, 0, draggedItem);
+    draggedItem.pathname = path.join(targetItemParent.pathname, path.basename(draggedItem.pathname));
+  } else {
+    collection.items = sortBy(collection.items, (item) => item.seq);
+    let targetItemIndex = findIndex(collection.items, (i) => i.uid === targetItem.uid);
+    collection.items.splice(targetItemIndex + 1, 0, draggedItem);
+    draggedItem.pathname = path.join(collection.pathname, path.basename(draggedItem.pathname));
   }
+};
+
+export const moveCollectionItemToFolder = (collection, draggedItem, targetItem) => {
+  let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
+  if (draggedItemParent) {
+    draggedItemParent.items = sortBy(draggedItemParent.items, (item) => item.seq);
+    draggedItemParent.items = filter(draggedItemParent.items, (i) => i.uid !== draggedItem.uid);
+    draggedItem.pathname = path.join(draggedItemParent.pathname, path.basename(draggedItem.pathname));
+  } else {
+    collection.items = sortBy(collection.items, (item) => item.seq);
+    collection.items = filter(collection.items, (i) => i.uid !== draggedItem.uid);
+  }
+
+  targetItem.items = sortBy(targetItem.items || [], (item) => item.seq);
+  draggedItem.seq = -1;
+  targetItem.items.splice(0, 0, draggedItem);
+  targetItem.items = targetItem.items?.map((item, index) => {
+    item.seq = index + 1;
+    return item;
+  });
+  draggedItem.pathname = path.join(targetItem.pathname, path.basename(draggedItem.pathname));
 };
 
 export const moveCollectionItemToRootOfCollection = (collection, draggedItem) => {
@@ -190,12 +205,11 @@ export const getItemsToResequence = (parent, collection) => {
   if (!parent) {
     let index = 1;
     each(collection.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
+      itemsToResequence.push({
+        pathname: item.pathname,
+        seq: index++,
+        type: isItemAFolder(item) ? 'folder' : 'request'
+      });
     });
     return itemsToResequence;
   }
@@ -203,12 +217,11 @@ export const getItemsToResequence = (parent, collection) => {
   if (parent.items && parent.items.length) {
     let index = 1;
     each(parent.items, (item) => {
-      if (isItemARequest(item)) {
-        itemsToResequence.push({
-          pathname: item.pathname,
-          seq: index++
-        });
-      }
+      itemsToResequence.push({
+        pathname: item.pathname,
+        seq: index++,
+        type: isItemAFolder(item) ? 'folder' : 'request'
+      });
     });
     return itemsToResequence;
   }
@@ -787,24 +800,25 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
-  const environmentVariables = getEnvironmentVariables(collection);
-  let requestVariables = {};
-  if (item?.request) {
-    const requestTreePath = getTreePathFromCollectionToItem(collection, item);
-    requestVariables = mergeFolderLevelVars(item?.request, requestTreePath);
-  }
+  const envVariables = getEnvironmentVariables(collection);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
 
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+
   return {
-    ...environmentVariables,
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
     ...requestVariables,
-    ...collection.runtimeVariables,
+    ...runtimeVariables,
     pathParams: {
       ...pathParams
     },
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
   };
@@ -831,14 +845,22 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const mergeFolderLevelVars = (request, requestTreePath = []) => {
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
   let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          requestVariables[_var.name] = _var.value;
+          folderVariables[_var.name] = _var.value;
         }
       });
     } else {
@@ -850,6 +872,9 @@ const mergeFolderLevelVars = (request, requestTreePath = []) => {
       });
     }
   }
-
-  return requestVariables;
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
+  };
 };

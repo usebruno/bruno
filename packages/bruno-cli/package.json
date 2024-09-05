@@ -40,7 +40,6 @@
     "inquirer": "^9.1.4",
     "json-bigint": "^1.0.0",
     "lodash": "^4.17.21",
-    "mustache": "^4.2.0",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "vm2": "^3.9.13",

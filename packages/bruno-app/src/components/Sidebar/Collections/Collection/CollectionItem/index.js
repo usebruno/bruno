@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, reorderAroundFolderItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -41,6 +41,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
 
+  const isFolder = isItemAFolder(item);
+
+  const [hoverTime, setHoverTime] = useState(0);
+  const [action, setAction] = useState(null);
+
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
     item: item,
@@ -49,12 +54,29 @@ const CollectionItem = ({ item, collection, searchText }) => {
     })
   });
 
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOver, canDrop }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
     drop: (draggedItem) => {
       if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+        if (isFolder) {
+          if (action === 'SHORT_HOVER') {
+            if (itemIsCollapsed) {
+              // outside of the folder, but adjacent to the folder
+              dispatch(reorderAroundFolderItem(collection.uid, draggedItem.uid, item.uid));
+            } else {
+              // first item in the folder
+              // could be refactored to seperate this into a seperate function?
+              dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+            }
+          } else if (action === 'LONG_HOVER') {
+            // could be refactored to seperate this into a seperate function?
+            dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+          }
+        } else {
+          dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
+        }
       }
+      hoverTime > 0 && setHoverTime(0);
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== item.uid;
@@ -63,6 +85,30 @@ const CollectionItem = ({ item, collection, searchText }) => {
       isOver: monitor.isOver()
     })
   });
+
+  useEffect(() => {
+    let timer;
+    if (isOver && !canDrop) {
+      timer = setInterval(() => {
+        setHoverTime((prevTime) => prevTime + 100);
+      }, 100);
+    } else {
+      setAction(null);
+      setHoverTime(0);
+      timer && clearInterval(timer);
+    }
+    return () => clearInterval(timer);
+  }, [isOver, canDrop]);
+
+  useEffect(() => {
+    if (hoverTime >= 0 && hoverTime < 750) {
+      setAction('SHORT_HOVER');
+    } else if (hoverTime >= 750) {
+      setAction('LONG_HOVER');
+    } else {
+      setAction(null);
+    }
+  }, [hoverTime]);
 
   useEffect(() => {
     if (searchText && searchText.length) {
@@ -85,9 +131,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
     'rotate-90': !itemIsCollapsed
   });
 
-  const itemRowClassName = classnames('flex collection-item-name items-center', {
+  const itemRowClassName = classnames('flex collection-item-name relative items-center', {
     'item-focused-in-tab': item.uid == activeTabUid,
-    'item-hovered': isOver
+    'item-hovered': isOver && canDrop,
+    'item-target': isOver && !canDrop && isFolder && action === 'LONG_HOVER',
+    'item-seperator': isOver && !canDrop && (!isFolder || action === 'SHORT_HOVER')
   });
 
   const scrollToTheActiveTab = () => {
@@ -153,7 +201,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   let indents = range(item.depth);
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
-  const isFolder = isItemAFolder(item);
 
   const className = classnames('flex flex-col w-full', {
     'is-sidebar-dragging': isSidebarDragging
@@ -176,10 +223,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
     return items.sort((a, b) => a.seq - b.seq);
   };
 
-  // we need to sort folder items by name alphabetically
-  const sortFolderItems = (items = []) => {
-    return items.sort((a, b) => a.name.localeCompare(b.name));
-  };
   const handleGenerateCode = (e) => {
     e.stopPropagation();
     dropdownTippyRef.current.hide();
@@ -210,9 +253,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
       return;
     }
   };
+  const items = sortRequestItems(filter(item.items, (i) => isItemARequest(i) || isItemAFolder(i)));
 
-  const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
-  const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
+  //const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
+  //const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
   return (
     <StyledWrapper className={className}>
@@ -382,17 +426,13 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </Dropdown>
           </div>
         </div>
+        <div className={isFolder ? `seperator-blinker` : `seperator`}></div>
       </div>
 
       {!itemIsCollapsed ? (
         <div>
-          {folderItems && folderItems.length
-            ? folderItems.map((i) => {
-                return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
-              })
-            : null}
-          {requestItems && requestItems.length
-            ? requestItems.map((i) => {
+          {items && items.length
+            ? items.map((i) => {
                 return <CollectionItem key={i.uid} item={i} collection={collection} searchText={searchText} />;
               })
             : null}

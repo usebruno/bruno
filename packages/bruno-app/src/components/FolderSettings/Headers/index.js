@@ -116,6 +116,7 @@ const Headers = ({ collection, folder }) => {
                           )
                         }
                         collection={collection}
+                        item={folder}
                       />
                     </td>
                     <td>
