@@ -38,12 +38,6 @@ const moveActiveTab = (state, step) => {
   }
 };
 
-const focusTabLinear = (state, uid) => {
-  if (state.activeTabUid === uid) {
-    return;
-  }
-  state.activeTabUid = uid;
-};
 
 export const tabsSlice = createSlice({
   name: 'tabs',
