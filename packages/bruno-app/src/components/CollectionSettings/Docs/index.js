@@ -49,8 +49,7 @@ const Docs = ({ collection }) => {
           fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <Markdown onDoubleClick={toggleViewMode} content={docs} onSave={onSave} />
-        // <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />        //Incoming Change
+        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} onSave={onSave} />
       )}
     </StyledWrapper>
   );

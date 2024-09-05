@@ -3,7 +3,7 @@ import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
 import React from 'react';
 
-const Markdown = ({ collectionPath, onDoubleClick, content }) => {
+const Markdown = ({ collectionPath, onDoubleClick, content, onSave }) => {
   const markdownItOptions = {
     replaceLink: function (link, env) {
       return link.replace(/^\./, collectionPath);
@@ -22,10 +22,6 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
     }
   };
 
-// <<<<<<< HEAD
-// const Markdown = ({ onDoubleClick, content, onSave }) => {
-// =======
-// >>>>>>> origin/main
   const handleOnDoubleClick = (event) => {
     if (event.detail === 2) {
       onDoubleClick();
@@ -37,19 +33,18 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const htmlFromMarkdown = md.render(content || '');
 
   const handleKeyDown = (event) => {
-    const saveKeyCode = 83;
-    if ((event.ctrlKey || event.metaKey) && event.keyCode === saveKeyCode) {
-      event.preventDefault(); // Prevent the default browser save action
-      onSave(); // Call the onSave function when Ctrl+S or Cmd+S is pressed
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+      event.preventDefault();
+      onSave();
     }
   };
 
   React.useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown); // Add event listener for keydown
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown); // Clean up the event listener
+      document.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [handleKeyDown]);
 
   return (
     <StyledWrapper>
