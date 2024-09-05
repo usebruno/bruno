@@ -189,24 +189,63 @@ export const exportCollection = (collection) => {
       .map(({ name, value, description }) => ({ key: name, value, description }));
   };
 
+/**
+ * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
+ *
+ * @param {string} url - The raw URL to be transformed.
+ * @param {Object} params - The params object.
+ * @returns {Object} An object containing the URL's protocol, host, path, query, and variables.
+ */
   const transformUrl = (url, params) => {
-    const postmanUrl = { raw: url };
-    const urlParts = url.split(/:\/\//);
-    let rawHostAndPath;
+    const urlRegexPatterns = {
+      protocolSeparator: /:\/\//,
+      hostPathSeparator: /\/(.+)/,
+      domainSegmentSeparator: /\./,
+      pathSegmentSeparator: /\//
+    };
 
-    if (urlParts.length === 1) {
-      rawHostAndPath = urlParts[0];
-    } else if (urlParts.length === 2) {
-      postmanUrl.protocol = urlParts[0];
-      rawHostAndPath = urlParts[1];
-    } else {
-      console.error(`Invalid URL: ${url}`);
+    const postmanUrl = { raw: url };
+
+    /**
+     * Splits a URL into its protocol, host and path.
+     *
+     * @param {string} url - The URL to be split.
+     * @returns {Object} An object containing the protocol and the raw host/path string.
+     */
+    const splitUrl = (url) => {
+      const urlParts = url.split(urlRegexPatterns.protocolSeparator);
+      if (urlParts.length === 1) {
+        return { protocol: '', rawHostAndPath: urlParts[0] };
+      } else if (urlParts.length === 2) {
+        return { protocol: urlParts[0], rawHostAndPath: urlParts[1] };
+      } else {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
+    };
+
+    /**
+     * Splits the host and path from a raw host/path string.
+     *
+     * @param {string} rawHostAndPath - The raw host and path string to be split.
+     * @returns {Object} An object containing the host and path.
+     */
+    const splitHostAndPath = (rawHostAndPath) => {
+      const [host, path = ''] = rawHostAndPath.split(urlRegexPatterns.hostPathSeparator);
+      return { host, path };
+    };
+
+    try {
+      const { protocol, rawHostAndPath } = splitUrl(url);
+      postmanUrl.protocol = protocol;
+
+      const { host, path } = splitHostAndPath(rawHostAndPath);
+      postmanUrl.host = host.split(urlRegexPatterns.domainSegmentSeparator);
+      postmanUrl.path = path ? path.split(urlRegexPatterns.pathSegmentSeparator).filter(Boolean) : [];
+    } catch (error) {
+      console.error(error.message);
       return {};
     }
 
-    const hostAndPath = rawHostAndPath.split(/\/(.+)/);
-    postmanUrl.host = hostAndPath[0].split(/\./);
-    postmanUrl.path = hostAndPath[1] === undefined ? [] : hostAndPath[1].split(/\//);
     postmanUrl.query = generateQueryParams(params);
     postmanUrl.variable = generateVariables(params);
 
@@ -222,7 +261,7 @@ export const exportCollection = (collection) => {
       url: transformUrl(itemRequest.url, itemRequest.params)
     };
 
-    if (itemRequest.body.mode != 'none') {
+    if (itemRequest.body.mode !== 'none') {
       requestObject.body = generateBody(itemRequest.body);
     }
     return requestObject;
