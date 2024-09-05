@@ -12,7 +12,7 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -33,10 +33,10 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
       ...envVars,
-      ...collectionVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -82,11 +82,11 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.data = _interpolate(request.data);
   }
 
-  each(request.params, (param) => {
+  each(request?.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
 
-  if (request?.params?.length) {
+  if (request?.pathParams?.length) {
     let url = request.url;
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
@@ -107,7 +107,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
           return '/' + path;
         } else {
           const name = path.slice(1);
-          const existingPathParam = request.params.find((param) => param.type === 'path' && param.name === name);
+          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
           return existingPathParam ? '/' + existingPathParam.value : '';
         }
       })

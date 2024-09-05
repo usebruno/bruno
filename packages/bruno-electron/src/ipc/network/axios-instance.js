@@ -62,7 +62,8 @@ function makeAxiosInstance() {
 
       axios.defaults.transformRequest.forEach((tr) => data = tr(data, headers));
       return data;
-    }
+    },
+    proxy: false
   });
 
   instance.interceptors.request.use(async (config) => {

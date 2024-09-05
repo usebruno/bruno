@@ -47,7 +47,7 @@ const General = ({ close }) => {
         filePath: get(preferences, 'request.customCaCertificate.filePath', null)
       },
       keepDefaultCaCertificates: {
-        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', false)
+        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),

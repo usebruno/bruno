@@ -22,15 +22,32 @@ assert {
 }
 
 script:pre-request {
-  const math = require("./lib/math");
-  
+  const math = require("./lib/math.js");  
   const body = req.getBody();
-  body.sum = body.a + body.b;
+  body.sum = math.sum(body.a, body.b);
   
   req.setBody(body);
 }
 
 tests {
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+  
+  test("should return json", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "a": 1,
+      "b": 2,
+      "sum": 3
+    });
+  });
+  
   test("should return json", function() {
     const data = res.getBody();
     expect(res.getBody()).to.eql({

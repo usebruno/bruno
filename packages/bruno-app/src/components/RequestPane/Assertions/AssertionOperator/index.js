@@ -1,7 +1,4 @@
 import React from 'react';
-import { useTheme } from 'providers/Theme/index';
-import darkTheme from 'themes/dark';
-import lightTheme from 'themes/light';
 
 /**
  * Assertion operators
@@ -32,6 +29,7 @@ import lightTheme from 'themes/light';
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
+ * isArray     : is array
  */
 
 const AssertionOperator = ({ operator, onChange }) => {
@@ -61,7 +59,8 @@ const AssertionOperator = ({ operator, onChange }) => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const handleChange = (e) => {
@@ -79,16 +78,10 @@ const AssertionOperator = ({ operator, onChange }) => {
     }
   };
 
-  const { storedTheme } = useTheme();
-
   return (
     <select value={operator} onChange={handleChange} className="mousetrap">
       {operators.map((operator) => (
-        <option
-          style={{ backgroundColor: storedTheme === 'dark' ? darkTheme.bg : lightTheme.bg }}
-          key={operator}
-          value={operator}
-        >
+        <option key={operator} value={operator}>
           {getLabel(operator)}
         </option>
       ))}
