@@ -350,7 +350,7 @@ const runSingleRequest = async function (
       if (parentDir === collectionPath) {
         return;
       } else {
-        return checkForTests(parentDir);
+        return checkForFolderTests(parentDir);
       }
     }
 
