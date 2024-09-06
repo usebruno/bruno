@@ -227,7 +227,7 @@ const builder = async (yargs) => {
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
-      type: 'string'
+      type: 'string',
     })
     .option('format', {
       alias: 'f',
@@ -298,6 +298,8 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
+    console.log("DDDD", outputPath);
+
     // todo
     // right now, bru must be run from the root of the collection
     // will add support in the future to run it from anywhere inside the collection
@@ -325,6 +327,8 @@ const handler = async function (argv) {
       recursive = true;
     }
 
+    let runs = [];
+
     let runtimeVariables = {};
     let envVars = {};
 
@@ -337,20 +341,39 @@ const handler = async function (argv) {
        
       }
 
-      const bruContent = fs.readFileSync(filenames[0], 'utf8');
-      const bruJson = bruToRunConfigJsonV2(bruContent);
+      let buildRuns = [];
 
-      if (bruJson.environment) {
-        env = bruJson.environment;
+      if (isDirectory(filenames[0])) {
+        const files = fs.readdirSync(filenames[0])
+          .filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'))
+          .map((file) => path.join(filenames[0], file));
+
+        buildRuns = [ ...buildRuns, ...files];
+      } else {
+        buildRuns = [ filenames[0] ];
       }
 
-      if (bruJson.requests && bruJson.requests.length > 0) {
-        filenames = bruJson.requests.map(r => r.request);
-        runtimeVariables = bruJson.vars;
-        for (const variable of bruJson.vars) {
-          runtimeVariables[variable.name] = variable.value;
+      for (const runFile of buildRuns) {
+        const bruContent = fs.readFileSync(runFile, 'utf8');
+        const bruJson = bruToRunConfigJsonV2(bruContent);
+
+        if (bruJson.environment) {
+          env = bruJson.environment;
         }
+
+        if (bruJson.requests && bruJson.requests.length > 0) {
+          const filenames = bruJson.requests.map(r => r.request);
+          const runtimeVariables = bruJson.vars;
+          for (const variable of bruJson.vars) {
+            runtimeVariables[variable.name] = variable.value;
+          }
+          runs = [...runs, { filenames, runtimeVariables, outputPrefix: bruJson.name }];
+        }
+
       }
+
+    } else {
+      runs = [...runs, { filenames }];
     }
 
     if (env) {
@@ -435,6 +458,10 @@ const handler = async function (argv) {
       });
     }
 
+    for (const run of runs) {
+
+    const filenames = run.filenames;
+
     let results = [];
 
     let bruJsons = [];
@@ -509,7 +536,7 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        runtimeVariables,
+        run.runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,
@@ -568,24 +595,28 @@ const handler = async function (argv) {
         process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       }
 
+      const outputFileName = path.basename(outputPath);
+      const realOutputPath = path.join(outputDir, ((run.outputPrefix ? run.outputPrefix : "") + "-") + outputFileName);
+
       const outputJson = {
         summary,
         results
       };
 
       if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
+        fs.writeFileSync(realOutputPath, JSON.stringify(outputJson, null, 2));
       } else if (format === 'junit') {
-        makeJUnitOutput(results, outputPath);
+        makeJUnitOutput(results, realOutputPath);
       } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+        makeHtmlOutput(outputJson, realOutputPath);
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      console.log(chalk.dim(chalk.grey(`Wrote results to ${realOutputPath}`)));
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
       process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
+    }
     }
   } catch (err) {
     console.log('Something went wrong');

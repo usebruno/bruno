@@ -36,10 +36,16 @@ const grammar = ohm.grammar(`Bru {
   assertkey = ~tagend assertkeychar*
   assertkeychar = ~(tagend | nl | ":") any
 
+// Array Blocks
+  array = st* "[" stnl* valuelist stnl* "]"
+  valuelist = stnl* arrayvalue stnl* ("," stnl* arrayvalue)*
+  arrayvalue = arrayvaluechar*
+  arrayvaluechar = ~(nl | st | "[" | "]" | ",") any
+
   meta = "meta" dictionary
   vars = "vars" dictionary
 
-  requests = "requests" st* "{" nl* textblock tagend
+  requests = "requests" array
 }`);
 
 const mapPairListToKeyValPair = (pairList = []) => {
@@ -81,7 +87,6 @@ const concatArrays = (objValue, srcValue) => {
 
 const sem = grammar.createSemantics().addAttribute('ast', {
     BruFile(tags) {
-        console.log(tags);
         if (!tags || !tags.ast || !tags.ast.length) {
             return {
                 variables: [],
@@ -106,6 +111,15 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         let res = {};
         res[key.ast] = value.ast ? value.ast.trim() : '';
         return res;
+    },
+    array(_1, _2, _3, valuelist, _4, _5) {
+        return valuelist.ast;
+      },
+    arrayvalue(chars) {
+        return chars.sourceString ? chars.sourceString.trim() : '';
+    },
+    valuelist(_1, value, _2, _3, _4, rest) {
+        return [value.ast, ...rest.ast];
     },
     key(chars) {
         return chars.sourceString ? chars.sourceString.trim() : '';
@@ -136,16 +150,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
             meta.seq = 1;
         }
 
-        console.log(meta);
-
         return {
             meta
         };
     },
-    requests(_1, _2, _3, _4, textblock, _5) {
-        const content = outdentString(textblock.sourceString);
+    requests(_1, array) {
+        const requests =array.ast;
         return {
-            requests: JSON.parse(content)
+            requests: requests.map(r => ({"request": r}))
         };
     },
     vars(_1, dictionary) {
