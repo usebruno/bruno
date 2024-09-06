@@ -298,8 +298,6 @@ const handler = async function (argv) {
     } = argv;
     const collectionPath = process.cwd();
 
-    console.log("DDDD", outputPath);
-
     // todo
     // right now, bru must be run from the root of the collection
     // will add support in the future to run it from anywhere inside the collection
