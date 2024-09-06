@@ -44,7 +44,7 @@ const CloneCollection = ({ onClose, collection }) => {
           toast.success('Collection created');
           onClose();
         })
-        .catch((e) => toast.error('An error occurred while creating the collection:\n' + e));
+        .catch((e) => toast.error('An error occurred while creating the collection - ' + e));
     }
   });
 
