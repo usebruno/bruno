@@ -24,7 +24,8 @@ const MultipartFormParams = ({ item, collection }) => {
       addMultipartFormParam({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        type: 'text'
+        type: 'text',
+        value: ''
       })
     );
   };
@@ -34,7 +35,8 @@ const MultipartFormParams = ({ item, collection }) => {
       addMultipartFormParam({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        type: 'file'
+        type: 'file',
+        value: []
       })
     );
   };
@@ -144,6 +146,7 @@ const MultipartFormParams = ({ item, collection }) => {
                           onRun={handleRun}
                           allowNewlines={true}
                           collection={collection}
+                          item={item}
                         />
                       )}
                     </td>

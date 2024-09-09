@@ -60,7 +60,8 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    pathParams: request?.params?.filter((param) => param.type === 'path')
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');

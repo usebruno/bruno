@@ -12,15 +12,15 @@ const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
   let tab = 'headers';
   const { folderLevelSettingsSelectedTab } = collection;
-  if (folderLevelSettingsSelectedTab?.[folder.uid]) {
-    tab = folderLevelSettingsSelectedTab[folder.uid];
+  if (folderLevelSettingsSelectedTab?.[folder?.uid]) {
+    tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
 
   const setTab = (tab) => {
     dispatch(
       updatedFolderSettingsSelectedTab({
-        collectionUid: collection.uid,
-        folderUid: folder.uid,
+        collectionUid: collection?.uid,
+        folderUid: folder?.uid,
         tab
       })
     );
@@ -50,7 +50,7 @@ const FolderSettings = ({ collection, folder }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper className="flex flex-col h-full">
       <div className="flex flex-col h-full relative px-4 py-4">
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>

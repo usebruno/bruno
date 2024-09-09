@@ -37,7 +37,7 @@ Bruno 基于 NextJs 和 React 构建。我们使用 Electron 来封装桌面版�
 
 ### 依赖项
 
-您需要 [Node v18.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我们在这个项目中也使用 npm 工作区（_npm workspaces_）。
+您需要 [Node v20.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我们在这个项目中也使用 npm 工作区（_npm workspaces_）。
 
 ## 开发
 

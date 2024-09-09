@@ -27,32 +27,41 @@ const interpolate = (str: string, obj: Record<string, any>): string => {
 const replace = (
   str: string,
   flattenedObj: Record<string, any>,
-  visited = new Set<String>(),
+  visited = new Set<string>(),
   results = new Map<string, string>()
 ): string => {
-  const patternRegex = /\{\{([^}]+)\}\}/g;
+  let resultStr = str;
+  let matchFound = true;
 
-  return str.replace(patternRegex, (match, placeholder) => {
-    const replacement = flattenedObj[placeholder];
+  while (matchFound) {
+    const patternRegex = /\{\{([^}]+)\}\}/g;
+    matchFound = false;
+    resultStr = resultStr.replace(patternRegex, (match, placeholder) => {
+      const replacement = flattenedObj[placeholder];
 
-    if (results.has(match)) {
-      return results.get(match);
-    }
+      if (results.has(match)) {
+        return results.get(match);
+      }
 
-    if (patternRegex.test(replacement) && !visited.has(match)) {
+      if (patternRegex.test(replacement) && !visited.has(match)) {
+        visited.add(match);
+        const result = replace(replacement, flattenedObj, visited, results);
+        results.set(match, result);
+
+        matchFound = true;
+        return result;
+      }
+
       visited.add(match);
-      const result = replace(replacement, flattenedObj, visited, results);
+      const result = replacement !== undefined ? replacement : match;
       results.set(match, result);
 
+      matchFound = true;
       return result;
-    }
+    });
+  }
 
-    visited.add(match);
-    const result = replacement !== undefined ? replacement : match;
-    results.set(match, result);
-
-    return result;
-  });
+  return resultStr;
 };
 
 export default interpolate;

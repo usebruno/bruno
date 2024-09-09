@@ -37,7 +37,7 @@ Biblioteki, których używamy
 
 ### Zależności
 
-Będziesz potrzebować [Node v18.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
+Będziesz potrzebować [Node v20.x lub najnowszej wersji LTS](https://nodejs.org/en/) oraz npm 8.x. W projekcie używamy npm workspaces
 
 ## Rozwój
 

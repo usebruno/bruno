@@ -55,6 +55,9 @@ const Wrapper = styled.div`
     position: relative;
     top: 1px;
   }
+  option {
+    background-color: ${(props) => props.theme.bg};
+  }
 `;
 
 export default Wrapper;

@@ -13,7 +13,7 @@ const stripLastLine = (text) => {
 };
 
 const getValueString = (value) => {
-  const hasNewLines = value.includes('\n');
+  const hasNewLines = value?.includes('\n');
 
   if (!hasNewLines) {
     return value;

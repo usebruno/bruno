@@ -60,7 +60,7 @@ const trackStart = () => {
     event: 'start',
     properties: {
       os: platformLib.os.family,
-      version: '1.20.0'
+      version: '1.28.0'
     }
   });
 };

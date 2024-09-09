@@ -37,7 +37,7 @@ Bruno は Next.js と React で作られています。デスクトップアプ�
 
 ### 依存関係
 
-[Node v18.x もしくは最新の LTS バージョン](https://nodejs.org/en/)と npm 8.x が必要です。プロジェクトに npm ワークスペースを使用しています。
+[Node v20.x もしくは最新の LTS バージョン](https://nodejs.org/en/)と npm 8.x が必要です。プロジェクトに npm ワークスペースを使用しています。
 
 ## 開発
 
