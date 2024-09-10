@@ -34,6 +34,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
   const isResponsePaneDockedToBottom = useSelector(
     (state) => state.app.preferences.userInterface.responsePaneDockedToBottom
   );
+  const preferences = useSelector((state) => state.app.preferences);
+
   useEffect(() => {
     onSchemaLoad(schema);
   }, [schema]);
@@ -73,6 +75,8 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
             onRun={onRun}
             onEdit={onQueryChange}
             onClickReference={handleGqlClickReference}
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
           />
         );
       }
@@ -153,7 +157,7 @@ const GraphQLRequestPane = ({ item, collection, leftPaneWidth, onSchemaLoad, tog
         </div>
         <GraphQLSchemaActions item={item} collection={collection} onSchemaLoad={setSchema} toggleDocs={toggleDocs} />
       </div>
-      <section className="flex w-full h-full mt-5 overflow-y-auto">{getTabPanel(focusedTab.requestPaneTab)}</section>
+      <section className="flex w-full h-full mt-5 overflow-y-auto flex-1">{getTabPanel(focusedTab.requestPaneTab)}</section>
     </StyledWrapper>
   );
 };

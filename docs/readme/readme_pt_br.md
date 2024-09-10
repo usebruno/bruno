@@ -27,6 +27,7 @@
 | [正體中文](./readme_zhtw.md)
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno é um novo e inovador cliente de API, com o objetivo de revolucionar o status quo representado por ferramentas como o Postman e outras semelhantes.
 
@@ -102,6 +103,12 @@ Ou qualquer sistema de controle de versão de sua escolha.
 #### Apoiadores Silver
 
 <img src="../../assets/images/sponsors/commit-company.png" width="70"/>
+
+#### Apoiadores Bronze
+
+<a href="https://zuplo.link/bruno">
+    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
+</a>
 
 ### Links Importantes 📌
 

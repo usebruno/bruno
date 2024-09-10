@@ -12,15 +12,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -34,11 +36,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
-      ...requestVariables,
       ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -59,14 +63,6 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   const contentType = getContentType(request.headers);
 
   if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
-
     if (typeof request.data === 'string') {
       if (request.data.length) {
         request.data = _interpolate(request.data);

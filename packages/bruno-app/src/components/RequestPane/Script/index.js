@@ -42,8 +42,8 @@ const Script = ({ item, collection }) => {
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
   return (
-    <StyledWrapper className="w-full h-full">
-      <div className="section-wrapper flex flex-col">
+    <StyledWrapper className="w-full h-full flex flex-col">
+      <div className="section-wrapper flex flex-col flex-1 mt-2 gap-y-2">
         <div className={`script-section flex-1 mt-2 ${isResponsePaneDockedToBottom ? 'mr-4' : ''}`}>
           <div className="mb-1 title text-xs">Pre Request</div>
           <CodeEditor
@@ -51,19 +51,21 @@ const Script = ({ item, collection }) => {
             value={requestScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
             onEdit={onRequestScriptEdit}
             mode="javascript"
             onRun={onRun}
             onSave={onSave}
           />
         </div>
-        <div className={`script-section flex-1 mt-6 ${isResponsePaneDockedToBottom ? 'mr-4' : ''}`}>
+        <div className={`flex flex-col gap-y-2 script-section flex-1 mt-6 ${isResponsePaneDockedToBottom ? 'mr-4' : ''}`}>
           <div className="mt-1 mb-1 title text-xs">Post Response</div>
           <CodeEditor
             collection={collection}
             value={responseScript || ''}
             theme={displayedTheme}
             font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
             onEdit={onResponseScriptEdit}
             mode="javascript"
             onRun={onRun}

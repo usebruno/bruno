@@ -13,7 +13,7 @@ const ResponseLoadingOverlay = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="px-3 w-full">
+    <StyledWrapper className="w-full">
       <div className="flex items-center justify-center h-full">
         <div className="overlay">
           <div style={{ marginBottom: 15, fontSize: 26 }}>

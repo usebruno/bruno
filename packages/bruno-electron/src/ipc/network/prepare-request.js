@@ -1,7 +1,6 @@
 const os = require('os');
 const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
@@ -18,8 +17,8 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
           folderHeaders.set(header.name, header.value);
         }
       });
-    } else {
-      let headers = get(i, 'request.headers', []);
+    } else if (i.uid === request.uid) {
+      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
       headers.forEach((header) => {
         if (header.enabled) {
           folderHeaders.set(header.name, header.value);
@@ -45,73 +44,75 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
   request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeFolderLevelVars = (request, requestTreePath) => {
-  let folderReqVars = new Map();
+const mergeVars = (collection, request, requestTreePath) => {
+  let reqVars = new Map();
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionVariables = {};
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      reqVars.set(_var.name, _var.value);
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  let folderVariables = {};
+  let requestVariables = {};
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
+          folderVariables[_var.name] = _var.value;
         }
       });
     } else {
-      let vars = get(i, 'request.vars.req', []);
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
+          requestVariables[_var.name] = _var.value;
         }
       });
     }
   }
-  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestReqVars = request?.vars?.req || [];
-  let requestReqVarsMap = new Map();
-  for (let _var of requestReqVars) {
-    if (_var.enabled) {
-      requestReqVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderReqVars.forEach((_var) => {
-    requestReqVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.req = Array.from(requestReqVarsMap, ([name, value]) => ({
+
+  request.collectionVariables = collectionVariables;
+  request.folderVariables = folderVariables;
+  request.requestVariables = requestVariables;
+
+  request.vars.req = Array.from(reqVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
     type: 'request'
   }));
 
-  let folderResVars = new Map();
+  let resVars = new Map();
+  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     } else {
-      let vars = get(i, 'request.vars.res', []);
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestResVars = request?.vars?.res || [];
-  let requestResVarsMap = new Map();
-  for (let _var of requestResVars) {
-    if (_var.enabled) {
-      requestResVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderResVars.forEach((_var) => {
-    requestResVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.res = Array.from(requestResVarsMap, ([name, value]) => ({
+
+  request.vars.res = Array.from(resVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
@@ -119,7 +120,7 @@ const mergeFolderLevelVars = (request, requestTreePath) => {
   }));
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath) => {
+const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   let folderCombinedPreReqScript = [];
   let folderCombinedPostResScript = [];
   let folderCombinedTests = [];
@@ -147,11 +148,19 @@ const mergeFolderLevelScripts = (request, requestTreePath) => {
   }
 
   if (folderCombinedPostResScript.length) {
-    request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    if (scriptFlow === 'sequential') {
+      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    } else {
+      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    }
   }
 
   if (folderCombinedTests.length) {
-    request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    if (scriptFlow === 'sequential') {
+      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
+    } else {
+      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    }
   }
 };
 
@@ -301,11 +310,13 @@ const prepareRequest = (item, collection) => {
     }
   });
 
+  // scriptFlow is either "sandwich" or "sequential"
+  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath);
-    mergeFolderLevelVars(request, requestTreePath);
+    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
   }
 
   each(request.headers, (h) => {
@@ -332,16 +343,10 @@ const prepareRequest = (item, collection) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    let jsonBody;
     try {
-      jsonBody = decomment(request?.body?.json);
+      axiosRequest.data = decomment(request?.body?.json);
     } catch (error) {
-      jsonBody = request?.body?.json;
-    }
-    try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
-    } catch (error) {
-      axiosRequest.data = jsonBody;
+      axiosRequest.data = request?.body?.json;
     }
   }
 
@@ -398,6 +403,9 @@ const prepareRequest = (item, collection) => {
   }
 
   axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;
