@@ -61,6 +61,8 @@ if (!SERVER_RENDERED) {
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
+    'bru.getFolderVar(key)',
+    'bru.getCollectionVar(key)',
     'bru.setEnvVar(key,value)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
