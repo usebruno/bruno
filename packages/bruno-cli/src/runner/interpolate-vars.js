@@ -62,7 +62,7 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
-      } catch (err) {}
+      } catch (err) { }
     }
 
     if (typeof request.data === 'string') {
@@ -76,7 +76,7 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
-      } catch (err) {}
+      } catch (err) { }
     }
   } else {
     request.data = _interpolate(request.data);
@@ -113,7 +113,8 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
       })
       .join('');
 
-    request.url = url.origin + interpolatedUrlPath + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + interpolatedUrlPath + trailingSlash + url.search;
   }
 
   if (request.proxy) {
