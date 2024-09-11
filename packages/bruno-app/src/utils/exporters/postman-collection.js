@@ -184,7 +184,7 @@ export const exportCollection = (collection) => {
       header: generateHeaders(itemRequest.headers),
       auth: generateAuth(itemRequest.auth),
       description: itemRequest.docs,
-      // We clean up the URL to make sure it's in the right format. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
+      // We sanitize the URL to make sure it's in the right format before passing it to the transformUrl func. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
       url: transformUrl(sanitizeUrl(itemRequest.url), itemRequest.params)
     };
 
