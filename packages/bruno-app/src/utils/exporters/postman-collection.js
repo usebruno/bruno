@@ -1,6 +1,6 @@
 import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
-import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from 'utils/collections/export';
+import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, transformUrl } from 'utils/collections/export';
 
 export const exportCollection = (collection) => {
   delete collection.uid;
@@ -175,83 +175,6 @@ export const exportCollection = (collection) => {
         };
       }
     }
-  };
-
-  const generateQueryParams = (params) => {
-    return params
-      .filter((param) => param.type === 'query')
-      .map(({ name, value, description }) => ({ key: name, value, description }));
-  };
-
-  const generateVariables = (params) => {
-    return params
-      .filter((param) => param.type === 'path')
-      .map(({ name, value, description }) => ({ key: name, value, description }));
-  };
-
-  /**
-   * Transforms a given URL string into an object representing the protocol, host, path, query, and variables.
-   *
-   * @param {string} url - The raw URL to be transformed.
-   * @param {Object} params - The params object.
-   * @returns {Object} An object containing the URL's protocol, host, path, query, and variables.
-   */
-  const transformUrl = (url, params) => {
-    const urlRegexPatterns = {
-      protocolAndRestSeparator: /:\/\//,
-      hostAndPathSeparator: /\/(.+)/,
-      domainSegmentSeparator: /\./,
-      pathSegmentSeparator: /\//,
-      queryStringSeparator: /\?/
-    };
-
-    const postmanUrl = { raw: url };
-
-    /**
-     * Splits a URL into its protocol, host and path.
-     *
-     * @param {string} url - The URL to be split.
-     * @returns {Object} An object containing the protocol and the raw host/path string.
-     */
-    const splitUrl = (url) => {
-      const urlParts = url.split(urlRegexPatterns.protocolAndRestSeparator);
-      if (urlParts.length === 1) {
-        return { protocol: '', rawHostAndPath: urlParts[0] };
-      } else if (urlParts.length === 2) {
-        const [hostAndPath, _] = urlParts[1].split(urlRegexPatterns.queryStringSeparator);
-        return { protocol: urlParts[0], rawHostAndPath: hostAndPath };
-      } else {
-        throw new Error(`Invalid URL format: ${url}`);
-      }
-    };
-
-    /**
-     * Splits the host and path from a raw host/path string.
-     *
-     * @param {string} rawHostAndPath - The raw host and path string to be split.
-     * @returns {Object} An object containing the host and path.
-     */
-    const splitHostAndPath = (rawHostAndPath) => {
-      const [host, path = ''] = rawHostAndPath.split(urlRegexPatterns.hostAndPathSeparator);
-      return { host, path };
-    };
-
-    try {
-      const { protocol, rawHostAndPath } = splitUrl(url);
-      postmanUrl.protocol = protocol;
-
-      const { host, path } = splitHostAndPath(rawHostAndPath);
-      postmanUrl.host = host.split(urlRegexPatterns.domainSegmentSeparator);
-      postmanUrl.path = path ? path.split(urlRegexPatterns.pathSegmentSeparator).filter(Boolean) : [];
-    } catch (error) {
-      console.error(error.message);
-      return {};
-    }
-
-    postmanUrl.query = generateQueryParams(params);
-    postmanUrl.variable = generateVariables(params);
-
-    return postmanUrl;
   };
 
   const generateRequestSection = (itemRequest) => {
