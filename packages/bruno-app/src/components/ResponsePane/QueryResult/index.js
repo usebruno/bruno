@@ -18,22 +18,27 @@ const formatResponse = (data, mode, filter) => {
     return '';
   }
 
-  let isTrueJSON;
-  try {
-    isTrueJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
-  } catch (error) {
-    console.log('Error parsing JSON: ', error.message);
-    isTrueJSON = false;
-  }
+  if (mode.includes('json')) {
+    let isValidJSON = false;
+    
+    try {
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
+    } catch (error) {
+      console.log('Error parsing JSON: ', error.message);
+    }
 
-  if (mode.includes('json') && isTrueJSON) {
+    if (!isValidJSON || data === null) {
+      return data;
+    }
+
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
       } catch (e) {
-        console.warn('Could not filter with JSONPath.', e.message);
+        console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
+
     return safeStringifyJSON(data, true);
   }
 
@@ -45,10 +50,6 @@ const formatResponse = (data, mode, filter) => {
     return safeStringifyJSON(parsed, true);
   }
 
-  if (typeof data === 'string') {
-    return data;
-  }
-  //return safeStringifyJSON(data)
   return data;
 };
 
