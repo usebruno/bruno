@@ -39,22 +39,6 @@ const moveCtrlTabIndex = (state, step) => {
   state.ctrlTabIndex = (state.ctrlTabIndex + step + collectionTabs.length) % collectionTabs.length;
 };
 
-const moveActiveTab = (state, step) => {
-  const collectionTabs = getCollectionTabs(state);
-  // If there are 1 or fewer tabs in the collection, do nothing
-  if (collectionTabs.length <= 1) {
-    return;
-  }
-
-  const activeTabIndex = collectionTabs.findIndex((t) => t.uid === state.activeTabUid);
-
-  if (activeTabIndex !== -1) {
-    const nextIndex = (activeTabIndex + step + collectionTabs.length) % collectionTabs.length;
-    state.activeTabUid = collectionTabs[nextIndex].uid;
-  }
-};
-
-
 export const tabsSlice = createSlice({
   name: 'tabs',
   initialState,
