@@ -1,6 +1,7 @@
 import map from 'lodash/map';
 import * as FileSaver from 'file-saver';
 import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems, transformUrl } from 'utils/collections/export';
+import { sanitizeUrl } from 'utils/url/index';
 
 export const exportCollection = (collection) => {
   delete collection.uid;
@@ -183,7 +184,8 @@ export const exportCollection = (collection) => {
       header: generateHeaders(itemRequest.headers),
       auth: generateAuth(itemRequest.auth),
       description: itemRequest.docs,
-      url: transformUrl(itemRequest.url, itemRequest.params)
+      // We clean up the URL to make sure it's in the right format. This means changing backslashes to forward slashes and reducing multiple slashes to a single one, except in the protocol part.
+      url: transformUrl(sanitizeUrl(itemRequest.url), itemRequest.params)
     };
 
     if (itemRequest.body.mode !== 'none') {

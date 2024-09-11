@@ -17,6 +17,33 @@ const hasLength = (str) => {
   return str.length > 0;
 };
 
+/**
+ * The regex pattern matches sequences of two or more slashes and replaces them with a single slash.
+ * 
+ * @link https://github.com/withastro/astro/blob/1c64ae304d3c008a776e98e48fd3ece8be7b1fb5/packages/internal-helpers/src/path.ts#L18-L20
+ * @param {String} path A URL string
+ * @returns {String} The sanitized URL
+ * 
+ */
+const collapseDuplicateSlashes = (path) => {
+  return path.replace(/(?<!:)\/{2,}/g, '/');
+};
+
+/**
+ * Sanitizes a given URL by replacing backslashes with forward slashes and normalizing multiple slashes.
+ * 
+ * - Replaces all `\` (backslashes) with `/` (forward slashes).
+ * - Collapses multiple consecutive slashes (`//`) into a single slash, while skipping the protocol (e.g., `http://` or `https://`).
+ *
+ * @param {string} url - The URL to sanitize.
+ * @returns {string} The sanitized URL.
+ *
+ */
+export const sanitizeUrl = (url) => {
+  let sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
+  return sanitizedUrl;
+};
+
 export const parseQueryParams = (query) => {
   try {
     if (!query || !query.length) {
