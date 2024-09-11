@@ -179,8 +179,8 @@ export const tabsSlice = createSlice({
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
-      state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
-      state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
+      state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
+      state.activeTabUid = null;
 
       state.ctrlTabCount = 0;
     }
