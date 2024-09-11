@@ -65,34 +65,30 @@ export default function CtrlTabPopup() {
 
   // Memoize the result of activeTabsToPopupTabs to avoid recalculations
   const popupTabs = useMemo(() => activeTabsToPopupTabs(collections, tabs, activeTabUid), [collections, tabs, activeTabUid]);
+  const exactCtrlTabCount = ctrlTabCount % popupTabs.length;
 
   useEffect(() => {
     // Check for valid ctrlTabCount and focus on the appropriate tab
-    if (popupTabs.length > 0 && ctrlTabCount !== null && ctrlTabCount >= 0) {
-      if (ctrlTabCount < popupTabs.length) {
-        const element = document.getElementById(`tab-${popupTabs[ctrlTabCount].uid}`);
+    if (popupTabs.length > 0) {
+      if (exactCtrlTabCount < popupTabs.length) {
+        const element = document.getElementById(`tab-${popupTabs[exactCtrlTabCount].uid}`);
         if (element) {
           element.focus();
         }
       }
     }
-  }, [ctrlTabCount, popupTabs]);
+  }, [exactCtrlTabCount, popupTabs]);
 
-  const shouldShowPopup = ctrlTabCount !== null && ctrlTabCount >= 0 && tabs.length > 1;
+  const shouldShowPopup = ctrlTabCount !== 0 && tabs.length > 1;
 
   if (!shouldShowPopup) return null;
-
-  if (ctrlTabCount < 0 || ctrlTabCount >= popupTabs.length) {
-    console.warn("Invalid ctrlTabCount", ctrlTabCount);
-    return null;
-  }
-
-  const currentTabbedTab = popupTabs[ctrlTabCount];
+  
+  const currentTabbedTab = popupTabs[exactCtrlTabCount];
 
   return (
     <div className="absolute flex justify-center top-1 w-full">
       <StyledWrapper
-        key={`dialog-${ctrlTabCount}-${popupTabs.map((tab) => tab.uid).join('-')}`}
+        key={`dialog-${exactCtrlTabCount}-${popupTabs.map((tab) => tab.uid).join('-')}`}
         className="flex flex-col isolate z-10 p-1"
       >
         {popupTabs.map((popupTab) => (
@@ -103,7 +99,7 @@ export default function CtrlTabPopup() {
             onClick={() => dispatch(focusTab({ uid: popupTab.uid }))}
             type="button"
             className={classnames('py-0.5 px-5 rounded text-left truncate', {
-              'is-active': currentTabbedTab === popupTab,
+              'is-active': currentTabbedTab?.uid === popupTab?.uid,
             })}
           >
             <strong className="font-medium">{popupTab.tabName}</strong>

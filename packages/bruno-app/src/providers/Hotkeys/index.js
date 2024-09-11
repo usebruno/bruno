@@ -9,7 +9,7 @@ import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
-import { CTRL_TAB_ACTIONS, closeTabs, switchTab, ctrlTab} from 'providers/ReduxStore/slices/tabs';
+import { CTRL_TAB_ACTIONS, closeTabs, switchTab, ctrlTab } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
 
@@ -174,12 +174,7 @@ export const HotkeysProvider = (props) => {
       (e) => {
         if (isCtrlPressed) {
           setTabPressCount((prevCount) => prevCount + 1);
-          if (tabPressCount === 0) {
-            dispatch(ctrlTab(CTRL_TAB_ACTIONS.ENTER));
-          } else {
-            // Dispatch `plus` action on subsequent presses
-            dispatch(ctrlTab(CTRL_TAB_ACTIONS.PLUS));
-          }
+          dispatch(ctrlTab(CTRL_TAB_ACTIONS.PLUS));
           e.preventDefault(); // Prevent default tab switching behavior
         }
       },

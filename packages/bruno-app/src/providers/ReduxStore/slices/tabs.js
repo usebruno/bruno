@@ -8,7 +8,7 @@ import last from 'lodash/last';
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  ctrlTabCount: null
+  ctrlTabCount: 0
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -30,14 +30,6 @@ const getCollectionTabs = (state) => {
   return state.tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
 };
 
-const moveCtrlTabCount = (state, step) => {
-  const collectionTabs = getCollectionTabs(state);
-  if (collectionTabs.length <= 1 || state.ctrlTabCount === null) {
-    return;
-  }
-  // Update the ctrlTabCount within the collection
-  state.ctrlTabCount = (state.ctrlTabCount + step + collectionTabs.length) % collectionTabs.length;
-};
 
 export const tabsSlice = createSlice({
   name: 'tabs',
@@ -72,37 +64,36 @@ export const tabsSlice = createSlice({
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
+      state.ctrlTabCount = 0;
     },
     ctrlTab: (state, action) => {
       if (!state.tabs.length) {
         state.activeTabUid = null;
         return;
       }
+      const collectionTabs = getCollectionTabs(state);
+      if (state.ctrlTabCount === 0) {
+        state.ctrlTabCount = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
+      }
 
       switch (action.payload) {
-        case CTRL_TAB_ACTIONS.ENTER: {
-          const collectionTabs = getCollectionTabs(state);
-          if (state.ctrlTabCount === null) {
-            state.ctrlTabCount = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
-          }
-          break;
-        }
         
         case CTRL_TAB_ACTIONS.PLUS:
-          moveCtrlTabCount(state, 1);
+          state.ctrlTabCount++;
+
           break;
           
         case CTRL_TAB_ACTIONS.MINUS:
-          moveCtrlTabCount(state, -1);
+          state.ctrlTabCount--;
           break;
           
         case CTRL_TAB_ACTIONS.SWITCH: {
           const collectionTabs = getCollectionTabs(state);
-          if (state.ctrlTabCount !== null && collectionTabs.length > 1) {
-            state.activeTabUid = collectionTabs[state.ctrlTabCount].uid;
-            state.ctrlTabCount = null;
+          if (state.ctrlTabCount !== 0 && collectionTabs.length > 1) {
+            state.activeTabUid = collectionTabs[state.ctrlTabCount % collectionTabs.length].uid;
+            state.ctrlTabCount = 0;
           }
-          state.ctrlTabCount = null;
+          state.ctrlTabCount = 0;
           break;
         }
         
@@ -185,14 +176,14 @@ export const tabsSlice = createSlice({
         state.activeTabUid = null;
       }
 
-      state.ctrlTabCount = null;
+      state.ctrlTabCount = 0;
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
       state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
       state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
 
-      state.ctrlTabCount = null;
+      state.ctrlTabCount = 0;
     }
   }
 });

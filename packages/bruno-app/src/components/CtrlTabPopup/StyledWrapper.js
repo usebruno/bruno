@@ -7,6 +7,9 @@ const Wrapper = styled.dialog`
     outline: none;
     background-color: ${(props) => props.theme.ctrlTabPopup.highlightBg};
   }
+  .is-active {
+    background-color: ${(props) => props.theme.ctrlTabPopup.highlightBg};
+  }
 `;
 
 export default Wrapper;
