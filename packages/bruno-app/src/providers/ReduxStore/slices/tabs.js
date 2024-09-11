@@ -158,12 +158,31 @@ export const tabsSlice = createSlice({
       const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
       const tabUids = action.payload.tabUids || [];
 
-      // Remove closed tabs
-      state.tabs = state.tabs.filter((t) => !tabUids.includes(t.uid));
+      // remove the tabs from the state
+      state.tabs = filter(state.tabs, (t) => !tabUids.includes(t.uid));
 
-      // Reset the active tab if necessary
-      if (state.activeTabUid && !state.tabs.find((t) => t.uid === state.activeTabUid)) {
-        state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
+      if (activeTab && state.tabs.length) {
+        const { collectionUid } = activeTab;
+        const activeTabStillExists = find(state.tabs, (t) => t.uid === state.activeTabUid);
+
+        // if the active tab no longer exists, set the active tab to the last tab in the list
+        // this implies that the active tab was closed
+        if (!activeTabStillExists) {
+          // load sibling tabs of the current collection
+          const siblingTabs = filter(state.tabs, (t) => t.collectionUid === collectionUid);
+
+          // if there are sibling tabs, set the active tab to the last sibling tab
+          // otherwise, set the active tab to the last tab in the list
+          if (siblingTabs && siblingTabs.length) {
+            state.activeTabUid = last(siblingTabs).uid;
+          } else {
+            state.activeTabUid = last(state.tabs).uid;
+          }
+        }
+      }
+
+      if (!state.tabs || !state.tabs.length) {
+        state.activeTabUid = null;
       }
 
       state.ctrlTabCount = null;
