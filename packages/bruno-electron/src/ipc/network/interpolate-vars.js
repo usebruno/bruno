@@ -111,7 +111,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       })
       .join('');
 
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
   }
 
   if (request.proxy) {
