@@ -91,7 +91,6 @@ export const tabsSlice = createSlice({
           const collectionTabs = getCollectionTabs(state);
           if (state.ctrlTabCount !== 0 && collectionTabs.length > 1) {
             state.activeTabUid = collectionTabs[state.ctrlTabCount % collectionTabs.length].uid;
-            state.ctrlTabCount = 0;
           }
           state.ctrlTabCount = 0;
           break;
