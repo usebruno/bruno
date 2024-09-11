@@ -49,9 +49,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   const handleMouseUp = (e) => {
     if (e.button === 1) {
-      e.stopPropagation();
       e.preventDefault();
+      e.stopPropagation();
 
+      // Close the tab
       dispatch(
         closeTabs({
           tabUids: [tab.uid]
@@ -68,7 +69,10 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
   if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
-      <StyledWrapper className="flex items-center justify-between tab-container px-1">
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={handleMouseUp} // Add middle-click behavior here
+      >
         {tab.type === 'folder-settings' ? (
           <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
         ) : (
@@ -82,7 +86,17 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
 
   if (!item) {
     return (
-      <StyledWrapper className="flex items-center justify-between tab-container px-1">
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={(e) => {
+          if (e.button === 1) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            dispatch(closeTabs({ tabUids: [tab.uid] }));
+          }
+        }}
+      >
         <RequestTabNotFound handleCloseClick={handleCloseClick} />
       </StyledWrapper>
     );
