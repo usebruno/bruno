@@ -40,9 +40,12 @@ const buildEmptyJsonBody = (bodySchema) => {
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
-      // handle arrays
     } else if (prop.type === 'array') {
-      _jsonBody[name] = [];
+      if (prop.items && prop.items.type === 'object') {
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+      } else {
+        _jsonBody[name] = [];
+      }
     } else {
       _jsonBody[name] = '';
     }
@@ -164,6 +167,9 @@ const transformOpenapiRequestItem = (request) => {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
+      if (bodySchema && bodySchema.type === 'array') {
+        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
+      }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
       if (bodySchema && bodySchema.type === 'object') {
@@ -223,7 +229,7 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -247,7 +253,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
       let ref = components;
 
       for (const key of refKeys) {
-        if (ref[key]) {
+        if (ref && ref[key]) {
           ref = ref[key];
         } else {
           // Handle invalid references gracefully?
