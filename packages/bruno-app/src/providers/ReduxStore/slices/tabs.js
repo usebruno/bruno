@@ -127,10 +127,27 @@ export const tabsSlice = createSlice({
       }
     },
     switchTab: (state, action) => {
-      if (!state.tabs.length) return;
+      const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
+      const tabs = filter(state.tabs, t => t.collectionUid === activeTab?.collectionUid);
+
+      if (!tabs.length) {
+        return;
+      }
 
       const direction = action.payload.direction;
-      direction === 'pageup' ? moveActiveTab(state, -1) : moveActiveTab(state, 1);
+      const activeTabIndex = tabs.findIndex(t => t.uid === state.activeTabUid);
+      const tabCount = tabs.length;
+
+      let newIndex;
+      if (direction === 'pageup') {
+        newIndex = (activeTabIndex - 1 + tabCount) % tabCount;
+      } else if (direction === 'pagedown') {
+        newIndex = (activeTabIndex + 1) % tabCount;
+      } else {
+        return; // Invalid direction, do nothing
+      }
+
+      state.activeTabUid = tabs[newIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
