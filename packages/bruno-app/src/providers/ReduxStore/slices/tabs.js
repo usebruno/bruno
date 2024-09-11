@@ -8,7 +8,7 @@ import last from 'lodash/last';
 const initialState = {
   tabs: [],
   activeTabUid: null,
-  ctrlTabIndex: null
+  ctrlTabCount: null
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
@@ -30,13 +30,13 @@ const getCollectionTabs = (state) => {
   return state.tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
 };
 
-const moveCtrlTabIndex = (state, step) => {
+const moveCtrlTabCount = (state, step) => {
   const collectionTabs = getCollectionTabs(state);
-  if (collectionTabs.length <= 1 || state.ctrlTabIndex === null) {
+  if (collectionTabs.length <= 1 || state.ctrlTabCount === null) {
     return;
   }
-  // Update the ctrlTabIndex within the collection
-  state.ctrlTabIndex = (state.ctrlTabIndex + step + collectionTabs.length) % collectionTabs.length;
+  // Update the ctrlTabCount within the collection
+  state.ctrlTabCount = (state.ctrlTabCount + step + collectionTabs.length) % collectionTabs.length;
 };
 
 export const tabsSlice = createSlice({
@@ -82,27 +82,27 @@ export const tabsSlice = createSlice({
       switch (action.payload) {
         case CTRL_TAB_ACTIONS.ENTER: {
           const collectionTabs = getCollectionTabs(state);
-          if (state.ctrlTabIndex === null) {
-            state.ctrlTabIndex = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
+          if (state.ctrlTabCount === null) {
+            state.ctrlTabCount = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
           }
           break;
         }
         
         case CTRL_TAB_ACTIONS.PLUS:
-          moveCtrlTabIndex(state, 1);
+          moveCtrlTabCount(state, 1);
           break;
           
         case CTRL_TAB_ACTIONS.MINUS:
-          moveCtrlTabIndex(state, -1);
+          moveCtrlTabCount(state, -1);
           break;
           
         case CTRL_TAB_ACTIONS.SWITCH: {
           const collectionTabs = getCollectionTabs(state);
-          if (state.ctrlTabIndex !== null && collectionTabs.length > 1) {
-            state.activeTabUid = collectionTabs[state.ctrlTabIndex].uid;
-            state.ctrlTabIndex = null;
+          if (state.ctrlTabCount !== null && collectionTabs.length > 1) {
+            state.activeTabUid = collectionTabs[state.ctrlTabCount].uid;
+            state.ctrlTabCount = null;
           }
-          state.ctrlTabIndex = null;
+          state.ctrlTabCount = null;
           break;
         }
         
@@ -166,14 +166,14 @@ export const tabsSlice = createSlice({
         state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
       }
 
-      state.ctrlTabIndex = null;
+      state.ctrlTabCount = null;
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
       state.tabs = state.tabs.filter((t) => t.collectionUid !== collectionUid);
       state.activeTabUid = state.tabs.length ? state.tabs[0].uid : null;
 
-      state.ctrlTabIndex = null;
+      state.ctrlTabCount = null;
     }
   }
 });

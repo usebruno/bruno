@@ -27,7 +27,7 @@ const getCollectionTabs = (tabs, activeTabUid) => {
   const activeTab = tabs.find((t) => t.uid === activeTabUid);
   if (!activeTab) return [];
 
-  // Filter tabs that belong to the same collection as the active tab (CtrlTabIndex)
+  // Filter tabs that belong to the same collection as the active tab (CtrlTabCount)
   return tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
 };
 
@@ -57,7 +57,7 @@ const activeTabsToPopupTabs = (collections, tabs, activeTabUid) => {
 };
 
 export default function CtrlTabPopup() {
-  const ctrlTabIndex = useSelector((state) => state.tabs.ctrlTabIndex);
+  const ctrlTabCount = useSelector((state) => state.tabs.ctrlTabCount);
   const tabs = useSelector((state) => state.tabs.tabs);
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
@@ -67,32 +67,32 @@ export default function CtrlTabPopup() {
   const popupTabs = useMemo(() => activeTabsToPopupTabs(collections, tabs, activeTabUid), [collections, tabs, activeTabUid]);
 
   useEffect(() => {
-    // Check for valid ctrlTabIndex and focus on the appropriate tab
-    if (popupTabs.length > 0 && ctrlTabIndex !== null && ctrlTabIndex >= 0) {
-      if (ctrlTabIndex < popupTabs.length) {
-        const element = document.getElementById(`tab-${popupTabs[ctrlTabIndex].uid}`);
+    // Check for valid ctrlTabCount and focus on the appropriate tab
+    if (popupTabs.length > 0 && ctrlTabCount !== null && ctrlTabCount >= 0) {
+      if (ctrlTabCount < popupTabs.length) {
+        const element = document.getElementById(`tab-${popupTabs[ctrlTabCount].uid}`);
         if (element) {
           element.focus();
         }
       }
     }
-  }, [ctrlTabIndex, popupTabs]);
+  }, [ctrlTabCount, popupTabs]);
 
-  const shouldShowPopup = ctrlTabIndex !== null && ctrlTabIndex >= 0 && tabs.length > 1;
+  const shouldShowPopup = ctrlTabCount !== null && ctrlTabCount >= 0 && tabs.length > 1;
 
   if (!shouldShowPopup) return null;
 
-  if (ctrlTabIndex < 0 || ctrlTabIndex >= popupTabs.length) {
-    console.warn("Invalid ctrlTabIndex", ctrlTabIndex);
+  if (ctrlTabCount < 0 || ctrlTabCount >= popupTabs.length) {
+    console.warn("Invalid ctrlTabCount", ctrlTabCount);
     return null;
   }
 
-  const currentTabbedTab = popupTabs[ctrlTabIndex];
+  const currentTabbedTab = popupTabs[ctrlTabCount];
 
   return (
     <div className="absolute flex justify-center top-1 w-full">
       <StyledWrapper
-        key={`dialog-${ctrlTabIndex}-${popupTabs.map((tab) => tab.uid).join('-')}`}
+        key={`dialog-${ctrlTabCount}-${popupTabs.map((tab) => tab.uid).join('-')}`}
         className="flex flex-col isolate z-10 p-1"
       >
         {popupTabs.map((popupTab) => (
