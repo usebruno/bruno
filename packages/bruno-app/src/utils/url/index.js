@@ -20,12 +20,12 @@ const hasLength = (str) => {
 /**
  * Collapses multiple consecutive slashes (`//`) into a single slash, while skipping the protocol (e.g., `http://` or `https://`).
  * 
- * @param {String} url A URL string
+ * @param {String} url - A URL string
  * @returns {String} The sanitized URL
  * 
  */
 const collapseDuplicateSlashes = (url) => {
-  return path.replace(/(?<!:)\/{2,}/g, '/');
+  return url.replace(/(?<!:)\/{2,}/g, '/');
 };
 
 /**
