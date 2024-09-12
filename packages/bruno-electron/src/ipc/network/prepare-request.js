@@ -222,6 +222,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         const apiKeyAuth = get(collectionAuth, 'apikey');
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
     }
@@ -296,6 +299,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         const apiKeyAuth = get(request, 'auth.apikey');
         if (apiKeyAuth.placement === 'header') {
           axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
     }
@@ -348,21 +354,6 @@ const prepareRequest = (item, collection) => {
     pathParams: request?.params?.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
-
-  /**
-   * If the API key authentication is set and its placement is 'queryparams',
-   * add it to the axios request object. This will be used in the configureRequest function
-   * to append the API key to the query parameters of the request URL.
-   */
-
-  // If the auth mode is 'inherit', use the auth values from the collection root
-  const auth = request.auth.mode === 'inherit' ? collectionRoot.request.auth : request.auth;
-
-  const apiKeyAuth = auth?.apikey;
-
-  if (apiKeyAuth && apiKeyAuth.placement === 'queryparams') {
-    axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
-  }
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
