@@ -25,7 +25,12 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = () => {
+  const onSave = (finalValue) => {
+    dispatch(requestUrlChanged({
+      itemUid: item.uid,
+      collectionUid: collection.uid,
+      url: finalValue && typeof finalValue === 'string' ? finalValue.trim() : value
+    }));
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
@@ -34,7 +39,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       requestUrlChanged({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        url: value && typeof value === 'string' ? value.trim() : value
+        url: (value && typeof value === 'string') && value
       })
     );
   };
@@ -64,7 +69,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       >
         <SingleLineEditor
           value={url}
-          onSave={onSave}
+          onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
