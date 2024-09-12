@@ -180,7 +180,7 @@ const oauth2Schema = Yup.object({
 const authApiKeySchema = Yup.object({
   key: Yup.string().nullable(),
   value: Yup.string().nullable(),
-  placement: Yup.string().oneOf(['header', 'queryparams']).required('placement is required')
+  placement: Yup.string().oneOf(['header', 'queryparams']).nullable()
 });
 
 const authSchema = Yup.object({
