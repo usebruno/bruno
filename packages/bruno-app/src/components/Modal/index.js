@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
+import useFocusTrap from 'hooks/useFocusTrap';
 
 const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
@@ -78,38 +79,18 @@ const Modal = ({
     }
   };
 
+  useFocusTrap(modalRef, isClosing);
+  
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
   };
 
   useEffect(() => {
-    const modalElement = modalRef.current;
-    const focusableElements = modalElement.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
     if (disableEscapeKey) return;
     document.addEventListener('keydown', escFunction, false);
-
-    console.log(focusableElements);
-
-    const handleKeyDown = (event) => {
-      if (event.key === 'Tab') {
-        if (event.shiftKey && document.activeElement === firstElement) {
-          event.preventDefault();
-          lastElement.focus();
-        } else if (!event.shiftKey && document.activeElement === lastElement) {
-          event.preventDefault();
-          firstElement.focus();
-        }
-      }
-    };
-
-    modalElement.addEventListener('keydown', handleKeyDown);
     return () => {
-      modalElement.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('keydown', escFunction, false);
     };
   }, [disableEscapeKey, document]);
 
@@ -122,7 +103,13 @@ const Modal = ({
   }
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
-      <div className={`bruno-modal-card modal-${size}`} ref={modalRef}>
+      <div
+        className={`bruno-modal-card modal-${size}`}
+        ref={modalRef}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
         <ModalHeader
           title={title}
           hideClose={hideClose}
