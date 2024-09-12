@@ -89,13 +89,12 @@ const Notifications = () => {
     <StyledWrapper>
       <a
         role="menuitem"
-        title="Notifications"
         className="relative cursor-pointer"
         onClick={() => {
           dispatch(fetchNotifications());
           setShowNotificationsModal(true);
         }}
-        aria-label="check all Notifications"
+        aria-label="Check all Notifications"
       >
         <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
           <IconBell

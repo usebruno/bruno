@@ -169,13 +169,13 @@ const Sidebar = () => {
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 {/* This will get moved to home page */}
                 {/* <GitHubButton
-            href="https://github.com/usebruno/bruno"
-            data-color-scheme={storedTheme}
-            data-show-count="true"
-            aria-label="Star usebruno/bruno on GitHub"
-          >
-            Star 
-          </GitHubButton> */}
+                  href="https://github.com/usebruno/bruno"
+                  data-color-scheme={storedTheme}
+                  data-show-count="true"
+                  aria-label="Star usebruno/bruno on GitHub"
+                >
+                  Star
+                </GitHubButton> */}
               </div>
               <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.28.0</div>
             </div>
