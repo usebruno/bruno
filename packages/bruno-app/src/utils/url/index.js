@@ -18,16 +18,17 @@ const hasLength = (str) => {
 };
 
 export const parseQueryParams = (query) => {
-  if (!query || !query.length) {
+  try {
+    if (!query || !query.length) {
+      return [];
+    }
+
+    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
+      .map(([name, value]) => ({ name, value }));
+  } catch (error) {
+    console.error('Error parsing query params:', error);
     return [];
   }
-
-  let params = query.split('&').map((param) => {
-    let [name, value = ''] = param.split('=');
-    return { name, value };
-  });
-
-  return filter(params, (p) => hasLength(p.name));
 };
 
 export const parsePathParams = (url) => {
@@ -44,7 +45,8 @@ export const parsePathParams = (url) => {
   try {
     uri = new URL(uri);
   } catch (e) {
-    throw e;
+    // URL is non-parsable, is it incomplete? Ignore.
+    return [];
   }
 
   let paths = uri.pathname.split('/');
@@ -107,14 +109,14 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
+export const interpolateUrl = ({ url, envVars, runtimeVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
   return interpolate(url, {
     ...envVars,
-    ...collectionVariables,
+    ...runtimeVariables,
     process: {
       env: {
         ...processEnvVars

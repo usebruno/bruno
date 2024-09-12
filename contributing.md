@@ -16,7 +16,7 @@
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
 
-## Let's make Bruno better, together !!
+## Let's make Bruno better, together!!
 
 We are happy that you are looking to improve Bruno. Below are the guidelines to get started bringing up Bruno on your computer.
 
@@ -34,10 +34,11 @@ Libraries we use
 - Schema Validation - Yup
 - Request Client - axios
 - Filesystem Watcher - chokidar
+- i18n - i18next
 
 ### Dependencies
 
-You would need [Node v18.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
+You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) and npm 8.x. We use npm workspaces in the project
 
 ## Development
 
@@ -56,6 +57,9 @@ npm i --legacy-peer-deps
 npm run build:graphql-docs
 npm run build:bruno-query
 npm run build:bruno-common
+
+# bundle js sandbox libraries
+npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
 # run next app (terminal 1)
 npm run dev:web

@@ -27,6 +27,7 @@
 | [正體中文](./readme_zhtw.md)
 | [العربية](./readme_ar.md)
 | [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno é um novo e inovador cliente de API, com o objetivo de revolucionar o status quo representado por ferramentas como o Postman e outras semelhantes.
 
@@ -45,7 +46,7 @@ Bruno é totalmente offline. Não há planos de adicionar sincronização em nuv
 A grande maioria dos nossos recursos são gratuitos e de código aberto.
 Nós nos esforçamos para encontrar um equilíbrio harmônico entre [princípios de código aberto e sustentabilidade](https://github.com/usebruno/bruno/discussions/269)
 
-Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9** ! <br/>
+Você pode pré encomendar o plano [Golden Edition](https://www.usebruno.com/pricing) por ~~USD $19~~ **USD $9**! <br/>
 
 ### Instalação
 
@@ -102,6 +103,12 @@ Ou qualquer sistema de controle de versão de sua escolha.
 #### Apoiadores Silver
 
 <img src="../../assets/images/sponsors/commit-company.png" width="70"/>
+
+#### Apoiadores Bronze
+
+<a href="https://zuplo.link/bruno">
+    <img src="../../assets/images/sponsors/zuplo.png" width="120"/>
+</a>
 
 ### Links Importantes 📌
 

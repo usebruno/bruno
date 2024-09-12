@@ -54,7 +54,7 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
-const translationLog = {};
+let translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
@@ -113,7 +113,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               xml: null,
               formUrlEncoded: [],
               multipartForm: []
-            }
+            },
+            docs: i.request.description
           }
         };
         /* struct of translation log
@@ -394,9 +395,13 @@ const importCollection = (options) => {
       .then((collection) => resolve({ collection, translationLog }))
       .catch((err) => {
         console.log(err);
+        translationLog = {};
         reject(new BrunoError('Import collection failed'));
       })
-      .then(() => logTranslationDetails(translationLog));
+      .then(() => {
+        logTranslationDetails(translationLog);
+        translationLog = {};
+      });
   });
 };
 

@@ -62,6 +62,7 @@ const BasicAuth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handlePasswordChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
     </StyledWrapper>

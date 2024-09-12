@@ -18,18 +18,23 @@ const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
-
+const path = require('path');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+
+const onConsoleLog = (type, args) => {
+  console[type](...args);
+};
 
 const runSingleRequest = async function (
   filename,
   bruJson,
   collectionPath,
-  collectionVariables,
+  runtimeVariables,
   envVariables,
   processEnvVars,
   brunoConfig,
-  collectionRoot
+  collectionRoot,
+  runtime
 ) {
   try {
     let request;
@@ -38,6 +43,7 @@ const runSingleRequest = async function (
     request = prepareRequest(bruJson.request, collectionRoot);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
+    scriptingConfig.runtime = runtime;
 
     // make axios work in node using form data
     // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
@@ -54,34 +60,20 @@ const runSingleRequest = async function (
       request.data = form;
     }
 
-    // run pre-request vars
-    const preRequestVars = get(bruJson, 'request.vars.req');
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime();
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVariables,
-        collectionVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
-
     // run pre request script
     const requestScriptFile = compact([
       get(collectionRoot, 'request.script.req'),
       get(bruJson, 'request.script.req')
     ]).join(os.EOL);
     if (requestScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
         decomment(requestScriptFile),
         request,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
-        null,
+        onConsoleLog,
         processEnvVars,
         scriptingConfig
       );
@@ -91,7 +83,7 @@ const runSingleRequest = async function (
     }
 
     // interpolate variables inside request
-    interpolateVars(request, envVariables, collectionVariables, processEnvVars);
+    interpolateVars(request, envVariables, runtimeVariables, processEnvVars);
 
     if (!protocolRegex.test(request.url)) {
       request.url = `http://${request.url}`;
@@ -120,25 +112,37 @@ const runSingleRequest = async function (
 
     const interpolationOptions = {
       envVars: envVariables,
-      collectionVariables,
+      runtimeVariables,
       processEnvVars
     };
 
     // client certificate config
     const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
     for (let clientCert of clientCertConfig) {
-      const domain = interpolateString(clientCert.domain, interpolationOptions);
-      const certFilePath = interpolateString(clientCert.certFilePath, interpolationOptions);
-      const keyFilePath = interpolateString(clientCert.keyFilePath, interpolationOptions);
-      if (domain && certFilePath && keyFilePath) {
+      const domain = interpolateString(clientCert?.domain, interpolationOptions);
+      const type = clientCert?.type || 'cert';
+      if (domain) {
         const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
-
         if (request.url.match(hostRegex)) {
-          try {
-            httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
-            httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
-          } catch (err) {
-            console.log('Error reading cert/key file', err);
+          if (type === 'cert') {
+            try {
+              let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
+              certFilePath = path.isAbsolute(certFilePath) ? certFilePath : path.join(collectionPath, certFilePath);
+              let keyFilePath = interpolateString(clientCert?.keyFilePath, interpolationOptions);
+              keyFilePath = path.isAbsolute(keyFilePath) ? keyFilePath : path.join(collectionPath, keyFilePath);
+              httpsAgentRequestFields['cert'] = fs.readFileSync(certFilePath);
+              httpsAgentRequestFields['key'] = fs.readFileSync(keyFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading cert/key file'), chalk.red(err?.message));
+            }
+          } else if (type === 'pfx') {
+            try {
+              let pfxFilePath = interpolateString(clientCert?.pfxFilePath, interpolationOptions);
+              pfxFilePath = path.isAbsolute(pfxFilePath) ? pfxFilePath : path.join(collectionPath, pfxFilePath);
+              httpsAgentRequestFields['pfx'] = fs.readFileSync(pfxFilePath);
+            } catch (err) {
+              console.log(chalk.red('Error reading pfx file'), chalk.red(err?.message));
+            }
           }
           httpsAgentRequestFields['passphrase'] = interpolateString(clientCert.passphrase, interpolationOptions);
           break;
@@ -258,19 +262,19 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars
     const postResponseVars = get(bruJson, 'request.vars.res');
     if (postResponseVars?.length) {
-      const varsRuntime = new VarsRuntime();
+      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
       varsRuntime.runPostResponseVars(
         postResponseVars,
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         processEnvVars
       );
@@ -282,13 +286,13 @@ const runSingleRequest = async function (
       get(bruJson, 'request.script.res')
     ]).join(os.EOL);
     if (responseScriptFile?.length) {
-      const scriptRuntime = new ScriptRuntime();
+      const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runResponseScript(
         decomment(responseScriptFile),
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
@@ -303,14 +307,14 @@ const runSingleRequest = async function (
     let assertionResults = [];
     const assertions = get(bruJson, 'request.assertions');
     if (assertions) {
-      const assertRuntime = new AssertRuntime();
+      const assertRuntime = new AssertRuntime({ runtime: scriptingConfig?.runtime });
       assertionResults = assertRuntime.runAssertions(
         assertions,
         request,
         response,
         envVariables,
-        collectionVariables,
-        collectionPath
+        runtimeVariables,
+        processEnvVars
       );
 
       each(assertionResults, (r) => {
@@ -327,19 +331,23 @@ const runSingleRequest = async function (
     let testResults = [];
     const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
     if (typeof testFile === 'string') {
-      const testRuntime = new TestRuntime();
+      const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
         decomment(testFile),
         request,
         response,
         envVariables,
-        collectionVariables,
+        runtimeVariables,
         collectionPath,
         null,
         processEnvVars,
         scriptingConfig
       );
       testResults = get(result, 'results', []);
+
+      if (result?.nextRequestName !== undefined) {
+        nextRequestName = result.nextRequestName;
+      }
     }
 
     if (testResults?.length) {
