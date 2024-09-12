@@ -4,6 +4,7 @@ import StyledWrapper from './StyledWrapper';
 import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
+import ToolHint from 'components/ToolHint';
 import GoldenEdition from './GoldenEdition';
 
 import { useState, useEffect } from 'react';
@@ -81,11 +82,44 @@ const Sidebar = () => {
 
   return (
     <StyledWrapper className="flex relative h-screen">
-      <nav>
-        {goldenEditonOpen && <GoldenEdition onClose={() => setGoldenEditonOpen(false)} />}
+      <aside>
+        {goldenEditonOpen && (
+          <GoldenEdition
+            onClose={() => {
+              setGoldenEditonOpen(false);
+              document.querySelector('[data-trigger="golden-edition"]').focus(); // Return focus to the trigger
+            }}
+            aria-modal="true"
+            role="dialog"
+            aria-labelledby="golden-edition-title"
+            aria-describedby="golden-edition-description"
+          />
+        )}
         <div className="flex flex-row h-screen w-full">
-          {preferencesOpen && <Preferences onClose={() => dispatch(showPreferences(false))} />}
-          {cookiesOpen && <Cookies onClose={() => setCookiesOpen(false)} />}
+          {preferencesOpen && (
+            <Preferences
+              onClose={() => {
+                dispatch(showPreferences(false));
+                document.querySelector('[data-trigger="preferences"]').focus(); // Return focus to the trigger
+              }}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="preferences-title"
+              aria-describedby="preferences-description"
+            />
+          )}
+          {cookiesOpen && (
+            <Cookies
+              onClose={() => {
+                setCookiesOpen(false);
+                document.querySelector('[data-trigger="cookies"]').focus(); // Return focus to the trigger
+              }}
+              aria-modal="true"
+              role="dialog"
+              aria-labelledby="cookies-title"
+              aria-describedby="cookies-description"
+            />
+          )}
 
           <div className="flex flex-col w-full" style={{ width: asideWidth }}>
             <div className="flex flex-col flex-grow">
@@ -94,57 +128,61 @@ const Sidebar = () => {
             </div>
 
             <div className="footer flex px-1 py-2 absolute bottom-0 left-0 right-0 items-center select-none">
-              <ul role="menubar" className="flex items-center ml-1 text-xs ">
-                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a
-                    role="menuitem"
-                    title="Preferences"
-                    aria-label="Goto settings"
-                    onClick={() => dispatch(showPreferences(true))}
-                  >
-                    <IconSettings aria-hidden size={18} strokeWidth={1.5} />
-                  </a>
-                </li>
-                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a
-                    role="menuitem"
-                    title="Cookies"
-                    aria-label="see cookies saved"
-                    onClick={() => setCookiesOpen(true)}
-                  >
-                    <IconCookie aria-hidden size={18} strokeWidth={1.5} />
-                  </a>
-                </li>
-                <li role="none" className="mr-2 cursor-pointer hover:text-gray-700">
-                  <a
-                    role="menuitem"
-                    title="Golden Edition"
-                    aria-label="Get Golden Edition"
-                    onClick={() => setGoldenEditonOpen(true)}
-                  >
-                    <IconHeart aria-hidden size={18} strokeWidth={1.5} />
-                  </a>
-                </li>
-                <li role="none">
+              <div className="flex items-center ml-1 text-xs ">
+                <a
+                  className="mr-2 cursor-pointer"
+                  data-trigger="preferences"
+                  onClick={() => dispatch(showPreferences(true))}
+                  tabIndex={0}
+                  aria-label="Open Preferences"
+                >
+                  <ToolHint text="Preferences" toolhintId="Preferences" effect="float" place="top-start" offset={8}>
+                    <IconSettings size={18} strokeWidth={1.5} aria-hidden="true" />
+                  </ToolHint>
+                </a>
+                <a
+                  className="mr-2 cursor-pointer"
+                  data-trigger="cookies"
+                  onClick={() => setCookiesOpen(true)}
+                  tabIndex={0}
+                  aria-label="Open Cookies Settings"
+                >
+                  <ToolHint text="Cookies" toolhintId="Cookies" offset={8}>
+                    <IconCookie size={18} strokeWidth={1.5} aria-hidden="true" />
+                  </ToolHint>
+                </a>
+                <a
+                  className="mr-2 cursor-pointer"
+                  data-trigger="golden-edition"
+                  onClick={() => setGoldenEditonOpen(true)}
+                  tabIndex={0}
+                  aria-label="Open Golden Edition"
+                >
+                  <ToolHint text="Golden Edition" toolhintId="Golden Edition" offset={8}>
+                    <IconHeart size={18} strokeWidth={1.5} aria-hidden="true" />
+                  </ToolHint>
+                </a>
+                <a>
                   <Notifications />
-                </li>
-              </ul>
+                </a>
+              </div>
               <div className="pl-1" style={{ position: 'relative', top: '3px' }}>
                 {/* This will get moved to home page */}
                 {/* <GitHubButton
-                  href="https://github.com/usebruno/bruno"
-                  data-color-scheme={storedTheme}
-                  data-show-count="true"
-                  aria-label="Star usebruno/bruno on GitHub"
-                >
-                  Star
-                </GitHubButton> */}
+            href="https://github.com/usebruno/bruno"
+            data-color-scheme={storedTheme}
+            data-show-count="true"
+            aria-label="Star usebruno/bruno on GitHub"
+          >
+            Star 
+          </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.12.3</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.28.0</div>
             </div>
           </div>
         </div>
-      </nav>
+      </aside>
+
       <div className="absolute drag-sidebar h-full" onMouseDown={handleDragbarMouseDown}>
         <div className="drag-request-border" />
       </div>

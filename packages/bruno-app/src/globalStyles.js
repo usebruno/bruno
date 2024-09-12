@@ -9,6 +9,9 @@ const GlobalStyle = createGlobalStyle`
   .text-link {
     color: ${(props) => props.theme.textLink};
   }
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 
   .btn {
     text-align: center;
@@ -97,6 +100,11 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  input::placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity:  ${(props) => props.theme.input.placeholder.opacity};
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -165,7 +173,6 @@ const GlobalStyle = createGlobalStyle`
   // (macos scrollbar styling is the ideal style reference)
   @media not all and (pointer: coarse) {
     * {
-      scrollbar-width: thin;
       scrollbar-color: ${(props) => props.theme.scrollbar.color};
     }
     

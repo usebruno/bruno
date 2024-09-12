@@ -21,7 +21,7 @@ const Wrapper = styled.div`
     align-items: flex-start;
     justify-content: center;
     overflow-y: auto;
-    z-index: 10;
+    z-index: 20;
     background-color: rgba(0, 0, 0, 0.5);
   }
 
@@ -31,7 +31,7 @@ const Wrapper = styled.div`
     background: var(--color-background-top);
     border-radius: var(--border-radius);
     position: relative;
-    z-index: 10;
+    z-index: 11;
     max-width: calc(100% - var(--spacing-base-unit));
     box-shadow: var(--box-shadow-base);
     display: flex;
