@@ -27,6 +27,15 @@ class BrunoResponse {
   getResponseTime() {
     return this.res ? this.res.responseTime : null;
   }
+
+  setBody(data) {
+    if (!this.res) {
+      return;
+    }
+
+    this.body = data;
+    this.res.data = data;
+  }
 }
 
 module.exports = BrunoResponse;
