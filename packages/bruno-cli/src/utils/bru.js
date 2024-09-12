@@ -1,10 +1,24 @@
 const _ = require('lodash');
-const Mustache = require('mustache');
-const { bruToEnvJsonV2, bruToJsonV2 } = require('@usebruno/lang');
+const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
 
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
+const collectionBruToJson = (bru) => {
+  try {
+    const json = _collectionBruToJson(bru);
+
+    const transformedJson = {
+      request: {
+        headers: _.get(json, 'headers', []),
+        auth: _.get(json, 'auth', {}),
+        script: _.get(json, 'script', {}),
+        vars: _.get(json, 'vars', {}),
+        tests: _.get(json, 'tests', '')
+      }
+    };
+
+    return transformedJson;
+  } catch (error) {
+    return Promise.reject(error);
+  }
 };
 
 /**
@@ -39,7 +53,7 @@ const bruToJson = (bru) => {
         method: _.upperCase(_.get(json, 'http.method')),
         url: _.get(json, 'http.url'),
         auth: _.get(json, 'auth', {}),
-        params: _.get(json, 'query', []),
+        params: _.get(json, 'params', []),
         headers: _.get(json, 'headers', []),
         body: _.get(json, 'body', {}),
         vars: _.get(json, 'vars', []),
@@ -75,7 +89,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   _.each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = Mustache.escape(variable.value);
+      envVars[variable.name] = variable.value;
     }
   });
 
@@ -91,5 +105,6 @@ module.exports = {
   bruToJson,
   bruToEnvJson,
   getEnvVars,
-  getOptions
+  getOptions,
+  collectionBruToJson
 };

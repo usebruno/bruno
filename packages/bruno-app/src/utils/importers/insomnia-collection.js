@@ -1,3 +1,4 @@
+import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
@@ -8,7 +9,22 @@ import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } fr
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
-    fileReader.onload = (e) => resolve(e.target.result);
+    fileReader.onload = (e) => {
+      try {
+        // try to load JSON
+        const parsedData = JSON.parse(e.target.result);
+        resolve(parsedData);
+      } catch (jsonError) {
+        // not a valid JSOn, try yaml
+        try {
+          const parsedData = jsyaml.load(e.target.result);
+          resolve(parsedData);
+        } catch (yamlError) {
+          console.error('Error parsing the file :', jsonError, yamlError);
+          reject(new BrunoError('Import collection failed'));
+        }
+      }
+    };
     fileReader.onerror = (err) => reject(err);
     fileReader.readAsText(files[0]);
   });
@@ -25,7 +41,7 @@ const parseGraphQL = (text) => {
   } catch (e) {
     return {
       query: '',
-      variables: {}
+      variables: ''
     };
   }
 };
@@ -64,7 +80,8 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       auth: {
         mode: 'none',
         basic: null,
-        bearer: null
+        bearer: null,
+        digest: null
       },
       headers: [],
       params: [],
@@ -95,7 +112,19 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: 'query',
       enabled: !param.disabled
+    });
+  });
+
+  each(request.pathParameters, (param) => {
+    brunoRequestItem.request.params.push({
+      uid: uuid(),
+      name: param.name,
+      value: param.value,
+      description: '',
+      type: 'path',
+      enabled: true
     });
   });
 
@@ -135,6 +164,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
     each(request.body.params, (param) => {
       brunoRequestItem.request.body.multipartForm.push({
         uid: uuid(),
+        type: 'text',
         name: param.name,
         value: param.value,
         description: param.description,
@@ -167,7 +197,7 @@ const parseInsomniaCollection = (data) => {
 
   return new Promise((resolve, reject) => {
     try {
-      const insomniaExport = JSON.parse(data);
+      const insomniaExport = data;
       const insomniaResources = get(insomniaExport, 'resources', []);
       const insomniaCollection = insomniaResources.find((resource) => resource._type === 'workspace');
 
@@ -213,16 +243,16 @@ const parseInsomniaCollection = (data) => {
 
 const importCollection = () => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
+    fileDialog({ accept: '.json, .yaml, .yml, application/json, application/yaml, application/x-yaml' })
       .then(readFile)
       .then(parseInsomniaCollection)
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
-        console.log(err);
-        reject(new BrunoError('Import collection failed'));
+        console.error(err);
+        reject(new BrunoError('Import collection failed: ' + err.message));
       });
   });
 };

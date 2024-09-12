@@ -1,0 +1,23 @@
+meta {
+  name: token
+  type: http
+  seq: 1
+}
+
+post {
+  url: 
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: password
+  access_token_url: {{password_credentials_access_token_url}}
+  username: {{password_credentials_username}}
+  password: {{password_credentials_password}}
+  scope: 
+}
+
+script:post-response {
+  bru.setEnvVar('passwordCredentials_access_token', res.body.access_token);
+}

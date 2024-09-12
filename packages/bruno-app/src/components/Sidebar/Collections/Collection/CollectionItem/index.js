@@ -6,8 +6,8 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
-import { moveItem } from 'providers/ReduxStore/slices/collections/actions';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -23,6 +23,8 @@ import { getDefaultRequestPaneTab } from 'utils/collections';
 import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
+import NetworkError from 'components/ResponsePane/NetworkError/index';
+import { uuid } from 'utils/common';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -84,34 +86,64 @@ const CollectionItem = ({ item, collection, searchText }) => {
   });
 
   const itemRowClassName = classnames('flex collection-item-name items-center', {
-    'item-focused-in-tab': item.uid == activeTabUid
+    'item-focused-in-tab': item.uid == activeTabUid,
+    'item-hovered': isOver
   });
 
+  const scrollToTheActiveTab = () => {
+    const activeTab = document.querySelector('.request-tab.active');
+    if (activeTab) {
+      activeTab.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleRun = async () => {
+    dispatch(sendRequest(item, collection.uid)).catch((err) =>
+      toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
+        duration: 5000
+      })
+    );
+  };
+
   const handleClick = (event) => {
+    //scroll to the active tab
+    setTimeout(scrollToTheActiveTab, 50);
+
     if (isItemARequest(item)) {
+      dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
         dispatch(
           focusTab({
             uid: item.uid
           })
         );
-      } else {
-        dispatch(
-          addTab({
-            uid: item.uid,
-            collectionUid: collection.uid,
-            requestPaneTab: getDefaultRequestPaneTab(item)
-          })
-        );
+        return;
       }
-      dispatch(hideHomePage());
-    } else {
       dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collection.uid
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          requestPaneTab: getDefaultRequestPaneTab(item)
         })
       );
+      return;
+    }
+    dispatch(
+      collectionFolderClicked({
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  const handleRightClick = (event) => {
+    const _menuDropdown = dropdownTippyRef.current;
+    if (_menuDropdown) {
+      let menuDropdownBehavior = 'show';
+      if (_menuDropdown.state.isShown) {
+        menuDropdownBehavior = 'hide';
+      }
+      _menuDropdown[menuDropdownBehavior]();
     }
   };
 
@@ -157,6 +189,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
+
+  const viewFolderSettings = () => {
+    if (isItemAFolder(item)) {
+      if (itemIsOpenedInTabs(item, tabs)) {
+        dispatch(
+          focusTab({
+            uid: item.uid
+          })
+        );
+        return;
+      }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
+        })
+      );
+      return;
+    }
+  };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -190,6 +244,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                 return (
                   <div
                     onClick={handleClick}
+                    onContextMenu={handleRightClick}
                     onDoubleClick={handleDoubleClick}
                     className="indent-block"
                     key={i}
@@ -206,6 +261,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
             : null}
           <div
             onClick={handleClick}
+            onContextMenu={handleRightClick}
             onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
@@ -272,15 +328,25 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Rename
               </div>
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setCloneItemModalOpen(true);
+                }}
+              >
+                Clone
+              </div>
               {!isFolder && (
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
                     dropdownTippyRef.current.hide();
-                    setCloneItemModalOpen(true);
+                    handleClick(null);
+                    handleRun();
                   }}
                 >
-                  Clone
+                  Run
                 </div>
               )}
               {!isFolder && item.type === 'http-request' && (
@@ -302,6 +368,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Delete
               </div>
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    viewFolderSettings();
+                  }}
+                >
+                  Settings
+                </div>
+              )}
             </Dropdown>
           </div>
         </div>

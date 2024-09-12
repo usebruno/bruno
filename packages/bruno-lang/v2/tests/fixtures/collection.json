@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "type": "collection"
+  },
+  "headers": [
+    {
+      "name": "content-type",
+      "value": "application/json",
+      "enabled": true
+    },
+    {
+      "name": "Authorization",
+      "value": "Bearer 123",
+      "enabled": true
+    },
+    {
+      "name": "transaction-id",
+      "value": "{{transactionId}}",
+      "enabled": false
+    }
+  ],
+  "auth": {
+    "mode": "none",
+    "basic": {
+      "username": "john",
+      "password": "secret"
+    },
+    "bearer": {
+      "token": "123"
+    },
+    "digest": {
+      "username": "john",
+      "password": "secret"
+    }
+  },
+  "vars": {
+    "req": [
+      {
+        "name": "departingDate",
+        "value": "2020-01-01",
+        "enabled": true,
+        "local": false
+      },
+      {
+        "name": "returningDate",
+        "value": "2020-01-02",
+        "enabled": false,
+        "local": false
+      }
+    ],
+    "res": [
+      {
+        "name": "transactionId",
+        "value": "$res.body.transactionId",
+        "enabled": false,
+        "local": false
+      }
+    ]
+  },
+  "script": {
+    "req": "console.log(\"In Collection pre Request Script\");",
+    "res": "console.log(\"In Collection post Request Script\");"
+  },
+  "docs": "This request needs auth token to be set in the headers."
+}

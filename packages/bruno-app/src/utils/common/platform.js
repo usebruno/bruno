@@ -11,10 +11,6 @@ export const isElectron = () => {
   return window.ipcRenderer ? true : false;
 };
 
-export const isLocalCollection = (collection) => {
-  return collection.pathname ? true : false;
-};
-
 export const resolveRequestFilename = (name) => {
   return `${trim(name)}.bru`;
 };
@@ -47,4 +43,18 @@ export const isMacOS = () => {
   const osFamily = os.family.toLowerCase();
 
   return osFamily.includes('os x');
+};
+
+export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
+
+export const getAppInstallDate = () => {
+  let dateString = localStorage.getItem('bruno.installedOn');
+
+  if (!dateString) {
+    dateString = new Date().toISOString();
+    localStorage.setItem('bruno.installedOn', dateString);
+  }
+
+  const date = new Date(dateString);
+  return date;
 };

@@ -8,7 +8,7 @@ const lightTheme = {
     text: {
       green: '#047857',
       danger: 'rgb(185, 28, 28)',
-      muted: '#4b5563',
+      muted: '#838383',
       purple: '#8e44ad',
       yellow: '#d97706'
     },
@@ -20,7 +20,11 @@ const lightTheme = {
   input: {
     bg: 'white',
     border: '#ccc',
-    focusBorder: '#8b8b8b'
+    focusBorder: '#8b8b8b',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.8
+    }
   },
 
   menubar: {
@@ -109,7 +113,8 @@ const lightTheme = {
     responseSendIcon: 'rgb(209, 213, 219)',
     responseStatus: 'rgb(117 117 117)',
     responseOk: '#047857',
-    responseError: 'rgb(185, 28, 28)'
+    responseError: 'rgb(185, 28, 28)',
+    responseOverlayBg: 'rgba(255, 255, 255, 0.6)'
   },
 
   collection: {
@@ -136,6 +141,21 @@ const lightTheme = {
 
     sidebar: {
       bg: '#eaeaea'
+    }
+  },
+
+  notifications: {
+    bg: 'white',
+    list: {
+      bg: '#eaeaea',
+      borderRight: 'transparent',
+      borderBottom: '#d3d3d3',
+      hoverBg: '#e4e4e4',
+      active: {
+        border: '#546de5',
+        bg: '#dcdcdc',
+        hoverBg: '#dcdcdc'
+      }
     }
   },
 
@@ -176,6 +196,11 @@ const lightTheme = {
       color: '#9f9f9f',
       bg: '#efefef',
       border: 'rgb(234, 234, 234)'
+    },
+    danger: {
+      color: '#fff',
+      bg: '#dc3545',
+      border: '#dc3545'
     }
   },
 
@@ -236,6 +261,10 @@ const lightTheme = {
 
   plainGrid: {
     hoverBg: '#f4f4f4'
+  },
+
+  scrollbar: {
+    color: 'rgb(152 151 149)'
   }
 };
 

@@ -14,6 +14,8 @@ import Timeline from './Timeline';
 import TestResults from './TestResults';
 import TestResultsLabel from './TestResultsLabel';
 import StyledWrapper from './StyledWrapper';
+import ResponseSave from 'src/components/ResponsePane/ResponseSave';
+import ResponseClear from 'src/components/ResponsePane/ResponseClear';
 
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const dispatch = useDispatch();
@@ -41,7 +43,10 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             collection={collection}
             width={rightPaneWidth}
             data={response.data}
+            dataBuffer={response.dataBuffer}
             headers={response.headers}
+            error={response.error}
+            key={item.filename}
           />
         );
       }
@@ -61,15 +66,15 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !item.response) {
     return (
-      <StyledWrapper className="flex h-full relative">
+      <StyledWrapper className="flex flex-col h-full relative">
         <Overlay item={item} collection={collection} />
       </StyledWrapper>
     );
   }
 
-  if (response.state !== 'success') {
+  if (!item.response) {
     return (
       <StyledWrapper className="flex h-full relative">
         <Placeholder />
@@ -92,14 +97,17 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
     });
   };
 
+  const responseHeadersCount = typeof response.headers === 'object' ? Object.entries(response.headers).length : 0;
+
   return (
     <StyledWrapper className="flex flex-col h-full relative">
-      <div className="flex flex-wrap items-center px-3 tabs" role="tablist">
+      <div className="flex flex-wrap items-center pl-3 pr-4 tabs" role="tablist">
         <div className={getTabClassname('response')} role="tab" onClick={() => selectTab('response')}>
           Response
         </div>
         <div className={getTabClassname('headers')} role="tab" onClick={() => selectTab('headers')}>
           Headers
+          {responseHeadersCount > 0 && <sup className="ml-1 font-medium">{responseHeadersCount}</sup>}
         </div>
         <div className={getTabClassname('timeline')} role="tab" onClick={() => selectTab('timeline')}>
           Timeline
@@ -109,13 +117,18 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
         </div>
         {!isLoading ? (
           <div className="flex flex-grow justify-end items-center">
+            <ResponseClear item={item} collection={collection} />
+            <ResponseSave item={item} />
             <StatusCode status={response.status} />
             <ResponseTime duration={response.duration} />
             <ResponseSize size={response.size} />
           </div>
         ) : null}
       </div>
-      <section className={`flex flex-grow ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}>
+      <section
+        className={`flex flex-grow relative pl-3 pr-4 ${focusedTab.responsePaneTab === 'response' ? '' : 'mt-4'}`}
+      >
+        {isLoading ? <Overlay item={item} collection={collection} /> : null}
         {getTabPanel(focusedTab.responsePaneTab)}
       </section>
     </StyledWrapper>

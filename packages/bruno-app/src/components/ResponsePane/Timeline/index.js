@@ -5,7 +5,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Timeline = ({ request, response }) => {
   const requestHeaders = [];
-  const responseHeaders = response.headers || [];
+  const responseHeaders = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
 
   request = request || {};
   response = response || {};
@@ -17,10 +17,10 @@ const Timeline = ({ request, response }) => {
     });
   });
 
-  let requestData = safeStringifyJSON(request.data);
+  let requestData = typeof request?.data === "string" ? request?.data : safeStringifyJSON(request?.data, true);
 
   return (
-    <StyledWrapper className="px-3 pb-4 w-full">
+    <StyledWrapper className="pb-4 w-full">
       <div>
         <pre className="line request font-bold">
           <span className="arrow">{'>'}</span> {request.method} {request.url}
@@ -35,7 +35,8 @@ const Timeline = ({ request, response }) => {
 
         {requestData ? (
           <pre className="line request">
-            <span className="arrow">{'>'}</span> data {requestData}
+            <span className="arrow">{'>'}</span> data{' '}
+            <pre className="text-sm flex flex-wrap whitespace-break-spaces">{requestData}</pre>
           </pre>
         ) : null}
       </div>

@@ -1,0 +1,8 @@
+[meta]
+name = 'Delete User'
+type = 'http'
+seq = 1
+
+[http]
+method = 'DELETE'
+url = 'https://reqres.in/api/users/2'

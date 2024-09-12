@@ -5,7 +5,7 @@ import DeleteEnvironment from '../../DeleteEnvironment';
 import RenameEnvironment from '../../RenameEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 
-const EnvironmentDetails = ({ environment, collection }) => {
+const EnvironmentDetails = ({ environment, collection, setIsModified }) => {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
@@ -28,7 +28,7 @@ const EnvironmentDetails = ({ environment, collection }) => {
       <div className="flex">
         <div className="flex flex-grow items-center">
           <IconDatabase className="cursor-pointer" size={20} strokeWidth={1.5} />
-          <span className="ml-1 font-semibold">{environment.name}</span>
+          <span className="ml-1 font-semibold break-all">{environment.name}</span>
         </div>
         <div className="flex gap-x-4 pl-4">
           <IconEdit className="cursor-pointer" size={20} strokeWidth={1.5} onClick={() => setOpenEditModal(true)} />
@@ -38,7 +38,7 @@ const EnvironmentDetails = ({ environment, collection }) => {
       </div>
 
       <div>
-        <EnvironmentVariables key={environment.uid} environment={environment} collection={collection} />
+        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} />
       </div>
     </div>
   );

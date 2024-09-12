@@ -1,0 +1,48 @@
+meta {
+  type: collection
+}
+
+headers {
+  content-type: application/json
+  Authorization: Bearer 123
+  ~transaction-id: {{transactionId}}
+}
+
+auth {
+  mode: none
+}
+
+auth:basic {
+  username: john
+  password: secret
+}
+
+auth:bearer {
+  token: 123
+}
+
+auth:digest {
+  username: john
+  password: secret
+}
+
+vars:pre-request {
+  departingDate: 2020-01-01
+  ~returningDate: 2020-01-02
+}
+
+vars:post-response {
+  ~transactionId: $res.body.transactionId
+}
+
+script:pre-request {
+  console.log("In Collection pre Request Script");
+}
+
+script:post-response {
+  console.log("In Collection post Request Script");
+}
+
+docs {
+  This request needs auth token to be set in the headers.
+}

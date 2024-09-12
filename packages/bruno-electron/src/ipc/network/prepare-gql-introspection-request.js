@@ -1,45 +1,48 @@
-const Mustache = require('mustache');
+const { get, each } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
-const { get } = require('lodash');
+const { setAuthHeaders } = require('./prepare-request');
 
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
-};
-
-const prepareGqlIntrospectionRequest = (endpoint, envVars, request) => {
+const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = Mustache.render(endpoint, envVars);
+    endpoint = interpolate(endpoint, envVars);
   }
-  const introspectionQuery = getIntrospectionQuery();
+
   const queryParams = {
-    query: introspectionQuery
+    query: getIntrospectionQuery()
   };
 
   let axiosRequest = {
     method: 'POST',
     url: endpoint,
     headers: {
+      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', [])),
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
     data: JSON.stringify(queryParams)
   };
 
-  if (request.auth) {
-    if (request.auth.mode === 'basic') {
-      axiosRequest.auth = {
-        username: get(request, 'auth.basic.username'),
-        password: get(request, 'auth.basic.password')
-      };
-    }
+  return setAuthHeaders(axiosRequest, request, collectionRoot);
+};
 
-    if (request.auth.mode === 'bearer') {
-      axiosRequest.headers.authorization = `Bearer ${get(request, 'auth.bearer.token')}`;
-    }
-  }
+const mapHeaders = (requestHeaders, collectionHeaders) => {
+  const headers = {};
 
-  return axiosRequest;
+  each(requestHeaders, (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+    }
+  });
+
+  // collection headers
+  each(collectionHeaders, (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+    }
+  });
+
+  return headers;
 };
 
 module.exports = prepareGqlIntrospectionRequest;

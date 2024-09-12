@@ -1,13 +1,17 @@
-export const sendNetworkRequest = async (item, collection, environment, collectionVariables) => {
+import { safeStringifyJSON } from 'utils/common';
+
+export const sendNetworkRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
-      sendHttpRequest(item, collection, environment, collectionVariables)
+      sendHttpRequest(item, collection, environment, runtimeVariables)
         .then((response) => {
           resolve({
             state: 'success',
             data: response.data,
-            headers: Object.entries(response.headers),
-            size: response.headers['content-length'] || 0,
+            // Note that the Buffer is encoded as a base64 string, because Buffers / TypedArrays are not allowed in the redux store
+            dataBuffer: response.dataBuffer,
+            headers: response.headers,
+            size: response.size,
             status: response.status,
             statusText: response.statusText,
             duration: response.duration
@@ -18,30 +22,46 @@ export const sendNetworkRequest = async (item, collection, environment, collecti
   });
 };
 
-const sendHttpRequest = async (item, collection, environment, collectionVariables) => {
+const sendHttpRequest = async (item, collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('send-http-request', item, collection.uid, collection.pathname, environment, collectionVariables)
+      .invoke('send-http-request', item, collection, environment, runtimeVariables)
       .then(resolve)
       .catch(reject);
   });
 };
 
-export const fetchGqlSchema = async (endpoint, environment, request, collectionVariables) => {
+export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer
+      .invoke('send-collection-oauth2-request', collection, environment, runtimeVariables)
+      .then(resolve)
+      .catch(reject);
+  });
+};
+
+export const clearOauth2Cache = async (uid) => {
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('clear-oauth2-cache', uid).then(resolve).catch(reject);
+  });
+};
+
+export const fetchGqlSchema = async (endpoint, environment, request, collection) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
 
-    ipcRenderer
-      .invoke('fetch-gql-schema', endpoint, environment, request, collectionVariables)
-      .then(resolve)
-      .catch(reject);
+    ipcRenderer.invoke('fetch-gql-schema', endpoint, environment, request, collection).then(resolve).catch(reject);
   });
 };
 
 export const cancelNetworkRequest = async (cancelTokenUid) => {
   return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+
     ipcRenderer.invoke('cancel-http-request', cancelTokenUid).then(resolve).catch(reject);
   });
 };

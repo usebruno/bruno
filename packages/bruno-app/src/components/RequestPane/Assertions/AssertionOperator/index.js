@@ -29,6 +29,7 @@ import React from 'react';
  * isNumber    : is number
  * isString    : is string
  * isBoolean   : is boolean
+ * isArray     : is array
  */
 
 const AssertionOperator = ({ operator, onChange }) => {
@@ -58,7 +59,8 @@ const AssertionOperator = ({ operator, onChange }) => {
     'isJson',
     'isNumber',
     'isString',
-    'isBoolean'
+    'isBoolean',
+    'isArray'
   ];
 
   const handleChange = (e) => {

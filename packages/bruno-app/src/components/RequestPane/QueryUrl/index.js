@@ -5,8 +5,7 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import SendIcon from 'components/Icons/Send';
-import { IconDeviceFloppy } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
@@ -15,7 +14,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
   const dispatch = useDispatch();
   const method = item.draft ? get(item, 'draft.request.method') : get(item, 'request.method');
-  const url = item.draft ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
 
@@ -35,7 +34,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
       requestUrlChanged({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        url: value
+        url: value && typeof value === 'string' ? value.trim() : value
       })
     );
   };
@@ -70,10 +69,12 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}
           collection={collection}
+          highlightPathParams={true}
+          item={item}
         />
         <div className="flex items-center h-full mr-2 cursor-pointer" id="send-request" onClick={handleRun}>
           <div
-            className="tooltip mr-3"
+            className="infotip mr-3"
             onClick={(e) => {
               e.stopPropagation();
               if (!item.draft) return;
@@ -86,11 +87,11 @@ const QueryUrl = ({ item, collection, handleRun }) => {
               size={22}
               className={`${item.draft ? 'cursor-pointer' : 'cursor-default'}`}
             />
-            <span className="tooltiptext text-xs">
+            <span className="infotiptext text-xs">
               Save <span className="shortcut">({saveShortcut})</span>
             </span>
           </div>
-          <SendIcon color={theme.requestTabPanel.url.icon} width={22} />
+          <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
         </div>
       </div>
     </StyledWrapper>

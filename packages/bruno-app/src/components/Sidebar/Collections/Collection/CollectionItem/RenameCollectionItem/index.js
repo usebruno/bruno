@@ -4,7 +4,7 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem } from 'providers/ReduxStore/slices/collections/actions';
+import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -17,11 +17,16 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
-    onSubmit: (values) => {
+    onSubmit: async (values) => {
+      // if there is unsaved changes in the request,
+      // save them before renaming the request
+      if (!isFolder && item.draft) {
+        await dispatch(saveRequest(item.uid, collection.uid, true));
+      }
       dispatch(renameItem(values.name, item.uid, collection.uid));
       onClose();
     }

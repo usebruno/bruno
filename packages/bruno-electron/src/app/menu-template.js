@@ -1,4 +1,5 @@
 const { ipcMain } = require('electron');
+const os = require('os');
 const openAboutWindow = require('about-window').default;
 const { join } = require('path');
 
@@ -12,7 +13,32 @@ const template = [
           ipcMain.emit('main:open-collection');
         }
       },
-      { role: 'quit' }
+      {
+        label: 'Open Recent',
+        role: 'recentdocuments',
+        visible: os.platform() == 'darwin',
+        submenu: [
+          {
+            label: 'Clear Recent',
+            role: 'clearrecentdocuments'
+          }
+        ]
+      },
+      {
+        label: 'Preferences',
+        accelerator: 'CommandOrControl+,',
+        click() {
+          ipcMain.emit('main:open-preferences');
+        }
+      },
+      { type: 'separator' },
+      { role: 'quit' },
+      {
+        label: 'Force Quit',
+        click() {
+          process.exit();
+        }
+      }
     ]
   },
   {
@@ -24,7 +50,10 @@ const template = [
       { role: 'cut' },
       { role: 'copy' },
       { role: 'paste' },
-      { role: 'selectAll' }
+      { role: 'selectAll' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' }
     ]
   },
   {
@@ -41,7 +70,7 @@ const template = [
   },
   {
     role: 'window',
-    submenu: [{ role: 'minimize' }, { role: 'close' }]
+    submenu: [{ role: 'minimize' }, { role: 'close', accelerator: 'CommandOrControl+Shift+Q' }]
   },
   {
     role: 'help',

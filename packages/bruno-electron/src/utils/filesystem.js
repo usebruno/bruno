@@ -50,11 +50,31 @@ const normalizeAndResolvePath = (pathname) => {
   return path.resolve(pathname);
 };
 
+function isWSLPath(pathname) {
+  // Check if the path starts with the WSL prefix
+  // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
+  return pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost\\');
+}
+
+function normalizeWslPath(pathname) {
+  // Replace the WSL path prefix and convert forward slashes to backslashes
+  // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
+  return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
+}
+
 const writeFile = async (pathname, content) => {
   try {
     fs.writeFileSync(pathname, content, {
       encoding: 'utf8'
     });
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
+
+const writeBinaryFile = async (pathname, content) => {
+  try {
+    fs.writeFileSync(pathname, content);
   } catch (err) {
     return Promise.reject(err);
   }
@@ -95,6 +115,27 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseFiles = async (win, filters) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openFile', 'multiSelections'],
+    filters
+  });
+
+  if (!filePaths) {
+    return [];
+  }
+
+  return filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path));
+};
+
+const chooseFileToSave = async (win, preferredFileName = '') => {
+  const { filePath } = await dialog.showSaveDialog(win, {
+    defaultPath: preferredFileName
+  });
+
+  return filePath;
+};
+
 const searchForFiles = (dir, extension) => {
   let results = [];
   const files = fs.readdirSync(dir);
@@ -114,6 +155,8 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+// const isW
+
 const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
@@ -125,11 +168,16 @@ module.exports = {
   isFile,
   isDirectory,
   normalizeAndResolvePath,
+  isWSLPath,
+  normalizeWslPath,
   writeFile,
+  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
   browseDirectory,
+  browseFiles,
+  chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName

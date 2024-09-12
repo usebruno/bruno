@@ -18,7 +18,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be atleast 1 characters')
+        .min(1, 'must be at least 1 character')
         .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
@@ -58,6 +58,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
             id="collection-item-name"
             type="text"
             name="name"
+            placeholder='Enter Item name'
             ref={inputRef}
             className="block textbox mt-2 w-full"
             autoComplete="off"
