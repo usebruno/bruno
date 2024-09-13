@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
+import useFocusTrap from 'hooks/useFocusTrap';
 
 const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
@@ -69,6 +70,7 @@ const Modal = ({
   onClick,
   closeModalFadeTimeout = 500
 }) => {
+  const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
   const escFunction = (event) => {
     const escKeyCode = 27;
@@ -77,6 +79,8 @@ const Modal = ({
     }
   };
 
+  useFocusTrap(modalRef);
+  
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
@@ -85,7 +89,6 @@ const Modal = ({
   useEffect(() => {
     if (disableEscapeKey) return;
     document.addEventListener('keydown', escFunction, false);
-
     return () => {
       document.removeEventListener('keydown', escFunction, false);
     };
@@ -100,7 +103,13 @@ const Modal = ({
   }
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
-      <div className={`bruno-modal-card modal-${size}`}>
+      <div
+        className={`bruno-modal-card modal-${size}`}
+        ref={modalRef}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
         <ModalHeader
           title={title}
           hideClose={hideClose}
