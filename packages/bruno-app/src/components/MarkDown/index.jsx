@@ -13,8 +13,7 @@ const Markdown = ({ onDoubleClick, content, onSave }) => {
   const htmlFromMarkdown = md.render(content || '');
 
   const handleKeyDown = (event) => {
-    const saveKeyCode = 83;
-    if ((event.ctrlKey || event.metaKey) && event.keyCode === saveKeyCode) {
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault(); // Prevent the default browser save action
       onSave(); // Call the onSave function when Ctrl+S or Cmd+S is pressed
     }
