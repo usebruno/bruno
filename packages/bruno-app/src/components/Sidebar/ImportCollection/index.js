@@ -17,32 +17,32 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   });
   const handleImportBrunoCollection = () => {
     importBrunoCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Import collection failed'));
   };
 
   const handleImportPostmanCollection = () => {
     importPostmanCollection(options)
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection, translationLog }) => {
+        handleSubmit({ collection, translationLog });
       })
       .catch((err) => toastError(err, 'Postman Import collection failed'));
   };
 
   const handleImportInsomniaCollection = () => {
     importInsomniaCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'Insomnia Import collection failed'));
   };
 
   const handleImportOpenapiCollection = () => {
     importOpenapiCollection()
-      .then((collection) => {
-        handleSubmit(collection);
+      .then(({ collection }) => {
+        handleSubmit({ collection });
       })
       .catch((err) => toastError(err, 'OpenAPI v3 Import collection failed'));
   };
@@ -60,7 +60,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
       <button
         type="button"
         onClick={onClick}
-        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-slate-900 dark:text-slate-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
+        className={`rounded bg-transparent px-2.5 py-1 text-xs font-semibold text-zinc-900 dark:text-zinc-50 shadow-sm ring-1 ring-inset ring-zinc-300 dark:ring-zinc-500 hover:bg-gray-50 dark:hover:bg-zinc-700
         ${className}`}
       >
         {children}

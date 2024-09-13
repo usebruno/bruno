@@ -12,6 +12,7 @@
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
+    "@fontsource/inter": "^5.0.15",
     "@fortawesome/fontawesome-svg-core": "^1.2.36",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/react-fontawesome": "^0.1.16",
@@ -35,7 +36,8 @@
     "graphiql": "^1.5.9",
     "graphql": "^16.6.0",
     "graphql-request": "^3.7.0",
-    "httpsnippet": "^3.0.1",
+    "httpsnippet": "^3.0.6",
+    "i18next": "^23.14.0",
     "idb": "^7.0.0",
     "immer": "^9.0.15",
     "jsesc": "^3.0.2",
@@ -47,6 +49,7 @@
     "know-your-http-well": "^0.5.0",
     "lodash": "^4.17.21",
     "markdown-it": "^13.0.2",
+    "markdown-it-replace-link": "^1.2.0",
     "mousetrap": "^1.6.5",
     "nanoid": "3.3.4",
     "next": "12.3.3",
@@ -64,6 +67,7 @@
     "react-dom": "18.2.0",
     "react-github-btn": "^1.4.0",
     "react-hot-toast": "^2.4.0",
+    "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",
     "react-pdf": "^7.5.1",
     "react-redux": "^7.2.6",

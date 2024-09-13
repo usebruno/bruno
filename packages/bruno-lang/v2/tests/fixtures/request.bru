@@ -5,15 +5,19 @@ meta {
 }
 
 get {
-  url: https://api.textlocal.in/send
+  url: https://api.textlocal.in/send/:id
   body: json
   auth: bearer
 }
 
-query {
+params:query {
   apiKey: secret
   numbers: 998877665
   ~message: hello
+}
+
+params:path {
+  id: 123
 }
 
 headers {
@@ -53,6 +57,7 @@ auth:oauth2 {
   client_id: client_id_1
   client_secret: client_secret_1
   scope: read write
+  state: 807061d5f0be
   pkce: false
 }
 

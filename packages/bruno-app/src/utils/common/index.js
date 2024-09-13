@@ -149,7 +149,9 @@ export const relativeDate = (dateString) => {
 };
 
 export const humanizeDate = (dateString) => {
-  const date = new Date(dateString);
+  // See this discussion for why .split is necessary
+  // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
+  const date = new Date(dateString.split('-'));
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',

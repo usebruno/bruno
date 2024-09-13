@@ -22,7 +22,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
 
   const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
 
-  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, pkce } = oAuth;
+  const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce } = oAuth;
 
   const handleChange = (key, value) => {
     dispatch(
@@ -37,6 +37,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          state,
           scope,
           pkce,
           [key]: value
@@ -58,6 +59,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
           accessTokenUrl,
           clientId,
           clientSecret,
+          state,
           scope,
           pkce: !Boolean(oAuth?.['pkce'])
         }
@@ -78,7 +80,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       {inputsConfig.map((input) => {
-        const { key, label } = input;
+        const { key, label, isSecret } = input;
         return (
           <div className="flex flex-col w-full gap-1" key={`input-${key}`}>
             <label className="block font-medium">{label}</label>
@@ -90,6 +92,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
                 onChange={(val) => handleChange(key, val)}
                 onRun={handleRun}
                 collection={collection}
+                item={item}
+                isSecret={isSecret}
               />
             </div>
           </div>

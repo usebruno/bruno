@@ -1,0 +1,32 @@
+meta {
+  name: setHeader
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.setHeader('bruno', 'is-the-future');
+}
+
+tests {
+  test("req.setHeader(name)", function() {
+    const h = req.getHeader('bruno');
+    expect(h).to.equal("is-the-future");
+  });
+}
