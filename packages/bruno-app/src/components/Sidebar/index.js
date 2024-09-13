@@ -20,7 +20,7 @@ const MAX_LEFT_SIDEBAR_WIDTH = 600;
 const Sidebar = () => {
   const leftSidebarWidth = useSelector((state) => state.app.leftSidebarWidth);
   const preferencesOpen = useSelector((state) => state.app.showPreferences);
-  const [goldenEditonOpen, setGoldenEditonOpen] = useState(false);
+  const [goldenEditionOpen, setGoldenEditionOpen] = useState(false);
 
   const [asideWidth, setAsideWidth] = useState(leftSidebarWidth);
   const [cookiesOpen, setCookiesOpen] = useState(false);
@@ -83,10 +83,10 @@ const Sidebar = () => {
   return (
     <StyledWrapper className="flex relative h-screen">
       <aside>
-        {goldenEditonOpen && (
+        {goldenEditionOpen && (
           <GoldenEdition
             onClose={() => {
-              setGoldenEditonOpen(false);
+              setGoldenEditionOpen(false);
               document.querySelector('[data-trigger="golden-edition"]').focus(); // Return focus to the trigger
             }}
             aria-modal="true"
@@ -154,7 +154,7 @@ const Sidebar = () => {
                 <a
                   className="mr-2 cursor-pointer"
                   data-trigger="golden-edition"
-                  onClick={() => setGoldenEditonOpen(true)}
+                  onClick={() => setGoldenEditionOpen(true)}
                   tabIndex={0}
                   aria-label="Open Golden Edition"
                 >
