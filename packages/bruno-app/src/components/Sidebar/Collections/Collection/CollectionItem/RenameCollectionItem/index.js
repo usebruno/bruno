@@ -77,7 +77,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
   const filename = formik.values.filename;
   const filenameFooter = !isEditingFilename && filename ?
     <div className='flex flex-row gap-2 items-center w-full h-full'>
-      <p className='cursor-default opacity-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-64' title={filename}>{filename}.bru</p>
+      <p className='cursor-default opacity-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-64' title={filename}>{filename}{itemType !== 'folder' ? '.bru' : ''}</p>
       <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
     </div>
     :
