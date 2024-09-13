@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-const useFocusTrap = (modalRef, isClosing) => {
+const useFocusTrap = (modalRef) => {
   const firstFocusableElementRef = useRef(null);
   const lastFocusableElementRef = useRef(null);
 
@@ -13,8 +13,6 @@ const useFocusTrap = (modalRef, isClosing) => {
     );
 
     if (focusableElements.length === 0) return;
-
-    console.log(focusableElements);
 
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
@@ -39,13 +37,7 @@ const useFocusTrap = (modalRef, isClosing) => {
     return () => {
       modalElement.removeEventListener('keydown', handleKeyDown);
     };
-  }, [modalRef, isClosing]);
-
-  useEffect(() => {
-    if (isClosing) {
-      firstFocusableElementRef.current?.focus();
-    }
-  }, [isClosing]);
+  }, [modalRef]);
 };
 
 export default useFocusTrap;
