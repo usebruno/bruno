@@ -43,21 +43,25 @@ const Wrapper = styled.div`
 
     &.modal-sm {
       min-width: 300px;
+      width: 300px;
       max-width: 500px;
     }
 
     &.modal-md {
       min-width: 500px;
+      width: 500px;
       max-width: 800px;
     }
 
     &.modal-lg {
       min-width: 800px;
+      width: 800px;
       max-width: 1140px;
     }
 
     &.modal-xl {
       min-width: 1140px;
+      width: 1140px;
       max-width: calc(100% - 30px);
     }
 

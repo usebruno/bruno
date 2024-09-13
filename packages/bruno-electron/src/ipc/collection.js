@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
-const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
+const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru, collectionBruToJson } = require('../bru');
 
 const {
   isValidPathname,
@@ -326,7 +326,55 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // rename item
-  ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
+  ipcMain.handle('renderer:rename-item-name', async (event, itemPath, newName) => {
+    try {
+      // Normalize paths if they are WSL paths
+      if (isWSLPath(itemPath)) {
+        itemPath = normalizeWslPath(itemPath);
+      }
+
+      if (!fs.existsSync(itemPath)) {
+        throw new Error(`path: ${itemPath} does not exist`);
+      }
+
+      if (isDirectory(itemPath)) {
+        let data;
+        const folderBruFilePath = path.join(itemPath, 'folder.bru');
+
+        if (fs.existsSync(folderBruFilePath)) {
+          const fileData = await fs.promises.readFile(folderBruFilePath, 'utf8');
+          data = collectionBruToJson(fileData);
+        } else {
+          data = {};
+        }
+
+        data.meta = {
+          name: newName,
+        };
+
+        const content = jsonToCollectionBru(data, true); // isFolder flag
+        await writeFile(folderBruFilePath, content);
+
+        return;
+      }
+
+      const isBru = hasBruExtension(itemPath);
+      if (!isBru) {
+        throw new Error(`path: ${itemPath} is not a bru file`);
+      }
+
+      const data = fs.readFileSync(itemPath, 'utf8');
+      const jsonData = bruToJson(data);
+      jsonData.name = newName;
+      const content = jsonToBru(jsonData);
+      await writeFile(itemPath, content);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // rename item
+  ipcMain.handle('renderer:rename-item-filename', async (event, oldPath, newPath, newName) => {
     try {
       // Normalize paths if they are WSL paths
       if (isWSLPath(oldPath)) {
@@ -376,10 +424,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   });
 
   // new folder
-  ipcMain.handle('renderer:new-folder', async (event, pathname) => {
+  ipcMain.handle('renderer:new-folder', async (event, pathname, folderName) => {
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
+        const folderBruFilePath = path.join(pathname, 'folder.bru');
+        let data = {
+          meta: {
+            name: folderName,
+          }
+        };
+        const content = jsonToCollectionBru(data, true); // isFolder flag
+        await writeFile(folderBruFilePath, content);
       } else {
         return Promise.reject(new Error('The directory already exists'));
       }
@@ -539,16 +595,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         items.forEach((item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
             const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+            const filePath = path.join(currentPath, `${item.filename}`);
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
+            const folderPath = path.join(currentPath, item.filename);
             fs.mkdirSync(folderPath);
 
             // If folder has a root element, then I should write its folder.bru file
             if (item.root) {
               const folderContent = jsonToCollectionBru(item.root, true);
+              folderContent.name = item.name;
               if (folderContent) {
                 const bruFolderPath = path.join(folderPath, `folder.bru`);
                 fs.writeFileSync(bruFolderPath, folderContent);

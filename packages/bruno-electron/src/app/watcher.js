@@ -368,6 +368,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
   if (hasBruExtension(pathname)) {
     try {
       const file = {
