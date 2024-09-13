@@ -79,7 +79,7 @@ const Modal = ({
     }
   };
 
-  useFocusTrap(modalRef, isClosing);
+  useFocusTrap(modalRef);
   
   const closeModal = (args) => {
     setIsClosing(true);
