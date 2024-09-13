@@ -1,7 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
-import React from 'react';
+import React, { useEffect } from 'react';
 
 const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const markdownItOptions = {
@@ -39,12 +39,12 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     document.addEventListener('keydown', handleKeyDown); // Add event listener for keydown
     return () => {
       document.removeEventListener('keydown', handleKeyDown); // Clean up the event listener
     };
-  }, []);
+  }, [handleKeyDown]);
 
   return (
     <StyledWrapper>
