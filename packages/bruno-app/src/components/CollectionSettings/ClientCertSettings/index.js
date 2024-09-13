@@ -69,13 +69,13 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
 
   const getFile = (e) => {
     if (e.files?.[0]?.path) {
-      let relativePath;
+      let absolutePath;
       if (isWindowsOS()) {
-        relativePath = slash(path.win32.relative(root, e.files[0].path));
+        absolutePath = slash(path.win32.resolve(e.files[0].path));
       } else {
-        relativePath = path.posix.relative(root, e.files[0].path);
+        absolutePath = path.posix.resolve(e.files[0].path);
       }
-      formik.setFieldValue(e.name, relativePath);
+      formik.setFieldValue(e.name, absolutePath);
     }
   };
 
@@ -128,6 +128,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       </ul>
 
       <h1 className="font-semibold mt-8 mb-2">Add Client Certificate</h1>
+      <h2>omar</h2>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label" htmlFor="domain">
