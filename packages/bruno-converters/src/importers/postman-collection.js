@@ -1,9 +1,9 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { readFile, uuid } from 'src/common/index';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
-import { postmanTranslation } from 'src/translators/postman_translation';
+import { readFile, uuid } from '../common/index';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
+import { postmanTranslation } from './translators/postman_translation';
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {
@@ -374,7 +374,7 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const importCollection = (fileName, options) => {
+export const importCollection = (fileName, options) => {
   // set default options, it not provided
   options = options || {
     enablePostmanTranslations: {

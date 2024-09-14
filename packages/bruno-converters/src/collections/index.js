@@ -10,7 +10,7 @@ import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'src/common/index.js';
 import path from 'path';
-import slash from 'utils/common/slash';
+import slash from 'src/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {

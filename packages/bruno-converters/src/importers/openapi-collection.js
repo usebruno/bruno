@@ -1,8 +1,8 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { readFile, uuid } from './common';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
+import { readFile, uuid } from '../common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
 
 const ensureUrl = (url) => {
   // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
