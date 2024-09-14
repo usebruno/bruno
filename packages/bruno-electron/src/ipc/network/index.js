@@ -871,6 +871,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
+      runtimeVariables["run-folder-event"] = true;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1125,6 +1126,8 @@ const registerNetworkIpc = (mainWindow) => {
                 testResults: testResults.results,
                 ...eventData
               });
+
+              runtimeVariables["run-folder-event"] = false;
 
               mainWindow.webContents.send('main:script-environment-update', {
                 envVariables: testResults.envVariables,

@@ -116,6 +116,10 @@ class Bru {
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  isRunner() {
+    return this.runtimeVariables["run-folder-event"] === true;
+  }
 }
 
 module.exports = Bru;
