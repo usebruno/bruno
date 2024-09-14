@@ -1,9 +1,10 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { readFile, uuid } from '../common/index';
+import {  uuid } from '../common/index';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
 import { postmanTranslation } from './translators/postman_translation';
+import { readFile } from '../common/file';
 
 const parseGraphQLRequest = (graphqlSource) => {
   try {

@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import each from 'lodash/each';
-import { saveFile } from '../common';
+import { saveFile } from '../common/file';
 
 export const deleteUidsInItems = (items) => {
   each(items, (item) => {

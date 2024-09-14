@@ -1,9 +1,9 @@
-import jsyaml from 'js-yaml';
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { readFile, uuid } from '../common';
+import { uuid } from '../common';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
+import { readFile } from '../common/file';
 
 const parseGraphQL = (text) => {
   try {

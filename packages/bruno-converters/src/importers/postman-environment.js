@@ -1,6 +1,6 @@
 import each from 'lodash/each';
 import { BrunoError } from 'src/common/common';
-import { readFile } from '../common';
+import { readFile } from '../common/file';
 
 const isSecret = (type) => {
   return type === 'secret';

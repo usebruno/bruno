@@ -1,50 +1,5 @@
 import { customAlphabet } from 'nanoid';
 import xmlFormat from 'xml-formatter';
-import fs from 'fs';
-import path from 'path';
-import jsyaml from 'js-yaml';
-
-export const readFile = (file) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(file, 'utf8', (err, data) => {
-      if (err) {
-        console.error(err);
-        reject(err);
-      }
-
-      const ext = path.extname(file);
-      if (ext === '.json') {
-        try {
-          const jsonData = JSON.parse(data);
-          resolve(jsonData);
-        } catch (jsonErr) {
-          reject(jsonErr);
-        }
-      }
-      if (ext === '.yaml' || ext === '.yml') {
-        try {
-          const yamlData = jsyaml.load(data);
-          resolve(yamlData);
-        } catch (yamlErr) {
-          reject(yamlErr);
-        }
-      }
-    });
-  });
-};
-
-export const saveFile = (data, fileName) => {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(fileName, data, (err) => {
-      if (err) {
-        console.error(err);
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
-};
 
 // a customized version of nanoid without using _ and -
 export const uuid = () => {

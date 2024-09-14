@@ -4,3 +4,4 @@ export { importCollection as importInsomniaCollection } from './importers/insomn
 export { importCollection as importOpenAPICollection } from './importers/openapi-collection.js';
 
 export { exportCollection as exportBrunoCollection } from './collections/export';
+export { exportCollection as exportPostmanCollection } from './exporters/postman-collection';

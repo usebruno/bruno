@@ -1,11 +1,12 @@
 import each from 'lodash/each';
 import get from 'lodash/get';
 
-import { readFile, uuid } from '../common';
+import { uuid } from '../common';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
+import { readFile } from '../common/file';
 
 const ensureUrl = (url) => {
-  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  // Removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
   return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
 };
 
@@ -300,7 +301,7 @@ const getSecurity = (apiSpec) => {
 
   return {
     supported: defaultSchemes.map((scheme) => {
-      var schemeName = Object.keys(scheme)[0];
+      let schemeName = Object.keys(scheme)[0];
       return securitySchemes[schemeName];
     }),
     schemes: securitySchemes,
