@@ -26,7 +26,7 @@ const marshallToVm = (value, vm) => {
       return obj;
     }
   } else if (typeof value === 'function') {
-    return vm.newString('function');
+    return vm.newString('[Function (anonymous)]');
   }
 };
 
