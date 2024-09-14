@@ -5,10 +5,12 @@ import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/sli
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import HttpMethodSelector from './HttpMethodSelector';
 import { useTheme } from 'providers/Theme';
-import { IconDeviceFloppy, IconArrowRight } from '@tabler/icons';
+import { IconDeviceFloppy, IconArrowRight, IconCode } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import { isMacOS } from 'utils/common/platform';
 import StyledWrapper from './StyledWrapper';
+import GenerateCodeItem from 'components/Sidebar/Collections/Collection/CollectionItem/GenerateCodeItem/index';
+import toast from 'react-hot-toast';
 
 const QueryUrl = ({ item, collection, handleRun }) => {
   const { theme, storedTheme } = useTheme();
@@ -19,6 +21,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
+  const [generateCodeItemModalOpen, setGenerateCodeItemModalOpen] = useState(false);
 
   useEffect(() => {
     const el = document.querySelector('.method-selector-container');
@@ -54,6 +57,15 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     );
   };
 
+  const handleGenerateCode = (e) => {
+    e.stopPropagation();
+    if (item.request.url !== '' || (item.draft?.request.url !== undefined && item.draft?.request.url !== '')) {
+      setGenerateCodeItemModalOpen(true);
+    } else {
+      toast.error('URL is required');
+    }
+  };
+
   return (
     <StyledWrapper className="flex items-center">
       <div className="flex items-center h-full method-selector-container">
@@ -81,6 +93,22 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <div
             className="infotip mr-3"
             onClick={(e) => {
+              handleGenerateCode(e);
+            }}
+          >
+            <IconCode
+              color={theme.requestTabs.icon.color}
+              strokeWidth={1.5}
+              size={22}
+              className={'cursor-pointer'}
+            />
+            <span className="infotiptext text-xs">
+              Generate Code
+            </span>
+          </div>
+          <div
+            className="infotip mr-3"
+            onClick={(e) => {
               e.stopPropagation();
               if (!item.draft) return;
               onSave();
@@ -99,6 +127,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
           <IconArrowRight color={theme.requestTabPanel.url.icon} strokeWidth={1.5} size={22} />
         </div>
       </div>
+      {generateCodeItemModalOpen && (
+        <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
+      )}
     </StyledWrapper>
   );
 };
