@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn, cloneDeep, find } = require('lodash');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,14 +12,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -33,10 +36,13 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
       ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -57,14 +63,6 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
   const contentType = getContentType(request.headers);
 
   if (contentType.includes('json')) {
-    if (typeof request.data === 'object') {
-      try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
-      } catch (err) {}
-    }
-
     if (typeof request.data === 'string') {
       if (request.data.length) {
         request.data = _interpolate(request.data);
@@ -82,9 +80,39 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.data = _interpolate(request.data);
   }
 
-  each(request.params, (param) => {
+  each(request.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
+
+  if (request?.pathParams?.length) {
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+
+    try {
+      url = new URL(url);
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+
+    const urlPathnameInterpolatedWithPathParams = url.pathname
+      .split('/')
+      .filter((path) => path !== '')
+      .map((path) => {
+        if (path[0] !== ':') {
+          return '/' + path;
+        } else {
+          const name = path.slice(1);
+          const existingPathParam = request.pathParams.find((param) => param.type === 'path' && param.name === name);
+          return existingPathParam ? '/' + existingPathParam.value : '';
+        }
+      })
+      .join('');
+
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+  }
 
   if (request.proxy) {
     request.proxy.protocol = _interpolate(request.proxy.protocol);
@@ -139,6 +167,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
+        request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
         break;
       case 'client_credentials':
