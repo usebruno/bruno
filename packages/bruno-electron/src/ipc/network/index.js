@@ -486,11 +486,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       if (preRequestScriptResult?.isSkippedRequest) {
         return {
-          data: undefined, 
-          status: 'Request skipped', 
-          statusText: 'Request skipped', 
-          size: 0, 
-          duration: 0
+          statusText: 'Skipped'
         };
       }
 
@@ -852,7 +848,6 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
-      runtimeVariables["run-folder-event"] = true;
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
 

@@ -6,6 +6,7 @@ import { updateResponsePaneTab } from 'providers/ReduxStore/slices/tabs';
 import QueryResult from './QueryResult';
 import Overlay from './Overlay';
 import Placeholder from './Placeholder';
+import SkippedRequest from './SkippedRequest';
 import ResponseHeaders from './ResponseHeaders';
 import StatusCode from './StatusCode';
 import ResponseTime from './ResponseTime';
@@ -65,6 +66,14 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
       }
     }
   };
+
+  if (item.response && item.response.statusText === 'Skipped') {
+    return (
+      <StyledWrapper className="flex h-full relative">
+        <SkippedRequest />
+      </StyledWrapper>
+    );
+  }
 
   if (isLoading && !item.response) {
     return (

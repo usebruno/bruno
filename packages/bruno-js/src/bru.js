@@ -108,10 +108,6 @@ class Bru {
   skipRequest() {
     this.isSkippedRequest = true;
   }
-
-  isRunner() {
-    return this.runtimeVariables["run-folder-event"] !== undefined;
-  }
 }
 
 module.exports = Bru;
