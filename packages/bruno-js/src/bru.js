@@ -117,8 +117,8 @@ class Bru {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  isRunner() {
-    return this.runtimeVariables["run-folder-event"] === true;
+  getExecutionMode() {
+    return this.runtimeVariables["__internal__executionMode"];
   }
 }
 

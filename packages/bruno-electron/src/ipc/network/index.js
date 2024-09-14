@@ -490,6 +490,8 @@ const registerNetworkIpc = (mainWindow) => {
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
+    runtimeVariables["__internal__executionMode"] = 'single';
+
     mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
@@ -658,6 +660,8 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        runtimeVariables["__internal__executionMode"] = undefined;
 
         mainWindow.webContents.send('main:script-environment-update', {
           envVariables: testResults.envVariables,
@@ -871,7 +875,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
-      runtimeVariables["run-folder-event"] = true;
+      runtimeVariables["__internal__executionMode"] = 'runner';
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -1127,7 +1131,7 @@ const registerNetworkIpc = (mainWindow) => {
                 ...eventData
               });
 
-              runtimeVariables["run-folder-event"] = false;
+              runtimeVariables["__internal__executionMode"] = undefined;
 
               mainWindow.webContents.send('main:script-environment-update', {
                 envVariables: testResults.envVariables,

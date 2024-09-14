@@ -36,6 +36,9 @@ const runSingleRequest = async function (
   collectionRoot,
   runtime
 ) {
+
+  runtimeVariables["__internal__executionMode"] = 'cli';
+
   try {
     let request;
     let nextRequestName;
