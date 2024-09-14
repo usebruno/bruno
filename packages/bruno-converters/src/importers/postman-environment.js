@@ -31,9 +31,10 @@ const importPostmanEnvironment = (environment) => {
   return brunoEnvironment;
 };
 
-const parsePostmanEnvironment = (environment) => {
+const parsePostmanEnvironment = (str) => {
   return new Promise((resolve, reject) => {
     try {
+      let environment = JSON.parse(str);
       return resolve(importPostmanEnvironment(environment));
     } catch (err) {
       console.log(err);
@@ -57,3 +58,5 @@ export const importEnvironment = (fileName) => {
     }
   });
 };
+
+export default importEnvironment;

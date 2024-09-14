@@ -83,3 +83,5 @@ export const exportCollection = (collection, file) => {
     console.log(`Collection exported as ${fileName}`);
   });
 };
+
+export default exportCollection;

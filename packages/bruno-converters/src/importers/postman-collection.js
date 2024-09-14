@@ -44,6 +44,8 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+let translationLog = {};
+
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
@@ -101,10 +103,29 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               xml: null,
               formUrlEncoded: [],
               multipartForm: []
-            }
+            },
+            docs: i.request.description
           }
         };
+        /* struct of translation log
+        {
+         [collectionName]: {
+            script: [index1, index2],
+            test: [index1, index2]
+         }
+        }
+        */
 
+        // type could be script or test
+        const pushTranslationLog = (type, index) => {
+          if (!translationLog[i.name]) {
+            translationLog[i.name] = {};
+          }
+          if (!translationLog[i.name][type]) {
+            translationLog[i.name][type] = [];
+          }
+          translationLog[i.name][type].push(index + 1);
+        };
         if (i.event) {
           i.event.forEach((event) => {
             if (event.listen === 'prerequest' && event.script && event.script.exec) {
@@ -113,11 +134,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
               if (Array.isArray(event.script.exec)) {
                 brunoRequestItem.request.script.req = event.script.exec
-                  .map((line) => (options.enablePostmanTranslations.enabled ? postmanTranslation(line) : `// ${line}`))
+                  .map((line, index) =>
+                    options.enablePostmanTranslations.enabled
+                      ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                      : `// ${line}`
+                  )
                   .join('\n');
               } else {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0])
+                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
                   : `// ${event.script.exec[0]} `;
               }
             }
@@ -127,11 +152,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               }
               if (Array.isArray(event.script.exec)) {
                 brunoRequestItem.request.tests = event.script.exec
-                  .map((line) => (options.enablePostmanTranslations.enabled ? postmanTranslation(line) : `// ${line}`))
+                  .map((line, index) =>
+                    options.enablePostmanTranslations.enabled
+                      ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                      : `// ${line}`
+                  )
                   .join('\n');
               } else {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0])
+                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
                   : `// ${event.script.exec[0]} `;
               }
             }
@@ -142,12 +171,27 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         if (bodyMode) {
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
+
             each(i.request.body.formdata, (param) => {
+              const isFile = param.type === 'file';
+              let value;
+              let type;
+
+              if (isFile) {
+                // If param.src is an array, keep it as it is.
+                // If param.src is a string, convert it into an array with a single element.
+                value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                type = 'file';
+              } else {
+                value = param.value;
+                type = 'text';
+              }
+
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                type: 'text',
+                type: type,
                 name: param.key,
-                value: param.value,
+                value: value,
                 description: param.description,
                 enabled: !param.disabled
               });
@@ -237,7 +281,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             name: param.key,
             value: param.value,
             description: param.description,
+            type: 'query',
             enabled: !param.disabled
+          });
+        });
+
+        each(get(i, 'request.url.variable'), (param) => {
+          brunoRequestItem.request.params.push({
+            uid: uuid(),
+            name: param.key,
+            value: param.value,
+            description: param.description,
+            type: 'path',
+            enabled: true
           });
         });
 
@@ -247,7 +303,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   });
 };
 
-export const searchLanguageByHeader = (headers) => {
+const searchLanguageByHeader = (headers) => {
   let contentType;
   each(headers, (header) => {
     if (header.key.toLowerCase() === 'content-type' && !header.disabled) {
@@ -262,7 +318,7 @@ export const searchLanguageByHeader = (headers) => {
   return contentType;
 };
 
-export const importPostmanV2Collection = (collection, options) => {
+const importPostmanV2Collection = (collection, options) => {
   const brunoCollection = {
     name: collection.info.name,
     uid: uuid(),
@@ -276,9 +332,10 @@ export const importPostmanV2Collection = (collection, options) => {
   return brunoCollection;
 };
 
-export const parsePostmanCollection = (collection, options) => {
+const parsePostmanCollection = (str, options) => {
   return new Promise((resolve, reject) => {
     try {
+      let collection = JSON.parse(str);
       let schema = get(collection, 'info.schema');
 
       let v2Schemas = [
@@ -302,7 +359,22 @@ export const parsePostmanCollection = (collection, options) => {
   });
 };
 
-export const importCollection = (fileName, options) => {
+const logTranslationDetails = (translationLog) => {
+  if (Object.keys(translationLog || {}).length > 0) {
+    console.warn(
+      `[Postman Translation Logs]
+Collections incomplete : ${Object.keys(translationLog || {}).length}` +
+        `\nTotal lines incomplete : ${Object.values(translationLog || {}).reduce(
+          (acc, curr) => acc + (curr.script?.length || 0) + (curr.test?.length || 0),
+          0
+        )}` +
+        `\nSee details below :`,
+      translationLog
+    );
+  }
+};
+
+const importCollection = (fileName, options) => {
   // set default options, it not provided
   options = options || {
     enablePostmanTranslations: {
@@ -323,3 +395,5 @@ export const importCollection = (fileName, options) => {
     }
   });
 };
+
+export default importCollection;

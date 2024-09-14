@@ -1,4 +1,5 @@
 import { customAlphabet } from 'nanoid';
+import xmlFormat from 'xml-formatter';
 import fs from 'fs';
 import path from 'path';
 import jsyaml from 'js-yaml';
@@ -95,6 +96,25 @@ export const safeStringifyJSON = (obj, indent = false) => {
   }
 };
 
+export const convertToCodeMirrorJson = (obj) => {
+  try {
+    return JSON5.stringify(obj).slice(1, -1);
+  } catch (e) {
+    return obj;
+  }
+};
+
+export const safeParseXML = (str, options) => {
+  if (!str || !str.length || typeof str !== 'string') {
+    return str;
+  }
+  try {
+    return xmlFormat(str, options);
+  } catch (e) {
+    return str;
+  }
+};
+
 // Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
 export const normalizeFileName = (name) => {
   if (!name) {
@@ -174,7 +194,9 @@ export const relativeDate = (dateString) => {
 };
 
 export const humanizeDate = (dateString) => {
-  const date = new Date(dateString);
+  // See this discussion for why .split is necessary
+  // https://stackoverflow.com/questions/7556591/is-the-javascript-date-object-always-one-day-off
+  const date = new Date(dateString.split('-'));
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
