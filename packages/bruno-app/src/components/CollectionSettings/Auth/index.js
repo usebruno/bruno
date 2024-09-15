@@ -11,6 +11,7 @@ import ApiKeyAuth from './ApiKeyAuth/';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
+import OAuth1 from 'components/CollectionSettings/Auth/OAuth1';
 
 const Auth = ({ collection }) => {
   const authMode = get(collection, 'root.request.auth.mode');
@@ -31,6 +32,9 @@ const Auth = ({ collection }) => {
       }
       case 'digest': {
         return <DigestAuth collection={collection} />;
+      }
+      case 'oauth1': {
+        return <OAuth1 collection={collection} />;
       }
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
