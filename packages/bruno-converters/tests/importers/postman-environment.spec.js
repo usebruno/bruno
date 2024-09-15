@@ -2,14 +2,14 @@
 
 import { describe, it, expect } from '@jest/globals';
 import { BrunoError } from '../../src/common/error';
-import importEnvironment from '../../src/importers/postman-environment';
 import path from 'path';
+import { importPostmanEnvironment } from '../../src';
 
 describe('importEnvironment Function', () => {
   it('should correctly import a valid Postman environment file', async () => {
     const fileName = path.resolve(__dirname, '../data', 'valid_env.json');
 
-    const brunoEnvironment = await importEnvironment(fileName);
+    const brunoEnvironment = await importPostmanEnvironment(fileName);
 
     const expectedEnvironment = {
       name: 'My Environment',

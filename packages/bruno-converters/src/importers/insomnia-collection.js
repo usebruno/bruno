@@ -2,7 +2,7 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import { uuid } from '../common';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
 import { parseFile } from '../common/file';
 
 const parseGraphQL = (text) => {
