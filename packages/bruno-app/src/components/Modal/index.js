@@ -78,7 +78,9 @@ const Modal = ({
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        return handleConfirm();
+        if(handleConfirm) {
+          return handleConfirm();
+        }
       }
     }
   };
