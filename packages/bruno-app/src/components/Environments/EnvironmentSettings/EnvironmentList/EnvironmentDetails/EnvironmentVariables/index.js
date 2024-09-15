@@ -11,7 +11,6 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import cloneDeep from 'lodash/cloneDeep';
 import toast from 'react-hot-toast';
 
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
