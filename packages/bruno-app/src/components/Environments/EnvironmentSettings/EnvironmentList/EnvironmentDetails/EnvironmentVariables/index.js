@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react';
-import toast from 'react-hot-toast';
 import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
