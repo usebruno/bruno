@@ -80,7 +80,8 @@ class TestRuntime {
         envVariables,
         runtimeVariables,
         results: __brunoTestResults.getResults(),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        isSkippedRequest: bru.isSkippedRequest
       };
     }
 
@@ -163,7 +164,8 @@ class TestRuntime {
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
       results: cleanJson(__brunoTestResults.getResults()),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      isSkippedRequest: bru.isSkippedRequest
     };
   }
 }
