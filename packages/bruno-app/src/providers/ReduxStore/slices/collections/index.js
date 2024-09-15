@@ -1155,6 +1155,9 @@ export const collectionsSlice = createSlice({
           case 'ntlm':
             set(collection, 'root.request.auth.ntlm', action.payload.content);
             break;
+          case 'oauth1':
+            set(collection, 'root.request.auth.oauth1', action.payload.content);
+            break;
           case 'oauth2':
             set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
