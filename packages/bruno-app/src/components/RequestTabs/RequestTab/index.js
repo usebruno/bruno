@@ -15,8 +15,8 @@ import StyledWrapper from './StyledWrapper';
 import Dropdown from 'components/Dropdown';
 import CloneCollectionItem from 'components/Sidebar/Collections/Collection/CollectionItem/CloneCollectionItem/index';
 import NewRequest from 'components/Sidebar/NewRequest/index';
-import CloseTabIcon from './CloseTab/CloseTabIcon';
-import DraftTabIcon from './CloseTab/DraftTabIcon';
+import CloseTabIcon from './CloseTabIcon';
+import DraftTabIcon from './DraftTabIcon';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();

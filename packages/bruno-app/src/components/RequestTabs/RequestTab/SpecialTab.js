@@ -1,5 +1,5 @@
 import React from 'react';
-import CloseTabIcon from './CloseTab/CloseTabIcon';
+import CloseTabIcon from './CloseTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 
 const SpecialTab = ({ handleCloseClick, type, tabName }) => {
