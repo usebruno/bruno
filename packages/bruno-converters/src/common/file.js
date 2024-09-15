@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import jsyaml from 'js-yaml';
 
-export const readFile = (file) => {
+export const parseFile = (file) => {
   return new Promise((resolve, reject) => {
     fs.readFile(file, 'utf8', (err, data) => {
       if (err) {
@@ -29,6 +29,19 @@ export const readFile = (file) => {
       } else {
         reject(new Error('Unsupported file format'));
       }
+    });
+  });
+};
+
+export const readFile = (file) => {
+  return new Promise((resolve, reject) => {
+    fs.readFile(file, 'utf8', (err, data) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+        return;  // Prevent further execution in case of error
+      }
+      resolve(data);
     });
   });
 };

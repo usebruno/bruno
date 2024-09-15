@@ -3,7 +3,7 @@ import get from 'lodash/get';
 
 import { uuid } from '../common';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from '../common/common';
-import { readFile } from '../common/file';
+import { parseFile } from '../common/file';
 
 const ensureUrl = (url) => {
   // Removing multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
@@ -401,8 +401,8 @@ const parseOpenApiCollection = (data) => {
 export const importCollection = (fileName) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const str = await readFile(fileName);
-      const collection = await parseOpenApiCollection(str);
+      const obj = await parseFile(fileName);
+      const collection = await parseOpenApiCollection(obj);
       const transformedCollection = await transformItemsInCollection(collection);
       const hydratedCollection = await hydrateSeqInCollection(transformedCollection);
       const validatedCollection = await validateSchema(hydratedCollection);

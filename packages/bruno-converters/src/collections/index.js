@@ -8,9 +8,9 @@ import filter from 'lodash/filter';
 import sortBy from 'lodash/sortBy';
 import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
-import { uuid } from 'src/common/index.js';
+import { uuid } from '../common';
 import path from 'path';
-import slash from 'src/common/slash';
+import slash from '../common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {

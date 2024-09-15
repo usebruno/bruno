@@ -3,7 +3,7 @@ import get from 'lodash/get';
 
 import { uuid } from '../common';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, BrunoError } from 'src/common/common';
-import { readFile } from '../common/file';
+import { parseFile } from '../common/file';
 
 const parseGraphQL = (text) => {
   try {
@@ -219,8 +219,8 @@ const parseInsomniaCollection = (data) => {
 export const importCollection = (fileName) => {
   return new Promise(async (resolve, reject) => {
     try {
-      const str = await readFile(fileName);
-      const collection = await parseInsomniaCollection(str);
+      const obj = await parseFile(fileName);
+      const collection = await parseInsomniaCollection(obj);
       const transformedCollection = await transformItemsInCollection(collection);
       const hydratedCollection = await hydrateSeqInCollection(transformedCollection);
       const validatedCollection = await validateSchema(hydratedCollection);
