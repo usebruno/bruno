@@ -9,6 +9,9 @@ const GlobalStyle = createGlobalStyle`
   .text-link {
     color: ${(props) => props.theme.textLink};
   }
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 
   .btn {
     text-align: center;
@@ -97,6 +100,11 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  input::placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity:  ${(props) => props.theme.input.placeholder.opacity};
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -158,6 +166,32 @@ const GlobalStyle = createGlobalStyle`
       transform: scaleY(-1) rotate(0deg);
     }
   }
+
+
+  // scrollbar styling
+  // the below media query target non-macos devices
+  // (macos scrollbar styling is the ideal style reference)
+  @media not all and (pointer: coarse) {
+    * {
+      scrollbar-color: ${(props) => props.theme.scrollbar.color};
+    }
+    
+    *::-webkit-scrollbar {
+      width: 5px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 5px;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background-color: ${(props) => props.theme.scrollbar.color};
+      border-radius: 14px;
+      border: 3px solid ${(props) => props.theme.scrollbar.color};
+    }
+  }
+
 
   // codemirror
   .CodeMirror {

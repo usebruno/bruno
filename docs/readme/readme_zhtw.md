@@ -4,13 +4,30 @@
 ### Bruno - 探索和測試 API 的開源 IDE 工具
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![网站](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![下载](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](../../readme.md) | [Українська](./readme_ua.md) | [Русский](./readme_ru.md) | [Türkçe](./readme_tr.md) | [Deutsch](./readme_de.md) | [Français](./readme_fr.md) | [Português (BR)](./readme_pt_br.md) | [한국어](./readme_kr.md) | [বাংলা](./readme_bn.md) | [Español](./readme_es.md) | [Italiano](./readme_it.md) | [Română](./readme_ro.md) | [Polski](./readme_pl.md) | [简体中文](./readme_cn.md) | **正體中文**
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| [Română](./readme_ro.md)
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| **正體中文**
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno 是一個全新且有創新性的 API 用戶端，目的在徹底改變以 Postman 和其他類似工具的現況。
 
@@ -73,7 +90,7 @@ sudo apt install bruno
 - [網站](https://www.usebruno.com)
 - [定價](https://www.usebruno.com/pricing)
 - [下載](https://www.usebruno.com/downloads)
-- [Github 贊助](https://github.com/sponsors/helloanoop).
+- [GitHub 贊助](https://github.com/sponsors/helloanoop).
 
 ### 展示 🎥
 
@@ -83,7 +100,7 @@ sudo apt install bruno
 
 ### 贊助支持 ❤️
 
-如果您喜歡 Bruno 和希望支持我們在開源上的工作，請考慮使用 [Github Sponsors](https://github.com/sponsors/helloanoop) 來贊助我們。
+如果您喜歡 Bruno 和希望支持我們在開源上的工作，請考慮使用 [GitHub Sponsors](https://github.com/sponsors/helloanoop) 來贊助我們。
 
 ### 分享感想 📣
 

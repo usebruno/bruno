@@ -1,5 +1,5 @@
 const { interpolate } = require('@usebruno/common');
-const { each, forOwn, cloneDeep } = require('lodash');
+const { each, forOwn, cloneDeep, find } = require('lodash');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,7 +12,7 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, collectionVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
   // we clone envVars because we don't want to modify the original object
   envVars = cloneDeep(envVars);
 
@@ -33,10 +33,10 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
       return str;
     }
 
-    // collectionVariables take precedence over envVars
+    // runtimeVariables take precedence over envVars
     const combinedVars = {
       ...envVars,
-      ...collectionVariables,
+      ...runtimeVariables,
       process: {
         env: {
           ...processEnvVars
@@ -66,7 +66,7 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     }
 
     if (typeof request.data === 'string') {
-      if (request.data.length) {
+      if (request?.data?.length) {
         request.data = _interpolate(request.data);
       }
     }
@@ -82,9 +82,39 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     request.data = _interpolate(request.data);
   }
 
-  each(request.params, (param) => {
+  each(request?.pathParams, (param) => {
     param.value = _interpolate(param.value);
   });
+
+  if (request?.pathParams?.length) {
+    let url = request.url;
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = `http://${url}`;
+    }
+
+    try {
+      url = new URL(url);
+    } catch (e) {
+      throw { message: 'Invalid URL format', originalError: e.message };
+    }
+
+    const interpolatedUrlPath = url.pathname
+      .split('/')
+      .filter((path) => path !== '')
+      .map((path) => {
+        if (path[0] !== ':') {
+          return '/' + path;
+        } else {
+          const name = path.slice(1);
+          const existingPathParam = request?.pathParams?.find((param) => param.type === 'path' && param.name === name);
+          return existingPathParam ? '/' + existingPathParam.value : '';
+        }
+      })
+      .join('');
+
+    request.url = url.origin + interpolatedUrlPath + url.search;
+  }
 
   if (request.proxy) {
     request.proxy.protocol = _interpolate(request.proxy.protocol);
@@ -105,11 +135,20 @@ const interpolateVars = (request, envVars = {}, collectionVariables = {}, proces
     const password = _interpolate(request.auth.password) || '';
 
     // use auth header based approach and delete the request.auth object
-    request.headers['authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
+    request.headers['Authorization'] = `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
     delete request.auth;
   }
 
-  return request;
+  if (request.awsv4config) {
+    request.awsv4config.accessKeyId = _interpolate(request.awsv4config.accessKeyId) || '';
+    request.awsv4config.secretAccessKey = _interpolate(request.awsv4config.secretAccessKey) || '';
+    request.awsv4config.sessionToken = _interpolate(request.awsv4config.sessionToken) || '';
+    request.awsv4config.service = _interpolate(request.awsv4config.service) || '';
+    request.awsv4config.region = _interpolate(request.awsv4config.region) || '';
+    request.awsv4config.profileName = _interpolate(request.awsv4config.profileName) || '';
+  }
+
+  if (request) return request;
 };
 
 module.exports = interpolateVars;

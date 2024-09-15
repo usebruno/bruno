@@ -2,6 +2,7 @@ const URL = require('url');
 const Socket = require('net').Socket;
 const axios = require('axios');
 const connectionCache = new Map(); // Cache to store checkConnection() results
+const electronApp = require("electron");
 
 const LOCAL_IPV6 = '::1';
 const LOCAL_IPV4 = '127.0.0.1';
@@ -49,7 +50,23 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create();
+  const instance = axios.create({
+    transformRequest: function transformRequest(data, headers) {
+      // doesn't apply the default transformRequest if the data is a string, so that axios doesn't add quotes see :
+      // https://github.com/usebruno/bruno/issues/2043
+      // https://github.com/axios/axios/issues/4034
+      const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+      const hasJSONContentType = contentType.includes('json');
+      if (typeof data === 'string' && hasJSONContentType) {
+        return data;
+      }
+
+      axios.defaults.transformRequest.forEach((tr) => data = tr(data, headers));
+      return data;
+    },
+    proxy: false
+  });
+  const version = electronApp?.app?.getVersion()?.substring(1) ?? "";
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);
@@ -69,6 +86,7 @@ function makeAxiosInstance() {
     }
 
     config.headers['request-start-time'] = Date.now();
+    config.headers['user-agent'] = `bruno-runtime/${version}`;
     return config;
   });
 

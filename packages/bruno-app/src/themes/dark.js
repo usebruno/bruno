@@ -20,7 +20,11 @@ const darkTheme = {
   input: {
     bg: 'rgb(65, 65, 65)',
     border: 'rgb(65, 65, 65)',
-    focusBorder: 'rgb(65, 65, 65)'
+    focusBorder: 'rgb(65, 65, 65)',
+    placeholder: {
+      color: '#a2a2a2',
+      opacity: 0.75
+    }
   },
 
   variables: {
@@ -136,10 +140,25 @@ const darkTheme = {
     }
   },
 
+  notifications: {
+    bg: '#3D3D3D',
+    list: {
+      bg: '3D3D3D',
+      borderRight: '#4f4f4f',
+      borderBottom: '#545454',
+      hoverBg: '#434343',
+      active: {
+        border: '#569cd6',
+        bg: '#4f4f4f',
+        hoverBg: '#4f4f4f'
+      }
+    }
+  },
+
   modal: {
     title: {
       color: '#ccc',
-      bg: 'rgb(48, 48, 49)',
+      bg: 'rgb(38, 38, 39)',
       iconColor: '#ccc'
     },
     body: {
@@ -238,6 +257,10 @@ const darkTheme = {
 
   plainGrid: {
     hoverBg: '#3D3D3D'
+  },
+
+  scrollbar: {
+    color: 'rgb(52 51 49)'
   }
 };
 

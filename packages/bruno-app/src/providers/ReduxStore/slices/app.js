@@ -9,12 +9,16 @@ const initialState = {
   screenWidth: 500,
   showHomePage: false,
   showPreferences: false,
+  isEnvironmentSettingsModalOpen: false,
   preferences: {
     request: {
       sslVerification: true,
       customCaCertificate: {
         enabled: false,
         filePath: null
+      },
+      keepDefaultCaCertificates: {
+        enabled: true
       },
       timeout: 0
     },
@@ -23,7 +27,8 @@ const initialState = {
     }
   },
   cookies: [],
-  taskQueue: []
+  taskQueue: [],
+  systemProxyEnvVariables: {}
 };
 
 export const appSlice = createSlice({
@@ -41,6 +46,9 @@ export const appSlice = createSlice({
     },
     updateIsDragging: (state, action) => {
       state.isDragging = action.payload.isDragging;
+    },
+    updateEnvironmentSettingsModalVisibility: (state, action) => {
+      state.isEnvironmentSettingsModalOpen = action.payload;
     },
     showHomePage: (state) => {
       state.showHomePage = true;
@@ -65,6 +73,9 @@ export const appSlice = createSlice({
     },
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
+    },
+    updateSystemProxyEnvVariables: (state, action) => {
+      state.systemProxyEnvVariables = action.payload;
     }
   }
 });
@@ -74,6 +85,7 @@ export const {
   refreshScreenWidth,
   updateLeftSidebarWidth,
   updateIsDragging,
+  updateEnvironmentSettingsModalVisibility,
   showHomePage,
   hideHomePage,
   showPreferences,
@@ -81,7 +93,8 @@ export const {
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
-  removeAllTasksFromQueue
+  removeAllTasksFromQueue,
+  updateSystemProxyEnvVariables
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

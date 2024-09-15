@@ -19,11 +19,23 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (mode.includes('json')) {
+    let isValidJSON = false;
+    
+    try {
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
+    } catch (error) {
+      console.log('Error parsing JSON: ', error.message);
+    }
+
+    if (!isValidJSON || data === null) {
+      return data;
+    }
+
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
       } catch (e) {
-        console.warn('Could not filter with JSONPath.', e.message);
+        console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
 
@@ -35,15 +47,10 @@ const formatResponse = (data, mode, filter) => {
     if (typeof parsed === 'string') {
       return parsed;
     }
-
     return safeStringifyJSON(parsed, true);
   }
 
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data);
+  return data;
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
@@ -51,7 +58,7 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
   const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
   const [filter, setFilter] = useState(null);
   const formattedData = formatResponse(data, mode, filter);
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
 
   const debouncedResultFilterOnChange = debounce((e) => {
     setFilter(e.target.value);
@@ -67,6 +74,10 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
       allowedPreviewModes.unshift('preview-image');
     } else if (contentType.includes('pdf')) {
       allowedPreviewModes.unshift('preview-pdf');
+    } else if (contentType.includes('audio')) {
+      allowedPreviewModes.unshift('preview-audio');
+    } else if (contentType.includes('video')) {
+      allowedPreviewModes.unshift('preview-video');
     }
 
     return allowedPreviewModes;
@@ -132,9 +143,11 @@ const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEven
             collection={collection}
             allowedPreviewModes={allowedPreviewModes}
             disableRunEventListener={disableRunEventListener}
-            storedTheme={storedTheme}
+            displayedTheme={displayedTheme}
           />
-          {queryFilterEnabled && <QueryResultFilter onChange={debouncedResultFilterOnChange} mode={mode} />}
+          {queryFilterEnabled && (
+            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+          )}
         </>
       )}
     </StyledWrapper>

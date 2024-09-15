@@ -1,5 +1,10 @@
 import { useEffect } from 'react';
-import { showPreferences, updateCookies, updatePreferences } from 'providers/ReduxStore/slices/app';
+import {
+  showPreferences,
+  updateCookies,
+  updatePreferences,
+  updateSystemProxyEnvVariables
+} from 'providers/ReduxStore/slices/app';
 import {
   brunoConfigUpdateEvent,
   collectionAddDirectoryEvent,
@@ -95,7 +100,7 @@ const useIpcEvents = () => {
       if (typeof error === 'string') {
         return toast.error(error || 'Something went wrong!');
       }
-      if (typeof message === 'object') {
+      if (typeof error === 'object') {
         return toast.error(error.message || 'Something went wrong!');
       }
     });
@@ -136,6 +141,10 @@ const useIpcEvents = () => {
       dispatch(updatePreferences(val));
     });
 
+    const removeSystemProxyEnvUpdatesListener = ipcRenderer.on('main:load-system-proxy-env', (val) => {
+      dispatch(updateSystemProxyEnvVariables(val));
+    });
+
     const removeCookieUpdateListener = ipcRenderer.on('main:cookies-update', (val) => {
       dispatch(updateCookies(val));
     });
@@ -155,6 +164,7 @@ const useIpcEvents = () => {
       removeShowPreferencesListener();
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
+      removeSystemProxyEnvUpdatesListener();
     };
   }, [isElectron]);
 };

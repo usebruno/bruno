@@ -6,9 +6,11 @@ const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
+const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
+const constants = require('../constants');
 const command = 'run [filename]';
 const desc = 'Run a request';
 
@@ -177,6 +179,21 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const getFolderRoot = (dir) => {
+  const folderRootPath = path.join(dir, 'folder.bru');
+  const exists = fs.existsSync(folderRootPath);
+  if (!exists) {
+    return {};
+  }
+
+  const content = fs.readFileSync(folderRootPath, 'utf8');
+  return collectionBruToJson(content);
+};
+
+const getJsSandboxRuntime = (sandbox) => {
+  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -188,12 +205,23 @@ const builder = async (yargs) => {
       type: 'string',
       description: 'CA certificate to verify peer against'
     })
+    .option('ignore-truststore', {
+      type: 'boolean',
+      default: false,
+      description:
+        'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string'
     })
     .option('env-var', {
       describe: 'Overwrite a single environment variable, multiple usages possible',
+      type: 'string'
+    })
+    .option('sandbox', {
+      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      default: 'developer',
       type: 'string'
     })
     .option('output', {
@@ -203,7 +231,7 @@ const builder = async (yargs) => {
     })
     .option('format', {
       alias: 'f',
-      describe: 'Format of the file results; available formats are "json" (default) or "junit"',
+      describe: 'Format of the file results; available formats are "json" (default), "junit" or "html"',
       default: 'json',
       type: 'string'
     })
@@ -213,7 +241,7 @@ const builder = async (yargs) => {
     })
     .option('tests-only', {
       type: 'boolean',
-      description: 'Only run requests that have a test'
+      description: 'Only run requests that have a test or active assertion'
     })
     .option('bail', {
       type: 'boolean',
@@ -235,12 +263,38 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.xml --format junit',
       'Run a request and write the results to results.xml in junit format in the current directory'
     )
-    .example('$0 run request.bru --test-only', 'Run all requests that have a test');
+    .example(
+      '$0 run request.bru --output results.html --format html',
+      'Run a request and write the results to results.html in html format in the current directory'
+    )
+
+    .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
+    .example(
+      '$0 run request.bru --cacert myCustomCA.pem',
+      'Use a custom CA certificate in combination with the default truststore when validating the peer of this request.'
+    )
+    .example(
+      '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
+      'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
+    );
 };
 
 const handler = async function (argv) {
   try {
-    let { filename, cacert, env, envVar, insecure, r: recursive, output: outputPath, format, testsOnly, bail } = argv;
+    let {
+      filename,
+      cacert,
+      ignoreTruststore,
+      env,
+      envVar,
+      insecure,
+      r: recursive,
+      output: outputPath,
+      format,
+      sandbox,
+      testsOnly,
+      bail
+    } = argv;
     const collectionPath = process.cwd();
 
     // todo
@@ -250,7 +304,7 @@ const handler = async function (argv) {
     const brunoJsonExists = await exists(brunoJsonPath);
     if (!brunoJsonExists) {
       console.error(chalk.red(`You can run only at the root of a collection`));
-      return;
+      process.exit(constants.EXIT_STATUS.ERROR_NOT_IN_COLLECTION);
     }
 
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
@@ -261,14 +315,14 @@ const handler = async function (argv) {
       const pathExists = await exists(filename);
       if (!pathExists) {
         console.error(chalk.red(`File or directory ${filename} does not exist`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
       }
     } else {
       filename = './';
       recursive = true;
     }
 
-    const collectionVariables = {};
+    const runtimeVariables = {};
     let envVars = {};
 
     if (env) {
@@ -277,12 +331,13 @@ const handler = async function (argv) {
 
       if (!envPathExists) {
         console.error(chalk.red(`Environment file not found: `) + chalk.dim(`environments/${env}.bru`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_ENV_NOT_FOUND);
       }
 
       const envBruContent = fs.readFileSync(envFile, 'utf8');
       const envJson = bruToEnvJson(envBruContent);
       envVars = getEnvVars(envJson);
+      envVars.__name__ = env;
     }
 
     if (envVar) {
@@ -293,7 +348,7 @@ const handler = async function (argv) {
         processVars = envVar;
       } else {
         console.error(chalk.red(`overridable environment variables not parsable: use name=value`));
-        return;
+        process.exit(constants.EXIT_STATUS.ERROR_MALFORMED_ENV_OVERRIDE);
       }
       if (processVars && Array.isArray(processVars)) {
         for (const value of processVars.values()) {
@@ -304,7 +359,7 @@ const handler = async function (argv) {
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
                 chalk.dim(`${value}`)
             );
-            return;
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
           envVars[match[1]] = match[2];
         }
@@ -330,10 +385,11 @@ const handler = async function (argv) {
         }
       }
     }
+    options['ignoreTruststore'] = ignoreTruststore;
 
-    if (['json', 'junit'].indexOf(format) === -1) {
-      console.error(chalk.red(`Format must be one of "json" or "junit"`));
-      return;
+    if (['json', 'junit', 'html'].indexOf(format) === -1) {
+      console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
+      process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
     // load .env file at root of collection if it exists
@@ -371,7 +427,7 @@ const handler = async function (argv) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
         const files = fs.readdirSync(filename);
-        const bruFiles = files.filter((file) => file.endsWith('.bru'));
+        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
 
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
@@ -405,6 +461,7 @@ const handler = async function (argv) {
       }
     }
 
+    const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
@@ -416,11 +473,12 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        collectionVariables,
+        runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,
-        collectionRoot
+        collectionRoot,
+        runtime
       );
 
       results.push({
@@ -445,7 +503,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(1);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
         }
         if (nextRequestName === null) {
           break;
@@ -471,7 +529,7 @@ const handler = async function (argv) {
       const outputDirExists = await exists(outputDir);
       if (!outputDirExists) {
         console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(1);
+        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
       }
 
       const outputJson = {
@@ -483,18 +541,20 @@ const handler = async function (argv) {
         fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
       } else if (format === 'junit') {
         makeJUnitOutput(results, outputPath);
+      } else if (format === 'html') {
+        makeHtmlOutput(outputJson, outputPath);
       }
 
       console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
-      process.exit(1);
+      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
     }
   } catch (err) {
     console.log('Something went wrong');
     console.error(chalk.red(err.message));
-    process.exit(1);
+    process.exit(constants.EXIT_STATUS.ERROR_GENERIC);
   }
 };
 

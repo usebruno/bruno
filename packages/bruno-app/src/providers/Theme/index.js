@@ -9,20 +9,31 @@ export const ThemeProvider = (props) => {
   const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
   const [displayedTheme, setDisplayedTheme] = useState(isBrowserThemeLight ? 'light' : 'dark');
   const [storedTheme, setStoredTheme] = useLocalStorage('bruno.theme', 'system');
+  const toggleHtml = () => {
+    const html = document.querySelector('html');
+    if (html) {
+      html.classList.toggle('dark');
+    }
+  };
 
   useEffect(() => {
     window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (e) => {
       if (storedTheme !== 'system') return;
       setDisplayedTheme(e.matches ? 'light' : 'dark');
+      toggleHtml();
     });
   }, []);
 
   useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
     if (storedTheme === 'system') {
       const isBrowserThemeLight = window.matchMedia('(prefers-color-scheme: light)').matches;
       setDisplayedTheme(isBrowserThemeLight ? 'light' : 'dark');
+      root.classList.add(isBrowserThemeLight ? 'light' : 'dark');
     } else {
       setDisplayedTheme(storedTheme);
+      root.classList.add(storedTheme);
     }
   }, [storedTheme, setDisplayedTheme, window.matchMedia]);
 

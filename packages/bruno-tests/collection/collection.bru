@@ -1,18 +1,19 @@
 headers {
   check: again
+  token: {{collection_pre_var_token}}
 }
 
 auth {
-  mode: none
-}
-
-auth:basic {
-  username: bruno
-  password: {{basicAuthPassword}}
+  mode: bearer
 }
 
 auth:bearer {
-  token: {{bearerAuthToken}}
+  token: {{bearer_auth_token}}
+}
+
+vars:pre-request {
+  collection_pre_var: collection_pre_var_value
+  collection_pre_var_token: {{request_pre_var_token}}
 }
 
 docs {
