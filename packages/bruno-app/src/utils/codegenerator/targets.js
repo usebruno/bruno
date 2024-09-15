@@ -18,6 +18,14 @@ export const getLanguages = () => {
           client
         }));
     allLanguages.push(...languages);
+    
+    // Move "Shell-curl" to the top of the array
+    const shellCurlIndex = allLanguages.findIndex(lang => lang.name === "Shell-curl");
+    if (shellCurlIndex !== -1) {
+      const [shellCurl] = allLanguages.splice(shellCurlIndex, 1);
+      allLanguages.unshift(shellCurl);
+    }
   }
+
   return allLanguages;
 };
