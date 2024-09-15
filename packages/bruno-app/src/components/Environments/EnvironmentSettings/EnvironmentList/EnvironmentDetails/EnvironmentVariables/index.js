@@ -87,8 +87,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   };
 
   useEffect(() => {
-    addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [formik.values]);
+    if (formik.dirty) {
+      addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [formik.values, formik.dirty]);
 
   const handleReset = () => {
     formik.resetForm({ originalEnvironmentVariables });
