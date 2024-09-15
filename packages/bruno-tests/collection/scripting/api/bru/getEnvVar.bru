@@ -1,0 +1,19 @@
+meta {
+  name: getEnvVar
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+
+tests {
+  test("should get env var in scripts", function() {
+    const host = bru.getEnvVar("host")
+    expect(host).to.equal("https://testbench-sanity.usebruno.com");
+  });
+}

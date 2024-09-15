@@ -1,4 +1,20 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | **Français** | [বাংলা](docs/contributing/contributing_bn.md)
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| [Deutsch](./contributing_de.md)
+| **Français**
+| [Português (BR)](./contributing_pt_br.md)
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| [Italiano](./contributing_it.md)
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
 
 ## Ensemble, améliorons Bruno !
 
@@ -21,20 +37,7 @@ Les librairies que nous utilisons :
 
 ### Dépendances
 
-Vous aurez besoin de [Node v18.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
-
-### Commençons à coder
-
-Veuillez vous référer à la [documentation de développement](docs/development_fr.md) pour les instructions de démarrage de l'environnement de développement local.
-
-### Ouvrir une Pull Request
-
-- Merci de conserver les PR minimes et focalisées sur un seul objectif
-- Merci de suivre le format de nom des branches :
-  - feature/[feature name]: Cette branche doit contenir une fonctionnalité spécifique
-    - Exemple: feature/dark-mode
-  - bugfix/[bug name]: Cette branche doit contenir seulement une solution pour un bug spécifique
-    - Exemple: bugfix/bug-1
+Vous aurez besoin de [Node v20.x ou la dernière version LTS](https://nodejs.org/en/) et npm 8.x. Nous utilisons aussi les espaces de travail npm (_npm workspaces_) dans ce projet.
 
 ## Développement
 
@@ -59,6 +62,9 @@ npm run build:graphql-docs
 # construction de bruno query
 npm run build:bruno-query
 
+# construction de bruno common
+npm run build:bruno-common
+
 # démarrage de next (terminal 1)
 npm run dev:web
 
@@ -68,7 +74,7 @@ npm run dev:electron
 
 ### Dépannage
 
-Vous pourriez rencontrer une erreur `Unsupported platform` durant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules` ainsi que le fichier `package-lock.json` et lancez à nouveau `npm install`. Cela devrait isntaller tous les paquets nécessaires pour lancer l'application.
+Vous pourriez rencontrer une erreur `Unsupported platform` durant le lancement de `npm install`. Pour résoudre cela, veuillez supprimer le répertoire `node_modules` ainsi que le fichier `package-lock.json` et lancez à nouveau `npm install`. Cela devrait installer tous les paquets nécessaires pour lancer l'application.
 
 ```shell
 # Efface les répertoires node_modules dans les sous-répertoires
@@ -89,3 +95,12 @@ npm test --workspace=packages/bruno-schema
 # bruno-lang
 npm test --workspace=packages/bruno-lang
 ```
+
+### Ouvrir une Pull Request
+
+- Merci de conserver les PR minimes et focalisées sur un seul objectif
+- Merci de suivre le format de nom des branches :
+  - feature/[feature name]: Cette branche doit contenir une fonctionnalité spécifique
+    - Exemple : feature/dark-mode
+  - bugfix/[bug name]: Cette branche doit contenir seulement une solution pour un bug spécifique
+    - Exemple : bugfix/bug-1

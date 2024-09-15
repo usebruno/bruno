@@ -1,3 +1,21 @@
+[English](../../contributing.md)
+| [Українська](./contributing_ua.md)
+| [Русский](./contributing_ru.md)
+| [Türkçe](./contributing_tr.md)
+| [Deutsch](./contributing_de.md)
+| [Français](./contributing_fr.md)
+| [Português (BR)](./contributing_pt_br.md)
+| [한국어](./contributing_kr.md)
+| [বাংলা](./contributing_bn.md)
+| [Español](./contributing_es.md)
+| **Italiano**
+| [Română](./contributing_ro.md)
+| [Polski](./contributing_pl.md)
+| [简体中文](./contributing_cn.md)
+| [正體中文](./contributing_zhtw.md)
+| [日本語](./contributing_ja.md)
+| [हिंदी](./contributing_hi.md)
+
 ## Insieme, miglioriamo Bruno!
 
 Sono felice di vedere che hai intenzione di migliorare Bruno. Di seguito, troverai le regole e le guide per ripristinare Bruno sul tuo computer.
@@ -19,7 +37,7 @@ Le librerie che utilizziamo sono:
 
 ### Dependences
 
-Hai bisogno di [Node v18.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
+Hai bisogno di [Node v20.x o dell'ultima versione LTS](https://nodejs.org/en/) di npm 8.x. Utilizziamo gli spazi di lavoro npm (_npm workspaces_) in questo progetto.
 
 ### Iniziamo a codificare
 

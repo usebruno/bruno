@@ -1,0 +1,34 @@
+vars {
+  host: http://localhost:8080
+  bearer_auth_token: your_secret_token
+  basic_auth_password: della
+  client_id: client_id_1
+  client_secret: client_secret_1
+  password_credentials_access_token_url: http://localhost:8080/api/auth/oauth2/password_credentials/token
+  password_credentials_username: foo
+  password_credentials_password: bar
+  password_credentials_scope: 
+  authorization_code_authorize_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  authorization_code_callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  authorization_code_access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  authorization_code_google_auth_url: https://accounts.google.com/o/oauth2/auth
+  authorization_code_google_access_token_url: https://accounts.google.com/o/oauth2/token
+  authorization_code_google_scope: https://www.googleapis.com/auth/userinfo.email
+  authorization_code_github_authorize_url: https://github.com/login/oauth/authorize
+  authorization_code_github_access_token_url: https://github.com/login/oauth/access_token
+  authorization_code_access_token: null
+  client_credentials_access_token_url: http://localhost:8080/api/auth/oauth2/client_credentials/token
+  client_credentials_client_id: client_id_1
+  client_credentials_client_secret: client_secret_1
+  client_credentials_scope: admin
+  client_credentials_access_token: 9f1b1874f1e79b48a46d65569d830bbb
+  common_access_token: 9f1b1874f1e79b48a46d65569d830bbb
+}
+vars:secret [
+  authorization_code_google_client_id,
+  authorization_code_google_client_secret,
+  authorization_code_github_client_secret,
+  authorization_code_github_client_id,
+  authorization_code_github_authorization_code,
+  authorization_code_github_access_token
+]

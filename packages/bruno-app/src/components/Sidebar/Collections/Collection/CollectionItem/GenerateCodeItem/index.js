@@ -2,79 +2,15 @@ import Modal from 'components/Modal/index';
 import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url/index';
-import get from 'lodash/get';
-import handlebars from 'handlebars';
+import { isValidUrl } from 'utils/url';
+import { find, get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
-
-const interpolateUrl = ({ url, envVars, collectionVariables, processEnvVars }) => {
-  if (!url || !url.length || typeof url !== 'string') {
-    return;
-  }
-
-  const template = handlebars.compile(url, { noEscape: true });
-
-  return template({
-    ...envVars,
-    ...collectionVariables,
-    process: {
-      env: {
-        ...processEnvVars
-      }
-    }
-  });
-};
-
-const languages = [
-  {
-    name: 'HTTP',
-    target: 'http',
-    client: 'http1.1'
-  },
-  {
-    name: 'JavaScript-Fetch',
-    target: 'javascript',
-    client: 'fetch'
-  },
-  {
-    name: 'Javascript-jQuery',
-    target: 'javascript',
-    client: 'jquery'
-  },
-  {
-    name: 'Javascript-axios',
-    target: 'javascript',
-    client: 'axios'
-  },
-  {
-    name: 'Python-Python3',
-    target: 'python',
-    client: 'python3'
-  },
-  {
-    name: 'Python-Requests',
-    target: 'python',
-    client: 'requests'
-  },
-  {
-    name: 'PHP',
-    target: 'php',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-curl',
-    target: 'shell',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-httpie',
-    target: 'shell',
-    client: 'httpie'
-  }
-];
+import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
+import { getLanguages } from 'utils/codegenerator/targets';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
-  const url = get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+  const languages = getLanguages();
+
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
@@ -85,12 +21,23 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     }, {});
   }
 
+  const requestUrl =
+    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
+
+  // interpolate the url
   const interpolatedUrl = interpolateUrl({
-    url,
+    url: requestUrl,
     envVars,
-    collectionVariables: collection.collectionVariables,
+    runtimeVariables: collection.runtimeVariables,
     processEnvVars: collection.processEnvVariables
   });
+
+  // interpolate the path params
+  const finalUrl = interpolateUrlPathParams(
+    interpolatedUrl,
+    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
+  );
+
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -114,7 +61,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             </div>
           </div>
           <div className="flex-grow p-4">
-            {isValidUrl(interpolatedUrl) ? (
+            {isValidUrl(finalUrl) ? (
               <CodeView
                 language={selectedLanguage}
                 item={{
@@ -123,18 +70,18 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url: interpolatedUrl
+                          url: finalUrl
                         }
                       : {
                           ...item.draft.request,
-                          url: interpolatedUrl
+                          url: finalUrl
                         }
                 }}
               />
             ) : (
               <div className="flex flex-col justify-center items-center w-full">
                 <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {interpolatedUrl}</h1>
+                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
                   <p className="text-gray-500">Please check the URL and try again</p>
                 </div>
               </div>

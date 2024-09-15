@@ -1,0 +1,15 @@
+meta {
+  name: echo xml raw
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{host}}/api/echo/xml-raw
+  body: xml
+  auth: none
+}
+
+body:xml {
+  <hello><world>bruno</world></hello>
+}
