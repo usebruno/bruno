@@ -17,6 +17,8 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   const keyFilePathInputRef = useRef();
   const pfxFilePathInputRef = useRef();
 
+  const [pathType, setPathType] = useState('absolute');
+
   const formik = useFormik({
     initialValues: {
       domain: '',
@@ -69,13 +71,17 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
 
   const getFile = (e) => {
     if (e.files?.[0]?.path) {
-      let relativePath;
-      if (isWindowsOS()) {
-        relativePath = slash(path.win32.relative(root, e.files[0].path));
+      let filePath;
+      if (pathType === 'relative') {
+        if (isWindowsOS()) {
+          filePath = slash(path.win32.relative(root, e.files[0].path));
+        } else {
+          filePath = path.posix.relative(root, e.files[0].path);
+        }
       } else {
-        relativePath = path.posix.relative(root, e.files[0].path);
+        filePath = e.files[0].path;
       }
-      formik.setFieldValue(e.name, relativePath);
+      formik.setFieldValue(e.name, filePath);
     }
   };
 
@@ -99,6 +105,10 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
       keyFilePathInputRef.current.value = '';
     }
   };
+
+  const handlePathType = (e) => {
+    setPathType(e.target.value);
+  }
 
   return (
     <StyledWrapper className="w-full h-full">
@@ -163,7 +173,7 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
               />
               Cert
             </label>
-            <label className="flex items-center ml-4 cursor-pointer" htmlFor="pfx">
+            <label className="flex items-center ml-10 cursor-pointer" htmlFor="pfx">
               <input
                 id="pfx"
                 type="radio"
@@ -174,6 +184,37 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
                 className="mr-1"
               />
               PFX
+            </label>
+          </div>
+        </div>
+        <div className="mb-3 flex items-center">
+          <label id="path-type-label" className="settings-label">
+            Path Type
+          </label>
+          <div className="flex items-center" aria-labelledby="path-type-label">
+            <label className="flex items-center cursor-pointer" htmlFor="relative">
+              <input
+                id="relative"
+                type="radio"
+                name="pathType"
+                value="relative"
+                checked={pathType === 'relative'}
+                onChange={handlePathType}
+                className="mr-1"
+              />
+              Relative
+            </label>
+            <label className="flex items-center ml-4 cursor-pointer" htmlFor="absolute">
+              <input
+                id="absolute"
+                type="radio"
+                name="pathType"
+                value="absolute"
+                checked={pathType === 'absolute'}
+                onChange={handlePathType}
+                className="mr-1"
+              />
+              Absolute
             </label>
           </div>
         </div>
