@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
@@ -15,6 +17,7 @@ import toast from 'react-hot-toast';
 const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
+  const addButtonRef = useRef(null);
 
   const formik = useFormik({
     enableReinitialize: true,
@@ -84,6 +87,10 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   const handleRemoveVar = (id) => {
     formik.setValues(formik.values.filter((variable) => variable.uid !== id));
   };
+
+  useEffect(() => {
+    addButtonRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [formik.values]);
 
   const handleReset = () => {
     formik.resetForm({ originalEnvironmentVariables });
@@ -159,11 +166,15 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
             ))}
           </tbody>
         </table>
-      </div>
-      <div>
-        <button className="btn-add-param text-link pr-2 py-3 mt-2 select-none" onClick={addVariable}>
-          + Add Variable
-        </button>
+        <div>
+          <button
+            ref={addButtonRef}
+            className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
+            onClick={addVariable}
+          >
+            + Add Variable
+          </button>
+        </div>
       </div>
 
       <div>
