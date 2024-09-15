@@ -2,10 +2,16 @@ const createContentType = (mode) => {
   switch (mode) {
     case 'json':
       return 'application/json';
+    case 'text':
+      return 'text/plain';
     case 'xml':
       return 'application/xml';
+    case 'sparql':
+      return 'application/sparql-query';
     case 'formUrlEncoded':
       return 'application/x-www-form-urlencoded';
+    case 'graphql':
+      return 'application/json';
     case 'multipartForm':
       return 'multipart/form-data';
     default:
@@ -13,27 +19,25 @@ const createContentType = (mode) => {
   }
 };
 
-const createHeaders = (headers, type) => {
-  const result = headers
+const createHeaders = (request, headers) => {
+  const enabledHeaders = headers
     .filter((header) => header.enabled)
     .map((header) => ({
       name: header.name,
       value: header.value
     }));
 
-  // TODO in this PR, make sure that the content type application/json is added to the headers by default
-  if (type === 'graphql-request') {
-    result.push({
-      name: 'Content-Type',
-      value: 'application/json'
-    });
+  const contentType = createContentType(request.body?.mode);
+  if (contentType !== '') {
+    enabledHeaders.push({ name: 'content-type', value: contentType });
   }
-  return result;
+
+  return enabledHeaders;
 };
 
 const createQuery = (queryParams = []) => {
   return queryParams
-    .filter((param) => param.enabled)
+    .filter((param) => param.enabled && param.type === 'query')
     .map((param) => ({
       name: param.name,
       value: param.value
@@ -54,7 +58,11 @@ const createPostData = (body, type) => {
       mimeType: contentType,
       params: body[body.mode]
         .filter((param) => param.enabled)
-        .map((param) => ({ name: param.name, value: param.value }))
+        .map((param) => ({
+          name: param.name,
+          value: param.value,
+          ...(param.type === 'file' && { fileName: param.value })
+        }))
     };
   } else {
     return {
@@ -67,10 +75,10 @@ const createPostData = (body, type) => {
 export const buildHarRequest = ({ request, headers, type }) => {
   return {
     method: request.method,
-    url: request.url,
+    url: encodeURI(request.url),
     httpVersion: 'HTTP/1.1',
     cookies: [],
-    headers: createHeaders(headers, type),
+    headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
     postData: createPostData(request.body, type),
     headersSize: 0,

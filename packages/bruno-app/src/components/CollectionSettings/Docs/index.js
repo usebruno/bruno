@@ -11,7 +11,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
   const docs = get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
@@ -40,15 +40,16 @@ const Docs = ({ collection }) => {
       {isEditing ? (
         <CodeEditor
           collection={collection}
-          theme={storedTheme}
+          theme={displayedTheme}
           value={docs || ''}
           onEdit={onEdit}
           onSave={onSave}
           mode="application/text"
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
-        <Markdown onDoubleClick={toggleViewMode} content={docs} />
+        <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
       )}
     </StyledWrapper>
   );

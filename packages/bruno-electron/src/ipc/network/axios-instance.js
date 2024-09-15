@@ -49,7 +49,22 @@ const checkConnection = (host, port) =>
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create();
+  const instance = axios.create({
+    transformRequest: function transformRequest(data, headers) {
+      // doesn't apply the default transformRequest if the data is a string, so that axios doesn't add quotes see :
+      // https://github.com/usebruno/bruno/issues/2043
+      // https://github.com/axios/axios/issues/4034
+      const contentType = headers?.['Content-Type'] || headers?.['content-type'] || '';
+      const hasJSONContentType = contentType.includes('json');
+      if (typeof data === 'string' && hasJSONContentType) {
+        return data;
+      }
+
+      axios.defaults.transformRequest.forEach((tr) => data = tr(data, headers));
+      return data;
+    },
+    proxy: false
+  });
 
   instance.interceptors.request.use(async (config) => {
     const url = URL.parse(config.url);

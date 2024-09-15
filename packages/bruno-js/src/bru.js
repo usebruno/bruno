@@ -1,30 +1,38 @@
-const Handlebars = require('handlebars');
 const { cloneDeep } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, collectionVariables, processEnvVars, collectionPath) {
-    this.envVariables = envVariables;
-    this.collectionVariables = collectionVariables;
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables) {
+    this.envVariables = envVariables || {};
+    this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
+    this.collectionVariables = collectionVariables || {};
+    this.folderVariables = folderVariables || {};
+    this.requestVariables = requestVariables || {};
     this.collectionPath = collectionPath;
   }
 
-  _interpolateEnvVar = (str) => {
+  _interpolate = (str) => {
     if (!str || !str.length || typeof str !== 'string') {
       return str;
     }
 
-    const template = Handlebars.compile(str, { noEscape: true });
-
-    return template({
+    const combinedVars = {
+      ...this.collectionVariables,
+      ...this.envVariables,
+      ...this.folderVariables,
+      ...this.requestVariables,
+      ...this.runtimeVariables,
       process: {
         env: {
           ...this.processEnvVars
         }
       }
-    });
+    };
+
+    return interpolate(str, combinedVars);
   };
 
   cwd() {
@@ -39,8 +47,12 @@ class Bru {
     return this.processEnvVars[key];
   }
 
+  hasEnvVar(key) {
+    return Object.hasOwn(this.envVariables, key);
+  }
+
   getEnvVar(key) {
-    return this._interpolateEnvVar(this.envVariables[key]);
+    return this._interpolate(this.envVariables[key]);
   }
 
   setEnvVar(key, value) {
@@ -51,6 +63,10 @@ class Bru {
     this.envVariables[key] = value;
   }
 
+  hasVar(key) {
+    return Object.hasOwn(this.runtimeVariables, key);
+  }
+
   setVar(key, value) {
     if (!key) {
       throw new Error('Creating a variable without specifying a name is not allowed.');
@@ -59,26 +75,46 @@ class Bru {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    this.collectionVariables[key] = value;
+    this.runtimeVariables[key] = value;
   }
 
   getVar(key) {
     if (variableNameRegex.test(key) === false) {
       throw new Error(
         `Variable name: "${key}" contains invalid characters!` +
-          ' Names must only contain alpha-numeric characters, "-", "_", "."'
+        ' Names must only contain alpha-numeric characters, "-", "_", "."'
       );
     }
 
-    return this.collectionVariables[key];
+    return this._interpolate(this.runtimeVariables[key]);
+  }
+
+  deleteVar(key) {
+    delete this.runtimeVariables[key];
+  }
+
+  getCollectionVar(key) {
+    return this._interpolate(this.collectionVariables[key]);
+  }
+
+  getFolderVar(key) {
+    return this._interpolate(this.folderVariables[key]);
+  }
+
+  getRequestVar(key) {
+    return this._interpolate(this.requestVariables[key]);
   }
 
   setNextRequest(nextRequest) {
     this.nextRequest = nextRequest;
+  }
+
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 

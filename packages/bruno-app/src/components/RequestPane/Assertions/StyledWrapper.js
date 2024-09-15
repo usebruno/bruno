@@ -4,7 +4,6 @@ const Wrapper = styled.div`
   table {
     width: 100%;
     border-collapse: collapse;
-    font-weight: 600;
     table-layout: fixed;
 
     thead,
@@ -16,6 +15,7 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.table.thead.color};
       font-size: 0.8125rem;
       user-select: none;
+      font-weight: 600;
     }
     td {
       padding: 6px 10px;
@@ -54,6 +54,9 @@ const Wrapper = styled.div`
     cursor: pointer;
     position: relative;
     top: 1px;
+  }
+  option {
+    background-color: ${(props) => props.theme.bg};
   }
 `;
 
