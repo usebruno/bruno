@@ -1,7 +1,7 @@
 <br />
 <img src="assets/images/logo-transparent.png" width="80"/>
 
-### Bruno - Opensource IDE for exploring and testing APIs.
+### OpenBruno - Opensource IDE for exploring and testing APIs.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
 [![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
@@ -118,58 +118,6 @@ sudo apt install bruno
 Or any version control system of your choice
 
 ![bruno](assets/images/version-control.png) <br /><br />
-
-## Sponsors
-
-#### Gold Sponsors
-
-<img src="assets/images/sponsors/samagata.png" width="150"/>
-
-#### Silver Sponsors
-
-<img src="assets/images/sponsors/commit-company.png" width="70"/>
-
-#### Bronze Sponsors
-
-<a href="https://zuplo.link/bruno">
-    <img src="assets/images/sponsors/zuplo.png" width="120"/>
-</a>
-
-## Important Links 📌
-
-- [Our Long Term Vision](https://github.com/usebruno/bruno/discussions/269)
-- [Roadmap](https://github.com/usebruno/bruno/discussions/384)
-- [Documentation](https://docs.usebruno.com)
-- [Stack Overflow](https://stackoverflow.com/questions/tagged/bruno)
-- [Website](https://www.usebruno.com)
-- [Pricing](https://www.usebruno.com/pricing)
-- [Download](https://www.usebruno.com/downloads)
-- [GitHub Sponsors](https://github.com/sponsors/helloanoop).
-
-## Showcase 🎥
-
-- [Testimonials](https://github.com/usebruno/bruno/discussions/343)
-- [Knowledge Hub](https://github.com/usebruno/bruno/discussions/386)
-- [Scriptmania](https://github.com/usebruno/bruno/discussions/385)
-
-## Support ❤️
-
-If you like Bruno and want to support our opensource work, consider sponsoring us via [GitHub Sponsors](https://github.com/sponsors/helloanoop).
-
-## Share Testimonials 📣
-
-If Bruno has helped you at work and your teams, please don't forget to share your [testimonials on our GitHub discussion](https://github.com/usebruno/bruno/discussions/343)
-
-## Publishing to New Package Managers
-
-Please see [here](publishing.md) for more information.
-
-## Stay in touch 🌐
-
-[𝕏 (Twitter)](https://twitter.com/use_bruno) <br />
-[Website](https://www.usebruno.com) <br />
-[Discord](https://discord.com/invite/KgcZUncpjq) <br />
-[LinkedIn](https://www.linkedin.com/company/usebruno)
 
 ## Trademark
 

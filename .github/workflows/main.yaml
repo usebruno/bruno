@@ -1,0 +1,66 @@
+name: Main release
+
+on:
+  push:
+    branches:
+      - fork
+      - release-pipeline
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            name: mac
+          - os: ubuntu-latest
+            name: linux
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build the Electron app
+      run: npm run build:electron:${{ matrix.name }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.name }}
+        path: |
+          ./packages/bruno-electron/out/*.dmg
+          ./packages/bruno-electron/out/*.AppImage
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Retrieve saved linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-linux
+        path: ./packages/bruno-electron/out/*
+    - name: Retrieve saved mac artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-mac
+        path: ./packages/bruno-electron/out/*
+    - name: List packages
+      run: ls -la ./packages/bruno-electron/out/
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          ./packages/bruno-electron/out/*
+
