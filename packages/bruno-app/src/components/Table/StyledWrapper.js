@@ -27,6 +27,7 @@ const StyledWrapper = styled.div`
 
   table th {
     position: relative;
+    border-bottom: 1px solid ${(props) => props.theme.collection.environment.settings.gridBorder}77;
   }
 
   table tr td {
