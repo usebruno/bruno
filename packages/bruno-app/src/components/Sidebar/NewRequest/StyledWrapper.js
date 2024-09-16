@@ -39,6 +39,10 @@ const StyledWrapper = styled.div`
   textarea.curl-command {
     min-height: 150px;
   }
+
+  .file-extension {
+    color: ${(props) => props.theme.colors.text.darkOrange};
+  }
 `;
 
 export default StyledWrapper;
