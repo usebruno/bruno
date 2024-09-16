@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import get from 'lodash/get';
 import { useDispatch } from 'react-redux';
 import { requestUrlChanged, updateRequestMethod } from 'providers/ReduxStore/slices/collections';
@@ -17,6 +17,7 @@ const QueryUrl = ({ item, collection, handleRun }) => {
   const url = item.draft ? get(item, 'draft.request.url', '') : get(item, 'request.url', '');
   const isMac = isMacOS();
   const saveShortcut = isMac ? 'Cmd + S' : 'Ctrl + S';
+  const editorRef = useRef(null);
 
   const [methodSelectorWidth, setMethodSelectorWidth] = useState(90);
 
@@ -25,18 +26,33 @@ const QueryUrl = ({ item, collection, handleRun }) => {
     setMethodSelectorWidth(el.offsetWidth);
   }, [method]);
 
-  const onSave = () => {
+  const onSave = (finalValue) => {
     dispatch(saveRequest(item.uid, collection.uid));
   };
 
   const onUrlChange = (value) => {
+    if (!editorRef.current?.editor) return;
+    const editor = editorRef.current.editor;
+    const cursor = editor.getCursor();
+  
+    const finalUrl = value?.trim() ?? value;
+  
     dispatch(
       requestUrlChanged({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        url: value && typeof value === 'string' ? value.trim() : value
+        url: finalUrl
       })
     );
+  
+    // Restore cursor position only if URL was trimmed
+    if (finalUrl !== value) {
+      setTimeout(() => {
+        if (editor) {
+          editor.setCursor(cursor);
+        }
+      }, 0);
+    }
   };
 
   const onMethodSelect = (verb) => {
@@ -63,8 +79,9 @@ const QueryUrl = ({ item, collection, handleRun }) => {
         }}
       >
         <SingleLineEditor
+          ref={editorRef}
           value={url}
-          onSave={onSave}
+          onSave={(finalValue) => onSave(finalValue)}
           theme={storedTheme}
           onChange={(newValue) => onUrlChange(newValue)}
           onRun={handleRun}

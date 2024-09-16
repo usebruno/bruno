@@ -283,11 +283,16 @@ const groupRequestsByTags = (requests) => {
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0]; // take first tag
-      if (!_groups[tag]) {
-        _groups[tag] = [];
+      let tag = tags[0].trim(); // take first tag and trim whitespace
+
+      if (tag) {
+        if (!_groups[tag]) {
+          _groups[tag] = [];
+        }
+        _groups[tag].push(request);
+      } else {
+        ungrouped.push(request);
       }
-      _groups[tag].push(request);
     } else {
       ungrouped.push(request);
     }

@@ -19,11 +19,23 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (mode.includes('json')) {
+    let isValidJSON = false;
+    
+    try {
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
+    } catch (error) {
+      console.log('Error parsing JSON: ', error.message);
+    }
+
+    if (!isValidJSON || data === null) {
+      return data;
+    }
+
     if (filter) {
       try {
         data = JSONPath({ path: filter, json: data });
       } catch (e) {
-        console.warn('Could not filter with JSONPath.', e.message);
+        console.warn('Could not apply JSONPath filter:', e.message);
       }
     }
 
@@ -35,15 +47,10 @@ const formatResponse = (data, mode, filter) => {
     if (typeof parsed === 'string') {
       return parsed;
     }
-
     return safeStringifyJSON(parsed, true);
   }
 
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  return safeStringifyJSON(data);
+  return data;
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {

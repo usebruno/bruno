@@ -15,6 +15,7 @@
 | [正體中文](docs/contributing/contributing_zhtw.md)
 | [日本語](docs/contributing/contributing_ja.md)
 | [हिंदी](docs/contributing/contributing_hi.md)
+| [Nederlands](docs/contributing/contributing_nl.md)
 
 ## Let's make Bruno better, together!!
 
