@@ -132,7 +132,7 @@ const Sidebar = () => {
                   Star 
                 </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.28.0</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.29.0</div>
             </div>
           </div>
         </div>
