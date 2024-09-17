@@ -19,17 +19,21 @@ const formatResponse = (data, mode, filter) => {
     return '';
   }
 
+  if (data === null) {
+    return data;
+  }
+
   if (mode.includes('json')) {
     let isValidJSON = false;
-    
+
     try {
       isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
     } catch (error) {
       console.log('Error parsing JSON: ', error.message);
     }
 
-    if (!isValidJSON || data === null) {
-      return data;
+    if (!isValidJSON) {
+      return safeStringifyJSON(data);
     }
 
     if (filter) {
@@ -40,7 +44,7 @@ const formatResponse = (data, mode, filter) => {
       }
     }
 
-    return safeStringifyJSON(data, true);
+    return safeStringifyJSON(data);
   }
 
   if (mode.includes('xml')) {
@@ -48,7 +52,7 @@ const formatResponse = (data, mode, filter) => {
     if (typeof parsed === 'string') {
       return parsed;
     }
-    return safeStringifyJSON(parsed, true);
+    return safeStringifyJSON(parsed);
   }
 
   return data;
