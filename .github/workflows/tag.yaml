@@ -6,19 +6,6 @@ on:
       - '*'
 
 jobs:
-  version:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Get the version
-        id: tag
-        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
-      - name: Check output
-        run: echo $VERSION
-        env:
-          VERSION: ${{ steps.tag.outputs.tag }}
-
   build:
     runs-on: ${{ matrix.os }}
     needs: version
@@ -40,7 +27,7 @@ jobs:
       with:
         node-version: '18'
     - name: Install dependencies
-      run: npm install
+      run: npm ci --legacy-peer-deps
 
     - name: Build the Electron app
       run: npm run build:electron:${{ matrix.name }}
@@ -51,6 +38,31 @@ jobs:
         path: |
           ./packages/bruno-electron/out/*.dmg
           ./packages/bruno-electron/out/*.AppImage
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Login docker
+      run: docker login https://ghcr.io -u berlingoqc -p $GITHUB_ACCESS_TOKEN
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Publish librarie is possible
+      run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_ACCESS_TOKEN}" >> $HOME/.npmrc && cd packages/bruno-cli && (npm publish || echo "failed to publish, version not updated")
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Docker build
+      run: cd packages/bruno-cli && docker build --build-arg GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN} --build-arg CLI_VERSION=$(npm run version --silent) -t ghcr.io/berlingoqc/openbruno/cli:$(npm run version --silent) .
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Docker push
+      run: cd packages/bruno-cli && docker push ghcr.io/berlingoqc/openbruno/cli:$(npm run version --silent) || echo "failed to publish, version not updated"
 
   release:
     runs-on: ubuntu-latest
@@ -69,7 +81,9 @@ jobs:
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
-        files: ./packages/bruno-electron/out/*
+        files: |
+          ./packages/bruno-electron/out/*.dmg
+          ./packages/bruno-electron/out/*.AppImage
         draft: true
 
 
