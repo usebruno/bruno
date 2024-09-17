@@ -1417,6 +1417,7 @@ export const collectionsSlice = createSlice({
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
           folderItem.root = file.data;
+          folderItem.seq = file.data?.meta?.seq;
         }
         return;
       }
@@ -1504,10 +1505,21 @@ export const collectionsSlice = createSlice({
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+      const isFolderRoot = file?.meta?.folderRoot ? true : false;
 
       // check and update collection root
       if (collection && file.meta.collectionRoot) {
         collection.root = file.data;
+        return;
+      }
+
+      if (isFolderRoot) {
+        const folderPath = path.dirname(file?.meta?.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          folderItem.root = file.data;
+          folderItem.seq = file?.data?.meta?.seq;
+        }
         return;
       }
 

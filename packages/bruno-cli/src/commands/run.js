@@ -235,6 +235,18 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-json', {
+      describe: 'Path to write json file results to',
+      type: 'string'
+    })
+    .option('reporter-junit', {
+      describe: 'Path to write junit file results to',
+      type: 'string'
+    })
+    .option('reporter-html', {
+      describe: 'Path to write html file results to',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -246,6 +258,11 @@ const builder = async (yargs) => {
     .option('bail', {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
+    })
+    .option('collection', {
+      type: 'string',
+      description: 'Path to the folder where the bruno collection is stored, default to current working directory',
+      default: ''
     })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
@@ -267,6 +284,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
+    )
+    .example(
+      '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
+      'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
     )
 
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
@@ -292,11 +313,16 @@ const handler = async function (argv) {
       r: recursive,
       output: outputPath,
       format,
+      reporterJson,
+      reporterJunit,
+      reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      collection: collectionPath
     } = argv;
-    const collectionPath = process.cwd();
+
+    collectionPath = (!collectionPath) ? process.cwd(): collectionPath;
 
     // todo
     // right now, bru must be run from the root of the collection
@@ -314,7 +340,8 @@ const handler = async function (argv) {
 
     if (filenames && filenames.length) {
       for (const filename of filenames) {
-        const pathExists = await exists(filename);
+        const filenamePath = path.join(collectionPath, filename);
+        const pathExists = await exists(filenamePath);
         if (!pathExists) {
           console.error(chalk.red(`File or directory ${filename} does not exist`));
           process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
@@ -441,6 +468,25 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
+    let formats = {};
+
+    // Maintains back compat with --format and --output
+    if (outputPath && outputPath.length) {
+      formats[format] = outputPath;
+    }
+
+    if (reporterHtml && reporterHtml.length) {
+      formats['html'] = reporterHtml;
+    }
+
+    if (reporterJson && reporterJson.length) {
+      formats['json'] = reporterJson;
+    }
+
+    if (reporterJunit && reporterJunit.length) {
+      formats['junit'] = reporterJunit;
+    }
+
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
@@ -465,9 +511,8 @@ const handler = async function (argv) {
     let bruJsons = [];
 
     for (const filename of filenames) {
-
-      const _isFile = isFile(filename);
-
+      const filenamePath = path.join(collectionPath, filename);
+      const _isFile = isFile(filenamePath);
       if (_isFile) {
         console.log(chalk.yellow(`Adding Request ${filename}`));
         const bruContent = fs.readFileSync(filename, 'utf8');
@@ -478,17 +523,17 @@ const handler = async function (argv) {
         });
       }
 
-      const _isDirectory = isDirectory(filename);
+      const _isDirectory = isDirectory(filenamePath);
       if (_isDirectory) {
         if (!recursive) {
           console.log(chalk.yellow(`Adding Folder ${filename}`));
-          const files = fs.readdirSync(filename);
+          const files = fs.readdirSync(filenamePath);
           const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
           const directoryBruJsons = [];
 
           for (const bruFile of bruFiles) {
             const bruFilepath = path.join(filename, bruFile);
-            const bruContent = fs.readFileSync(bruFilepath, 'utf8');
+            const bruContent = fs.readFileSync(path.join(collectionPath, bruFilepath), 'utf8');
             const bruJson = bruToJson(bruContent);
             const requestHasTests = bruJson.request?.tests;
             const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
@@ -586,35 +631,60 @@ const handler = async function (argv) {
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
     if (outputPath && outputPath.length) {
-      const outputDir = path.dirname(outputPath);
-      const outputDirExists = await exists(outputDir);
-      if (!outputDirExists) {
-        console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+      const formatKeys = Object.keys(formats);
+      if (formatKeys && formatKeys.length > 0) {
+        const outputJson = {
+          summary,
+          results
+        };
+
+        const reporters = {
+          'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+          'junit': (path) => makeJUnitOutput(results, path),
+          'html': (path) => makeHtmlOutput(outputJson, path),
+        }
+
+        for (const formatter of Object.keys(formats))
+        {
+          const reportPath = formats[formatter];
+          const reporter = reporters[formatter];
+
+          // Skip formatters lacking an output path.
+          if (!reportPath || reportPath.length === 0) {
+            continue;
+          }
+
+          const outputDir = path.dirname(outputPath);
+          const outputDirExists = await exists(outputDir);
+          if (!outputDirExists) {
+            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+          }
+
+          const outputFileName = path.basename(outputPath);
+          const realOutputPath = path.join(outputDir, ((run.outputPrefix ? run.outputPrefix : "") + "-") + outputFileName);
+
+
+          if (!outputDirExists) {
+            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+          }
+
+          if (!reporter) {
+            console.error(chalk.red(`Reporter ${formatter} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+          }
+
+          reporter(realOutputPath);
+
+          console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${realOutputPath}`)));
+        }
       }
 
-      const outputFileName = path.basename(outputPath);
-      const realOutputPath = path.join(outputDir, ((run.outputPrefix ? run.outputPrefix : "") + "-") + outputFileName);
-
-      const outputJson = {
-        summary,
-        results
-      };
-
-      if (format === 'json') {
-        fs.writeFileSync(realOutputPath, JSON.stringify(outputJson, null, 2));
-      } else if (format === 'junit') {
-        makeJUnitOutput(results, realOutputPath);
-      } else if (format === 'html') {
-        makeHtmlOutput(outputJson, realOutputPath);
+      if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
+        process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
       }
-
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${realOutputPath}`)));
-    }
-
-    if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
-      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
-    }
+      }
     }
   } catch (err) {
     console.log('Something went wrong');

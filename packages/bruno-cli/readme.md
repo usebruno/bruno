@@ -1,15 +1,16 @@
-# bruno-cli
+# openbruno-cli
 
-With Bruno CLI, you can now run your API collections with ease using simple command line commands.
+With OpenBruno CLI, you can now run your API collections with ease using simple command line commands.
 
 This makes it easier to test your APIs in different environments, automate your testing process, and integrate your API tests with your continuous integration and deployment workflows.
 
 ## Installation
 
-To install the Bruno CLI, use the node package manager of your choice, such as NPM:
+To install the OpenBruno CLI, use the node package manager of your choice, such as NPM:
 
 ```bash
-npm install -g @usebruno/cli
+# clone the repo
+cd ./packages/bruno-cli && npm link
 ```
 
 ## Getting started

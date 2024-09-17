@@ -162,16 +162,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form
-          className="bruno-form"
-          onSubmit={formik.handleSubmit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              formik.handleSubmit();
-            }
-          }}
-        >
+        <form className="bruno-form" onSubmit={formik.handleSubmit}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
+const { bruToEnvJson, bruToJson, collectionBruToJson, jsonToCollectionBru } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -280,7 +280,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 
   // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
-    console.log('folder.bru file detected');
     const file = {
       meta: {
         collectionUid,
@@ -340,6 +339,19 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
       name: path.basename(pathname)
     }
   };
+
+  const folderBruFilePath = path.join(pathname, 'folder.bru');
+  if (!fs.existsSync(folderBruFilePath)) {
+    let folderData = {
+      meta: {
+        name: path.basename(pathname),
+        seq: 0
+      }
+    };
+    const content = jsonToCollectionBru(folderData);
+    fs.writeFileSync(folderBruFilePath, content);
+  }
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -398,6 +410,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
