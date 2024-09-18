@@ -32,7 +32,7 @@ const readFile = (files) => {
 
 const ensureUrl = (url) => {
   // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
-  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
+  return url.replace(/(^\w+:|^)\/{2,}/, '$1//');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -316,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url.endsWith('/') ? url : `${url}/`;
+  return url.replace(/\/+$/,'');
 };
 
 const getSecurity = (apiSpec) => {
@@ -382,7 +382,7 @@ const parseOpenApiCollection = (data) => {
       // TODO what if info.title not defined?
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '/';
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
