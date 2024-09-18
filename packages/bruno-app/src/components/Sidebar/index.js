@@ -87,7 +87,7 @@ const Sidebar = () => {
           <GoldenEdition
             onClose={() => {
               setGoldenEditionOpen(false);
-              document.querySelector('[data-trigger="golden-edition"]').focus(); // Return focus to the trigger
+              document.querySelector('[data-trigger="golden-edition"]').focus();
             }}
             aria-modal="true"
             role="dialog"
@@ -100,7 +100,7 @@ const Sidebar = () => {
             <Preferences
               onClose={() => {
                 dispatch(showPreferences(false));
-                document.querySelector('[data-trigger="preferences"]').focus(); // Return focus to the trigger
+                document.querySelector('[data-trigger="preferences"]').focus();
               }}
               aria-modal="true"
               role="dialog"
@@ -112,7 +112,7 @@ const Sidebar = () => {
             <Cookies
               onClose={() => {
                 setCookiesOpen(false);
-                document.querySelector('[data-trigger="cookies"]').focus(); // Return focus to the trigger
+                document.querySelector('[data-trigger="cookies"]').focus();
               }}
               aria-modal="true"
               role="dialog"
