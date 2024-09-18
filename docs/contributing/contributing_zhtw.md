@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| [বাংলা](./contributing_bn.md)
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| **正體中文**
-| [日本語](./contributing_ja.md)
-| [हिंदी](./contributing_hi.md)
 
 ## 讓我們一起來讓 Bruno 變得更好！
 
@@ -37,7 +21,7 @@ Bruno 使用 Next.js 和 React 構建。我們使用 Electron 來封裝及發佈
 
 ### 依賴關係
 
-您需要使用 [Node v18.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
+您需要使用 [Node v20.x 或最新的 LTS 版本](https://nodejs.org/en/) 和 npm 8.x。我們在這個專案中使用 npm 工作區（_npm workspaces_）。
 
 ## 開發
 

@@ -6,56 +6,11 @@ import { isValidUrl } from 'utils/url';
 import { find, get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
-
-const languages = [
-  {
-    name: 'HTTP',
-    target: 'http',
-    client: 'http1.1'
-  },
-  {
-    name: 'JavaScript-Fetch',
-    target: 'javascript',
-    client: 'fetch'
-  },
-  {
-    name: 'Javascript-jQuery',
-    target: 'javascript',
-    client: 'jquery'
-  },
-  {
-    name: 'Javascript-axios',
-    target: 'javascript',
-    client: 'axios'
-  },
-  {
-    name: 'Python-Python3',
-    target: 'python',
-    client: 'python3'
-  },
-  {
-    name: 'Python-Requests',
-    target: 'python',
-    client: 'requests'
-  },
-  {
-    name: 'PHP',
-    target: 'php',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-curl',
-    target: 'shell',
-    client: 'curl'
-  },
-  {
-    name: 'Shell-httpie',
-    target: 'shell',
-    client: 'httpie'
-  }
-];
+import { getLanguages } from 'utils/codegenerator/targets';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
+  const languages = getLanguages();
+
   const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
@@ -73,7 +28,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
     envVars,
-    collectionVariables: collection.collectionVariables,
+    runtimeVariables: collection.runtimeVariables,
     processEnvVars: collection.processEnvVariables
   });
 

@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Bruno from './Bruno';
 import GlobalStyle from '../globalStyles';
+import '../i18n';
 
 export default function Home() {
   return (

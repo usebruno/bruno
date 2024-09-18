@@ -1,20 +1,4 @@
 [English](../../contributing.md)
-| [Українська](./contributing_ua.md)
-| [Русский](./contributing_ru.md)
-| [Türkçe](./contributing_tr.md)
-| [Deutsch](./contributing_de.md)
-| [Français](./contributing_fr.md)
-| [Português (BR)](./contributing_pt_br.md)
-| [한국어](./contributing_kr.md)
-| [বাংলা](./contributing_bn.md)
-| [Español](./contributing_es.md)
-| [Italiano](./contributing_it.md)
-| [Română](./contributing_ro.md)
-| [Polski](./contributing_pl.md)
-| [简体中文](./contributing_cn.md)
-| [正體中文](./contributing_zhtw.md)
-| [日本語](./contributing_ja.md)
-| **हिंदी**
 
 ## आइए मिलकर Bruno को बेहतर बनाएं !!
 
@@ -37,7 +21,7 @@ Libraries जिनका हम उपयोग करते हैं
 
 ### निर्भरताएँ
 
-आपको [Node v18.x या नवीनतम LTS संस्करण](https://nodejs.org/en/) और npm 8.x की आवश्यकता होगी। हम प्रोजेक्ट में npm वर्कस्पेस का उपयोग करते हैं
+आपको [Node v20.x या नवीनतम LTS संस्करण](https://nodejs.org/en/) और npm 8.x की आवश्यकता होगी। हम प्रोजेक्ट में npm वर्कस्पेस का उपयोग करते हैं
 
 ## डेवलपमेंट
 

@@ -179,6 +179,21 @@ const getCollectionRoot = (dir) => {
   return collectionBruToJson(content);
 };
 
+const getFolderRoot = (dir) => {
+  const folderRootPath = path.join(dir, 'folder.bru');
+  const exists = fs.existsSync(folderRootPath);
+  if (!exists) {
+    return {};
+  }
+
+  const content = fs.readFileSync(folderRootPath, 'utf8');
+  return collectionBruToJson(content);
+};
+
+const getJsSandboxRuntime = (sandbox) => {
+  return sandbox === 'safe' ? 'quickjs' : 'vm2';
+};
+
 const builder = async (yargs) => {
   yargs
     .option('r', {
@@ -204,6 +219,11 @@ const builder = async (yargs) => {
       describe: 'Overwrite a single environment variable, multiple usages possible',
       type: 'string'
     })
+    .option('sandbox', {
+      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      default: 'developer',
+      type: 'string'
+    })
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
@@ -215,13 +235,25 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-json', {
+      describe: 'Path to write json file results to',
+      type: 'string'
+    })
+    .option('reporter-junit', {
+      describe: 'Path to write junit file results to',
+      type: 'string'
+    })
+    .option('reporter-html', {
+      describe: 'Path to write html file results to',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
     })
     .option('tests-only', {
       type: 'boolean',
-      description: 'Only run requests that have a test'
+      description: 'Only run requests that have a test or active assertion'
     })
     .option('bail', {
       type: 'boolean',
@@ -247,6 +279,10 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
+    .example(
+      '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
+      'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
+    )
 
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
@@ -271,6 +307,10 @@ const handler = async function (argv) {
       r: recursive,
       output: outputPath,
       format,
+      reporterJson,
+      reporterJunit,
+      reporterHtml,
+      sandbox,
       testsOnly,
       bail
     } = argv;
@@ -301,7 +341,7 @@ const handler = async function (argv) {
       recursive = true;
     }
 
-    const collectionVariables = {};
+    const runtimeVariables = {};
     let envVars = {};
 
     if (env) {
@@ -371,6 +411,25 @@ const handler = async function (argv) {
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
     }
 
+    let formats = {};
+
+    // Maintains back compat with --format and --output
+    if (outputPath && outputPath.length) {
+      formats[format] = outputPath;
+    }
+
+    if (reporterHtml && reporterHtml.length) {
+      formats['html'] = reporterHtml;
+    }
+
+    if (reporterJson && reporterJson.length) {
+      formats['json'] = reporterJson;
+    }
+
+    if (reporterJunit && reporterJunit.length) {
+      formats['junit'] = reporterJunit;
+    }
+
     // load .env file at root of collection if it exists
     const dotEnvPath = path.join(collectionPath, '.env');
     const dotEnvExists = await exists(dotEnvPath);
@@ -406,7 +465,7 @@ const handler = async function (argv) {
       if (!recursive) {
         console.log(chalk.yellow('Running Folder \n'));
         const files = fs.readdirSync(filename);
-        const bruFiles = files.filter((file) => file.endsWith('.bru'));
+        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
 
         for (const bruFile of bruFiles) {
           const bruFilepath = path.join(filename, bruFile);
@@ -440,6 +499,7 @@ const handler = async function (argv) {
       }
     }
 
+    const runtime = getJsSandboxRuntime(sandbox);
     let currentRequestIndex = 0;
     let nJumps = 0; // count the number of jumps to avoid infinite loops
     while (currentRequestIndex < bruJsons.length) {
@@ -451,11 +511,12 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        collectionVariables,
+        runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,
-        collectionRoot
+        collectionRoot,
+        runtime
       );
 
       results.push({
@@ -501,28 +562,45 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    if (outputPath && outputPath.length) {
-      const outputDir = path.dirname(outputPath);
-      const outputDirExists = await exists(outputDir);
-      if (!outputDirExists) {
-        console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-      }
-
+    const formatKeys = Object.keys(formats);
+    if (formatKeys && formatKeys.length > 0) {
       const outputJson = {
         summary,
         results
       };
 
-      if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
-      } else if (format === 'junit') {
-        makeJUnitOutput(results, outputPath);
-      } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+      const reporters = {
+        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        'junit': (path) => makeJUnitOutput(results, path),
+        'html': (path) => makeHtmlOutput(outputJson, path),
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      for (const formatter of Object.keys(formats))
+      {
+        const reportPath = formats[formatter];
+        const reporter = reporters[formatter];
+
+        // Skip formatters lacking an output path.
+        if (!reportPath || reportPath.length === 0) {
+          continue;
+        }
+
+        const outputDir = path.dirname(reportPath);
+        const outputDirExists = await exists(outputDir);
+        if (!outputDirExists) {
+          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+        }
+
+        if (!reporter) {
+          console.error(chalk.red(`Reporter ${formatter} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+        }
+
+        reporter(reportPath);
+
+        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
+      }
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {

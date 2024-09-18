@@ -1,4 +1,5 @@
 const axios = require('axios');
+const { CLI_VERSION } = require('../constants');
 
 /**
  * Function that configures axios with timing interceptors
@@ -12,6 +13,7 @@ function makeAxiosInstance() {
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
+    config.headers['user-agent'] = `bruno-runtime/${CLI_VERSION}`;
     return config;
   });
 

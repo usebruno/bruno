@@ -115,7 +115,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
       collectionLocation: Yup.string()
         .min(1, 'must be at least 1 character')
         .max(500, 'must be 500 characters or less')
-        .required('name is required')
+        .required('Location is required')
     }),
     onSubmit: (values) => {
       handleSubmit(values.collectionLocation);
@@ -124,7 +124,9 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
   const browse = () => {
     dispatch(browseDirectory())
       .then((dirPath) => {
-        formik.setFieldValue('collectionLocation', dirPath);
+        if (typeof dirPath === 'string' && dirPath.length > 0) {
+          formik.setFieldValue('collectionLocation', dirPath);
+        }
       })
       .catch((error) => {
         formik.setFieldValue('collectionLocation', '');
@@ -160,7 +162,7 @@ const ImportCollectionLocation = ({ onClose, handleSubmit, collectionName, trans
               type="text"
               name="collectionLocation"
               readOnly={true}
-              className="block textbox mt-2 w-full"
+              className="block textbox mt-2 w-full cursor-pointer"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
