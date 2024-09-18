@@ -294,13 +294,25 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
+
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -437,11 +449,22 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
     return;
   }
 
+
+  const folderBruFilePath = path.join(pathname, `folder.bru`);
+
+  let name = path.basename(pathname);
+
+  if(fs.existsSync(folderBruFilePath)) {
+    let folderBruFileContent = fs.readFileSync(folderBruFilePath, 'utf8');
+    let folderBruData = collectionBruToJson(folderBruFileContent);
+    name = folderBruData?.meta?.name || name;
+  }
+
   const directory = {
     meta: {
       collectionUid,
       pathname,
-      name: path.basename(pathname)
+      name
     }
   };
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);

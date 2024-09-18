@@ -24,7 +24,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
-import { uuid } from 'utils/common';
+import CollectionItemInfo from './CollectionItemInfo/index';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -40,6 +40,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
   const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+  const [itemInfoModalOpen, setItemInfoModalOpen] = useState(false);
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -237,6 +238,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
       {generateCodeItemModalOpen && (
         <GenerateCodeItem collection={collection} item={item} onClose={() => setGenerateCodeItemModalOpen(false)} />
       )}
+      {itemInfoModalOpen && (
+        <CollectionItemInfo item={item} collection={collection} onClose={() => setItemInfoModalOpen(false)} />
+      )}
       <div className={itemRowClassName} ref={(node) => drag(drop(node))}>
         <div className="flex items-center h-full w-full">
           {indents && indents.length
@@ -379,6 +383,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Settings
                 </div>
               )}
+              <div
+                className="dropdown-item item-info"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  setItemInfoModalOpen(true);
+                }}
+              >
+                Info
+              </div>
             </Dropdown>
           </div>
         </div>

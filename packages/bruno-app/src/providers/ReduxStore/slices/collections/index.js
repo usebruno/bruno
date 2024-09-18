@@ -1485,12 +1485,12 @@ export const collectionsSlice = createSlice({
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
-              name: directoryName,
+              name: dir?.meta?.name || directoryName,
               filename: directoryName,
               collapsed: true,
               type: 'folder',
