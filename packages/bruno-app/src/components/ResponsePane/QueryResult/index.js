@@ -33,7 +33,7 @@ const formatResponse = (data, mode, filter) => {
     }
 
     if (!isValidJSON) {
-      return safeStringifyJSON(data);
+      return data;
     }
 
     if (filter) {
@@ -44,7 +44,7 @@ const formatResponse = (data, mode, filter) => {
       }
     }
 
-    return safeStringifyJSON(data);
+    return safeStringifyJSON(data, true);
   }
 
   if (mode.includes('xml')) {
@@ -52,7 +52,7 @@ const formatResponse = (data, mode, filter) => {
     if (typeof parsed === 'string') {
       return parsed;
     }
-    return safeStringifyJSON(parsed);
+    return safeStringifyJSON(parsed, true);
   }
 
   return data;
