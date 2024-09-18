@@ -7,7 +7,7 @@ import { deleteSecretsInEnvs, deleteUidsInEnvs, deleteUidsInItems } from '../col
  *
  * @param {string} url - The raw URL to be transformed.
  * @param {Object} params - The params object.
- * @returns {Object|null} An object containing the URL's protocol, host, path, query, and variables, or null if an error occurs.
+ * @returns {Object|null} An object containing the URL's protocol, host, path, query, and variables, or {} if an error occurs.
  */
 export const transformUrl = (url, params) => {
   if (typeof url !== 'string' || !url.trim()) {
@@ -62,7 +62,7 @@ export const transformUrl = (url, params) => {
     postmanUrl.path = path ? path.split(urlRegexPatterns.pathSegmentSeparator) : [];
   } catch (error) {
     console.error(error.message);
-    return null;
+    return {};
   }
 
   // Construct query params.
