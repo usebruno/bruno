@@ -5,6 +5,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload } = require('../../utils/common');
 
 const mergeFolderLevelHeaders = (request, requestTreePath) => {
   let folderHeaders = new Map();
@@ -300,7 +301,7 @@ const prepareRequest = (item, collection) => {
   let contentTypeDefined = false;
   let url = request.url;
 
-  // collection headers
+  // Collection level headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -319,6 +320,7 @@ const prepareRequest = (item, collection) => {
     mergeVars(collection, request, requestTreePath);
   }
 
+  // Request level headers
   each(request.headers, (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -372,11 +374,11 @@ const prepareRequest = (item, collection) => {
   }
 
   if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
 
   if (request.body.mode === 'multipartForm') {
