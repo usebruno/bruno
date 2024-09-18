@@ -1,4 +1,4 @@
-const { transformUrl } = require('../collections/export');
+const { sanitizeUrl, transformUrl } = require('./postman-collection');
 
 describe('transformUrl', () => {
   it('should handle basic URL with path variables', () => {
@@ -60,3 +60,22 @@ describe('transformUrl', () => {
   });
 });
 
+describe('sanitizeUrl', () => {
+  it('should replace backslashes with slashes', () => {
+    const input = 'http:\\\\example.com\\path\\to\\file';
+    const expected = 'http://example.com/path/to/file';
+    expect(sanitizeUrl(input)).toBe(expected);
+  });
+
+  it('should collapse multiple slashes into a single slash', () => {
+    const input = 'http://example.com//path///to////file';
+    const expected = 'http://example.com/path/to/file';
+    expect(sanitizeUrl(input)).toBe(expected);
+  });
+
+  it('should handle URLs with mixed slashes', () => {
+    const input = 'http:\\example.com//path\\to//file';
+    const expected = 'http://example.com/path/to/file';
+    expect(sanitizeUrl(input)).toBe(expected);
+  });
+})

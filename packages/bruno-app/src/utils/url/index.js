@@ -17,29 +17,6 @@ const hasLength = (str) => {
   return str.length > 0;
 };
 
-/**
- * Collapses multiple consecutive slashes (`//`) into a single slash, while skipping the protocol (e.g., `http://` or `https://`).
- * 
- * @param {String} url - A URL string
- * @returns {String} The sanitized URL
- * 
- */
-const collapseDuplicateSlashes = (url) => {
-  return url.replace(/(?<!:)\/{2,}/g, '/');
-};
-
-/**
- * Replaces all `\\` (backslashes) with `//` (forward slashes) and collapses multiple slashes into one.
- * 
- * @param {string} url - The URL to sanitize.
- * @returns {string} The sanitized URL.
- *
- */
-export const sanitizeUrl = (url) => {
-  let sanitizedUrl = collapseDuplicateSlashes(url.replace(/\\/g, '//'));
-  return sanitizedUrl;
-};
-
 export const parseQueryParams = (query) => {
   try {
     if (!query || !query.length) {

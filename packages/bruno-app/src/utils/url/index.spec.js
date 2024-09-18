@@ -1,4 +1,4 @@
-import { parseQueryParams, splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams, sanitizeUrl } from './index';
+import { parseQueryParams, splitOnFirst, parsePathParams, interpolateUrl, interpolateUrlPathParams } from './index';
 
 describe('Url Utils - parseQueryParams', () => {
   it('should parse query - case 1', () => {
@@ -207,25 +207,5 @@ describe('Url Utils - interpolateUrl, interpolateUrlPathParams', () => {
     const result = interpolateUrlPathParams(url, params);
 
     expect(result).toEqual(expectedUrl);
-  });
-});
-
-describe('Url Utils - sanitizeUrl', () => {
-  test('should replace backslashes with slashes', () => {
-    const input = 'http:\\\\example.com\\path\\to\\file';
-    const expected = 'http://example.com/path/to/file';
-    expect(sanitizeUrl(input)).toBe(expected);
-  });
-
-  test('should collapse multiple slashes into a single slash', () => {
-    const input = 'http://example.com//path///to////file';
-    const expected = 'http://example.com/path/to/file';
-    expect(sanitizeUrl(input)).toBe(expected);
-  });
-
-  test('should handle URLs with mixed slashes', () => {
-    const input = 'http:\\example.com//path\\to//file';
-    const expected = 'http://example.com/path/to/file';
-    expect(sanitizeUrl(input)).toBe(expected);
   });
 });
