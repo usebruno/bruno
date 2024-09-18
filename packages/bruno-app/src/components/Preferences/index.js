@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Support from './Support';
 import General from './General';
 import Font from './Font';
+import Appearances from './Appearances'
 import Theme from './Theme';
 import Proxy from './ProxySettings';
 import StyledWrapper from './StyledWrapper';
@@ -38,6 +39,10 @@ const Preferences = ({ onClose }) => {
       case 'font': {
         return <Font close={onClose} />;
       }
+
+      case 'appearances': {
+        return <Appearances close={onClose} />;
+      }
     }
   };
 
@@ -53,6 +58,9 @@ const Preferences = ({ onClose }) => {
           </div>
           <div className={getTabClassname('font')} role="tab" onClick={() => setTab('font')}>
             Font
+          </div>
+          <div className={getTabClassname('appearances')} role="tab" onClick={() => setTab('appearances')}>
+            Appearances
           </div>
           <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
             Proxy
