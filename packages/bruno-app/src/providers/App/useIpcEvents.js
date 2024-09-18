@@ -19,19 +19,10 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, getActiveCollection, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import * as path from 'path';
-
-const isTargetInMainPath = (mainPath, targetPath) => {
-  if (targetPath.startsWith('file://')) {
-    targetPath = new URL(targetPath).pathname;
-  }
-  const relativePath = path.relative(mainPath, path.resolve(targetPath));
-  return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
-}
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -158,13 +149,6 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
-    const removeTargetPathInActiveCollectionListener = ipcRenderer.on('main:is-target-path-in-active-collection', (val) => {
-      const { targetPath } = val;
-      const activeCollection = dispatch(getActiveCollection());
-      const { pathname } = activeCollection;
-      ipcRenderer.invoke('main:is-target-path-in-active-collection', isTargetInMainPath(pathname, targetPath));
-    });
-
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -181,7 +165,6 @@ const useIpcEvents = () => {
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
       removeSystemProxyEnvUpdatesListener();
-      removeTargetPathInActiveCollectionListener();
     };
   }, [isElectron]);
 };

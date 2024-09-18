@@ -133,15 +133,10 @@ app.on('ready', async () => {
     const allowedPaths = ['http://', 'https://'];
     const { url } = details;
     const isExternalUrl = allowedPaths.some(allowedPath => url.startsWith(allowedPath))
-    mainWindow.webContents.send('main:is-target-path-in-active-collection', {
-      targetPath: url
-    });
-    ipcMain.handleOnce('main:is-target-path-in-active-collection', (_, isTargetPathInActiveCollection) => {
-      if(isTargetPathInActiveCollection || isExternalUrl) {
-        require('electron').shell.openExternal(url);
-      }
-      return { action: 'deny' };
-    });
+    if(isExternalUrl) {
+      require('electron').shell.openExternal(url);
+    }
+    return { action: 'deny' };
   });
 
   // register all ipc handlers
