@@ -1140,3 +1140,13 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
       .catch(reject);
   });
 };
+
+export const getActiveCollection = () => (dispatch, getState) => {
+  const state = getState();
+  const activeTabUid = state?.tabs?.activeTabUid
+  const tabs = state?.tabs?.tabs || [];
+  const collections =state?.collections?.collections || []
+  const activeTab = find(tabs, (t) => t.uid === activeTabUid);
+  const activeCollection = find(collections, (c) => c.uid === activeTab.collectionUid);
+  return activeCollection;
+}
