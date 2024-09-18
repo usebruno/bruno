@@ -129,12 +129,14 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    const allowedPaths = ['http://', 'https://'];
-    const { url } = details;
-    const isExternalUrl = allowedPaths.some(allowedPath => url.startsWith(allowedPath))
-    if(isExternalUrl) {
-      require('electron').shell.openExternal(url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { protocol } = new URL(url);
+      if (['https:', 'http:'].includes(protocol)) {
+        require('electron').shell.openExternal(url);
+      }
+    } catch (e) {
+      console.error(e);
     }
     return { action: 'deny' };
   });
