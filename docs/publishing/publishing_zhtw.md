@@ -1,4 +1,4 @@
-[English](/publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md) | **正體中文** | [简体中文](docs/publishing/publishing_cn.md) | [Deutsch](docs/publishing/publishing_de.md)
+[English](../../publishing.md)
 
 ### 將 Bruno 發佈到新的套件管理器
 

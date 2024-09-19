@@ -1,4 +1,4 @@
-[English](../../publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md) | [正體中文](docs/publishing/publishing_zhtw.md) | **日本語**
+[English](../../publishing.md)
 
 ### Bruno を新しいパッケージマネージャに公開する場合の注意
 

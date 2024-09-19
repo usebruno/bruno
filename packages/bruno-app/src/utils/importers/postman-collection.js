@@ -23,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSON.parse(graphqlSource);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -71,12 +71,13 @@ const constructUrl = (url) => {
   return urlStr;
 };
 
-const translationLog = {};
+let translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
-
+  const requestMap = {};
+  
   each(item, (i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name;
@@ -101,11 +102,21 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
       }
     } else {
       if (i.request) {
+        const baseRequestName = i.name;
+        let requestName = baseRequestName;        
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
+        }
+        
+       
         let url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
@@ -125,7 +136,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               xml: null,
               formUrlEncoded: [],
               multipartForm: []
-            }
+            },
+            docs: i.request.description
           }
         };
         /* struct of translation log
@@ -192,12 +204,27 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         if (bodyMode) {
           if (bodyMode === 'formdata') {
             brunoRequestItem.request.body.mode = 'multipartForm';
+
             each(i.request.body.formdata, (param) => {
+              const isFile = param.type === 'file';
+              let value;
+              let type;
+
+              if (isFile) {
+                // If param.src is an array, keep it as it is.
+                // If param.src is a string, convert it into an array with a single element.
+                value = Array.isArray(param.src) ? param.src : typeof param.src === 'string' ? [param.src] : null;
+                type = 'file';
+              } else {
+                value = param.value;
+                type = 'text';
+              }
+
               brunoRequestItem.request.body.multipartForm.push({
                 uid: uuid(),
-                type: 'text',
+                type: type,
                 name: param.key,
-                value: param.value,
+                value: value,
                 description: param.description,
                 enabled: !param.disabled
               });
@@ -304,6 +331,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         });
 
         brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
       }
     }
   });
@@ -391,9 +419,13 @@ const importCollection = (options) => {
       .then((collection) => resolve({ collection, translationLog }))
       .catch((err) => {
         console.log(err);
+        translationLog = {};
         reject(new BrunoError('Import collection failed'));
       })
-      .then(() => logTranslationDetails(translationLog));
+      .then(() => {
+        logTranslationDetails(translationLog);
+        translationLog = {};
+      });
   });
 };
 

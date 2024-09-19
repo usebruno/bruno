@@ -123,7 +123,7 @@ const curlToJson = (curlCommand) => {
     request.urlWithoutQuery = 'http://' + request.urlWithoutQuery;
   }
 
-  requestJson.url = request.urlWithoutQuery.replace(/\/$/, '');
+  requestJson.url = request.urlWithoutQuery;
   requestJson.raw_url = request.url;
   requestJson.method = request.method;
 
@@ -160,14 +160,15 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    const splitAuth = request.auth.split(':');
-    const user = splitAuth[0] || '';
-    const password = splitAuth[1] || '';
-
-    requestJson.auth = {
-      user: repr(user),
-      password: repr(password)
-    };
+    if(request.auth.mode === 'basic'){
+      requestJson.auth = {
+        mode: 'basic',
+        basic: {
+          username: repr(request.auth.basic?.username),
+          password: repr(request.auth.basic?.password)
+        }
+      }
+    }
   }
 
   return Object.keys(requestJson).length ? requestJson : {};

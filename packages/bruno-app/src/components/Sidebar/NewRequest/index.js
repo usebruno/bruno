@@ -109,7 +109,8 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             collectionUid: collection.uid,
             itemUid: item ? item.uid : null,
             headers: request.headers,
-            body: request.body
+            body: request.body,
+            auth: request.auth
           })
         )
           .then(() => onClose())
@@ -220,6 +221,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
               id="request-name"
               type="text"
               name="requestName"
+              placeholder="Request Name"
               ref={inputRef}
               className="block textbox mt-2 w-full"
               autoComplete="off"
@@ -252,6 +254,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                       id="request-url"
                       type="text"
                       name="requestUrl"
+                      placeholder="Request URL"
                       className="px-3 w-full "
                       autoComplete="off"
                       autoCorrect="off"

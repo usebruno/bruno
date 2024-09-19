@@ -1,9 +1,169 @@
-const { get, each, filter, extend } = require('lodash');
+const os = require('os');
+const { get, each, filter, extend, compact } = require('lodash');
 const decomment = require('decomment');
-var JSONbig = require('json-bigint');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const { getTreePathFromCollectionToItem } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload } = require('../../utils/common');
+
+const mergeFolderLevelHeaders = (request, requestTreePath) => {
+  let folderHeaders = new Map();
+
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let headers = get(i, 'root.request.headers', []);
+      headers.forEach((header) => {
+        if (header.enabled) {
+          folderHeaders.set(header.name, header.value);
+        }
+      });
+    } else if (i.uid === request.uid) {
+      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
+      headers.forEach((header) => {
+        if (header.enabled) {
+          folderHeaders.set(header.name, header.value);
+        }
+      });
+    }
+  }
+
+  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
+  let requestHeaders = request.headers || [];
+  let requestHeadersMap = new Map();
+
+  for (let header of requestHeaders) {
+    if (header.enabled) {
+      requestHeadersMap.set(header.name, header.value);
+    }
+  }
+
+  mergedFolderHeaders.forEach((header) => {
+    requestHeadersMap.set(header.name, header.value);
+  });
+
+  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
+};
+
+const mergeVars = (collection, request, requestTreePath) => {
+  let reqVars = new Map();
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionVariables = {};
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      reqVars.set(_var.name, _var.value);
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  let folderVariables = {};
+  let requestVariables = {};
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          reqVars.set(_var.name, _var.value);
+          folderVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          reqVars.set(_var.name, _var.value);
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+
+  request.collectionVariables = collectionVariables;
+  request.folderVariables = folderVariables;
+  request.requestVariables = requestVariables;
+
+  request.vars.req = Array.from(reqVars, ([name, value]) => ({
+    name,
+    value,
+    enabled: true,
+    type: 'request'
+  }));
+
+  let resVars = new Map();
+  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+
+  request.vars.res = Array.from(resVars, ([name, value]) => ({
+    name,
+    value,
+    enabled: true,
+    type: 'response'
+  }));
+};
+
+const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
+  let folderCombinedPreReqScript = [];
+  let folderCombinedPostResScript = [];
+  let folderCombinedTests = [];
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let preReqScript = get(i, 'root.request.script.req', '');
+      if (preReqScript && preReqScript.trim() !== '') {
+        folderCombinedPreReqScript.push(preReqScript);
+      }
+
+      let postResScript = get(i, 'root.request.script.res', '');
+      if (postResScript && postResScript.trim() !== '') {
+        folderCombinedPostResScript.push(postResScript);
+      }
+
+      let tests = get(i, 'root.request.tests', '');
+      if (tests && tests?.trim?.() !== '') {
+        folderCombinedTests.push(tests);
+      }
+    }
+  }
+
+  if (folderCombinedPreReqScript.length) {
+    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  }
+
+  if (folderCombinedPostResScript.length) {
+    if (scriptFlow === 'sequential') {
+      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    } else {
+      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+    }
+  }
+
+  if (folderCombinedTests.length) {
+    if (scriptFlow === 'sequential') {
+      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
+    } else {
+      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+    }
+  }
+};
 
 const parseFormData = (datas, collectionPath) => {
   // make axios work in node using form data
@@ -133,12 +293,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = (request, collectionRoot, collectionPath) => {
+const prepareRequest = (item, collection) => {
+  const request = item.draft ? item.draft.request : item.request;
+  const collectionRoot = get(collection, 'root', {});
+  const collectionPath = collection.pathname;
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
 
-  // collection headers
+  // Collection level headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -148,6 +311,16 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     }
   });
 
+  // scriptFlow is either "sandwich" or "sequential"
+  const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeFolderLevelHeaders(request, requestTreePath);
+    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+  }
+
+  // Request level headers
   each(request.headers, (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -162,7 +335,7 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
     method: request.method,
     url,
     headers,
-    params: request.params.filter((param) => param.type === 'path'),
+    pathParams: request?.params?.filter((param) => param.type === 'path'),
     responseType: 'arraybuffer'
   };
 
@@ -173,9 +346,9 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+      axiosRequest.data = decomment(request?.body?.json);
+    } catch (error) {
+      axiosRequest.data = request?.body?.json;
     }
   }
 
@@ -201,11 +374,11 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   }
 
   if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
 
   if (request.body.mode === 'multipartForm') {
@@ -232,6 +405,9 @@ const prepareRequest = (request, collectionRoot, collectionPath) => {
   }
 
   axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;
