@@ -88,7 +88,6 @@ const Notifications = () => {
   return (
     <StyledWrapper>
       <a
-        role="menuitem"
         className="relative cursor-pointer"
         onClick={() => {
           dispatch(fetchNotifications());

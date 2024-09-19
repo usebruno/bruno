@@ -170,9 +170,7 @@ const Sidebar = () => {
                     </a>
                   </li>
                   <li role="menuitem">
-                    <a>
                       <Notifications />
-                    </a>
                   </li>
                 </ul>
               </div>
