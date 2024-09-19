@@ -1,5 +1,5 @@
 const os = require('os');
-const { get, each, filter, extend, compact } = require('lodash');
+const { get, each, filter, compact, forOwn } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 const fs = require('fs');

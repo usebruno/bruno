@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
