@@ -54,11 +54,28 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+const constructUrlFromParts = (url) => {
+  const { protocol = 'http', host, path, port, query, hash } = url || {};
+  const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
+  const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
+  const portStr = port ? `:${port}` : '';
+  const queryStr =
+    query && Array.isArray(query) && query.length > 0
+      ? `?${query
+          .filter((q) => q.key)
+          .map((q) => `${q.key}=${q.value || ''}`)
+          .join('&')}`
+      : '';
+  const fragmentStr = hash ? `#${hash}` : '';
+  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}${fragmentStr}`;
+  return urlStr;
+};
+
 const constructUrl = (url) => {
   if (!url) return '';
 
   if (typeof url === 'string') {
-    return url; 
+    return url;
   }
 
   if (typeof url === 'object') {
@@ -70,10 +87,13 @@ const constructUrl = (url) => {
         return raw.split('?')[0]; // Return part of raw before '?'
       }
       return raw;
+    } else {
+      // If the url is an object and it doesn't have a raw value we construct it.
+      constructUrlFromParts(url);
     }
   }
 
-  return ''; 
+  return '';
 };
 
 let translationLog = {};
@@ -82,7 +102,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
   const requestMap = {};
-  
+
   each(item, (i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name;
@@ -108,14 +128,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
     } else {
       if (i.request) {
         const baseRequestName = i.name;
-        let requestName = baseRequestName;        
+        let requestName = baseRequestName;
         let count = 1;
 
         while (requestMap[requestName]) {
           requestName = `${baseRequestName}_${count}`;
           count++;
         }
-       
+
         const url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
@@ -124,6 +144,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           type: 'http-request',
           request: {
             url: url,
+            // Converting the method type to uppercase as the method type can also be in lowercase. #3113
             method: i.request.method.toUpperCase(),
             auth: {
               mode: 'none',
