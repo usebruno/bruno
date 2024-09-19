@@ -1,0 +1,24 @@
+meta {
+  name: echo form-url-encoded
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{echo-host}}
+  body: formUrlEncoded
+  auth: none
+}
+
+body:form-urlencoded {
+  foo: {{foo}}
+}
+
+body:multipart-form {
+  foo: bar
+  file: @file(bruno.png)
+}
+
+assert {
+  res.body: eq foo=bar
+}

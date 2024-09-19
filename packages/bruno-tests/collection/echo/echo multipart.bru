@@ -1,0 +1,20 @@
+meta {
+  name: echo multipart
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  foo: {{foo}}
+  file: @file(bruno.png)
+}
+
+assert {
+  res.body: contains bar
+}

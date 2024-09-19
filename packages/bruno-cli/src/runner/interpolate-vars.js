@@ -78,6 +78,14 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
         request.data = JSON.parse(parsed);
       } catch (err) {}
     }
+  } else if (contentType === 'multipart/form-data') {
+    if (typeof request.data === 'object' && !(request?.data instanceof FormData)) {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
   } else {
     request.data = _interpolate(request.data);
   }
