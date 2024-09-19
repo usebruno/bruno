@@ -55,20 +55,25 @@ const convertV21Auth = (array) => {
 };
 
 const constructUrl = (url) => {
-  let urlStr = '';
+  if (!url) return '';
+
   if (typeof url === 'string') {
-    urlStr = url;
-  } else if (url.raw) {
-    urlStr = url.raw;
-  } else {
-    const { protocol, host, path, port, query } = url;
-    const hostStr = Array.isArray(host) ? host.join('.') : host;
-    const pathStr = Array.isArray(path) ? path.join('/') : path;
-    const portStr = port ? `:${port}` : '';
-    const queryStr = query && query.length > 0 ? `?${query.map((q) => `${q.key}=${q.value}`).join('&')}` : '';
-    urlStr = `${protocol}://${hostStr}${portStr}/${pathStr}${queryStr}`;
+    return url; 
   }
-  return urlStr;
+
+  if (typeof url === 'object') {
+    const { raw, query } = url;
+
+    if (raw && typeof raw === 'string') {
+      // If query params are explicitly defined and 'raw' contains '?'
+      if (query && raw.includes('?')) {
+        return raw.split('?')[0]; // Return part of raw before '?'
+      }
+      return raw;
+    }
+  }
+
+  return ''; 
 };
 
 let translationLog = {};
@@ -110,9 +115,8 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           requestName = `${baseRequestName}_${count}`;
           count++;
         }
-        
        
-        let url = constructUrl(i.request.url);
+        const url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
           uid: uuid(),
@@ -120,7 +124,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           type: 'http-request',
           request: {
             url: url,
-            method: i.request.method,
+            method: i.request.method.toUpperCase(),
             auth: {
               mode: 'none',
               basic: null,
@@ -319,12 +323,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           });
         });
 
-        each(get(i, 'request.url.variable'), (param) => {
+        each(get(i, 'request.url.variable', []), (param) => {
+          if (param.key === undefined) {
+            return;
+          }
+
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: param.key,
-            value: param.value,
-            description: param.description,
+            value: param.value || '',
+            description: param.description || '',
             type: 'path',
             enabled: true
           });
