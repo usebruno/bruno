@@ -11,12 +11,12 @@ post {
 }
 
 assert {
-  res.body: contains bar
+  res.body: contains form-data-value
 }
 
 script:pre-request {
   const FormData = require("form-data");
   const form = new FormData();
-  form.append('foo', 'bar');
+  form.append('form-data-key', 'form-data-value');
   req.setBody(form);
 }

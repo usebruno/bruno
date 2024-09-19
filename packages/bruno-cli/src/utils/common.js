@@ -1,5 +1,7 @@
 const fs = require('fs');
 const FormData = require('form-data');
+const { forOwn } = require('lodash');
+const path = require('path');
 
 const lpad = (str, width) => {
   let paddedStr = str;

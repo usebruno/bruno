@@ -11,10 +11,14 @@ post {
 }
 
 body:multipart-form {
-  foo: {{foo}}
+  foo: {{form-data-key}}
   file: @file(bruno.png)
 }
 
 assert {
-  res.body: contains bar
+  res.body: contains form-data-value
+}
+
+script:pre-request {
+  bru.setVar('form-data-key', 'form-data-value');
 }

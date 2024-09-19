@@ -11,14 +11,13 @@ post {
 }
 
 body:form-urlencoded {
-  foo: {{foo}}
+  form-data-key: {{form-data-key}}
 }
 
-body:multipart-form {
-  foo: bar
-  file: @file(bruno.png)
+script:pre-request {
+  bru.setVar('form-data-key', 'form-data-value');
 }
 
 assert {
-  res.body: eq foo=bar
+  res.body: eq form-data-key=form-data-value
 }
