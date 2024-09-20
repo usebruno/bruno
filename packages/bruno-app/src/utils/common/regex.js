@@ -3,8 +3,8 @@ export const variableNameRegex = /^[\w-.]*$/;
 export const sanitizeName = (name) => {
     const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // Match one or more invalid characters
     return name
-        .replace(invalidCharacters, '-')      // Replace invalid characters with hyphens
-        .replace(/^[\.\-\s]+|[\.\s]+$/g, '');
+        .replace(invalidCharacters, '-')       // Replace invalid characters with hyphens
+        .replace(/^[\.\-\s]+|[\.\s]+$/g, '');  // Remove leading dots, hyphens, and spaces; remove trailing dots and spaces
 };
 
 export const validateName = (name) => {
