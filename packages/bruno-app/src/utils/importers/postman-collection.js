@@ -66,8 +66,7 @@ const constructUrlFromParts = (url) => {
           .map((q) => `${q.key}=${q.value || ''}`)
           .join('&')}`
       : '';
-  const fragmentStr = hash ? `#${hash}` : '';
-  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}${fragmentStr}`;
+  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
   return urlStr;
 };
 
@@ -82,9 +81,9 @@ const constructUrl = (url) => {
     const { raw, query } = url;
 
     if (raw && typeof raw === 'string') {
-      // If query params are explicitly defined and 'raw' contains '?'
-      if (query && raw.includes('?')) {
-        return raw.split('?')[0]; // Return part of raw before '?'
+      // If the raw URL contains url-fragments remove it
+      if (raw.includes('#')) {
+        return raw.split('#')[0]; // Returns the part of raw URL without the url-fragment part.
       }
       return raw;
     }
@@ -144,7 +143,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           type: 'http-request',
           request: {
             url: url,
-            // Converting the method type to uppercase as the method type can also be in lowercase. #3113
+            // Converting the method type to uppercase as the method type can also be in lowercase. Issue #3113
             method: i.request.method.toUpperCase(),
             auth: {
               mode: 'none',
@@ -345,15 +344,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         });
 
         each(get(i, 'request.url.variable', []), (param) => {
-          if (param.key === undefined) {
+          if (!param.key) {
             return;
           }
 
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: param.key,
-            value: param.value || '',
-            description: param.description || '',
+            value: param.value ?? '',
+            description: param.description ?? '',
             type: 'path',
             enabled: true
           });
