@@ -87,10 +87,10 @@ const constructUrl = (url) => {
         return raw.split('?')[0]; // Return part of raw before '?'
       }
       return raw;
-    } else {
-      // If the url is an object and it doesn't have a raw value we construct it.
-      constructUrlFromParts(url);
     }
+
+    // If no raw value exists, construct the URL from parts
+    return constructUrlFromParts(url);
   }
 
   return '';
