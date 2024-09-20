@@ -1,4 +1,3 @@
-import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
@@ -292,6 +291,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
           }
         }
 
