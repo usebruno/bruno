@@ -4,8 +4,7 @@ export const sanitizeName = (name) => {
     const invalidCharacters = /[<>:"/\\|?*\x00-\x1F]/g; // Match one or more invalid characters
     return name
         .replace(invalidCharacters, '-')      // Replace invalid characters with hyphens
-        .replace(/^-+/, '')                   // Remove leading hyphens
-        .replace(/\.$/, '');                  // Remove trailing period if it exists
+        .replace(/^[\.\-\s]+|[\.\s]+$/g, '');
 };
 
 export const validateName = (name) => {
