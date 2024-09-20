@@ -6,9 +6,10 @@ import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
 import { cloneItem } from 'providers/ReduxStore/slices/collections/actions';
-import { normalizeFileName } from 'utils/common/index';
 import { IconEdit, IconFile } from '@tabler/icons';
 import * as path from 'path';
+import { sanitizeName, validateName } from 'utils/common/regex';
+import StyledWrapper from './StyledWrapper';
 
 const CloneCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -22,7 +23,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
     enableReinitialize: true,
     initialValues: {
       name: itemName,
-      filename: itemFilename
+      filename: sanitizeName(itemFilename)
     },
     validationSchema: Yup.object({
       name: Yup.string()
@@ -33,22 +34,11 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
         .min(1, 'must be at least 1 character')
         .max(50, 'must be 50 characters or less')
         .required('name is required')
-        .test({
-          name: 'filename',
-          message: `The file names - collection and folder is reserved in bruno`,
-          test: (value) => {
-            const trimmedValue = value ? value.trim().toLowerCase() : '';
-            return !['collection', 'folder'].includes(trimmedValue);
-          }
+        .test('is-valid-filename', function(value) {
+          const isValid = validateName(value);
+          return isValid ? true : this.createError({ message: validateNameError(value) });
         })
-        .test({
-          name: 'filename',
-          message: `Invalid file name`,
-          test: (value) => {
-            const trimmedValue = value ? value.trim().toLowerCase() : '';
-            return (normalizeFileName(trimmedValue) === trimmedValue)
-          }
-        })
+        .test('not-reserved', `The file names "collection" and "folder" are reserved in bruno`, value => !['collection', 'folder'].includes(value))
     }),
     onSubmit: (values) => {
       dispatch(cloneItem(values.name, values.filename, item.uid, collection.uid))
@@ -70,15 +60,21 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
   const onSubmit = () => formik.handleSubmit();
 
   const filename = formik.values.filename;
+  const name = formik.values.name;
+  const doNamesDiffer = filename !== name;
+
+  console.log("clone item", filename, itemFilename);
+
   const filenameFooter = !isEditingFilename && filename ?
-    <div className='flex flex-row gap-2 items-center w-full h-full'>
-      <p className='cursor-default opacity-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-64' title={filename}>{filename}{itemType !== 'folder' ? '.bru' : ''}</p>
+    <div className={`flex flex-row gap-2 items-center w-full h-full`}>
+      <p className={`cursor-default whitespace-nowrap overflow-hidden text-ellipsis max-w-64 ${doNamesDiffer? 'highlight': 'opacity-50'}`} title={filename}>{filename}{itemType !== 'folder' ? '.bru' : ''}</p>
       <IconEdit className="cursor-pointer opacity-50 hover:opacity-80" size={20} strokeWidth={1.5} onClick={() => toggleEditingFilename(v => !v)} />
     </div>
     :
     <></>
 
   return (
+    <StyledWrapper>
     <Modal
       size="md"
       title={`Clone ${isFolder ? 'Folder' : 'Request'}`}
@@ -105,12 +101,13 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
             spellCheck="false"
             onChange={e => {
               formik.setFieldValue('name', e.target.value);
-              !isEditingFilename && formik.setFieldValue('filename', normalizeFileName(e.target.value));
+              !isEditingFilename && formik.setFieldValue('filename', sanitizeName(e.target.value));
             }}
             value={formik.values.name || ''}
           />
           {formik.touched.name && formik.errors.name ? <div className="text-red-500">{formik.errors.name}</div> : null}
         </div>
+        {formik.touched.filename && formik.errors.filename ? <div className="text-red-500">{formik.errors.filename}</div> : null}
         {
           isEditingFilename ?
             <div className="mt-4">
@@ -142,6 +139,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
         }
       </form>
     </Modal>
+    </StyledWrapper>
   );
 };
 

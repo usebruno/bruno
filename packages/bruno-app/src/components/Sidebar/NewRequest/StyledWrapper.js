@@ -43,6 +43,10 @@ const StyledWrapper = styled.div`
   .file-extension {
     color: ${(props) => props.theme.colors.text.darkOrange};
   }
+
+  .highlight {
+    color: ${(props) => props.theme.colors.text.yellow};
+  }
 `;
 
 export default StyledWrapper;
