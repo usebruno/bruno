@@ -78,7 +78,7 @@ const constructUrl = (url) => {
   }
 
   if (typeof url === 'object') {
-    const { raw, query } = url;
+    const { raw } = url;
 
     if (raw && typeof raw === 'string') {
       // If the raw URL contains url-fragments remove it
