@@ -219,6 +219,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'apikey':
+        const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
     }
   }
 
@@ -285,6 +294,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               scope: get(request, 'auth.oauth2.scope')
             };
             break;
+        }
+        break;
+      case 'apikey':
+        const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
     }

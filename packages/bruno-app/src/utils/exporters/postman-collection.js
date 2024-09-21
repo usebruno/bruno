@@ -246,7 +246,7 @@ export const exportCollection = (collection) => {
   };
 
   const generateAuth = (itemAuth) => {
-    switch (itemAuth) {
+    switch (itemAuth?.mode) {
       case 'bearer':
         return {
           type: 'bearer',
@@ -272,6 +272,27 @@ export const exportCollection = (collection) => {
             }
           ]
         };
+      }
+      case 'apikey': {
+        return {
+          type: 'apikey',
+          apikey: [
+            {
+              key: 'key',
+              value: itemAuth.apikey.key,
+              type: 'string'
+            },
+            {
+              key: 'value',
+              value: itemAuth.apikey.value,
+              type: 'string'
+            }
+          ]
+        };
+      }
+      default: {
+        console.error('Unsupported auth mode:', itemAuth.mode);
+        return null;
       }
     }
   };

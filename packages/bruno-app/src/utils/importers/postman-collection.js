@@ -1,10 +1,10 @@
-import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import each from 'lodash/each';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -292,6 +292,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
           }
         }
 

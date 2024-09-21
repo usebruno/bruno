@@ -55,7 +55,11 @@ const formatResponse = (data, mode, filter) => {
     return safeStringifyJSON(parsed, true);
   }
 
-  return data;
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  return safeStringifyJSON(data, true);
 };
 
 const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {

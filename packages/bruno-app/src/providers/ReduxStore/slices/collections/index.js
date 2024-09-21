@@ -477,6 +477,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
               break;
+            case 'apikey':
+              item.draft.request.auth.mode = 'apikey';
+              item.draft.request.auth.apikey = action.payload.content;
+              break;
           }
         }
       }
@@ -1136,6 +1140,9 @@ export const collectionsSlice = createSlice({
             break;
           case 'oauth2':
             set(collection, 'root.request.auth.oauth2', action.payload.content);
+            break;
+          case 'apikey':
+            set(collection, 'root.request.auth.apikey', action.payload.content);
             break;
         }
       }
