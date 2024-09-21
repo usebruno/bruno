@@ -76,13 +76,15 @@ const Modal = ({
   const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
 
-  const handleKeydown = ({ keyCode }) => {
+  const handleKeydown = (event) => {
+    const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
     switch (keyCode) {
       case ESC_KEY_CODE: {
+        if (disableEscapeKey) return;
         return closeModal({ type: 'esc' });
       }
       case ENTER_KEY_CODE: {
-        if(handleConfirm) {
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
           return handleConfirm();
         }
       }
@@ -97,7 +99,6 @@ const Modal = ({
   };
 
   useEffect(() => {
-    if (disableEscapeKey) return;
     document.addEventListener('keydown', handleKeydown, false);
     return () => {
       document.removeEventListener('keydown', handleKeydown);
