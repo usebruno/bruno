@@ -4,6 +4,7 @@ import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import each from 'lodash/each';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
