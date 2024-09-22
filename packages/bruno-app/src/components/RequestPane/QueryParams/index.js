@@ -18,6 +18,7 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
+import MultiLineEditor from 'components/MultiLineEditor/index';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -142,14 +143,16 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <SingleLineEditor
-                        value={param.value}
+                      <MultiLineEditor
                         theme={storedTheme}
+                        value={param.value}
                         onSave={onSave}
                         onChange={(newValue) => handleQueryParamChange({ target: { value: newValue } }, param, 'value')}
                         onRun={handleRun}
+                        allowNewlines={true}
                         collection={collection}
                         variablesAutocomplete={true}
+                        item={item}
                       />
                     </td>
                     <td>

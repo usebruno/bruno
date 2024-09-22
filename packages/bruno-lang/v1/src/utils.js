@@ -29,8 +29,18 @@ const outdentString = (str) => {
     .join('\n');
 };
 
+const escapeNewlines = (str = '') => {
+  return str?.replace(/\n/g, '\\n')
+}
+
+const unescapeNewlines = (str = '') => {
+  return str?.replace(/\\n/g, '\n');
+}
+
 module.exports = {
   safeParseJson,
   indentString,
-  outdentString
+  outdentString,
+  escapeNewlines,
+  unescapeNewlines
 };
