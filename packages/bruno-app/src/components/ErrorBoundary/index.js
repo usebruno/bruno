@@ -7,6 +7,10 @@ const GlobalErrorBoundaryFallback = ({ error, resetErrorBoundary }) => {
     console.error(error);
   }, [error]);
 
+  const retry = () => {
+    resetErrorBoundary();
+  }
+
   const resetApp = () => {
     const { ipcRenderer } = window;
     store.dispatch({type: 'RESET_STATE'});
@@ -40,17 +44,27 @@ const GlobalErrorBoundaryFallback = ({ error, resetErrorBoundary }) => {
           </a>
         </p>
 
-        <button
-          className="bg-red-500 text-white px-4 py-2 mt-4 rounded hover:bg-red-600 transition"
-          onClick={() => resetApp()}
-        >
-          Return to App
-        </button>
+        <div className="flex flex-row gap-2 w-full justify-center">
+          <button
+            className="bg-red-500 text-white px-4 py-2 mt-4 rounded hover:bg-red-600 transition"
+            onClick={() => retry()}
+          >
+            Retry
+          </button>
 
-        <div className="text-red-500 mt-3">
-          <a href="" className="hover:underline cursor-pointer" onClick={forceQuit}>
+          <button
+            className="bg-red-500 text-white px-4 py-2 mt-4 rounded hover:bg-red-600 transition"
+            onClick={() => resetApp()}
+          >
+            Reset App
+          </button>
+          <button
+            className="border border-red-500 text-red-500 px-4 py-2 mt-4 rounded hover:border-red-600 transition"
+            onClick={() => forceQuit()}
+          >
             Force Quit
-          </a>
+          </button>
+
         </div>
       </div>
     </div>
