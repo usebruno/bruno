@@ -1,32 +1,18 @@
 import React, { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
 import { pluralizeWord } from 'utils/common';
-import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
-const SaveRequestsModal = ({ onConfirm, onClose, draftRequests = [] }) => {
+const SaveRequestsModal = ({ onSaveAndClose, onCloseWithoutSave, onCancel, items = [] }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
-  const dispatch = useDispatch();
 
   useEffect(() => {
-    if (draftRequests.length === 0) {
-      return dispatch(onConfirm());
+    if (items.length === 0) {
+      return onCloseWithoutSave([]);
     }
-  }, [draftRequests, dispatch]);
+  }, [items]);
 
-  const closeWithoutSave = () => {
-    dispatch(onConfirm());
-    onClose();
-  };
-
-  const closeWithSave = () => {
-    dispatch(saveMultipleRequests(draftRequests))
-      .then(() => dispatch(onConfirm()))
-      .then(() => onClose());
-  };
-
-  if (!draftRequests.length) {
+  if (!items.length) {
     return null;
   }
 
@@ -36,7 +22,7 @@ const SaveRequestsModal = ({ onConfirm, onClose, draftRequests = [] }) => {
       title="Unsaved changes"
       confirmText="Save and Close"
       cancelText="Close without saving"
-      handleCancel={onClose}
+      handleCancel={onCancel}
       disableEscapeKey={true}
       disableCloseOnOutsideClick={true}
       closeModalFadeTimeout={150}
@@ -48,11 +34,11 @@ const SaveRequestsModal = ({ onConfirm, onClose, draftRequests = [] }) => {
       </div>
       <p className="mt-4">
         Do you want to save the changes you made to the following{' '}
-        <span className="font-medium">{draftRequests.length}</span> {pluralizeWord('request', draftRequests.length)}?
+        <span className="font-medium">{items.length}</span> {pluralizeWord('request', items.length)}?
       </p>
 
       <ul className="mt-4">
-        {draftRequests.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+        {items.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
           return (
             <li key={item.uid} className="mt-1 text-xs">
               {item.filename}
@@ -61,25 +47,25 @@ const SaveRequestsModal = ({ onConfirm, onClose, draftRequests = [] }) => {
         })}
       </ul>
 
-      {draftRequests.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+      {items.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
         <p className="mt-1 text-xs">
-          ...{draftRequests.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-          {pluralizeWord('request', draftRequests.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+          ...{items.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
+          {pluralizeWord('request', items.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
         </p>
       )}
 
       <div className="flex justify-between mt-6">
         <div>
-          <button className="btn btn-sm btn-danger" onClick={closeWithoutSave}>
+          <button className="btn btn-sm btn-danger" onClick={() => onCloseWithoutSave(items)}>
             Don't Save
           </button>
         </div>
         <div>
-          <button className="btn btn-close btn-sm mr-2" onClick={onClose}>
+          <button className="btn btn-close btn-sm mr-2" onClick={onCancel}>
             Cancel
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={closeWithSave}>
-            {draftRequests.length > 1 ? 'Save All' : 'Save'}
+          <button className="btn btn-secondary btn-sm" onClick={() => onSaveAndClose(items)}>
+            {items.length > 1 ? 'Save All' : 'Save'}
           </button>
         </div>
       </div>

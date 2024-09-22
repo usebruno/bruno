@@ -7,6 +7,7 @@ import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
 import SaveRequestsModal from './SaveRequestsModal';
 import { isElectron } from 'utils/common/platform';
+import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 
 const ConfirmAppClose = () => {
@@ -41,10 +42,10 @@ const ConfirmAppClose = () => {
       const collection = findCollectionByUid(collections, collectionUid);
       if (collection) {
         const items = flattenItems(collection.items);
-        const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
-        each(drafts, (draft) => {
+        const requests = filter(items, (item) => isItemARequest(item) && item.draft);
+        each(requests, (request) => {
           draftRequests.push({
-            ...draft,
+            ...request,
             collectionUid: collectionUid
           });
         });
@@ -53,7 +54,17 @@ const ConfirmAppClose = () => {
     return draftRequests
   }
 
-  return <SaveRequestsModal draftRequests={getAllDraftRequests()} onConfirm={completeQuitFlow} onClose={() => setShowConfirmClose(false)} />;
+  const quit = () => dispatch(completeQuitFlow());
+
+  const handleSaveAndClose = async items => {
+    await dispatch(saveMultipleRequests(items));
+    quit();
+  }
+
+  return <SaveRequestsModal items={getAllDraftRequests()} 
+    onCancel={() => setShowConfirmClose(false)}
+    onCloseWithoutSave={quit}
+    onSaveAndClose={handleSaveAndClose} />;
 };
 
 export default ConfirmAppClose;
