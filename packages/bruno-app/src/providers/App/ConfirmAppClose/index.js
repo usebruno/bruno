@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import SaveRequestsModal from './SaveRequestsModal';
 import { isElectron } from 'utils/common/platform';
+import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 
 const ConfirmAppClose = () => {
   const { ipcRenderer } = window;
@@ -26,7 +27,7 @@ const ConfirmAppClose = () => {
     return null;
   }
 
-  return <SaveRequestsModal onClose={() => setShowConfirmClose(false)} />;
+  return <SaveRequestsModal onConfirm={completeQuitFlow} onClose={() => setShowConfirmClose(false)} />;
 };
 
 export default ConfirmAppClose;

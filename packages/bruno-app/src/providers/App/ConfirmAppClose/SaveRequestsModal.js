@@ -6,12 +6,11 @@ import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
 import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
-import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
-const SaveRequestsModal = ({ onClose }) => {
+const SaveRequestsModal = ({ onConfirm, onClose }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
   const currentDrafts = [];
   const collections = useSelector((state) => state.collections.collections);
@@ -35,18 +34,18 @@ const SaveRequestsModal = ({ onClose }) => {
 
   useEffect(() => {
     if (currentDrafts.length === 0) {
-      return dispatch(completeQuitFlow());
+      return dispatch(onConfirm());
     }
   }, [currentDrafts, dispatch]);
 
   const closeWithoutSave = () => {
-    dispatch(completeQuitFlow());
+    dispatch(onConfirm());
     onClose();
   };
 
   const closeWithSave = () => {
     dispatch(saveMultipleRequests(currentDrafts))
-      .then(() => dispatch(completeQuitFlow()))
+      .then(() => dispatch(onConfirm()))
       .then(() => onClose());
   };
 
