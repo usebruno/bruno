@@ -4,6 +4,8 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import CopyToClipboard from 'components/CopyToClipboard';
+import StyledContainer from './StyledContainer';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -174,10 +176,20 @@ class SingleLineEditor extends Component {
 
   render() {
     return (
-      <div className="flex flex-row justify-between w-full overflow-x-auto">
+      <StyledContainer className="flex flex-row justify-between w-full overflow-x-auto">
         <StyledWrapper ref={this.editorRef} className="single-line-editor grow" />
+        <CopyToClipboard
+          className={[
+            'copy-to-clipboard',
+            'absolute',
+            'top-1/2',
+            '-translate-y-1/2',
+            this.props.isSecret ? 'right-9' : 'right-1'
+          ]}
+          copy={this.cachedValue}
+        />
         {this.secretEye(this.props.isSecret)}
-      </div>
+      </StyledContainer>
     );
   }
 }

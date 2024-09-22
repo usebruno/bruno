@@ -6,6 +6,7 @@ import { useTheme } from 'providers/Theme';
 import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import StyledCopyToClipboard from './StyledCopyToClipboard';
 
 const KeyValueExplorer = ({ data = [], theme }) => {
   const [showSecret, setShowSecret] = useState(false);
@@ -18,11 +19,12 @@ const KeyValueExplorer = ({ data = [], theme }) => {
           {data.map((envVar) => (
             <tr key={envVar.name}>
               <td className="px-2 py-1">{envVar.name}</td>
-              <td className="px-2 py-1">
+              <td className="px-2 py-1 pr-8">
                 <Inspector
                   data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
                   theme={theme}
                 />
+                <StyledCopyToClipboard copy={envVar.value} />
               </td>
             </tr>
           ))}
