@@ -5,6 +5,7 @@ const { openCollection } = require('../app/collections');
 ``;
 const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.handle('renderer:ready', async (event) => {
+    watcher?.resetWatcher?.();
     // load preferences
     const preferences = getPreferences();
     mainWindow.webContents.send('main:load-preferences', preferences);

@@ -15,8 +15,10 @@ import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import { IconWand } from '@tabler/icons';
+import { withErrorBoundary } from 'react-error-boundary';
 
 import onHasCompletion from './onHasCompletion';
+import ComponentLevelErrorFallback from 'components/ErrorBoundary/ComponentLevelErrorFallback/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -28,7 +30,7 @@ if (!SERVER_RENDERED) {
 const md = new MD();
 const AUTO_COMPLETE_AFTER_KEY = /^[a-zA-Z0-9_@(]$/;
 
-export default class QueryEditor extends React.Component {
+class QueryEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -274,3 +276,9 @@ export default class QueryEditor extends React.Component {
     }
   }
 }
+
+const QueryEditorWithErrorBoundary = withErrorBoundary(QueryEditor, {
+  FallbackComponent: ComponentLevelErrorFallback
+})
+
+export default QueryEditorWithErrorBoundary;

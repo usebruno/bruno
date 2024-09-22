@@ -493,6 +493,11 @@ class Watcher {
     return this.watchers[watchPath];
   }
 
+  resetWatcher() {
+    _.each(this.watchers, w => w?.close?.());
+    this.watchers = {};    
+  }
+
   removeWatcher(watchPath, win) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();

@@ -13,6 +13,8 @@ import StyledWrapper from './StyledWrapper';
 import jsonlint from 'jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { withErrorBoundary } from 'react-error-boundary';
+import ComponentLevelErrorFallback from 'components/ErrorBoundary/ComponentLevelErrorFallback/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -105,7 +107,7 @@ if (!SERVER_RENDERED) {
   };
 }
 
-export default class CodeEditor extends React.Component {
+class CodeEditor extends React.Component {
   constructor(props) {
     super(props);
 
@@ -421,3 +423,9 @@ export default class CodeEditor extends React.Component {
     }
   };
 }
+
+const CodeEditorWithErrorBoundary = withErrorBoundary(CodeEditor, {
+  FallbackComponent: (props) => <ComponentLevelErrorFallback {...props} />
+});
+
+export default CodeEditor;
