@@ -1,42 +1,19 @@
 import React, { useEffect } from 'react';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
-import groupBy from 'lodash/groupBy';
-import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collections';
 import { pluralizeWord } from 'utils/common';
 import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { IconAlertTriangle } from '@tabler/icons';
 import Modal from 'components/Modal';
 
-const SaveRequestsModal = ({ onConfirm, onClose }) => {
+const SaveRequestsModal = ({ onConfirm, onClose, draftRequests = [] }) => {
   const MAX_UNSAVED_REQUESTS_TO_SHOW = 5;
-  const currentDrafts = [];
-  const collections = useSelector((state) => state.collections.collections);
-  const tabs = useSelector((state) => state.tabs.tabs);
   const dispatch = useDispatch();
 
-  const tabsByCollection = groupBy(tabs, (t) => t.collectionUid);
-  Object.keys(tabsByCollection).forEach((collectionUid) => {
-    const collection = findCollectionByUid(collections, collectionUid);
-    if (collection) {
-      const items = flattenItems(collection.items);
-      const drafts = filter(items, (item) => isItemARequest(item) && item.draft);
-      each(drafts, (draft) => {
-        currentDrafts.push({
-          ...draft,
-          collectionUid: collectionUid
-        });
-      });
-    }
-  });
-
   useEffect(() => {
-    if (currentDrafts.length === 0) {
+    if (draftRequests.length === 0) {
       return dispatch(onConfirm());
     }
-  }, [currentDrafts, dispatch]);
+  }, [draftRequests, dispatch]);
 
   const closeWithoutSave = () => {
     dispatch(onConfirm());
@@ -44,12 +21,12 @@ const SaveRequestsModal = ({ onConfirm, onClose }) => {
   };
 
   const closeWithSave = () => {
-    dispatch(saveMultipleRequests(currentDrafts))
+    dispatch(saveMultipleRequests(draftRequests))
       .then(() => dispatch(onConfirm()))
       .then(() => onClose());
   };
 
-  if (!currentDrafts.length) {
+  if (!draftRequests.length) {
     return null;
   }
 
@@ -71,11 +48,11 @@ const SaveRequestsModal = ({ onConfirm, onClose }) => {
       </div>
       <p className="mt-4">
         Do you want to save the changes you made to the following{' '}
-        <span className="font-medium">{currentDrafts.length}</span> {pluralizeWord('request', currentDrafts.length)}?
+        <span className="font-medium">{draftRequests.length}</span> {pluralizeWord('request', draftRequests.length)}?
       </p>
 
       <ul className="mt-4">
-        {currentDrafts.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
+        {draftRequests.slice(0, MAX_UNSAVED_REQUESTS_TO_SHOW).map((item) => {
           return (
             <li key={item.uid} className="mt-1 text-xs">
               {item.filename}
@@ -84,10 +61,10 @@ const SaveRequestsModal = ({ onConfirm, onClose }) => {
         })}
       </ul>
 
-      {currentDrafts.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
+      {draftRequests.length > MAX_UNSAVED_REQUESTS_TO_SHOW && (
         <p className="mt-1 text-xs">
-          ...{currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
-          {pluralizeWord('request', currentDrafts.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
+          ...{draftRequests.length - MAX_UNSAVED_REQUESTS_TO_SHOW} additional{' '}
+          {pluralizeWord('request', draftRequests.length - MAX_UNSAVED_REQUESTS_TO_SHOW)} not shown
         </p>
       )}
 
@@ -102,7 +79,7 @@ const SaveRequestsModal = ({ onConfirm, onClose }) => {
             Cancel
           </button>
           <button className="btn btn-secondary btn-sm" onClick={closeWithSave}>
-            {currentDrafts.length > 1 ? 'Save All' : 'Save'}
+            {draftRequests.length > 1 ? 'Save All' : 'Save'}
           </button>
         </div>
       </div>
