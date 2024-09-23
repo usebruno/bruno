@@ -54,7 +54,6 @@
     "rollup":"3.29.4"
   },
   "dependencies": {
-    "crypto-js": "^4.2.0",
     "json-bigint": "^1.0.0",
     "lossless-json": "^4.0.1"
   }
