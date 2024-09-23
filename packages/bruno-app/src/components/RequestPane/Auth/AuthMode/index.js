@@ -30,7 +30,6 @@ const AuthMode = ({ item, collection }) => {
       })
     );
   };
-
   return (
     <StyledWrapper>
       <div className="inline-flex items-center cursor-pointer auth-mode-selector">
@@ -79,6 +78,15 @@ const AuthMode = ({ item, collection }) => {
             }}
           >
             OAuth 2.0
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
           </div>
           <div
             className="dropdown-item"

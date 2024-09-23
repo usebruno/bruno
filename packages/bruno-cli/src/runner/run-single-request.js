@@ -19,6 +19,7 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
+const { createFormData } = require('../utils/common');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const onConsoleLog = (type, args) => {
@@ -44,21 +45,6 @@ const runSingleRequest = async function (
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
-
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      const form = new FormData();
-      forOwn(request.data, (value, key) => {
-        if (value instanceof Array) {
-          each(value, (v) => form.append(key, v));
-        } else {
-          form.append(key, value);
-        }
-      });
-      extend(request.headers, form.getHeaders());
-      request.data = form;
-    }
 
     // run pre request script
     const requestScriptFile = compact([
@@ -193,6 +179,14 @@ const runSingleRequest = async function (
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
+    }
+
+    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+      if (!(request?.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
     }
 
     let response, responseTime;
