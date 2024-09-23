@@ -4,6 +4,7 @@ const decomment = require('decomment');
 const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('node:crypto');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../../utils/common');
 
@@ -218,6 +219,23 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'wsse':
+        const username = get(request, 'auth.wsse.username', '');
+        const password = get(request, 'auth.wsse.password', '');
+
+        const ts = new Date().toISOString();
+        const nonce = crypto.randomBytes(16).toString('base64');
+
+        // Create the password digest using SHA-256
+        const hash = crypto.createHash('sha256');
+        hash.update(nonce + ts + password);
+        const digest = hash.digest('base64');
+
+        // Construct the WSSE header
+        axiosRequest.headers[
+          'X-WSSE'
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+        break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
         if (apiKeyAuth.placement === 'header') {
@@ -294,6 +312,23 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             };
             break;
         }
+        break;
+      case 'wsse':
+        const username = get(request, 'auth.wsse.username', '');
+        const password = get(request, 'auth.wsse.password', '');
+
+        const ts = new Date().toISOString();
+        const nonce = crypto.randomBytes(16).toString('base64');
+
+        // Create the password digest using SHA-256
+        const hash = crypto.createHash('sha256');
+        hash.update(nonce + ts + password);
+        const digest = hash.digest('base64');
+
+        // Construct the WSSE header
+        axiosRequest.headers[
+          'X-WSSE'
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');

@@ -215,6 +215,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
     request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
   }
 
+  // interpolate vars for wsse auth
+  if (request.wsse) {
+    request.wsse.username = _interpolate(request.wsse.username) || '';
+    request.wsse.password = _interpolate(request.wsse.password) || '';
+  }
+
   return request;
 };
 
