@@ -143,8 +143,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           type: 'http-request',
           request: {
             url: url,
-            // Converting the method type to uppercase as the method type can also be in lowercase. Issue #3113
-            method: i.request.method.toUpperCase(),
+            method: i?.request?.method?.toUpperCase(),
             auth: {
               mode: 'none',
               basic: null,
@@ -352,6 +351,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
         each(get(i, 'request.url.variable', []), (param) => {
           if (!param.key) {
+            // If no key, skip this iteration and discard the param
             return;
           }
 
