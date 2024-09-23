@@ -72,18 +72,21 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (request.auth.mode === 'wsse') {
-      var ts = new Date().toISOString();
-      var nonce = crypto_js.lib.WordArray.random(16).toString(crypto_js.enc.Hex);
-      var digest = crypto_js.enc.Base64.stringify(
-        crypto_js.enc.Utf8.parse(
-          crypto_js.SHA1(nonce + ts + get(request, 'auth.wsse.password')).toString(crypto_js.enc.Hex)
-        )
-      );
+      const user = get(request, 'auth.wsse.user', '');
+      const password = get(request, 'auth.wsse.password', '');
 
-      axiosRequest.headers['X-WSSE'] = `UsernameToken Username="${get(
-        request,
-        'auth.wsse.user'
-      )}", PasswordDigest="${digest}", Created="${ts}", nonce="${nonce}"`;
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('base64');
+
+      // Create the password digest using SHA-256
+      const hash = crypto.createHash('sha256');
+      hash.update(nonce + ts + password);
+      const digest = hash.digest('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${user}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
     }
   }
 
