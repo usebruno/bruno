@@ -13,6 +13,7 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const Headers = ({ collection }) => {
@@ -63,7 +64,10 @@ const Headers = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full">
+    <StyledWrapper className="h-full w-full">
+      <div className="text-xs mb-4 text-muted">
+        Add request headers that will be sent with every request in this collection.
+      </div>
       <table>
         <thead>
           <tr>
@@ -114,6 +118,7 @@ const Headers = ({ collection }) => {
                           )
                         }
                         collection={collection}
+                        autocomplete={MimeTypes}
                       />
                     </td>
                     <td>

@@ -114,6 +114,15 @@ ${indentString(`password: ${auth.digest.password}`)}
 `;
   }
 
+  if (auth && auth.apikey) {
+    bru += `auth:apikey {
+${indentString(`key: ${auth?.apikey?.key || ''}`)}
+${indentString(`value: ${auth?.apikey?.value || ''}`)}
+${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
+}
+`;
+  }
+
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
       case 'password':
@@ -122,6 +131,8 @@ ${indentString(`grant_type: password`)}
 ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`username: ${auth?.oauth2?.username || ''}`)}
 ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 }
 
@@ -136,6 +147,7 @@ ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
 }
 

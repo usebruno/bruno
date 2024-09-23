@@ -29,9 +29,6 @@ export const deleteUidsInItems = (items) => {
 export const transformItem = (items = []) => {
   each(items, (item) => {
     if (['http-request', 'graphql-request'].includes(item.type)) {
-      item.request.query = item.request.params;
-      delete item.request.params;
-
       if (item.type === 'graphql-request') {
         item.type = 'graphql';
       }

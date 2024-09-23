@@ -1,4 +1,4 @@
-[English](/contributing.md) | [Українська](/contributing_ua.md) | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](docs/contributing/contributing_de.md) | [Français](/contributing_fr.md) | **বাংলা**
+[English](../../contributing.md)
 
 ## আসুন ব্রুনোকে আরও ভালো করি, একসাথে!!
 

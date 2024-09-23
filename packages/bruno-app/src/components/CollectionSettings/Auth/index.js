@@ -6,6 +6,7 @@ import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
+import ApiKeyAuth from './ApiKeyAuth/';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
@@ -33,11 +34,18 @@ const Auth = ({ collection }) => {
       case 'oauth2': {
         return <OAuth2 collection={collection} />;
       }
+      case 'apikey': {
+        return <ApiKeyAuth collection={collection} />;
+      }
     }
   };
 
   return (
-    <StyledWrapper className="w-full mt-2">
+    <StyledWrapper className="w-full h-full">
+      <div className="text-xs mb-4 text-muted">
+        Configures authentication for the entire collection. This applies to all requests using the{' '}
+        <span className="font-medium">Inherit</span> option in the <span className="font-medium">Auth</span> tab.
+      </div>
       <div className="flex flex-grow justify-start items-center">
         <AuthMode collection={collection} />
       </div>

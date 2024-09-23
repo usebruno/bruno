@@ -112,7 +112,19 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: 'query',
       enabled: !param.disabled
+    });
+  });
+
+  each(request.pathParameters, (param) => {
+    brunoRequestItem.request.params.push({
+      uid: uuid(),
+      name: param.name,
+      value: param.value,
+      description: '',
+      type: 'path',
+      enabled: true
     });
   });
 
@@ -162,7 +174,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
     brunoRequestItem.request.body.text = request.body.text;
-  } else if (mimeType === 'text/xml') {
+  } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
     brunoRequestItem.request.body.xml = request.body.text;
   } else if (mimeType === 'application/graphql') {
@@ -237,7 +249,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));

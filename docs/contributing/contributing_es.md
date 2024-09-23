@@ -1,3 +1,5 @@
+[English](../../contributing.md)
+
 ## ¡Juntos, hagamos a Bruno mejor!
 
 Estamos encantados de que quieras ayudar a mejorar Bruno. A continuación encontrarás las instrucciones para empezar a trabajar con Bruno en tu computadora.
@@ -19,7 +21,7 @@ Librerías que utilizamos:
 
 ### Dependencias
 
-Necesitarás [Node v18.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
+Necesitarás [Node v20.x o la última versión LTS](https://nodejs.org/es) y npm 8.x. Ten en cuenta que utilizamos espacios de trabajo de npm en el proyecto.
 
 ## Desarrollo
 
