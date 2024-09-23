@@ -15,7 +15,7 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName,
   isWSLPath,
-  normalizeWslPath,
+  normalizeWslPath
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -335,18 +335,26 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (isWSLPath(newPath)) {
         newPath = normalizeWslPath(newPath);
       }
-      var sameName = oldPath.replaceAll('\\', '/').toUpperCase() === newPath.replaceAll('\\', '/').toUpperCase();
-      if (!sameName)
-      {
-        if (!fs.existsSync(oldPath)) {
-          throw new Error(`path: ${oldPath} does not exist`);
-        }
-        if (fs.existsSync(newPath)) {
-          throw new Error(`path: ${oldPath} already exists`);
-        }
+  
+      // Check if the old path exists
+      if (!fs.existsSync(oldPath)) {
+        throw new Error(`path: ${oldPath} does not exist`);
       }
 
-      // if its directory, rename and return
+      if (fs.existsSync(newPath)) {
+        throw new Error(`path: ${newPath} already exists`);
+      }
+  
+      // Case-insensitive check for same name (Windows/macOS case-insensitivity)
+      var sameName = oldPath.replaceAll('\\', '/').toUpperCase() === newPath.replaceAll('\\', '/').toUpperCase();
+  
+      if (sameName) {
+        const tempPath = oldPath + "_temp";
+        fs.renameSync(oldPath, tempPath);
+        fs.renameSync(tempPath, newPath);
+        return;
+      }
+       
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
@@ -371,8 +379,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await fs.unlinkSync(oldPath);
       await writeFile(newPath, content);
+      await fs.unlinkSync(oldPath);
     } catch (error) {
       return Promise.reject(error);
     }

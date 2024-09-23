@@ -30,7 +30,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       }
       dispatch(renameItem(values.name, item.uid, collection.uid))
         .then(() => {
-          toast.success('Request renamed!');
+          toast.success('Request renamed');
           onClose();
         })
         .catch((err) => {
