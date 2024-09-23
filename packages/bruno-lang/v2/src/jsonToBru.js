@@ -105,7 +105,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -113,7 +113,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -179,7 +179,7 @@ ${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
 }
 
 `;
-  }  
+  }
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
@@ -272,14 +272,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -300,14 +300,14 @@ ${indentString(body.sparql)}
               item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
               let filepaths = item.value || [];
               let filestr = filepaths.join('|');
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}${contentType}`;
+              return `${enabled}${quoteKey(item.name)}: ${value}${contentType}`;
             }
           })
           .join('\n')

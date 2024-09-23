@@ -128,8 +128,18 @@
         "enabled": true
       },
       {
+        "name": "colon:parameter",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
         "name": "message",
         "value": "hello",
+        "enabled": false
+      },
+      {
+        "name": "disabled colon:parameter",
+        "value": "is allowed",
         "enabled": false
       }
     ],
@@ -150,8 +160,22 @@
       },
       {
         "contentType": "",
+        "name": "colon:part",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
+        "contentType": "",
         "name": "message",
         "value": "hello",
+        "enabled": false,
+        "type": "text"
+      },
+      {
+        "contentType": "",
+        "name": "disabled colon:part",
+        "value": "is allowed",
         "enabled": false,
         "type": "text"
       }
