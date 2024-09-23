@@ -174,7 +174,11 @@ const darkTheme = {
       opacity: 0.2
     }
   },
-
+  ctrlTabPopup: {
+    bg: '#1f2937',
+    text: '#ccc',
+    highlightBg: '#374151'
+  },
   button: {
     secondary: {
       color: 'rgb(204, 204, 204)',

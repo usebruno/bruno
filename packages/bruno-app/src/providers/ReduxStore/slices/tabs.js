@@ -7,12 +7,29 @@ import last from 'lodash/last';
 
 const initialState = {
   tabs: [],
-  activeTabUid: null
+  activeTabUid: null,
+  ctrlTabCount: 0
 };
 
 const tabTypeAlreadyExists = (tabs, collectionUid, type) => {
   return find(tabs, (tab) => tab.collectionUid === collectionUid && tab.type === type);
 };
+
+const uidToTab = (state, uid) => find(state.tabs, (tab) => tab.uid === uid);
+
+export const CTRL_TAB_ACTIONS = Object.freeze({
+  ENTER: 'enter',
+  PLUS: 'plus', // Ctrl+Tab
+  MINUS: 'minus', // Ctrl+Shift+Tab
+  SWITCH: 'switch'
+});
+
+const getCollectionTabs = (state) => {
+  const activeTab = state.tabs.find((t) => t.uid === state.activeTabUid);
+  if (!activeTab) return [];
+  return state.tabs.filter((t) => t.collectionUid === activeTab.collectionUid);
+};
+
 
 export const tabsSlice = createSlice({
   name: 'tabs',
@@ -47,26 +64,64 @@ export const tabsSlice = createSlice({
     },
     focusTab: (state, action) => {
       state.activeTabUid = action.payload.uid;
+      state.ctrlTabCount = 0;
+    },
+    ctrlTab: (state, action) => {
+      if (!state.tabs.length) {
+        state.activeTabUid = null;
+        return;
+      }
+      const collectionTabs = getCollectionTabs(state);
+      if (state.ctrlTabCount === 0) {
+        state.ctrlTabCount = collectionTabs.findIndex((tab) => tab.uid === state.activeTabUid);
+      }
+
+      switch (action.payload) {
+        
+        case CTRL_TAB_ACTIONS.PLUS:
+          state.ctrlTabCount++;
+
+          break;
+          
+        case CTRL_TAB_ACTIONS.MINUS:
+          state.ctrlTabCount--;
+          break;
+          
+        case CTRL_TAB_ACTIONS.SWITCH: {
+          const collectionTabs = getCollectionTabs(state);
+          if (state.ctrlTabCount !== 0 && collectionTabs.length > 1) {
+            state.activeTabUid = collectionTabs[state.ctrlTabCount % collectionTabs.length].uid;
+          }
+          state.ctrlTabCount = 0;
+          break;
+        }
+        
+        default:
+          return;
+      }
     },
     switchTab: (state, action) => {
-      if (!state.tabs || !state.tabs.length) {
-        state.activeTabUid = null;
+      const activeTab = find(state.tabs, (t) => t.uid === state.activeTabUid);
+      const tabs = filter(state.tabs, t => t.collectionUid === activeTab?.collectionUid);
+
+      if (!tabs.length) {
         return;
       }
 
       const direction = action.payload.direction;
+      const activeTabIndex = tabs.findIndex(t => t.uid === state.activeTabUid);
+      const tabCount = tabs.length;
 
-      const activeTabIndex = state.tabs.findIndex((t) => t.uid === state.activeTabUid);
-
-      let toBeActivatedTabIndex = 0;
-
-      if (direction == 'pageup') {
-        toBeActivatedTabIndex = (activeTabIndex - 1 + state.tabs.length) % state.tabs.length;
-      } else if (direction == 'pagedown') {
-        toBeActivatedTabIndex = (activeTabIndex + 1) % state.tabs.length;
+      let newIndex;
+      if (direction === 'pageup') {
+        newIndex = (activeTabIndex - 1 + tabCount) % tabCount;
+      } else if (direction === 'pagedown') {
+        newIndex = (activeTabIndex + 1) % tabCount;
+      } else {
+        return; // Invalid direction, do nothing
       }
 
-      state.activeTabUid = state.tabs[toBeActivatedTabIndex].uid;
+      state.activeTabUid = tabs[newIndex].uid;
     },
     updateRequestPaneTabWidth: (state, action) => {
       const tab = find(state.tabs, (t) => t.uid === action.payload.uid);
@@ -119,11 +174,15 @@ export const tabsSlice = createSlice({
       if (!state.tabs || !state.tabs.length) {
         state.activeTabUid = null;
       }
+
+      state.ctrlTabCount = 0;
     },
     closeAllCollectionTabs: (state, action) => {
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+
+      state.ctrlTabCount = 0;
     }
   }
 });
@@ -131,6 +190,7 @@ export const tabsSlice = createSlice({
 export const {
   addTab,
   focusTab,
+  ctrlTab,
   switchTab,
   updateRequestPaneTabWidth,
   updateRequestPaneTab,

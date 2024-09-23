@@ -11,3 +11,24 @@ export const isItemAFolder = (item) => {
 export const itemIsOpenedInTabs = (item, tabs) => {
   return find(tabs, (t) => t.uid === item.uid);
 };
+
+export const isSpecialTab = ({ type }) => {
+  if (!type) {
+    return false;
+  }
+  return ['variables', 'collection-settings', 'collection-runner'].includes(type);
+};
+
+export const getSpecialTabName = (type) => {
+  switch (type) {
+    case 'variables':
+      return 'Variables';
+    case 'collection-settings':
+      return 'Settings';
+    case 'collection-runner':
+      return 'Runner';
+    default:
+      console.error('Unknown special tab type', type);
+      return type;
+  }
+};
