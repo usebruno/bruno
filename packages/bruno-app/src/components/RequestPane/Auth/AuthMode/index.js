@@ -92,6 +92,15 @@ const AuthMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef?.current?.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef?.current?.hide();
               onModeChange('inherit');
             }}
           >

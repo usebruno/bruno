@@ -30,22 +30,12 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    pathParams: request?.params?.filter((param) => param.type === 'path')
   };
 
-  /**
-   * 27 Feb 2024:
-   * ['inherit', 'none'].includes(request.auth.mode)
-   * We are mainitaining the old behavior where 'none' used to inherit the collection auth.
-   *
-   * Very soon, 'none' will be treated as no auth and 'inherit' will be the only way to inherit collection auth.
-   * We will request users to update their collection files to use 'inherit' instead of 'none'.
-   * Don't want to break ongoing CI pipelines.
-   *
-   * Hoping to remove this by 1 April 2024.
-   */
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && ['inherit', 'none'].includes(request.auth.mode)) {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -103,10 +93,16 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
+    let jsonBody;
     try {
-      axiosRequest.data = JSONbig.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+      jsonBody = decomment(request?.body?.json);
+    } catch (error) {
+      jsonBody = request?.body?.json;
+    }
+    try {
+      axiosRequest.data = JSONbig.parse(jsonBody);
+    } catch (error) {
+      axiosRequest.data = jsonBody;
     }
   }
 

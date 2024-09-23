@@ -7,6 +7,7 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
+import ApiKeyAuth from './ApiKeyAuth/';
 import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import OAuth2 from './OAuth2';
@@ -36,6 +37,9 @@ const Auth = ({ collection }) => {
       }
       case 'wsseauth': {
         return <WsseAuth collection={collection} />;
+      }
+      case 'apikey': {
+        return <ApiKeyAuth collection={collection} />;
       }
     }
   };

@@ -6,6 +6,7 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
+import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections/index';
 import OAuth2 from './OAuth2/index';
@@ -36,6 +37,9 @@ const Auth = ({ item, collection }) => {
       case 'wsse': {
         return <WsseAuth collection={collection} item={item} />;
       }
+      case 'apikey': {
+        return <ApiKeyAuth collection={collection} item={item} />;
+      }
       case 'inherit': {
         return (
           <div className="flex flex-row w-full mt-2 gap-2">
@@ -45,7 +49,9 @@ const Auth = ({ item, collection }) => {
                   <div>Collection level auth is: </div>
                   <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
                 </div>
-                <div className="text-sm opacity-50">Cannot inherit Oauth2 from collection.</div>
+                <div className="text-sm opacity-50">
+                  Note: You need to use scripting to set the access token in the request headers.
+                </div>
               </div>
             ) : (
               <>

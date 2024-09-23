@@ -23,9 +23,10 @@ const { outdentString } = require('../../v1/src/utils');
  */
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | http | query | headers | auths | bodies | varsandassert | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 | authwsse
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 | authwsse | authapikey
   bodies = bodyjson | bodytext | bodyxml | bodysparql | bodygraphql | bodygraphqlvars | bodyforms | body
   bodyforms = bodyformurlencoded | bodymultipart
+  params = paramspath | paramsquery
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -74,6 +75,8 @@ const grammar = ohm.grammar(`Bru {
   headers = "headers" dictionary
 
   query = "query" dictionary
+  paramspath = "params:path" dictionary
+  paramsquery = "params:query" dictionary
 
   varsandassert = varsreq | varsres | assert
   varsreq = "vars:pre-request" dictionary
@@ -86,6 +89,7 @@ const grammar = ohm.grammar(`Bru {
   authdigest = "auth:digest" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
+  authapikey = "auth:apikey" dictionary
 
   body = "body" st* "{" nl* textblock tagend
   bodyjson = "body:json" st* "{" nl* textblock tagend
@@ -130,6 +134,28 @@ const mapPairListToKeyValPairs = (pairList = [], parseEnabled = true) => {
       name,
       value,
       enabled
+    };
+  });
+};
+
+const mapRequestParams = (pairList = [], type) => {
+  if (!pairList.length) {
+    return [];
+  }
+  return _.map(pairList[0], (pair) => {
+    let name = _.keys(pair)[0];
+    let value = pair[name];
+    let enabled = true;
+    if (name && name.length && name.charAt(0) === '~') {
+      name = name.slice(1);
+      enabled = false;
+    }
+
+    return {
+      name,
+      value,
+      enabled,
+      type
     };
   });
 };
@@ -322,7 +348,17 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   query(_1, dictionary) {
     return {
-      query: mapPairListToKeyValPairs(dictionary.ast)
+      params: mapRequestParams(dictionary.ast, 'query')
+    };
+  },
+  paramspath(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'path')
+    };
+  },
+  paramsquery(_1, dictionary) {
+    return {
+      params: mapRequestParams(dictionary.ast, 'query')
     };
   },
   headers(_1, dictionary) {
@@ -410,6 +446,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
+    const stateKey = _.find(auth, { name: 'state' });
     const pkceKey = _.find(auth, { name: 'pkce' });
     return {
       auth: {
@@ -433,6 +470,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
                 pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
@@ -458,6 +496,28 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         wsse: {
           user,
           password
+        }
+      }
+    };
+  },
+  authapikey(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const key = findValueByName('key');
+    const value = findValueByName('value');
+    const placement = findValueByName('placement');
+
+    return {
+      auth: {
+        apikey: {
+          key,
+          value,
+          placement
         }
       }
     };

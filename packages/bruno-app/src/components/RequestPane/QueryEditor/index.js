@@ -209,8 +209,10 @@ export default class QueryEditor extends React.Component {
     return (
       <>
         <StyledWrapper
-          className="h-full w-full relative"
+          className="h-full w-full  flex flex-col relative"
           aria-label="Query Editor"
+          font={this.props.font}
+          fontSize={this.props.fontSize}
           ref={(node) => {
             this._node = node;
           }}

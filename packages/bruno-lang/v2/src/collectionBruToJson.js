@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 | authwsse
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 | authwsse | authapikey
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -44,6 +44,7 @@ const grammar = ohm.grammar(`Bru {
   authdigest = "auth:digest" dictionary
   authOAuth2 = "auth:oauth2" dictionary
   authwsse = "auth:wsse" dictionary
+  authapikey = "auth:apikey" dictionary
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -255,6 +256,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const clientIdKey = _.find(auth, { name: 'client_id' });
     const clientSecretKey = _.find(auth, { name: 'client_secret' });
     const scopeKey = _.find(auth, { name: 'scope' });
+    const stateKey = _.find(auth, { name: 'state' });
     const pkceKey = _.find(auth, { name: 'pkce' });
     return {
       auth: {
@@ -278,6 +280,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 clientId: clientIdKey ? clientIdKey.value : '',
                 clientSecret: clientSecretKey ? clientSecretKey.value : '',
                 scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
                 pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
@@ -303,6 +306,28 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         wsse: {
           user,
           password
+        }
+      }
+    }
+  }, 
+  authapikey(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const key = findValueByName('key');
+    const value = findValueByName('value');
+    const placement = findValueByName('placement');
+
+    return {
+      auth: {
+        apikey: {
+          key,
+          value,
+          placement
         }
       }
     };
