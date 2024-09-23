@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -72,6 +73,14 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (typeof request.data === 'object' && !(request?.data instanceof FormData)) {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);

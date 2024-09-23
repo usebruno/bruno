@@ -1,5 +1,5 @@
 const os = require('os');
-const { get, each, filter, extend, compact } = require('lodash');
+const { get, each, filter, compact, forOwn } = require('lodash');
 const decomment = require('decomment');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -165,27 +165,26 @@ const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
   }
 };
 
-const parseFormData = (datas, collectionPath) => {
+const createFormData = (datas, collectionPath) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
-  datas.forEach((item) => {
-    const value = item.value;
-    const name = item.name;
-    if (item.type === 'file') {
-      const filePaths = value || [];
-      filePaths.forEach((filePath) => {
-        let trimmedFilePath = filePath.trim();
-
-        if (!path.isAbsolute(trimmedFilePath)) {
-          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
-        }
-
-        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
-      });
-    } else {
-      form.append(name, value);
+  forOwn(datas, (value, key) => {
+    if (typeof value == 'string') {
+      form.append(key, value);
+      return;
     }
+
+    const filePaths = value || [];
+    filePaths?.forEach?.((filePath) => {
+      let trimmedFilePath = filePath.trim();
+
+      if (!path.isAbsolute(trimmedFilePath)) {
+        trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+      }
+
+      form.append(key, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+    });
   });
   return form;
 };
@@ -400,10 +399,11 @@ const prepareRequest = (item, collection) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
+    const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const form = parseFormData(enabledParams, collectionPath);
-    extend(axiosRequest.headers, form.getHeaders());
-    axiosRequest.data = form;
+    each(enabledParams, (p) => (params[p.name] = p.value));
+    axiosRequest.data = params;
   }
 
   if (request.body.mode === 'graphql') {
@@ -433,3 +433,4 @@ const prepareRequest = (item, collection) => {
 
 module.exports = prepareRequest;
 module.exports.setAuthHeaders = setAuthHeaders;
+module.exports.createFormData = createFormData;
