@@ -317,8 +317,23 @@ const configureRequest = async (
     }
   }
 
+  // Add API key to the URL
+  if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    const urlObj = new URL(request.url);
+
+    // Interpolate key and value as they can be variables before adding to the URL.
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+    urlObj.searchParams.set(key, value);
+    request.url = urlObj.toString();
+  }
+
   // Remove pathParams, already in URL (Issue #2439)
   delete request.pathParams;
+
+  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
+  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };
