@@ -494,8 +494,11 @@ class Watcher {
   }
 
   resetWatcher() {
-    _.each(this.watchers, w => w?.close?.());
-    this.watchers = {};    
+    try {
+      _.each(this.watchers, w => w?.close?.());
+      this.watchers = {};
+    }
+    catch(error) {}
   }
 
   removeWatcher(watchPath, win) {
