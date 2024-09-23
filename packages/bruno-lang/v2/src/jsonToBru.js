@@ -105,7 +105,7 @@ const jsonToBru = (json) => {
     if (enabled(headers).length) {
       bru += `\n${indentString(
         enabled(headers)
-          .map((item) => `${item.name}: ${item.value}`)
+          .map((item) => `${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -113,7 +113,7 @@ const jsonToBru = (json) => {
     if (disabled(headers).length) {
       bru += `\n${indentString(
         disabled(headers)
-          .map((item) => `~${item.name}: ${item.value}`)
+          .map((item) => `~${quoteKey(item.name)}: ${item.value}`)
           .join('\n')
       )}`;
     }
@@ -260,14 +260,14 @@ ${indentString(body.sparql)}
 
     if (enabled(body.formUrlEncoded).length) {
       const enabledValues = enabled(body.formUrlEncoded)
-        .map((item) => `${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(enabledValues)}\n`;
     }
 
     if (disabled(body.formUrlEncoded).length) {
       const disabledValues = disabled(body.formUrlEncoded)
-        .map((item) => `~${item.name}: ${getValueString(item.value)}`)
+        .map((item) => `~${quoteKey(item.name)}: ${getValueString(item.value)}`)
         .join('\n');
       bru += `${indentString(disabledValues)}\n`;
     }
@@ -285,14 +285,14 @@ ${indentString(body.sparql)}
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}`;
+              return `${enabled}${quoteKey(item.name)}: ${getValueString(item.value)}`;
             }
 
             if (item.type === 'file') {
               let filepaths = item.value || [];
               let filestr = filepaths.join('|');
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}`;
+              return `${enabled}${quoteKey(item.name)}: ${value}`;
             }
           })
           .join('\n')
