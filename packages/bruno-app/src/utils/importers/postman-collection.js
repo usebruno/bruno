@@ -1,10 +1,10 @@
-import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import each from 'lodash/each';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -23,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSON.parse(graphqlSource);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -59,7 +59,8 @@ let translationLog = {};
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
-
+  const requestMap = {};
+  
   each(item, (i) => {
     if (isItemAFolder(i)) {
       const baseFolderName = i.name;
@@ -84,6 +85,15 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
       }
     } else {
       if (i.request) {
+        const baseRequestName = i.name;
+        let requestName = baseRequestName;        
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
+        }
+        
         let url = '';
         if (typeof i.request.url === 'string') {
           url = i.request.url;
@@ -93,7 +103,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
@@ -282,6 +292,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
           }
         }
 
@@ -308,6 +325,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         });
 
         brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
       }
     }
   });
