@@ -83,7 +83,7 @@ const Welcome = () => {
 
         <button className="flex items-center ml-6" onClick={handleOpenCollection} aria-label="Open Collection">
           <IconFolders aria-hidden size={18} strokeWidth={2} />
-          <span className="label ml-2">Open Collection</span>
+          <span className="label ml-2">{t('WELCOME.OPEN_COLLECTION')}</span>
         </button>
 
         <button
@@ -109,7 +109,7 @@ const Welcome = () => {
             className="inline-flex items-center"
           >
             <IconBook aria-hidden size={18} strokeWidth={2} />
-            <span className="label ml-2">Documentation</span>
+            <span className="label ml-2">{t('COMMON.DOCUMENTATION')}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
@@ -121,7 +121,7 @@ const Welcome = () => {
             className="inline-flex items-center"
           >
             <IconSpeakerphone aria-hidden size={18} strokeWidth={2} />
-            <span className="label ml-2">Report Issues</span>
+            <span className="label ml-2">{t('COMMON.REPORT_ISSUES')}</span>
           </a>
         </div>
         <div className="flex items-center mt-2">
@@ -133,7 +133,7 @@ const Welcome = () => {
             className="flex items-center"
           >
             <IconBrandGithub aria-hidden size={18} strokeWidth={2} />
-            <span className="label ml-2">GitHub</span>
+            <span className="label ml-2">{t('COMMON.GITHUB')}</span>
           </a>
         </div>
       </div>
