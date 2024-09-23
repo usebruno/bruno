@@ -221,7 +221,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         };
         break;
       case 'wsse':
-        const user = get(request, 'auth.wsse.user', '');
+        const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
 
         const ts = new Date().toISOString();
@@ -235,7 +235,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         // Construct the WSSE header
         axiosRequest.headers[
           'X-WSSE'
-        ] = `UsernameToken Username="${user}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
@@ -315,7 +315,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         }
         break;
       case 'wsse':
-        const user = get(request, 'auth.wsse.user', '');
+        const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
 
         const ts = new Date().toISOString();
@@ -329,7 +329,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         // Construct the WSSE header
         axiosRequest.headers[
           'X-WSSE'
-        ] = `UsernameToken Username="${user}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');

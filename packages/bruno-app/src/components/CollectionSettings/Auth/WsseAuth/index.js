@@ -15,13 +15,13 @@ const WsseAuth = ({ collection }) => {
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
-  const handleUserChange = (user) => {
+  const handleUserChange = (username) => {
     dispatch(
       updateCollectionAuth({
         mode: 'wsse',
         collectionUid: collection.uid,
         content: {
-          user: user,
+          username,
           password: wsseAuth.password
         }
       })
@@ -34,8 +34,8 @@ const WsseAuth = ({ collection }) => {
         mode: 'wsse',
         collectionUid: collection.uid,
         content: {
-          user: wsseAuth.user,
-          password: password
+          username: wsseAuth.username,
+          password
         }
       })
     );
@@ -43,10 +43,10 @@ const WsseAuth = ({ collection }) => {
 
   return (
     <StyledWrapper className="mt-2 w-full">
-      <label className="block font-medium mb-2">User</label>
+      <label className="block font-medium mb-2">Username</label>
       <div className="single-line-editor-wrapper mb-2">
         <SingleLineEditor
-          value={wsseAuth.user || ''}
+          value={wsseAuth.username || ''}
           theme={storedTheme}
           onSave={handleSave}
           onChange={(val) => handleUserChange(val)}

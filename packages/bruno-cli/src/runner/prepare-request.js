@@ -72,7 +72,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (request.auth.mode === 'wsse') {
-      const user = get(request, 'auth.wsse.user', '');
+      const username = get(request, 'auth.wsse.username', '');
       const password = get(request, 'auth.wsse.password', '');
 
       const ts = new Date().toISOString();
@@ -86,7 +86,7 @@ const prepareRequest = (request, collectionRoot) => {
       // Construct the WSSE header
       axiosRequest.headers[
         'X-WSSE'
-      ] = `UsernameToken Username="${user}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
     }
   }
 

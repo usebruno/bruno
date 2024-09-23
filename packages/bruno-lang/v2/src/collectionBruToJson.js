@@ -297,14 +297,14 @@ const sem = grammar.createSemantics().addAttribute('ast', {
   },
   authwsse(_1, dictionary) {
     const auth = mapPairListToKeyValPairs(dictionary.ast, false);
-    const userKey = _.find(auth, { name: 'user' });
+    const userKey = _.find(auth, { name: 'username' });
     const secretKey = _.find(auth, { name: 'password' });
-    const user = userKey ? userKey.value : '';
+    const username = userKey ? userKey.value : '';
     const password = secretKey ? secretKey.value : '';
     return {
       auth: {
         wsse: {
-          user,
+          username,
           password
         }
       }

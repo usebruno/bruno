@@ -107,7 +107,7 @@ const authBasicSchema = Yup.object({
   .strict();
 
 const authWsseSchema = Yup.object({
-  user: Yup.string().nullable(),
+  username: Yup.string().nullable(),
   password: Yup.string().nullable()
 })
   .noUnknown(true)

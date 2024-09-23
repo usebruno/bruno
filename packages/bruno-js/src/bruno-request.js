@@ -54,7 +54,7 @@ class BrunoRequest {
       return 'awsv4';
     } else if (this.req?.digestConfig) {
       return 'digest';
-    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.user) {
+    } else if (this.headers?.['X-WSSE'] || this.req?.auth?.username) {
       return 'wsse';
     } else {
       return 'none';
