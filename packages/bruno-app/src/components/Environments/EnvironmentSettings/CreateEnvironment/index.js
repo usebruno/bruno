@@ -50,7 +50,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="name" className="block font-semibold">
               Environment Name

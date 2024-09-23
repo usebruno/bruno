@@ -139,6 +139,15 @@ ${indentString(`password: ${auth?.basic?.password || ''}`)}
 `;
   }
 
+  if (auth && auth.wsse) {
+    bru += `auth:wsse {
+${indentString(`username: ${auth?.wsse?.username || ''}`)}
+${indentString(`password: ${auth?.wsse?.password || ''}`)}
+}
+
+`;
+  }
+
   if (auth && auth.bearer) {
     bru += `auth:bearer {
 ${indentString(`token: ${auth?.bearer?.token || ''}`)}
@@ -198,6 +207,16 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 `;
         break;
     }
+  }
+
+  if (auth && auth.apikey) {
+    bru += `auth:apikey {
+${indentString(`key: ${auth?.apikey?.key || ''}`)}
+${indentString(`value: ${auth?.apikey?.value || ''}`)}
+${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
+}
+
+`;
   }
 
   if (body && body.json && body.json.length) {
