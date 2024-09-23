@@ -2,7 +2,7 @@ const { get, each, filter } = require('lodash');
 const fs = require('fs');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
-const crypto_js = require('crypto-js');
+const crypto = require('node:crypto');
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
