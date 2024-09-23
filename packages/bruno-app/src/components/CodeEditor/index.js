@@ -428,4 +428,4 @@ const CodeEditorWithErrorBoundary = withErrorBoundary(CodeEditor, {
   FallbackComponent: (props) => <ComponentLevelErrorFallback {...props} />
 });
 
-export default CodeEditor;
+export default CodeEditorWithErrorBoundary;
