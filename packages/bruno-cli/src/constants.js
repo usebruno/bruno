@@ -24,7 +24,7 @@ const EXIT_STATUS = {
   // Invalid output format requested
   ERROR_INCORRECT_OUTPUT_FORMAT: 9,
   // Everything else
-  ERROR_GENERIC: 255,
+  ERROR_GENERIC: 255
 };
 
 module.exports = {
