@@ -372,6 +372,19 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
                 break;
             }
             break;
+          case 'apikey':
+            di.request.auth.apikey = {
+              key: get(si.request, 'auth.apikey.key', ''),
+              value: get(si.request, 'auth.apikey.value', ''),
+              placement: get(si.request, 'auth.apikey.placement', 'header')
+            };
+            break;
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
           default:
             break;
         }
@@ -659,6 +672,30 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'oauth2': {
       label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'WSSE Auth';
+      break;
+    }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAPIKeyPlacement = (placement) => {
+  let label = 'Header';
+  switch (placement) {
+    case 'header': {
+      label = 'Header';
+      break;
+    }
+    case 'queryparams': {
+      label = 'Query Params';
       break;
     }
   }
