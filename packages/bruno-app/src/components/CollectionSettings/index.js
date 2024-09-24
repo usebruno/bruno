@@ -16,6 +16,7 @@ import Docs from './Docs';
 import Presets from './Presets';
 import Info from './Info';
 import StyledWrapper from './StyledWrapper';
+import Vars from './Vars/index';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -77,6 +78,9 @@ const CollectionSettings = ({ collection }) => {
       case 'headers': {
         return <Headers collection={collection} />;
       }
+      case 'vars': {
+        return <Vars collection={collection} />;
+      }
       case 'auth': {
         return <Auth collection={collection} />;
       }
@@ -95,6 +99,7 @@ const CollectionSettings = ({ collection }) => {
       case 'clientCert': {
         return (
           <ClientCertSettings
+            root={collection.pathname}
             clientCertConfig={clientCertConfig}
             onUpdate={onClientCertSettingsUpdate}
             onRemove={onClientCertSettingsRemove}
@@ -122,6 +127,9 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
         </div>
+        <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+          Vars
+        </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
         </div>
@@ -147,9 +155,7 @@ const CollectionSettings = ({ collection }) => {
           Info
         </div>
       </div>
-      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
-        {getTabPanel(tab)}
-      </section>
+      <section className="mt-4 h-full">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

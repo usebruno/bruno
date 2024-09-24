@@ -33,18 +33,18 @@ const Wrapper = styled.div`
     top: 1px;
   }
 
-  .tooltip {
+  .infotip {
     position: relative;
     display: inline-block;
     cursor: pointer;
   }
 
-  .tooltip:hover .tooltiptext {
+  .infotip:hover .infotiptext {
     visibility: visible;
     opacity: 1;
   }
 
-  .tooltiptext {
+  .infotiptext {
     visibility: hidden;
     width: auto;
     background-color: ${(props) => props.theme.requestTabs.active.bg};
@@ -62,7 +62,7 @@ const Wrapper = styled.div`
     white-space: nowrap;
   }
 
-  .tooltiptext::after {
+  .infotiptext::after {
     content: '';
     position: absolute;
     top: 100%;

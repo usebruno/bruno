@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -41,9 +40,12 @@ const buildEmptyJsonBody = (bodySchema) => {
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
-      // handle arrays
     } else if (prop.type === 'array') {
-      _jsonBody[name] = [];
+      if (prop.items && prop.items.type === 'object') {
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+      } else {
+        _jsonBody[name] = [];
+      }
     } else {
       _jsonBody[name] = '';
     }
@@ -59,12 +61,15 @@ const transformOpenapiRequestItem = (request) => {
     operationName = `${request.method} ${request.path}`;
   }
 
+  // replace OpenAPI links in path by Bruno variables
+  let path = request.path.replace(/{([a-zA-Z]+)}/g, `{{${_operationObject.operationId}_$1}}`);
+
   const brunoRequestItem = {
     uid: uuid(),
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + request.path),
+      url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -81,6 +86,9 @@ const transformOpenapiRequestItem = (request) => {
         xml: null,
         formUrlEncoded: [],
         multipartForm: []
+      },
+      script: {
+        res: null
       }
     }
   };
@@ -92,7 +100,17 @@ const transformOpenapiRequestItem = (request) => {
         name: param.name,
         value: '',
         description: param.description || '',
-        enabled: param.required
+        enabled: param.required,
+        type: 'query'
+      });
+    } else if (param.in === 'path') {
+      brunoRequestItem.request.params.push({
+        uid: uuid(),
+        name: param.name,
+        value: '',
+        description: param.description || '',
+        enabled: param.required,
+        type: 'path'
       });
     } else if (param.in === 'header') {
       brunoRequestItem.request.headers.push({
@@ -149,6 +167,9 @@ const transformOpenapiRequestItem = (request) => {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
+      if (bodySchema && bodySchema.type === 'array') {
+        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
+      }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
       if (bodySchema && bodySchema.type === 'object') {
@@ -185,10 +206,30 @@ const transformOpenapiRequestItem = (request) => {
     }
   }
 
+  // build the extraction scripts from responses that have links
+  // https://swagger.io/docs/specification/links/
+  let script = [];
+  each(_operationObject.responses || [], (response, responseStatus) => {
+    if (Object.hasOwn(response, 'links')) {
+      // only extract if the status code matches the response
+      script.push(`if (res.status === ${responseStatus}) {`);
+      each(response.links, (link) => {
+        each(link.parameters || [], (expression, parameter) => {
+          let value = openAPIRuntimeExpressionToScript(expression);
+          script.push(`  bru.setVar('${link.operationId}_${parameter}', ${value});`);
+        });
+      });
+      script.push(`}`);
+    }
+  });
+  if (script.length > 0) {
+    brunoRequestItem.request.script.res = script.join('\n');
+  }
+
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -212,7 +253,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
       let ref = components;
 
       for (const key of refKeys) {
-        if (ref[key]) {
+        if (ref && ref[key]) {
           ref = ref[key];
         } else {
           // Handle invalid references gracefully?
@@ -242,11 +283,16 @@ const groupRequestsByTags = (requests) => {
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0]; // take first tag
-      if (!_groups[tag]) {
-        _groups[tag] = [];
+      let tag = tags[0].trim(); // take first tag and trim whitespace
+
+      if (tag) {
+        if (!_groups[tag]) {
+          _groups[tag] = [];
+        }
+        _groups[tag].push(request);
+      } else {
+        ungrouped.push(request);
       }
-      _groups[tag].push(request);
     } else {
       ungrouped.push(request);
     }
@@ -270,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url;
+  return url.endsWith('/') ? url : `${url}/`;
 };
 
 const getSecurity = (apiSpec) => {
@@ -293,6 +339,18 @@ const getSecurity = (apiSpec) => {
       return securitySchemes[schemeName];
     }
   };
+};
+
+const openAPIRuntimeExpressionToScript = (expression) => {
+  // see https://swagger.io/docs/specification/links/#runtime-expressions
+  if (expression === '$response.body') {
+    return 'res.body';
+  } else if (expression.startsWith('$response.body#')) {
+    let pointer = expression.substring(15);
+    // could use https://www.npmjs.com/package/json-pointer for better support
+    return `res.body${pointer.replace('/', '.')}`;
+  }
+  return expression;
 };
 
 const parseOpenApiCollection = (data) => {
@@ -338,7 +396,7 @@ const parseOpenApiCollection = (data) => {
             .map(([method, operationObject]) => {
               return {
                 method: method,
-                path: path,
+                path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
                   server: baseUrl,
@@ -378,7 +436,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));
