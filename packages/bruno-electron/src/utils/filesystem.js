@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
+const os = require('os');
 
 const exists = async (p) => {
   try {
@@ -159,6 +160,36 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
+const safeToRename = (oldPath, newPath) => {
+  try {
+    // If the new path doesn't exist, it's safe to rename
+    if (!fs.existsSync(newPath)) {
+      return true;
+    }
+
+    const oldStat = fs.statSync(oldPath);
+    const newStat = fs.statSync(newPath);
+
+    if (os.platform() === 'win32') {
+      // Windows-specific comparison:
+      // Check if both files have the same birth time, size, and identical absolute paths (Since, Win FAT-32 doesn't use inodes)
+      const oldResolvedPath = path.resolve(oldPath);
+      const newResolvedPath = path.resolve(newPath);
+
+      return (
+        oldResolvedPath === newResolvedPath ||
+        (oldStat.birthtimeMs === newStat.birthtimeMs && oldStat.size === newStat.size)
+      );
+    } else {
+      // Unix/Linux/MacOS: Check inode to see if they are the same file
+      return oldStat.ino === newStat.ino;
+    }
+  } catch (error) {
+    console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
+    return false;
+  }
+};
+
 module.exports = {
   isValidPathname,
   exists,
@@ -178,5 +209,6 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  safeToRename
 };

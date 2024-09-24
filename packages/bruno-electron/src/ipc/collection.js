@@ -15,7 +15,8 @@ const {
   searchForBruFiles,
   sanitizeDirectoryName,
   isWSLPath,
-  normalizeWslPath
+  normalizeWslPath,
+  safeToRename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -337,20 +338,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${oldPath} does not exist`);
       }
 
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${newPath} already exists`);
-      }
-
-      // Case-insensitive check for same name (Windows/macOS case-insensitivity)
-      var sameName = oldPath.replaceAll('\\', '/').toUpperCase() === newPath.replaceAll('\\', '/').toUpperCase();
-
-      if (sameName) {
-        const tempPath = oldPath + '_temp';
-        fs.renameSync(oldPath, tempPath);
-        fs.renameSync(tempPath, newPath);
-        return;
-      }
-      
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
@@ -366,17 +353,22 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
+      if (!safeToRename(oldPath, newPath)) {
+        throw new Error(`path: ${newPath} already exists`);
+      }
+
       // update name in file and save new copy, then delete old copy
       const data = fs.readFileSync(oldPath, 'utf8');
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
-
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
+
+      return newPath;
     } catch (error) {
       return Promise.reject(error);
     }
