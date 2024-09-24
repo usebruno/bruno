@@ -34,13 +34,20 @@ const runSingleRequest = async function (
   processEnvVars,
   brunoConfig,
   collectionRoot,
-  runtime
+  runtime,
+  collection
 ) {
   try {
     let request;
     let nextRequestName;
 
-    request = prepareRequest(bruJson.request, collectionRoot);
+    collection = {
+      root: collectionRoot, 
+      brunoConfig,
+      ...collection
+    };
+
+    request = prepareRequest({ pathname: `${collectionPath}/${filename}`, ...bruJson }, collection);
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;

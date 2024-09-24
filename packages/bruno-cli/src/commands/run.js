@@ -7,7 +7,7 @@ const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
-const { rpad } = require('../utils/common');
+const { rpad, uuid } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
@@ -93,8 +93,87 @@ const printRunSummary = (results) => {
   };
 };
 
+const getCollection = (dir, testsOnly) => {
+  const environmentsPath = `${dir}/environments`;
+  const getFilesInOrder = (dir) => {
+    let collection = {
+      pathname: dir
+    };
+
+    const traverse = (currentPath) => {
+      const filesInCurrentDir = fs.readdirSync(currentPath);
+
+      if (currentPath.includes('node_modules')) {
+        return;
+      }
+
+      const currentDirBruJsons = [];
+
+      for (const file of filesInCurrentDir) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+        if (
+          stats.isDirectory() &&
+          filePath !== environmentsPath &&
+          !filePath.startsWith('.git') &&
+          !filePath.startsWith('node_modules')
+        ) {
+          let folderItem = { uid: uuid(), name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
+          const folderBruFilePath = path.join(filePath, 'folder.bru');
+          const folderBruFileExists = fs.existsSync(folderBruFilePath);
+          if(folderBruFileExists) {
+            const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
+            let folderBruJson = collectionBruToJson(folderBruContent);
+            folderItem.root = folderBruJson;
+          }
+          currentDirBruJsons.push(folderItem);
+        }
+      }
+
+      for (const file of filesInCurrentDir) {
+        if (['collection.bru', 'folder.bru'].includes(file)) {
+          continue;
+        }
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+
+        if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const bruJson = bruToJson(bruContent);
+          const requestHasTests = bruJson.request?.tests;
+          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+
+          if (testsOnly) {
+            if (requestHasTests || requestHasActiveAsserts) {
+              currentDirBruJsons.push({
+                bruFilepath: filePath,
+                bruJson
+              });
+            }
+          } else {
+            currentDirBruJsons.push({
+              uid: uuid(),
+              name: file,
+              pathname: filePath,
+              ...bruJson
+            });
+          }
+        }
+      }
+
+      return currentDirBruJsons
+    };
+
+    collection.items = traverse(dir);
+    return collection;
+  };
+
+  return getFilesInOrder(dir);
+};
+
 const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
+  const collection = {};
 
   const getFilesInOrder = (dir) => {
     let bruJsons = [];
@@ -131,6 +210,7 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
+          // console.log('filePath 2', filePath);
           const bruJson = bruToJson(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
@@ -329,6 +409,7 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+    const collection = getCollection(collectionPath);
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -516,7 +597,8 @@ const handler = async function (argv) {
         processEnvVars,
         brunoConfig,
         collectionRoot,
-        runtime
+        runtime,
+        collection
       );
 
       results.push({
