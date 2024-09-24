@@ -28,6 +28,15 @@ class BrunoResponse {
     return this.res ? this.res.responseTime : null;
   }
 
+  setBody(data) {
+    if (!this.res) {
+      return;
+    }
+
+    this.body = data;
+    this.res.data = data;
+  }
+
   getDataBuffer() {
     return this.res ? this.res.dataBuffer : null;
   }

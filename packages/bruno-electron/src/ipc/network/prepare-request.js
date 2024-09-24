@@ -5,6 +5,7 @@ const FormData = require('form-data');
 const fs = require('fs');
 const path = require('path');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload } = require('../../utils/common');
 
 const mergeFolderLevelHeaders = (request, requestTreePath) => {
   let folderHeaders = new Map();
@@ -44,73 +45,75 @@ const mergeFolderLevelHeaders = (request, requestTreePath) => {
   request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
 };
 
-const mergeFolderLevelVars = (request, requestTreePath) => {
-  let folderReqVars = new Map();
+const mergeVars = (collection, request, requestTreePath) => {
+  let reqVars = new Map();
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionVariables = {};
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      reqVars.set(_var.name, _var.value);
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  let folderVariables = {};
+  let requestVariables = {};
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
+          folderVariables[_var.name] = _var.value;
         }
       });
-    } else if (i.uid === request.uid) {
+    } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderReqVars.set(_var.name, _var.value);
+          reqVars.set(_var.name, _var.value);
+          requestVariables[_var.name] = _var.value;
         }
       });
     }
   }
-  let mergedFolderReqVars = Array.from(folderReqVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestReqVars = request?.vars?.req || [];
-  let requestReqVarsMap = new Map();
-  for (let _var of requestReqVars) {
-    if (_var.enabled) {
-      requestReqVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderReqVars.forEach((_var) => {
-    requestReqVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.req = Array.from(requestReqVarsMap, ([name, value]) => ({
+
+  request.collectionVariables = collectionVariables;
+  request.folderVariables = folderVariables;
+  request.requestVariables = requestVariables;
+
+  request.vars.req = Array.from(reqVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
     type: 'request'
   }));
 
-  let folderResVars = new Map();
+  let resVars = new Map();
+  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let vars = get(i, 'root.request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
-    } else if (i.uid === request.uid) {
+    } else {
       const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
       vars.forEach((_var) => {
         if (_var.enabled) {
-          folderResVars.set(_var.name, _var.value);
+          resVars.set(_var.name, _var.value);
         }
       });
     }
   }
-  let mergedFolderResVars = Array.from(folderResVars, ([name, value]) => ({ name, value, enabled: true }));
-  let requestResVars = request?.vars?.res || [];
-  let requestResVarsMap = new Map();
-  for (let _var of requestResVars) {
-    if (_var.enabled) {
-      requestResVarsMap.set(_var.name, _var.value);
-    }
-  }
-  mergedFolderResVars.forEach((_var) => {
-    requestResVarsMap.set(_var.name, _var.value);
-  });
-  request.vars.res = Array.from(requestResVarsMap, ([name, value]) => ({
+
+  request.vars.res = Array.from(resVars, ([name, value]) => ({
     name,
     value,
     enabled: true,
@@ -216,6 +219,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'apikey':
+        const apiKeyAuth = get(collectionAuth, 'apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
     }
   }
 
@@ -284,6 +296,15 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
             break;
         }
         break;
+      case 'apikey':
+        const apiKeyAuth = get(request, 'auth.apikey');
+        if (apiKeyAuth.placement === 'header') {
+          axiosRequest.headers[apiKeyAuth.key] = apiKeyAuth.value;
+        } else if (apiKeyAuth.placement === 'queryparams') {
+          // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
+          axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
     }
   }
 
@@ -298,7 +319,7 @@ const prepareRequest = (item, collection) => {
   let contentTypeDefined = false;
   let url = request.url;
 
-  // collection headers
+  // Collection level headers
   each(get(collectionRoot, 'request.headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -314,9 +335,10 @@ const prepareRequest = (item, collection) => {
   if (requestTreePath && requestTreePath.length > 0) {
     mergeFolderLevelHeaders(request, requestTreePath);
     mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
-    mergeFolderLevelVars(request, requestTreePath);
+    mergeVars(collection, request, requestTreePath);
   }
 
+  // Request level headers
   each(request.headers, (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
@@ -370,11 +392,11 @@ const prepareRequest = (item, collection) => {
   }
 
   if (request.body.mode === 'formUrlEncoded') {
-    axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
-    const params = {};
+    if (!contentTypeDefined) {
+      axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
+    }
     const enabledParams = filter(request.body.formUrlEncoded, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.data = params;
+    axiosRequest.data = buildFormUrlEncodedPayload(enabledParams);
   }
 
   if (request.body.mode === 'multipartForm') {
@@ -401,6 +423,9 @@ const prepareRequest = (item, collection) => {
   }
 
   axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;

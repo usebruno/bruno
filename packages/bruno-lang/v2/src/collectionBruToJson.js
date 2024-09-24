@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2
+  auths = authawsv4 | authbasic | authbearer | authdigest | authOAuth2 | authapikey
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -43,6 +43,7 @@ const grammar = ohm.grammar(`Bru {
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
   authOAuth2 = "auth:oauth2" dictionary
+  authapikey = "auth:apikey" dictionary
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -290,6 +291,28 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 scope: scopeKey ? scopeKey.value : ''
               }
             : {}
+      }
+    };
+  },
+  authapikey(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const key = findValueByName('key');
+    const value = findValueByName('value');
+    const placement = findValueByName('placement');
+
+    return {
+      auth: {
+        apikey: {
+          key,
+          value,
+          placement
+        }
       }
     };
   },
