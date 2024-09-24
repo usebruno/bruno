@@ -329,13 +329,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
       // Normalize paths if they are WSL paths
-      if (isWSLPath(oldPath)) {
-        oldPath = normalizeWslPath(oldPath);
-      }
-      if (isWSLPath(newPath)) {
-        newPath = normalizeWslPath(newPath);
-      }
-  
+      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : oldPath;
+      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : newPath;
+
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
@@ -344,17 +340,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(newPath)) {
         throw new Error(`path: ${newPath} already exists`);
       }
-  
+
       // Case-insensitive check for same name (Windows/macOS case-insensitivity)
       var sameName = oldPath.replaceAll('\\', '/').toUpperCase() === newPath.replaceAll('\\', '/').toUpperCase();
-  
+
       if (sameName) {
-        const tempPath = oldPath + "_temp";
+        const tempPath = oldPath + '_temp';
         fs.renameSync(oldPath, tempPath);
         fs.renameSync(tempPath, newPath);
         return;
       }
-       
+      
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 

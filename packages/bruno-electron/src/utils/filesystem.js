@@ -155,8 +155,6 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-// const isW
-
 const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
