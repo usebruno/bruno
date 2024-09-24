@@ -32,7 +32,7 @@ const readFile = (files) => {
 
 const ensureUrl = (url) => {
   // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
-  return url.replace(/(^\w+:|^)\/{2,}/, '$1/');
+  return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
