@@ -1208,6 +1208,7 @@ const registerNetworkIpc = (mainWindow) => {
     try {
       const getHeaderValue = (headerName) => {
         const headersArray = typeof response.headers === 'object' ? Object.entries(response.headers) : [];
+        
         if (headersArray.length > 0) {
           const header = headersArray.find((header) => header[0] === headerName);
           if (header && header.length > 1) {
@@ -1221,7 +1222,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           const disposition = contentDispositionParser.parse(contentDisposition);
           return disposition && disposition.parameters['filename'];
-        } catch (error) {}
+        } catch (error) { }
       };
 
       const getFileNameFromUrlPath = () => {
