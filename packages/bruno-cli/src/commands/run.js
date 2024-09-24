@@ -191,7 +191,6 @@ const getBruFilesRecursively = (dir, testsOnly) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          // console.log('filePath 2', filePath);
           const bruJson = bruToJson(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
