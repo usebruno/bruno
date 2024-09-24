@@ -375,7 +375,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
-      
+
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
