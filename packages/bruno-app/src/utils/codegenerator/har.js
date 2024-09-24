@@ -20,7 +20,7 @@ const createHeaders = (request, headers) => {
     }));
 
   const contentType = getContentType(request.body?.mode);
-  if (contentType !== '' ) {
+  if (contentType !== '') {
     enabledHeaders.push({ name: 'content-type', value: contentType });
   }
 
