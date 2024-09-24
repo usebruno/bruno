@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -1231,24 +1231,25 @@ const registerNetworkIpc = (mainWindow) => {
         }
       };
 
+      const contentType = getHeaderValue('content-type');
+
+      const getFileExtension = () => {
+        return (contentType && mime.extension(contentType)) || 'txt';
+      };
+
       const getFileNameBasedOnContentTypeHeader = () => {
-        const contentType = getHeaderValue('content-type');
-        const extension = (contentType && mime.extension(contentType)) || 'txt';
-        return `response.${extension}`;
+        return `response.${getFileExtension(contentType)}`;
       };
 
       const getFormattedResponseIfJson = () => {
-        const contentType = getHeaderValue('content-type');
-        if (mime.extension(contentType) === 'json') {
+        if (getFileExtension(contentType) === 'json') {
           return Buffer.from(JSON.stringify(response.data, null, 2), 'utf8');
         }
         return Buffer.from(response.dataBuffer, 'base64');
       };
 
       const getEncodingFormat = () => {
-        const contentType = getHeaderValue('content-type');
-        const extension = mime.extension(contentType) || 'txt';
-        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(extension) ? 'utf-8' : 'base64';
+        return ['json', 'xml', 'html', 'yml', 'yaml', 'txt'].includes(getFileExtension(contentType)) ? 'utf-8' : 'base64';
       };
 
       const determineFileName = () => {
