@@ -1,5 +1,6 @@
-const { get, each, filter, find } = require('lodash');
+const { get, each, filter, find, compact } = require('lodash');
 const fs = require('fs');
+const os = require('os');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 
@@ -114,46 +115,50 @@ const mergeVars = (collection, request, requestTreePath) => {
   }
 };
 
-const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
-  let folderCombinedPreReqScript = [];
-  let folderCombinedPostResScript = [];
-  let folderCombinedTests = [];
+const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
+  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
+  let collectionPostResScript = get(collection, 'root.request.script.res', '');
+  let collectionTests = get(collection, 'root.request.tests', '');
+
+  let combinedPreReqScript = [];
+  let combinedPostResScript = [];
+  let combinedTests = [];
   for (let i of requestTreePath) {
     if (i.type === 'folder') {
       let preReqScript = get(i, 'root.request.script.req', '');
       if (preReqScript && preReqScript.trim() !== '') {
-        folderCombinedPreReqScript.push(preReqScript);
+        combinedPreReqScript.push(preReqScript);
       }
 
       let postResScript = get(i, 'root.request.script.res', '');
       if (postResScript && postResScript.trim() !== '') {
-        folderCombinedPostResScript.push(postResScript);
+        combinedPostResScript.push(postResScript);
       }
 
       let tests = get(i, 'root.request.tests', '');
       if (tests && tests?.trim?.() !== '') {
-        folderCombinedTests.push(tests);
+        combinedTests.push(tests);
       }
     }
   }
 
-  if (folderCombinedPreReqScript.length) {
-    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  if (combinedPreReqScript.length) {
+    request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
   }
 
-  if (folderCombinedPostResScript.length) {
+  if (combinedPostResScript.length) {
     if (scriptFlow === 'sequential') {
-      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
+      request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
     } else {
-      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
+      request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
     }
   }
 
-  if (folderCombinedTests.length) {
+  if (combinedTests.length) {
     if (scriptFlow === 'sequential') {
-      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
+      request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
     } else {
-      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
+      request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
     }
   }
 };
@@ -245,7 +250,7 @@ const prepareRequest = (item = {}, collection = {}) => {
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
     mergeHeaders(collection, request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
   }
 
@@ -376,7 +381,7 @@ const prepareRequest = (item = {}, collection = {}) => {
     axiosRequest.data = graphqlQuery;
   }
 
-  if (request.script && request.script.length) {
+  if (request.script) {
     axiosRequest.script = request.script;
   }
 

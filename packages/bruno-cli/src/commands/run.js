@@ -7,7 +7,7 @@ const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
-const { rpad, uuid } = require('../utils/common');
+const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
 const { dotenvToJson } = require('@usebruno/lang');
 const constants = require('../constants');
@@ -93,22 +93,19 @@ const printRunSummary = (results) => {
   };
 };
 
-const getCollection = (dir, testsOnly) => {
-  const environmentsPath = `${dir}/environments`;
-  const getFilesInOrder = (dir) => {
+const createCollectionFromPath = (collectionPath) => {
+  const environmentsPath = `${collectionPath}/environments`;
+  const getFilesInOrder = (collectionPath) => {
     let collection = {
-      pathname: dir
+      pathname: collectionPath
     };
-
     const traverse = (currentPath) => {
       const filesInCurrentDir = fs.readdirSync(currentPath);
 
       if (currentPath.includes('node_modules')) {
         return;
       }
-
-      const currentDirBruJsons = [];
-
+      const currentDirItems = [];
       for (const file of filesInCurrentDir) {
         const filePath = path.join(currentPath, file);
         const stats = fs.lstatSync(filePath);
@@ -118,7 +115,7 @@ const getCollection = (dir, testsOnly) => {
           !filePath.startsWith('.git') &&
           !filePath.startsWith('node_modules')
         ) {
-          let folderItem = { uid: uuid(), name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
+          let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
           const folderBruFilePath = path.join(filePath, 'folder.bru');
           const folderBruFileExists = fs.existsSync(folderBruFilePath);
           if(folderBruFileExists) {
@@ -126,7 +123,7 @@ const getCollection = (dir, testsOnly) => {
             let folderBruJson = collectionBruToJson(folderBruContent);
             folderItem.root = folderBruJson;
           }
-          currentDirBruJsons.push(folderItem);
+          currentDirItems.push(folderItem);
         }
       }
 
@@ -140,35 +137,19 @@ const getCollection = (dir, testsOnly) => {
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
           const bruJson = bruToJson(bruContent);
-          const requestHasTests = bruJson.request?.tests;
-          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
-
-          if (testsOnly) {
-            if (requestHasTests || requestHasActiveAsserts) {
-              currentDirBruJsons.push({
-                bruFilepath: filePath,
-                bruJson
-              });
-            }
-          } else {
-            currentDirBruJsons.push({
-              uid: uuid(),
-              name: file,
-              pathname: filePath,
-              ...bruJson
-            });
-          }
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...bruJson
+          });
         }
       }
-
-      return currentDirBruJsons
+      return currentDirItems
     };
-
-    collection.items = traverse(dir);
+    collection.items = traverse(collectionPath);
     return collection;
   };
-
-  return getFilesInOrder(dir);
+  return getFilesInOrder(collectionPath);
 };
 
 const getBruFilesRecursively = (dir, testsOnly) => {
@@ -409,7 +390,12 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
-    const collection = getCollection(collectionPath);
+    let collection = createCollectionFromPath(collectionPath);
+    collection = {
+      brunoConfig,
+      root: collectionRoot,
+      ...collection
+    }
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
