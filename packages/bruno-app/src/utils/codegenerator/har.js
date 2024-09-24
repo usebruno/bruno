@@ -41,7 +41,7 @@ const createPostData = (body) => {
 
   if (body.mode === 'graphql' && body.graphql) {
     return {
-      mimeType: 'application/json',
+      mimeType: contentType,
       text: JSON.stringify(body[body.mode])
     };
   }
