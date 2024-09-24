@@ -32,7 +32,7 @@ const CodeView = ({ language, item }) => {
 
   let snippet = '';
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers, type: item.type })).convert(
+    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(
       target,
       client
     );

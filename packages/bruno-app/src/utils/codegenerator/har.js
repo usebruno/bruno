@@ -1,22 +1,14 @@
-const createContentType = (mode) => {
-  switch (mode) {
-    case 'json':
-      return 'application/json';
-    case 'text':
-      return 'text/plain';
-    case 'xml':
-      return 'application/xml';
-    case 'sparql':
-      return 'application/sparql-query';
-    case 'formUrlEncoded':
-      return 'application/x-www-form-urlencoded';
-    case 'graphql':
-      return 'application/json';
-    case 'multipartForm':
-      return 'multipart/form-data';
-    default:
-      return '';
-  }
+const getContentType = (mode) => {
+  const contentTypes = {
+    json: 'application/json',
+    text: 'text/plain',
+    xml: 'application/xml',
+    sparql: 'application/sparql-query',
+    formUrlEncoded: 'application/x-www-form-urlencoded',
+    graphql: 'application/json',
+    multipartForm: 'multipart/form-data'
+  };
+  return contentTypes[mode] || '';
 };
 
 const createHeaders = (request, headers) => {
@@ -27,8 +19,8 @@ const createHeaders = (request, headers) => {
       value: header.value
     }));
 
-  const contentType = createContentType(request.body?.mode);
-  if (contentType !== '') {
+  const contentType = getContentType(request.body?.mode);
+  if (contentType) {
     enabledHeaders.push({ name: 'content-type', value: contentType });
   }
 
@@ -44,35 +36,36 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body, type) => {
-  if (type === 'graphql-request') {
+const createPostData = (body) => {
+  const contentType = getContentType(body.mode);
+
+  if (body.mode === 'graphql' && body.graphql) {
     return {
       mimeType: 'application/json',
       text: JSON.stringify(body[body.mode])
     };
   }
 
-  const contentType = createContentType(body.mode);
   if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
     return {
       mimeType: contentType,
       params: body[body.mode]
         .filter((param) => param.enabled)
-        .map((param) => ({
-          name: param.name,
-          value: param.value,
-          ...(param.type === 'file' && { fileName: param.value })
+        .map(({ name, value, type }) => ({
+          name,
+          value,
+          ...(type === 'file' && { fileName: value })
         }))
     };
-  } else {
-    return {
-      mimeType: contentType,
-      text: body[body.mode]
-    };
   }
+
+  return {
+    mimeType: contentType,
+    text: body[body.mode]
+  };
 };
 
-export const buildHarRequest = ({ request, headers, type }) => {
+export const buildHarRequest = ({ request, headers }) => {
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -80,7 +73,7 @@ export const buildHarRequest = ({ request, headers, type }) => {
     cookies: [],
     headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body, type),
+    postData: createPostData(request.body),
     headersSize: 0,
     bodySize: 0
   };
