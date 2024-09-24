@@ -235,6 +235,18 @@ const builder = async (yargs) => {
       default: 'json',
       type: 'string'
     })
+    .option('reporter-json', {
+      describe: 'Path to write json file results to',
+      type: 'string'
+    })
+    .option('reporter-junit', {
+      describe: 'Path to write junit file results to',
+      type: 'string'
+    })
+    .option('reporter-html', {
+      describe: 'Path to write html file results to',
+      type: 'string'
+    })
     .option('insecure', {
       type: 'boolean',
       description: 'Allow insecure server connections'
@@ -267,6 +279,10 @@ const builder = async (yargs) => {
       '$0 run request.bru --output results.html --format html',
       'Run a request and write the results to results.html in html format in the current directory'
     )
+    .example(
+      '$0 run request.bru --reporter-junit results.xml --reporter-html results.html',
+      'Run a request and write the results to results.html in html format and results.xml in junit format in the current directory'
+    )
 
     .example('$0 run request.bru --tests-only', 'Run all requests that have a test')
     .example(
@@ -291,6 +307,9 @@ const handler = async function (argv) {
       r: recursive,
       output: outputPath,
       format,
+      reporterJson,
+      reporterJunit,
+      reporterHtml,
       sandbox,
       testsOnly,
       bail
@@ -390,6 +409,25 @@ const handler = async function (argv) {
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
       process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+    }
+
+    let formats = {};
+
+    // Maintains back compat with --format and --output
+    if (outputPath && outputPath.length) {
+      formats[format] = outputPath;
+    }
+
+    if (reporterHtml && reporterHtml.length) {
+      formats['html'] = reporterHtml;
+    }
+
+    if (reporterJson && reporterJson.length) {
+      formats['json'] = reporterJson;
+    }
+
+    if (reporterJunit && reporterJunit.length) {
+      formats['junit'] = reporterJunit;
     }
 
     // load .env file at root of collection if it exists
@@ -524,28 +562,45 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    if (outputPath && outputPath.length) {
-      const outputDir = path.dirname(outputPath);
-      const outputDirExists = await exists(outputDir);
-      if (!outputDirExists) {
-        console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-      }
-
+    const formatKeys = Object.keys(formats);
+    if (formatKeys && formatKeys.length > 0) {
       const outputJson = {
         summary,
         results
       };
 
-      if (format === 'json') {
-        fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2));
-      } else if (format === 'junit') {
-        makeJUnitOutput(results, outputPath);
-      } else if (format === 'html') {
-        makeHtmlOutput(outputJson, outputPath);
+      const reporters = {
+        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+        'junit': (path) => makeJUnitOutput(results, path),
+        'html': (path) => makeHtmlOutput(outputJson, path),
       }
 
-      console.log(chalk.dim(chalk.grey(`Wrote results to ${outputPath}`)));
+      for (const formatter of Object.keys(formats))
+      {
+        const reportPath = formats[formatter];
+        const reporter = reporters[formatter];
+
+        // Skip formatters lacking an output path.
+        if (!reportPath || reportPath.length === 0) {
+          continue;
+        }
+
+        const outputDir = path.dirname(reportPath);
+        const outputDirExists = await exists(outputDir);
+        if (!outputDirExists) {
+          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+        }
+
+        if (!reporter) {
+          console.error(chalk.red(`Reporter ${formatter} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+        }
+
+        reporter(reportPath);
+
+        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
+      }
     }
 
     if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
