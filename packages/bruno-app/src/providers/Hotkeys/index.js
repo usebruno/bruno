@@ -6,8 +6,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection } from 'utils/collections';
+import {
+  sendRequest,
+  saveRequest,
+  saveCollectionRoot,
+  saveFolderRoot
+} from 'providers/ReduxStore/slices/collections/actions';
+import { findCollectionByUid, findItemInCollection, isItemAFolder } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
 
@@ -42,7 +47,10 @@ export const HotkeysProvider = (props) => {
           const collection = findCollectionByUid(collections, activeTab.collectionUid);
           if (collection) {
             const item = findItemInCollection(collection, activeTab.uid);
-            if (item && item.uid) {
+            const isFolder = isItemAFolder(item);
+            if (item && isFolder) {
+              dispatch(saveFolderRoot(collection.uid, item.uid));
+            } else if (item.uid) {
               dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));

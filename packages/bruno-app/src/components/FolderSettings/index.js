@@ -7,6 +7,7 @@ import Script from './Script';
 import Tests from './Tests';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
+import Documentation from './Documentation';
 import DotIcon from 'components/Icons/Dot';
 
 const ContentIndicator = () => {
@@ -60,6 +61,9 @@ const FolderSettings = ({ collection, folder }) => {
       case 'vars': {
         return <Vars collection={collection} folder={folder} />;
       }
+      case 'docs': {
+        return <Documentation collection={collection} folder={folder} />;
+      }
     }
   };
 
@@ -88,6 +92,9 @@ const FolderSettings = ({ collection, folder }) => {
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
             {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
+          </div>
+          <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+            Docs
           </div>
         </div>
         <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
