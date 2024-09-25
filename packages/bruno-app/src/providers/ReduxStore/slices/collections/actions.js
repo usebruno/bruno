@@ -401,10 +401,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    const normalizedPathname = normalizeAndResolvePath(item.pathname);
-    const normalizedNewPathname = normalizeAndResolvePath(newPathname);
-
-    ipcRenderer.invoke('renderer:rename-item', normalizedPathname, normalizedNewPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
   });
 };
 
