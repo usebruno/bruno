@@ -161,7 +161,6 @@ module.exports = {
   isWSLPath,
   normalizeWslPath,
   writeFile,
-  writeBinaryFile,
   hasJsonExtension,
   hasBruExtension,
   createDirectory,
