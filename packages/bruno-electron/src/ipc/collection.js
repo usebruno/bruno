@@ -16,6 +16,7 @@ const {
   sanitizeDirectoryName,
   isWSLPath,
   normalizeWslPath,
+  normalizeAndResolvePath
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -329,12 +330,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
       // Normalize paths if they are WSL paths
-      if (isWSLPath(oldPath)) {
-        oldPath = normalizeWslPath(oldPath);
-      }
-      if (isWSLPath(newPath)) {
-        newPath = normalizeWslPath(newPath);
-      }
+      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
+      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : normalizeAndResolvePath(newPath);
 
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
