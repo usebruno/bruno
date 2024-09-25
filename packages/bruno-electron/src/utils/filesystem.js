@@ -172,18 +172,12 @@ const safeToRename = (oldPath, newPath) => {
 
     if (os.platform() === 'win32') {
       // Windows-specific comparison:
-      // Check if both files have the same birth time, size, and identical absolute paths (Since, Win FAT-32 doesn't use inodes)
-      const oldResolvedPath = path.resolve(oldPath);
-      const newResolvedPath = path.resolve(newPath);
+      // Check if both files have the same birth time, size (Since, Win FAT-32 doesn't use inodes)
 
-      return (
-        oldResolvedPath === newResolvedPath ||
-        (oldStat.birthtimeMs === newStat.birthtimeMs && oldStat.size === newStat.size)
-      );
-    } else {
-      // Unix/Linux/MacOS: Check inode to see if they are the same file
-      return oldStat.ino === newStat.ino;
+      return oldStat.birthtimeMs === newStat.birthtimeMs && oldStat.size === newStat.size;
     }
+    // Unix/Linux/MacOS: Check inode to see if they are the same file
+    return oldStat.ino === newStat.ino;
   } catch (error) {
     console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
     return false;

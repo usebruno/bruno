@@ -338,6 +338,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${oldPath} does not exist`);
       }
 
+      if (!safeToRename(oldPath, newPath)) {
+        throw new Error(`2path: ${newPath} exist`);
+      }
+
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
@@ -351,10 +355,6 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const isBru = hasBruExtension(oldPath);
       if (!isBru) {
         throw new Error(`path: ${oldPath} is not a bru file`);
-      }
-
-      if (!safeToRename(oldPath, newPath)) {
-        throw new Error(`path: ${newPath} already exists`);
       }
 
       // update name in file and save new copy, then delete old copy
