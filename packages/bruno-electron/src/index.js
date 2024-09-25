@@ -15,7 +15,7 @@ const { BrowserWindow, app, Menu, ipcMain } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
-const { openCollection } = require('./app/collections');
+const { openCollection, importCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
@@ -155,3 +155,16 @@ app.on('window-all-closed', app.quit);
 app.on('open-file', (event, path) => {
   openCollection(mainWindow, watcher, path);
 });
+
+// Open remote file
+function registerOpenURL(app) {
+  app.setAsDefaultProtocolClient('bruno');
+  app.on('open-url', (event, url) => {
+    const openUrl = new URL(url);
+      
+    const collectionUrl = openUrl.searchParams.get('url');
+    importCollection(mainWindow, collectionUrl);
+  });
+}
+
+registerOpenURL(app);

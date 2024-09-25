@@ -7,10 +7,12 @@ import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocatio
 
 import { IconDots } from '@tabler/icons';
 import { useState, forwardRef, useRef } from 'react';
-import { useDispatch } from 'react-redux';
-import { showHomePage } from 'providers/ReduxStore/slices/app';
+import { useDispatch, useSelector } from 'react-redux';
+import { removeAllImportEventFromQueue, showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import { useEffect } from 'react';
+
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
@@ -18,8 +20,20 @@ const TitleBar = () => {
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const importCollectionEvents = useSelector((state) => state.app.importEventQueue);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
+
+
+  useEffect(() => {
+    if (importCollectionEvents && importCollectionEvents.length > 0) {
+      for (const importCollectionEvent of importCollectionEvents) {
+        handleImportCollection(importCollectionEvent)
+      }
+
+      dispatch(removeAllImportEventFromQueue());
+    }
+  }, [importCollectionEvents]);
 
   const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);

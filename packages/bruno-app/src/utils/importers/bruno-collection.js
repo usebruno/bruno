@@ -1,8 +1,8 @@
-import fileDialog from 'file-dialog';
 import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection } from './common';
+import { validateSchema, transformItemsInCollection, updateUidsInCollection, hydrateSeqInCollection, loadFile } from './common';
 
 const readFile = (files) => {
+  console.log(files);
   return new Promise((resolve, reject) => {
     const fileReader = new FileReader();
     fileReader.onload = (e) => resolve(e.target.result);
@@ -23,10 +23,11 @@ const parseJsonCollection = (str) => {
   });
 };
 
-const importCollection = () => {
+
+
+const importCollection = (url) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
-      .then(readFile)
+    loadFile(url, readFile, { accept: 'application/json'})
       .then(parseJsonCollection)
       .then(hydrateSeqInCollection)
       .then(updateUidsInCollection)

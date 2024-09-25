@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useFormik } from 'formik';
 import importBrunoCollection from 'utils/importers/bruno-collection';
 import importPostmanCollection from 'utils/importers/postman-collection';
 import importInsomniaCollection from 'utils/importers/insomnia-collection';
@@ -7,6 +8,13 @@ import { toastError } from 'utils/common/error';
 import Modal from 'components/Modal';
 
 const ImportCollection = ({ onClose, handleSubmit }) => {
+
+  const formik = useFormik({
+    initialValues: {
+      url: ''
+    }
+  })
+
   const [options, setOptions] = useState({
     enablePostmanTranslations: {
       enabled: true,
@@ -16,7 +24,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     }
   });
   const handleImportBrunoCollection = () => {
-    importBrunoCollection()
+    importBrunoCollection(formik.values.url)
       .then(({ collection }) => {
         handleSubmit({ collection });
       })
@@ -24,7 +32,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   };
 
   const handleImportPostmanCollection = () => {
-    importPostmanCollection(options)
+    importPostmanCollection(formik.values.url, options)
       .then(({ collection, translationLog }) => {
         handleSubmit({ collection, translationLog });
       })
@@ -32,7 +40,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   };
 
   const handleImportInsomniaCollection = () => {
-    importInsomniaCollection()
+    importInsomniaCollection(formik.values.url)
       .then(({ collection }) => {
         handleSubmit({ collection });
       })
@@ -40,7 +48,7 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
   };
 
   const handleImportOpenapiCollection = () => {
-    importOpenapiCollection()
+    importOpenapiCollection(formik.values.url)
       .then(({ collection }) => {
         handleSubmit({ collection });
       })
@@ -71,6 +79,20 @@ const ImportCollection = ({ onClose, handleSubmit }) => {
     <Modal size="sm" title="Import Collection" hideFooter={true} handleConfirm={onClose} handleCancel={onClose}>
       <div className="flex flex-col">
         <h3 className="text-sm">Select the type of your existing collection :</h3>
+        <div>
+            <label htmlFor="url">
+              Url
+            </label>
+            <input
+              id="url"
+              type="text"
+              name="url"
+              placeholder="*.example.org"
+              className="block textbox non-passphrase-input"
+              onChange={formik.handleChange}
+              value={formik.values.url || ''}
+            />
+          </div>
         <div className="mt-4 grid grid-rows-2 grid-flow-col gap-2">
           <CollectionButton onClick={handleImportBrunoCollection}>Bruno Collection</CollectionButton>
           <CollectionButton onClick={handleImportPostmanCollection}>Postman Collection</CollectionButton>

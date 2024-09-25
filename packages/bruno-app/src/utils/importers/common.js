@@ -2,10 +2,39 @@ import each from 'lodash/each';
 import get from 'lodash/get';
 
 import cloneDeep from 'lodash/cloneDeep';
+import fileDialog from 'file-dialog';
 import { uuid, normalizeFileName } from 'utils/common';
 import { isItemARequest } from 'utils/collections';
 import { collectionSchema } from '@usebruno/schema';
 import { BrunoError } from 'utils/common/error';
+
+const readRemoteFile = (remoteFile) => {
+  return new Promise((resolve, reject) => {
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', remoteFile, true);
+    xhr.responseType = 'blob';
+
+    xhr.onload = async function () {
+      if (xhr.status === 200) {
+        const blob = xhr.response;
+        resolve(await blob.text());
+      } else {
+        console.error('File download failed:', xhr.status);
+        reject();
+      }
+    };
+
+    xhr.onerror = function () {
+      console.error('File download failed');
+      reject();
+    };
+
+    xhr.send();
+  });
+
+};
+
 
 export const validateSchema = (collection = {}) => {
   return new Promise((resolve, reject) => {
@@ -18,6 +47,11 @@ export const validateSchema = (collection = {}) => {
       });
   });
 };
+
+export const loadFile = (url, readFileFunction, fileDialogConfig) => {
+  return !url ? (fileDialog(fileDialogConfig).then(readFileFunction)) :
+      (readRemoteFile(url));
+}
 
 export const updateUidsInCollection = (_collection) => {
   const collection = cloneDeep(_collection);

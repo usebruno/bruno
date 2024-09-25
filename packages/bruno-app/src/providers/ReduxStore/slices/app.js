@@ -28,6 +28,7 @@ const initialState = {
   },
   cookies: [],
   taskQueue: [],
+  importEventQueue: [],
   systemProxyEnvVariables: {}
 };
 
@@ -74,6 +75,12 @@ export const appSlice = createSlice({
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
     },
+    insertImportEventIntoQueue: (state, action) => {
+      state.importEventQueue.push(action.payload);
+    },
+    removeAllImportEventFromQueue: (state, action) => {
+      state.importEventQueue = [];
+    },
     updateSystemProxyEnvVariables: (state, action) => {
       state.systemProxyEnvVariables = action.payload;
     }
@@ -94,6 +101,8 @@ export const {
   insertTaskIntoQueue,
   removeTaskFromQueue,
   removeAllTasksFromQueue,
+  insertImportEventIntoQueue,
+  removeAllImportEventFromQueue,
   updateSystemProxyEnvVariables
 } = appSlice.actions;
 

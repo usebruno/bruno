@@ -5,7 +5,7 @@ import find from 'lodash/find';
 import get from 'lodash/get';
 import trim from 'lodash/trim';
 import path from 'path';
-import { insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
+import { insertImportEventIntoQueue, insertTaskIntoQueue } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import {
   findCollectionByUid,
@@ -42,7 +42,7 @@ import { closeAllCollectionTabs } from 'providers/ReduxStore/slices/tabs';
 import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
-import { name } from 'file-loader';
+import importBrunoCollection from 'utils/importers/bruno-collection';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -1060,6 +1060,16 @@ export const openCollectionEvent = (uid, pathname, brunoConfig) => (dispatch, ge
         .then(resolve)
         .catch(reject);
     });
+  });
+};
+
+export const importCollectionEvent = (url) => (dispatch, getState) => {
+  return importBrunoCollection(url).then((collection) => {
+
+    dispatch(insertImportEventIntoQueue({
+      url,
+      collection: collection.collection
+    }));
   });
 };
 

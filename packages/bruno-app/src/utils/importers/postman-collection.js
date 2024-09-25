@@ -1,8 +1,7 @@
 import get from 'lodash/get';
-import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
-import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
+import { validateSchema, transformItemsInCollection, hydrateSeqInCollection, loadFile } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
 import each from 'lodash/each';
 
@@ -443,9 +442,9 @@ Collections incomplete : ${Object.keys(translationLog || {}).length}` +
   }
 };
 
-const importCollection = (options) => {
+const importCollection = (url, options) => {
   return new Promise((resolve, reject) => {
-    fileDialog({ accept: 'application/json' })
+    loadFile(url, readFile, { accept: 'application/json' })
       .then(readFile)
       .then((str) => parsePostmanCollection(str, options))
       .then(transformItemsInCollection)

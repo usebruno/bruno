@@ -56,6 +56,10 @@ const openCollectionDialog = async (win, watcher) => {
   }
 };
 
+const openRemoteCollection = async (win, watcher, collectionUrl, options = {}) => {
+
+}
+
 const openCollection = async (win, watcher, collectionPath, options = {}) => {
   if (!watcher.hasWatcher(collectionPath)) {
     try {
@@ -84,7 +88,13 @@ const openCollection = async (win, watcher, collectionPath, options = {}) => {
   }
 };
 
+const importCollection = async (win, collectionUrl, options = {}) => {
+  win.webContents.send('main:collection-imported', collectionUrl);
+  ipcMain.emit('main:collection-imported', collectionUrl);
+};
+
 module.exports = {
   openCollection,
-  openCollectionDialog
+  openCollectionDialog,
+  importCollection
 };
