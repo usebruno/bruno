@@ -12,9 +12,9 @@ import StyledWrapper from './StyledWrapper';
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
+  const preferences = useSelector((state) => state.app.preferences);
   const [isEditing, setIsEditing] = useState(false);
   const docs = get(folder, 'root.docs', '');
-  const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
