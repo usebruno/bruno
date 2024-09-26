@@ -10,10 +10,9 @@ import NewRequest from 'components/Sidebar/NewRequest';
 import {
   sendRequest,
   saveRequest,
-  saveCollectionRoot,
-  saveFolderRoot
+  saveCollectionRoot
 } from 'providers/ReduxStore/slices/collections/actions';
-import { findCollectionByUid, findItemInCollection, isItemAFolder } from 'utils/collections';
+import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 
 export const HotkeysContext = React.createContext();
@@ -57,10 +56,7 @@ export const HotkeysProvider = (props) => {
           const collection = findCollectionByUid(collections, activeTab.collectionUid);
           if (collection) {
             const item = findItemInCollection(collection, activeTab.uid);
-            const isFolder = isItemAFolder(item);
-            if (item && isFolder) {
-              dispatch(saveFolderRoot(collection.uid, item.uid));
-            } else if (item.uid) {
+            if (item && item.uid) {
               dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
