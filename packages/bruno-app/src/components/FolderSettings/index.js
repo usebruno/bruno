@@ -69,7 +69,9 @@ const FolderSettings = ({ collection, folder }) => {
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
           </div>
-          <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>Docs</div>
+          <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
+            Docs
+          </div>
         </div>
         <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
       </div>

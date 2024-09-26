@@ -7,11 +7,7 @@ import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import {
-  sendRequest,
-  saveRequest,
-  saveCollectionRoot
-} from 'providers/ReduxStore/slices/collections/actions';
+import { sendRequest, saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 
