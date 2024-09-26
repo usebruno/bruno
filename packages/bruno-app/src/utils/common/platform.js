@@ -45,21 +45,6 @@ export const isMacOS = () => {
   return osFamily.includes('os x');
 };
 
-export const getCurrentOS = () => {
-  const os = platform.os;
-  const osFamily = os.family.toLowerCase();
-
-  if (osFamily.includes('windows')) {
-    return 'windows';
-  }
-
-  if (osFamily.includes('os x')) {
-    return 'mac';
-  }
-
-  return 'linux';
-};
-
 export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
 
 export const getAppInstallDate = () => {

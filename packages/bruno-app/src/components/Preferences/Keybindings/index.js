@@ -1,12 +1,10 @@
 import StyledWrapper from './StyledWrapper';
 import React from 'react';
-import { useTheme } from 'providers/Theme';
 import { getKeyBindingsForOS } from 'providers/Hotkeys/keyMappings';
-import { getCurrentOS } from 'utils/common/platform';
+import { isMacOS } from 'utils/common/platform';
 
 const Keybindings = ({ close }) => {
-  const { storedTheme } = useTheme();
-  const keyMapping = getKeyBindingsForOS(getCurrentOS());
+  const keyMapping = getKeyBindingsForOS(isMacOS() ? 'mac' : 'windows');
 
   return (
     <StyledWrapper className="w-full">
