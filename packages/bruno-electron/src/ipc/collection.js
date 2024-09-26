@@ -16,6 +16,7 @@ const {
   sanitizeDirectoryName,
   isWSLPath,
   normalizeWslPath,
+  normalizeAndResolvePath,
   safeToRename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
@@ -330,8 +331,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
       // Normalize paths if they are WSL paths
-      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : oldPath;
-      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : newPath;
+      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
+      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : normalizeAndResolvePath(newPath);
 
       // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
