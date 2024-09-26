@@ -11,7 +11,8 @@ import {
   findCollectionByUid,
   findEnvironmentInCollection,
   findItemInCollection,
-  findItemInCollectionByPathname, isItemAFolder,
+  findItemInCollectionByPathname,
+  isItemAFolder,
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
