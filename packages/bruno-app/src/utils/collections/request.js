@@ -26,7 +26,7 @@ const interpolateRequest = (request, combinedVars) => {
   };
 
   const interpolateAuth = (auth) => {
-    if (auth.type === 'oauth2') {
+    if (auth.mode === 'oauth2') {
       const { oauth2 } = auth;
       if (oauth2?.grantType) {
         let username, password, scope, clientId, clientSecret;
@@ -81,17 +81,25 @@ const interpolateRequest = (request, combinedVars) => {
             break;
         }
       }
-    } else if (auth.type === 'basic') {
-      auth.username = interpolate(auth.username, combinedVars);
-      auth.password = interpolate(auth.password, combinedVars);
-    } else if (auth.type === 'bearer') {
-      auth.token = interpolate(auth.token, combinedVars);
-    } else if (auth.type === 'wsse') {
-      auth.username = interpolate(auth.username, combinedVars);
-      auth.password = interpolate(auth.password, combinedVars);
-    } else if (auth.type === 'digest') {
-      auth.username = interpolate(auth.username, combinedVars);
-      auth.password = interpolate(auth.password, combinedVars);
+    } else if (auth.mode === 'basic') {
+      const { basic } = auth;
+
+      basic.username = interpolate(basic.username, combinedVars);
+      basic.password = interpolate(basic.password, combinedVars);
+    } else if (auth.mode === 'bearer') {
+      const { bearer } = auth;
+
+      bearer.token = interpolate(bearer.token, combinedVars);
+    } else if (auth.mode === 'wsse') {
+      const { wsse } = auth;
+
+      wsse.username = interpolate(wsse.username, combinedVars);
+      wsse.password = interpolate(wsse.password, combinedVars);
+    } else if (auth.mode === 'digest') {
+      const { digest } = auth;
+
+      digest.username = interpolate(digest.username, combinedVars);
+      digest.password = interpolate(digest.password, combinedVars);
     }
   };
 
