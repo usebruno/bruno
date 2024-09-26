@@ -298,7 +298,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)) {
+      if (!safeToRename(envFilePath, newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
