@@ -29,7 +29,7 @@ const QueryResultPreview = ({
     setNumPages(numPages);
   }
   // Fail safe, so we don't render anything with an invalid tab
-  if (!allowedPreviewModes.includes(previewTab)) {
+  if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
     return null;
   }
 
@@ -40,7 +40,7 @@ const QueryResultPreview = ({
     dispatch(sendRequest(item, collection.uid));
   };
 
-  switch (previewTab) {
+  switch (previewTab?.mode) {
     case 'preview-web': {
       const webViewSrc = data.replace('<head>', `<head><base href="${item.requestSent?.url || ''}">`);
       return (
@@ -65,12 +65,23 @@ const QueryResultPreview = ({
         </div>
       );
     }
+    case 'preview-audio': {
+      return (
+        <audio controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
+    case 'preview-video': {
+      return (
+        <video controls src={`data:${contentType.replace(/\;(.*)/, '')};base64,${dataBuffer}`} className="mx-auto" />
+      );
+    }
     default:
     case 'raw': {
       return (
         <CodeEditor
           collection={collection}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           onRun={onRun}
           value={formattedData}
