@@ -62,9 +62,6 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
           </div>
         );
       })}
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
     </StyledWrapper>
   );
 };

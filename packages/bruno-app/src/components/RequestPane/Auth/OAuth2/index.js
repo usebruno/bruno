@@ -5,6 +5,7 @@ import GrantTypeSelector from './GrantTypeSelector/index';
 import OAuth2PasswordCredentials from './PasswordCredentials/index';
 import OAuth2AuthorizationCode from './AuthorizationCode/index';
 import OAuth2ClientCredentials from './ClientCredentials/index';
+import CredentialsPreview from './CredentialsPreview';
 
 const grantTypeComponentMap = (grantType, item, collection) => {
   switch (grantType) {
@@ -30,6 +31,7 @@ const OAuth2 = ({ item, collection }) => {
     <StyledWrapper className="mt-2 w-full">
       <GrantTypeSelector item={item} collection={collection} />
       {grantTypeComponentMap(oAuth?.grantType, item, collection)}
+      <CredentialsPreview item={item} collection={collection} />
     </StyledWrapper>
   );
 };
