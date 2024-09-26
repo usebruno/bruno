@@ -16,7 +16,8 @@ const {
   sanitizeDirectoryName,
   isWSLPath,
   normalizeWslPath,
-  normalizeAndResolvePath
+  normalizeAndResolvePath,
+  safeToRename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -333,14 +334,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
       newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : normalizeAndResolvePath(newPath);
 
+      // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${oldPath} already exists`);
+
+      if (!safeToRename(oldPath, newPath)) {
+        throw new Error(`path: ${newPath} already exists`);
       }
 
-      // if its directory, rename and return
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
@@ -361,12 +363,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
-
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
+
+      return newPath;
     } catch (error) {
       return Promise.reject(error);
     }
