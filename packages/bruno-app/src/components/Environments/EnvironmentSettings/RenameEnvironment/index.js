@@ -22,6 +22,9 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
+      if (values.name === environment.name) {
+        return;
+      }
       dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
         .then(() => {
           toast.success('Environment renamed successfully');
