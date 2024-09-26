@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getAllVariables } from '../../../../../../../utils/collections/index';
 import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
-import { interpolateVars } from '../../../../../../../utils/url/index';
+import interpolateRequest from '../../../../../../../utils/collections/request';
 
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
@@ -24,7 +24,8 @@ const CodeView = ({ language, item }) => {
 
   const collection = findCollectionByItemUid(collections, item.uid);
   const allVars = getAllVariables(collection, item);
-  interpolateVars(requestClone, allVars);
+  
+  interpolateRequest(requestClone, allVars);
 
   const collectionRootAuth = collection?.root?.request?.auth;
   const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
