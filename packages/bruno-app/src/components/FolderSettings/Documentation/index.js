@@ -13,7 +13,7 @@ const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const docs = get(folder, 'root.request.docs', '');
+  const docs = get(folder, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
 
   const toggleViewMode = () => {

@@ -1738,7 +1738,7 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
         if (isItemAFolder(folder)) {
-          set(folder, 'root.request.docs', action.payload.docs);
+          set(folder, 'root.docs', action.payload.docs);
         }
       }
     }
