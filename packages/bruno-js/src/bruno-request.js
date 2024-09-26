@@ -173,6 +173,10 @@ class BrunoRequest {
   disableParsingResponseJson() {
     this.req.__brunoDisableParsingResponseJson = true;
   }
+
+  getExecutionMode() {
+    return this.req.__bruno__executionMode;
+  }
 }
 
 module.exports = BrunoRequest;
