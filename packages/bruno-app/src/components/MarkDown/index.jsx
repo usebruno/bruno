@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import * as MarkdownItReplaceLink from 'markdown-it-replace-link';
 import StyledWrapper from './StyledWrapper';
 import React from 'react';
+import { isValidUrl } from 'utils/url/index';
 
 const Markdown = ({ collectionPath, onDoubleClick, content }) => {
   const markdownItOptions = {
@@ -15,7 +16,7 @@ const Markdown = ({ collectionPath, onDoubleClick, content }) => {
     if (target.tagName === 'A') {
       event.preventDefault();
       const href = target.getAttribute('href');
-      if (href) {
+      if (href && isValidUrl(href)) {
         window.open(href, '_blank');
         return;
       }

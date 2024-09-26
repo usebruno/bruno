@@ -31,9 +31,8 @@ const readFile = (files) => {
 };
 
 const ensureUrl = (url) => {
-  let protUrl = url.startsWith('http') ? url : `http://${url}`;
-  // replace any double or triple slashes
-  return protUrl.replace(/([^:]\/)\/+/g, '$1');
+  // emoving multiple slashes after the protocol if it exists, or after the beginning of the string otherwise
+  return url.replace(/([^:])\/{2,}/g, '$1/');
 };
 
 const buildEmptyJsonBody = (bodySchema) => {
@@ -41,9 +40,12 @@ const buildEmptyJsonBody = (bodySchema) => {
   each(bodySchema.properties || {}, (prop, name) => {
     if (prop.type === 'object') {
       _jsonBody[name] = buildEmptyJsonBody(prop);
-      // handle arrays
     } else if (prop.type === 'array') {
-      _jsonBody[name] = [];
+      if (prop.items && prop.items.type === 'object') {
+        _jsonBody[name] = [buildEmptyJsonBody(prop.items)];
+      } else {
+        _jsonBody[name] = [];
+      }
     } else {
       _jsonBody[name] = '';
     }
@@ -67,7 +69,7 @@ const transformOpenapiRequestItem = (request) => {
     name: operationName,
     type: 'http-request',
     request: {
-      url: ensureUrl(request.global.server + '/' + path),
+      url: ensureUrl(request.global.server + path),
       method: request.method.toUpperCase(),
       auth: {
         mode: 'none',
@@ -165,6 +167,9 @@ const transformOpenapiRequestItem = (request) => {
         let _jsonBody = buildEmptyJsonBody(bodySchema);
         brunoRequestItem.request.body.json = JSON.stringify(_jsonBody, null, 2);
       }
+      if (bodySchema && bodySchema.type === 'array') {
+        brunoRequestItem.request.body.json = JSON.stringify([buildEmptyJsonBody(bodySchema.items)], null, 2);
+      }
     } else if (mimeType === 'application/x-www-form-urlencoded') {
       brunoRequestItem.request.body.mode = 'formUrlEncoded';
       if (bodySchema && bodySchema.type === 'object') {
@@ -224,7 +229,7 @@ const transformOpenapiRequestItem = (request) => {
   return brunoRequestItem;
 };
 
-const resolveRefs = (spec, components = spec.components, visitedItems = new Set()) => {
+const resolveRefs = (spec, components = spec?.components, visitedItems = new Set()) => {
   if (!spec || typeof spec !== 'object') {
     return spec;
   }
@@ -248,7 +253,7 @@ const resolveRefs = (spec, components = spec.components, visitedItems = new Set(
       let ref = components;
 
       for (const key of refKeys) {
-        if (ref[key]) {
+        if (ref && ref[key]) {
           ref = ref[key];
         } else {
           // Handle invalid references gracefully?
@@ -278,11 +283,16 @@ const groupRequestsByTags = (requests) => {
   each(requests, (request) => {
     let tags = request.operationObject.tags || [];
     if (tags.length > 0) {
-      let tag = tags[0]; // take first tag
-      if (!_groups[tag]) {
-        _groups[tag] = [];
+      let tag = tags[0].trim(); // take first tag and trim whitespace
+
+      if (tag) {
+        if (!_groups[tag]) {
+          _groups[tag] = [];
+        }
+        _groups[tag].push(request);
+      } else {
+        ungrouped.push(request);
       }
-      _groups[tag].push(request);
     } else {
       ungrouped.push(request);
     }
@@ -306,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url;
+  return url.endsWith('/') ? url : `${url}/`;
 };
 
 const getSecurity = (apiSpec) => {

@@ -22,6 +22,9 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
         .required('name is required')
     }),
     onSubmit: (values) => {
+      if (values.name === environment.name) {
+        return;
+      }
       dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
         .then(() => {
           toast.success('Environment renamed successfully');
@@ -50,7 +53,7 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
         handleConfirm={onSubmit}
         handleCancel={onClose}
       >
-        <form className="bruno-form" onSubmit={formik.handleSubmit}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="name" className="block font-semibold">
               Environment Name

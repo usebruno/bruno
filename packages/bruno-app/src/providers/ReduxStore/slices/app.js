@@ -30,7 +30,8 @@ const initialState = {
     }
   },
   cookies: [],
-  taskQueue: []
+  taskQueue: [],
+  systemProxyEnvVariables: {}
 };
 
 export const appSlice = createSlice({
@@ -75,6 +76,9 @@ export const appSlice = createSlice({
     },
     removeAllTasksFromQueue: (state) => {
       state.taskQueue = [];
+    },
+    updateSystemProxyEnvVariables: (state, action) => {
+      state.systemProxyEnvVariables = action.payload;
     }
   }
 });
@@ -92,7 +96,8 @@ export const {
   updateCookies,
   insertTaskIntoQueue,
   removeTaskFromQueue,
-  removeAllTasksFromQueue
+  removeAllTasksFromQueue,
+  updateSystemProxyEnvVariables
 } = appSlice.actions;
 
 export const savePreferences = (preferences) => (dispatch, getState) => {

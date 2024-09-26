@@ -19,6 +19,7 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
+const { createFormData } = require('../utils/common');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const onConsoleLog = (type, args) => {
@@ -42,37 +43,10 @@ const runSingleRequest = async function (
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
+    request.__bruno__executionMode = 'cli';
+
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
-
-    // make axios work in node using form data
-    // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-    if (request.headers && request.headers['content-type'] === 'multipart/form-data') {
-      const form = new FormData();
-      forOwn(request.data, (value, key) => {
-        if (value instanceof Array) {
-          each(value, (v) => form.append(key, v));
-        } else {
-          form.append(key, value);
-        }
-      });
-      extend(request.headers, form.getHeaders());
-      request.data = form;
-    }
-
-    // run pre-request vars
-    const preRequestVars = get(bruJson, 'request.vars.req');
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVariables,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
 
     // run pre request script
     const requestScriptFile = compact([
@@ -209,6 +183,14 @@ const runSingleRequest = async function (
       request.data = qs.stringify(request.data);
     }
 
+    if (request?.headers?.['content-type'] === 'multipart/form-data') {
+      if (!(request?.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
+    }
+
     let response, responseTime;
     try {
       // run request
@@ -276,7 +258,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars

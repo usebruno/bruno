@@ -134,8 +134,15 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    require('electron').shell.openExternal(details.url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { protocol } = new URL(url);
+      if (['https:', 'http:'].includes(protocol)) {
+        require('electron').shell.openExternal(url);
+      }
+    } catch (e) {
+      console.error(e);
+    }
     return { action: 'deny' };
   });
 

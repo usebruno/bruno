@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import isEqual from 'lodash/isEqual';
+import { isEqual, escapeRegExp } from 'lodash';
 import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
@@ -55,12 +55,15 @@ if (!SERVER_RENDERED) {
     'req.setMaxRedirects(maxRedirects)',
     'req.getTimeout()',
     'req.setTimeout(timeout)',
+    'req.getExecutionMode()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName(key)',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
+    'bru.getFolderVar(key)',
+    'bru.getCollectionVar(key)',
     'bru.setEnvVar(key,value)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
@@ -333,6 +336,7 @@ export default class CodeEditor extends React.Component {
         className="h-full w-full flex flex-col relative"
         aria-label="Code Editor"
         font={this.props.font}
+        fontSize={this.props.fontSize}
         ref={(node) => {
           this._node = node;
         }}
@@ -405,7 +409,8 @@ export default class CodeEditor extends React.Component {
     const searchInput = document.querySelector('.CodeMirror-search-field');
 
     if (searchInput && searchInput.value.length > 0) {
-      const text = new RegExp(searchInput.value, 'gi');
+      // Escape special characters in search input to prevent RegExp crashes. Fixes #3051
+      const text = new RegExp(escapeRegExp(searchInput.value), 'gi');
       const matches = this.editor.getValue().match(text);
       count = matches ? matches.length : 0;
     }

@@ -32,7 +32,10 @@ const CodeView = ({ language, item }) => {
 
   let snippet = '';
   try {
-    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers })).convert(target, client);
+    snippet = new HTTPSnippet(buildHarRequest({ request: item.request, headers, type: item.type })).convert(
+      target,
+      client
+    );
   } catch (e) {
     console.error(e);
     snippet = 'Error generating code snippet';
@@ -53,6 +56,7 @@ const CodeView = ({ language, item }) => {
           collection={collection}
           value={snippet}
           font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           theme={displayedTheme}
           mode={lang}
         />
