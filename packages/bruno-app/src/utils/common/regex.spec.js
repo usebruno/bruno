@@ -72,7 +72,7 @@ describe('regex validators', () => {
       expect(sanitizeName('brunfais🐶')).toBe('brunfais🐶');
       expect(sanitizeName('file-🐶-bruno')).toBe('file-🐶-bruno');
       expect(sanitizeName('helló')).toBe('helló');
-    });    
+    });
 
     it('should preserve case sensitivity', () => {
       expect(sanitizeName('FileName')).toBe('FileName');
@@ -96,6 +96,17 @@ describe('regex validators', () => {
     it('should handle names with leading/trailing invalid characters', () => {
       expect(sanitizeName('-foo/bar-')).toBe('foo-bar-');
       expect(sanitizeName('/foo\\bar/')).toBe('foo-bar-');
+    });
+
+    it('should handle different language unicode characters', () => {
+      expect(sanitizeName('你好世界!?@#$%^&*()')).toBe('你好世界!-@#$%^&-()');
+      expect(sanitizeName('こんにちは世界!?@#$%^&*()')).toBe('こんにちは世界!-@#$%^&-()');
+      expect(sanitizeName('안녕하세요 세계!?@#$%^&*()')).toBe('안녕하세요 세계!-@#$%^&-()');
+      expect(sanitizeName('مرحبا بالعالم!?@#$%^&*()')).toBe('مرحبا بالعالم!-@#$%^&-()');
+      expect(sanitizeName('Здравствуй мир!?@#$%^&*()')).toBe('Здравствуй мир!-@#$%^&-()');
+      expect(sanitizeName('नमस्ते दुनिया!?@#$%^&*()')).toBe('नमस्ते दुनिया!-@#$%^&-()');
+      expect(sanitizeName('สวัสดีชาวโลก!?@#$%^&*()')).toBe('สวัสดีชาวโลก!-@#$%^&-()');
+      expect(sanitizeName('γειά σου κόσμος!?@#$%^&*()')).toBe('γειά σου κόσμος!-@#$%^&-()');
     });
     
   });
