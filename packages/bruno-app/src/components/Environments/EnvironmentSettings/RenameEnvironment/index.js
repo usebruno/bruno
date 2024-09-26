@@ -24,14 +24,13 @@ const RenameEnvironment = ({ onClose, environment, collection }) => {
     onSubmit: (values) => {
       if (values.name === environment.name) {
         return;
-      } else {
-        dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
-          .then(() => {
-            toast.success('Environment renamed successfully');
-            onClose();
-          })
-          .catch(() => toast.error('An error occurred while renaming the environment'));
       }
+      dispatch(renameEnvironment(values.name, environment.uid, collection.uid))
+        .then(() => {
+          toast.success('Environment renamed successfully');
+          onClose();
+        })
+        .catch(() => toast.error('An error occurred while renaming the environment'));
     }
   });
 
