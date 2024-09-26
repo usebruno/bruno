@@ -43,6 +43,8 @@ const runSingleRequest = async function (
 
     request = prepareRequest(bruJson.request, collectionRoot);
 
+    request.__bruno__executionMode = 'cli';
+
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
 
