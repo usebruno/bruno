@@ -28,28 +28,70 @@ const interpolateRequest = (request, combinedVars) => {
   const interpolateAuth = (auth) => {
     if (auth.type === 'oauth2') {
       const { oauth2 } = auth;
-      const oauth2Fields = [
-        'username',
-        'password',
-        'clientId',
-        'clientSecret',
-        'scope',
-        'accessTokenUrl',
-        'callbackUrl',
-        'authorizationUrl',
-        'state',
-        'pkce'
-      ];
-      oauth2Fields.forEach((field) => {
-        if (oauth2[field]) {
-          oauth2[field] = interpolate(oauth2[field], combinedVars);
+      if (oauth2?.grantType) {
+        let username, password, scope, clientId, clientSecret;
+        switch (oauth2.grantType) {
+          case 'password':
+            username = interpolate(oauth2.username, combinedVars) || '';
+            password = interpolate(oauth2.password, combinedVars) || '';
+            clientId = interpolate(oauth2.clientId, combinedVars) || '';
+            clientSecret = interpolate(oauth2.clientSecret, combinedVars) || '';
+            scope = interpolate(oauth2.scope, combinedVars) || '';
+            oauth2.accessTokenUrl = interpolate(oauth2.accessTokenUrl, combinedVars) || '';
+            oauth2.username = username;
+            oauth2.password = password;
+            oauth2.clientId = clientId;
+            oauth2.clientSecret = clientSecret;
+            oauth2.scope = scope;
+            request.data = {
+              grant_type: 'password',
+              username,
+              password,
+              client_id: clientId,
+              client_secret: clientSecret,
+              scope
+            };
+            break;
+          case 'authorization_code':
+            oauth2.callbackUrl = interpolate(oauth2.callbackUrl, combinedVars) || '';
+            oauth2.authorizationUrl = interpolate(oauth2.authorizationUrl, combinedVars) || '';
+            oauth2.accessTokenUrl = interpolate(oauth2.accessTokenUrl, combinedVars) || '';
+            oauth2.clientId = interpolate(oauth2.clientId, combinedVars) || '';
+            oauth2.clientSecret = interpolate(oauth2.clientSecret, combinedVars) || '';
+            oauth2.scope = interpolate(oauth2.scope, combinedVars) || '';
+            oauth2.state = interpolate(oauth2.state, combinedVars) || '';
+            oauth2.pkce = interpolate(oauth2.pkce, combinedVars) || false;
+            break;
+          case 'client_credentials':
+            clientId = interpolate(oauth2.clientId, combinedVars) || '';
+            clientSecret = interpolate(oauth2.clientSecret, combinedVars) || '';
+            scope = interpolate(oauth2.scope, combinedVars) || '';
+            oauth2.accessTokenUrl = interpolate(oauth2.accessTokenUrl, combinedVars) || '';
+            oauth2.clientId = clientId;
+            oauth2.clientSecret = clientSecret;
+            oauth2.scope = scope;
+            request.data = {
+              grant_type: 'client_credentials',
+              client_id: clientId,
+              client_secret: clientSecret,
+              scope
+            };
+            break;
+          default:
+            break;
         }
-      });
+      }
     } else if (auth.type === 'basic') {
       auth.username = interpolate(auth.username, combinedVars);
       auth.password = interpolate(auth.password, combinedVars);
     } else if (auth.type === 'bearer') {
       auth.token = interpolate(auth.token, combinedVars);
+    } else if (auth.type === 'wsse') {
+      auth.username = interpolate(auth.username, combinedVars);
+      auth.password = interpolate(auth.password, combinedVars);
+    } else if (auth.type === 'digest') {
+      auth.username = interpolate(auth.username, combinedVars);
+      auth.password = interpolate(auth.password, combinedVars);
     }
   };
 
