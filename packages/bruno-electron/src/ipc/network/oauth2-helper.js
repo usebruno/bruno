@@ -2,6 +2,9 @@ const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
 const { authorizeUserInWindow } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
+const { makeAxiosInstance } = require('./axios-instance');
+
+const oauth2Store = new Oauth2Store();
 
 const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
@@ -14,16 +17,34 @@ const generateCodeChallenge = (codeVerifier) => {
   return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 };
 
+const getPersistedOauth2Credentials = (collectionUid) => {
+  const collectionOauthStore = oauth2Store.getOauth2DataOfCollection(collectionUid);
+  const cachedCredentials = collectionOauthStore.credentials;
+  return { cachedCredentials };
+};
+
+const persistOauth2Credentials = (credentials, collectionUid) => {
+  const collectionOauthStore = oauth2Store.getOauth2DataOfCollection(collectionUid);
+  collectionOauthStore.credentials = credentials;
+  oauth2Store.updateOauth2DataOfCollection(collectionUid, collectionOauthStore);
+};
+
 // AUTHORIZATION CODE
 
-const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
+const oauth2AuthorizeWithAuthorizationCode = async (request, collectionUid) => {
+  const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
+  if (cachedCredentials?.access_token) {
+    console.log('Reusing Stored access token');
+    return { credentials: cachedCredentials, response: {} };
+  }
+
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
   let requestCopy = cloneDeep(request);
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
+  const { clientId, clientSecret, callbackUrl, pkce } = oAuth;
   const data = {
     grant_type: 'authorization_code',
     code: authorizationCode,
@@ -35,11 +56,16 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
     data['code_verifier'] = codeVerifier;
   }
 
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = request?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  const response = await axiosInstance(request);
+  const credentials = JSON.parse(response.data);
+  persistOauth2Credentials(credentials, collectionUid);
+  return { credentials, response };
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
@@ -64,7 +90,6 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       authorizationUrlWithQueryParams.searchParams.append('state', state);
     }
     try {
-      const oauth2Store = new Oauth2Store();
       const { authorizationCode } = await authorizeUserInWindow({
         authorizeUrl: authorizationUrlWithQueryParams.toString(),
         callbackUrl,
@@ -79,7 +104,13 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const transformClientCredentialsRequest = async (request) => {
+const oauth2AuthorizeWithClientCredentials = async (request, collectionUid) => {
+  const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
+  if (cachedCredentials?.access_token) {
+    console.log('Reusing Stored access token');
+    return { credentials: cachedCredentials, response: {} };
+  }
+
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
   const { clientId, clientSecret, scope } = oAuth;
@@ -91,18 +122,29 @@ const transformClientCredentialsRequest = async (request) => {
   if (scope) {
     data.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
+
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = request?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let credentials = JSON.parse(response.data);
+  persistOauth2Credentials(credentials, collectionUid);
+  return { credentials, response };
 };
 
 // PASSWORD CREDENTIALS
 
-const transformPasswordCredentialsRequest = async (request) => {
-  let requestCopy = cloneDeep(request);
-  const oAuth = get(requestCopy, 'oauth2', {});
+const oauth2AuthorizeWithPasswordCredentials = async (request, collectionUid) => {
+  const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
+  if (cachedCredentials?.access_token) {
+    console.log('Reusing Stored access token');
+    return { credentials: cachedCredentials, response: {} };
+  }
+
+  const oAuth = get(request, 'oauth2', {});
   const { username, password, clientId, clientSecret, scope } = oAuth;
   const data = {
     grant_type: 'password',
@@ -114,16 +156,20 @@ const transformPasswordCredentialsRequest = async (request) => {
   if (scope) {
     data.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
-  return {
-    data,
-    url
-  };
-};
 
+  request.method = 'POST';
+  request.headers['content-type'] = 'application/x-www-form-urlencoded';
+  request.data = data;
+  request.url = request?.oauth2?.accessTokenUrl;
+
+  const axiosInstance = makeAxiosInstance();
+  let response = await axiosInstance(request);
+  let credentials = JSON.parse(response.data);
+  persistOauth2Credentials(credentials, collectionUid);
+  return { credentials, response };
+};
 module.exports = {
-  resolveOAuth2AuthorizationCodeAccessToken,
-  getOAuth2AuthorizationCode,
-  transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest
+  oauth2AuthorizeWithAuthorizationCode,
+  oauth2AuthorizeWithClientCredentials,
+  oauth2AuthorizeWithPasswordCredentials
 };
