@@ -340,7 +340,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       if (!safeToRename(oldPath, newPath)) {
-        throw new Error(`2path: ${newPath} exist`);
+        throw new Error(`path: ${newPath} exist`);
       }
 
       if (isDirectory(oldPath)) {
