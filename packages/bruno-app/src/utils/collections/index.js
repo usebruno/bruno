@@ -859,7 +859,7 @@ export const maskInputValue = (value) => {
     .join('');
 };
 
-const getTreePathFromCollectionToItem = (collection, _item) => {
+export const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
   let item = findItemInCollection(collection, _item?.uid);
   while (item) {
@@ -869,7 +869,7 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
-const mergeVars = (collection, requestTreePath = []) => {
+export const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};

@@ -5,7 +5,6 @@ import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
 import { find, get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
-import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
@@ -20,23 +19,6 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
       return acc;
     }, {});
   }
-
-  const requestUrl =
-    get(item, 'draft.request.url') !== undefined ? get(item, 'draft.request.url') : get(item, 'request.url');
-
-  // interpolate the url
-  const interpolatedUrl = interpolateUrl({
-    url: requestUrl,
-    envVars,
-    runtimeVariables: collection.runtimeVariables,
-    processEnvVars: collection.processEnvVariables
-  });
-
-  // interpolate the path params
-  const finalUrl = interpolateUrlPathParams(
-    interpolatedUrl,
-    get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
-  );
 
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
@@ -61,31 +43,10 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
             </div>
           </div>
           <div className="flex-grow p-4">
-            {isValidUrl(finalUrl) ? (
-              <CodeView
-                language={selectedLanguage}
-                item={{
-                  ...item,
-                  request:
-                    item.request.url !== ''
-                      ? {
-                          ...item.request,
-                          url: finalUrl
-                        }
-                      : {
-                          ...item.draft.request,
-                          url: finalUrl
-                        }
-                }}
-              />
-            ) : (
-              <div className="flex flex-col justify-center items-center w-full">
-                <div className="text-center">
-                  <h1 className="text-2xl font-bold">Invalid URL: {finalUrl}</h1>
-                  <p className="text-gray-500">Please check the URL and try again</p>
-                </div>
-              </div>
-            )}
+            <CodeView
+              language={selectedLanguage}
+              item={item}
+            />
           </div>
         </div>
       </StyledWrapper>
