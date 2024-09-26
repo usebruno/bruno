@@ -43,6 +43,7 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
+import slash from 'utils/common/slash';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -401,7 +402,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', slash(item.pathname), newPathname, newName).then(resolve).catch(reject);
   });
 };
 
