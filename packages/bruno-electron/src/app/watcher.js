@@ -12,7 +12,7 @@ const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
-const UiSnapshot = require('../store/ui-snapshot');
+const UiStateSnapshot = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -425,9 +425,9 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
 };
 
 const onWatcherSetupComplete = (win) => {
-  const uiSnapshotStore = new UiSnapshot();
-  const collectionSnapshotState = uiSnapshotStore.getCollections();
-  win.webContents.send('main:hydrate-app-with-ui-snapshot', collectionSnapshotState);
+  const UiStateSnapshotStore = new UiStateSnapshot();
+  const collectionSnapshotState = UiStateSnapshotStore.getCollections();
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
 class Watcher {

@@ -974,7 +974,7 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     if (environmentUid) {
       const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
       if (environment) {
-        ipcRenderer.invoke('renderer:update-ui-snapshot', { type: 'COLLECTION_ENVIRONMENT', data: { collectionPath: collection?.pathname, environmentName: environment?.name } })
+        ipcRenderer.invoke('renderer:update-ui-state-snapshot', { type: 'COLLECTION_ENVIRONMENT', data: { collectionPath: collection?.pathname, environmentName: environment?.name } })
         dispatch(_selectEnvironment({ environmentUid, collectionUid }));
         resolve();
       }
@@ -1146,7 +1146,7 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
 };
 
 
-export const hydrateCollectionsWithUiSnapshot = (payload) => (dispatch, getState) => {
+export const hydrateCollectionsWithUiStateSnapshot = (payload) => (dispatch, getState) => {
     const collectionsSnapshotData = payload;
     return new Promise((resolve, reject) => {
       const state = getState();
