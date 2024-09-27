@@ -31,13 +31,6 @@ const Wrapper = styled.div`
     }
   }
 
-  .btn-add-param {
-    font-size: 0.8125rem;
-    &:hover span {
-      text-decoration: underline;
-    }
-  }
-
   input[type='text'] {
     width: 100%;
     border: solid 1px transparent;

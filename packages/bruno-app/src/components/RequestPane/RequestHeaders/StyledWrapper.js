@@ -22,10 +22,9 @@ const Wrapper = styled.div`
       }
   }
 
-  .top-controls {
-    display: flex;
-    justify-content: right;
-    font-size: 0.8125rem;
+  .unclickable {
+    cursor: not-allowed;
+    color: ${(props) => props.theme.colors.text.muted};
   }
 
   .bottom-controls {

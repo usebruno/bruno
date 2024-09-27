@@ -20,23 +20,28 @@ import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable/index';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
+import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 
 const RequestHeaders = ({ item, collection }) => {
   const dispatch = useDispatch();
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const [bulkEdit, setBulkEdit] = useState(false);
+  const [bulkText, setBulkText] = useState('');
 
   const [bulkEdit, setBulkEdit] = useState(false);
   const [bulkText, setBulkText] = useState('');
 
   const addHeader = () => {
-    dispatch(
-      addRequestHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    if (!bulkEdit) {
+      dispatch(
+        addRequestHeader({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
+    }
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -76,27 +81,40 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
+  const handleHeaderDrag = ({ updateReorderedItem }) => {
+    dispatch(
+      moveRequestHeader({
+        collectionUid: collection.uid,
+        itemUid: item.uid,
+        updateReorderedItem
+      })
+    );
+  };
+
   const handleBulkEdit = (value) => {
     setBulkText(value);
 
     const keyValPairs = value
       .split(/\r?\n/)
       .map((pair) => {
-        const sep = pair.indexOf(':');
+        const isEnabled = !pair.trim().startsWith('//');
+        const cleanPair = pair.replace(/^\/\/\s*/, '');
+        const sep = cleanPair.indexOf(':');
         if (sep < 0) {
           return [];
         }
-        return [pair.slice(0, sep).trim(), pair.slice(sep + 1).trim()];
+        return [cleanPair.slice(0, sep).trim(), cleanPair.slice(sep + 1).trim(), isEnabled];
       })
-      .filter((pair) => pair.length === 2);
+      .filter((pair) => pair.length === 3);
 
     dispatch(
       setRequestHeaders({
         collectionUid: collection.uid,
         itemUid: item.uid,
-        headers: keyValPairs.map(([name, value]) => ({
+        headers: keyValPairs.map(([name, value, enabled]) => ({
           name,
-          value
+          value,
+          enabled: enabled
         }))
       })
     );
@@ -106,8 +124,7 @@ const RequestHeaders = ({ item, collection }) => {
     if (!bulkEdit) {
       setBulkText(
         headers
-          .filter((header) => header.enabled)
-          .map((header) => `${header.name}: ${header.value}`)
+          .map((header) => `${header.enabled ? '' : '//'}${header.name}:${header.value}`)
           .join('\n')
       );
     }
@@ -115,107 +132,117 @@ const RequestHeaders = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full h-full flex flex-col flex-grow">
-      <div className="top-controls mb-3">
-        <button className="text-link select-none" onClick={toggleBulkEdit}>
-          {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
-        </button>
-      </div>
-      {bulkEdit && (
-        <div className="bulk-editor flex-grow">
-          <CodeEditor
-            mode="application/text"
-            theme={storedTheme}
-            font={get(preferences, 'font.codeFont', 'default')}
-            value={bulkText}
-            onEdit={handleBulkEdit}
-          />
+    <StyledWrapper className="w-full h-full">
+      {bulkEdit ? (
+        <div>
+          <div className="h-[200px]">
+            <CodeEditor
+              mode="application/text"
+              theme={displayedTheme}
+              font={get(preferences, 'font.codeFont', 'default')}
+              value={bulkText}
+              onSave={onSave}
+              onEdit={handleBulkEdit}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-3">
+            <div></div>
+            <button className="text-link select-none" onClick={toggleBulkEdit}>
+              {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Table
+            headers={[
+              { name: 'Key', accessor: 'key', width: '34%' },
+              { name: 'Value', accessor: 'value', width: '46%' },
+              { name: '', accessor: '', width: '20%' }
+            ]}
+          >
+            <ReorderTable updateReorderedItem={handleHeaderDrag}>
+              {headers && headers.length
+                ? headers.map((header) => {
+                    return (
+                      <tr key={header.uid} data-uid={header.uid}>
+                        <td className="flex relative">
+                          <SingleLineEditor
+                            value={header.name}
+                            theme={displayedTheme}
+                            onSave={onSave}
+                            onChange={(newValue) =>
+                              handleHeaderValueChange(
+                                {
+                                  target: {
+                                    value: newValue
+                                  }
+                                },
+                                header,
+                                'name'
+                              )
+                            }
+                            autocomplete={headerAutoCompleteList}
+                            onRun={handleRun}
+                            collection={collection}
+                          />
+                        </td>
+                        <td>
+                          <SingleLineEditor
+                            value={header.value}
+                            theme={displayedTheme}
+                            onSave={onSave}
+                            onChange={(newValue) =>
+                              handleHeaderValueChange(
+                                {
+                                  target: {
+                                    value: newValue
+                                  }
+                                },
+                                header,
+                                'value'
+                              )
+                            }
+                            onRun={handleRun}
+                            autocomplete={MimeTypes}
+                            allowNewlines={true}
+                            collection={collection}
+                            item={item}
+                          />
+                        </td>
+                        <td>
+                          <div className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={header.enabled}
+                              tabIndex="-1"
+                              className="mr-3 mousetrap"
+                              onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
+                            />
+                            <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
+                              <IconTrash strokeWidth={1.5} size={20} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                : null}
+            </ReorderTable>
+          </Table>
+
+          <div className="flex justify-between items-center mt-3">
+            <button className="text-link pr-3 select-none" onClick={addHeader}>
+              + Add Header
+            </button>
+            <button className="text-link select-none" onClick={toggleBulkEdit}>
+              {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
+            </button>
+          </div>
         </div>
       )}
-      {!bulkEdit && (
-        <table>
-          <thead>
-            <tr>
-              <td>Name</td>
-              <td>Value</td>
-              <td></td>
-            </tr>
-          </thead>
-          <tbody>
-            {headers && headers.length
-              ? headers.map((header) => {
-                  return (
-                    <tr key={header.uid}>
-                      <td>
-                        <SingleLineEditor
-                          value={header.name}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handleHeaderValueChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              header,
-                              'name'
-                            )
-                          }
-                          autocomplete={headerAutoCompleteList}
-                          onRun={handleRun}
-                          collection={collection}
-                        />
-                      </td>
-                      <td>
-                        <SingleLineEditor
-                          value={header.value}
-                          theme={storedTheme}
-                          onSave={onSave}
-                          onChange={(newValue) =>
-                            handleHeaderValueChange(
-                              {
-                                target: {
-                                  value: newValue
-                                }
-                              },
-                              header,
-                              'value'
-                            )
-                          }
-                          onRun={handleRun}
-                          collection={collection}
-                        />
-                      </td>
-                      <td>
-                        <div className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={header.enabled}
-                            tabIndex="-1"
-                            className="mr-3 mousetrap"
-                            onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
-                          />
-                          <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
-                            <IconTrash strokeWidth={1.5} size={20} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              : null}
-          </tbody>
-        </table>
-      )}
-      <div className="bottom-controls py-3 mt-2">
-        {!bulkEdit && (
-          <button className="text-link pr-3 select-none" onClick={addHeader}>
-            + Add Header
-          </button>
-        )}
-      </div>
     </StyledWrapper>
   );
 };
+
 export default RequestHeaders;
