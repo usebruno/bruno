@@ -44,6 +44,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 import slash from 'utils/common/slash';
+import { generateUidBasedOnHash } from 'utils/common/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -460,7 +461,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
 
         dispatch(
           insertTaskIntoQueue({
-            uid: uuid(),
+            uid: generateUidBasedOnHash(fullName),
             type: 'OPEN_REQUEST',
             collectionUid,
             itemPathname: fullName
@@ -489,7 +490,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
 
         dispatch(
           insertTaskIntoQueue({
-            uid: uuid(),
+            uid: generateUidBasedOnHash(fullName),
             type: 'OPEN_REQUEST',
             collectionUid,
             itemPathname: fullName
@@ -767,7 +768,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
         // task middleware will track this and open the new request in a new tab once request is created
         dispatch(
           insertTaskIntoQueue({
-            uid: uuid(),
+            uid: generateUidBasedOnHash(fullName),
             type: 'OPEN_REQUEST',
             collectionUid,
             itemPathname: fullName
@@ -793,7 +794,7 @@ export const newHttpRequest = (params) => (dispatch, getState) => {
           // task middleware will track this and open the new request in a new tab once request is created
           dispatch(
             insertTaskIntoQueue({
-              uid: uuid(),
+              uid: generateUidBasedOnHash(fullName),
               type: 'OPEN_REQUEST',
               collectionUid,
               itemPathname: fullName

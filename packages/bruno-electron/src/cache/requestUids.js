@@ -11,13 +11,13 @@
  */
 
 const requestUids = new Map();
-const { uuid } = require('../utils/common');
+const { generateUidBasedOnHash } = require('../utils/common');
 
 const getRequestUid = (pathname) => {
   let uid = requestUids.get(pathname);
 
   if (!uid) {
-    uid = uuid();
+    uid = generateUidBasedOnHash(pathname);
     requestUids.set(pathname, uid);
   }
 

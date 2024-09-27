@@ -18,6 +18,7 @@ import {
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 import toast from 'react-hot-toast';
+import { generateUidBasedOnHash } from 'utils/common/index';
 
 const initialState = {
   collections: [],
@@ -228,7 +229,7 @@ export const collectionsSlice = createSlice({
                   secret: false,
                   enabled: true,
                   type: 'text',
-                  uid: uuid()
+                  uid: generateUidBasedOnHash(`${collection?.pathname}/environments/${key}`)
                 });
               }
             }
@@ -1443,9 +1444,10 @@ export const collectionsSlice = createSlice({
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
           if (!childItem) {
+            let pathname = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
             childItem = {
-              uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              uid: generateUidBasedOnHash(pathname),
+              pathname,
               name: directoryName,
               collapsed: true,
               type: 'folder',
@@ -1498,9 +1500,10 @@ export const collectionsSlice = createSlice({
         for (const directoryName of subDirectories) {
           let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
           if (!childItem) {
+            let pathname = `${currentPath}${PATH_SEPARATOR}${directoryName}`;
             childItem = {
-              uid: uuid(),
-              pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
+              uid: generateUidBasedOnHash(pathname),
+              pathname,
               name: directoryName,
               collapsed: true,
               type: 'folder',
