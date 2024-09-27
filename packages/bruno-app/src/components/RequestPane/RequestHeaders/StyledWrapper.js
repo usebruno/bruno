@@ -30,6 +30,11 @@ const Wrapper = styled.div`
     }
   }
 
+  .unclickable {
+    cursor: not-allowed;
+    color: ${(props) => props.theme.colors.text.muted};
+  }
+
   .top-controls {
     display: flex;
     justify-content: right;

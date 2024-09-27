@@ -15,7 +15,6 @@ import SingleLineEditor from 'components/SingleLineEditor';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
 import { headers as StandardHTTPHeaders } from 'know-your-http-well';
-import { MimeTypes } from 'utils/codemirror/autocompleteConstants';
 const headerAutoCompleteList = StandardHTTPHeaders.map((e) => e.header);
 
 const RequestHeaders = ({ item, collection }) => {
@@ -25,12 +24,14 @@ const RequestHeaders = ({ item, collection }) => {
   const headers = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
 
   const addHeader = () => {
-    dispatch(
-      addRequestHeader({
-        itemUid: item.uid,
-        collectionUid: collection.uid
-      })
-    );
+    if (!bulkEdit) {
+      dispatch(
+        addRequestHeader({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
+    }
   };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
@@ -113,12 +114,19 @@ const RequestHeaders = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="w-full h-full flex flex-col flex-grow">
-      <div className="top-controls mb-3">
-        <button className="text-link select-none" onClick={toggleBulkEdit}>
+      <div className="top-controls mb-3 flex gap-4 ">
+        <button className="text-link select-none " onClick={toggleBulkEdit}>
           {bulkEdit ? 'Key/Value Edit' : 'Bulk Edit'}
         </button>
+        <button
+          className={`text-link pr-3 select-none ${bulkEdit ? 'unclickable' : ''}`}
+          onClick={addHeader}
+          disabled={bulkEdit}
+        >
+          + Add Header
+        </button>
       </div>
-      {bulkEdit && (
+      {bulkEdit ? (
         <div className="bulk-editor flex-grow">
           <CodeEditor
             mode="application/text"
@@ -128,8 +136,7 @@ const RequestHeaders = ({ item, collection }) => {
             onEdit={handleBulkEdit}
           />
         </div>
-      )}
-      {!bulkEdit && (
+      ) : (
         <table>
           <thead>
             <tr>
@@ -205,14 +212,8 @@ const RequestHeaders = ({ item, collection }) => {
           </tbody>
         </table>
       )}
-      <div className="bottom-controls py-3 mt-2">
-        {!bulkEdit && (
-          <button className="text-link pr-3 select-none" onClick={addHeader}>
-            + Add Header
-          </button>
-        )}
-      </div>
     </StyledWrapper>
   );
 };
+
 export default RequestHeaders;
