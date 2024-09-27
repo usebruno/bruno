@@ -1,10 +1,11 @@
-const Handlebars = require('handlebars');
+const { get, each } = require('lodash');
+const { interpolate } = require('@usebruno/common');
 const { getIntrospectionQuery } = require('graphql');
 const { setAuthHeaders } = require('./prepare-request');
 
 const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRoot) => {
   if (endpoint && endpoint.length) {
-    endpoint = Handlebars.compile(endpoint, { noEscape: true })(envVars);
+    endpoint = interpolate(endpoint, envVars);
   }
 
   const queryParams = {
@@ -15,7 +16,7 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
     method: 'POST',
     url: endpoint,
     headers: {
-      ...mapHeaders(request.headers),
+      ...mapHeaders(request.headers, get(collectionRoot, 'request.headers', [])),
       Accept: 'application/json',
       'Content-Type': 'application/json'
     },
@@ -25,10 +26,23 @@ const prepareGqlIntrospectionRequest = (endpoint, envVars, request, collectionRo
   return setAuthHeaders(axiosRequest, request, collectionRoot);
 };
 
-const mapHeaders = (headers) => {
-  const entries = headers.filter((header) => header.enabled).map(({ name, value }) => [name, value]);
+const mapHeaders = (requestHeaders, collectionHeaders) => {
+  const headers = {};
 
-  return Object.fromEntries(entries);
+  each(requestHeaders, (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+    }
+  });
+
+  // collection headers
+  each(collectionHeaders, (h) => {
+    if (h.enabled) {
+      headers[h.name] = h.value;
+    }
+  });
+
+  return headers;
 };
 
 module.exports = prepareGqlIntrospectionRequest;

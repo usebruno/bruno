@@ -136,6 +136,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleAccessKeyIdChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -148,6 +149,8 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSecretAccessKeyChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
+          isSecret={true}
         />
       </div>
 
@@ -160,6 +163,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleSessionTokenChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -172,6 +176,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleServiceChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -184,6 +189,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleRegionChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
 
@@ -196,6 +202,7 @@ const AwsV4Auth = ({ onTokenChange, item, collection }) => {
           onChange={(val) => handleProfileNameChange(val)}
           onRun={handleRun}
           collection={collection}
+          item={item}
         />
       </div>
     </StyledWrapper>

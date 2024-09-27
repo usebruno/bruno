@@ -92,7 +92,12 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
   }
 
   if (!isNaN(templateLiteral)) {
-    return Number(templateLiteral);
+    const number = Number(templateLiteral);
+    // Check if the number is too high. Too high number might get altered, see #1000
+    if (number > Number.MAX_SAFE_INTEGER) {
+      return templateLiteral;
+    }
+    return number;
   }
 
   templateLiteral = '`' + templateLiteral + '`';
@@ -109,6 +114,7 @@ const createResponseParser = (response = {}) => {
   res.statusText = response.statusText;
   res.headers = response.headers;
   res.body = response.data;
+  res.responseTime = response.responseTime;
 
   res.jq = (expr) => {
     const output = jsonQuery(expr, { data: response.data });

@@ -9,6 +9,9 @@ const GlobalStyle = createGlobalStyle`
   .text-link {
     color: ${(props) => props.theme.textLink};
   }
+  .text-muted {
+    color: ${(props) => props.theme.colors.text.muted};
+  }
 
   .btn {
     text-align: center;
@@ -57,6 +60,18 @@ const GlobalStyle = createGlobalStyle`
     }
   }
 
+  .btn-danger {
+    color: ${(props) => props.theme.button.danger.color};
+    background: ${(props) => props.theme.button.danger.bg};
+    border: solid 1px ${(props) => props.theme.button.danger.border};
+
+    &:hover,
+    &:focus {
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
   .btn-secondary {
     color: ${(props) => props.theme.button.secondary.color};
     background: ${(props) => props.theme.button.secondary.bg};
@@ -83,6 +98,11 @@ const GlobalStyle = createGlobalStyle`
     &:disabled.btn-icon {
       color: #545454;
     }
+  }
+
+  input::placeholder {
+    color: ${(props) => props.theme.input.placeholder.color};
+    opacity:  ${(props) => props.theme.input.placeholder.opacity};
   }
 
   @keyframes fade-in {
@@ -146,6 +166,32 @@ const GlobalStyle = createGlobalStyle`
       transform: scaleY(-1) rotate(0deg);
     }
   }
+
+
+  // scrollbar styling
+  // the below media query target non-macos devices
+  // (macos scrollbar styling is the ideal style reference)
+  @media not all and (pointer: coarse) {
+    * {
+      scrollbar-color: ${(props) => props.theme.scrollbar.color};
+    }
+    
+    *::-webkit-scrollbar {
+      width: 5px;
+    }
+    
+    *::-webkit-scrollbar-track {
+      background: transparent;
+      border-radius: 5px;
+    }
+    
+    *::-webkit-scrollbar-thumb {
+      background-color: ${(props) => props.theme.scrollbar.color};
+      border-radius: 14px;
+      border: 3px solid ${(props) => props.theme.scrollbar.color};
+    }
+  }
+
 
   // codemirror
   .CodeMirror {

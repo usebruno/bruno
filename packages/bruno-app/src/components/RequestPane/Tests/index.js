@@ -11,7 +11,7 @@ const Tests = ({ item, collection }) => {
   const dispatch = useDispatch();
   const tests = item.draft ? get(item, 'draft.request.tests') : get(item, 'request.tests');
 
-  const { storedTheme } = useTheme();
+  const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
 
   const onEdit = (value) => {
@@ -32,8 +32,9 @@ const Tests = ({ item, collection }) => {
       <CodeEditor
         collection={collection}
         value={tests || ''}
-        theme={storedTheme}
+        theme={displayedTheme}
         font={get(preferences, 'font.codeFont', 'default')}
+        fontSize={get(preferences, 'font.codeFontSize')}
         onEdit={onEdit}
         mode="javascript"
         onRun={onRun}

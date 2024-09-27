@@ -1,4 +1,6 @@
 const parseUrl = require('url').parse;
+const { isEmpty } = require('lodash');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 const DEFAULT_PORTS = {
   ftp: 21,
@@ -9,7 +11,7 @@ const DEFAULT_PORTS = {
   wss: 443
 };
 /**
- * check for proxy bypass, Copied form 'proxy-from-env'
+ * check for proxy bypass, copied form 'proxy-from-env'
  */
 const shouldUseProxy = (url, proxyBypass) => {
   if (proxyBypass === '*') {
@@ -39,7 +41,6 @@ const shouldUseProxy = (url, proxyBypass) => {
     if (!dontProxyFor) {
       return true; // Skip zero-length hosts.
     }
-
     const parsedProxy = dontProxyFor.match(/^(.+):(\d+)$/);
     let parsedProxyHostname = parsedProxy ? parsedProxy[1] : dontProxyFor;
     const parsedProxyPort = parsedProxy ? parseInt(parsedProxy[2]) : 0;
@@ -61,6 +62,24 @@ const shouldUseProxy = (url, proxyBypass) => {
   });
 };
 
+/**
+ * Patched version of HttpsProxyAgent to get around a bug that ignores
+ * options like ca and rejectUnauthorized when upgrading the socket to TLS:
+ * https://github.com/TooTallNate/proxy-agents/issues/194
+ */
+class PatchedHttpsProxyAgent extends HttpsProxyAgent {
+  constructor(proxy, opts) {
+    super(proxy, opts);
+    this.constructorOpts = opts;
+  }
+
+  async connect(req, opts) {
+    const combinedOpts = { ...this.constructorOpts, ...opts };
+    return super.connect(req, combinedOpts);
+  }
+}
+
 module.exports = {
-  shouldUseProxy
+  shouldUseProxy,
+  PatchedHttpsProxyAgent
 };

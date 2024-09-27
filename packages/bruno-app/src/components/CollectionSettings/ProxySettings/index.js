@@ -1,32 +1,32 @@
 import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
-import Tooltip from 'components/Tooltip';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import * as Yup from 'yup';
 import toast from 'react-hot-toast';
+import { IconEye, IconEyeOff } from '@tabler/icons';
+import { useState } from 'react';
 
 const ProxySettings = ({ proxyConfig, onUpdate }) => {
   const proxySchema = Yup.object({
-    use: Yup.string().oneOf(['global', 'true', 'false']),
+    enabled: Yup.string().oneOf(['global', 'true', 'false']),
     protocol: Yup.string().oneOf(['http', 'https', 'socks4', 'socks5']),
     hostname: Yup.string()
-      .when('use', {
-        is: true,
+      .when('enabled', {
+        is: 'true',
         then: (hostname) => hostname.required('Specify the hostname for your proxy.'),
         otherwise: (hostname) => hostname.nullable()
       })
       .max(1024),
     port: Yup.number()
-      .when('use', {
-        is: true,
-        then: (port) => port.required('Specify port between 1 and 65535').typeError('Specify port between 1 and 65535'),
-        otherwise: (port) => port.nullable().transform((_, val) => (val ? Number(val) : null))
-      })
       .min(1)
-      .max(65535),
+      .max(65535)
+      .typeError('Specify port between 1 and 65535')
+      .nullable()
+      .transform((_, val) => (val ? Number(val) : null)),
     auth: Yup.object()
       .when('enabled', {
-        is: true,
+        is: 'true',
         then: Yup.object({
           enabled: Yup.boolean(),
           username: Yup.string()
@@ -49,7 +49,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
 
   const formik = useFormik({
     initialValues: {
-      use: proxyConfig.use || 'global',
+      enabled: proxyConfig.enabled || 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -65,11 +65,11 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
       proxySchema
         .validate(values, { abortEarly: true })
         .then((validatedProxy) => {
-          // serialize 'use' to boolean
-          if (validatedProxy.use === 'true') {
-            validatedProxy.use = true;
-          } else if (validatedProxy.use === 'false') {
-            validatedProxy.use = false;
+          // serialize 'enabled' to boolean
+          if (validatedProxy.enabled === 'true') {
+            validatedProxy.enabled = true;
+          } else if (validatedProxy.enabled === 'false') {
+            validatedProxy.enabled = false;
           }
 
           onUpdate(validatedProxy);
@@ -80,10 +80,11 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
         });
     }
   });
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   useEffect(() => {
     formik.setValues({
-      use: proxyConfig.use === true ? 'true' : proxyConfig.use === false ? 'false' : 'global',
+      enabled: proxyConfig.enabled === true ? 'true' : proxyConfig.enabled === false ? 'false' : 'global',
       protocol: proxyConfig.protocol || 'http',
       hostname: proxyConfig.hostname || '',
       port: proxyConfig.port || '',
@@ -97,13 +98,13 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
   }, [proxyConfig]);
 
   return (
-    <StyledWrapper>
-      <h1 className="font-medium mb-3">Proxy Settings</h1>
+    <StyledWrapper className="h-full w-full">
+      <div className="text-xs mb-4 text-muted">Configure proxy settings for this collection.</div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label flex items-center" htmlFor="enabled">
             Config
-            <Tooltip
+            <InfoTip
               text={`
               <div>
                 <ul>
@@ -113,16 +114,16 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 </ul>
               </div>
             `}
-              tooltipId="request-var"
+              infotipId="request-var"
             />
           </label>
           <div className="flex items-center">
             <label className="flex items-center">
               <input
                 type="radio"
-                name="use"
+                name="enabled"
                 value="global"
-                checked={formik.values.use === 'global'}
+                checked={formik.values.enabled === 'global'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -131,9 +132,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="use"
+                name="enabled"
                 value={'true'}
-                checked={formik.values.use === 'true'}
+                checked={formik.values.enabled === 'true'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -142,9 +143,9 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="flex items-center ml-4">
               <input
                 type="radio"
-                name="use"
+                name="enabled"
                 value={'false'}
-                checked={formik.values.use === 'false'}
+                checked={formik.values.enabled === 'false'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
@@ -166,7 +167,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              http
+              HTTP
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -177,18 +178,18 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              https
+              HTTPS
             </label>
             <label className="flex items-center ml-4">
               <input
                 type="radio"
                 name="protocol"
-                value="socks5"
+                value="socks4"
                 checked={formik.values.protocol === 'socks4'}
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks4
+              SOCKS4
             </label>
             <label className="flex items-center ml-4">
               <input
@@ -199,7 +200,7 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
                 onChange={formik.handleChange}
                 className="mr-1"
               />
-              socks5
+              SOCKS5
             </label>
           </div>
         </div>
@@ -279,18 +280,27 @@ const ProxySettings = ({ proxyConfig, onUpdate }) => {
             <label className="settings-label" htmlFor="auth.password">
               Password
             </label>
-            <input
-              id="auth.password"
-              type="text"
-              name="auth.password"
-              className="block textbox"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              value={formik.values.auth.password}
-              onChange={formik.handleChange}
-            />
+            <div className="textbox flex flex-row items-center w-[13.2rem] h-[1.70rem] relative">
+              <input
+                id="auth.password"
+                type={passwordVisible ? 'text' : 'password'}
+                name="auth.password"
+                className="outline-none bg-transparent w-[10.5rem]"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                value={formik.values.auth.password}
+                onChange={formik.handleChange}
+              />
+              <button
+                type="button"
+                className="btn btn-sm absolute right-0"
+                onClick={() => setPasswordVisible(!passwordVisible)}
+              >
+                {passwordVisible ? <IconEyeOff size={18} strokeWidth={1.5} /> : <IconEye size={18} strokeWidth={1.5} />}
+              </button>
+            </div>
             {formik.touched.auth?.password && formik.errors.auth?.password ? (
               <div className="ml-3 text-red-500">{formik.errors.auth.password}</div>
             ) : null}

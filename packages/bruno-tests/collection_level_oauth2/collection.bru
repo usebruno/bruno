@@ -1,0 +1,30 @@
+headers {
+  check: again
+}
+
+auth {
+  mode: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: {{authorization_code_callback_url}}
+  authorization_url: {{authorization_code_authorize_url}}
+  access_token_url: {{authorization_code_access_token_url}}
+  client_id: {{client_id}}
+  client_secret: {{client_secret}}
+  scope: 
+  pkce: true
+}
+
+script:post-response {
+  if(req.getAuthMode() == 'oauth2' && res.body.access_token) {
+   bru.setEnvVar('access_token_set_by_collection',res.body.access_token) 
+  }
+}
+
+docs {
+  # bruno-testbench 🐶
+  
+  This is a test collection that I am using to test various functionalities around bruno
+}

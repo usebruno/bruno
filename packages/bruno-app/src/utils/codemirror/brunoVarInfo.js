@@ -6,6 +6,11 @@
  *  LICENSE file at https://github.com/graphql/codemirror-graphql/tree/v0.8.3
  */
 
+// Todo: Fix this
+// import { interpolate } from '@usebruno/common';
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
+
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
@@ -18,10 +23,23 @@ if (!SERVER_RENDERED) {
     if (!str || !str.length || typeof str !== 'string') {
       return;
     }
-    // str is of format {{variableName}}, extract variableName
-    // we are seeing that from the gql query editor, the token string is of format variableName
-    const variableName = str.replace('{{', '').replace('}}', '').trim();
-    const variableValue = get(options.variables, variableName);
+
+    // str is of format {{variableName}} or :variableName, extract variableName
+    let variableName;
+    let variableValue;
+
+    if (str.startsWith('{{')) {
+      variableName = str.replace('{{', '').replace('}}', '').trim();
+      variableValue = interpolate(get(options.variables, variableName), options.variables);
+    } else if (str.startsWith('/:')) {
+      variableName = str.replace('/:', '').trim();
+      variableValue =
+        options.variables && options.variables.pathParams ? options.variables.pathParams[variableName] : undefined;
+    }
+
+    if (variableValue === undefined) {
+      return;
+    }
 
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');

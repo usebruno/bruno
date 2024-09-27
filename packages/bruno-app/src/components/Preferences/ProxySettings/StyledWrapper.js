@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
   .settings-label {
-    width: 80px;
+    width: 100px;
   }
 
   .textbox {
@@ -18,6 +18,12 @@ const StyledWrapper = styled.div`
     &:focus {
       border: solid 1px ${(props) => props.theme.modal.input.focusBorder} !important;
       outline: none !important;
+    }
+  }
+
+  .system-proxy-settings {
+    label {
+      color: ${(props) => props.theme.colors.text.yellow};
     }
   }
 `;

@@ -14,7 +14,6 @@ describe('Encryption and Decryption Tests', () => {
 
   it('encrypt should throw an error for invalid string', () => {
     expect(() => encryptString(null)).toThrow('Encrypt failed: invalid string');
-    expect(() => encryptString('')).toThrow('Encrypt failed: invalid string');
   });
 
   it('decrypt should throw an error for invalid string', () => {

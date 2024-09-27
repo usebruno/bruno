@@ -9,7 +9,7 @@ const StyledWrapper = styled.div`
     color: ${(props) => props.theme.colors.text.yellow};
   }
 
-  input {
+  .non-passphrase-input {
     width: 300px;
   }
 

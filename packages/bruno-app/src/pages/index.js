@@ -1,12 +1,13 @@
 import Head from 'next/head';
 import Bruno from './Bruno';
 import GlobalStyle from '../globalStyles';
+import '../i18n';
 
 export default function Home() {
   return (
     <div>
       <Head>
-        <title>bruno</title>
+        <title>Bruno</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

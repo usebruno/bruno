@@ -1,0 +1,48 @@
+meta {
+  name: missing values
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/echo/json?foo={{undefinedVar}}
+  body: json
+  auth: none
+}
+
+query {
+  foo: {{undefinedVar}}
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": "{{undefinedVar2}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return json", function() {
+    const url = req.getUrl();
+    const query = url.split("?")[1];
+    expect(query).to.equal("foo={{undefinedVar}}");
+  
+    const data = res.getBody();
+    expect(res.getBody()).to.eql({
+      "hello": "{{undefinedVar2}}"
+    });
+  });
+  
+}

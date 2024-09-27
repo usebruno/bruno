@@ -13,7 +13,10 @@ import Auth from './Auth';
 import Script from './Script';
 import Test from './Tests';
 import Docs from './Docs';
+import Presets from './Presets';
+import Info from './Info';
 import StyledWrapper from './StyledWrapper';
+import Vars from './Vars/index';
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -75,6 +78,9 @@ const CollectionSettings = ({ collection }) => {
       case 'headers': {
         return <Headers collection={collection} />;
       }
+      case 'vars': {
+        return <Vars collection={collection} />;
+      }
       case 'auth': {
         return <Auth collection={collection} />;
       }
@@ -84,12 +90,16 @@ const CollectionSettings = ({ collection }) => {
       case 'tests': {
         return <Test collection={collection} />;
       }
+      case 'presets': {
+        return <Presets collection={collection} />;
+      }
       case 'proxy': {
         return <ProxySettings proxyConfig={proxyConfig} onUpdate={onProxySettingsUpdate} />;
       }
       case 'clientCert': {
         return (
           <ClientCertSettings
+            root={collection.pathname}
             clientCertConfig={clientCertConfig}
             onUpdate={onClientCertSettingsUpdate}
             onRemove={onClientCertSettingsRemove}
@@ -98,6 +108,9 @@ const CollectionSettings = ({ collection }) => {
       }
       case 'docs': {
         return <Docs collection={collection} />;
+      }
+      case 'info': {
+        return <Info collection={collection} />;
       }
     }
   };
@@ -114,6 +127,9 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
         </div>
+        <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
+          Vars
+        </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
         </div>
@@ -122,6 +138,9 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
+        </div>
+        <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
+          Presets
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
@@ -132,10 +151,11 @@ const CollectionSettings = ({ collection }) => {
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
         </div>
+        <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
+          Info
+        </div>
       </div>
-      <section className={`flex ${['auth', 'script', 'docs', 'clientCert'].includes(tab) ? '' : 'mt-4'}`}>
-        {getTabPanel(tab)}
-      </section>
+      <section className="mt-4 h-full">{getTabPanel(tab)}</section>
     </StyledWrapper>
   );
 };

@@ -28,7 +28,7 @@ class EnvironmentSecretsStore {
   }
 
   isValidValue(val) {
-    return val && typeof val === 'string' && val.length > 0;
+    return typeof val === 'string' && val.length >= 0;
   }
 
   storeEnvSecrets(collectionPathname, environment) {

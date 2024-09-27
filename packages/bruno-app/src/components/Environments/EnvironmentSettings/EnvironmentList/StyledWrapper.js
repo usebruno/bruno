@@ -11,6 +11,8 @@ const StyledWrapper = styled.div`
     border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
     min-height: 400px;
     height: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
   }
 
   .environment-item {
@@ -43,10 +45,8 @@ const StyledWrapper = styled.div`
     border-bottom: none;
     color: ${(props) => props.theme.textLink};
 
-    &:hover {
-      span {
-        text-decoration: underline;
-      }
+    span:hover {
+      text-decoration: underline;
     }
   }
 

@@ -1,0 +1,11 @@
+meta {
+  name: Check
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/auth/cookie/protected
+  body: none
+  auth: none
+}

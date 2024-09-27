@@ -1,0 +1,21 @@
+meta {
+  name: Basic Auth 200
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/auth/basic/protected
+  body: json
+  auth: basic
+}
+
+auth:basic {
+  username: bruno
+  password: {{basic_auth_password}}
+}
+
+assert {
+  res.status: 200
+  res.body.message: Authentication successful
+}

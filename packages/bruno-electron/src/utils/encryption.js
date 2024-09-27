@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { machineIdSync } = require('node-machine-id');
+const { machineIdSync } = require('@usebruno/node-machine-id');
 const { safeStorage } = require('electron');
 
 // Constants for algorithm identification
@@ -48,7 +48,7 @@ function safeStorageDecrypt(str) {
 }
 
 function encryptString(str) {
-  if (!str || typeof str !== 'string' || str.length === 0) {
+  if (typeof str !== 'string') {
     throw new Error('Encrypt failed: invalid string');
   }
 
@@ -86,7 +86,11 @@ function decryptString(str) {
   }
 
   if (algo === ELECTRONSAFESTORAGE_ALGO) {
-    return safeStorageDecrypt(encryptedString);
+    if (safeStorage && safeStorage.isEncryptionAvailable()) {
+      return safeStorageDecrypt(encryptedString);
+    } else {
+      return '';
+    }
   }
 
   if (algo === AES256_ALGO) {

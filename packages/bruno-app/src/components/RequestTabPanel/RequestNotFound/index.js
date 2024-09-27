@@ -30,7 +30,7 @@ const RequestNotFound = ({ itemUid }) => {
 
   return (
     <div className="mt-6 px-6">
-      <div className="p-4 bg-orange-100 border-l-4 border-yellow-500 text-yellow-700 bg-yellow-100 p-4">
+      <div className="p-4 bg-orange-100 border-l-4 border-yellow-500 text-yellow-700">
         <div>Request no longer exists.</div>
         <div className="mt-2">
           This can happen when the .bru file associated with this request was deleted on your filesystem.

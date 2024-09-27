@@ -1,0 +1,26 @@
+meta {
+  name: Disable Redirect
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{host}}/redirect-to-ping
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: 302
+}
+
+script:pre-request {
+  req.setMaxRedirects(0);
+}
+
+tests {
+  test("should disable redirect to ping", function() {
+    const data = res.getBody();
+    expect(data).to.equal('Found. Redirecting to /ping');
+  });
+}

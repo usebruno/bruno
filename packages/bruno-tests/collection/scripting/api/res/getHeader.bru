@@ -1,0 +1,38 @@
+meta {
+  name: getHeader
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.getHeader(name)", function() {
+    const server = res.getHeader('x-powered-by');
+    expect(server).to.eql('Express');
+  });
+  
+}

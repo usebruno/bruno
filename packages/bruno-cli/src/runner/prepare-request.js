@@ -1,5 +1,8 @@
 const { get, each, filter } = require('lodash');
+const fs = require('fs');
+var JSONbig = require('json-bigint');
 const decomment = require('decomment');
+const crypto = require('node:crypto');
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
@@ -27,15 +30,12 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    pathParams: request?.params?.filter((param) => param.type === 'path')
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -44,7 +44,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -56,8 +56,37 @@ const prepareRequest = (request, collectionRoot) => {
       };
     }
 
+    if (request.auth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+        secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+        sessionToken: get(request, 'auth.awsv4.sessionToken'),
+        service: get(request, 'auth.awsv4.service'),
+        region: get(request, 'auth.awsv4.region'),
+        profileName: get(request, 'auth.awsv4.profileName')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+
+    if (request.auth.mode === 'wsse') {
+      const username = get(request, 'auth.wsse.username', '');
+      const password = get(request, 'auth.wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('base64');
+
+      // Create the password digest using SHA-256
+      const hash = crypto.createHash('sha256');
+      hash.update(nonce + ts + password);
+      const digest = hash.digest('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
     }
   }
 
@@ -67,10 +96,16 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
+    let jsonBody;
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+      jsonBody = decomment(request?.body?.json);
+    } catch (error) {
+      jsonBody = request?.body?.json;
+    }
+    try {
+      axiosRequest.data = JSONbig.parse(jsonBody);
+    } catch (error) {
+      axiosRequest.data = jsonBody;
     }
   }
 
@@ -104,10 +139,10 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
     const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
     each(enabledParams, (p) => (params[p.name] = p.value));
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
     axiosRequest.data = params;
   }
 

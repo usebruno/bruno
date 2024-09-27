@@ -138,6 +138,7 @@ const AwsV4Auth = ({ collection }) => {
           onSave={handleSave}
           onChange={(val) => handleSecretAccessKeyChange(val)}
           collection={collection}
+          isSecret={true}
         />
       </div>
 

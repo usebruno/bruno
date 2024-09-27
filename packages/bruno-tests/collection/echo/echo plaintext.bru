@@ -1,0 +1,27 @@
+meta {
+  name: echo plaintext
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/text
+  body: text
+  auth: none
+}
+
+body:text {
+  hello
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("should return plain text", function() {
+    const data = res.getBody();
+    expect(res.getBody()).to.eql("hello");
+  });
+  
+}

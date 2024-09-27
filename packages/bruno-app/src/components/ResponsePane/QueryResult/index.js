@@ -1,3 +1,6 @@
+import { debounce } from 'lodash';
+import QueryResultFilter from './QueryResultFilter';
+import { JSONPath } from 'jsonpath-plus';
 import React from 'react';
 import classnames from 'classnames';
 import { getContentType, safeStringifyJSON, safeParseXML } from 'utils/common';
@@ -9,13 +12,38 @@ import { useState } from 'react';
 import { useMemo } from 'react';
 import { useEffect } from 'react';
 import { useTheme } from 'providers/Theme/index';
+import { uuid } from 'utils/common/index';
 
-const formatResponse = (data, mode) => {
-  if (!data) {
+const formatResponse = (data, mode, filter) => {
+  if (data === undefined) {
     return '';
   }
 
+  if (data === null) {
+    return data;
+  }
+
   if (mode.includes('json')) {
+    let isValidJSON = false;
+
+    try {
+      isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
+    } catch (error) {
+      console.log('Error parsing JSON: ', error.message);
+    }
+
+    if (!isValidJSON && typeof data === 'string') {
+      return data;
+    }
+
+    if (filter) {
+      try {
+        data = JSONPath({ path: filter, json: data });
+      } catch (e) {
+        console.warn('Could not apply JSONPath filter:', e.message);
+      }
+    }
+
     return safeStringifyJSON(data, true);
   }
 
@@ -24,31 +52,41 @@ const formatResponse = (data, mode) => {
     if (typeof parsed === 'string') {
       return parsed;
     }
-
     return safeStringifyJSON(parsed, true);
   }
 
-  if (['text', 'html'].includes(mode) || typeof data === 'string') {
+  if (typeof data === 'string') {
     return data;
   }
 
-  return safeStringifyJSON(data);
+  return safeStringifyJSON(data, true);
 };
 
-const QueryResult = ({ item, collection, data, width, disableRunEventListener, headers, error }) => {
+const QueryResult = ({ item, collection, data, dataBuffer, width, disableRunEventListener, headers, error }) => {
   const contentType = getContentType(headers);
-  const mode = getCodeMirrorModeBasedOnContentType(contentType);
-  const formattedData = formatResponse(data, mode);
-  const { storedTheme } = useTheme();
+  const mode = getCodeMirrorModeBasedOnContentType(contentType, data);
+  const [filter, setFilter] = useState(null);
+  const formattedData = formatResponse(data, mode, filter);
+  const { displayedTheme } = useTheme();
+
+  const debouncedResultFilterOnChange = debounce((e) => {
+    setFilter(e.target.value);
+  }, 250);
 
   const allowedPreviewModes = useMemo(() => {
     // Always show raw
-    const allowedPreviewModes = ['raw'];
+    const allowedPreviewModes = [{ mode: 'raw', name: 'Raw', uid: uuid() }];
 
     if (mode.includes('html') && typeof data === 'string') {
-      allowedPreviewModes.unshift('preview-web');
+      allowedPreviewModes.unshift({ mode: 'preview-web', name: 'Web', uid: uuid() });
     } else if (mode.includes('image')) {
-      allowedPreviewModes.unshift('preview-image');
+      allowedPreviewModes.unshift({ mode: 'preview-image', name: 'Image', uid: uuid() });
+    } else if (contentType.includes('pdf')) {
+      allowedPreviewModes.unshift({ mode: 'preview-pdf', name: 'PDF', uid: uuid() });
+    } else if (contentType.includes('audio')) {
+      allowedPreviewModes.unshift({ mode: 'preview-audio', name: 'Audio', uid: uuid() });
+    } else if (contentType.includes('video')) {
+      allowedPreviewModes.unshift({ mode: 'preview-video', name: 'Video', uid: uuid() });
     }
 
     return allowedPreviewModes;
@@ -57,7 +95,7 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
   const [previewTab, setPreviewTab] = useState(allowedPreviewModes[0]);
   // Ensure the active Tab is always allowed
   useEffect(() => {
-    if (!allowedPreviewModes.includes(previewTab)) {
+    if (!allowedPreviewModes.find((previewMode) => previewMode?.uid == previewTab?.uid)) {
       setPreviewTab(allowedPreviewModes[0]);
     }
   }, [previewTab, allowedPreviewModes]);
@@ -69,37 +107,60 @@ const QueryResult = ({ item, collection, data, width, disableRunEventListener, h
 
     return allowedPreviewModes.map((previewMode) => (
       <div
-        className={classnames('select-none capitalize', previewMode === previewTab ? 'active' : 'cursor-pointer')}
+        className={classnames(
+          'select-none capitalize',
+          previewMode?.uid === previewTab?.uid ? 'active' : 'cursor-pointer'
+        )}
         role="tab"
         onClick={() => setPreviewTab(previewMode)}
-        key={previewMode}
+        key={previewMode?.uid}
       >
-        {previewMode.replace(/-(.*)/, ' ')}
+        {previewMode?.name}
       </div>
     ));
   }, [allowedPreviewModes, previewTab]);
 
+  const queryFilterEnabled = useMemo(() => mode.includes('json'), [mode]);
+
   return (
-    <StyledWrapper className="w-full h-full" style={{ maxWidth: width }}>
+    <StyledWrapper
+      className="w-full h-full relative"
+      style={{ maxWidth: width }}
+      queryFilterEnabled={queryFilterEnabled}
+    >
       <div className="flex justify-end gap-2 text-xs" role="tablist">
         {tabs}
       </div>
       {error ? (
-        <span className="text-red-500">{error}</span>
+        <div>
+          <div className="text-red-500">{error}</div>
+
+          {error && typeof error === 'string' && error.toLowerCase().includes('self signed certificate') ? (
+            <div className="mt-6 muted text-xs">
+              You can disable SSL verification in the Preferences. <br />
+              To open the Preferences, click on the gear icon in the bottom left corner.
+            </div>
+          ) : null}
+        </div>
       ) : (
-        <QueryResultPreview
-          previewTab={previewTab}
-          data={data}
-          dataBuffer={item.response.dataBuffer}
-          formattedData={formattedData}
-          item={item}
-          contentType={contentType}
-          mode={mode}
-          collection={collection}
-          allowedPreviewModes={allowedPreviewModes}
-          disableRunEventListener={disableRunEventListener}
-          storedTheme={storedTheme}
-        />
+        <>
+          <QueryResultPreview
+            previewTab={previewTab}
+            data={data}
+            dataBuffer={dataBuffer}
+            formattedData={formattedData}
+            item={item}
+            contentType={contentType}
+            mode={mode}
+            collection={collection}
+            allowedPreviewModes={allowedPreviewModes}
+            disableRunEventListener={disableRunEventListener}
+            displayedTheme={displayedTheme}
+          />
+          {queryFilterEnabled && (
+            <QueryResultFilter filter={filter} onChange={debouncedResultFilterOnChange} mode={mode} />
+          )}
+        </>
       )}
     </StyledWrapper>
   );

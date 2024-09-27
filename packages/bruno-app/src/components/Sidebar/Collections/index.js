@@ -91,13 +91,13 @@ const Collections = () => {
         <input
           type="text"
           name="search"
+          placeholder="search"
           id="search"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck="false"
           className="block w-full pl-7 py-1 sm:text-sm"
-          placeholder="search"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value.toLowerCase())}
         />
@@ -115,7 +115,7 @@ const Collections = () => {
         )}
       </div>
 
-      <div className="mt-4 flex flex-col overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
+      <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
         {collections && collections.length
           ? collections.map((c) => {
               return (

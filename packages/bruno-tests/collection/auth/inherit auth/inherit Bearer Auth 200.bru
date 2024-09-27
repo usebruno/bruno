@@ -1,0 +1,20 @@
+meta {
+  name: inherit Bearer Auth 200
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{host}}/api/auth/bearer/protected
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: 200
+  res.body.message: Authentication successful
+}
+
+script:post-response {
+  bru.setEnvVar("foo", "bar");
+}

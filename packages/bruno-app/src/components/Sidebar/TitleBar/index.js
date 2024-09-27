@@ -14,23 +14,34 @@ import StyledWrapper from './StyledWrapper';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
-  const handleImportCollection = (collection) => {
+  const handleImportCollection = ({ collection, translationLog }) => {
     setImportedCollection(collection);
+    if (translationLog) {
+      setImportedTranslationLog(translationLog);
+    }
     setImportCollectionModalOpen(false);
     setImportCollectionLocationModalOpen(true);
   };
 
   const handleImportCollectionLocation = (collectionLocation) => {
-    dispatch(importCollection(importedCollection, collectionLocation));
-    setImportCollectionLocationModalOpen(false);
-    setImportedCollection(null);
-    toast.success('Collection imported successfully');
+    dispatch(importCollection(importedCollection, collectionLocation))
+      .then(() => {
+        setImportCollectionLocationModalOpen(false);
+        setImportedCollection(null);
+        toast.success('Collection imported successfully');
+      })
+      .catch((err) => {
+        setImportCollectionLocationModalOpen(false);
+        console.error(err);
+        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+      });
   };
 
   const menuDropdownTippyRef = useRef();
@@ -64,22 +75,19 @@ const TitleBar = () => {
       {importCollectionLocationModalOpen ? (
         <ImportCollectionLocation
           collectionName={importedCollection.name}
+          translationLog={importedTranslationLog}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
         />
       ) : null}
 
       <div className="flex items-center">
-        <div className="flex items-center cursor-pointer" onClick={handleTitleClick}>
-          <Bruno width={30} />
-        </div>
-        <div
-          onClick={handleTitleClick}
-          className="flex items-center font-medium select-none cursor-pointer"
-          style={{ fontSize: 14, paddingLeft: 6, position: 'relative', top: -1 }}
-        >
+        <button className="flex items-center gap-2 text-sm font-medium" onClick={handleTitleClick}>
+          <span aria-hidden>
+            <Bruno width={30} />
+          </span>
           bruno
-        </div>
+        </button>
         <div className="collection-dropdown flex flex-grow items-center justify-end">
           <Dropdown onCreate={onMenuDropdownCreate} icon={<MenuIcon />} placement="bottom-start">
             <div

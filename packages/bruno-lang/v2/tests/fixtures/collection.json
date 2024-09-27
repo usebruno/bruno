@@ -27,6 +27,14 @@
     },
     "bearer": {
       "token": "123"
+    },
+    "digest": {
+      "username": "john",
+      "password": "secret"
+    },
+    "wsse": {
+      "username": "john",
+      "password": "secret"
     }
   },
   "vars": {

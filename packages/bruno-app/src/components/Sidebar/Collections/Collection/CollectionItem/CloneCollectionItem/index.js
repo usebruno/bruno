@@ -25,6 +25,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
     onSubmit: (values) => {
       dispatch(cloneItem(values.name, item.uid, collection.uid))
         .then(() => {
+          toast.success('Request cloned!');
           onClose();
         })
         .catch((err) => {
@@ -49,7 +50,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
       handleConfirm={onSubmit}
       handleCancel={onClose}
     >
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-semibold">
             {isFolder ? 'Folder' : 'Request'} Name
@@ -58,6 +59,7 @@ const CloneCollectionItem = ({ collection, item, onClose }) => {
             id="collection-item-name"
             type="text"
             name="name"
+            placeholder='Enter Item name'
             ref={inputRef}
             className="block textbox mt-2 w-full"
             autoComplete="off"

@@ -7,12 +7,13 @@ const Wrapper = styled.div`
     padding: 0;
     margin: 0;
     display: flex;
-    position: relative;
     overflow: scroll;
 
     &::-webkit-scrollbar {
       display: none;
     }
+
+    scrollbar-width: none;
 
     li {
       display: inline-flex;

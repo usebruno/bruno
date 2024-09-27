@@ -1,0 +1,23 @@
+meta {
+  name: setEnvVar
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+
+script:post-response {
+  bru.setEnvVar("testSetEnvVar", "bruno-29653")
+}
+
+tests {
+  test("should set env var in scripts", function() {
+    const testSetEnvVar = bru.getEnvVar("testSetEnvVar")
+    expect(testSetEnvVar).to.equal("bruno-29653");
+  });
+}
