@@ -34,7 +34,8 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  saveRequest as _saveRequest
 } from './index';
 
 import { each } from 'lodash';
@@ -83,6 +84,7 @@ export const saveRequest = (itemUid, collectionUid, saveSilently) => (dispatch, 
         if (!saveSilently) {
           toast.success('Request saved successfully');
         }
+        dispatch(_saveRequest({ collectionUid, itemUid }));
       })
       .then(resolve)
       .catch((err) => {
