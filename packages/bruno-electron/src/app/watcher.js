@@ -12,6 +12,7 @@ const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const UiSnapshot = require('../store/ui-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -423,6 +424,12 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
+const onWatcherSetupComplete = (win) => {
+  const uiSnapshotStore = new UiSnapshot();
+  const collectionSnapshotState = uiSnapshotStore.getCollections();
+  win.webContents.send('main:hydrate-app-with-ui-snapshot', collectionSnapshotState);
+};
+
 class Watcher {
   constructor() {
     this.watchers = {};
@@ -458,6 +465,7 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
+        .on('ready', () => onWatcherSetupComplete(win))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))

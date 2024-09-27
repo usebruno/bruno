@@ -25,9 +25,11 @@ const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
+const UiSnapshot = require('../store/ui-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
+const uiSnapshotStore = new UiSnapshot();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -693,6 +695,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
     } catch (error) {
       return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:update-ui-snapshot', (event, { type, data }) => {
+    try {
+      uiSnapshotStore.update({ type, data });
+    } catch (error) {
+      throw new Error(error.message);
     }
   });
 };
