@@ -1147,26 +1147,26 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
 
 
 export const hydrateCollectionsWithUiStateSnapshot = (payload) => (dispatch, getState) => {
-    const collectionsSnapshotData = payload;
+    const collectionSnapshotData = payload;
     return new Promise((resolve, reject) => {
       const state = getState();
       try {
-        collectionsSnapshotData?.forEach(collectionSnapshotData => {
-            const { pathname, selectedEnvironment } = collectionSnapshotData;
-            const collection = findCollectionByPathname(state.collections.collections, pathname);
-            const collectionCopy = cloneDeep(collection);
-            const collectionUid = collectionCopy?.uid;
+        if(!collectionSnapshotData) resolve();
+        const { pathname, selectedEnvironment } = collectionSnapshotData;
+        const collection = findCollectionByPathname(state.collections.collections, pathname);
+        const collectionCopy = cloneDeep(collection);
+        const collectionUid = collectionCopy?.uid;
 
-            // update selected environment
-            if (selectedEnvironment) {
-              const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
-              if (environment) {
-                dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
-              }
-            }
+        // update selected environment
+        if (selectedEnvironment) {
+          const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
+          if (environment) {
+            dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+          }
+        }
 
-            // todo: add any other redux state that you want to save
-        });
+        // todo: add any other redux state that you want to save
+        
         resolve();
       }
       catch(error) {

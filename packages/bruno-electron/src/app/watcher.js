@@ -424,9 +424,10 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
-const onWatcherSetupComplete = (win) => {
+const onWatcherSetupComplete = (win, collectionPath) => {
   const UiStateSnapshotStore = new UiStateSnapshot();
-  const collectionSnapshotState = UiStateSnapshotStore.getCollections();
+  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
+  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == collectionPath);
   win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
 };
 
@@ -465,7 +466,7 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
-        .on('ready', () => onWatcherSetupComplete(win))
+        .on('ready', () => onWatcherSetupComplete(win, watchPath))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
