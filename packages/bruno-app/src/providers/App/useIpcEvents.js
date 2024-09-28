@@ -23,6 +23,7 @@ import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxS
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
+import { updateGlobalEnvironments } from 'providers/ReduxStore/slices/globalEnvironments';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -149,6 +150,10 @@ const useIpcEvents = () => {
       dispatch(updateCookies(val));
     });
 
+    const removeGlobalEnvironmentsUpdatesListener = ipcRenderer.on('main:load-global-environments', (val) => {
+      dispatch(updateGlobalEnvironments(val));
+    });
+
     return () => {
       removeCollectionTreeUpdateListener();
       removeOpenCollectionListener();
@@ -165,6 +170,7 @@ const useIpcEvents = () => {
       removePreferencesUpdatesListener();
       removeCookieUpdateListener();
       removeSystemProxyEnvUpdatesListener();
+      removeGlobalEnvironmentsUpdatesListener();
     };
   }, [isElectron]);
 };

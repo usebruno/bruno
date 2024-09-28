@@ -23,6 +23,7 @@ const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
+const registerCommonIpc = require('./ipc/common');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -143,6 +144,7 @@ app.on('ready', async () => {
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
+  registerCommonIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, watcher);
