@@ -5,9 +5,8 @@ import { findCollectionByUid, flattenItems, isItemARequest } from 'utils/collect
 import each from 'lodash/each';
 import filter from 'lodash/filter';
 import groupBy from 'lodash/groupBy';
-import SaveRequestsModal from './SaveRequestsModal';
+import SaveRequestsModal from 'components/SaveRequestsModal';
 import { isElectron } from 'utils/common/platform';
-import { saveMultipleRequests } from 'providers/ReduxStore/slices/collections/actions';
 import { completeQuitFlow } from 'providers/ReduxStore/slices/app';
 
 const ConfirmAppClose = () => {
@@ -56,15 +55,10 @@ const ConfirmAppClose = () => {
 
   const quit = () => dispatch(completeQuitFlow());
 
-  const handleSaveAndClose = async items => {
-    await dispatch(saveMultipleRequests(items));
-    quit();
-  }
-
   return <SaveRequestsModal items={getAllDraftRequests()} 
     onCancel={() => setShowConfirmClose(false)}
     onCloseWithoutSave={quit}
-    onSaveAndClose={handleSaveAndClose} />;
+    onSaveAndClose={quit} />;
 };
 
 export default ConfirmAppClose;

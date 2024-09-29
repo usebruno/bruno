@@ -1,15 +1,13 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
 import { closeTabs } from 'providers/ReduxStore/slices/tabs';
-import { saveMultipleRequests, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
-import SaveRequestsModal  from 'providers/App/ConfirmAppClose/SaveRequestsModal';
+import SaveRequestsModal  from 'components/SaveRequestsModal';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
 import { useDispatch, useSelector } from 'react-redux';
 import darkTheme from 'themes/dark';
 import lightTheme from 'themes/light';
 import { findItemInCollection } from 'utils/collections';
-import ConfirmRequestClose from './ConfirmRequestClose';
 import RequestTabNotFound from './RequestTabNotFound';
 import SpecialTab from './SpecialTab';
 import StyledWrapper from './StyledWrapper';
@@ -194,38 +192,23 @@ function SaveModal ({ tabsUidsToClose, collection, onCloseModal }) {
     onCloseModal();
   }
 
-  const handleSaveAndClose = async itemsToSave => {
-    await dispatch(saveMultipleRequests(itemsToSave.map(item => ({ ...item, collectionUid: collection.uid }))));
+  const handleSaveAndClose = async () => {
     handleCloseTabs();
     onCloseModal();
   }
 
   if (!tabsUidsToClose.some(tabUid => tabUids.includes(tabUid))) return null;
   
-  const tabsAndItemsToShowSaveModal = tabsUidsToClose.reduce((acc, tabUid) => {
+  const itemsPendingSave = tabsUidsToClose.reduce((acc, tabUid) => {
     const item = findItemInCollection(collection, tabUid);
-    if (item && item.draft) acc[tabUid] = item;
+    if (item && item.draft) acc.push({ ...item, collectionUid: collection.uid });
     return acc;
-  }, {});
+  }, []);
 
-  const pendingSaveCount = Object.keys(tabsAndItemsToShowSaveModal).length;
-  if (pendingSaveCount === 0) return null;
+  if (!itemsPendingSave.length) return null;
 
-  if (pendingSaveCount === 1) {
-    const tabUid = Object.keys(tabsAndItemsToShowSaveModal)[0];
-    const item = tabsAndItemsToShowSaveModal[tabUid];
-    return (
-      <ConfirmRequestClose
-          item={item}
-          onCancel={onCloseModal}
-          onCloseWithoutSave={() => handleCloseWithoutSave([item])}
-          onSaveAndClose={() => handleSaveAndClose([item])}
-        />
-    );
-  }
-  
   return (
-    <SaveRequestsModal items={Object.values(tabsAndItemsToShowSaveModal)} 
+    <SaveRequestsModal items={itemsPendingSave} 
       onCancel={onCloseModal}
       onCloseWithoutSave={handleCloseWithoutSave}
       onSaveAndClose={handleSaveAndClose} />
