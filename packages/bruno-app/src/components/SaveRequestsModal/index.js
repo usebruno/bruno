@@ -55,7 +55,6 @@ const SaveRequestsModal = ({ onSaveAndClose, onCloseWithoutSave, onCancel, items
     onCloseWithoutSave(items);
   }
 
-
   useEffect(() => {
     if (items.length === 0) {
       return onCloseWithoutSave([]);
@@ -80,7 +79,7 @@ const SaveRequestsModal = ({ onSaveAndClose, onCloseWithoutSave, onCancel, items
     >
       <div className="flex items-center">
         <IconAlertTriangle size={32} strokeWidth={1.5} className="text-yellow-600" />
-        <h1 className="ml-2 text-lg font-semibold">Hold on..</h1>
+        <h1 className="ml-2 text-lg font-semibold">Hold on...</h1>
       </div>
       {items.length > 1 ? 
         <MultipleRequestsMessage items={items} maxItems={MAX_UNSAVED_REQUESTS_TO_SHOW} /> : 
