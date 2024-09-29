@@ -55,6 +55,7 @@ if (!SERVER_RENDERED) {
     'req.setMaxRedirects(maxRedirects)',
     'req.getTimeout()',
     'req.setTimeout(timeout)',
+    'req.getExecutionMode()',
     'bru',
     'bru.cwd()',
     'bru.getEnvName(key)',

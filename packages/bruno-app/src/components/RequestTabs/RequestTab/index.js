@@ -18,6 +18,7 @@ import CloneCollectionItem from 'components/Sidebar/Collections/Collection/Colle
 import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
+import { flattenItems } from 'utils/collections/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
@@ -282,11 +283,10 @@ function RequestTabMenu({ onDropdownCreate, onCloseTabs, collectionRequestTabs, 
   function handleCloseSavedTabs(event) {
     event.stopPropagation();
 
-    const savedTabs = collectionRequestTabs.filter((tab) => {
-      const item = findItemInCollection(collection, tab.uid)
-      return item && !item.draft;
-    });
-    onCloseTabs(savedTabs.map((tab) => tab.uid));
+    const items = flattenItems(collection?.items);
+    const savedTabs = items?.filter?.((item) => !item.draft);
+    const savedTabIds = savedTabs?.map((item) => item.uid) || [];
+    onCloseTabs(savedTabIds);
   }
 
   function handleCloseAllTabs(event) {

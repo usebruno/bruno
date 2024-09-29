@@ -9,7 +9,7 @@ const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -37,6 +37,8 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
+const FormData = require('form-data');
+const { createFormData } = prepareRequest;
 
 const safeStringifyJSON = (data) => {
   try {
@@ -423,6 +425,14 @@ const registerNetworkIpc = (mainWindow) => {
       request.data = qs.stringify(request.data);
     }
 
+    if (request.headers['content-type'] === 'multipart/form-data') {
+      if (!(request.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
+    }
+
     return scriptResult;
   };
 
@@ -515,6 +525,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const request = prepareRequest(item, collection);
+    request.__bruno__executionMode = 'standalone';
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -707,6 +718,7 @@ const registerNetworkIpc = (mainWindow) => {
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
       const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      request.__bruno__executionMode = 'standalone';
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -950,6 +962,8 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = prepareRequest(item, collection);
+          request.__bruno__executionMode = 'runner';
+          
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
