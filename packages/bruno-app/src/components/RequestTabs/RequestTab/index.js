@@ -257,6 +257,7 @@ function RequestTabMenu({ onDropdownCreate, onCloseTabs, collectionRequestTabs, 
 
   function handleCloseOtherTabs(event) {
     dropdownTippyRef.current.hide();
+    event.stopPropagation();
 
     const otherTabs = collectionRequestTabs.filter((_, index) => index !== tabIndex);
     onCloseTabs(otherTabs.map((tab) => tab.uid));
@@ -264,6 +265,7 @@ function RequestTabMenu({ onDropdownCreate, onCloseTabs, collectionRequestTabs, 
 
   function handleCloseTabsToTheLeft(event) {
     dropdownTippyRef.current.hide();
+    event.stopPropagation();
 
     const leftTabs = collectionRequestTabs.filter((_, index) => index < tabIndex);
     onCloseTabs(leftTabs.map((tab) => tab.uid));
@@ -271,6 +273,7 @@ function RequestTabMenu({ onDropdownCreate, onCloseTabs, collectionRequestTabs, 
 
   function handleCloseTabsToTheRight(event) {
     dropdownTippyRef.current.hide();
+    event.stopPropagation();
 
     const rightTabs = collectionRequestTabs.filter((_, index) => index > tabIndex);
     onCloseTabs(rightTabs.map((tab) => tab.uid));
@@ -287,6 +290,7 @@ function RequestTabMenu({ onDropdownCreate, onCloseTabs, collectionRequestTabs, 
   }
 
   function handleCloseAllTabs(event) {
+    event.stopPropagation();
     onCloseTabs(collectionRequestTabs.map((tab) => tab.uid));
   }
 
