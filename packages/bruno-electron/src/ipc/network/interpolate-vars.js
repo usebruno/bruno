@@ -68,6 +68,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (request.data.length) {
         request.data = _interpolate(request.data);
       }
+    } else if (typeof request.data === 'object') {
+      try {
+        let parsed = JSON.stringify(request.data);
+        parsed = _interpolate(parsed);
+        request.data = JSON.parse(parsed);
+      } catch (err) {}
     }
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
