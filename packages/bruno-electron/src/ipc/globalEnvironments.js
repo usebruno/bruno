@@ -2,7 +2,7 @@ require('dotenv').config();
 const { ipcMain } = require('electron');
 const { globalEnvironmentsStore } = require('../store/global-environments');
 
-const registerCommonIpc = (mainWindow) => {
+const registerGlobalEnvironmentsIpc = (mainWindow) => {
 
   // GLOBAL ENVIRONMENTS
 
@@ -47,4 +47,4 @@ const registerCommonIpc = (mainWindow) => {
   });
 };
 
-module.exports = registerCommonIpc;
+module.exports = registerGlobalEnvironmentsIpc;
