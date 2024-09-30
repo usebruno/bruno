@@ -132,6 +132,10 @@ export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
 
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
+};
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
