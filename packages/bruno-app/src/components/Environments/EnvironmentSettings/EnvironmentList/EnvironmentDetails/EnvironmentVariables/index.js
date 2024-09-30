@@ -59,7 +59,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
-    if (!meta.error) {
+    if (!meta.error || !meta.touched) {
       return null;
     }
 

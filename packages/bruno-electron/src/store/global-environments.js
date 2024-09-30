@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const Store = require('electron-store');
+const { encryptString, decryptString } = require('../utils/encryption');
 
 class GlobalEnvironmentsStore {
   constructor() {
@@ -9,16 +10,52 @@ class GlobalEnvironmentsStore {
     });
   }
 
+  isValidValue(val) {
+    return typeof val === 'string' && val.length >= 0;
+  }
+
+  encryptGlobalEnvironmentVariables({ globalEnvironments }) {
+    return globalEnvironments?.map(env => {
+      const variables = env.variables?.map(v => ({
+        ...v,
+        value: v?.secret ? (this.isValidValue(v.value) ? encryptString(v.value) : '') : v?.value
+      })) || [];
+  
+      return {
+        ...env,
+        variables
+      };
+    });
+  }
+
+  decryptGlobalEnvironmentVariables({ globalEnvironments }) {
+    return globalEnvironments?.map(env => {
+      const variables = env.variables?.map(v => ({
+        ...v,
+        value: v?.secret ? (this.isValidValue(v.value) ? decryptString(v.value) : '') : v?.value
+      })) || [];
+  
+      return {
+        ...env,
+        variables
+      };
+    });
+  }
+  
+  
   getGlobalEnvironments() {
-    return this.store.get('environments', []);
+    let globalEnvironments = this.store.get('environments', []);
+    globalEnvironments = this.decryptGlobalEnvironmentVariables({ globalEnvironments });
+    return globalEnvironments;
   }
 
   getActiveGlobalEnvironmentUid() {
     return this.store.get('activeGlobalEnvironmentUid', null);
   }
 
-  setGlobalEnvironments(environments) {
-    return this.store.set('environments', environments);
+  setGlobalEnvironments(globalEnvironments) {
+    globalEnvironments = this.encryptGlobalEnvironmentVariables({ globalEnvironments });
+    return this.store.set('environments', globalEnvironments);
   }
 
   setActiveGlobalEnvironmentUid(uid) {
