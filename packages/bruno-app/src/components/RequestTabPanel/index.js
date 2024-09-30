@@ -20,6 +20,8 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 import StyledWrapper from './StyledWrapper';
 import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
+import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { cloneDeep } from 'lodash';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -34,6 +36,7 @@ const RequestTabPanel = () => {
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const collections = useSelector((state) => state.collections.collections);
   const screenWidth = useSelector((state) => state.app.screenWidth);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
 
   let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -117,7 +120,14 @@ const RequestTabPanel = () => {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
 
-  let collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
+  let _collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
+  let collection = cloneDeep(_collection);
+
+  // add selected global env variables to the collection object
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+  collection.globalEnvironmentVariables = globalEnvironmentVariables;
+
+
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
   }
