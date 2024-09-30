@@ -10,7 +10,7 @@ const { uuid } = require('../utils/common');
 const { getRequestUid } = require('../cache/requestUids');
 const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
-const { setBrunoConfig } = require('../store/bruno-config');
+const { setBrunoConfig, getBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
@@ -433,7 +433,9 @@ class Watcher {
       this.watchers[watchPath].close();
     }
 
-    const ignores = brunoConfig?.ignore || [];
+    const globalBrunoConfig = getBrunoConfig(collectionUid);
+    const ignores = brunoConfig.ignore || globalBrunoConfig.ignore || [];
+    
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,

@@ -1016,6 +1016,14 @@ export const browseDirectory = () => (dispatch, getState) => {
   });
 };
 
+export const browseDirectoryOrFiles = ({pathname}) => (dispatch, getState) => {
+  const { ipcRenderer } = window;
+
+  return new Promise((resolve, reject) => {
+    ipcRenderer.invoke('renderer:browse-directory-or-files', pathname).then(resolve).catch(reject);
+  });
+};
+
 export const browseFiles =
   (filters = []) =>
   (dispatch, getState) => {
@@ -1028,6 +1036,8 @@ export const browseFiles =
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
+
+  console.log('****brunoConfig****', brunoConfig);
 
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) {
