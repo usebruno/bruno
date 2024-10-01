@@ -435,7 +435,7 @@ class Watcher {
 
     const globalBrunoConfig = getBrunoConfig(collectionUid);
     const ignores = brunoConfig.ignore || globalBrunoConfig.ignore || [];
-    
+
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
@@ -443,6 +443,8 @@ class Watcher {
         ignored: (filepath) => {
           const normalizedPath = filepath.replace(/\\/g, '/');
           const relativePath = path.relative(watchPath, normalizedPath);
+
+          console.log('Ignoring file:', relativePath);
 
           return ignores.some((ignorePattern) => {
             const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');

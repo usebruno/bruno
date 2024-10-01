@@ -1,49 +1,68 @@
 import React, { useState } from 'react';
-import { browseDirectoryOrFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import path from 'path';
+import { browseDirectoryOrFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionUnlinkFileEvent } from 'providers/ReduxStore/slices/collections/index';
 import slash from 'utils/common/slash';
 import { IconX } from '@tabler/icons';
-import { cloneDeep, remove } from 'lodash';
+import { cloneDeep, forEach, remove } from 'lodash';
 
 const IgnoredFiles = ({ ignoredFiles, collection }) => {
   const dispatch = useDispatch();
   const [ignoredFilesPaths, setIgnoredFilesPaths] = useState(ignoredFiles);
 
-  function browse() {
-    dispatch(browseDirectoryOrFiles({ pathname: collection.pathname }))
-      .then((filePaths) => {
-        filePaths = filePaths.map((filePath) => {
-          const collectionDir = collection.pathname;
+  console.log('Collection settings -> Ignored Files:', ignoredFilesPaths);
 
-          if (filePath.startsWith(collectionDir)) {
-            return path.relative(slash(collectionDir), slash(filePath));
-          }
-
-          return filePath;
-        });
-
-        const newIgnoredFiles = [...ignoredFilesPaths, ...filePaths];
-        const uniqueIgnoredFiles = [...new Set(newIgnoredFiles)];
-
-        const brunConfig = cloneDeep(collection.brunoConfig);
-        brunConfig.ignore = uniqueIgnoredFiles;
-
-        setIgnoredFilesPaths(uniqueIgnoredFiles);
-
-        dispatch(updateBrunoConfig(brunConfig, collection.uid));
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  }
-
-  const getOnlyFileorDirName = (filePath) => {
-    const separator = path.sep;
-    return filePath.split(separator).pop();
+  const browse = async () => {
+    try {
+      const filePaths = await dispatch(browseDirectoryOrFiles({ pathname: collection.pathname }));
+      // const relativeFilePaths = filePaths.map((filePath) => getRelativeFilePath(filePath, collection.pathname));
+      const uniqueIgnoredFiles =  [...new Set([...ignoredFilesPaths, ...filePaths])]
+      updateIgnoredFiles(uniqueIgnoredFiles);
+    } catch (error) {
+      console.error('Error browsing files:', error);
+    }
   };
 
-  const removeIgnoredFile = (index) => {
+  // const getRelativeFilePath = (filePath, collectionDir) => {
+  //   return filePath.startsWith(collectionDir) ? path.relative(slash(collectionDir), slash(filePath)) : filePath;
+  // };
+
+  const updateIgnoredFiles = async (newIgnoredFiles) => {
+    const brunConfig = cloneDeep(collection.brunoConfig);
+    brunConfig.ignore = newIgnoredFiles;
+
+    setIgnoredFilesPaths(newIgnoredFiles);
+    
+    try {
+       dispatch(updateBrunoConfig(brunConfig, collection.uid));
+      console.log('Ignored files updated successfully');
+      triggerUnlinkFileEvents(newIgnoredFiles);
+    } catch (error) {
+      console.error('Error updating Bruno config:', error);
+    }
+  };
+
+  const triggerUnlinkFileEvents = (filePaths) => {
+    forEach(filePaths, (filePath) => {
+      dispatch(
+        collectionUnlinkFileEvent({
+          file: {
+            meta: {
+              collectionUid: collection.uid,
+              pathname: filePath
+            }
+          }
+        })
+      );
+    });
+  };
+
+  const getOnlyFileOrDirName = (filePath) => {
+    return filePath.split(path.sep).pop();
+  };
+
+  const removeIgnoredFile = async (index) => {
     const newIgnoredFiles = [...ignoredFilesPaths];
     remove(newIgnoredFiles, (file, i) => i === index);
 
@@ -52,8 +71,13 @@ const IgnoredFiles = ({ ignoredFiles, collection }) => {
 
     setIgnoredFilesPaths(newIgnoredFiles);
 
-    dispatch(updateBrunoConfig(brunConfig, collection.uid));
-  }
+    try {
+      dispatch(updateBrunoConfig(brunConfig, collection.uid));
+      console.log('Ignored file removed successfully');
+    } catch (error) {
+      console.error('Error removing ignored file:', error);
+    }
+  };
 
   return (
     <tr>
@@ -63,11 +87,9 @@ const IgnoredFiles = ({ ignoredFiles, collection }) => {
           <div className="flex gap-2" style={{ maxWidth: '100%', whiteSpace: 'nowrap' }}>
             {ignoredFilesPaths.map((file, index) => (
               <span className="border p-1 rounded border-slate-600" key={index} style={{ textOverflow: 'ellipsis' }}>
-                {getOnlyFileorDirName(file)}
+                {getOnlyFileOrDirName(file)}
                 &nbsp;
-                <button 
-                onClick={() => removeIgnoredFile(index)}
-                className="align-middle">
+                <button onClick={() => removeIgnoredFile(index)} className="align-middle">
                   <IconX size={18} />
                 </button>
               </span>
