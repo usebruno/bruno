@@ -15,7 +15,7 @@ import StyledWrapper from './StyledWrapper';
 const ResponsePane = ({ rightPaneWidth, item, collection }) => {
   const [selectedTab, setSelectedTab] = useState('response');
 
-  const { requestSent, responseReceived, testResults, assertionResults } = item;
+  const { requestSent, responseReceived, testResults, assertionResults, error } = item;
 
   const headers = get(item, 'responseReceived.headers', []);
   const status = get(item, 'responseReceived.status', 0);
@@ -36,6 +36,7 @@ const ResponsePane = ({ rightPaneWidth, item, collection }) => {
             data={responseReceived.data}
             dataBuffer={responseReceived.dataBuffer}
             headers={responseReceived.headers}
+            error={error}
             key={item.filename}
           />
         );
