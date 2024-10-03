@@ -1,7 +1,7 @@
 import React from 'react';
 import StyledWrapper from './StyledWrapper';
 import { getTotalRequestCountInCollection } from 'utils/collections/';
-import IgnoredFiles from './IgnoredFiles/';
+import IgnoredFiles from './IgnoredFiles';
 
 const Info = ({ collection }) => {
   const totalRequestsInCollection = getTotalRequestCountInCollection(collection);
@@ -19,7 +19,12 @@ const Info = ({ collection }) => {
             <td className="py-2 px-2 text-right">Location&nbsp;:</td>
             <td className="py-2 px-2 break-all">{collection.pathname}</td>
           </tr>
-          <IgnoredFiles collection={collection} ignoredFiles={collection.brunoConfig?.ignore || []} />
+          <tr className="">
+            <td className="py-2 px-2 text-right">Ignored Paths&nbsp;:</td>
+            <td className="py-2 px-2">
+              <IgnoredFiles collection={collection}/>
+            </td>
+          </tr>
           <tr className="">
             <td className="py-2 px-2 text-right">Environments&nbsp;:</td>
             <td className="py-2 px-2">{collection.environments?.length || 0}</td>

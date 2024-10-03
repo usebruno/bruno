@@ -1,106 +1,54 @@
-import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import React, { useState, useEffect } from 'react';
 import path from 'path';
-import { browseDirectoryOrFiles, updateBrunoConfig } from 'providers/ReduxStore/slices/collections/actions';
-import { collectionUnlinkFileEvent } from 'providers/ReduxStore/slices/collections/index';
-import slash from 'utils/common/slash';
-import { IconX } from '@tabler/icons';
-import { cloneDeep, forEach, remove } from 'lodash';
+import IgnoreFilesModal from './IgnoreFilesModal';
+import { IconSettings } from '@tabler/icons';
+import StyledWrapper from '../StyledWrapper';
 
-const IgnoredFiles = ({ ignoredFiles, collection }) => {
-  const dispatch = useDispatch();
-  const [ignoredFilesPaths, setIgnoredFilesPaths] = useState(ignoredFiles);
+const IgnoredFiles = ({ collection }) => {
+  const [ignoredFilesPaths, setIgnoredFilesPaths] = useState(collection.brunoConfig.ignore || []);
+  const [showModal, setShowModal] = useState(false);
 
-  console.log('Collection settings -> Ignored Files:', ignoredFilesPaths);
-
-  const browse = async () => {
-    try {
-      const filePaths = await dispatch(browseDirectoryOrFiles({ pathname: collection.pathname }));
-      // const relativeFilePaths = filePaths.map((filePath) => getRelativeFilePath(filePath, collection.pathname));
-      const uniqueIgnoredFiles =  [...new Set([...ignoredFilesPaths, ...filePaths])]
-      updateIgnoredFiles(uniqueIgnoredFiles);
-    } catch (error) {
-      console.error('Error browsing files:', error);
-    }
-  };
-
-  // const getRelativeFilePath = (filePath, collectionDir) => {
-  //   return filePath.startsWith(collectionDir) ? path.relative(slash(collectionDir), slash(filePath)) : filePath;
-  // };
-
-  const updateIgnoredFiles = async (newIgnoredFiles) => {
-    const brunConfig = cloneDeep(collection.brunoConfig);
-    brunConfig.ignore = newIgnoredFiles;
-
-    setIgnoredFilesPaths(newIgnoredFiles);
-    
-    try {
-       dispatch(updateBrunoConfig(brunConfig, collection.uid));
-      console.log('Ignored files updated successfully');
-      triggerUnlinkFileEvents(newIgnoredFiles);
-    } catch (error) {
-      console.error('Error updating Bruno config:', error);
-    }
-  };
-
-  const triggerUnlinkFileEvents = (filePaths) => {
-    forEach(filePaths, (filePath) => {
-      dispatch(
-        collectionUnlinkFileEvent({
-          file: {
-            meta: {
-              collectionUid: collection.uid,
-              pathname: filePath
-            }
-          }
-        })
-      );
-    });
-  };
+  const defaultIgnoredFiles = ['node_modules', '.git'];
 
   const getOnlyFileOrDirName = (filePath) => {
-    return filePath.split(path.sep).pop();
+    return path.basename(filePath);
   };
 
-  const removeIgnoredFile = async (index) => {
-    const newIgnoredFiles = [...ignoredFilesPaths];
-    remove(newIgnoredFiles, (file, i) => i === index);
-
-    const brunConfig = cloneDeep(collection.brunoConfig);
-    brunConfig.ignore = newIgnoredFiles;
-
-    setIgnoredFilesPaths(newIgnoredFiles);
-
-    try {
-      dispatch(updateBrunoConfig(brunConfig, collection.uid));
-      console.log('Ignored file removed successfully');
-    } catch (error) {
-      console.error('Error removing ignored file:', error);
-    }
+  const handleManageIconClick = () => {
+    setShowModal(true);
   };
+
+  useEffect(() => {
+    setIgnoredFilesPaths(collection.brunoConfig.ignore || []);
+  }, [collection.brunoConfig.ignore]);
+
+  const filteredIgnoredFiles = ignoredFilesPaths.filter(
+    (file) => !defaultIgnoredFiles.includes(getOnlyFileOrDirName(file))
+  );
 
   return (
-    <tr>
-      <td className="p-2 text-right">Ignored Files&nbsp;:</td>
-      <td className="p-2">
-        <div className="flex gap-2">
-          <div className="flex gap-2" style={{ maxWidth: '100%', whiteSpace: 'nowrap' }}>
-            {ignoredFilesPaths.map((file, index) => (
-              <span className="border p-1 rounded border-slate-600" key={index} style={{ textOverflow: 'ellipsis' }}>
+    <StyledWrapper>
+      <div className="flex">
+        <div className="w-full">
+          {filteredIgnoredFiles.length > 0 ? (
+            filteredIgnoredFiles.map((file, index) => (
+              <span className="border p-1 m-1 rounded border-slate-600" title={file} key={index}>
                 {getOnlyFileOrDirName(file)}
                 &nbsp;
-                <button onClick={() => removeIgnoredFile(index)} className="align-middle">
-                  <IconX size={18} />
-                </button>
               </span>
-            ))}
-          </div>
-          <button className="text-link select-none" onClick={browse}>
-            + Add
-          </button>
+            ))
+          ) : (
+            <span className="text-gray-500">node_modules and .git are ignored by default</span>
+          )}
         </div>
-      </td>
-    </tr>
+
+        <button className="text-link select-none" onClick={handleManageIconClick}>
+          <IconSettings size={20} />
+        </button>
+
+        {showModal && <IgnoreFilesModal onClose={() => setShowModal(false)} collection={collection} />}
+      </div>
+    </StyledWrapper>
   );
 };
 
