@@ -42,10 +42,6 @@ const Preferences = ({ onClose }) => {
         return <Support />;
       }
 
-      case 'font': {
-        return <Font close={onClose} />;
-      }
-
       case 'appearances': {
         return <Appearances close={onClose} />;
       }
