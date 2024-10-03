@@ -443,9 +443,6 @@ class Watcher {
         ignored: (filepath) => {
           const normalizedPath = filepath.replace(/\\/g, '/');
           const relativePath = path.relative(watchPath, normalizedPath);
-
-          console.log('Ignoring file:', relativePath);
-
           return ignores.some((ignorePattern) => {
             const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);

@@ -1036,9 +1036,6 @@ export const browseFiles =
 
 export const updateBrunoConfig = (brunoConfig, collectionUid) => (dispatch, getState) => {
   const state = getState();
-
-  console.log('****brunoConfig****', brunoConfig);
-
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
   if (!collection) {
     return reject(new Error('Collection not found'));

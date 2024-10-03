@@ -1547,9 +1547,6 @@ export const collectionsSlice = createSlice({
       }
     },
     collectionUnlinkFileEvent: (state, action) => {
-      console.log('collectionUnlinkFileEvent');
-      console.log(action.payload);
-      console.log('collectionUnlinkFileEvent');
       const { file } = action.payload;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
 
