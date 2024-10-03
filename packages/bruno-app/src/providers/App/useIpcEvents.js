@@ -23,7 +23,7 @@ import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxS
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import { updateGlobalEnvironments } from 'providers/ReduxStore/slices/globalEnvironments';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/globalEnvironments';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();
@@ -110,6 +110,10 @@ const useIpcEvents = () => {
       dispatch(scriptEnvironmentUpdateEvent(val));
     });
 
+    const removeGlobalEnvironmentVariablesUpdateListener = ipcRenderer.on('main:global-environment-variables-update', (val) => {
+      dispatch(globalEnvironmentsUpdateEvent(val));
+    });
+
     const removeCollectionRenamedListener = ipcRenderer.on('main:collection-renamed', (val) => {
       dispatch(collectionRenamedEvent(val));
     });
@@ -160,6 +164,7 @@ const useIpcEvents = () => {
       removeCollectionAlreadyOpenedListener();
       removeDisplayErrorListener();
       removeScriptEnvUpdateListener();
+      removeGlobalEnvironmentVariablesUpdateListener();
       removeCollectionRenamedListener();
       removeRunFolderEventListener();
       removeRunRequestEventListener();

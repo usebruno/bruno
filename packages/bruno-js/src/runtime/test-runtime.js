@@ -82,11 +82,11 @@ class TestRuntime {
         request,
         envVariables,
         runtimeVariables,
+        globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
       };
     }
-
 
     const context = {
       test,
@@ -163,6 +163,7 @@ class TestRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

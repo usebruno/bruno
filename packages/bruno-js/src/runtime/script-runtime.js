@@ -103,6 +103,7 @@ class ScriptRuntime {
         request,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest
       };
     }
@@ -150,6 +151,7 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest
     };
   }
@@ -218,6 +220,7 @@ class ScriptRuntime {
         response,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest
       };
     }
@@ -265,6 +268,7 @@ class ScriptRuntime {
       response,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest
     };
   }

@@ -1,6 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { generateUidBasedOnHash } from 'utils/common/index';
+import { generateUidBasedOnHash, stringifyIfNot, uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
+import { cloneDeep } from 'lodash';
 
 const initialState = {
   globalEnvironments: [],
@@ -68,11 +69,11 @@ export const globalEnvironmentsSlice = createSlice({
       const { environmentUid: uid } = action.payload;
       if (uid) {
         state.globalEnvironments = state.globalEnvironments.filter(env => env?.uid !== uid);
-        if( uid === state.activeGlobalEnvironmentUid ) {
+        if (uid === state.activeGlobalEnvironmentUid) {
           state.activeGlobalEnvironmentUid = null;
         }
       }
-    },
+    }
   }
 });
 
@@ -92,7 +93,7 @@ export const addGlobalEnvironment = ({ name }) => (dispatch, getState) => {
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, uid })
       .then(
-        dispatch(_addGlobalEnvironment({ name, uid  }))
+        dispatch(_addGlobalEnvironment({ name, uid }))
       )
       .then(resolve)
       .catch(reject);
@@ -108,7 +109,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, variables: baseEnv.variables })
       .then(() => {
-        dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables  }))
+        dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables }))
       })
       .then(resolve)
       .catch(reject);
@@ -146,20 +147,15 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
 
     environmentSchema
       .validate(environment)
-      .then(() => ipcRenderer.invoke('renderer:save-global-environment', { 
+      .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
         environmentUid,
         variables
-        // variables: variables?.map(v => { 
-        //   let { uid, ...rest } = v;
-        //   return rest;
-        // })
       }))
       .then(
         dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
       )
       .then(resolve)
       .catch((error) => {
-        console.error(error);
         reject(error);
       });
   });
@@ -188,6 +184,58 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
       .catch(reject);
   });
 };
+
+export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) => (dispatch, getState) => {
+  return new Promise((resolve, reject) => {
+    if (!globalEnvironmentVariables) resolve();
+
+    const state = getState();
+    const globalEnvironments = state?.globalEnvironments?.globalEnvironments || [];
+    const environmentUid = state?.globalEnvironments?.activeGlobalEnvironmentUid;
+    const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
+
+    if (!environment || !environmentUid) {
+      return reject(new Error('Environment not found'));
+    }
+
+    let variables = cloneDeep(environment?.variables);
+
+    // update existing values
+    variables = variables?.map?.(variable => ({
+      ...variable,
+      value: stringifyIfNot(globalEnvironmentVariables?.[variable?.name])
+    }));
+
+    // add new env values
+    Object.entries(globalEnvironmentVariables)?.forEach?.(([key, value]) => {
+      let isAnExistingVariable = variables?.find(v => v?.name == key)
+      if (!isAnExistingVariable) {
+        variables.push({
+          uid: uuid(),
+          name: key,
+          value: stringifyIfNot(value),
+          type: 'text',
+          secret: false,
+          enabled: true
+        });
+      }
+    });
+
+    environmentSchema
+      .validate(environment)
+      .then(() => ipcRenderer.invoke('renderer:save-global-environment', {
+        environmentUid,
+        variables
+      }))
+      .then(
+        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
+      )
+      .then(resolve)
+      .catch((error) => {
+        reject(error);
+      });
+  });
+}
 
 
 export default globalEnvironmentsSlice.reducer;
