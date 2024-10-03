@@ -28,9 +28,12 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       if (!isFolder && item.draft) {
         await dispatch(saveRequest(item.uid, collection.uid, true));
       }
+      if (item.name === values.name) {
+        return;
+      }
       dispatch(renameItem(values.name, item.uid, collection.uid))
         .then(() => {
-          toast.success('Request renamed!');
+          toast.success('Request renamed');
           onClose();
         })
         .catch((err) => {
@@ -55,7 +58,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       handleConfirm={onSubmit}
       handleCancel={onClose}
     >
-      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+      <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-semibold">
             {isFolder ? 'Folder' : 'Request'} Name
