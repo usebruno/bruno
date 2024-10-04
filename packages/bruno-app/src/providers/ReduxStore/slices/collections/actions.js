@@ -43,6 +43,9 @@ import { resolveRequestFilename } from 'utils/common/platform';
 import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index';
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { moveCollectionItemToFolder } from 'utils/collections/index';
+import { name } from 'file-loader';
+import slash from 'utils/common/slash';
+import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
   const state = getState();
@@ -429,7 +432,7 @@ export const renameItem = (newName, itemUid, collectionUid) => (dispatch, getSta
     }
     const { ipcRenderer } = window;
 
-    ipcRenderer.invoke('renderer:rename-item', item.pathname, newPathname, newName).then(resolve).catch(reject);
+    ipcRenderer.invoke('renderer:rename-item', slash(item.pathname), newPathname, newName).then(resolve).catch(reject);
   });
 };
 
@@ -1102,13 +1105,15 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     const collectionCopy = cloneDeep(collection);
     if (environmentUid) {
       const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-      if (!environment) {
+      if (environment) {
+        ipcRenderer.invoke('renderer:update-ui-state-snapshot', { type: 'COLLECTION_ENVIRONMENT', data: { collectionPath: collection?.pathname, environmentName: environment?.name } })
+        dispatch(_selectEnvironment({ environmentUid, collectionUid }));
+        resolve();
+      }
+      else {
         return reject(new Error('Environment not found'));
       }
     }
-
-    dispatch(_selectEnvironment({ environmentUid, collectionUid }));
-    resolve();
   });
 };
 
@@ -1272,3 +1277,33 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
       .catch(reject);
   });
 };
+
+
+export const hydrateCollectionsWithUiStateSnapshot = (payload) => (dispatch, getState) => {
+    const collectionSnapshotData = payload;
+    return new Promise((resolve, reject) => {
+      const state = getState();
+      try {
+        if(!collectionSnapshotData) resolve();
+        const { pathname, selectedEnvironment } = collectionSnapshotData;
+        const collection = findCollectionByPathname(state.collections.collections, pathname);
+        const collectionCopy = cloneDeep(collection);
+        const collectionUid = collectionCopy?.uid;
+
+        // update selected environment
+        if (selectedEnvironment) {
+          const environment = findEnvironmentInCollectionByName(collectionCopy, selectedEnvironment);
+          if (environment) {
+            dispatch(_selectEnvironment({ environmentUid: environment?.uid, collectionUid }));
+          }
+        }
+
+        // todo: add any other redux state that you want to save
+        
+        resolve();
+      }
+      catch(error) {
+        reject(error);
+      }
+    });
+  };

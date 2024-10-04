@@ -83,6 +83,10 @@
       "scope": "read write",
       "state": "807061d5f0be",
       "pkce": false
+    },
+    "wsse": {
+      "username": "john",
+      "password": "secret"
     }
   },
   "body": {

@@ -16,6 +16,8 @@ const {
   sanitizeDirectoryName,
   isWSLPath,
   normalizeWslPath,
+  normalizeAndResolvePath,
+  safeToRename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -24,9 +26,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { collectionBruToJson } = require('@usebruno/lang');
 const CollectionSecurityStore = require('../store/collection-security');
+const UiStateSnapshot = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
+const UiStateSnapshotStore = new UiStateSnapshot();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -298,7 +302,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       const newEnvFilePath = path.join(envDirPath, `${newName}.bru`);
-      if (fs.existsSync(newEnvFilePath)) {
+      if (!safeToRename(envFilePath, newEnvFilePath)) {
         throw new Error(`environment: ${newEnvFilePath} already exists`);
       }
 
@@ -331,21 +335,18 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     try {
       // Normalize paths if they are WSL paths
-      if (isWSLPath(oldPath)) {
-        oldPath = normalizeWslPath(oldPath);
-      }
-      if (isWSLPath(newPath)) {
-        newPath = normalizeWslPath(newPath);
-      }
+      oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
+      newPath = isWSLPath(newPath) ? normalizeWslPath(newPath) : normalizeAndResolvePath(newPath);
 
+      // Check if the old path exists
       if (!fs.existsSync(oldPath)) {
         throw new Error(`path: ${oldPath} does not exist`);
       }
-      if (fs.existsSync(newPath)) {
-        throw new Error(`path: ${oldPath} already exists`);
+
+      if (!safeToRename(oldPath, newPath)) {
+        throw new Error(`path: ${newPath} already exists`);
       }
 
-      // if its directory, rename and return
       if (isDirectory(oldPath)) {
         const bruFilesAtSource = await searchForBruFiles(oldPath);
 
@@ -366,12 +367,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const jsonData = bruToJson(data);
 
       jsonData.name = newName;
-
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await writeFile(newPath, content);
       await fs.unlinkSync(oldPath);
+      await writeFile(newPath, content);
+
+      return newPath;
     } catch (error) {
       return Promise.reject(error);
     }
@@ -711,6 +713,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       return collectionSecurityStore.getSecurityConfigForCollection(collectionPath);
     } catch (error) {
       return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
+    try {
+      UiStateSnapshotStore.update({ type, data });
+    } catch (error) {
+      throw new Error(error.message);
     }
   });
 };
