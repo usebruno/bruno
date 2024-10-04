@@ -1688,6 +1688,11 @@ export const collectionsSlice = createSlice({
           item.requestSent = action.payload.requestSent;
         }
 
+        if (type === 'request-skipped') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.status = 'skipped';
+        }
+
         if (type === 'response-received') {
           const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'completed';

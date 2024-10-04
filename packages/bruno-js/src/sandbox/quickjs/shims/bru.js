@@ -116,6 +116,12 @@ const addBruShimToContext = (vm, bru) => {
   });
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
+  let skipRequest = vm.newFunction('skipRequest', function () {
+    bru.skipRequest();
+  });
+  vm.setProp(bruObject, 'skipRequest', skipRequest);
+  skipRequest.dispose();
+
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 };

@@ -102,7 +102,8 @@ class ScriptRuntime {
         request,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        isSkippedRequest: bru.isSkippedRequest
       };
     }
 
@@ -149,7 +150,8 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      isSkippedRequest: bru.isSkippedRequest
     };
   }
 
@@ -216,7 +218,8 @@ class ScriptRuntime {
         response,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
-        nextRequestName: bru.nextRequest
+        nextRequestName: bru.nextRequest,
+        isSkippedRequest: bru.isSkippedRequest
       };
     }
 
@@ -263,7 +266,8 @@ class ScriptRuntime {
       response,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      nextRequestName: bru.nextRequest
+      nextRequestName: bru.nextRequest,
+      isSkippedRequest: bru.isSkippedRequest
     };
   }
 }

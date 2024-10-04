@@ -124,6 +124,10 @@ class Bru {
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  skipRequest() {
+    this.isSkippedRequest = true;
+  }
 }
 
 module.exports = Bru;
