@@ -93,6 +93,41 @@ const printRunSummary = (results) => {
   };
 };
 
+const getRunBruFulesRecursively = (dir, runs) => {
+
+  const files = fs.readdirSync(dir);
+
+  const bruFiles = files
+    .filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'))
+    .map((file) => path.join(dir, file));
+
+  const folders = files
+    .map((file) => path.join(dir, file))
+    .filter((file) => fs.lstatSync(file).isDirectory());
+  
+  for (const runFile of bruFiles) {
+    const bruContent = fs.readFileSync(runFile, 'utf8');
+    const bruJson = bruToRunConfigJsonV2(bruContent);
+
+    if (bruJson.environment) {
+      env = bruJson.environment;
+    }
+
+    if (bruJson.requests && bruJson.requests.length > 0) {
+      const filenames = bruJson.requests.map(r => r.request);
+      const runtimeVariables = bruJson.vars;
+      for (const variable of bruJson.vars) {
+        runtimeVariables[variable.name] = variable.value;
+      }
+      runs.push({ filenames, name: bruJson.name, runtimeVariables, outputPrefix: bruJson.name });
+    }
+  }
+
+  for (const folder of folders) {
+    getRunBruFulesRecursively(folder, runs);
+  }
+}
+
 const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
 
@@ -366,40 +401,32 @@ const handler = async function (argv) {
        
       }
 
-      let buildRuns = [];
-
       if (isDirectory(filenames[0])) {
-        const files = fs.readdirSync(filenames[0])
-          .filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'))
-          .map((file) => path.join(filenames[0], file));
-
-        buildRuns = [ ...buildRuns, ...files];
+        getRunBruFulesRecursively(filenames[0], runs);
       } else {
         buildRuns = [ filenames[0] ];
-      }
-
-      for (const runFile of buildRuns) {
-        const bruContent = fs.readFileSync(runFile, 'utf8');
-        const bruJson = bruToRunConfigJsonV2(bruContent);
-
-        if (bruJson.environment) {
-          env = bruJson.environment;
-        }
-
-        if (bruJson.requests && bruJson.requests.length > 0) {
-          const filenames = bruJson.requests.map(r => r.request);
-          const runtimeVariables = bruJson.vars;
-          for (const variable of bruJson.vars) {
-            runtimeVariables[variable.name] = variable.value;
+        for (const runFile of buildRuns) {
+          const bruContent = fs.readFileSync(runFile, 'utf8');
+          const bruJson = bruToRunConfigJsonV2(bruContent);
+  
+          if (bruJson.environment) {
+            env = bruJson.environment;
           }
-          runs = [...runs, { filenames, runtimeVariables, outputPrefix: bruJson.name }];
+  
+          if (bruJson.requests && bruJson.requests.length > 0) {
+            const filenames = bruJson.requests.map(r => r.request);
+            const runtimeVariables = bruJson.vars;
+            for (const variable of bruJson.vars) {
+              runtimeVariables[variable.name] = variable.value;
+            }
+            runs = [...runs, { filenames, runtimeVariables, outputPrefix: bruJson.name }];
+          }
         }
-
       }
-
     } else {
       runs = [...runs, { filenames }];
     }
+
 
     if (env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
@@ -504,6 +531,10 @@ const handler = async function (argv) {
 
     for (const run of runs) {
 
+    if (run.name) {
+      console.log(chalk.yellow("Starting run " + run.name));
+    }
+
     const filenames = run.filenames;
 
     let results = [];
@@ -514,7 +545,6 @@ const handler = async function (argv) {
       const filenamePath = path.join(collectionPath, filename);
       const _isFile = isFile(filenamePath);
       if (_isFile) {
-        console.log(chalk.yellow(`Adding Request ${filename}`));
         const bruContent = fs.readFileSync(filename, 'utf8');
         const bruJson = bruToJson(bruContent);
         bruJsons.push({
@@ -526,7 +556,6 @@ const handler = async function (argv) {
       const _isDirectory = isDirectory(filenamePath);
       if (_isDirectory) {
         if (!recursive) {
-          console.log(chalk.yellow(`Adding Folder ${filename}`));
           const files = fs.readdirSync(filenamePath);
           const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
           const directoryBruJsons = [];
