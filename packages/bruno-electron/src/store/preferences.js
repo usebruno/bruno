@@ -37,6 +37,9 @@ const defaultPreferences = {
       password: ''
     },
     bypassProxy: ''
+  },
+  userInterface: {
+    responsePaneDockedToBottom: false
   }
 };
 
@@ -69,6 +72,9 @@ const preferencesSchema = Yup.object().shape({
       password: Yup.string().max(1024)
     }).optional(),
     bypassProxy: Yup.string().optional().max(1024)
+  }),
+  userInterface: Yup.object().shape({
+    responsePaneDockedToBottom: Yup.boolean()
   })
 });
 

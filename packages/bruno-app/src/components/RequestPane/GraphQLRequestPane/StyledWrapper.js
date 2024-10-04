@@ -1,6 +1,9 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
+  div.CodeMirror {
+    height: 100%;
+  }
   div.tabs {
     div.tab {
       padding: 6px 0px;

@@ -22,12 +22,14 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
-    }
-  }
 
-  td {
-    &:nth-child(1) {
-      padding: 0 0 0 8px;
+      &:nth-child(1) {
+        width: 30%;
+      }
+
+      &:nth-child(3) {
+        width: 70px;
+      }
     }
   }
 
