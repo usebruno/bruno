@@ -1,6 +1,6 @@
 const Store = require('electron-store');
 
-class UiStateSnapshot {
+class UiStateSnapshotStore {
   constructor() {
     this.store = new Store({
       name: 'ui-state-snapshot',
@@ -57,4 +57,4 @@ class UiStateSnapshot {
   }
 }
 
-module.exports = UiStateSnapshot;
+module.exports = UiStateSnapshotStore;
