@@ -132,6 +132,10 @@ export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
 
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
+};
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
@@ -379,7 +383,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               placement: get(si.request, 'auth.apikey.placement', 'header')
             };
             break;
-
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
           default:
             break;
         }
@@ -667,6 +676,10 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'oauth2': {
       label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'WSSE Auth';
       break;
     }
     case 'apikey': {
