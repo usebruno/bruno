@@ -700,7 +700,8 @@ const registerNetworkIpc = (mainWindow) => {
         data: response.data,
         dataBuffer: dataBuffer.toString('base64'),
         size: Buffer.byteLength(dataBuffer),
-        duration: responseTime ?? 0
+        duration: responseTime ?? 0,
+        url: response.request?.res?.responseUrl
       };
     } catch (error) {
       deleteCancelToken(cancelTokenUid);
@@ -777,7 +778,8 @@ const registerNetworkIpc = (mainWindow) => {
         status: response.status,
         statusText: response.statusText,
         headers: response.headers,
-        data: response.data
+        data: response.data,
+        url: response.request?.res?.responseUrl
       };
     } catch (error) {
       return Promise.reject(error);
@@ -1051,7 +1053,8 @@ const registerNetworkIpc = (mainWindow) => {
                   dataBuffer: dataBuffer.toString('base64'),
                   size: Buffer.byteLength(dataBuffer),
                   data: response.data,
-                  responseTime: response.headers.get('request-duration')
+                  responseTime: response.headers.get('request-duration'),
+                  url: response.request?.res?.responseUrl
                 },
                 ...eventData
               });
