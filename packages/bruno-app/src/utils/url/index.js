@@ -1,8 +1,4 @@
-import isEmpty from 'lodash/isEmpty';
-import trim from 'lodash/trim';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
-import find from 'lodash/find';
+import { find, each, trim, isEmpty, cloneDeep, forOwn } from 'lodash';
 
 import brunoCommon from '@usebruno/common';
 const { interpolate } = brunoCommon;
