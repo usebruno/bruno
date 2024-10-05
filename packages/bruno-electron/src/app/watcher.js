@@ -500,6 +500,14 @@ class Watcher {
     return this.watchers[watchPath];
   }
 
+  resetWatcher() {
+    try {
+      _.each(this.watchers, w => w?.close?.());
+      this.watchers = {};
+    }
+    catch(error) {}
+  }
+
   removeWatcher(watchPath, win) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();

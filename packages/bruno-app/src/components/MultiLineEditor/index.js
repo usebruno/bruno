@@ -3,6 +3,8 @@ import isEqual from 'lodash/isEqual';
 import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
+import { withErrorBoundary } from 'react-error-boundary';
+import ComponentLevelErrorFallback from 'components/ErrorBoundary/ComponentLevelErrorFallback/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -137,4 +139,9 @@ class MultiLineEditor extends Component {
     return <StyledWrapper ref={this.editorRef} className="single-line-editor"></StyledWrapper>;
   }
 }
-export default MultiLineEditor;
+
+const MultiLineEditorWithErrorBoundary = withErrorBoundary(MultiLineEditor, {
+  FallbackComponent: (props) => <ComponentLevelErrorFallback {...props} hideReset={true} />
+})
+
+export default MultiLineEditorWithErrorBoundary;

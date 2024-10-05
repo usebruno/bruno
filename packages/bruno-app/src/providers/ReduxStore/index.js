@@ -1,5 +1,5 @@
 import getConfig from 'next/config';
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import tasksMiddleware from './middlewares/tasks/middleware';
 import debugMiddleware from './middlewares/debug/middleware';
 import appReducer from './slices/app';
@@ -17,13 +17,23 @@ if (isDevEnv()) {
   middleware = [...middleware, debugMiddleware.middleware];
 }
 
+const combinedReducer = combineReducers({
+  app: appReducer,
+  collections: collectionsReducer,
+  tabs: tabsReducer,
+  notifications: notificationsReducer
+});
+
+const rootReducer = (state, action) => {
+  if (action.type === 'RESET_STATE') {
+    state = undefined;
+  }
+
+  return combinedReducer(state, action);
+};
+
 export const store = configureStore({
-  reducer: {
-    app: appReducer,
-    collections: collectionsReducer,
-    tabs: tabsReducer,
-    notifications: notificationsReducer
-  },
+  reducer: rootReducer,
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });
 

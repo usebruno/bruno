@@ -4,6 +4,8 @@ import { getAllVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode, MaskedEditor } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import { IconEye, IconEyeOff } from '@tabler/icons';
+import { withErrorBoundary } from 'react-error-boundary';
+import ComponentLevelErrorFallback from 'components/ErrorBoundary/ComponentLevelErrorFallback/index';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -181,4 +183,9 @@ class SingleLineEditor extends Component {
     );
   }
 }
-export default SingleLineEditor;
+
+const SingleLineEditorWithErrorBoundary = withErrorBoundary(SingleLineEditor, {
+  FallbackComponent: (props) => <ComponentLevelErrorFallback {...props} hideReset={true} />
+})
+
+export default SingleLineEditorWithErrorBoundary;

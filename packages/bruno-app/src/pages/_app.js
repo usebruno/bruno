@@ -6,7 +6,7 @@ import { HotkeysProvider } from 'providers/Hotkeys';
 
 import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
-import ErrorBoundary from './ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import '../styles/app.scss';
 import '../styles/globals.css';
@@ -23,6 +23,7 @@ import '@fontsource/inter/600.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/inter/800.css';
 import '@fontsource/inter/900.css';
+import GlobalErrorBoundaryFallback from 'components/ErrorBoundary/index';
 
 function SafeHydrate({ children }) {
   return <div suppressHydrationWarning>{typeof window === 'undefined' ? null : children}</div>;
@@ -63,7 +64,7 @@ function MyApp({ Component, pageProps }) {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary FallbackComponent={GlobalErrorBoundaryFallback}>
       <SafeHydrate>
         <NoSsr>
           <Provider store={ReduxStore}>
