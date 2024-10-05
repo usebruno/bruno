@@ -1,0 +1,33 @@
+meta {
+  name: request
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://www.example.com
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  console.log("request pre");
+}
+
+script:post-response {
+  {
+    console.log("request post");
+  
+    const sequence = bru.getVar('sequence') || [];
+    sequence.push(3);
+    bru.setVar('sequence', sequence);
+  }
+}
+
+tests {
+  test("sandwich script execution is proper", function() {
+    const sequence = bru.getVar('sequence');
+    bru.setVar('sequence', null);
+    expect(sequence.toString()).to.equal([3,2,1].toString());
+  });
+}

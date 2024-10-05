@@ -1,24 +1,261 @@
-const { get, each, filter } = require('lodash');
+const { get, each, filter, find, compact } = require('lodash');
 const fs = require('fs');
+const os = require('os');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 
-const prepareRequest = (request, collectionRoot) => {
-  const headers = {};
-  let contentTypeDefined = false;
+const mergeHeaders = (collection, request, requestTreePath) => {
+  let headers = new Map();
 
-  // collection headers
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
+  let collectionHeaders = get(collection, 'root.request.headers', []);
+  collectionHeaders.forEach((header) => {
+    if (header.enabled) {
+      headers.set(header.name, header.value);
     }
   });
 
-  each(request.headers, (h) => {
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let _headers = get(i, 'root.request.headers', []);
+      _headers.forEach((header) => {
+        if (header.enabled) {
+          headers.set(header.name, header.value);
+        }
+      });
+    } else {
+      const _headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
+      _headers.forEach((header) => {
+        if (header.enabled) {
+          headers.set(header.name, header.value);
+        }
+      });
+    }
+  }
+
+  request.headers = Array.from(headers, ([name, value]) => ({ name, value, enabled: true }));
+};
+
+const mergeVars = (collection, request, requestTreePath) => {
+  let reqVars = new Map();
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionVariables = {};
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      reqVars.set(_var.name, _var.value);
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  let folderVariables = {};
+  let requestVariables = {};
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          reqVars.set(_var.name, _var.value);
+          folderVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          reqVars.set(_var.name, _var.value);
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+
+  request.collectionVariables = collectionVariables;
+  request.folderVariables = folderVariables;
+  request.requestVariables = requestVariables;
+
+  if(request?.vars) {
+    request.vars.req = Array.from(reqVars, ([name, value]) => ({
+      name,
+      value,
+      enabled: true,
+      type: 'request'
+    }));
+  }
+
+  let resVars = new Map();
+  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  collectionResponseVars.forEach((_var) => {
+    if (_var.enabled) {
+      resVars.set(_var.name, _var.value);
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    } else {
+      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          resVars.set(_var.name, _var.value);
+        }
+      });
+    }
+  }
+
+  if(request?.vars) {
+    request.vars.res = Array.from(resVars, ([name, value]) => ({
+      name,
+      value,
+      enabled: true,
+      type: 'response'
+    }));
+  }
+};
+
+const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
+  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
+  let collectionPostResScript = get(collection, 'root.request.script.res', '');
+  let collectionTests = get(collection, 'root.request.tests', '');
+
+  let combinedPreReqScript = [];
+  let combinedPostResScript = [];
+  let combinedTests = [];
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let preReqScript = get(i, 'root.request.script.req', '');
+      if (preReqScript && preReqScript.trim() !== '') {
+        combinedPreReqScript.push(preReqScript);
+      }
+
+      let postResScript = get(i, 'root.request.script.res', '');
+      if (postResScript && postResScript.trim() !== '') {
+        combinedPostResScript.push(postResScript);
+      }
+
+      let tests = get(i, 'root.request.tests', '');
+      if (tests && tests?.trim?.() !== '') {
+        combinedTests.push(tests);
+      }
+    }
+  }
+
+  if (combinedPreReqScript.length) {
+    request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  }
+
+  if (combinedPostResScript.length) {
+    if (scriptFlow === 'sequential') {
+      request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
+    } else {
+      request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
+    }
+  }
+
+  if (combinedTests.length) {
+    if (scriptFlow === 'sequential') {
+      request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
+    } else {
+      request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
+    }
+  }
+};
+
+const findItemInCollection = (collection, itemId) => {
+  let item = null;
+
+  if (collection.uid === itemId) {
+    return collection;
+  }
+
+  if (collection.items && collection.items.length) {
+    collection.items.forEach((item) => {
+      if (item.uid === itemId) {
+        item = item;
+      } else if (item.type === 'folder') {
+        item = findItemInCollection(item, itemId);
+      }
+    });
+  }
+
+  return item;
+};
+
+const findItemInCollectionByPath = (collection, pathname) => {
+  let item = null;
+
+  if (collection.pathname === pathname) {
+    return collection;
+  }
+
+  if (collection.items && collection.items.length) {
+    collection.items.forEach((_item) => {
+      if (_item.pathname === pathname) {
+        item = _item;
+      } else if (_item.type === 'folder') {
+        item = findItemInCollectionByPath(_item, pathname);
+      }
+    });
+  }
+
+  return item;
+};
+
+const flattenItems = (items = []) => {
+  const flattenedItems = [];
+
+  const flatten = (itms, flattened) => {
+    each(itms, (i) => {
+      flattened.push(i);
+
+      if (i.items && i.items.length) {
+        flatten(i.items, flattened);
+      }
+    });
+  };
+
+  flatten(items, flattenedItems);
+
+  return flattenedItems;
+};
+
+const findParentItemInCollectionByPath = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollectionByPath(collection, _item.pathname);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollectionByPath(collection, item.pathname);
+  }
+
+  return path;
+};
+
+const prepareRequest = (item = {}, collection = {}) => {
+  const request = item?.request;
+  const brunoConfig = get(collection, 'brunoConfig', {});
+  const headers = {};
+  let contentTypeDefined = false;
+
+  const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+  }
+
+  each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
@@ -34,7 +271,7 @@ const prepareRequest = (request, collectionRoot) => {
     pathParams: request?.params?.filter((param) => param.type === 'path')
   };
 
-  const collectionAuth = get(collectionRoot, 'request.auth');
+  const collectionAuth = get(collection, 'root.request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
@@ -157,9 +394,14 @@ const prepareRequest = (request, collectionRoot) => {
     axiosRequest.data = graphqlQuery;
   }
 
-  if (request.script && request.script.length) {
+  if (request.script) {
     axiosRequest.script = request.script;
   }
+
+  axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
 
   return axiosRequest;
 };

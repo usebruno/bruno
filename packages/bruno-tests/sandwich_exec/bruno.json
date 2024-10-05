@@ -1,0 +1,12 @@
+{
+  "version": "1",
+  "name": "sandwich_exec",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "scripts": {
+    "flow": "sandwich"
+  }
+}
