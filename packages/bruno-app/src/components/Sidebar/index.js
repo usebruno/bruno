@@ -14,7 +14,7 @@ import { updateLeftSidebarWidth, updateIsDragging, showPreferences } from 'provi
 import { useTheme } from 'providers/Theme';
 import Notifications from 'components/Notifications';
 
-const MIN_LEFT_SIDEBAR_WIDTH = 221;
+const MIN_LEFT_SIDEBAR_WIDTH = 150;
 const MAX_LEFT_SIDEBAR_WIDTH = 600;
 
 const Sidebar = () => {
