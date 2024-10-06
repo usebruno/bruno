@@ -19,7 +19,7 @@ import {
   runRequestEvent,
   scriptEnvironmentUpdateEvent
 } from 'providers/ReduxStore/slices/collections';
-import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionsWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionAddEnvFileEvent, openCollectionEvent, hydrateCollectionWithUiStateSnapshot } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
@@ -150,7 +150,7 @@ const useIpcEvents = () => {
     });
 
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
-      dispatch(hydrateCollectionsWithUiStateSnapshot(val));
+      dispatch(hydrateCollectionWithUiStateSnapshot(val));
     })
 
     return () => {

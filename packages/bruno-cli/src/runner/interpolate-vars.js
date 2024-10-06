@@ -74,17 +74,17 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
       } catch (err) {}
     }
   } else if (contentType === 'multipart/form-data') {
     if (typeof request.data === 'object' && !(request?.data instanceof FormData)) {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
       } catch (err) {}
     }
   } else {
