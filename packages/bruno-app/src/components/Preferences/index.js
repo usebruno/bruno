@@ -9,8 +9,7 @@ import Display from './Display';
 import Keybindings from './Keybindings';
 
 import StyledWrapper from './StyledWrapper';
-import Interface from './Interface/index';
-import Display from './Display/index';
+import Window from './Window/index';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -35,6 +34,10 @@ const Preferences = ({ onClose }) => {
         return <Display close={onClose} />;
       }
 
+      case 'interface': {
+        return <Window close={onClose} />;
+      }
+
       case 'keybindings': {
         return <Keybindings close={onClose} />;
       }
@@ -47,8 +50,8 @@ const Preferences = ({ onClose }) => {
         return <Font close={onClose} />;
       }
 
-      case 'interface': {
-        return <Interface close={onClose} />;
+      case 'window': {
+        return <Window close={onClose} />;
       }
     }
   };
@@ -60,6 +63,9 @@ const Preferences = ({ onClose }) => {
           <div className="flex flex-col items-center tabs" role="tablist">
             <div className={getTabClassname('general')} role="tab" onClick={() => setTab('general')}>
               General
+            </div>
+            <div className={getTabClassname('window')} role="tab" onClick={() => setTab('window')}>
+              Main Window
             </div>
             <div className={getTabClassname('display')} role="tab" onClick={() => setTab('display')}>
               Display

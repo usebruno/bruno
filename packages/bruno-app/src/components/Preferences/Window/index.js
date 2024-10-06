@@ -6,7 +6,7 @@ import * as Yup from 'yup';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 
-const Interface = (props) => {
+const Window = (props) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
@@ -57,4 +57,4 @@ const Interface = (props) => {
   );
 };
 
-export default Interface;
+export default Window;
