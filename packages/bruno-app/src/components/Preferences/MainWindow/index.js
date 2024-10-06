@@ -6,7 +6,7 @@ import * as Yup from 'yup';
 import { useSelector, useDispatch } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 
-const Window = (props) => {
+const MainWindow = (props) => {
   const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
@@ -57,4 +57,4 @@ const Window = (props) => {
   );
 };
 
-export default Window;
+export default MainWindow;

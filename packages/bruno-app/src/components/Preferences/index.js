@@ -9,7 +9,7 @@ import Display from './Display';
 import Keybindings from './Keybindings';
 
 import StyledWrapper from './StyledWrapper';
-import Window from './Window/index';
+import MainWindow from './MainWindow/index';
 
 const Preferences = ({ onClose }) => {
   const [tab, setTab] = useState('general');
@@ -35,7 +35,7 @@ const Preferences = ({ onClose }) => {
       }
 
       case 'interface': {
-        return <Window close={onClose} />;
+        return <MainWindow close={onClose} />;
       }
 
       case 'keybindings': {
@@ -51,7 +51,7 @@ const Preferences = ({ onClose }) => {
       }
 
       case 'window': {
-        return <Window close={onClose} />;
+        return <MainWindow close={onClose} />;
       }
     }
   };
