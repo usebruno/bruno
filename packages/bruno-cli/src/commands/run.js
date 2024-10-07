@@ -102,6 +102,7 @@ const getRunBruFulesRecursively = (dir, runs) => {
     .map((file) => path.join(dir, file));
 
   const folders = files
+    .filter((file) => file && file != "")
     .map((file) => path.join(dir, file))
     .filter((file) => fs.lstatSync(file).isDirectory());
   
