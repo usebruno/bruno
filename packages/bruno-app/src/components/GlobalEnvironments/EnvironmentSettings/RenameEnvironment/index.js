@@ -6,7 +6,7 @@ import { useFormik } from 'formik';
 import { renameEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
-import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { renameGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const RenameEnvironment = ({ onClose, environment }) => {
   const dispatch = useDispatch();

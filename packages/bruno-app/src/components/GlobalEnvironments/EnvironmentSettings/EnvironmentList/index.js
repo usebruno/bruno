@@ -3,9 +3,10 @@ import usePrevious from 'hooks/usePrevious';
 import EnvironmentDetails from './EnvironmentDetails';
 import CreateEnvironment from '../CreateEnvironment';
 import { IconDownload, IconShieldLock } from '@tabler/icons';
-import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
+import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
+import ImportEnvironment from '../ImportEnvironment';
 
 const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -86,6 +87,7 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
   return (
     <StyledWrapper>
       {openCreateModal && <CreateEnvironment onClose={() => setOpenCreateModal(false)} />}
+      {openImportModal && <ImportEnvironment onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
 
       <div className="flex">

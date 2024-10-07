@@ -4,14 +4,14 @@ import toast from 'react-hot-toast';
 import Modal from 'components/Modal/index';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { deleteGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { deleteGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const DeleteEnvironment = ({ onClose, environment }) => {
   const dispatch = useDispatch();
   const onConfirm = () => {
     dispatch(deleteGlobalEnvironment({ environmentUid: environment.uid }))
       .then(() => {
-        toast.success('Environment deleted successfully');
+        toast.success('Global Environment deleted successfully');
         onClose();
       })
       .catch(() => toast.error('An error occurred while deleting the environment'));

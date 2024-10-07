@@ -5,7 +5,7 @@ import * as Yup from 'yup';
 import { useDispatch } from 'react-redux';
 import Portal from 'components/Portal';
 import Modal from 'components/Modal';
-import { addGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const CreateEnvironment = ({ onClose }) => {
   const dispatch = useDispatch();

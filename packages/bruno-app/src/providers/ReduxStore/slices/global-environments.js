@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { generateUidBasedOnHash, stringifyIfNot, uuid } from 'utils/common/index';
+import { stringifyIfNot, uuid } from 'utils/common/index';
 import { environmentSchema } from '@usebruno/schema';
 import { cloneDeep } from 'lodash';
 
@@ -17,12 +17,12 @@ export const globalEnvironmentsSlice = createSlice({
       state.activeGlobalEnvironmentUid = action.payload?.activeGlobalEnvironmentUid;
     },
     _addGlobalEnvironment: (state, action) => {
-      const { name, uid } = action.payload;
+      const { name, uid, variables = [] } = action.payload;
       if (name?.length) {
         state.globalEnvironments.push({
           uid,
           name,
-          variables: []
+          variables
         });
       }
     },
@@ -87,13 +87,13 @@ export const {
   _deleteGlobalEnvironment
 } = globalEnvironmentsSlice.actions;
 
-export const addGlobalEnvironment = ({ name }) => (dispatch, getState) => {
+export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, getState) => {
   return new Promise((resolve, reject) => {
-    const uid = generateUidBasedOnHash(name);
+    const uid = uuid();
     ipcRenderer
-      .invoke('renderer:create-global-environment', { name, uid })
+      .invoke('renderer:create-global-environment', { name, uid, variables })
       .then(
-        dispatch(_addGlobalEnvironment({ name, uid }))
+        dispatch(_addGlobalEnvironment({ name, uid, variables }))
       )
       .then(resolve)
       .catch(reject);
@@ -105,7 +105,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const state = getState();
     const globalEnvironments = state.globalEnvironments.globalEnvironments;
     const baseEnv = globalEnvironments?.find(env => env?.uid == baseEnvUid)
-    const uid = generateUidBasedOnHash(name);
+    const uid = uuid();
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, variables: baseEnv.variables })
       .then(() => {
@@ -195,7 +195,8 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
-      return reject(new Error('Environment not found'));
+      console.error('Global Environment not found');
+      return resolve();
     }
 
     let variables = cloneDeep(environment?.variables);

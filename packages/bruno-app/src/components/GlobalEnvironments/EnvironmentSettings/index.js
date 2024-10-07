@@ -4,6 +4,7 @@ import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';
 import StyledWrapper from './StyledWrapper';
 import { IconFileAlert } from '@tabler/icons';
+import ImportEnvironment from './ImportEnvironment/index';
 
 export const SharedButton = ({ children, className, onClick }) => {
   return (
@@ -27,6 +28,12 @@ const DefaultTab = ({ setTab }) => {
         <SharedButton onClick={() => setTab('create')}>
           <span>Create Global Environment</span>
         </SharedButton>
+
+        <span className="mx-4">Or</span>
+
+        <SharedButton onClick={() => setTab('import')}>
+          <span>Import Environment</span>
+        </SharedButton>
       </div>
     </div>
   );
@@ -40,9 +47,11 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
+        <Modal size="md" title="Global Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
           {tab === 'create' ? (
             <CreateEnvironment onClose={() => setTab('default')} />
+          ) : tab === 'import' ? (
+            <ImportEnvironment onClose={() => setTab('default')} />
           ) : (
             <></>
           )}

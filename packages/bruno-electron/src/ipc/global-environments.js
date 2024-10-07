@@ -6,9 +6,9 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
 
   // GLOBAL ENVIRONMENTS
 
-  ipcMain.handle('renderer:create-global-environment', async (event, { uid, name }) => {
+  ipcMain.handle('renderer:create-global-environment', async (event, { uid, name, variables }) => {
     try {
-      globalEnvironmentsStore.addGlobalEnvironment({ uid, name });
+      globalEnvironmentsStore.addGlobalEnvironment({ uid, name, variables });
     } catch (error) {
       return Promise.reject(error);
     }
@@ -30,9 +30,9 @@ const registerGlobalEnvironmentsIpc = (mainWindow) => {
     }
   });
 
-  ipcMain.handle('renderer:delete-global-environment', async (event, { uid }) => {
+  ipcMain.handle('renderer:delete-global-environment', async (event, { environmentUid }) => {
     try {
-      globalEnvironmentsStore.deleteGlobalEnvironment({ uid });
+      globalEnvironmentsStore.deleteGlobalEnvironment({ environmentUid });
     } catch (error) {
       return Promise.reject(error);
     }

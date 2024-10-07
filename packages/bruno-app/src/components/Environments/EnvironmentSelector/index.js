@@ -53,6 +53,7 @@ const EnvironmentSelector = ({ collection }) => {
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <div className="label-item font-medium">Collection Environments</div>
           {environments && environments.length
             ? environments.map((e) => (
                 <div

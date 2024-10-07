@@ -6,7 +6,7 @@ import appReducer from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
 import notificationsReducer from './slices/notifications';
-import globalEnvironmentsReducer from './slices/globalEnvironments';
+import globalEnvironmentsReducer from './slices/global-environments';
 
 const { publicRuntimeConfig } = getConfig();
 const isDevEnv = () => {

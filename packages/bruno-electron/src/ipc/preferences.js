@@ -17,7 +17,8 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
     // load global environments
     const globalEnvironments = globalEnvironmentsStore.getGlobalEnvironments();
-    const activeGlobalEnvironmentUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
+    let activeGlobalEnvironmentUid = globalEnvironmentsStore.getActiveGlobalEnvironmentUid();
+    activeGlobalEnvironmentUid = globalEnvironments?.find(env => env?.uid == activeGlobalEnvironmentUid) ? activeGlobalEnvironmentUid : null;
     mainWindow.webContents.send('main:load-global-environments', { globalEnvironments, activeGlobalEnvironmentUid });
 
     // reload last opened collections

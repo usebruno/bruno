@@ -23,7 +23,7 @@ import { collectionAddEnvFileEvent, openCollectionEvent } from 'providers/ReduxS
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import { isElectron } from 'utils/common/platform';
-import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/globalEnvironments';
+import { globalEnvironmentsUpdateEvent, updateGlobalEnvironments } from 'providers/ReduxStore/slices/global-environments';
 
 const useIpcEvents = () => {
   const dispatch = useDispatch();

@@ -10,7 +10,7 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
-import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();

@@ -42,7 +42,6 @@ class GlobalEnvironmentsStore {
     });
   }
   
-  
   getGlobalEnvironments() {
     let globalEnvironments = this.store.get('environments', []);
     globalEnvironments = this.decryptGlobalEnvironmentVariables({ globalEnvironments });
@@ -62,12 +61,12 @@ class GlobalEnvironmentsStore {
     return this.store.set('activeGlobalEnvironmentUid', uid);
   }
 
-  addGlobalEnvironment({ uid, name }) {
+  addGlobalEnvironment({ uid, name, variables = [] }) {
     let globalEnvironments = this.getGlobalEnvironments();
     globalEnvironments.push({
       uid,
       name,
-      variables: []
+      variables
     });
     this.setGlobalEnvironments(globalEnvironments);
   }
@@ -115,9 +114,13 @@ class GlobalEnvironmentsStore {
     }
   }
   
-  deleteGlobalEnvironment({ uid }) {
+  deleteGlobalEnvironment({ environmentUid }) {
     let globalEnvironments = this.getGlobalEnvironments();
-    globalEnvironments = globalEnvironments.filter(env => env?.uid !== uid);
+    let activeGlobalEnvironmentUid = this.getActiveGlobalEnvironmentUid();
+    globalEnvironments = globalEnvironments.filter(env => env?.uid !== environmentUid);
+    if (environmentUid == activeGlobalEnvironmentUid) {
+      this.setActiveGlobalEnvironmentUid(null); 
+    }
     this.setGlobalEnvironments(globalEnvironments);
   }  
 }

@@ -6,7 +6,7 @@ import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
-import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const EnvironmentSelector = () => {
   const dispatch = useDispatch();
@@ -53,6 +53,7 @@ const EnvironmentSelector = () => {
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector mr-3">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" transparent={true}>
+          <div className="label-item font-medium">Global Environments</div>
           {globalEnvironments && globalEnvironments.length
             ? globalEnvironments.map((e) => (
                 <div

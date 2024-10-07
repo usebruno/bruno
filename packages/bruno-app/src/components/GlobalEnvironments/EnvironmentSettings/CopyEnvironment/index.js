@@ -1,7 +1,7 @@
 import Modal from 'components/Modal/index';
 import Portal from 'components/Portal/index';
 import { useFormik } from 'formik';
-import { copyGlobalEnvironment } from 'providers/ReduxStore/slices/globalEnvironments';
+import { copyGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
