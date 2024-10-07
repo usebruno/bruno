@@ -1103,17 +1103,19 @@ export const selectEnvironment = (environmentUid, collectionUid) => (dispatch, g
     }
 
     const collectionCopy = cloneDeep(collection);
-    if (environmentUid) {
-      const environment = findEnvironmentInCollection(collectionCopy, environmentUid);
-      if (environment) {
-        ipcRenderer.invoke('renderer:update-ui-state-snapshot', { type: 'COLLECTION_ENVIRONMENT', data: { collectionPath: collection?.pathname, environmentName: environment?.name } })
-        dispatch(_selectEnvironment({ environmentUid, collectionUid }));
-        resolve();
-      }
-      else {
-        return reject(new Error('Environment not found'));
-      }
-    }
+
+    const environmentName = environmentUid 
+      ? findEnvironmentInCollection(collectionCopy, environmentUid)?.name 
+      : null;
+
+    if (environmentUid && !environmentName) {
+      return reject(new Error('Environment not found'));
+    }  
+    
+    ipcRenderer.invoke('renderer:update-ui-state-snapshot', { type: 'COLLECTION_ENVIRONMENT', data: { collectionPath: collection?.pathname, environmentName }});
+
+    dispatch(_selectEnvironment({ environmentUid, collectionUid }));
+    resolve();
   });
 };
 
@@ -1278,7 +1280,7 @@ export const saveCollectionSecurityConfig = (collectionUid, securityConfig) => (
 };
 
 
-export const hydrateCollectionsWithUiStateSnapshot = (payload) => (dispatch, getState) => {
+export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getState) => {
     const collectionSnapshotData = payload;
     return new Promise((resolve, reject) => {
       const state = getState();

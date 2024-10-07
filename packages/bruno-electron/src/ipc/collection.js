@@ -26,11 +26,11 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const { collectionBruToJson } = require('@usebruno/lang');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshot = require('../store/ui-state-snapshot');
+const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const UiStateSnapshotStore = new UiStateSnapshot();
+const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -718,7 +718,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
     try {
-      UiStateSnapshotStore.update({ type, data });
+      uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }
