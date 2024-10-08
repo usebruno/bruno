@@ -127,7 +127,6 @@ if (!SERVER_RENDERED) {
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
-    console.log('options', options);
     const token = cm.getTokenAt(pos, true);
     if (token) {
       const brunoVarInfo = renderVarInfo(token, options, cm, pos);
