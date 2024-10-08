@@ -116,6 +116,25 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
+const browseDirectoryOrFiles = async (win, filters, pathname) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openFile', 'openDirectory', 'multiSelections', 'createDirectory'],
+    defaultPath: pathname,
+    filters
+  });
+
+  if (!filePaths) {
+    return [];
+  }
+
+  const resolvedPaths =  filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path) || isDirectory(path));
+
+ // Use a Set to filter out duplicate paths
+  const uniquePaths = [...new Set(resolvedPaths)];
+
+  return uniquePaths;
+};
+
 const browseFiles = async (win, filters) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
     properties: ['openFile', 'multiSelections'],
@@ -200,6 +219,7 @@ module.exports = {
   createDirectory,
   browseDirectory,
   browseFiles,
+  browseDirectoryOrFiles,
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
