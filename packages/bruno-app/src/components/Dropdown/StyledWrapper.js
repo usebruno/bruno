@@ -36,6 +36,13 @@ const Wrapper = styled.div`
         padding: 0.35rem 0.6rem;
         cursor: pointer;
 
+        &.active {
+          color: ${(props) => props.theme.colors.text.yellow} !important;
+          .icon {
+            color: ${(props) => props.theme.colors.text.yellow} !important;
+          }
+        }
+
         .icon {
           color: ${(props) => props.theme.dropdown.iconColor};
         }

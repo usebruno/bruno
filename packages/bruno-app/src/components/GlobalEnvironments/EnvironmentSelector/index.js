@@ -1,44 +1,44 @@
 import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
-import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
-import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
-import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
+import { IconSettings, IconWorld, IconDatabase, IconDatabaseOff, IconCheck } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
+import { selectGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
-const EnvironmentSelector = ({ collection }) => {
+const EnvironmentSelector = () => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
+  const globalEnvironments = useSelector((state) => state.globalEnvironments.globalEnvironments);
+  const activeGlobalEnvironmentUid = useSelector((state) => state.globalEnvironments.activeGlobalEnvironmentUid);
   const [openSettingsModal, setOpenSettingsModal] = useState(false);
-  const { environments, activeEnvironmentUid } = collection;
-  const activeEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
+  const activeEnvironment = activeGlobalEnvironmentUid ? find(globalEnvironments, (e) => e.uid === activeGlobalEnvironmentUid) : null;
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        {activeEnvironment ? activeEnvironment.name : 'No Environment'}
-        <IconCaretDown className="caret" size={14} strokeWidth={2} />
+      <div ref={ref} className={`current-environment flex flex-row gap-1 rounded-xl text-xs cursor-pointer items-center justify-center select-none ${activeGlobalEnvironmentUid? 'environment-active': ''}`}>
+        <IconWorld className="globe" size={16} strokeWidth={1.5} />
+        {
+          activeEnvironment ? <div>{activeEnvironment?.name}</div> : null
+        }
       </div>
     );
   });
 
   const handleSettingsIconClick = () => {
     setOpenSettingsModal(true);
-    dispatch(updateEnvironmentSettingsModalVisibility(true));
   };
 
   const handleModalClose = () => {
     setOpenSettingsModal(false);
-    dispatch(updateEnvironmentSettingsModalVisibility(false));
   };
 
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
   const onSelect = (environment) => {
-    dispatch(selectEnvironment(environment ? environment.uid : null, collection.uid))
+    dispatch(selectGlobalEnvironment({ environmentUid: environment ? environment.uid : null }))
       .then(() => {
         if (environment) {
           toast.success(`Environment changed to ${environment.name}`);
@@ -51,13 +51,13 @@ const EnvironmentSelector = ({ collection }) => {
 
   return (
     <StyledWrapper>
-      <div className="flex items-center cursor-pointer environment-selector">
-        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
-          <div className="label-item font-medium">Collection Environments</div>
-          {environments && environments.length
-            ? environments.map((e) => (
+      <div className="flex items-center cursor-pointer environment-selector mr-3">
+        <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end" transparent={true}>
+          <div className="label-item font-medium">Global Environments</div>
+          {globalEnvironments && globalEnvironments.length
+            ? globalEnvironments.map((e) => (
                 <div
-                  className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
+                  className={`dropdown-item ${e?.uid === activeGlobalEnvironmentUid ? 'active' : ''}`}
                   key={e.uid}
                   onClick={() => {
                     onSelect(e);
@@ -86,7 +86,7 @@ const EnvironmentSelector = ({ collection }) => {
           </div>
         </Dropdown>
       </div>
-      {openSettingsModal && <EnvironmentSettings collection={collection} onClose={handleModalClose} />}
+      {openSettingsModal && <EnvironmentSettings globalEnvironments={globalEnvironments} activeGlobalEnvironmentUid={activeGlobalEnvironmentUid} onClose={handleModalClose} />}
     </StyledWrapper>
   );
 };
