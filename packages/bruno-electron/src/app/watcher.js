@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
 const { hasBruExtension } = require('../utils/filesystem');
-const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
+const { bruToEnvJson, bruToJson, collectionBruToJson, jsonToCollectionBru } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
 const { uuid } = require('../utils/common');
@@ -36,6 +36,15 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
   const basename = path.basename(pathname);
 
   return dirname === envDirectory && hasBruExtension(basename);
+};
+
+const isBrunoRunConfigFile = (pathname, collectionPath) => {
+  const dirname = path.dirname(pathname);
+  const runsDirectory = path.join(collectionPath, 'runs');
+  const basename = path.basename(pathname);
+
+  return dirname === runsDirectory && hasBruExtension(basename);
+
 };
 
 const isCollectionRootBruFile = (pathname, collectionPath) => {
@@ -84,6 +93,32 @@ const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
 
   return secrets && secrets.length > 0;
+};
+
+const addRunConfigFile = async (win, pathname, collectionUid, collectionPath) => {
+  try {
+    const basename = path.basename(pathname);
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: basename
+      }
+    };
+
+    let bruContent = fs.readFileSync(pathname, 'utf8');
+
+    file.data = bruToJson(bruContent)
+    file.data.name = basename.substring(0, basename.length - 4);
+    file.data.uid = getRequestUid(pathname);
+
+    console.log("config file ", file.data);
+
+    win.webContents.send('main:collection-tree-updated', 'addRunConfigFile', file);
+  } catch (err) {
+    console.log(err);
+  }
+
 };
 
 const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) => {
@@ -239,9 +274,12 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     }
   }
 
+  if (isBrunoRunConfigFile(pathname, collectionPath)) {
+    return addRunConfigFile(win, pathname, collectionUid, collectionPath);
+  }
+
   // Is this a folder.bru file?
   if (path.basename(pathname) === 'folder.bru') {
-    console.log('folder.bru file detected');
     const file = {
       meta: {
         collectionUid,
@@ -301,6 +339,19 @@ const addDirectory = (win, pathname, collectionUid, collectionPath) => {
       name: path.basename(pathname)
     }
   };
+
+  const folderBruFilePath = path.join(pathname, 'folder.bru');
+  if (!fs.existsSync(folderBruFilePath)) {
+    let folderData = {
+      meta: {
+        name: path.basename(pathname),
+        seq: 0
+      }
+    };
+    const content = jsonToCollectionBru(folderData);
+    fs.writeFileSync(folderBruFilePath, content);
+  }
+
   win.webContents.send('main:collection-tree-updated', 'addDir', directory);
 };
 
@@ -358,6 +409,30 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'change', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  if (path.basename(pathname) === 'folder.bru') {
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;

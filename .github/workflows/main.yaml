@@ -1,0 +1,94 @@
+name: Main release
+
+on:
+  push:
+    branches:
+      - fork
+
+jobs:   
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        include:
+          - os: macos-latest
+            name: mac
+          - os: ubuntu-latest
+            name: linux
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm ci --legacy-peer-deps
+
+    - name: Build web app
+      run: npm run build:graphql-docs && npm run build:bruno-query && npm run build:bruno-common && npm run sandbox:bundle-libraries --workspace=packages/bruno-js && npm run build:web
+
+    - name: Build the Electron app
+      run: npm run build:electron:${{ matrix.name }}
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.name }}
+        path: |
+          ./packages/bruno-electron/out/*.dmg
+          ./packages/bruno-electron/out/*.AppImage
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Login docker
+      run: docker login https://ghcr.io -u berlingoqc -p $GITHUB_ACCESS_TOKEN
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    - name: Publish librarie is possible
+      run: echo "//npm.pkg.github.com/:_authToken=${GITHUB_ACCESS_TOKEN}" >> $HOME/.npmrc && cd packages/bruno-cli && (npm publish || echo "failed to publish, version not updated")
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Docker build
+      run: cd packages/bruno-cli && docker build --build-arg GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN} --build-arg CLI_VERSION=$(npm run version --silent) -t ghcr.io/berlingoqc/openbruno/cli:$(npm run version --silent) .
+      env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.PAT }}
+    - name: Docker push
+      run: cd packages/bruno-cli && docker push ghcr.io/berlingoqc/openbruno/cli:$(npm run version --silent) || echo "failed to publish, version not updated"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - name: Retrieve saved linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-linux
+        path: ./packages/bruno-electron/out/*
+    - name: Retrieve saved mac artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: build-mac
+        path: ./packages/bruno-electron/out/*
+    - name: List packages
+      run: ls -la ./packages/bruno-electron/out/
+    - uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "latest"
+        prerelease: true
+        title: "Development Build"
+        files: |
+          ./packages/bruno-electron/out/*
+

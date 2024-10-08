@@ -1,6 +1,6 @@
 {
-  "name": "usebruno",
-  "private": true,
+  "name": "openbruno",
+  "private": false,
   "workspaces": [
     "packages/bruno-app",
     "packages/bruno-electron",
@@ -14,7 +14,7 @@
     "packages/bruno-toml",
     "packages/bruno-graphql-docs"
   ],
-  "homepage": "https://usebruno.com",
+  "homepage": "https://github.com/berlingoqc/openbruno",
   "devDependencies": {
     "@faker-js/faker": "^7.6.0",
     "@jest/globals": "^29.2.0",

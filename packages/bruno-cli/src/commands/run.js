@@ -9,9 +9,9 @@ const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
 const { bruToJson, getOptions, collectionBruToJson } = require('../utils/bru');
-const { dotenvToJson } = require('@usebruno/lang');
+const { dotenvToJson, bruToRunConfigJson, bruToRunConfigJsonV2 } = require('@usebruno/lang');
 const constants = require('../constants');
-const command = 'run [filename]';
+const command = 'run [filenames ...]';
 const desc = 'Run a request';
 
 const printRunSummary = (results) => {
@@ -92,6 +92,42 @@ const printRunSummary = (results) => {
     failedTests
   };
 };
+
+const getRunBruFulesRecursively = (dir, runs) => {
+
+  const files = fs.readdirSync(dir);
+
+  const bruFiles = files
+    .filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'))
+    .map((file) => path.join(dir, file));
+
+  const folders = files
+    .filter((file) => file && file != "")
+    .map((file) => path.join(dir, file))
+    .filter((file) => fs.lstatSync(file).isDirectory());
+  
+  for (const runFile of bruFiles) {
+    const bruContent = fs.readFileSync(runFile, 'utf8');
+    const bruJson = bruToRunConfigJsonV2(bruContent);
+
+    if (bruJson.environment) {
+      env = bruJson.environment;
+    }
+
+    if (bruJson.requests && bruJson.requests.length > 0) {
+      const filenames = bruJson.requests.map(r => r.request);
+      const runtimeVariables = bruJson.vars;
+      for (const variable of bruJson.vars) {
+        runtimeVariables[variable.name] = variable.value;
+      }
+      runs.push({ filenames, name: bruJson.name, runtimeVariables, outputPrefix: bruJson.name });
+    }
+  }
+
+  for (const folder of folders) {
+    getRunBruFulesRecursively(folder, runs);
+  }
+}
 
 const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
@@ -227,7 +263,7 @@ const builder = async (yargs) => {
     .option('output', {
       alias: 'o',
       describe: 'Path to write file results to',
-      type: 'string'
+      type: 'string',
     })
     .option('format', {
       alias: 'f',
@@ -259,10 +295,16 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('collection', {
+      type: 'string',
+      description: 'Path to the folder where the bruno collection is stored, default to current working directory',
+      default: ''
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run folder folder2 request.bru -r', 'Run all requests in multiple files and/or folders')
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -298,7 +340,7 @@ const builder = async (yargs) => {
 const handler = async function (argv) {
   try {
     let {
-      filename,
+      filenames,
       cacert,
       ignoreTruststore,
       env,
@@ -312,9 +354,11 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      collection: collectionPath
     } = argv;
-    const collectionPath = process.cwd();
+
+    collectionPath = (!collectionPath) ? process.cwd(): collectionPath;
 
     // todo
     // right now, bru must be run from the root of the collection
@@ -330,19 +374,60 @@ const handler = async function (argv) {
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
 
-    if (filename && filename.length) {
-      const pathExists = await exists(filename);
-      if (!pathExists) {
-        console.error(chalk.red(`File or directory ${filename} does not exist`));
-        process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+    if (filenames && filenames.length) {
+      for (const filename of filenames) {
+        const filenamePath = path.join(collectionPath, filename);
+        const pathExists = await exists(filenamePath);
+        if (!pathExists) {
+          console.error(chalk.red(`File or directory ${filename} does not exist`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
       }
     } else {
-      filename = './';
+      filenames = ['./'];
       recursive = true;
     }
 
-    const runtimeVariables = {};
+    let runs = [];
+
+    let runtimeVariables = {};
     let envVars = {};
+
+    // TODO: better way to find if runs
+    if (filenames[0].startsWith("runs/")) {
+      if (filenames.length > 1) {
+          console.error(chalk.red(`If passings runs , only one can be provided`));
+          // TODO: specific error if it stays
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+       
+      }
+
+      if (isDirectory(filenames[0])) {
+        getRunBruFulesRecursively(filenames[0], runs);
+      } else {
+        buildRuns = [ filenames[0] ];
+        for (const runFile of buildRuns) {
+          const bruContent = fs.readFileSync(runFile, 'utf8');
+          const bruJson = bruToRunConfigJsonV2(bruContent);
+  
+          if (bruJson.environment) {
+            env = bruJson.environment;
+          }
+  
+          if (bruJson.requests && bruJson.requests.length > 0) {
+            const filenames = bruJson.requests.map(r => r.request);
+            const runtimeVariables = bruJson.vars;
+            for (const variable of bruJson.vars) {
+              runtimeVariables[variable.name] = variable.value;
+            }
+            runs = [...runs, { filenames, runtimeVariables, outputPrefix: bruJson.name }];
+          }
+        }
+      }
+    } else {
+      runs = [...runs, { filenames }];
+    }
+
 
     if (env) {
       const envFile = path.join(collectionPath, 'environments', `${env}.bru`);
@@ -445,57 +530,70 @@ const handler = async function (argv) {
       });
     }
 
-    const _isFile = isFile(filename);
+    for (const run of runs) {
+
+    if (run.name) {
+      console.log(chalk.yellow("Starting run " + run.name));
+    }
+
+    const filenames = run.filenames;
+
     let results = [];
 
     let bruJsons = [];
 
-    if (_isFile) {
-      console.log(chalk.yellow('Running Request \n'));
-      const bruContent = fs.readFileSync(filename, 'utf8');
-      const bruJson = bruToJson(bruContent);
-      bruJsons.push({
-        bruFilepath: filename,
-        bruJson
-      });
-    }
+    for (const filename of filenames) {
+      const filenamePath = path.join(collectionPath, filename);
+      const _isFile = isFile(filenamePath);
+      if (_isFile) {
+        const bruContent = fs.readFileSync(filename, 'utf8');
+        const bruJson = bruToJson(bruContent);
+        bruJsons.push({
+          bruFilepath: filename,
+          bruJson
+        });
+      }
 
-    const _isDirectory = isDirectory(filename);
-    if (_isDirectory) {
-      if (!recursive) {
-        console.log(chalk.yellow('Running Folder \n'));
-        const files = fs.readdirSync(filename);
-        const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
+      const _isDirectory = isDirectory(filenamePath);
+      if (_isDirectory) {
+        if (!recursive) {
+          const files = fs.readdirSync(filenamePath);
+          const bruFiles = files.filter((file) => !['folder.bru'].includes(file) && file.endsWith('.bru'));
+          const directoryBruJsons = [];
 
-        for (const bruFile of bruFiles) {
-          const bruFilepath = path.join(filename, bruFile);
-          const bruContent = fs.readFileSync(bruFilepath, 'utf8');
-          const bruJson = bruToJson(bruContent);
-          const requestHasTests = bruJson.request?.tests;
-          const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
-          if (testsOnly) {
-            if (requestHasTests || requestHasActiveAsserts) {
-              bruJsons.push({
+          for (const bruFile of bruFiles) {
+            const bruFilepath = path.join(filename, bruFile);
+            const bruContent = fs.readFileSync(path.join(collectionPath, bruFilepath), 'utf8');
+            const bruJson = bruToJson(bruContent);
+            const requestHasTests = bruJson.request?.tests;
+            const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
+            if (testsOnly) {
+              if (requestHasTests || requestHasActiveAsserts) {
+                directoryBruJsons.push({
+                  bruFilepath,
+                  bruJson
+                });
+              }
+            } else {
+              directoryBruJsons.push({
                 bruFilepath,
                 bruJson
               });
             }
-          } else {
-            bruJsons.push({
-              bruFilepath,
-              bruJson
-            });
           }
-        }
-        bruJsons.sort((a, b) => {
-          const aSequence = a.bruJson.seq || 0;
-          const bSequence = b.bruJson.seq || 0;
-          return aSequence - bSequence;
-        });
-      } else {
-        console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename, testsOnly);
+          directoryBruJsons.sort((a, b) => {
+            const aSequence = a.bruJson.seq || 0;
+            const bSequence = b.bruJson.seq || 0;
+            return aSequence - bSequence;
+          });
+
+          bruJsons = [...bruJsons, ...directoryBruJsons];
+        } else {
+          console.log(chalk.yellow('Running Folder Recursively \n'));
+
+          bruJsons = [ ...bruJsons, ...getBruFilesRecursively(filename, testsOnly)];
+        }
       }
     }
 
@@ -511,7 +609,7 @@ const handler = async function (argv) {
         bruFilepath,
         bruJson,
         collectionPath,
-        runtimeVariables,
+        run.runtimeVariables,
         envVars,
         processEnvVars,
         brunoConfig,
@@ -562,49 +660,61 @@ const handler = async function (argv) {
     const totalTime = results.reduce((acc, res) => acc + res.response.responseTime, 0);
     console.log(chalk.dim(chalk.grey(`Ran all requests - ${totalTime} ms`)));
 
-    const formatKeys = Object.keys(formats);
-    if (formatKeys && formatKeys.length > 0) {
-      const outputJson = {
-        summary,
-        results
-      };
+    if (outputPath && outputPath.length) {
+      const formatKeys = Object.keys(formats);
+      if (formatKeys && formatKeys.length > 0) {
+        const outputJson = {
+          summary,
+          results
+        };
 
-      const reporters = {
-        'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
-        'junit': (path) => makeJUnitOutput(results, path),
-        'html': (path) => makeHtmlOutput(outputJson, path),
+        const reporters = {
+          'json': (path) => fs.writeFileSync(path, JSON.stringify(outputJson, null, 2)),
+          'junit': (path) => makeJUnitOutput(results, path),
+          'html': (path) => makeHtmlOutput(outputJson, path),
+        }
+
+        for (const formatter of Object.keys(formats))
+        {
+          const reportPath = formats[formatter];
+          const reporter = reporters[formatter];
+
+          // Skip formatters lacking an output path.
+          if (!reportPath || reportPath.length === 0) {
+            continue;
+          }
+
+          const outputDir = path.dirname(outputPath);
+          const outputDirExists = await exists(outputDir);
+          if (!outputDirExists) {
+            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+          }
+
+          const outputFileName = path.basename(outputPath);
+          const realOutputPath = path.join(outputDir, ((run.outputPrefix ? run.outputPrefix : "") + "-") + outputFileName);
+
+
+          if (!outputDirExists) {
+            console.error(chalk.red(`Output directory ${outputDir} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
+          }
+
+          if (!reporter) {
+            console.error(chalk.red(`Reporter ${formatter} does not exist`));
+            process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
+          }
+
+          reporter(realOutputPath);
+
+          console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${realOutputPath}`)));
+        }
       }
 
-      for (const formatter of Object.keys(formats))
-      {
-        const reportPath = formats[formatter];
-        const reporter = reporters[formatter];
-
-        // Skip formatters lacking an output path.
-        if (!reportPath || reportPath.length === 0) {
-          continue;
-        }
-
-        const outputDir = path.dirname(reportPath);
-        const outputDirExists = await exists(outputDir);
-        if (!outputDirExists) {
-          console.error(chalk.red(`Output directory ${outputDir} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_MISSING_OUTPUT_DIR);
-        }
-
-        if (!reporter) {
-          console.error(chalk.red(`Reporter ${formatter} does not exist`));
-          process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_OUTPUT_FORMAT);
-        }
-
-        reporter(reportPath);
-
-        console.log(chalk.dim(chalk.grey(`Wrote ${formatter} results to ${reportPath}`)));
+      if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
+        process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
       }
-    }
-
-    if (summary.failedAssertions + summary.failedTests + summary.failedRequests > 0) {
-      process.exit(constants.EXIT_STATUS.ERROR_FAILED_COLLECTION);
+      }
     }
   } catch (err) {
     console.log('Something went wrong');

@@ -24,6 +24,7 @@ const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON 
 const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const { collectionBruToJson } = require('@usebruno/lang');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 
@@ -166,7 +167,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const folderBruFilePath = path.join(folderPathname, 'folder.bru');
 
       folderRoot.meta = {
-        name: folderName
+        name: folderName,
+        ...(folderRoot.meta || {})
       };
 
       const content = jsonToCollectionBru(
@@ -585,13 +587,29 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
       for (let item of itemsToResequence) {
-        const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = bruToJson(bru);
+        if (item?.type === 'folder') {
+          const folderRootPath = path.join(item.pathname, 'folder.bru');
+          if (fs.existsSync(folderRootPath)) {
+            const bru = fs.readFileSync(folderRootPath, 'utf8');
+            const jsonData = collectionBruToJson(bru);
 
-        if (jsonData.seq !== item.seq) {
-          jsonData.seq = item.seq;
-          const content = jsonToBru(jsonData);
-          await writeFile(item.pathname, content);
+            if (jsonData?.meta?.seq !== item.seq) {
+              jsonData.meta.seq = item.seq;
+              const content = jsonToCollectionBru(jsonData);
+              await writeFile(folderRootPath, content);
+            }
+          }
+        } else {
+          if (fs.existsSync(item.pathname)) {
+            const bru = fs.readFileSync(item.pathname, 'utf8');
+            const jsonData = bruToJson(bru);
+
+            if (jsonData.seq !== item.seq) {
+              jsonData.seq = item.seq;
+              const content = jsonToBru(jsonData);
+              await writeFile(item.pathname, content);
+            }
+          }
         }
       }
     } catch (error) {

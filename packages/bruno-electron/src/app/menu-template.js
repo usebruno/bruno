@@ -76,13 +76,13 @@ const template = [
     role: 'help',
     submenu: [
       {
-        label: 'About Bruno',
+        label: 'About OpenBruno',
         click: () =>
           openAboutWindow({
-            product_name: 'Bruno',
+            product_name: 'OpenBruno',
             icon_path: join(__dirname, '../about/256x256.png'),
             css_path: join(__dirname, '../about/about.css'),
-            homepage: 'https://www.usebruno.com/',
+            homepage: 'https://github.com/berlingoqc/openbruno',
             package_json_dir: join(__dirname, '../..')
           })
       },

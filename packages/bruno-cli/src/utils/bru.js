@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
+const { bruToEnvJsonV2, bruToJsonV2, bruToRunConfigJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
 
 const collectionBruToJson = (bru) => {
   try {
@@ -67,6 +67,15 @@ const bruToJson = (bru) => {
     transformedJson.request.auth.mode = _.get(json, 'http.auth', 'none');
 
     return transformedJson;
+  } catch (err) {
+    return Promise.reject(err);
+  }
+};
+
+
+const bruToRunConfigJson = (bru) => {
+  try {
+    return bruToRunConfigJsonV2(bru);
   } catch (err) {
     return Promise.reject(err);
   }
