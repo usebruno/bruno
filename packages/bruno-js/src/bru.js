@@ -111,6 +111,14 @@ class Bru {
     delete this.runtimeVariables[key];
   }
 
+  deleteAllVars() {
+    for (let key in this.runtimeVariables) {
+      if (this.runtimeVariables.hasOwnProperty(key)) {
+        delete this.runtimeVariables[key];
+      }
+    }
+  }
+
   getCollectionVar(key) {
     return this._interpolate(this.collectionVariables[key]);
   }

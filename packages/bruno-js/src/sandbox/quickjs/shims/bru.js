@@ -21,6 +21,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getProcessEnv', getProcessEnv);
   getProcessEnv.dispose();
 
+  let hasEnvVar = vm.newFunction('hasEnvVar', function (key) {
+    return marshallToVm(bru.hasEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasEnvVar', hasEnvVar);
+  hasEnvVar.dispose();
+
   let getEnvVar = vm.newFunction('getEnvVar', function (key) {
     return marshallToVm(bru.getEnvVar(vm.dump(key)), vm);
   });
@@ -45,6 +51,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
   setGlobalEnvVar.dispose();
 
+  let hasVar = vm.newFunction('hasVar', function (key) {
+    return marshallToVm(bru.hasVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasVar', hasVar);
+  hasVar.dispose();
+
   let getVar = vm.newFunction('getVar', function (key) {
     return marshallToVm(bru.getVar(vm.dump(key)), vm);
   });
@@ -56,6 +68,18 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'setVar', setVar);
   setVar.dispose();
+
+  let deleteVar = vm.newFunction('deleteVar', function (key) {
+    bru.deleteVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteVar', deleteVar);
+  deleteVar.dispose();
+
+  let deleteAllVars = vm.newFunction('deleteAllVars', function () {
+    bru.deleteAllVars();
+  });
+  vm.setProp(bruObject, 'deleteAllVars', deleteAllVars);
+  deleteAllVars.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
