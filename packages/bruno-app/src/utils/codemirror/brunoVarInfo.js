@@ -44,8 +44,11 @@ if (!SERVER_RENDERED) {
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
-
-    descriptionDiv.appendChild(document.createTextNode(variableValue));
+    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+      descriptionDiv.appendChild(document.createTextNode('*****'));
+    } else {
+      descriptionDiv.appendChild(document.createTextNode(variableValue));
+    }
     into.appendChild(descriptionDiv);
 
     return into;
@@ -124,6 +127,7 @@ if (!SERVER_RENDERED) {
 
     const state = cm.state.brunoVarInfo;
     const options = state.options;
+    console.log('options', options);
     const token = cm.getTokenAt(pos, true);
     if (token) {
       const brunoVarInfo = renderVarInfo(token, options, cm, pos);
