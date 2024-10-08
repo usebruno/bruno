@@ -370,6 +370,7 @@ const prepareRequest = (item, collection) => {
     mergeFolderLevelHeaders(request, requestTreePath);
     mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
   }
 
   // Request level headers
@@ -461,6 +462,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;

@@ -9,10 +9,10 @@ import { uuid } from 'utils/common';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
-import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import toast from 'react-hot-toast';
+import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
-const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
+const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
@@ -42,13 +42,16 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         return;
       }
 
-      dispatch(saveEnvironment(cloneDeep(values), environment.uid, collection.uid))
+      dispatch(saveGlobalEnvironment({ environmentUid: environment.uid, variables: cloneDeep(values) }))
         .then(() => {
           toast.success('Changes saved successfully');
           formik.resetForm({ values });
           setIsModified(false);
         })
-        .catch(() => toast.error('An error occurred while saving the changes'));
+        .catch((error) => {
+          console.error(error);
+          toast.error('An error occurred while saving the changes')
+        });
     }
   });
 
@@ -142,7 +145,6 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
                   <div className="overflow-hidden grow w-full relative">
                     <SingleLineEditor
                       theme={storedTheme}
-                      collection={collection}
                       name={`${index}.value`}
                       value={variable.value}
                       isSecret={variable.secret}
