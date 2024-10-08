@@ -107,7 +107,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const baseEnv = globalEnvironments?.find(env => env?.uid == baseEnvUid)
     const uid = uuid();
     ipcRenderer
-      .invoke('renderer:create-global-environment', { name, variables: baseEnv.variables })
+      .invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables })
       .then(() => {
         dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables }))
       })
