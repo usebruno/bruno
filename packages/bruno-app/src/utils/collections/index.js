@@ -852,6 +852,13 @@ export const getAllVariables = (collection, item) => {
   const pathParams = getPathParams(item);
 
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection);
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
 
   return {
     ...collectionVariables,
@@ -862,6 +869,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: filteredMaskedEnvVariables,
     process: {
       env: {
         ...processEnvVariables
