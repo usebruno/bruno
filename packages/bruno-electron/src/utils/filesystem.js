@@ -167,7 +167,7 @@ const isValidFilename = (fileName) => {
     return false;
   }
 
-  if (fileName.endsWith(' ') || fileName.endsWith('.')) {
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
     return false;
   }
 
