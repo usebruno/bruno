@@ -385,7 +385,7 @@ const parseOpenApiCollection = (data) => {
 
       // Create environments based on the servers
       servers.forEach((server, index) => {
-        let basePath = getDefaultUrl(server);
+        let baseUrl = getDefaultUrl(server);
         let environmentName = server.description ? server.description : `Environment ${index + 1}`;
 
         brunoCollection.environments.push({
@@ -394,8 +394,8 @@ const parseOpenApiCollection = (data) => {
           variables: [
             {
               uid: uuid(),
-              name: 'basePath',
-              value: basePath,
+              name: 'baseUrl',
+              value: baseUrl,
               type: 'text',
               enabled: true,
               secret: false
@@ -420,7 +420,7 @@ const parseOpenApiCollection = (data) => {
                 path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
-                  server: '{{basePath}}', 
+                  server: '{{baseUrl}}', 
                   security: securityConfig
                 }
               };
