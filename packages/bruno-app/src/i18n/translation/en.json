@@ -16,5 +16,26 @@
         "COLLECTION_IMPORT_SUCCESS": "Collection imported successfully",
         "COLLECTION_IMPORT_ERROR": "An error occurred while importing the collection. Check the logs for more information.",
         "COLLECTION_OPEN_ERROR": "An error occurred while opening the collection"
+    },
+    "AUTHORIZATION": {
+        "OAUTH1": {
+            "CONSUMER_KEY_FIELD": "Consumer Key",
+            "CONSUMER_SECRET_FIELD": "Consumer Secret",
+            "REQUEST_TOKEN_URL_FIELD": "Request Token URL",
+            "ACCESS_TOKEN_URL_FIELD": "Access Token URL",
+            "AUTHORIZE_URL_FIELD": "Authorization URL",
+            "CALLBACK_TOKEN_URL_FIELD": "Callback URL",
+            "OAUTH_VERIFIER_FIELD": "Verifier code",
+            "ACCESS_TOKEN_FIELD": "Access Token",
+            "ACCESS_TOKEN_SECRET_FIELD": "Access Token Secret",
+            "RSA_PRIVATE_KEY_FIELD": "RSA Private Key",
+            "SIGNATURE_METHOD_FIELD": "Signature Method",
+            "PARAM_TRANSMISSION_METHOD_FIELD": "Parameter Transmission Method",
+            "PARAM_TRANSMISSION_METHOD": {
+                "AUTHORIZATION_HEADER": "Authorization Header",
+                "REQUEST_BODY": "Request Body",
+                "QUERY_PARAM": "Query Parameters"
+            }
+        }
     }
 }
