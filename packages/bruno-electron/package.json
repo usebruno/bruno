@@ -30,7 +30,7 @@
     "@usebruno/schema": "0.7.0",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
-    "axios": "^1.5.1",
+    "axios": "1.7.4",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "content-disposition": "^0.5.4",
