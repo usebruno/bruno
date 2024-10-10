@@ -19,10 +19,10 @@
   "homepage": "https://github.com/usebruno/bruno-testbench#readme",
   "dependencies": {
     "axios": "^1.5.1",
-    "body-parser": "^1.20.0",
+    "body-parser": "1.20.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "express": "^4.18.1",
+    "express": "4.21.0",
     "express-basic-auth": "^1.2.1",
     "express-xml-bodyparser": "^0.3.0",
     "http-proxy": "^1.18.1",

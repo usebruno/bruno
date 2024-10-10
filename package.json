@@ -51,7 +51,7 @@
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup":"3.29.4"
+    "rollup":"3.29.5"
   },
   "dependencies": {
     "json-bigint": "^1.0.0",
