@@ -68,7 +68,12 @@ const CollectionToolBar = ({ collection }) => {
               <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
             </ToolHint>
           </span>
-          <GlobalEnvironmentSelector />
+          <span>
+            <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId">
+              <GlobalEnvironmentSelector />
+            </ToolHint>
+          </span>
+          
           <EnvironmentSelector collection={collection} />
         </div>
       </div>
