@@ -22,6 +22,7 @@ const ToolHint = ({
     ...tooltipStyle,
     fontSize: '0.75rem',
     padding: '0.25rem 0.5rem',
+    zIndex: 9999,
     backgroundColor: toolhintBackgroundColor,
     color: toolhintTextColor
   };
