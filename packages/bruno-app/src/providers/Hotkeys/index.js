@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
-import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -57,9 +56,6 @@ export const HotkeysProvider = (props) => {
               dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
-            } else {
-              // todo: when ephermal requests go live
-              // setShowSaveRequestModal(true);
             }
           }
         }
@@ -218,9 +214,6 @@ export const HotkeysProvider = (props) => {
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {showSaveRequestModal && (
-        <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />
-      )}
       {showEnvSettingsModal && (
         <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
       )}

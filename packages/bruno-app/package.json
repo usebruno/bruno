@@ -13,9 +13,6 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.0.15",
-    "@fortawesome/fontawesome-svg-core": "^1.2.36",
-    "@fortawesome/free-solid-svg-icons": "^5.15.4",
-    "@fortawesome/react-fontawesome": "^0.1.16",
     "@reduxjs/toolkit": "^1.8.0",
     "@tabler/icons": "^1.46.0",
     "@tippyjs/react": "^4.2.6",
