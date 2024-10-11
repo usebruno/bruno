@@ -24,7 +24,7 @@
     "classnames": "^2.3.1",
     "codemirror": "5.65.2",
     "codemirror-graphql": "1.2.5",
-    "cookie": "^0.6.0",
+    "cookie": "0.7.1",
     "escape-html": "^1.0.3",
     "file": "^0.2.2",
     "file-dialog": "^0.0.8",
