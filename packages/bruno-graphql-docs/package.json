@@ -19,7 +19,7 @@
     "@types/react": "^18.0.25",
     "graphql": "^16.6.0",
     "markdown-it": "^13.0.1",
-    "postcss": "^8.4.18",
+    "postcss": "8.4.47",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "rollup":"3.29.5",

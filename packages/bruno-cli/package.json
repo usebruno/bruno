@@ -29,7 +29,7 @@
     "@usebruno/js": "0.12.0",
     "@usebruno/lang": "0.12.0",
     "aws4-axios": "^3.3.0",
-    "axios": "1.7.4",
+    "axios": "1.7.5",
     "chai": "^4.3.7",
     "chalk": "^3.0.0",
     "decomment": "^0.9.5",
