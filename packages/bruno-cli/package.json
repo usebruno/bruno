@@ -37,7 +37,6 @@
     "fs-extra": "^10.1.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
-    "inquirer": "^9.1.4",
     "json-bigint": "^1.0.0",
     "lodash": "^4.17.21",
     "qs": "^6.11.0",
