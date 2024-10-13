@@ -60,12 +60,12 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
 const regexVariable = new RegExp('{{.*?}}', 'g');
 
 const normalizeVariables = (value) => {
-  value = value || '';
-  const variables = value.match(regexVariable) || [];
+  const sanitizedValue = value || '';
+  const variables = sanitizedValue.match(regexVariable) || [];
   each(variables, (variable) => {
-    value = value.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
+    sanitizedValue = sanitizedValue.replace(variable, variable.replace('_.', '').replaceAll(' ', ''));
   });
-  return value;
+  return sanitizedValue;
 };
 
 const transformInsomniaRequestItem = (request, index, allRequests) => {
