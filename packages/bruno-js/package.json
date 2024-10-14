@@ -8,7 +8,7 @@
     "package.json"
   ],
   "peerDependencies": {
-    "@n8n/vm2": "^3.9.23"
+    "@usebruno/vm2": "^3.9.13"
   },
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
