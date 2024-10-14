@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { IconGripVertical, IconMinusVertical } from '@tabler/icons';
 
 /**
@@ -13,17 +13,17 @@ import { IconGripVertical, IconMinusVertical } from '@tabler/icons';
 
 const ReorderTable = ({ children, updateReorderedItem }) => {
   const tbodyRef = useRef();
-  const [rowsOrder, setRowsOrder] = useState(React.Children.toArray(children));
   const [hoveredRow, setHoveredRow] = useState(null);
   const [dragStart, setDragStart] = useState(null);
 
+  const rowsOrder = useMemo(() => React.Children.toArray(children), [children]);
+
   /**
-   * useEffect hook to update the rows order and handle row hover states
+   * useEffect hook to handle row hover states
    */
   useEffect(() => {
-    setRowsOrder(React.Children.toArray(children));
     handleRowHover(null, false);
-  }, [children, dragStart]);
+  }, [children]);
 
   const handleRowHover = (index, hoverstatus = true) => {
     setHoveredRow(hoverstatus ? index : null);
@@ -48,7 +48,6 @@ const ReorderTable = ({ children, updateReorderedItem }) => {
       const updatedRowsOrder = [...rowsOrder];
       const [movedRow] = updatedRowsOrder.splice(fromIndex, 1);
       updatedRowsOrder.splice(toIndex, 0, movedRow);
-      setRowsOrder(updatedRowsOrder);
 
       updateReorderedItem({
         updateReorderedItem: updatedRowsOrder.map((row) => row.props['data-uid'])

@@ -192,6 +192,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
   }
 
   const interpolationContext = {
+    globalEnvironmentVariables: context.bru.globalEnvironmentVariables,
     collectionVariables: context.bru.collectionVariables,
     folderVariables: context.bru.folderVariables,
     requestVariables: context.bru.requestVariables,
@@ -240,6 +241,7 @@ class AssertRuntime {
   }
 
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -255,7 +257,8 @@ class AssertRuntime {
       undefined,
       collectionVariables,
       folderVariables,
-      requestVariables
+      requestVariables,
+      globalEnvironmentVariables
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
@@ -267,6 +270,7 @@ class AssertRuntime {
     };
 
     const context = {
+      ...globalEnvironmentVariables,
       ...collectionVariables,
       ...envVariables,
       ...folderVariables,

@@ -2,6 +2,7 @@ import React from 'react';
 import { uuid } from 'utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
+import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
 import ToolHint from 'components/ToolHint';
@@ -48,7 +49,7 @@ const CollectionToolBar = ({ collection }) => {
           <IconFiles size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
-        <div className="flex flex-1 items-center justify-end">
+        <div className="flex flex-3 items-center justify-end">
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>
@@ -67,6 +68,12 @@ const CollectionToolBar = ({ collection }) => {
               <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
             </ToolHint>
           </span>
+          <span>
+            <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId">
+              <GlobalEnvironmentSelector />
+            </ToolHint>
+          </span>
+          
           <EnvironmentSelector collection={collection} />
         </div>
       </div>

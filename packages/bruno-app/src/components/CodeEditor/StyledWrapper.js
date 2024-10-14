@@ -10,6 +10,12 @@ const StyledWrapper = styled.div`
     flex: 1 1 0;
   }
 
+  /* Removes the glow outline around the folded json */
+  .CodeMirror-foldmarker {
+    text-shadow: none;
+    color: ${(props) => props.theme.textLink};
+  }
+
   .CodeMirror-overlayscroll-horizontal div,
   .CodeMirror-overlayscroll-vertical div {
     background: #d2d7db;

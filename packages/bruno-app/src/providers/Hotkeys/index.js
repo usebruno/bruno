@@ -15,6 +15,7 @@ import {
 } from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
+import { getKeyBindingsForActionAllOS } from './keyMappings';
 
 export const HotkeysContext = React.createContext();
 
@@ -48,7 +49,7 @@ export const HotkeysProvider = (props) => {
 
   // save hotkey
   useEffect(() => {
-    Mousetrap.bind(['command+s', 'ctrl+s'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('save')], (e) => {
       if (isEnvironmentSettingsModalOpen) {
         console.log('todo: save environment settings');
       } else {
@@ -77,13 +78,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+s', 'ctrl+s']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('save')]);
     };
   }, [activeTabUid, tabs, saveRequest, collections, isEnvironmentSettingsModalOpen]);
 
   // send request (ctrl/cmd + enter)
   useEffect(() => {
-    Mousetrap.bind(['command+enter', 'ctrl+enter'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('sendRequest')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -104,13 +105,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+enter', 'ctrl+enter']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('sendRequest')]);
     };
   }, [activeTabUid, tabs, saveRequest, collections]);
 
   // edit environments (ctrl/cmd + e)
   useEffect(() => {
-    Mousetrap.bind(['command+e', 'ctrl+e'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('editEnvironment')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -124,13 +125,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+e', 'ctrl+e']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('editEnvironment')]);
     };
   }, [activeTabUid, tabs, collections, setShowEnvSettingsModal]);
 
   // new request (ctrl/cmd + b)
   useEffect(() => {
-    Mousetrap.bind(['command+b', 'ctrl+b'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('newRequest')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -144,13 +145,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+b', 'ctrl+b']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('newRequest')]);
     };
   }, [activeTabUid, tabs, collections, setShowNewRequestModal]);
 
   // close tab hotkey
   useEffect(() => {
-    Mousetrap.bind(['command+w', 'ctrl+w'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('closeTab')], (e) => {
       dispatch(
         closeTabs({
           tabUids: [activeTabUid]
@@ -161,13 +162,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+w', 'ctrl+w']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeTab')]);
     };
   }, [activeTabUid]);
 
   // Switch to the previous tab
   useEffect(() => {
-    Mousetrap.bind(['command+pageup', 'ctrl+pageup'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToPreviousTab')], (e) => {
       dispatch(
         switchTab({
           direction: 'pageup'
@@ -178,13 +179,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+pageup', 'ctrl+pageup']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('switchToPreviousTab')]);
     };
   }, [dispatch]);
 
   // Switch to the next tab
   useEffect(() => {
-    Mousetrap.bind(['command+pagedown', 'ctrl+pagedown'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('switchToNextTab')], (e) => {
       dispatch(
         switchTab({
           direction: 'pagedown'
@@ -195,13 +196,13 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+pagedown', 'ctrl+pagedown']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('switchToNextTab')]);
     };
   }, [dispatch]);
 
   // Close all tabs
   useEffect(() => {
-    Mousetrap.bind(['command+shift+w', 'ctrl+shift+w'], (e) => {
+    Mousetrap.bind([...getKeyBindingsForActionAllOS('closeAllTabs')], (e) => {
       const activeTab = find(tabs, (t) => t.uid === activeTabUid);
       if (activeTab) {
         const collection = findCollectionByUid(collections, activeTab.collectionUid);
@@ -220,7 +221,7 @@ export const HotkeysProvider = (props) => {
     });
 
     return () => {
-      Mousetrap.unbind(['command+shift+w', 'ctrl+shift+w']);
+      Mousetrap.unbind([...getKeyBindingsForActionAllOS('closeAllTabs')]);
     };
   }, [activeTabUid, tabs, collections, dispatch]);
 
