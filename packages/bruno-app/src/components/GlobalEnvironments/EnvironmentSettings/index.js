@@ -62,7 +62,7 @@ const EnvironmentSettings = ({ globalEnvironments, activeGlobalEnvironmentUid, o
   }
 
   return (
-    <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
+    <Modal size="lg" title="Global Environments" handleCancel={onClose} hideFooter={true}>
       <EnvironmentList
         environments={globalEnvironments}
         activeEnvironmentUid={activeGlobalEnvironmentUid}

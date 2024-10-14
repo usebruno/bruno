@@ -20,18 +20,17 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
-    if (selectedEnvironment) {
-      setOriginalEnvironmentVariables(selectedEnvironment.variables);
+    if (!environments?.length) {
+      setSelectedEnvironment(null);
+      setOriginalEnvironmentVariables([]);
       return;
     }
 
-    const environment = environments?.find(env => env?.uid === activeEnvironmentUid);
-    if (environment) {
-      setSelectedEnvironment(environment);
-    } else {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
-    }
-  }, [environments, selectedEnvironment]);
+    const environment = environments?.find(env => env.uid === activeEnvironmentUid) || environments?.[0];
+    setSelectedEnvironment(environment);
+    setOriginalEnvironmentVariables(environment?.variables || []);
+  }, [environments, activeEnvironmentUid]);
+  
 
   useEffect(() => {
     if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
