@@ -5,7 +5,9 @@ describe('utils', () => {
   describe('expression evaluation', () => {
     const context = {
       res: {
-        data: { pets: ['bruno', 'max'] }
+        data: { pets: ['bruno', 'max'] },
+        context: 'testContext',
+        _BrunoNewFunctionInnerContext: 0
       }
     };
 
@@ -45,32 +47,32 @@ describe('utils', () => {
     it('should identify top level variables', () => {
       const expr = 'res.data.pets[0].toUpperCase()';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should not duplicate variables', () => {
       const expr = 'res.data.pets[0] + res.data.pets[1]';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should exclude js keywords like true false from vars', () => {
       const expr = 'res.data.pets.length > 0 ? true : false';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should exclude numbers from vars', () => {
       const expr = 'res.data.pets.length + 10';
       evaluateJsExpression(expr, context);
-      expect(cache.get(expr).toString()).toContain('let { res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should pick variables from complex expressions', () => {
       const expr = 'res.data.pets.map(pet => pet.length)';
       const result = evaluateJsExpression(expr, context);
       expect(result).toEqual([5, 3]);
-      expect(cache.get(expr).toString()).toContain('let { res, pet } = context;');
+      expect(cache.get(expr).toString()).toContain('let { res, pet } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should be ok picking extra vars from strings', () => {
@@ -78,7 +80,7 @@ describe('utils', () => {
       const result = evaluateJsExpression(expr, context);
       expect(result).toBe('hello bruno');
       // extra var hello is harmless
-      expect(cache.get(expr).toString()).toContain('let { hello, res } = context;');
+      expect(cache.get(expr).toString()).toContain('let { hello, res } = _BrunoNewFunctionInnerContext;');
     });
 
     it('should evaluate expressions referencing globals', () => {
@@ -111,6 +113,20 @@ describe('utils', () => {
       const result = evaluateJsExpression(expr, context);
 
       expect(result).toBe(startTime);
+    });
+
+    it('should allow "context" as a var name', () => {
+      const expr = 'res["context"].toUpperCase()';
+      evaluateJsExpression(expr, context);
+      expect(cache.get(expr).toString()).toContain('let { res, context } = _BrunoNewFunctionInnerContext;');
+    });
+
+    it('should throw an error when we use "_BrunoNewFunctionInnerContext" as a var name', () => {
+      const expr = 'res["_BrunoNewFunctionInnerContext"].toUpperCase()';
+      expect(() => evaluateJsExpression(expr, context)).toThrow(SyntaxError);
+      expect(() => evaluateJsExpression(expr, context)).toThrow(
+        "Identifier '_BrunoNewFunctionInnerContext' has already been declared"
+      );
     });
   });
 
