@@ -17,7 +17,7 @@ const readFile = (files) => {
       } catch (jsonError) {
         // not a valid JSOn, try yaml
         try {
-          const parsedData = jsyaml.load(e.target.result);
+          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
           resolve(parsedData);
         } catch (yamlError) {
           console.error('Error parsing the file :', jsonError, yamlError);
