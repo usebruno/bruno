@@ -59,7 +59,16 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     className={
                       language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
                     }
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedLanguage(language)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setSelectedLanguage(language);
+                        e.preventDefault();
+                      }
+                    }}
+                    aria-pressed={language.name === selectedLanguage.name}
                   >
                     <span className="capitalize">{language.name}</span>
                   </div>
