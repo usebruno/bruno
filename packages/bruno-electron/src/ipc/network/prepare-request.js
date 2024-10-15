@@ -245,6 +245,22 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'oauth1':
+        axiosRequest.oauth1 = {
+          consumerKey: get(collectionAuth, 'oauth1.consumerKey'),
+          consumerSecret: get(collectionAuth, 'oauth1.consumerSecret'),
+          requestTokenUrl: get(collectionAuth, 'oauth1.requestTokenUrl'),
+          accessTokenUrl: get(collectionAuth, 'oauth1.accessTokenUrl'),
+          authorizeUrl: get(collectionAuth, 'oauth1.authorizeUrl'),
+          callbackUrl: get(collectionAuth, 'oauth1.callbackUrl'),
+          verifier: get(collectionAuth, 'oauth1.verifier'),
+          accessToken: get(collectionAuth, 'oauth1.accessToken'),
+          accessTokenSecret: get(collectionAuth, 'oauth1.accessTokenSecret'),
+          rsaPrivateKey: get(collectionAuth, 'oauth1.rsaPrivateKey'),
+          parameterTransmissionMethod: get(collectionAuth, 'oauth1.parameterTransmissionMethod'),
+          signatureMethod: get(collectionAuth, 'oauth1.signatureMethod')
+        };
+        break;
     }
   }
 
@@ -273,6 +289,22 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         axiosRequest.digestConfig = {
           username: get(request, 'auth.digest.username'),
           password: get(request, 'auth.digest.password')
+        };
+        break;
+      case 'oauth1':
+        axiosRequest.oauth1 = {
+          consumerKey: get(request, 'auth.oauth1.consumerKey'),
+          consumerSecret: get(request, 'auth.oauth1.consumerSecret'),
+          requestTokenUrl: get(request, 'auth.oauth1.requestTokenUrl'),
+          accessTokenUrl: get(request, 'auth.oauth1.accessTokenUrl'),
+          authorizeUrl: get(request, 'auth.oauth1.authorizeUrl'),
+          callbackUrl: get(request, 'auth.oauth1.callbackUrl'),
+          verifier: get(request, 'auth.oauth1.verifier'),
+          accessToken: get(request, 'auth.oauth1.accessToken'),
+          accessTokenSecret: get(request, 'auth.oauth1.accessTokenSecret'),
+          rsaPrivateKey: get(request, 'auth.oauth1.rsaPrivateKey'),
+          parameterTransmissionMethod: get(request, 'auth.oauth1.parameterTransmissionMethod'),
+          signatureMethod: get(request, 'auth.oauth1.signatureMethod')
         };
         break;
       case 'oauth2':
