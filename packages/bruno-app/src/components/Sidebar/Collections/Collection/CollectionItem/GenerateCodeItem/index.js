@@ -48,7 +48,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full">
+        <div className="flex w-full" style={{ width: '1000px' }}>
           <div>
             <div className="generate-code-sidebar">
               {languages &&
