@@ -233,6 +233,10 @@ const configureRequest = async (
         );
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
