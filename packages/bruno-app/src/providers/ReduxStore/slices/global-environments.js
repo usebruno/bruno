@@ -9,7 +9,7 @@ const initialState = {
 };
 
 export const globalEnvironmentsSlice = createSlice({
-  name: 'app',
+  name: 'global-environments',
   initialState,
   reducers: {
     updateGlobalEnvironments: (state, action) => {
