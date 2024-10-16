@@ -69,11 +69,8 @@ const CollectionToolBar = ({ collection }) => {
             </ToolHint>
           </span>
           <span>
-            <ToolHint text="Global Environments" toolhintId="GlobalEnvironmentsToolhintId">
-              <GlobalEnvironmentSelector />
-            </ToolHint>
+            <GlobalEnvironmentSelector />
           </span>
-          
           <EnvironmentSelector collection={collection} />
         </div>
       </div>
