@@ -261,6 +261,10 @@ const configureRequest = async (
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
