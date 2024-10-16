@@ -373,7 +373,7 @@ const parseOpenApiCollection = (data) => {
       // Currently parsing of openapi spec is "do your best", that is
       // allows "invalid" openapi spec
 
-      // assumes v3 if not defined. v2 no supported yet
+      // Assumes v3 if not defined. v2 is not supported yet
       if (collectionData.openapi && !collectionData.openapi.startsWith('3')) {
         reject(new BrunoError('Only OpenAPI v3 is supported currently.'));
         return;
@@ -382,7 +382,28 @@ const parseOpenApiCollection = (data) => {
       // TODO what if info.title not defined?
       brunoCollection.name = collectionData.info.title;
       let servers = collectionData.servers || [];
-      let baseUrl = servers[0] ? getDefaultUrl(servers[0]) : '';
+
+      // Create environments based on the servers
+      servers.forEach((server, index) => {
+        let baseUrl = getDefaultUrl(server);
+        let environmentName = server.description ? server.description : `Environment ${index + 1}`;
+
+        brunoCollection.environments.push({
+          uid: uuid(),
+          name: environmentName,
+          variables: [
+            {
+              uid: uuid(),
+              name: 'baseUrl',
+              value: baseUrl,
+              type: 'text',
+              enabled: true,
+              secret: false
+            },
+          ]
+        });
+      });
+
       let securityConfig = getSecurity(collectionData);
 
       let allRequests = Object.entries(collectionData.paths)
@@ -399,7 +420,7 @@ const parseOpenApiCollection = (data) => {
                 path: path.replace(/{([^}]+)}/g, ':$1'), // Replace placeholders enclosed in curly braces with colons
                 operationObject: operationObject,
                 global: {
-                  server: baseUrl,
+                  server: '{{baseUrl}}', 
                   security: securityConfig
                 }
               };

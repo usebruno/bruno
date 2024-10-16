@@ -409,6 +409,10 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
 
     // interpolate variables inside request
@@ -469,6 +473,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
       }
 
       if (result?.error) {
@@ -503,6 +511,10 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
+      });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
     }
     return scriptResult;
@@ -691,6 +703,10 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables: testResults.runtimeVariables,
           requestUid,
           collectionUid
+        });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
       }
 
@@ -1162,6 +1178,10 @@ const registerNetworkIpc = (mainWindow) => {
                 envVariables: testResults.envVariables,
                 runtimeVariables: testResults.runtimeVariables,
                 collectionUid
+              });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
             }
           } catch (error) {
