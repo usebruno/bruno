@@ -1,0 +1,125 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`postman-collection should correctly import a valid Postman collection file 1`] = `
+{
+  "environments": [],
+  "items": [
+    {
+      "items": [
+        {
+          "name": "Sample GET Request",
+          "request": {
+            "auth": {
+              "awsv4": null,
+              "basic": null,
+              "bearer": null,
+              "mode": "none",
+            },
+            "body": {
+              "formUrlEncoded": [],
+              "json": null,
+              "mode": "none",
+              "multipartForm": [],
+              "text": null,
+              "xml": null,
+            },
+            "docs": undefined,
+            "headers": [],
+            "method": "GET",
+            "params": [
+              {
+                "description": undefined,
+                "enabled": true,
+                "name": "foo1",
+                "type": "query",
+                "uid": "mockeduuidvalue123456",
+                "value": "bar1",
+              },
+              {
+                "description": undefined,
+                "enabled": true,
+                "name": "foo2",
+                "type": "query",
+                "uid": "mockeduuidvalue123456",
+                "value": "bar2",
+              },
+            ],
+            "url": "https://postman-echo.com/get?foo1=bar1&foo2=bar2",
+          },
+          "seq": 1,
+          "type": "http-request",
+          "uid": "mockeduuidvalue123456",
+        },
+        {
+          "name": "Sample POST Request",
+          "request": {
+            "auth": {
+              "awsv4": null,
+              "basic": null,
+              "bearer": null,
+              "mode": "none",
+            },
+            "body": {
+              "formUrlEncoded": [],
+              "json": "{ "key": "value" }",
+              "mode": "json",
+              "multipartForm": [],
+              "text": null,
+              "xml": null,
+            },
+            "docs": undefined,
+            "headers": [
+              {
+                "description": undefined,
+                "enabled": true,
+                "name": "Content-Type",
+                "uid": "mockeduuidvalue123456",
+                "value": "application/json",
+              },
+            ],
+            "method": "POST",
+            "params": [],
+            "url": "https://postman-echo.com/post",
+          },
+          "seq": 2,
+          "type": "http-request",
+          "uid": "mockeduuidvalue123456",
+        },
+      ],
+      "name": "Sample Folder",
+      "type": "folder",
+      "uid": "mockeduuidvalue123456",
+    },
+    {
+      "name": "Standalone Request",
+      "request": {
+        "auth": {
+          "awsv4": null,
+          "basic": null,
+          "bearer": null,
+          "mode": "none",
+        },
+        "body": {
+          "formUrlEncoded": [],
+          "json": null,
+          "mode": "none",
+          "multipartForm": [],
+          "text": null,
+          "xml": null,
+        },
+        "docs": undefined,
+        "headers": [],
+        "method": "GET",
+        "params": [],
+        "url": "https://postman-echo.com/status/200",
+      },
+      "seq": 1,
+      "type": "http-request",
+      "uid": "mockeduuidvalue123456",
+    },
+  ],
+  "name": "Sample Postman Collection with Folder",
+  "uid": "mockeduuidvalue123456",
+  "version": "1",
+}
+`;
