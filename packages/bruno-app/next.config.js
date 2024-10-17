@@ -1,4 +1,5 @@
 module.exports = {
+  output: 'export',
   reactStrictMode: false,
   publicRuntimeConfig: {
     CI: process.env.CI,

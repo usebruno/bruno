@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "cross-env ENV=dev next dev -p 3000",
-    "build": "next build && next export",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
