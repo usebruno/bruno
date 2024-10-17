@@ -231,6 +231,11 @@ const GlobalStyle = createGlobalStyle`
   .CodeMirror-brunoVarInfo p {
     margin: 1em 0;
   }
+
+  .CodeMirror-hint-active {
+    background: #89f !important;
+    color: #fff !important;
+  }
 `;
 
 export default GlobalStyle;

@@ -3,7 +3,6 @@ import toast from 'react-hot-toast';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
-import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -25,18 +24,8 @@ export const HotkeysProvider = (props) => {
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
-  const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-
-  const getCurrentCollectionItems = () => {
-    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if (activeTab) {
-      const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-      return collection ? collection.items : [];
-    }
-  };
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -66,9 +55,6 @@ export const HotkeysProvider = (props) => {
               }
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
-            } else {
-              // todo: when ephermal requests go live
-              // setShowSaveRequestModal(true);
             }
           }
         }
@@ -227,9 +213,6 @@ export const HotkeysProvider = (props) => {
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {showSaveRequestModal && (
-        <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />
-      )}
       {showEnvSettingsModal && (
         <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
       )}

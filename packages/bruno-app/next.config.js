@@ -1,4 +1,5 @@
 module.exports = {
+  output: 'export',
   reactStrictMode: false,
   publicRuntimeConfig: {
     CI: process.env.CI,
@@ -10,6 +11,12 @@ module.exports = {
     if (!isServer) {
       config.resolve.fallback.fs = false;
     }
+    Object.defineProperty(config, 'devtool', {
+      get() {
+          return 'source-map';
+      },
+      set() {},
+    });
     return config;
   },
 };
