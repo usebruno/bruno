@@ -13,6 +13,7 @@ get {
 params:query {
   apiKey: secret
   numbers: 998877665
+  multi word param: is allowed
   ~message: hello
 }
 
@@ -23,6 +24,7 @@ params:path {
 headers {
   content-type: application/json
   Authorization: Bearer 123
+  multi word header: is allowed
   ~transaction-id: {{transactionId}}
 }
 
