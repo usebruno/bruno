@@ -35,6 +35,28 @@ const StyledWrapper = styled.div`
       background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
     }
   }
+
+  .flexible-container {
+    width: 100%;
+  }
+
+  @media (max-width: 600px) {
+    .flexible-container {
+      width: 500px;
+    }
+  }
+
+  @media (min-width: 601px) and (max-width: 1200px) {
+    .flexible-container {
+      width: 800px;
+    }
+  }
+
+  @media (min-width: 1201px) {
+    .flexible-container {
+      width: 900px;
+    }
+  }
 `;
 
 export default StyledWrapper;
