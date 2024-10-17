@@ -1,6 +1,6 @@
 const _ = require('lodash');
 
-const { indentString } = require('../../v1/src/utils');
+const { indentString, escapeNewlines } = require('../../v1/src/utils');
 
 const enabled = (items = []) => items.filter((item) => item.enabled);
 const disabled = (items = []) => items.filter((item) => !item.enabled);
@@ -44,7 +44,7 @@ const jsonToBru = (json) => {
 
   if (http && http.method) {
     bru += `${http.method} {
-  url: ${http.url}`;
+  url: ${escapeNewlines(http.url)}`;
 
     if (http.body && http.body.length) {
       bru += `
@@ -71,7 +71,7 @@ const jsonToBru = (json) => {
       if (enabled(queryParams).length) {
         bru += `\n${indentString(
           enabled(queryParams)
-            .map((item) => `${item.name}: ${item.value}`)
+            .map((item) => `${item.name}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }
@@ -79,7 +79,7 @@ const jsonToBru = (json) => {
       if (disabled(queryParams).length) {
         bru += `\n${indentString(
           disabled(queryParams)
-            .map((item) => `~${item.name}: ${item.value}`)
+            .map((item) => `~${item.name}: ${getValueString(item.value)}`)
             .join('\n')
         )}`;
       }

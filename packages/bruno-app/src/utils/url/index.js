@@ -157,3 +157,12 @@ export const interpolateUrlPathParams = (url, params) => {
 
   return `${uri.origin}${basePath}${uri?.search || ''}`;
 };
+
+
+export const escapeNewlines = (str = '') => {
+  return str?.replace(/\n/g, '\\n')
+}
+
+export const unescapeNewlines = (str = '') => {
+  return str?.replace(/\\n/g, '\n');
+}
