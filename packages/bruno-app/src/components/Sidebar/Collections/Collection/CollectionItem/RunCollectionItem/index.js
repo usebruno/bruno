@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import { uuid } from 'utils/common';
 import Modal from 'components/Modal';
@@ -7,9 +7,13 @@ import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
 import { flattenItems } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import TagList from 'components/RequestPane/Tags/TagList/TagList';
 
 const RunCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
+
+  const [tags, setTags] = useState({ include: [], exclude: [] });
+  const [tagsEnabled, setTagsEnabled] = useState(false);
 
   const onSubmit = (recursive) => {
     dispatch(
@@ -19,7 +23,7 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
         type: 'collection-runner'
       })
     );
-    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive));
+    dispatch(runCollectionFolder(collection.uid, item ? item.uid : null, recursive, 0, tagsEnabled && tags));
     onClose();
   };
 
@@ -50,6 +54,38 @@ const RunCollectionItem = ({ collection, item, onClose }) => {
               <span className="ml-1 text-xs">({recursiveRunLength} requests)</span>
             </div>
             <div className="mb-8">This will run all the requests in this folder and all its subfolders.</div>
+
+            <div className="mb-8 flex flex-col">
+              <div className="flex gap-2">
+                <label className="block font-medium">Filter requests with tags</label>
+                <input
+                  className="cursor-pointer"
+                  type="checkbox"
+                  checked={tagsEnabled}
+                  onChange={() => setTagsEnabled(!tagsEnabled)}
+                />
+              </div>
+              {tagsEnabled && (
+                <div className="flex p-4 gap-4 max-w-xl justify-between">
+                  <div className="w-1/2">
+                    <span>Included tags:</span>
+                    <TagList
+                      tags={tags.include}
+                      onTagAdd={(tag) => setTags({ ...tags, include: [...tags.include, tag] })}
+                      onTagRemove={(tag) => setTags({ ...tags, include: tags.include.filter((t) => t !== tag) })}
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <span>Excluded tags:</span>
+                    <TagList
+                      tags={tags.exclude}
+                      onTagAdd={(tag) => setTags({ ...tags, exclude: [...tags.exclude, tag] })}
+                      onTagRemove={(tag) => setTags({ ...tags, exclude: tags.exclude.filter((t) => t !== tag) })}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end bruno-modal-footer">
               <span className="mr-3">
