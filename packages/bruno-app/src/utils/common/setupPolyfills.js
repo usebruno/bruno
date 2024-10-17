@@ -1,4 +1,5 @@
-export const polyfillResolver = () => {
+export const setupPolyfills = () => {
+  // polyfill required to make react-pdf
   if (typeof Promise.withResolvers === "undefined") {
     if (typeof window !== 'undefined') {
       window.Promise.withResolvers = function () {
