@@ -44,8 +44,11 @@ if (!SERVER_RENDERED) {
     const into = document.createElement('div');
     const descriptionDiv = document.createElement('div');
     descriptionDiv.className = 'info-description';
-
-    descriptionDiv.appendChild(document.createTextNode(variableValue));
+    if (options?.variables?.maskedEnvVariables?.includes(variableName)) {
+      descriptionDiv.appendChild(document.createTextNode('*****'));
+    } else {
+      descriptionDiv.appendChild(document.createTextNode(variableValue));
+    }
     into.appendChild(descriptionDiv);
 
     return into;

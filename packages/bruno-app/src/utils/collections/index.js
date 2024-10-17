@@ -815,6 +815,23 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
+};
 
 const getPathParams = (item) => {
   let pathParams = {};
@@ -850,6 +867,13 @@ export const getAllVariables = (collection, item) => {
   const { globalEnvironmentVariables = {} } = collection;
 
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection);
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
 
   return {
     ...globalEnvironmentVariables,
@@ -861,6 +885,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: filteredMaskedEnvVariables,
     process: {
       env: {
         ...processEnvVariables
