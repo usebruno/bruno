@@ -6,6 +6,8 @@ import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
+import NTLMAuth from './NTLMAuth';
+
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections/index';
@@ -31,6 +33,9 @@ const Auth = ({ item, collection }) => {
       case 'digest': {
         return <DigestAuth collection={collection} item={item} />;
       }
+      case 'ntlm': {
+        return <NTLMAuth collection={collection} item={item} />;
+      }      
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} />;
       }
