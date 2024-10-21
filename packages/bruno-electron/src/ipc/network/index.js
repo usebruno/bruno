@@ -39,6 +39,7 @@ const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
 const FormData = require('form-data');
 const { createFormData } = prepareRequest;
+const { NtlmClient } = require('axios-ntlm');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -263,7 +264,15 @@ const configureRequest = async (
       ...httpsAgentRequestFields
     });
   }
-  const axiosInstance = makeAxiosInstance();
+
+
+  let axiosInstance = makeAxiosInstance();
+  
+  if (request.ntlmConfig) {
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
+    delete request.ntlmConfig;
+  }
+
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);

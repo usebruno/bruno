@@ -54,6 +54,7 @@
     "rollup":"3.29.5"
   },
   "dependencies": {
+    "axios-ntlm": "^1.4.2",
     "json-bigint": "^1.0.0",
     "lossless-json": "^4.0.1"
   }
