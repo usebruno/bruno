@@ -1,7 +1,6 @@
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
 import ToolHint from 'components/ToolHint';
