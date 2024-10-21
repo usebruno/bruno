@@ -70,13 +70,13 @@ export const safeParseXML = (str, options) => {
   }
 };
 
-// Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
+// Remove any characters that are not alphanumeric, spaces, hyphens, underscores, or Chinese characters
 export const normalizeFileName = (name) => {
   if (!name) {
     return name;
   }
 
-  const validChars = /[^\w\s-]/g;
+  const validChars = /[^\w\s\u4e00-\u9fa5-]/g;
   const formattedName = name.replace(validChars, '-');
 
   return formattedName;
