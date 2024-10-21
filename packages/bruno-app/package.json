@@ -62,7 +62,6 @@
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "18.2.0",
-    "react-github-btn": "^1.4.0",
     "react-hot-toast": "^2.4.0",
     "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",
