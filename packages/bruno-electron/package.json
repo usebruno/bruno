@@ -48,7 +48,6 @@
     "iconv-lite": "^0.6.3",
     "is-valid-path": "^0.1.1",
     "js-yaml": "^4.1.0",
-    "json-bigint": "^1.0.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
     "nanoid": "3.3.4",
