@@ -97,6 +97,62 @@ const constructUrl = (url) => {
 
 let translationLog = {};
 
+const pushTranslationLog = (type, index) => {
+  if (!translationLog[i.name]) {
+    translationLog[i.name] = {};
+  }
+  if (!translationLog[i.name][type]) {
+    translationLog[i.name][type] = [];
+  }
+  translationLog[i.name][type].push(index + 1);
+};
+
+const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+  events.forEach((event) => {
+    if (event.script && event.script.exec) {
+      if (event.listen === 'prerequest') {
+        if (!requestObject.script) {
+          requestObject.script = {};
+        }
+
+        if (Array.isArray(event.script.exec)) {
+          requestObject.script.req = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else {
+          requestObject.script.req = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
+            : `// ${event.script.exec[0]} `;
+        }
+      }
+
+      if (event.listen === 'test') {
+        if (!requestObject.tests) {
+          requestObject.tests = {};
+        }
+
+        if (Array.isArray(event.script.exec)) {
+          requestObject.tests = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else {
+          requestObject.tests = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
+            : `// ${event.script.exec[0]} `;
+        }
+      }
+    }
+  });
+};
+
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
@@ -136,59 +192,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           }
         }
       };
-      brunoParent.items.push(brunoFolderItem);
-      folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
       }
 
       if (i.event) {
-        console.log('yes, folder has i.event', i.event);
-        i.event.forEach((event) => {
-          if (!brunoFolderItem.root.request.script) {
-            brunoFolderItem.root.request.script = {};
-          }
-          if (!brunoFolderItem.root.request.tests) {
-            brunoFolderItem.root.request.tests = {};
-          }
-
-          if (event.listen === 'prerequest' && event.script && event.script.exec) {
-            if (Array.isArray(event.script.exec)) {
-              brunoFolderItem.root.request.script.req = event.script.exec
-                .map((line, index) =>
-                  options.enablePostmanTranslations.enabled
-                    ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                    : `// ${line}`
-                )
-                .join('\n');
-            } else {
-              brunoFolderItem.root.request.script.req = options.enablePostmanTranslations.enabled
-                ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
-                : `// ${event.script.exec[0]} `;
-            }
-          }
-
-          if (event.listen === 'test' && event.script && event.script.exec) {
-            if (Array.isArray(event.script.exec)) {
-              brunoFolderItem.root.request.tests = event.script.exec
-                .map((line, index) =>
-                  options.enablePostmanTranslations.enabled
-                    ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                    : `// ${line}`
-                )
-                .join('\n');
-            } else {
-              brunoFolderItem.root.request.tests = options.enablePostmanTranslations.enabled
-                ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
-                : `// ${event.script.exec[0]} `;
-            }
-          }
-        });
+        importScriptsFromEvents(i.event, brunoFolderItem.root.request, options, pushTranslationLog);
       }
 
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
-
     } else {
       if (i.request) {
         const baseRequestName = i.name;
@@ -238,15 +251,16 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         */
 
         // type could be script or test
-        const pushTranslationLog = (type, index) => {
-          if (!translationLog[i.name]) {
-            translationLog[i.name] = {};
-          }
-          if (!translationLog[i.name][type]) {
-            translationLog[i.name][type] = [];
-          }
-          translationLog[i.name][type].push(index + 1);
-        };
+        // const pushTranslationLog = (type, index) => {
+        //   if (!translationLog[i.name]) {
+        //     translationLog[i.name] = {};
+        //   }
+        //   if (!translationLog[i.name][type]) {
+        //     translationLog[i.name][type] = [];
+        //   }
+        //   translationLog[i.name][type].push(index + 1);
+        // };
+
         if (i.event) {
           i.event.forEach((event) => {
             if (event.listen === 'prerequest' && event.script && event.script.exec) {
@@ -479,39 +493,7 @@ const importPostmanV2Collection = (collection, options) => {
   };
 
   if (collection.event) {
-    collection.event.forEach((event) => {
-      if (event.listen === 'prerequest' && event.script && event.script.exec) {
-        if (Array.isArray(event.script.exec)) {
-          brunoCollection.root.request.script.req = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('script', index))
-                : `// ${line}`
-            )
-            .join('\n');
-        } else {
-          brunoCollection.root.request.script.req = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
-            : `// ${event.script.exec[0]} `;
-        }
-      }
-
-      if (event.listen === 'test' && event.script && event.script.exec) {
-        if (Array.isArray(event.script.exec)) {
-          brunoCollection.root.request.tests = event.script.exec
-            .map((line, index) =>
-              options.enablePostmanTranslations.enabled
-                ? postmanTranslation(line, () => pushTranslationLog('test', index))
-                : `// ${line}`
-            )
-            .join('\n');
-        } else {
-          brunoCollection.root.request.tests = options.enablePostmanTranslations.enabled
-            ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
-            : `// ${event.script.exec[0]} `;
-        }
-      }
-    });
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
   }
 
   importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
