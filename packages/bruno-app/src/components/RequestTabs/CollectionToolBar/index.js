@@ -2,8 +2,10 @@ import React from 'react';
 import { uuid } from 'utils/common';
 import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
+import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { useDispatch } from 'react-redux';
+import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 
@@ -47,18 +49,27 @@ const CollectionToolBar = ({ collection }) => {
           <IconFiles size={18} strokeWidth={1.5} />
           <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
         </div>
-        <div className="flex flex-1 items-center justify-end">
+        <div className="flex flex-3 items-center justify-end">
           <span className="mr-2">
             <JsSandboxMode collection={collection} />
           </span>
-          <span className="mr-2">
-            <IconRun className="cursor-pointer" size={20} strokeWidth={1.5} onClick={handleRun} />
+          <span className="mr-3">
+            <ToolHint text="Runner" toolhintId="RunnnerToolhintId" place='bottom'>
+              <IconRun className="cursor-pointer" size={18} strokeWidth={1.5} onClick={handleRun} />
+            </ToolHint>
           </span>
           <span className="mr-3">
-            <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+            <ToolHint text="Variables" toolhintId="VariablesToolhintId">
+              <IconEye className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewVariables} />
+            </ToolHint>
           </span>
           <span className="mr-3">
-            <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
+            <ToolHint text="Collection Settings" toolhintId="CollectionSettingsToolhintId">
+              <IconSettings className="cursor-pointer" size={18} strokeWidth={1.5} onClick={viewCollectionSettings} />
+            </ToolHint>
+          </span>
+          <span>
+            <GlobalEnvironmentSelector />
           </span>
           <EnvironmentSelector collection={collection} />
         </div>

@@ -21,6 +21,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'getProcessEnv', getProcessEnv);
   getProcessEnv.dispose();
 
+  let hasEnvVar = vm.newFunction('hasEnvVar', function (key) {
+    return marshallToVm(bru.hasEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasEnvVar', hasEnvVar);
+  hasEnvVar.dispose();
+
   let getEnvVar = vm.newFunction('getEnvVar', function (key) {
     return marshallToVm(bru.getEnvVar(vm.dump(key)), vm);
   });
@@ -33,6 +39,24 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
 
+  let getGlobalEnvVar = vm.newFunction('getGlobalEnvVar', function (key) {
+    return marshallToVm(bru.getGlobalEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getGlobalEnvVar', getGlobalEnvVar);
+  getGlobalEnvVar.dispose();
+
+  let setGlobalEnvVar = vm.newFunction('setGlobalEnvVar', function (key, value) {
+    bru.setGlobalEnvVar(vm.dump(key), vm.dump(value));
+  });
+  vm.setProp(bruObject, 'setGlobalEnvVar', setGlobalEnvVar);
+  setGlobalEnvVar.dispose();
+
+  let hasVar = vm.newFunction('hasVar', function (key) {
+    return marshallToVm(bru.hasVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'hasVar', hasVar);
+  hasVar.dispose();
+
   let getVar = vm.newFunction('getVar', function (key) {
     return marshallToVm(bru.getVar(vm.dump(key)), vm);
   });
@@ -44,6 +68,18 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'setVar', setVar);
   setVar.dispose();
+
+  let deleteVar = vm.newFunction('deleteVar', function (key) {
+    bru.deleteVar(vm.dump(key));
+  });
+  vm.setProp(bruObject, 'deleteVar', deleteVar);
+  deleteVar.dispose();
+
+  let deleteAllVars = vm.newFunction('deleteAllVars', function () {
+    bru.deleteAllVars();
+  });
+  vm.setProp(bruObject, 'deleteAllVars', deleteAllVars);
+  deleteAllVars.dispose();
 
   let setNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
     bru.setNextRequest(vm.dump(nextRequest));
@@ -68,6 +104,18 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'getRequestVar', getRequestVar);
   getRequestVar.dispose();
+
+  let getFolderVar = vm.newFunction('getFolderVar', function (key) {
+    return marshallToVm(bru.getFolderVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getFolderVar', getFolderVar);
+  getFolderVar.dispose();
+
+  let getCollectionVar = vm.newFunction('getCollectionVar', function (key) {
+    return marshallToVm(bru.getCollectionVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
+  getCollectionVar.dispose();
 
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);

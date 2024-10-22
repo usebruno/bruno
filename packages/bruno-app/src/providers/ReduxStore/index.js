@@ -6,6 +6,7 @@ import appReducer from './slices/app';
 import collectionsReducer from './slices/collections';
 import tabsReducer from './slices/tabs';
 import notificationsReducer from './slices/notifications';
+import globalEnvironmentsReducer from './slices/global-environments';
 
 const { publicRuntimeConfig } = getConfig();
 const isDevEnv = () => {
@@ -22,7 +23,8 @@ export const store = configureStore({
     app: appReducer,
     collections: collectionsReducer,
     tabs: tabsReducer,
-    notifications: notificationsReducer
+    notifications: notificationsReducer,
+    globalEnvironments: globalEnvironmentsReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(middleware)
 });

@@ -5,8 +5,15 @@ const StyledWrapper = styled.div`
     background: ${(props) => props.theme.codemirror.bg};
     border: solid 1px ${(props) => props.theme.codemirror.border};
     font-family: ${(props) => (props.font ? props.font : 'default')};
+    font-size: ${(props) => (props.fontSize ? `${props.fontSize}px` : 'inherit')};
     line-break: anywhere;
     flex: 1 1 0;
+  }
+
+  /* Removes the glow outline around the folded json */
+  .CodeMirror-foldmarker {
+    text-shadow: none;
+    color: ${(props) => props.theme.textLink};
   }
 
   .CodeMirror-overlayscroll-horizontal div,

@@ -1,10 +1,10 @@
-import each from 'lodash/each';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { uuid } from 'utils/common';
 import { BrunoError } from 'utils/common/error';
 import { validateSchema, transformItemsInCollection, hydrateSeqInCollection } from './common';
 import { postmanTranslation } from 'utils/importers/translators/postman_translation';
+import each from 'lodash/each';
 
 const readFile = (files) => {
   return new Promise((resolve, reject) => {
@@ -23,7 +23,7 @@ const parseGraphQLRequest = (graphqlSource) => {
     };
 
     if (typeof graphqlSource === 'string') {
-      graphqlSource = JSON.parse(text);
+      graphqlSource = JSON.parse(graphqlSource);
     }
 
     if (graphqlSource.hasOwnProperty('variables') && graphqlSource.variables !== '') {
@@ -54,11 +54,53 @@ const convertV21Auth = (array) => {
   }, {});
 };
 
+const constructUrlFromParts = (url) => {
+  const { protocol = 'http', host, path, port, query, hash } = url || {};
+  const hostStr = Array.isArray(host) ? host.filter(Boolean).join('.') : host || '';
+  const pathStr = Array.isArray(path) ? path.filter(Boolean).join('/') : path || '';
+  const portStr = port ? `:${port}` : '';
+  const queryStr =
+    query && Array.isArray(query) && query.length > 0
+      ? `?${query
+          .filter((q) => q.key)
+          .map((q) => `${q.key}=${q.value || ''}`)
+          .join('&')}`
+      : '';
+  const urlStr = `${protocol}://${hostStr}${portStr}${pathStr ? `/${pathStr}` : ''}${queryStr}`;
+  return urlStr;
+};
+
+const constructUrl = (url) => {
+  if (!url) return '';
+
+  if (typeof url === 'string') {
+    return url;
+  }
+
+  if (typeof url === 'object') {
+    const { raw } = url;
+
+    if (raw && typeof raw === 'string') {
+      // If the raw URL contains url-fragments remove it
+      if (raw.includes('#')) {
+        return raw.split('#')[0]; // Returns the part of raw URL without the url-fragment part.
+      }
+      return raw;
+    }
+
+    // If no raw value exists, construct the URL from parts
+    return constructUrlFromParts(url);
+  }
+
+  return '';
+};
+
 let translationLog = {};
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
+  const requestMap = {};
 
   each(item, (i) => {
     if (isItemAFolder(i)) {
@@ -84,20 +126,24 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
       }
     } else {
       if (i.request) {
-        let url = '';
-        if (typeof i.request.url === 'string') {
-          url = i.request.url;
-        } else {
-          url = get(i, 'request.url.raw') || '';
+        const baseRequestName = i.name;
+        let requestName = baseRequestName;
+        let count = 1;
+
+        while (requestMap[requestName]) {
+          requestName = `${baseRequestName}_${count}`;
+          count++;
         }
+
+        const url = constructUrl(i.request.url);
 
         const brunoRequestItem = {
           uid: uuid(),
-          name: i.name,
+          name: requestName,
           type: 'http-request',
           request: {
             url: url,
-            method: i.request.method,
+            method: i?.request?.method?.toUpperCase(),
             auth: {
               mode: 'none',
               basic: null,
@@ -282,6 +328,13 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
               region: authValues.region,
               profileName: ''
             };
+          } else if (auth.type === 'apikey'){
+            brunoRequestItem.request.auth.mode = 'apikey';    
+            brunoRequestItem.request.auth.apikey = {
+              key: authValues.key,
+              value: authValues.value,
+              placement: "header" //By default we are placing the apikey values in headers!
+            }    
           }
         }
 
@@ -296,18 +349,24 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
           });
         });
 
-        each(get(i, 'request.url.variable'), (param) => {
+        each(get(i, 'request.url.variable', []), (param) => {
+          if (!param.key) {
+            // If no key, skip this iteration and discard the param
+            return;
+          }
+
           brunoRequestItem.request.params.push({
             uid: uuid(),
             name: param.key,
-            value: param.value,
-            description: param.description,
+            value: param.value ?? '',
+            description: param.description ?? '',
             type: 'path',
             enabled: true
           });
         });
 
         brunoParent.items.push(brunoRequestItem);
+        requestMap[requestName] = brunoRequestItem;
       }
     }
   });

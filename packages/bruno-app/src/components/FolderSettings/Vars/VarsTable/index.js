@@ -5,7 +5,7 @@ import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
-import Tooltip from 'components/Tooltip';
+import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
@@ -82,14 +82,13 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Value</span>
-                  <Tooltip text="You can write any valid JS Template Literal here" tooltipId="request-var" />
                 </div>
               </td>
             ) : (
               <td>
                 <div className="flex items-center">
                   <span>Expr</span>
-                  <Tooltip text="You can write any valid JS expression here" tooltipId="response-var" />
+                  <InfoTip text="You can write any valid JS expression here" infotipId="response-var" />
                 </div>
               </td>
             )}
@@ -130,6 +129,7 @@ const VarsTable = ({ folder, collection, vars, varType }) => {
                           )
                         }
                         collection={collection}
+                        item={folder}
                       />
                     </td>
                     <td>
