@@ -52,7 +52,6 @@ const EnvironmentList = ({ collection, isModified, setIsModified, onClose }) => 
   }, [environments]);
 
   useEffect(() => {
-    // check env add
     if (prevEnvUids?.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
