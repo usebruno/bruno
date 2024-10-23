@@ -6,6 +6,10 @@ Going forward, we will release a new version of CLI for every new release of Bru
 This will help us keep the CLI in sync with the Bruno App.
 For the release notes please see https://github.com/usebruno/bruno/releases
 
+## 1.16.1
+
+- Add functionality to specify directory containing Bruno collections
+
 ## 1.4.1
 
 - Fixing [bug](https://github.com/usebruno/bruno/issues/1487)
