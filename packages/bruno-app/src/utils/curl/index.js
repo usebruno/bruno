@@ -12,6 +12,23 @@ export const getRequestFromCurlCommand = (curlCommand) => {
     return formData;
   };
 
+  const identifyRequestType = (url, headers, body) => {
+    if (url.endsWith('/graphql')) {
+      return 'graphql-request';
+    }
+
+    const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
+    if (contentType && contentType.includes('application/graphql')) {
+      return 'graphql-request';
+    }
+
+    if (body.json && (body.json.query || body.json.mutation)) {
+      return 'graphql-request';
+    }
+
+    return 'http-request';
+  };
+
   try {
     if (!curlCommand || typeof curlCommand !== 'string' || curlCommand.length === 0) {
       return null;
@@ -52,12 +69,16 @@ export const getRequestFromCurlCommand = (curlCommand) => {
         body.text = parsedBody;
       }
     }
+
+    const requestType = identifyRequestType(request.url, headers, body);
+
     return {
       url: request.url,
       method: request.method,
       body,
       headers: headers,
-      auth: request.auth
+      auth: request.auth,
+      type: requestType
     };
   } catch (error) {
     console.error(error);

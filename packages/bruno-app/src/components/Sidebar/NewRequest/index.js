@@ -103,7 +103,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
         dispatch(
           newHttpRequest({
             requestName: values.requestName,
-            requestType: 'http-request',
+            requestType: request.type,
             requestUrl: request.url,
             requestMethod: request.method,
             collectionUid: collection.uid,
@@ -168,7 +168,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
@@ -288,6 +288,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
                 className="block textbox w-full mt-4 curl-command"
                 value={formik.values.curlCommand}
                 onChange={formik.handleChange}
+                onPaste={handlePaste}
               ></textarea>
               {formik.touched.curlCommand && formik.errors.curlCommand ? (
                 <div className="text-red-500">{formik.errors.curlCommand}</div>
