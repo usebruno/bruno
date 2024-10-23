@@ -1,4 +1,3 @@
-import Modal from 'components/Modal/index';
 import React, { useState } from 'react';
 import CreateEnvironment from './CreateEnvironment';
 import EnvironmentList from './EnvironmentList';

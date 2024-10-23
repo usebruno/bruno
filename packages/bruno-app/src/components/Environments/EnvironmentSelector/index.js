@@ -1,9 +1,8 @@
-import React, { useRef, forwardRef, useState } from 'react';
+import React, { useRef, forwardRef } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
-import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
@@ -13,7 +12,6 @@ import { uuid } from 'utils/common';
 const EnvironmentSelector = ({ collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
-  const [openEnvironmentSettings, setOpenEnvironmentSettings] = useState(false);
   const { environments, activeEnvironmentUid } = collection;
   const activeEnvironment = activeEnvironmentUid ? find(environments, (e) => e.uid === activeEnvironmentUid) : null;
 
@@ -87,7 +85,6 @@ const EnvironmentSelector = ({ collection }) => {
           </div>
         </Dropdown>
       </div>
-      {openEnvironmentSettings && <EnvironmentSettings collection={collection} />}
     </StyledWrapper>
   );
 };
