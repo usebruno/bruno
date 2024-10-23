@@ -41,7 +41,6 @@
     "playwright": "^1.51.1",
     "pretty-quick": "^3.1.3",
     "randomstring": "^1.2.2",
-    "react-color": "^2.19.3",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.6"
   },
