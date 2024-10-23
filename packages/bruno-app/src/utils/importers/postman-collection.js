@@ -97,6 +97,15 @@ const constructUrl = (url) => {
 
 let translationLog = {};
 
+/* struct of translation log
+  {
+    [collectionName]: {
+      script: [index1, index2],
+      test: [index1, index2]
+    }
+  }
+  */
+
 const pushTranslationLog = (type, index) => {
   if (!translationLog[i.name]) {
     translationLog[i.name] = {};
@@ -245,25 +254,6 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             docs: i.request.description
           }
         };
-        /* struct of translation log
-        {
-         [collectionName]: {
-            script: [index1, index2],
-            test: [index1, index2]
-         }
-        }
-        */
-
-        // type could be script or test
-        // const pushTranslationLog = (type, index) => {
-        //   if (!translationLog[i.name]) {
-        //     translationLog[i.name] = {};
-        //   }
-        //   if (!translationLog[i.name][type]) {
-        //     translationLog[i.name][type] = [];
-        //   }
-        //   translationLog[i.name][type].push(index + 1);
-        // };
 
         if (i.event) {
           i.event.forEach((event) => {
