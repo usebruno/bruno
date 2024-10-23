@@ -1,18 +1,12 @@
 import styled from 'styled-components';
 
 const StyledWrapper = styled.div`
-  margin-inline: -1rem;
-  margin-block: -1.5rem;
-
-  background-color: ${(props) => props.theme.collection.environment.settings.bg};
-
-  .environments-sidebar {
-    background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
-    border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
-    min-height: 400px;
-    height: 100%;
-    max-height: 85vh;
-    overflow-y: auto;
+  width: 100%;
+  height: 100%;
+  display: flex;
+    
+  .environment-list-divider {
+      border-right: 1px solid ${(props) => props.theme.requestTabs.bottomBorder};
   }
 
   .environment-item {
@@ -21,7 +15,7 @@ const StyledWrapper = styled.div`
     position: relative;
     cursor: pointer;
     padding: 8px 10px;
-    border-left: solid 2px transparent;
+    border-bottom: solid 2px transparent;
     text-decoration: none;
 
     &:hover {
@@ -32,7 +26,7 @@ const StyledWrapper = styled.div`
 
   .active {
     background-color: ${(props) => props.theme.collection.environment.settings.item.active.bg} !important;
-    border-left: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
+    border-bottom: solid 2px ${(props) => props.theme.collection.environment.settings.item.border};
     &:hover {
       background-color: ${(props) => props.theme.collection.environment.settings.item.active.hoverBg} !important;
     }

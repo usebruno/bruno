@@ -42,7 +42,7 @@ const DefaultTab = ({ setTab }) => {
   );
 };
 
-const EnvironmentSettings = ({ collection, onClose }) => {
+const EnvironmentSettings = ({ collection }) => {
   const [isModified, setIsModified] = useState(false);
   const { environments } = collection;
   const [selectedEnvironment, setSelectedEnvironment] = useState(null);
@@ -50,7 +50,6 @@ const EnvironmentSettings = ({ collection, onClose }) => {
   if (!environments || !environments.length) {
     return (
       <StyledWrapper>
-        <Modal size="md" title="Environments" handleCancel={onClose} hideCancel={true} hideFooter={true}>
           {tab === 'create' ? (
             <CreateEnvironment collection={collection} onClose={() => setTab('default')} />
           ) : tab === 'import' ? (
@@ -59,13 +58,12 @@ const EnvironmentSettings = ({ collection, onClose }) => {
             <></>
           )}
           <DefaultTab setTab={setTab} />
-        </Modal>
       </StyledWrapper>
     );
   }
 
   return (
-    <Modal size="lg" title="Environments" handleCancel={onClose} hideFooter={true}>
+    <StyledWrapper>
       <EnvironmentList
         selectedEnvironment={selectedEnvironment}
         setSelectedEnvironment={setSelectedEnvironment}
@@ -73,7 +71,7 @@ const EnvironmentSettings = ({ collection, onClose }) => {
         isModified={isModified}
         setIsModified={setIsModified}
       />
-    </Modal>
+    </StyledWrapper>
   );
 };
 

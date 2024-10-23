@@ -45,6 +45,14 @@ const SpecialTab = ({ handleCloseClick, type, tabName }) => {
           </>
         );
       }
+      case 'environment-settings': {
+        return (
+          <>
+            <IconSettings size={18} strokeWidth={1.5} aria-hidden="true" />
+            <span className="ml-1 leading-6">Environments</span>
+          </>
+        );
+      }
     }
   };
 
