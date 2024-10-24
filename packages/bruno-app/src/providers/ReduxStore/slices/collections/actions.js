@@ -139,7 +139,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
 
     ipcRenderer
       .invoke('renderer:save-collection-root', collection.pathname, collection.root)
-      .then(() => toast.success('Collection Settings saved successfully'))
+      .then(() => toast.success(`Collection Settings saved successfully`))
       .then(resolve)
       .catch((err) => {
         toast.error('Failed to save collection settings!');
