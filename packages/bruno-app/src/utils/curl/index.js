@@ -2,7 +2,7 @@ import { forOwn } from 'lodash';
 import { convertToCodeMirrorJson } from 'utils/common';
 import curlToJson from './curl-to-json';
 
-export const getRequestFromCurlCommand = (curlCommand) => {
+export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-request') => {
   const parseFormData = (parsedBody) => {
     const formData = [];
     forOwn(parsedBody, (value, key) => {
@@ -10,30 +10,6 @@ export const getRequestFromCurlCommand = (curlCommand) => {
     });
 
     return formData;
-  };
-
-  const identifyRequestType = (url, headers, body) => {
-    if (url.endsWith('/graphql')) {
-      return 'graphql-request';
-    }
-
-    const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
-    if (contentType && contentType.includes('application/graphql')) {
-      return 'graphql-request';
-    }
-
-    if (body.json) {
-      try {
-        const parsedJson = JSON.parse(body.json);
-        if (parsedJson && (parsedJson.query || parsedJson.variables || parsedJson.mutation)) {
-          return 'graphql-request';
-        }
-      } catch (err) {
-        console.error('Failed to parse JSON body:', err);
-      }
-    }
-
-    return 'http-request';
   };
 
   const parseGraphQL = (text) => {
@@ -64,9 +40,7 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
-
     const parsedBody = request.data;
-    const requestType = identifyRequestType(request.url, headers, { json: parsedBody });
 
     const body = {
       mode: 'none',
@@ -106,7 +80,6 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       body,
       headers: headers,
       auth: request.auth,
-      type: requestType
     };
   } catch (error) {
     console.error(error);
