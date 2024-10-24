@@ -191,6 +191,7 @@ const createFormData = (datas, collectionPath) => {
 };
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
+
   const collectionAuth = get(collectionRoot, 'request.auth');
   if (collectionAuth && request.auth.mode === 'inherit') {
     switch (collectionAuth.mode) {
@@ -219,6 +220,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(collectionAuth, 'digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(collectionAuth, 'ntlm.username'),
+          password: get(collectionAuth, 'ntlm.password'),
+          domain: get(collectionAuth, 'ntlm.domain')
+        };
+        break;        
       case 'wsse':
         const username = get(request, 'auth.wsse.username', '');
         const password = get(request, 'auth.wsse.password', '');
@@ -275,6 +283,13 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           password: get(request, 'auth.digest.password')
         };
         break;
+      case 'ntlm':
+        axiosRequest.ntlmConfig = {
+          username: get(request, 'auth.ntlm.username'),
+          password: get(request, 'auth.ntlm.password'),
+          domain: get(request, 'auth.ntlm.domain')
+        };
+        break;        
       case 'oauth2':
         const grantType = get(request, 'auth.oauth2.grantType');
         switch (grantType) {
