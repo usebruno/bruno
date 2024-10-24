@@ -187,7 +187,14 @@ const oauth2Schema = Yup.object({
     is: (val) => ['authorization_code'].includes(val),
     then: Yup.boolean().default(false),
     otherwise: Yup.boolean()
-  })
+  }),
+  clientSecretMethod: Yup.string()
+    .oneOf(['client_credentials_basic', 'client_credentials_post'])
+    .when('clientSecret', {
+      is: (clientSecret) => clientSecret != null,
+      then: Yup.string().default('client_credentials_basic'),
+      otherwise: Yup.string().nullable().strip()
+    })
 })
   .noUnknown(true)
   .strict();
