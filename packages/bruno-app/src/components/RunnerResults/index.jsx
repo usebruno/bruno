@@ -9,6 +9,7 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
+import TagList from 'components/RequestPane/Tags/TagList/TagList';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -24,6 +25,8 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
+  const [tags, setTags] = useState({ include: [], exclude: [] });
+  const [tagsEnabled, setTagsEnabled] = useState(false);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -79,11 +82,19 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay), tagsEnabled && tags));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
+    dispatch(
+      runCollectionFolder(
+        collection.uid,
+        runnerInfo.folderUid,
+        runnerInfo.isRecursive,
+        Number(delay),
+        tagsEnabled && tags
+      )
+    );
   };
 
   const resetRunner = () => {
@@ -129,6 +140,37 @@ export default function RunnerResults({ collection }) {
             value={delay}
             onChange={(e) => setDelay(e.target.value)}
           />
+        </div>
+        <div className="mt-6 flex flex-col">
+          <div className="flex gap-2">
+            <label className="block font-medium">Filter requests with tags</label>
+            <input
+              className="cursor-pointer"
+              type="checkbox"
+              checked={tagsEnabled}
+              onChange={() => setTagsEnabled(!tagsEnabled)}
+            />
+          </div>
+          {tagsEnabled && (
+            <div className="flex p-4 gap-4 max-w-xl justify-between">
+              <div className="w-1/2">
+                <span>Included tags:</span>
+                <TagList
+                  tags={tags.include}
+                  onTagAdd={(tag) => setTags({ ...tags, include: [...tags.include, tag] })}
+                  onTagRemove={(tag) => setTags({ ...tags, include: tags.include.filter((t) => t !== tag) })}
+                />
+              </div>
+              <div className="w-1/2">
+                <span>Excluded tags:</span>
+                <TagList
+                  tags={tags.exclude}
+                  onTagAdd={(tag) => setTags({ ...tags, exclude: [...tags.exclude, tag] })}
+                  onTagRemove={(tag) => setTags({ ...tags, exclude: tags.exclude.filter((t) => t !== tag) })}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>

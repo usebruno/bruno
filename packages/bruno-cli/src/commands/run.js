@@ -5,6 +5,7 @@ const { forOwn } = require('lodash');
 const { exists, isFile, isDirectory } = require('../utils/filesystem');
 const { runSingleRequest } = require('../runner/run-single-request');
 const { bruToEnvJson, getEnvVars } = require('../utils/bru');
+const { isRequestTagsIncluded } = require("@usebruno/common")
 const makeJUnitOutput = require('../reporters/junit');
 const makeHtmlOutput = require('../reporters/html');
 const { rpad } = require('../utils/common');
@@ -93,7 +94,7 @@ const printRunSummary = (results) => {
   };
 };
 
-const getBruFilesRecursively = (dir, testsOnly) => {
+const getBruFilesRecursively = (dir, testsOnly, includeTags, excludeTags) => {
   const environmentsPath = 'environments';
 
   const getFilesInOrder = (dir) => {
@@ -134,19 +135,20 @@ const getBruFilesRecursively = (dir, testsOnly) => {
           const bruJson = bruToJson(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
-
-          if (testsOnly) {
-            if (requestHasTests || requestHasActiveAsserts) {
+          if (isRequestTagsIncluded(bruJson.tags, includeTags, excludeTags)) {
+            if (testsOnly) {
+              if (requestHasTests || requestHasActiveAsserts) {
+                currentDirBruJsons.push({
+                  bruFilepath: filePath,
+                  bruJson
+                });
+              }
+            } else {
               currentDirBruJsons.push({
                 bruFilepath: filePath,
                 bruJson
               });
             }
-          } else {
-            currentDirBruJsons.push({
-              bruFilepath: filePath,
-              bruJson
-            });
           }
         }
       }
@@ -259,6 +261,14 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('tags', {
+      type: 'string',
+      description: 'Tags to include in the run'
+    })
+    .option('exclude-tags', {
+      type: 'string',
+      description: 'Tags to exclude from the run'
+    })
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -292,6 +302,10 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
+    )
+    .example(
+      '$0 run folder --tags=hello,world --exclude-tags=skip',
+      'Run only requests with tags "hello" or "world" and exclude any request with tag "skip".'
     );
 };
 
@@ -312,7 +326,9 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      tags: includeTags,
+      excludeTags
     } = argv;
     const collectionPath = process.cwd();
 
@@ -376,7 +392,7 @@ const handler = async function (argv) {
           if (!match) {
             console.error(
               chalk.red(`Overridable environment variable not correct: use name=value - presented: `) +
-                chalk.dim(`${value}`)
+              chalk.dim(`${value}`)
             );
             process.exit(constants.EXIT_STATUS.ERROR_INCORRECT_ENV_OVERRIDE);
           }
@@ -405,6 +421,9 @@ const handler = async function (argv) {
       }
     }
     options['ignoreTruststore'] = ignoreTruststore;
+
+    includeTags = includeTags ? includeTags.split(',') : [];
+    excludeTags = excludeTags ? excludeTags.split(',') : [];
 
     if (['json', 'junit', 'html'].indexOf(format) === -1) {
       console.error(chalk.red(`Format must be one of "json", "junit or "html"`));
@@ -473,18 +492,20 @@ const handler = async function (argv) {
           const bruJson = bruToJson(bruContent);
           const requestHasTests = bruJson.request?.tests;
           const requestHasActiveAsserts = bruJson.request?.assertions.some((x) => x.enabled) || false;
-          if (testsOnly) {
-            if (requestHasTests || requestHasActiveAsserts) {
+          if (isRequestTagsIncluded(bruJson.tags, includeTags, excludeTags)) {
+            if (testsOnly) {
+              if (requestHasTests || requestHasActiveAsserts) {
+                bruJsons.push({
+                  bruFilepath,
+                  bruJson
+                });
+              }
+            } else {
               bruJsons.push({
                 bruFilepath,
                 bruJson
               });
             }
-          } else {
-            bruJsons.push({
-              bruFilepath,
-              bruJson
-            });
           }
         }
         bruJsons.sort((a, b) => {
@@ -495,7 +516,7 @@ const handler = async function (argv) {
       } else {
         console.log(chalk.yellow('Running Folder Recursively \n'));
 
-        bruJsons = getBruFilesRecursively(filename, testsOnly);
+        bruJsons = getBruFilesRecursively(filename, testsOnly, includeTags, excludeTags);
       }
     }
 
