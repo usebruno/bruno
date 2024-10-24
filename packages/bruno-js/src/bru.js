@@ -4,16 +4,7 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(
-    envVariables,
-    runtimeVariables,
-    processEnvVars,
-    collectionPath,
-    collectionVariables,
-    folderVariables,
-    requestVariables,
-    globalEnvironmentVariables
-  ) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
