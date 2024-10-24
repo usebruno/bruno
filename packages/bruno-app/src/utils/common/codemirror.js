@@ -159,3 +159,54 @@ export const getCodeMirrorModeBasedOnContentType = (contentType, body) => {
     return 'application/text';
   }
 };
+
+/** key-binding-logic 'Ctrl-/' and 'Cmd-/' */
+export const toggleComment = (cm) => {
+  const selections = cm.listSelections();
+  // updates DOM structure after performing operation.
+  cm.operation(() => {
+    for (const range of selections) {
+      const from = Math.min(range.from().line, range.to().line);
+      const to = Math.max(range.from().line, range.to().line);
+      
+      let allCommented = true;
+      let minIndent = Infinity;
+
+      // First pass: check if all lines are commented and find min indent
+      for (let i = from; i <= to; i++) {
+        const line = cm.getLine(i);
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const indent = line.length - trimmed.length;
+        minIndent = Math.min(minIndent, indent);
+
+        if (!trimmed.startsWith('//')) {
+          allCommented = false;
+          if (minIndent === 0) break; // No need to continue if we found a non-commented line and minIndent is 0
+        }
+      }
+
+      // Second pass: toggle comments
+      for (let i = from; i <= to; i++) {
+        const line = cm.getLine(i);
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        if (allCommented) {
+          // Remove comment
+          cm.replaceRange(
+            line.replace(/^(\s*)\/\/\s?/, '$1'),
+            { line: i, ch: 0 },
+            { line: i }
+          );
+        } else {
+          // Add comment
+          const commentPrefix = ' '.repeat(minIndent) + '// ';
+          const commentedLine = commentPrefix + line.slice(minIndent);
+          cm.replaceRange(commentedLine, { line: i, ch: 0 }, { line: i });
+        }
+      }
+    }
+  });
+};
