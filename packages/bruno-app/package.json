@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "test:watch": "jest --watch",
     "test:prettier": "prettier --check \"./src/**/*.{js,jsx,json,ts,tsx}\"",
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
