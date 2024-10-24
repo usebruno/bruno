@@ -3,6 +3,7 @@ import get from 'lodash/get';
 import CodeEditor from 'components/CodeEditor';
 import FormUrlEncodedParams from 'components/RequestPane/FormUrlEncodedParams';
 import MultipartFormParams from 'components/RequestPane/MultipartFormParams';
+import RawFileParams from 'components/RequestPane/RawFileParams';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
@@ -67,6 +68,10 @@ const RequestBody = ({ item, collection }) => {
 
   if (bodyMode === 'multipartForm') {
     return <MultipartFormParams item={item} collection={collection} />;
+  }
+
+  if (bodyMode === 'rawFile') {
+    return <RawFileParams item={item} collection={collection} />;
   }
 
   return <StyledWrapper className="w-full">No Body</StyledWrapper>;
