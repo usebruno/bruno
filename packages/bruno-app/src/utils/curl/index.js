@@ -79,7 +79,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       method: request.method,
       body,
       headers: headers,
-      auth: request.auth,
+      auth: request.auth
     };
   } catch (error) {
     console.error(error);

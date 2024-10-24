@@ -72,6 +72,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       return 'http-request';
     }
 
+    // Note: Why different labels for the same thing?
+    // http-request and graphql-request are used inside the app's json representation of a request
+    // http and graphql are used in Bru DSL as well as collection exports
+    // We need to eventually standardize the app's DSL to use the same labels as bru DSL
     if (collectionPresets.requestType === 'http') {
       return 'http-request';
     }
@@ -229,7 +233,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type
