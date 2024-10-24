@@ -19,6 +19,8 @@ const replacements = {
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
   'pm\\.environment\\.name': 'bru.getEnvName()',
+  'pm\\.environment\\.unset\\(': 'bru.deleteEnvVar(',
+  'pm\\.environment\\.clear\\(': 'bru.deleteAllEnvVars(',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
