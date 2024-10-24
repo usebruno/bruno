@@ -22,11 +22,34 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       return 'graphql-request';
     }
 
-    if (body.json && (body.json.query || body.json.mutation)) {
-      return 'graphql-request';
+    if (body.json) {
+      try {
+        const parsedJson = JSON.parse(body.json);
+        if (parsedJson && (parsedJson.query || parsedJson.variables || parsedJson.mutation)) {
+          return 'graphql-request';
+        }
+      } catch (err) {
+        console.error('Failed to parse JSON body:', err);
+      }
     }
 
     return 'http-request';
+  };
+
+  const parseGraphQL = (text) => {
+    try {
+      const graphql = JSON.parse(text);
+
+      return {
+        query: graphql.query,
+        variables: JSON.stringify(graphql.variables, null, 2)
+      };
+    } catch (e) {
+      return {
+        query: '',
+        variables: ''
+      };
+    }
   };
 
   try {
@@ -41,6 +64,10 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       Object.keys(parsedHeaders).map((key) => ({ name: key, value: parsedHeaders[key], enabled: true }));
 
     const contentType = headers?.find((h) => h.name.toLowerCase() === 'content-type')?.value;
+
+    const parsedBody = request.data;
+    const requestType = identifyRequestType(request.url, headers, { json: parsedBody });
+
     const body = {
       mode: 'none',
       json: null,
@@ -48,11 +75,14 @@ export const getRequestFromCurlCommand = (curlCommand) => {
       xml: null,
       sparql: null,
       multipartForm: null,
-      formUrlEncoded: null
+      graphql: null
     };
-    const parsedBody = request.data;
+
     if (parsedBody && contentType && typeof contentType === 'string') {
-      if (contentType.includes('application/json')) {
+      if (requestType === 'graphql-request' && (contentType.includes('application/json') || contentType.includes('application/graphql'))) {
+        body.mode = 'graphql';
+        body.graphql = parseGraphQL(parsedBody);
+      } else if (contentType.includes('application/json')) {
         body.mode = 'json';
         body.json = convertToCodeMirrorJson(parsedBody);
       } else if (contentType.includes('text/xml')) {
@@ -69,8 +99,6 @@ export const getRequestFromCurlCommand = (curlCommand) => {
         body.text = parsedBody;
       }
     }
-
-    const requestType = identifyRequestType(request.url, headers, body);
 
     return {
       url: request.url,
