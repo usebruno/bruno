@@ -7,6 +7,15 @@ import Script from './Script';
 import Tests from './Tests';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars';
+import DotIcon from 'components/Icons/Dot';
+
+const ContentIndicator = () => {
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium">
+      <DotIcon width="10"></DotIcon>
+    </sup>
+  );
+};
 
 const FolderSettings = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -15,6 +24,10 @@ const FolderSettings = ({ collection, folder }) => {
   if (folderLevelSettingsSelectedTab?.[folder?.uid]) {
     tab = folderLevelSettingsSelectedTab[folder?.uid];
   }
+
+  const folderRoot = collection?.items.find((item) => item.uid === folder?.uid)?.root;
+  const isScriptExist = folderRoot?.request?.script.res || folderRoot?.request?.script.req;
+  const isTestExist = folderRoot?.request?.tests;
 
   const setTab = (tab) => {
     dispatch(
@@ -58,9 +71,11 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
             Script
+            {isScriptExist && <ContentIndicator />}
           </div>
           <div className={getTabClassname('test')} role="tab" onClick={() => setTab('test')}>
             Test
+            {isTestExist && <ContentIndicator />}
           </div>
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
