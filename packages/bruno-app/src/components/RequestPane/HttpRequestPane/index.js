@@ -102,6 +102,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
   const docs = getPropertyFromDraftOrRequest('request.docs');
   const requestVars = getPropertyFromDraftOrRequest('request.vars.req');
   const responseVars = getPropertyFromDraftOrRequest('request.vars.res');
+  const auth = getPropertyFromDraftOrRequest('request.auth');
 
   const activeParamsLength = params.filter((param) => param.enabled).length;
   const activeHeadersLength = headers.filter((header) => header.enabled).length;
@@ -127,6 +128,7 @@ const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => selectTab('auth')}>
           Auth
+          {auth.mode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => selectTab('vars')}>
           Vars
