@@ -29,6 +29,13 @@ const FolderSettings = ({ collection, folder }) => {
   const isScriptExist = folderRoot?.request?.script.res || folderRoot?.request?.script.req;
   const isTestExist = folderRoot?.request?.tests;
 
+  const headers = folderRoot?.request?.headers || [];
+  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+
+  const requestVars = folderRoot?.request?.vars?.req || [];
+  const responseVars = folderRoot?.request?.vars?.res || [];
+  const activeVarsLength = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+
   const setTab = (tab) => {
     dispatch(
       updatedFolderSettingsSelectedTab({
@@ -68,6 +75,7 @@ const FolderSettings = ({ collection, folder }) => {
         <div className="flex flex-wrap items-center tabs" role="tablist">
           <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
             Headers
+            {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
           </div>
           <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
             Script
@@ -79,6 +87,7 @@ const FolderSettings = ({ collection, folder }) => {
           </div>
           <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
             Vars
+            {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
           </div>
         </div>
         <section className={`flex mt-4 h-full`}>{getTabPanel(tab)}</section>
