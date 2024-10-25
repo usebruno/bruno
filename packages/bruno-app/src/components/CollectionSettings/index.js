@@ -40,17 +40,17 @@ const CollectionSettings = ({ collection }) => {
   };
 
   const root = collection?.root;
-  const isScriptExist = root?.request?.script.res || root?.request?.script.req;
-  const isTestExist = root?.request?.tests;
-  const isDocsExist = root?.docs;
+  const hasScripts = root?.request?.script.res || root?.request?.script.req;
+  const hasTests = root?.request?.tests;
+  const hasDocs = root?.docs;
 
   const headers = get(collection, 'root.request.headers', []);
-  const activeHeadersLength = headers.filter((header) => header.enabled).length;
+  const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
   const requestVars = get(collection, 'root.request.vars.req', []);
   const responseVars = get(collection, 'root.request.vars.res', []);
-  const activeVarsLength = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
-  const getAuthMode = get(collection, 'root.request.auth', {}).mode;
+  const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+  const auth = get(collection, 'root.request.auth', {}).mode;
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
@@ -148,23 +148,23 @@ const CollectionSettings = ({ collection }) => {
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
-          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
+          {activeHeadersCount > 0 && <sup className="ml-1 font-medium">{activeHeadersCount}</sup>}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
           Vars
-          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
+          {activeVarsCount > 0 && <sup className="ml-1 font-medium">{activeVarsCount}</sup>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
-          {getAuthMode !== 'none' && <ContentIndicator />}
+          {auth !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
-          {isScriptExist && <ContentIndicator />}
+          {hasScripts && <ContentIndicator />}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
-          {isTestExist && <ContentIndicator />}
+          {hasTests && <ContentIndicator />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
@@ -179,7 +179,7 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
-          {isDocsExist && <ContentIndicator />}
+          {hasDocs && <ContentIndicator />}
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
