@@ -17,9 +17,11 @@ import { find, get } from 'lodash';
 import Documentation from 'components/Documentation/index';
 
 const ContentIndicator = () => {
-  return <sup className="ml-[.125rem] opacity-80 font-medium">
-    <DotIcon width="10"></DotIcon>
-  </sup>
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium">
+      <DotIcon width="10"></DotIcon>
+    </sup>
+  );
 };
 
 const HttpRequestPane = ({ item, collection, leftPaneWidth }) => {

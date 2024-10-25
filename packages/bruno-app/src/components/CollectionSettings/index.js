@@ -17,6 +17,15 @@ import Presets from './Presets';
 import Info from './Info';
 import StyledWrapper from './StyledWrapper';
 import Vars from './Vars/index';
+import DotIcon from 'components/Icons/Dot';
+
+const ContentIndicator = () => {
+  return (
+    <sup className="ml-[.125rem] opacity-80 font-medium">
+      <DotIcon width="10"></DotIcon>
+    </sup>
+  );
+};
 
 const CollectionSettings = ({ collection }) => {
   const dispatch = useDispatch();
@@ -29,6 +38,11 @@ const CollectionSettings = ({ collection }) => {
       })
     );
   };
+
+  const root = collection?.root;
+  const isScriptExist = root?.request?.script.res || root?.request?.script.req;
+  const isTestExist = root?.request?.tests;
+  const isDocsExist = root?.docs;
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
 
@@ -135,9 +149,11 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
+          {isScriptExist && <ContentIndicator />}
         </div>
         <div className={getTabClassname('tests')} role="tab" onClick={() => setTab('tests')}>
           Tests
+          {isTestExist && <ContentIndicator />}
         </div>
         <div className={getTabClassname('presets')} role="tab" onClick={() => setTab('presets')}>
           Presets
@@ -150,6 +166,7 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
+          {isDocsExist && <ContentIndicator />}
         </div>
         <div className={getTabClassname('info')} role="tab" onClick={() => setTab('info')}>
           Info
