@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -13,6 +14,7 @@ const getContentType = (headers = {}) => {
 };
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
@@ -38,6 +40,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
+      ...globalEnvironmentVariables,
       ...collectionVariables,
       ...envVariables,
       ...folderVariables,
@@ -67,13 +70,27 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       if (request.data.length) {
         request.data = _interpolate(request.data);
       }
-    }
-  } else if (contentType === 'application/x-www-form-urlencoded') {
-    if (typeof request.data === 'object') {
+    } else if (typeof request.data === 'object') {
       try {
         let parsed = JSON.stringify(request.data);
         parsed = _interpolate(parsed);
         request.data = JSON.parse(parsed);
+      } catch (err) {}
+    }
+  } else if (contentType === 'application/x-www-form-urlencoded') {
+    if (typeof request.data === 'object') {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (typeof request.data === 'object' && !(request.data instanceof FormData)) {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });        
       } catch (err) {}
     }
   } else {
@@ -111,7 +128,8 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       })
       .join('');
 
-    request.url = url.origin + urlPathnameInterpolatedWithPathParams + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + urlPathnameInterpolatedWithPathParams + trailingSlash + url.search;
   }
 
   if (request.proxy) {
@@ -204,6 +222,12 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   if (request.digestConfig) {
     request.digestConfig.username = _interpolate(request.digestConfig.username) || '';
     request.digestConfig.password = _interpolate(request.digestConfig.password) || '';
+  }
+
+  // interpolate vars for wsse auth
+  if (request.wsse) {
+    request.wsse.username = _interpolate(request.wsse.username) || '';
+    request.wsse.password = _interpolate(request.wsse.password) || '';
   }
 
   return request;

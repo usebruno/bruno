@@ -2,6 +2,7 @@ const { get, each, filter } = require('lodash');
 const fs = require('fs');
 var JSONbig = require('json-bigint');
 const decomment = require('decomment');
+const crypto = require('node:crypto');
 
 const prepareRequest = (request, collectionRoot) => {
   const headers = {};
@@ -69,6 +70,24 @@ const prepareRequest = (request, collectionRoot) => {
     if (request.auth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
     }
+
+    if (request.auth.mode === 'wsse') {
+      const username = get(request, 'auth.wsse.username', '');
+      const password = get(request, 'auth.wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
+    }
   }
 
   request.body = request.body || {};
@@ -120,16 +139,10 @@ const prepareRequest = (request, collectionRoot) => {
   }
 
   if (request.body.mode === 'multipartForm') {
+    axiosRequest.headers['content-type'] = 'multipart/form-data';
     const params = {};
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => {
-      if (p.type === 'file') {
-        params[p.name] = p.value.map((path) => fs.createReadStream(path));
-      } else {
-        params[p.name] = p.value;
-      }
-    });
-    axiosRequest.headers['content-type'] = 'multipart/form-data';
+    each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.data = params;
   }
 

@@ -50,7 +50,9 @@ class VarsRuntime {
     _.each(enabledVars, (v) => {
       try {
         const value = evaluateJsExpressionBasedOnRuntime(v.value, context, this.runtime);
-        bru.setVar(v.name, value);
+        if (v.name) {
+          bru.setVar(v.name, value);
+        }
       } catch (error) {
         errors.set(v.name, error);
       }
