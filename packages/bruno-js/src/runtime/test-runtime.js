@@ -114,10 +114,21 @@ class TestRuntime {
     }
 
     if (this.runtime === 'quickjs') {
-      await executeQuickJsVmAsync({
-        script: testsFile,
-        context: context
-      });
+      try {
+        await executeQuickJsVmAsync({
+          script: testsFile,
+          context: context
+        });
+      }
+      catch(error) {
+        __brunoTestResults.addResult({
+          description: 'Invalid test script',
+          status: 'fail',
+          error: [
+            `${error.message || 'An unexpected error occurred.'}`
+          ]
+        });
+      }
     } else {
       // default runtime is vm2
       const vm = new NodeVM({
@@ -156,7 +167,23 @@ class TestRuntime {
         }
       });
       const asyncVM = vm.run(`module.exports = async () => { ${testsFile}}`, path.join(collectionPath, 'vm.js'));
-      await asyncVM();
+      try {
+        await asyncVM();
+      }
+      catch(error) {
+        const errorStackLines = error?.stack?.split?.("\n");
+        const lineInfo = errorStackLines?.[1];
+        const lineNumber = lineInfo?.split(':')?.at?.(-2);
+        const columnNumber = lineInfo?.split(':')?.at?.(-1);
+        __brunoTestResults.addResult({
+          description: 'Invalid test script',
+          status: 'fail',
+          error: [
+            `Error occurred at line ${lineNumber} and character ${columnNumber}`,
+            `${error.message || 'An unexpected error occurred.'}`
+          ]
+        });
+      }
     }
 
     return {

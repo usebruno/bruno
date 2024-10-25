@@ -13,8 +13,8 @@ const Test = (__brunoTestResults, chai) => async (description, callback) => {
         expected
       });
     } else {
-      const errorStackLines = error.stack.split("\n");
-      const lineInfo = errorStackLines[1];
+      const errorStackLines = error?.stack?.split?.("\n");
+      const lineInfo = errorStackLines?.[1];
       const lineNumber = lineInfo?.split(':')?.at?.(-2);
       const columnNumber = lineInfo?.split(':')?.at?.(-1);
       __brunoTestResults.addResult({
