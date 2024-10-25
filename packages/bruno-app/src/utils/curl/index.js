@@ -73,7 +73,6 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
         body.text = parsedBody;
       }
     }
-
     return {
       url: request.url,
       method: request.method,
