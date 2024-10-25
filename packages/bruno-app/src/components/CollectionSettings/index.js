@@ -55,6 +55,7 @@ const CollectionSettings = ({ collection }) => {
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
 
+
   const onProxySettingsUpdate = (config) => {
     const brunoConfig = cloneDeep(collection.brunoConfig);
     brunoConfig.proxy = config;
@@ -170,9 +171,11 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('proxy')} role="tab" onClick={() => setTab('proxy')}>
           Proxy
+          {Object.keys(proxyConfig).length > 0  && <ContentIndicator />}
         </div>
         <div className={getTabClassname('clientCert')} role="tab" onClick={() => setTab('clientCert')}>
           Client Certificates
+          {clientCertConfig.length > 0 && <ContentIndicator />}
         </div>
         <div className={getTabClassname('docs')} role="tab" onClick={() => setTab('docs')}>
           Docs
