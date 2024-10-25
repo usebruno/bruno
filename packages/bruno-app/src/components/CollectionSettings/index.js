@@ -50,6 +50,7 @@ const CollectionSettings = ({ collection }) => {
   const requestVars = get(collection, 'root.request.vars.req', []);
   const responseVars = get(collection, 'root.request.vars.res', []);
   const activeVarsLength = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+  const getAuthMode = get(collection, 'root.request.auth', {}).mode;
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
@@ -154,6 +155,7 @@ const CollectionSettings = ({ collection }) => {
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
+          {getAuthMode !== 'none' && <ContentIndicator />}
         </div>
         <div className={getTabClassname('script')} role="tab" onClick={() => setTab('script')}>
           Script
