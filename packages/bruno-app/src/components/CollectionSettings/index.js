@@ -44,8 +44,14 @@ const CollectionSettings = ({ collection }) => {
   const isTestExist = root?.request?.tests;
   const isDocsExist = root?.docs;
 
-  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
+  const headers = get(collection, 'root.request.headers', []);
+  const activeHeadersLength = headers.filter((header) => header.enabled).length;
 
+  const requestVars = get(collection, 'root.request.vars.req', []);
+  const responseVars = get(collection, 'root.request.vars.res', []);
+  const activeVarsLength = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
+
+  const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
 
   const onProxySettingsUpdate = (config) => {
@@ -140,9 +146,11 @@ const CollectionSettings = ({ collection }) => {
       <div className="flex flex-wrap items-center tabs" role="tablist">
         <div className={getTabClassname('headers')} role="tab" onClick={() => setTab('headers')}>
           Headers
+          {activeHeadersLength > 0 && <sup className="ml-1 font-medium">{activeHeadersLength}</sup>}
         </div>
         <div className={getTabClassname('vars')} role="tab" onClick={() => setTab('vars')}>
           Vars
+          {activeVarsLength > 0 && <sup className="ml-1 font-medium">{activeVarsLength}</sup>}
         </div>
         <div className={getTabClassname('auth')} role="tab" onClick={() => setTab('auth')}>
           Auth
