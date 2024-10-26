@@ -102,96 +102,94 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
 
   return (
     <StyledWrapper className="w-full mt-6 mb-6 h-full">
-      <div className="flex flex-col justify-between h-full">
-        <div className="h-[50vh] overflow-y-auto w-full">
-          <table>
-            <thead>
-              <tr>
-                <td className="text-center">Enabled</td>
-                <td>Name</td>
-                <td>Value</td>
-                <td className="text-center">Secret</td>
-                <td></td>
+      <div className="h-[50vh] overflow-y-auto w-full">
+        <table>
+          <thead>
+            <tr>
+              <td className="text-center">Enabled</td>
+              <td>Name</td>
+              <td>Value</td>
+              <td className="text-center">Secret</td>
+              <td></td>
+            </tr>
+          </thead>
+          <tbody>
+            {formik.values.map((variable, index) => (
+              <tr key={variable.uid}>
+                <td className="text-center">
+                  <input
+                    type="checkbox"
+                    className="mousetrap"
+                    name={`${index}.enabled`}
+                    checked={variable.enabled}
+                    onChange={formik.handleChange}
+                  />
+                </td>
+                <td>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      className="mousetrap"
+                      id={`${index}.name`}
+                      name={`${index}.name`}
+                      value={variable.name}
+                      onChange={formik.handleChange}
+                    />
+                    <ErrorMessage name={`${index}.name`} />
+                  </div>
+                </td>
+                <td className="flex flex-row flex-nowrap">
+                  <div className="overflow-hidden grow w-full relative">
+                    <SingleLineEditor
+                      theme={storedTheme}
+                      collection={collection}
+                      name={`${index}.value`}
+                      value={variable.value}
+                      isSecret={variable.secret}
+                      onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
+                    />
+                  </div>
+                </td>
+                <td className="text-center">
+                  <input
+                    type="checkbox"
+                    className="mousetrap"
+                    name={`${index}.secret`}
+                    checked={variable.secret}
+                    onChange={formik.handleChange}
+                  />
+                </td>
+                <td>
+                  <button onClick={() => handleRemoveVar(variable.uid)}>
+                    <IconTrash strokeWidth={1.5} size={20} />
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {formik.values.map((variable, index) => (
-                <tr key={variable.uid}>
-                  <td className="text-center">
-                    <input
-                      type="checkbox"
-                      className="mousetrap"
-                      name={`${index}.enabled`}
-                      checked={variable.enabled}
-                      onChange={formik.handleChange}
-                    />
-                  </td>
-                  <td>
-                    <div className="flex items-center">
-                      <input
-                        type="text"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        spellCheck="false"
-                        className="mousetrap"
-                        id={`${index}.name`}
-                        name={`${index}.name`}
-                        value={variable.name}
-                        onChange={formik.handleChange}
-                      />
-                      <ErrorMessage name={`${index}.name`} />
-                    </div>
-                  </td>
-                  <td className="flex flex-row flex-nowrap">
-                    <div className="overflow-hidden grow w-full relative">
-                      <SingleLineEditor
-                        theme={storedTheme}
-                        collection={collection}
-                        name={`${index}.value`}
-                        value={variable.value}
-                        isSecret={variable.secret}
-                        onChange={(newValue) => formik.setFieldValue(`${index}.value`, newValue, true)}
-                      />
-                    </div>
-                  </td>
-                  <td className="text-center">
-                    <input
-                      type="checkbox"
-                      className="mousetrap"
-                      name={`${index}.secret`}
-                      checked={variable.secret}
-                      onChange={formik.handleChange}
-                    />
-                  </td>
-                  <td>
-                    <button onClick={() => handleRemoveVar(variable.uid)}>
-                      <IconTrash strokeWidth={1.5} size={20} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div>
-            <button
-              ref={addButtonRef}
-              className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
-              onClick={addVariable}
-            >
-              + Add Variable
-            </button>
-          </div>
-        </div>
-
+            ))}
+          </tbody>
+        </table>
         <div>
-          <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
-            Save
-          </button>
-          <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
-            Reset
+          <button
+            ref={addButtonRef}
+            className="btn-add-param text-link pr-2 py-3 mt-2 select-none"
+            onClick={addVariable}
+          >
+            + Add Variable
           </button>
         </div>
+      </div>
+
+      <div>
+        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
+          Save
+        </button>
+        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+          Reset
+        </button>
       </div>
     </StyledWrapper>
   );
