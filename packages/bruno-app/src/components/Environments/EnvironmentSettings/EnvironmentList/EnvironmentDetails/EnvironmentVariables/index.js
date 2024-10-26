@@ -101,7 +101,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
   };
 
   return (
-    <StyledWrapper className="w-full mt-6 mb-6 h-full">
+    <StyledWrapper className="w-full mt-6 mb-6">
       <div className="h-[50vh] overflow-y-auto w-full">
         <table>
           <thead>
