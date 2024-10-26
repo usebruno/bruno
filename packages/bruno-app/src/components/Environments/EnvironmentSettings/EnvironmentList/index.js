@@ -87,12 +87,12 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   };
 
   return (
-    <StyledWrapper className="p-1">
+    <StyledWrapper>
       {openCreateModal && <CreateEnvironment collection={collection} onClose={() => setOpenCreateModal(false)} />}
       {openImportModal && <ImportEnvironment collection={collection} onClose={() => setOpenImportModal(false)} />}
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
 
-      <div className="flex h-full">
+      <div className="flex">
         <div className="environment-list-divider">
           {switchEnvConfirmClose && (
             <div className="flex items-center justify-between tab-container px-1">

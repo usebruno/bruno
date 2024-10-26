@@ -6,9 +6,9 @@ const StyledWrapper = styled.div`
   padding: 1rem;
     
   button.btn-create-environment {
-    &:hover { 
+    &:hover {
       span {
-      text-decoration: underline;
+        text-decoration: underline;
       }
     }
   }
