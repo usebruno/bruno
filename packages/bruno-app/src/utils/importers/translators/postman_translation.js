@@ -17,7 +17,8 @@ const replacements = {
   'pm\\.response\\.code': 'res.getStatus()',
   'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
-  'pm\\.response\\.responseTime': 'res.getResponseTime()'
+  'pm\\.response\\.responseTime': 'res.getResponseTime()',
+  'pm\\.environment\\.name': 'bru.getEnvName()'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
