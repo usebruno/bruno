@@ -294,7 +294,7 @@ const builder = async (yargs) => {
       type: 'string'
     })
     .option('sandbox', {
-      describe: 'Javscript sandbox to use; available sandboxes are "developer" (default) or "safe"',
+      describe: 'Javascript sandbox to use; available sandboxes are "developer" (default) or "safe"',
       default: 'developer',
       type: 'string'
     })
@@ -748,7 +748,7 @@ const handler = async function (argv) {
         nJumps++;
         if (nJumps > 10000) {
           console.error(chalk.red(`Too many jumps, possible infinite loop`));
-          process.exit(constants.EXIT_STATUS.ERROR_INFINTE_LOOP);
+          process.exit(constants.EXIT_STATUS.ERROR_INFINITE_LOOP);
         }
         if (nextRequestName === null) {
           break;
