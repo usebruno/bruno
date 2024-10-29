@@ -85,7 +85,7 @@ const GoldenEdition = ({ onClose }) => {
     });
   };
 
-  const goldenEditonIndividuals = [
+  const goldenEditionIndividuals = [
     'Inbuilt Bru File Explorer',
     'Visual Git (Like Gitlens for Vscode)',
     'GRPC, Websocket, SocketIO, MQTT',
@@ -97,7 +97,7 @@ const GoldenEdition = ({ onClose }) => {
     'Custom Themes'
   ];
 
-  const goldenEditonOrganizations = [
+  const goldenEditionOrganizations = [
     'Centralized License Management',
     'Integration with Secret Managers',
     'Private Collection Registry',
@@ -179,7 +179,7 @@ const GoldenEdition = ({ onClose }) => {
             </li>
             {pricingOption === 'individuals' ? (
               <>
-                {goldenEditonIndividuals.map((item, index) => (
+                {goldenEditionIndividuals.map((item, index) => (
                   <li className="flex items-center space-x-3" key={index}>
                     <CheckIcon />
                     <span>{item}</span>
@@ -192,7 +192,7 @@ const GoldenEdition = ({ onClose }) => {
                   <IconPlus size={16} strokeWidth={1.5} style={{ marginLeft: '2px' }} />
                   <span>Everything in the Individual Plan</span>
                 </li>
-                {goldenEditonOrganizations.map((item, index) => (
+                {goldenEditionOrganizations.map((item, index) => (
                   <li className="flex items-center space-x-3" key={index}>
                     <CheckIcon />
                     <span>{item}</span>
