@@ -151,3 +151,13 @@ test('should handle response commands', () => {
   `;
   expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });
+
+test('should handle tests object', () => {
+  const inputScript = `
+    tests['Status code is 200'] = responseCode.code === 200;
+  `;
+  const expectedOutput = `
+    test('Status code is 200', function() { expect(responseCode.code === 200).to.be.true; });
+  `;
+  expect(postmanTranslation(inputScript)).toBe(expectedOutput);
+});
