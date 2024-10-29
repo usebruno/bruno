@@ -7,6 +7,7 @@ import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
 import ImportEnvironment from '../ImportEnvironment';
+import { isEqual } from 'lodash';
 
 const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -26,7 +27,18 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
       return;
     }
 
+    if (selectedEnvironment) {
+      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
+      if (hasSelectedEnvironmentChanged) {
+        setSelectedEnvironment(_selectedEnvironment);
+      }
+      setOriginalEnvironmentVariables(selectedEnvironment.variables);
+      return;
+    }
+
     const environment = environments?.find(env => env.uid === activeEnvironmentUid) || environments?.[0];
+
     setSelectedEnvironment(environment);
     setOriginalEnvironmentVariables(environment?.variables || []);
   }, [environments, activeEnvironmentUid]);
