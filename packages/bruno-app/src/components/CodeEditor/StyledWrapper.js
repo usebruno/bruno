@@ -75,6 +75,12 @@ const StyledWrapper = styled.div`
   .cm-variable-invalid {
     color: red;
   }
+  .CodeMirror-search-field{
+    position: absolute;
+    bottom: 0;
+    margin-bottom: 10px;
+    color: black;
+  }
 `;
 
 export default StyledWrapper;
