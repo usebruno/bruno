@@ -18,7 +18,7 @@ const replacements = {
   'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
-  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect($2).to.be.true; });'
+  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });'
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {
