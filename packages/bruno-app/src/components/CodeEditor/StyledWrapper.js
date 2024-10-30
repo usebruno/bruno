@@ -75,6 +75,10 @@ const StyledWrapper = styled.div`
   .cm-variable-invalid {
     color: red;
   }
+
+  .graphiql-container .CodeMirror-search-hint {
+    display: block;
+  }
 `;
 
 export default StyledWrapper;

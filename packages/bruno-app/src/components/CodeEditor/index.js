@@ -339,7 +339,7 @@ export default class CodeEditor extends React.Component {
     }
     return (
       <StyledWrapper
-        className="h-full w-full flex flex-col relative"
+        className="h-full w-full flex flex-col relative graphiql-container"
         aria-label="Code Editor"
         font={this.props.font}
         fontSize={this.props.fontSize}
