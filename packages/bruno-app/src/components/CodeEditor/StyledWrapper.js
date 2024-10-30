@@ -79,8 +79,8 @@ const StyledWrapper = styled.div`
     color: red;
   }
 
-  .graphiql-container .CodeMirror-search-hint {
-    display: block;
+  .CodeMirror-search-hint {
+    display: inline;
   }
 `;
 
