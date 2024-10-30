@@ -14,6 +14,9 @@ const StyledWrapper = styled.div`
   .CodeMirror-foldmarker {
     text-shadow: none;
     color: ${(props) => props.theme.textLink};
+    background: none;
+    padding: 0;
+    margin: 0;
   }
 
   .CodeMirror-overlayscroll-horizontal div,
@@ -74,6 +77,10 @@ const StyledWrapper = styled.div`
   }
   .cm-variable-invalid {
     color: red;
+  }
+
+  .CodeMirror-search-hint {
+    display: inline;
   }
 `;
 

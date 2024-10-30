@@ -50,6 +50,10 @@ const StyledWrapper = styled.div`
   .cm-variable-invalid {
     color: red;
   }
+
+  .CodeMirror-search-hint {
+    display: inline;
+  }
 `;
 
 export default StyledWrapper;
