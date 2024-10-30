@@ -157,7 +157,7 @@ test('should handle tests object', () => {
     tests['Status code is 200'] = responseCode.code === 200;
   `;
   const expectedOutput = `
-    test('Status code is 200', function() { expect(responseCode.code === 200).to.be.true; });
+    test("Status code is 200", function() { expect(responseCode.code === 200).to.be.true; });
   `;
   expect(postmanTranslation(inputScript)).toBe(expectedOutput);
 });
