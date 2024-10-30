@@ -79,7 +79,7 @@ const StyledWrapper = styled.div`
     position: absolute;
     bottom: 0;
     margin-bottom: 10px;
-    color: black;
+    background-color: ${(props) => props.theme.modal.input.bg};
   }
 `;
 
