@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { savePreferences } from 'providers/ReduxStore/slices/app';
 import {
@@ -25,7 +25,7 @@ const CollectionsBadge = () => {
   const { collectionSortOrder } = useSelector((state) => state.collections);
   const preferences = useSelector((state) => state.app.preferences);
 
-  const sortCollectionOrder = () => {
+  const resolveOrderValue = () => {
     let order;
     switch (collectionSortOrder) {
       case 'default':
@@ -38,12 +38,24 @@ const CollectionsBadge = () => {
         order = 'default';
         break;
     }
+
+    return order;
+  };
+
+  const sortCollectionOrder = () => {
+    const order = resolveOrderValue();
+
     dispatch(sortCollections({ order }));
     dispatch(savePreferences({
       ...preferences,
       collectionSortOrder: order
     }));
-  };
+  }
+
+  useEffect(() => {
+    dispatch(sortCollections({ order: preferences.collectionSortOrder }));
+  }, []);
+
   return (
     <div className="items-center mt-2 relative">
       <div className="collections-badge flex items-center justify-between px-2">
