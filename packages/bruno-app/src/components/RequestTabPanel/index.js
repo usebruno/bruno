@@ -21,7 +21,7 @@ import StyledWrapper from './StyledWrapper';
 import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
-import { cloneDeep } from 'lodash';
+import { produce } from 'immer';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -34,12 +34,25 @@ const RequestTabPanel = () => {
   const dispatch = useDispatch();
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
-  const collections = useSelector((state) => state.collections.collections);
-  const screenWidth = useSelector((state) => state.app.screenWidth);
-  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
-
-  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const focusedTab = find(tabs, (t) => t.uid === activeTabUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const _collections = useSelector((state) => state.collections.collections);
+
+  // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
+  let collections = produce(_collections, draft => {
+    let collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
+
+    if (collection) {
+      // add selected global env variables to the collection object
+      const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+      collection.globalEnvironmentVariables = globalEnvironmentVariables;
+    }
+  });
+
+  let collection = find(collections, (c) => c.uid === focusedTab?.collectionUid);
+
+  const screenWidth = useSelector((state) => state.app.screenWidth);
+  let asideWidth = useSelector((state) => state.app.leftSidebarWidth);
   const [leftPaneWidth, setLeftPaneWidth] = useState(
     focusedTab && focusedTab.requestPaneWidth ? focusedTab.requestPaneWidth : (screenWidth - asideWidth) / 2.2
   ); // 2.2 so that request pane is relatively smaller
@@ -119,14 +132,6 @@ const RequestTabPanel = () => {
   if (!focusedTab || !focusedTab.uid || !focusedTab.collectionUid) {
     return <div className="pb-4 px-4">An error occurred!</div>;
   }
-
-  let _collection = find(collections, (c) => c.uid === focusedTab.collectionUid);
-  let collection = cloneDeep(_collection);
-
-  // add selected global env variables to the collection object
-  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-  collection.globalEnvironmentVariables = globalEnvironmentVariables;
-
 
   if (!collection || !collection.uid) {
     return <div className="pb-4 px-4">Collection not found!</div>;
