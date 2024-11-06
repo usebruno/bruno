@@ -1,7 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import trim from 'lodash/trim';
 import each from 'lodash/each';
-import filter from 'lodash/filter';
 import find from 'lodash/find';
 
 import brunoCommon from '@usebruno/common';
@@ -124,6 +123,44 @@ export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, 
     }
   });
 };
+
+export const interpolateHeaders = ({ header, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
+  if (!header || !header.length ) {
+    return;
+  }
+  return header.map((h) => {
+    if (!h || !h.enabled || !h.name || !h.value || !h.uid) {
+      return h;
+    }
+    let newH = {
+      enabled: h.enabled,
+      uid: h.uid,
+      name: h.name,
+      value: h.value
+    };
+    newH.name = interpolate(h.name, {
+      ...globalEnvironmentVariables,
+      ...envVars,
+      ...runtimeVariables,
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
+    newH.value = interpolate(h.value, {
+      ...globalEnvironmentVariables,
+      ...envVars,
+      ...runtimeVariables,
+      process: {
+        env: {
+          ...processEnvVars
+        }
+      }
+    });
+    return newH;
+  });
+}
 
 export const interpolateUrlPathParams = (url, params) => {
   const getInterpolatedBasePath = (pathname, params) => {
