@@ -16,7 +16,7 @@ const VideoPreview = memo(({ contentType, dataBuffer }) => {
 
   useEffect(() => {
     const videoType = contentType.split(';')[0];
-    const byteArray = Uint8Array.from(atob(dataBuffer), (c) => c.charCodeAt(0));
+    const byteArray = Buffer.from(dataBuffer, 'base64');
     const blob = new Blob([byteArray], { type: videoType });
     const url = URL.createObjectURL(blob);
     setVideoUrl(url);
@@ -29,7 +29,7 @@ const VideoPreview = memo(({ contentType, dataBuffer }) => {
     <ReactPlayer
       url={videoUrl}
       controls
-      muted="true"
+      muted={true}
       width="100%"
       height="100%"
       onError={(e) => console.error('Error loading video:', e)}
