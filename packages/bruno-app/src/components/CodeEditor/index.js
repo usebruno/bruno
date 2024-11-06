@@ -281,9 +281,9 @@ export default class CodeEditor extends React.Component {
         while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
         while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
-        //Qualify if autocomplete will be shown
+        // Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
