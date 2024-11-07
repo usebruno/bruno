@@ -233,7 +233,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .CodeMirror-hint-active {
-    background: #89f !important;
+    background: #08f !important;
     color: #fff !important;
   }
 `;
