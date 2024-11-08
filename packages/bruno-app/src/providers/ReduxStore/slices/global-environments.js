@@ -108,9 +108,7 @@ export const copyGlobalEnvironment = ({ name, environmentUid: baseEnvUid }) => (
     const uid = uuid();
     ipcRenderer
       .invoke('renderer:create-global-environment', { uid, name, variables: baseEnv.variables })
-      .then(() => {
-        dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables }))
-      })
+      .then(() => dispatch(_copyGlobalEnvironment({ name, uid, variables: baseEnv.variables })))
       .then(resolve)
       .catch(reject);
   });
@@ -127,9 +125,7 @@ export const renameGlobalEnvironment = ({ name: newName, environmentUid }) => (d
     environmentSchema
       .validate(environment)
       .then(() => ipcRenderer.invoke('renderer:rename-global-environment', { name: newName, environmentUid }))
-      .then(
-        dispatch(_renameGlobalEnvironment({ name: newName, environmentUid }))
-      )
+      .then(() => dispatch(_renameGlobalEnvironment({ name: newName, environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -151,9 +147,7 @@ export const saveGlobalEnvironment = ({ variables, environmentUid }) => (dispatc
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);
@@ -165,9 +159,7 @@ export const selectGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:select-global-environment', { environmentUid })
-      .then(
-        dispatch(_selectGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_selectGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -177,9 +169,7 @@ export const deleteGlobalEnvironment = ({ environmentUid }) => (dispatch, getSta
   return new Promise((resolve, reject) => {
     ipcRenderer
       .invoke('renderer:delete-global-environment', { environmentUid })
-      .then(
-        dispatch(_deleteGlobalEnvironment({ environmentUid }))
-      )
+      .then(() => dispatch(_deleteGlobalEnvironment({ environmentUid })))
       .then(resolve)
       .catch(reject);
   });
@@ -228,9 +218,7 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
         environmentUid,
         variables
       }))
-      .then(
-        dispatch(_saveGlobalEnvironment({ environmentUid, variables }))
-      )
+      .then(() => dispatch(_saveGlobalEnvironment({ environmentUid, variables })))
       .then(resolve)
       .catch((error) => {
         reject(error);
