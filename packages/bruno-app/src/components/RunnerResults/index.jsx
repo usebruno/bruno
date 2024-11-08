@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
 import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
@@ -9,8 +9,9 @@ import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } 
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
-import { addTab } from 'providers/ReduxStore/slices/tabs';
 import { getDefaultRequestPaneTab } from 'utils/collections/index';
+import { itemIsOpenedInTabs } from 'utils/tabs';
+import { addTab,focusTab } from 'providers/ReduxStore/slices/tabs';
 
 const getRelativePath = (fullPath, pathname) => {
   // convert to unix style path
@@ -26,6 +27,8 @@ export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
   const [delay, setDelay] = useState(null);
+
+  const tabs = useSelector((state) => state.tabs.tabs);
 
   // ref for the runner output body
   const runnerBodyRef = useRef();
@@ -85,6 +88,15 @@ export default function RunnerResults({ collection }) {
   };
 
   const selectCollection = (item) => {
+
+    if (itemIsOpenedInTabs(item, tabs)) {
+      dispatch(
+        focusTab({
+          uid: item.uid
+        })
+      );
+      return;
+    }
     dispatch(
       addTab({
         uid: item.uid,
