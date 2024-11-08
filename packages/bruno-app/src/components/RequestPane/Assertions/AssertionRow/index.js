@@ -191,6 +191,7 @@ const AssertionRow = ({
             }
             onRun={handleRun}
             collection={collection}
+            item={item}
           />
         ) : (
           <input type="text" className="cursor-default" disabled />
