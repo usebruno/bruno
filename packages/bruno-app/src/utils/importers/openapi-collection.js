@@ -353,7 +353,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),
