@@ -195,7 +195,6 @@ export const globalEnvironmentsUpdateEvent = ({ globalEnvironmentVariables }) =>
     const environment = globalEnvironments?.find(env => env?.uid == environmentUid);
 
     if (!environment || !environmentUid) {
-      console.error('Global Environment not found');
       return resolve();
     }
 
