@@ -92,9 +92,7 @@ export const addGlobalEnvironment = ({ name, variables = [] }) => (dispatch, get
     const uid = uuid();
     ipcRenderer
       .invoke('renderer:create-global-environment', { name, uid, variables })
-      .then(
-        dispatch(_addGlobalEnvironment({ name, uid, variables }))
-      )
+      .then(() => dispatch(_addGlobalEnvironment({ name, uid, variables })))
       .then(resolve)
       .catch(reject);
   });
