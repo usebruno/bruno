@@ -246,7 +246,7 @@ const runSingleRequest = async function (
             data: null,
             responseTime: 0
           },
-          error: err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
+          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
           testResults: [],
           nextRequestName: nextRequestName
