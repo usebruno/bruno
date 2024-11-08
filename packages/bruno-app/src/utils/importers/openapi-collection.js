@@ -271,7 +271,7 @@ const resolveRefs = (spec, components = spec?.components, visitedItems = new Set
 
   // Recursively resolve references in nested objects
   for (const prop in spec) {
-    spec[prop] = resolveRefs(spec[prop], components, visitedItems);
+    spec[prop] = resolveRefs(spec[prop], components, new Set(visitedItems));
   }
 
   return spec;
