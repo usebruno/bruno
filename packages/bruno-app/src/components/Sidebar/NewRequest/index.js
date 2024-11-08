@@ -113,7 +113,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             auth: request.auth
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
@@ -126,7 +129,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             itemUid: item ? item.uid : null
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
     }
@@ -162,16 +168,7 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   return (
     <StyledWrapper>
       <Modal size="md" title="New Request" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-        <form
-          className="bruno-form"
-          onSubmit={formik.handleSubmit}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              formik.handleSubmit();
-            }
-          }}
-        >
+        <form className="bruno-form" onSubmit={e => e.preventDefault()}>
           <div>
             <label htmlFor="requestName" className="block font-semibold">
               Type

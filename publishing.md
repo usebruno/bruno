@@ -9,6 +9,7 @@
 | [简体中文](docs/publishing/publishing_cn.md)
 | [正體中文](docs/publishing/publishing_zhtw.md)
 | [日本語](docs/publishing/publishing_ja.md)
+| [Nederlands](docs/publishing/publishing_nl.md)
 
 ### Publishing Bruno to a new package manager
 

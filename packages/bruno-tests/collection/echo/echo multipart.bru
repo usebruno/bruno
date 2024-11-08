@@ -1,0 +1,28 @@
+meta {
+  name: echo multipart
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{echo-host}}
+  body: multipartForm
+  auth: none
+}
+
+body:multipart-form {
+  form-data-key: {{form-data-key}}
+  form-data-stringified-object: {{form-data-stringified-object}}
+  file: @file(bruno.png)
+}
+
+assert {
+  res.body: contains form-data-value
+  res.body: contains {"foo":123}
+}
+
+script:pre-request {
+  let obj = JSON.stringify({foo:123});
+  bru.setVar('form-data-key', 'form-data-value');
+  bru.setVar('form-data-stringified-object', obj);
+}

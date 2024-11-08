@@ -56,6 +56,15 @@ const AuthMode = ({ collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('bearer');
             }}
           >
@@ -78,6 +87,15 @@ const AuthMode = ({ collection }) => {
             }}
           >
             Oauth2
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
           </div>
           <div
             className="dropdown-item"

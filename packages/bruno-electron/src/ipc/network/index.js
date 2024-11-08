@@ -6,11 +6,10 @@ const tls = require('tls');
 const axios = require('axios');
 const path = require('path');
 const decomment = require('decomment');
-const Mustache = require('mustache');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -38,11 +37,8 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
-
-// override the default escape function to prevent escaping
-Mustache.escape = function (value) {
-  return value;
-};
+const FormData = require('form-data');
+const { createFormData } = prepareRequest;
 
 const safeStringifyJSON = (data) => {
   try {
@@ -71,7 +67,7 @@ const getEnvVars = (environment = {}) => {
   const envVars = {};
   each(variables, (variable) => {
     if (variable.enabled) {
-      envVars[variable.name] = Mustache.escape(variable.value);
+      envVars[variable.name] = variable.value;
     }
   });
 
@@ -87,6 +83,22 @@ const getJsSandboxRuntime = (collection) => {
 };
 
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+
+const saveCookies = (url, headers) => {
+  if (preferencesUtil.shouldStoreCookies()) {
+    let setCookieHeaders = [];
+    if (headers['set-cookie']) {
+      setCookieHeaders = Array.isArray(headers['set-cookie'])
+        ? headers['set-cookie']
+        : [headers['set-cookie']];
+      for (let setCookieHeader of setCookieHeaders) {
+        if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
+          addCookieToJar(setCookieHeader, url);
+        }
+      }
+    }
+  }
+}
 
 const configureRequest = async (
   collectionUid,
@@ -221,6 +233,10 @@ const configureRequest = async (
         );
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -245,6 +261,10 @@ const configureRequest = async (
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
@@ -307,8 +327,23 @@ const configureRequest = async (
     }
   }
 
+  // Add API key to the URL
+  if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    const urlObj = new URL(request.url);
+
+    // Interpolate key and value as they can be variables before adding to the URL.
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+    urlObj.searchParams.set(key, value);
+    request.url = urlObj.toString();
+  }
+
   // Remove pathParams, already in URL (Issue #2439)
   delete request.pathParams;
+
+  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
+  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };
@@ -331,10 +366,10 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if(!disableParsingResponseJson) {
+    if (!disableParsingResponseJson) {
       data = JSON.parse(data);
     }
-  } catch {}
+  } catch { }
 
   return { data, dataBuffer };
 };
@@ -360,20 +395,6 @@ const registerNetworkIpc = (mainWindow) => {
     processEnvVars,
     scriptingConfig
   ) => {
-    // run pre-request vars
-    const preRequestVars = get(request, 'vars.req', []);
-    if (preRequestVars?.length) {
-      const varsRuntime = new VarsRuntime({ runtime: scriptingConfig?.runtime });
-      varsRuntime.runPreRequestVars(
-        preRequestVars,
-        request,
-        envVars,
-        runtimeVariables,
-        collectionPath,
-        processEnvVars
-      );
-    }
-
     // run pre-request script
     let scriptResult;
     const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
@@ -396,6 +417,10 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
 
     // interpolate variables inside request
@@ -410,6 +435,14 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
+    }
+
+    if (request.headers['content-type'] === 'multipart/form-data') {
+      if (!(request.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
     }
 
     return scriptResult;
@@ -448,6 +481,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
       }
 
       if (result?.error) {
@@ -483,6 +520,10 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
     return scriptResult;
   };
@@ -504,6 +545,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const request = prepareRequest(item, collection);
+    request.__bruno__executionMode = 'standalone';
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -590,17 +632,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       // save cookies
       if (preferencesUtil.shouldStoreCookies()) {
-        let setCookieHeaders = [];
-        if (response.headers['set-cookie']) {
-          setCookieHeaders = Array.isArray(response.headers['set-cookie'])
-            ? response.headers['set-cookie']
-            : [response.headers['set-cookie']];
-          for (let setCookieHeader of setCookieHeaders) {
-            if (typeof setCookieHeader === 'string' && setCookieHeader.length) {
-              addCookieToJar(setCookieHeader, request.url);
-            }
-          }
-        }
+        saveCookies(request.url, response.headers);
       }
 
       // send domain cookies to renderer
@@ -679,6 +711,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
+        });
       }
 
       return {
@@ -706,7 +742,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const request = prepareCollectionRequest(_request, collection, collectionPath);
+      request.__bruno__executionMode = 'standalone';
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -951,6 +988,8 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = prepareRequest(item, collection);
+          request.__bruno__executionMode = 'runner';
+          
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
@@ -1017,6 +1056,16 @@ const registerNetworkIpc = (mainWindow) => {
               const { data, dataBuffer } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
               response.data = data;
               response.responseTime = response.headers.get('request-duration');
+
+              // save cookies
+              if (preferencesUtil.shouldStoreCookies()) {
+                saveCookies(request.url, response.headers);
+              }
+
+              // send domain cookies to renderer
+              const domainsWithCookies = await getDomainsWithCookies();
+
+              mainWindow.webContents.send('main:cookies-update', safeParseJSON(safeStringifyJSON(domainsWithCookies)));
 
               mainWindow.webContents.send('main:run-folder-event', {
                 type: 'response-received',
@@ -1138,6 +1187,10 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables: testResults.runtimeVariables,
                 collectionUid
               });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
@@ -1204,7 +1257,7 @@ const registerNetworkIpc = (mainWindow) => {
         try {
           const disposition = contentDispositionParser.parse(contentDisposition);
           return disposition && disposition.parameters['filename'];
-        } catch (error) {}
+        } catch (error) { }
       };
 
       const getFileNameFromUrlPath = () => {
