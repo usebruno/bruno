@@ -10,6 +10,15 @@ const StyledWrapper = styled.div`
     flex: 1 1 0;
   }
 
+  /* Removes the glow outline around the folded json */
+  .CodeMirror-foldmarker {
+    text-shadow: none;
+    color: ${(props) => props.theme.textLink};
+    background: none;
+    padding: 0;
+    margin: 0;
+  }
+
   .CodeMirror-overlayscroll-horizontal div,
   .CodeMirror-overlayscroll-vertical div {
     background: #d2d7db;
@@ -68,6 +77,10 @@ const StyledWrapper = styled.div`
   }
   .cm-variable-invalid {
     color: red;
+  }
+
+  .CodeMirror-search-hint {
+    display: inline;
   }
 `;
 
