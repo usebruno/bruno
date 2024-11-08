@@ -1,9 +1,6 @@
 import styled from 'styled-components';
 
 const Wrapper = styled.div`
-  div.title {
-    color: var(--color-tab-inactive);
-  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -22,20 +19,19 @@ const Wrapper = styled.div`
     }
     td {
       padding: 6px 10px;
+
+      &:nth-child(1) {
+        width: 30%;
+      }
+
+      &:nth-child(3) {
+        width: 70px;
+      }
     }
   }
 
-  td {
-    &:nth-child(1) {
-      padding: 0 0 0 8px;
-    }
-  }
-
-  .btn-add-param {
+  .btn-add-var {
     font-size: 0.8125rem;
-    &:hover span {
-      text-decoration: underline;
-    }
   }
 
   input[type='text'] {
