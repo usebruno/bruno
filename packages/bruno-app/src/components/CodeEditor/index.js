@@ -133,7 +133,10 @@ export default class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
-      mode: this.props.mode || 'application/ld+json',
+      mode: {
+        name: this.props.mode || 'application/ld+json',
+        jsonld: this.props.mode == 'application/javascript' && this.props.jsonld
+      },
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,

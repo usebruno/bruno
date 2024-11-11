@@ -31,7 +31,7 @@ const RequestBody = ({ item, collection }) => {
 
   if (['json', 'xml', 'text', 'sparql'].includes(bodyMode)) {
     let codeMirrorMode = {
-      json: 'application/ld+json',
+      json: 'application/javascript', // Modifying the mode to js because we can handle also json, but not vise-versa.
       text: 'application/text',
       xml: 'application/xml',
       sparql: 'application/sparql-query'
