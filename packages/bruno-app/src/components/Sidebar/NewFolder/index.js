@@ -44,7 +44,10 @@ const NewFolder = ({ collection, item, onClose }) => {
     }),
     onSubmit: (values) => {
       dispatch(newFolder(values.folderName, values.directoryName, collection.uid, item ? item.uid : null))
-        .then(() => onClose())
+        .then(() => {
+          toast.success('New folder created!');
+          onClose();
+        })
         .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the folder'));
     }
   });

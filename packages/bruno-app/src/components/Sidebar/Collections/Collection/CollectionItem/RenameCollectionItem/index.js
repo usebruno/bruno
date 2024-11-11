@@ -9,6 +9,7 @@ import path from 'path';
 import { IconEdit, IconFile } from '@tabler/icons';
 import StyledWrapper from './StyledWrapper';
 import { sanitizeName, validateName, validateNameError } from 'utils/common/regex';
+import toast from 'react-hot-toast';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -42,14 +43,29 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     onSubmit: async (values) => {
       // if there is unsaved changes in the request,
       // save them before renaming the request
+      if ((item.name === values.name) && (itemFilename === values.filename) {
+        return;
+      }
       if (!isFolder && item.draft) {
         await dispatch(saveRequest(item.uid, collection.uid, true));
       }
       if (values.name !== itemName) {
-        await dispatch(renameItemName(values.name, item.uid, collection.uid))
+        try {        
+          await dispatch(renameItemName(values.name, item.uid, collection.uid))
+          toast.success('Request renamed');
+        }
+        catch(error) {
+          toast.error(err ? err.message : 'An error occurred while renaming the request name');
+        }
       }
       if (values.filename !== itemFilename) {
-        await dispatch(renameItem(values.name, values.filename, item.uid, collection.uid));
+        try {        
+          await dispatch(renameItem(values.name, values.filename, item.uid, collection.uid));
+          toast.success('Request file renamed');
+        }
+        catch(error) {
+          toast.error(err ? err.message : 'An error occurred while renaming the request file');
+        }
       }
       onClose();
     }

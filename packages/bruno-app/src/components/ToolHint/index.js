@@ -10,7 +10,8 @@ const ToolHint = ({
   tooltipStyle = {},
   place = 'top',
   offset,
-  theme = null
+  theme = null,
+  className = ''
 }) => {
   const { theme: contextTheme } = useTheme();
   const appliedTheme = theme || contextTheme;
@@ -22,13 +23,14 @@ const ToolHint = ({
     ...tooltipStyle,
     fontSize: '0.75rem',
     padding: '0.25rem 0.5rem',
+    zIndex: 9999,
     backgroundColor: toolhintBackgroundColor,
     color: toolhintTextColor
   };
 
   return (
     <>
-      <span id={toolhintId}>{children}</span>
+      <span id={toolhintId} className={className}>{children}</span>
       <StyledWrapper theme={appliedTheme}>
         <ReactToolHint
           anchorId={toolhintId}

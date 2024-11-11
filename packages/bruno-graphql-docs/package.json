@@ -19,10 +19,10 @@
     "@types/react": "^18.0.25",
     "graphql": "^16.6.0",
     "markdown-it": "^13.0.1",
-    "postcss": "^8.4.18",
+    "postcss": "8.4.47",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "rollup":"3.29.4",
+    "rollup":"3.29.5",
     "rollup-plugin-dts": "^5.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
@@ -34,6 +34,6 @@
     "markdown-it": "^13.0.1"
   },
   "overrides": {
-    "rollup":"3.29.4"
+    "rollup":"3.29.5"
   }
 }

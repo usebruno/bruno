@@ -121,7 +121,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             auth: request.auth
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       } else {
         dispatch(
@@ -135,7 +138,10 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
             itemUid: item ? item.uid : null
           })
         )
-          .then(() => onClose())
+          .then(() => {
+            toast.success('New request created!');
+            onClose()
+          })
           .catch((err) => toast.error(err ? err.message : 'An error occurred while adding the request'));
       }
     }

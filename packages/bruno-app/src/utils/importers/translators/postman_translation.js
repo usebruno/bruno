@@ -5,6 +5,8 @@ const replacements = {
   'pm\\.variables\\.set\\(': 'bru.setVar(',
   'pm\\.collectionVariables\\.get\\(': 'bru.getVar(',
   'pm\\.collectionVariables\\.set\\(': 'bru.setVar(',
+  'pm\\.collectionVariables\\.has\\(': 'bru.hasVar(',
+  'pm\\.collectionVariables\\.unset\\(': 'bru.deleteVar(',
   'pm\\.setNextRequest\\(': 'bru.setNextRequest(',
   'pm\\.test\\(': 'test(',
   'pm.response.to.have\\.status\\(': 'expect(res.getStatus()).to.equal(',

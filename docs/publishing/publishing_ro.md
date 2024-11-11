@@ -1,14 +1,4 @@
 [English](../../publishing.md)
-| [Türkçe](./publishing_tr.md)
-| [Deutsch](./publishing_de.md)
-| [Français](./publishing_fr.md)
-| [Português (BR)](./publishing_pt_br.md)
-| [বাংলা](./publishing_bn.md)
-| **Română**
-| [Polski](./publishing_pl.md)
-| [简体中文](./publishing_cn.md)
-| [正體中文](./publishing_zhtw.md)
-| [日本語](./publishing_ja.md)
 
 ### Publicarea lui Bruno la un gestionar de pachete nou
 
