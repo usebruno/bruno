@@ -259,10 +259,17 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('omit-headers', {
+      type: 'boolean',
+      description: 'Omit headers in the output',
+      default: false
+    })
+
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run --omit-headers', 'Run all requests in a folder recursively with omitted headers in the output')
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -312,7 +319,8 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      omitHeaders
     } = argv;
     const collectionPath = process.cwd();
 
@@ -524,6 +532,12 @@ const handler = async function (argv) {
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: bruFilepath.replace('.bru', '')
       });
+      if (omitHeaders) {
+        results.forEach((result) => {
+          result.request.headers = {};
+          result.response.headers = {};
+        });
+      }
 
       // bail if option is set and there is a failure
       if (bail) {
