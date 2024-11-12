@@ -74,11 +74,11 @@ export class MaskedEditor {
       } else {
         for (let line = 0; line < lineCount; line++) {
           const lineLength = this.editor.getLine(line).length;
-          const maskedNode = document.createTextNode('*'.repeat(lineLength)); // Masking based on line length
+          const maskedNode = document.createTextNode('*'.repeat(lineLength)); 
           this.editor.markText(
             { line, ch: 0 },
             { line, ch: lineLength },
-            { replacedWith: maskedNode, handleMouseEvents: false } // Avoid unnecessary mouse events unless needed
+            { replacedWith: maskedNode, handleMouseEvents: false } 
           );
         }
       }
