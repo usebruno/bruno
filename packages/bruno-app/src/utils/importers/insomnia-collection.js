@@ -252,8 +252,6 @@ const parseInsomniaCollection = (data) => {
         );
 
         return environments.reduce((result, environment) => {
-          console.log('environment.data', environment.data);
-
           const variables = Object.entries(flatten(environment.data || {}, { delimiter: '_' })).map(([key, value]) => ({
             uid: uuid(),
             name: key,
