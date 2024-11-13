@@ -47,7 +47,7 @@ const General = ({ close }) => {
         filePath: get(preferences, 'request.customCaCertificate.filePath', null)
       },
       keepDefaultCaCertificates: {
-        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', false)
+        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
@@ -100,7 +100,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center mt-2">
+        <div className="flex items-center my-2">
           <input
             id="sslVerification"
             type="checkbox"

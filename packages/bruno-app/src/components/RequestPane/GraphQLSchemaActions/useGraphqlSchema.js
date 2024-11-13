@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { buildClientSchema } from 'graphql';
+import { buildClientSchema, buildSchema } from 'graphql';
 import { fetchGqlSchema } from 'utils/network';
-import { simpleHash } from 'utils/common';
+import { simpleHash, safeParseJSON } from 'utils/common';
 
 const schemaHashPrefix = 'bruno.graphqlSchema';
 
@@ -18,7 +18,12 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       if (!saved) {
         return null;
       }
-      return buildClientSchema(JSON.parse(saved));
+      let parsedData = safeParseJSON(saved);
+      if (typeof parsedData === 'object') {
+        return buildClientSchema(parsedData);
+      } else {
+        return buildSchema(parsedData);
+      }
     } catch {
       localStorage.setItem(localStorageKey, null);
       return null;
@@ -48,7 +53,7 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
       return;
     }
     setSchemaSource('file');
-    return schemaContent.data;
+    return schemaContent?.data || schemaContent;
   };
 
   const loadSchema = async (schemaSource) => {
@@ -66,11 +71,18 @@ const useGraphqlSchema = (endpoint, environment, request, collection) => {
         // fallback to introspection if source is unknown
         data = await loadSchemaFromIntrospection();
       }
-      setSchema(buildClientSchema(data));
-      localStorage.setItem(localStorageKey, JSON.stringify(data));
-      toast.success('GraphQL Schema loaded successfully');
+      if (data) {
+        if (typeof data === 'object') {
+          setSchema(buildClientSchema(data));
+        } else {
+          setSchema(buildSchema(data));
+        }
+        localStorage.setItem(localStorageKey, JSON.stringify(data));
+        toast.success('GraphQL Schema loaded successfully');
+      }
     } catch (err) {
       setError(err);
+      console.error(err);
       toast.error(`Error occurred while loading GraphQL Schema: ${err.message}`);
     }
 

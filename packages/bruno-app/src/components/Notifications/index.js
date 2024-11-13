@@ -10,6 +10,8 @@ import {
 } from 'providers/ReduxStore/slices/notifications';
 import { useDispatch, useSelector } from 'react-redux';
 import { humanizeDate, relativeDate } from 'utils/common';
+import ToolHint from 'components/ToolHint';
+import { useTheme } from 'providers/Theme';
 
 const PAGE_SIZE = 5;
 
@@ -20,6 +22,7 @@ const Notifications = () => {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
+  const { storedTheme } = useTheme();
 
   const notificationsStartIndex = (pageNumber - 1) * PAGE_SIZE;
   const notificationsEndIndex = pageNumber * PAGE_SIZE;
@@ -85,21 +88,24 @@ const Notifications = () => {
   return (
     <StyledWrapper>
       <a
-        title="Notifications"
         className="relative cursor-pointer"
         onClick={() => {
           dispatch(fetchNotifications());
           setShowNotificationsModal(true);
         }}
+        aria-label="Check all Notifications"
       >
-        <IconBell
-          size={18}
-          strokeWidth={1.5}
-          className={`mr-2 hover:text-gray-700 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
-        />
-        {unreadNotifications.length > 0 && (
-          <span className="notification-count text-xs">{unreadNotifications.length}</span>
-        )}
+        <ToolHint text="Notifications" toolhintId="Notifications" offset={8}>
+          <IconBell
+            size={18}
+            aria-hidden
+            strokeWidth={1.5}
+            className={`mr-2 ${unreadNotifications?.length > 0 ? 'bell' : ''}`}
+          />
+          {unreadNotifications.length > 0 && (
+            <span className="notification-count text-xs">{unreadNotifications.length}</span>
+          )}
+        </ToolHint>
       </a>
 
       {showNotificationsModal && (

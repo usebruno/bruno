@@ -24,6 +24,7 @@ import { hideHomePage } from 'providers/ReduxStore/slices/app';
 import toast from 'react-hot-toast';
 import StyledWrapper from './StyledWrapper';
 import NetworkError from 'components/ResponsePane/NetworkError/index';
+import { uuid } from 'utils/common';
 
 const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
@@ -188,6 +189,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
       toast.error('URL is required');
     }
   };
+
+  const viewFolderSettings = () => {
+    if (isItemAFolder(item)) {
+      if (itemIsOpenedInTabs(item, tabs)) {
+        dispatch(
+          focusTab({
+            uid: item.uid
+          })
+        );
+        return;
+      }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
+        })
+      );
+      return;
+    }
+  };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -326,7 +349,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Run
                 </div>
               )}
-              {!isFolder && item.type === 'http-request' && (
+              {!isFolder && (item.type === 'http-request' || item.type === 'graphql-request') && (
                 <div
                   className="dropdown-item"
                   onClick={(e) => {
@@ -345,6 +368,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
               >
                 Delete
               </div>
+              {isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    viewFolderSettings();
+                  }}
+                >
+                  Settings
+                </div>
+              )}
             </Dropdown>
           </div>
         </div>

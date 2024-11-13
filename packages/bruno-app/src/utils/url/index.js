@@ -2,6 +2,10 @@ import isEmpty from 'lodash/isEmpty';
 import trim from 'lodash/trim';
 import each from 'lodash/each';
 import filter from 'lodash/filter';
+import find from 'lodash/find';
+
+import brunoCommon from '@usebruno/common';
+const { interpolate } = brunoCommon;
 
 const hasLength = (str) => {
   if (!str || !str.length) {
@@ -14,16 +18,52 @@ const hasLength = (str) => {
 };
 
 export const parseQueryParams = (query) => {
-  if (!query || !query.length) {
+  try {
+    if (!query || !query.length) {
+      return [];
+    }
+
+    return Array.from(new URLSearchParams(query.split('#')[0]).entries())
+      .map(([name, value]) => ({ name, value }));
+  } catch (error) {
+    console.error('Error parsing query params:', error);
+    return [];
+  }
+};
+
+export const parsePathParams = (url) => {
+  let uri = url.slice();
+
+  if (!uri || !uri.length) {
     return [];
   }
 
-  let params = query.split('&').map((param) => {
-    let [name, value = ''] = param.split('=');
-    return { name, value };
-  });
+  if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
+    uri = `http://${uri}`;
+  }
 
-  return filter(params, (p) => hasLength(p.name));
+  let paths;
+
+  try {
+    uri = new URL(uri);
+    paths = uri.pathname.split('/');
+  } catch (e) {
+    paths = uri.split('/');
+  }
+
+  paths = paths.reduce((acc, path) => {
+    if (path !== '' && path[0] === ':') {
+      let name = path.slice(1, path.length);
+      if (name) {
+        let isExist = find(acc, (path) => path.name === name);
+        if (!isExist) {
+          acc.push({ name: path.slice(1, path.length), value: '' });
+        }
+      }
+    }
+    return acc;
+  }, []);
+  return paths;
 };
 
 export const stringifyQueryParams = (params) => {
@@ -66,4 +106,54 @@ export const isValidUrl = (url) => {
   } catch (err) {
     return false;
   }
+};
+
+export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
+  if (!url || !url.length || typeof url !== 'string') {
+    return;
+  }
+
+  return interpolate(url, {
+    ...globalEnvironmentVariables,
+    ...envVars,
+    ...runtimeVariables,
+    process: {
+      env: {
+        ...processEnvVars
+      }
+    }
+  });
+};
+
+export const interpolateUrlPathParams = (url, params) => {
+  const getInterpolatedBasePath = (pathname, params) => {
+    return pathname
+      .split('/')
+      .map((segment) => {
+        if (segment.startsWith(':')) {
+          const pathParamName = segment.slice(1);
+          const pathParam = params.find((p) => p?.name === pathParamName && p?.type === 'path');
+          return pathParam ? pathParam.value : segment;
+        }
+        return segment;
+      })
+      .join('/');
+  };
+
+  let uri;
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `http://${url}`;
+  }
+
+  try {
+    uri = new URL(url);
+  } catch (error) {
+    // if the URL is invalid, return the URL as is
+    return url;
+  }
+
+  const basePath = getInterpolatedBasePath(uri.pathname, params);
+
+  return `${uri.origin}${basePath}${uri?.search || ''}`;
 };

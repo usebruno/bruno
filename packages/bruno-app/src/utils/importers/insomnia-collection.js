@@ -1,6 +1,5 @@
 import jsyaml from 'js-yaml';
 import each from 'lodash/each';
-import forOwn from 'lodash/forOwn';
 import get from 'lodash/get';
 import fileDialog from 'file-dialog';
 import { flatten } from 'flat';
@@ -19,7 +18,7 @@ const readFile = (files) => {
       } catch (jsonError) {
         // not a valid JSOn, try yaml
         try {
-          const parsedData = jsyaml.load(e.target.result);
+          const parsedData = jsyaml.load(e.target.result, { schema: jsyaml.CORE_SCHEMA });
           resolve(parsedData);
         } catch (yamlError) {
           console.error('Error parsing the file :', jsonError, yamlError);
@@ -64,6 +63,7 @@ const regexToRemove = new RegExp('(?:_\\.|[\\s\\]]+)', 'g');
 const regexToUnderscore = new RegExp('[.\\[]', 'g');
 
 const normalizeVariables = (value) => {
+  value = value || '';
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replaceAll(variable, variable.replaceAll(regexToRemove, '').replaceAll(regexToUnderscore, '_'));
@@ -116,7 +116,19 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
       name: param.name,
       value: normalizeVariables(param.value),
       description: param.description,
+      type: 'query',
       enabled: !param.disabled
+    });
+  });
+
+  each(request.pathParameters, (param) => {
+    brunoRequestItem.request.params.push({
+      uid: uuid(),
+      name: param.name,
+      value: param.value,
+      description: '',
+      type: 'path',
+      enabled: true
     });
   });
 
@@ -166,7 +178,7 @@ const transformInsomniaRequestItem = (request, index, allRequests) => {
   } else if (mimeType === 'text/plain') {
     brunoRequestItem.request.body.mode = 'text';
     brunoRequestItem.request.body.text = normalizeVariables(request.body.text);
-  } else if (mimeType === 'text/xml') {
+  } else if (mimeType === 'text/xml' || mimeType === 'application/xml') {
     brunoRequestItem.request.body.mode = 'xml';
     brunoRequestItem.request.body.xml = normalizeVariables(request.body.text);
   } else if (mimeType === 'application/graphql') {
@@ -227,33 +239,38 @@ const parseInsomniaCollection = (data) => {
         return folders.concat(requests.map(transformInsomniaRequestItem));
       }
 
+      /**
+       * Creates environments from the given resources.
+       *
+       * @param {Array} resources - The array of resources.
+       * @param {string|null} [parentId=null] - The parent ID to filter environments.
+       * @returns {Array} The array of created environments.
+       */
       function createEnvironments(resources, parentId = null) {
-        const environments =
-          resources.filter((resource) => resource._type === 'environment' && resource.parentId === parentId) || [];
-        let result = [];
-        each(environments, (environment) => {
-          let variables = [];
-          forOwn(flatten(environment.data || {}, { delimiter: '_' }), (value, key) => {
-            variables.push({
-              uid: uuid(),
-              name: key,
-              value: normalizeVariables(value.toString()),
-              enabled: true,
-              secret: false,
-              type: 'text'
-            });
-          });
-          result = result
-            .concat([
-              {
-                uid: uuid(),
-                name: environment.name,
-                variables: variables
-              }
-            ])
-            .concat(createEnvironments(resources, environment._id));
-        });
-        return result;
+        const environments = resources.filter(
+          (resource) => resource._type === 'environment' && resource.parentId === parentId
+        );
+
+        return environments.reduce((result, environment) => {
+          console.log('environment.data', environment.data);
+
+          const variables = Object.entries(flatten(environment.data || {}, { delimiter: '_' })).map(([key, value]) => ({
+            uid: uuid(),
+            name: key,
+            value: normalizeVariables(value.toString()),
+            enabled: true,
+            secret: false,
+            type: 'text'
+          }));
+
+          const environmentResult = {
+            uid: uuid(),
+            name: environment.name,
+            variables
+          };
+
+          return result.concat(environmentResult, createEnvironments(resources, environment._id));
+        }, []);
       }
 
       brunoCollection.environments = createEnvironments(environments, insomniaCollection._id);
@@ -274,7 +291,7 @@ const importCollection = () => {
       .then(transformItemsInCollection)
       .then(hydrateSeqInCollection)
       .then(validateSchema)
-      .then((collection) => resolve(collection))
+      .then((collection) => resolve({ collection }))
       .catch((err) => {
         console.error(err);
         reject(new BrunoError('Import collection failed: ' + err.message));

@@ -4,13 +4,30 @@
 ### Bruno - Mediu integrat de dezvoltare cu sursă deschisă pentru explorarea și testarea API-urilor.
 
 [![GitHub version](https://badge.fury.io/gh/usebruno%2Fbruno.svg)](https://badge.fury.io/gh/usebruno%bruno)
-[![CI](https://github.com/usebruno/bruno/actions/workflows/unit-tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/workflows/unit-tests.yml)
+[![CI](https://github.com/usebruno/bruno/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/usebruno/bruno/actions/workflows/tests.yml)
 [![Commit Activity](https://img.shields.io/github/commit-activity/m/usebruno/bruno)](https://github.com/usebruno/bruno/pulse)
 [![X](https://img.shields.io/twitter/follow/use_bruno?style=social&logo=x)](https://twitter.com/use_bruno)
 [![Website](https://img.shields.io/badge/Website-Visit-blue)](https://www.usebruno.com)
 [![Download](https://img.shields.io/badge/Download-Latest-brightgreen)](https://www.usebruno.com/downloads)
 
-[English](/readme.md) | [Українська](/docs/readme/readme_ua.md) | [Русский](/docs/readme/readme_ru.md) | [Türkçe](/docs/readme/readme_tr.md) | [Deutsch](/docs/readme/readme_de.md) | [Français](/docs/readme/readme_fr.md) | [Português (BR)](/docs/readme/readme_pt_br.md)) | [한국어](/docs/readme/readme_kr.md) | [বাংলা](/docs/readme/readme_bn.md) | [Español](/docs/readme/readme_es.md) | [Italiano](/docs/readme/readme_it.md) | **Română**
+[English](../../readme.md)
+| [Українська](./readme_ua.md)
+| [Русский](./readme_ru.md)
+| [Türkçe](./readme_tr.md)
+| [Deutsch](./readme_de.md)
+| [Français](./readme_fr.md)
+| [Português (BR)](./readme_pt_br.md)
+| [한국어](./readme_kr.md)
+| [বাংলা](./readme_bn.md)
+| [Español](./readme_es.md)
+| [Italiano](./readme_it.md)
+| **Română**
+| [Polski](./readme_pl.md)
+| [简体中文](./readme_cn.md)
+| [正體中文](./readme_zhtw.md)
+| [العربية](./readme_ar.md)
+| [日本語](./readme_ja.md)
+| [ქართული](./readme_ka.md)
 
 Bruno este un client API nou și inovativ, care vizează să revoluționeze status quo-ul reprezentat de Postman și alte instrumente similare.
 
@@ -87,11 +104,11 @@ Dacă Bruno va ajutat la locul de muncă și la echipele dvs., vă rugăm să nu
 
 ### Publicarea la gestionari de pachete noi
 
-Vă rugăm să citiţi [aici](/docs/publishing/publishing_ro.md) pentru mai multă informaţie.
+Vă rugăm să citiţi [aici](../publishing/publishing_ro.md) pentru mai multă informaţie.
 
 ### Contribuiți 👩‍💻🧑‍💻
 
-Mă bucur că doriți să îmbunătățiți Bruno. Vă rugăm să consultați [ghidul pentru contribuire](/docs/contributing/contributing_ro.md)
+Mă bucur că doriți să îmbunătățiți Bruno. Vă rugăm să consultați [ghidul pentru contribuire](../contributing/contributing_ro.md)
 
 Chiar dacă nu puteți face contribuții prin cod, vă rugăm să nu ezitați să raportați erori și să solicitați funcții care trebuie implementate pentru a rezolva cazul dvs. de utilizare.
 
@@ -122,4 +139,4 @@ Logo-ul provine de la [OpenMoji](https://openmoji.org/library/emoji-1F436/). Lic
 
 ### Licența 📄
 
-[MIT](license.md)
+[MIT](../../license.md)
