@@ -32,6 +32,12 @@ Or run all requests in a collection's subfolder:
 bru run folder
 ```
 
+Run all Bruno collections recursively from a specified directory, regardless of your current working directory:
+
+```bash
+bru run --dir src/main/bruno
+```
+
 If you need to use an environment, you can specify it with the `--env` option:
 
 ```bash
