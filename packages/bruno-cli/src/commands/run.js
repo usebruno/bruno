@@ -264,12 +264,21 @@ const builder = async (yargs) => {
       description: 'Omit headers in the output',
       default: false
     })
+    .option('skip-headers', {
+      type: 'array',
+      description: 'Skip specific headers in the output',
+      default: []
+    })
 
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
     .example('$0 run --omit-headers', 'Run all requests in a folder recursively with omitted headers in the output')
+    .example(
+      '$0 run --skip-headers "Authorization"',
+      'Run all requests in a folder recursively with skipped headers in the output'
+    )
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -320,7 +329,8 @@ const handler = async function (argv) {
       sandbox,
       testsOnly,
       bail,
-      omitHeaders
+      omitHeaders,
+      skipHeaders
     } = argv;
     const collectionPath = process.cwd();
 
@@ -532,12 +542,35 @@ const handler = async function (argv) {
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: bruFilepath.replace('.bru', '')
       });
+
       if (omitHeaders) {
         results.forEach((result) => {
           result.request.headers = {};
           result.response.headers = {};
         });
       }
+
+      const deleteHeaderIfExists = (headers, header) => {
+        if (headers && headers[header]) {
+          delete headers[header];
+        }
+      };
+
+      if (skipHeaders?.length) {
+        results.forEach((result) => {
+          if (result.request?.headers) {
+            skipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.request.headers, header);
+            });
+          }
+          if (result.response?.headers) {
+            skipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.response.headers, header);
+            });
+          }
+        });
+      }
+
 
       // bail if option is set and there is a failure
       if (bail) {
