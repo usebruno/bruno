@@ -43,7 +43,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
     onSubmit: async (values) => {
       // if there is unsaved changes in the request,
       // save them before renaming the request
-      if ((item.name === values.name) && (itemFilename === values.filename) {
+      if ((item.name === values.name) && (itemFilename === values.filename)) {
         return;
       }
       if (!isFolder && item.draft) {
