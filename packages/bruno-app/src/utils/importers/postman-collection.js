@@ -506,7 +506,7 @@ const importPostmanV2Collection = (collection, options) => {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
   }
 
-  if (collection.variable){
+  if (collection?.variable){
     importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
