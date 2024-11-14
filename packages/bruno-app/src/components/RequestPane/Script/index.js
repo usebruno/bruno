@@ -49,7 +49,7 @@ const Script = ({ item, collection }) => {
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           onEdit={onRequestScriptEdit}
-          mode="application/javascript"
+          mode="javascript"
           onRun={onRun}
           onSave={onSave}
         />
@@ -63,7 +63,7 @@ const Script = ({ item, collection }) => {
           font={get(preferences, 'font.codeFont', 'default')}
           fontSize={get(preferences, 'font.codeFontSize')}
           onEdit={onResponseScriptEdit}
-          mode="application/javascript"
+          mode="javascript"
           onRun={onRun}
           onSave={onSave}
         />

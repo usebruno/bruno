@@ -133,10 +133,7 @@ export default class CodeEditor extends React.Component {
       lineNumbers: true,
       lineWrapping: true,
       tabSize: TAB_SIZE,
-      mode: {
-        name: this.props.mode || 'application/ld+json',
-        jsonld: this.props.mode == 'application/javascript' && this.props.jsonld
-      },
+      mode: this.props.mode || 'application/ld+json',
       keyMap: 'sublime',
       autoCloseBrackets: true,
       matchBrackets: true,
@@ -192,32 +189,7 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Cmd-/': (cm) => {
-          // comment/uncomment every selected line(s)
-          const selections = cm.listSelections();
-          selections.forEach((range) => {
-            for (let i = range.from().line; i <= range.to().line; i++) {
-              const selectedLine = cm.getLine(i);
-              // if commented line, remove comment
-              if (selectedLine.trim().startsWith('//')) {
-                cm.replaceRange(
-                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
-                  { line: i, ch: 0 },
-                  { line: i, ch: selectedLine.length }
-                );
-                continue;
-              }
-              // otherwise add comment
-              cm.replaceRange(
-                selectedLine.search(/\S|$/) >= TAB_SIZE
-                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
-                  : '// ' + selectedLine,
-                { line: i, ch: 0 },
-                { line: i, ch: selectedLine.length }
-              );
-            }
-          });
-        }
+        'Cmd-/': 'toggleComment'
       },
       foldOptions: {
         widget: (from, to) => {
