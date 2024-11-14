@@ -166,6 +166,18 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
   });
 };
 
+const importCollectionLevelVariables = (variables, brunoObject) => {
+
+  const vars = variables.map((v) => ({
+    uid: uuid(),
+    name: v.key,
+    value: v.value,
+    enabled: true
+  }));
+
+  brunoObject.vars.req = vars;
+};
+
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
@@ -492,6 +504,10 @@ const importPostmanV2Collection = (collection, options) => {
 
   if (collection.event) {
     importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+  }
+
+  if (collection.variable){
+    importCollectionLevelVariables(collection.variable, brunoCollection.root.request);
   }
 
   importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
