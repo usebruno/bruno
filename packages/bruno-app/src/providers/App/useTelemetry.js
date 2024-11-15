@@ -13,7 +13,7 @@ import platformLib from 'platform';
 import { uuid } from 'utils/common';
 
 const { publicRuntimeConfig } = getConfig();
-const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
+const posthogApiKey = process.env.POSTHOG_API_KEY;
 let posthogClient = null;
 
 const isPlaywrightTestRunning = () => {
