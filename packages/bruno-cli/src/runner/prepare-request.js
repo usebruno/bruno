@@ -35,7 +35,7 @@ const prepareRequest = (request, collectionRoot) => {
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth && request.auth.mode === 'inherit') {
+  if (collectionAuth && request.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -46,9 +46,22 @@ const prepareRequest = (request, collectionRoot) => {
     if (collectionAuth.mode === 'bearer') {
       axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
+
+    if (collectionAuth.mode === 'apikey') {
+      if (collectionAuth.apikey?.placement === 'header') {
+        axiosRequest.headers[collectionAuth.apikey?.key] = collectionAuth.apikey?.value;
+      }
+      
+      if (collectionAuth.apikey?.placement === 'queryparams') {
+        if (axiosRequest.url) {
+          const prefix = (!axiosRequest.url.includes('?')) ? '?' : '&';
+          axiosRequest.url += `${prefix}${collectionAuth.apikey.key}=${collectionAuth.apikey.value}`;
+        }
+      }
+    }
   }
 
-  if (request.auth) {
+  if (request.auth && request.auth.mode !== 'inherit') {
     if (request.auth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(request, 'auth.basic.username'),
