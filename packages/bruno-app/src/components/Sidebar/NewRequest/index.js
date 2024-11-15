@@ -12,6 +12,7 @@ import HttpMethodSelector from 'components/RequestPane/QueryUrl/HttpMethodSelect
 import { getDefaultRequestPaneTab } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
 import { getRequestFromCurlCommand } from 'utils/curl';
+import { fileNameRegex } from 'utils/common/regex';
 
 const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
   const dispatch = useDispatch();
@@ -58,6 +59,12 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
           name: 'requestName',
           message: `The request names - collection and folder is reserved in bruno`,
           test: (value) => {
+            if (fileNameRegex.test(value) === false) {
+              toast.error(
+                `Request name contains invalid characters! Request names must not contain any of the following characters: < > : " / \ | ? *`
+              );
+              return false;
+            }
             const trimmedValue = value ? value.trim().toLowerCase() : '';
             return !['collection', 'folder'].includes(trimmedValue);
           }
