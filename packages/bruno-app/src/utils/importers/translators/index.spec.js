@@ -11,6 +11,9 @@ describe('postmanTranslation function', () => {
       pm.collectionVariables.set('key', 'value');
       const data = pm.response.json();
       pm.expect(pm.environment.has('key')).to.be.true;
+      postman.setEnvironmentVariable('key', 'value');
+      postman.getEnvironmentVariable('key');
+      postman.clearEnvironmentVariable('key');
     `;
     const expectedOutput = `
       bru.getEnvVar('key');
@@ -23,6 +26,7 @@ describe('postmanTranslation function', () => {
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
       bru.setEnvVar('key', 'value');
       bru.getEnvVar('key');
+      bru.deleteEnvVar('key');
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
