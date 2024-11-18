@@ -18,7 +18,10 @@ const replacements = {
   'pm\\.response\\.text\\(': 'res.getBody()?.toString(',
   'pm\\.expect\\.fail\\(': 'expect.fail(',
   'pm\\.response\\.responseTime': 'res.getResponseTime()',
-  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });'
+  "tests\\['([^']+)'\\]\\s*=\\s*([^;]+);": 'test("$1", function() { expect(Boolean($2)).to.be.true; });',
+  // deprecated translations
+  'postman\\.setEnvironmentVariable\\(': 'bru.setEnvVar(',
+  'postman\\.getEnvironmentVariable\\(': 'bru.getEnvVar(',
 };
 
 const extendedReplacements = Object.keys(replacements).reduce((acc, key) => {

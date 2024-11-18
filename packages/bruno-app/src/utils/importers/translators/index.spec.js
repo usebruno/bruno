@@ -21,6 +21,8 @@ describe('postmanTranslation function', () => {
       bru.setVar('key', 'value');
       const data = res.getBody();
       expect(bru.getEnvVar('key') !== undefined && bru.getEnvVar('key') !== null).to.be.true;
+      bru.setEnvVar('key', 'value');
+      bru.getEnvVar('key');
     `;
     expect(postmanTranslation(inputScript)).toBe(expectedOutput);
   });
