@@ -1,6 +1,5 @@
 const { get, each, filter } = require('lodash');
 const fs = require('fs');
-var JSONbig = require('json-bigint');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 
@@ -31,7 +30,8 @@ const prepareRequest = (request, collectionRoot) => {
     method: request.method,
     url: request.url,
     headers: headers,
-    pathParams: request?.params?.filter((param) => param.type === 'path')
+    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    responseType: 'arraybuffer'
   };
 
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -96,16 +96,10 @@ const prepareRequest = (request, collectionRoot) => {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
-    let jsonBody;
     try {
-      jsonBody = decomment(request?.body?.json);
+      axiosRequest.data = decomment(request?.body?.json);
     } catch (error) {
-      jsonBody = request?.body?.json;
-    }
-    try {
-      axiosRequest.data = JSONbig.parse(jsonBody);
-    } catch (error) {
-      axiosRequest.data = jsonBody;
+      axiosRequest.data = request?.body?.json;
     }
   }
 
