@@ -23,23 +23,26 @@
   --color-method-options: rgb(52 52 52);
   --color-method-head: rgb(52 52 52);
 }
-
-*,.graphiql-container,.CodeMirror-info,.CodeMirror-lint-tooltip,reach-portal {
+:root,.graphiql-container,.CodeMirror-info,.CodeMirror-lint-tooltip,reach-portal {
   /* Required CSS variables after upgrading GraphiQL from v1.5.9 to v2.4.7 */
-  --color-primary: 0, 0%, 0% !important;
-  --color-secondary: 0, 0%, 0% !important;
-  --color-tertiary: 0, 0%, 0% !important;
-  --color-info: 0, 0%, 0% !important;
-  --color-success: 0, 0%, 0% !important;
-  --color-warning: 0, 0%, 0% !important;
-  --color-error: 0, 0%, 0% !important;
-  --color-neutral: 0, 0%, 0% !important;
-  --color-base: 0, 0%, 100% !important;
-  --alpha-secondary: .76;
-  --alpha-tertiary: .5;
-  --alpha-background-heavy: .15;
-  --alpha-background-medium: .1;
-  --alpha-background-light: .07;
+  /* Colors */
+  --color-primary: 320, 95%, 43% !important;
+  --color-secondary: 242, 51%, 61% !important;
+  --color-tertiary: 188, 100%, 36% !important;
+  --color-info: 208, 100%, 46% !important;
+  --color-success: 158, 60%, 42% !important;
+  --color-warning: 36, 100%, 41% !important;
+  --color-error: 13, 93%, 58% !important;
+  --color-neutral: 219, 28%, 32% !important;
+  --color-base: 219, 28%, 100% !important;
+
+  /* Color alpha values */
+  --alpha-secondary: 0.76 !important;
+  --alpha-tertiary: 0.5 !important;
+  --alpha-background-heavy: 0.15 !important;
+  --alpha-background-medium: 0.1 !important;
+  --alpha-background-light: 0.07 !important;
+  
   --font-size-hint: .75rem;
   --font-size-inline-code: .8125rem;
   --font-size-body: .9375rem;
