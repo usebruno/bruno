@@ -1430,6 +1430,9 @@ export const collectionsSlice = createSlice({
         const folderPath = getDirectoryName(file.meta.pathname);
         const folderItem = findItemInCollectionByPathname(collection, folderPath);
         if (folderItem) {
+          if (file?.data?.meta?.name) {
+            folderItem.name = file?.data?.meta?.name;
+          }
           folderItem.root = file.data;
         }
         return;
@@ -1441,7 +1444,7 @@ export const collectionsSlice = createSlice({
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
@@ -1496,12 +1499,13 @@ export const collectionsSlice = createSlice({
         let currentPath = collection.pathname;
         let currentSubItems = collection.items;
         for (const directoryName of subDirectories) {
-          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.name === directoryName);
+          let childItem = currentSubItems.find((f) => f.type === 'folder' && f.filename === directoryName);
           if (!childItem) {
             childItem = {
               uid: uuid(),
               pathname: `${currentPath}${PATH_SEPARATOR}${directoryName}`,
-              name: directoryName,
+              name: dir?.meta?.name || directoryName,
+              filename: directoryName,
               collapsed: true,
               type: 'folder',
               items: []
@@ -1517,11 +1521,25 @@ export const collectionsSlice = createSlice({
     },
     collectionChangeFileEvent: (state, action) => {
       const { file } = action.payload;
+      const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
+      if (isCollectionRoot) {
+        if (collection) {
+          collection.root = file.data;
+        }
+        return;
+      }
 
-      // check and update collection root
-      if (collection && file.meta.collectionRoot) {
-        collection.root = file.data;
+      if (isFolderRoot) {
+        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          if (file?.data?.meta?.name) {
+            folderItem.name = file?.data?.meta?.name;
+          }
+          folderItem.root = file.data;
+        }
         return;
       }
 
