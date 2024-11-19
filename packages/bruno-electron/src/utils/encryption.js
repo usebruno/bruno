@@ -8,8 +8,11 @@ const AES256_ALGO = '01';
 
 // AES-256 encryption and decryption functions
 function aes256Encrypt(data) {
-  const key = machineIdSync();
-  const cipher = crypto.createCipher('aes-256-cbc', key);
+  const rawKey = machineIdSync();
+  const key = crypto.createHash('sha256').update(rawKey).digest();
+  // temp fix: iv should ideally be a unique value
+  const iv = key.slice(0, 16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
 
@@ -17,8 +20,11 @@ function aes256Encrypt(data) {
 }
 
 function aes256Decrypt(data) {
-  const key = machineIdSync();
-  const decipher = crypto.createDecipher('aes-256-cbc', key);
+  const rawKey = machineIdSync();
+  const key = crypto.createHash('sha256').update(rawKey).digest();
+  // temp fix: iv value should be same as the value that was used during the encryption step
+  const iv = key.slice(0, 16)
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
   let decrypted = decipher.update(data, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
 
