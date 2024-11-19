@@ -15,7 +15,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
 
 if (!SERVER_RENDERED) {
