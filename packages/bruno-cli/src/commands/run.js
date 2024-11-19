@@ -259,6 +259,11 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('ssl-cert-list', {
+      type: 'string',
+      description: 'Path to the SSL client certificate list file used for securing the connection in the request'
+    })
+
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -292,7 +297,8 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
-    );
+    )
+    .example('$0 run --ssl-cert-list ssl-cert-list.json', 'Run a request with SSL client certificate list');
 };
 
 const handler = async function (argv) {
@@ -312,7 +318,8 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      sslCertList
     } = argv;
     const collectionPath = process.cwd();
 
@@ -329,6 +336,38 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+
+    if (sslCertList) {
+      try {
+        const sslCertListPathExists = await exists(sslCertList);
+        if (!sslCertListPathExists) {
+          console.error(chalk.red(`SSL Certificate List file "${sslCertList}" does not exist.`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
+
+        const sslCertListFile = fs.readFileSync(sslCertList, 'utf8');
+        let sslCertListJson;
+
+        try {
+          sslCertListJson = JSON.parse(sslCertListFile);
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse SSL Certificate List JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+        }
+        if (brunoConfig.clientCertificates) {
+          brunoConfig.clientCertificates = {
+            ...brunoConfig.clientCertificates,
+            certs: [...brunoConfig.clientCertificates.certs, ...sslCertListJson]
+          };
+        } else {
+          brunoConfig.clientCertificates = { certs: sslCertListJson };
+        }
+      } catch (err) {
+        console.error(chalk.red(`Unexpected error: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+      }
+    }
+
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
