@@ -65,6 +65,7 @@ if (!SERVER_RENDERED) {
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.deleteEnvVar(key)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
