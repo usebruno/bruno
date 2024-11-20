@@ -189,6 +189,7 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
+        'Ctrl-/': 'toggleComment',
         'Cmd-/': 'toggleComment'
       },
       foldOptions: {
