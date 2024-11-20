@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect } from 'react';
 import CodeEditor from 'components/CodeEditor/index';
 import { get } from 'lodash';
 import { useDispatch, useSelector } from 'react-redux';
@@ -120,4 +120,4 @@ const QueryResultPreview = ({
   }
 };
 
-export default memo(QueryResultPreview);
+export default QueryResultPreview;
