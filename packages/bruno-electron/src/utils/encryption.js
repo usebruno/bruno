@@ -30,9 +30,9 @@ function deriveKeyAndIv(password, keyLength, ivLength) {
 }
 
 function aes256Encrypt(data) {
-  const password = machineIdSync();
+  const rawKey = machineIdSync();
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
-  const key = crypto.createHash('sha256').update(password).digest(); // Derive a 32-byte key
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
@@ -41,11 +41,11 @@ function aes256Encrypt(data) {
 }
 
 function aes256Decrypt(data) {
-  const password = machineIdSync();
+  const rawKey = machineIdSync();
 
   // Attempt to decrypt using new method first
   const iv = Buffer.alloc(16, 0); // Default IV for new encryption
-  const key = crypto.createHash('sha256').update(password).digest(); // Derive a 32-byte key
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
 
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
@@ -54,7 +54,7 @@ function aes256Decrypt(data) {
     return decrypted;
   } catch (err) {
     // If decryption fails, fall back to old key derivation
-    const { key: oldKey, iv: oldIv } = deriveKeyAndIv(password, 32, 16);
+    const { key: oldKey, iv: oldIv } = deriveKeyAndIv(rawKey, 32, 16);
     const decipher = crypto.createDecipheriv('aes-256-cbc', oldKey, oldIv);
     let decrypted = decipher.update(data, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
