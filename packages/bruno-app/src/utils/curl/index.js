@@ -49,6 +49,7 @@ export const getRequestFromCurlCommand = (curlCommand, requestType = 'http-reque
       xml: null,
       sparql: null,
       multipartForm: null,
+      formUrlEncoded: null,
       graphql: null
     };
 
