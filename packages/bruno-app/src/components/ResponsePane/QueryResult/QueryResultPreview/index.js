@@ -11,7 +11,7 @@ import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
 import ReactPlayer from 'react-player';
 
-const VideoPreview = memo(({ contentType, dataBuffer }) => {
+const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
   const [videoUrl, setVideoUrl] = useState(null);
 
   useEffect(() => {
