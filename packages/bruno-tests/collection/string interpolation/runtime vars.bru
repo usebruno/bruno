@@ -40,7 +40,7 @@ assert {
 script:pre-request {
   bru.setVar("rUser", {
     full_name: 'Bruno',
-    age: 4,
+    age: 5,
     'fav-food': ['egg', 'meat'],
     'want.attention': true
   });
@@ -49,7 +49,7 @@ script:pre-request {
 tests {
   test("should return json", function() {
     const expectedResponse = `Hi, I am Bruno,
-  I am 4 years old.
+  I am 5 years old.
   My favorite food is egg and meat.
   I like attention: true`;
     expect(res.getBody()).to.equal(expectedResponse);

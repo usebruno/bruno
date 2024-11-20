@@ -1,5 +1,5 @@
 {
-  "version": "v1.33.1",
+  "version": "v1.34.2",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -63,6 +63,6 @@
   },
   "devDependencies": {
     "electron": "31.2.1",
-    "electron-builder": "24.13.3"
+    "electron-builder": "25.1.8"
   }
 }

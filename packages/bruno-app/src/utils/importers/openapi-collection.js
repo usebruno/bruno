@@ -316,7 +316,7 @@ const getDefaultUrl = (serverObject) => {
       url = url.replace(`{${variableName}}`, sub);
     });
   }
-  return url.endsWith('/') ? url : `${url}/`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
 };
 
 const getSecurity = (apiSpec) => {
@@ -353,7 +353,7 @@ const openAPIRuntimeExpressionToScript = (expression) => {
   return expression;
 };
 
-const parseOpenApiCollection = (data) => {
+export const parseOpenApiCollection = (data) => {
   const brunoCollection = {
     name: '',
     uid: uuid(),

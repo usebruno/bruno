@@ -6,10 +6,34 @@ const { safeStorage } = require('electron');
 const ELECTRONSAFESTORAGE_ALGO = '00';
 const AES256_ALGO = '01';
 
-// AES-256 encryption and decryption functions
+function deriveKeyAndIv(password, keyLength, ivLength) {
+  const key = Buffer.alloc(keyLength);
+  const iv = Buffer.alloc(ivLength);
+  const derivedBytes = [];
+  let lastHash = null;
+
+  while (Buffer.concat(derivedBytes).length < keyLength + ivLength) {
+    const hash = crypto.createHash('md5');
+    if (lastHash) {
+      hash.update(lastHash);
+    }
+    hash.update(Buffer.from(password, 'utf8'));
+    lastHash = hash.digest();
+    derivedBytes.push(lastHash);
+  }
+
+  const concatenatedBytes = Buffer.concat(derivedBytes);
+  concatenatedBytes.copy(key, 0, 0, keyLength);
+  concatenatedBytes.copy(iv, 0, keyLength, keyLength + ivLength);
+
+  return { key, iv };
+}
+
 function aes256Encrypt(data) {
-  const key = machineIdSync();
-  const cipher = crypto.createCipher('aes-256-cbc', key);
+  const rawKey = machineIdSync();
+  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(data, 'utf8', 'hex');
   encrypted += cipher.final('hex');
 
@@ -17,13 +41,27 @@ function aes256Encrypt(data) {
 }
 
 function aes256Decrypt(data) {
-  const key = machineIdSync();
-  const decipher = crypto.createDecipher('aes-256-cbc', key);
-  let decrypted = decipher.update(data, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
+  const rawKey = machineIdSync();
 
-  return decrypted;
+  // Attempt to decrypt using new method first
+  const iv = Buffer.alloc(16, 0); // Default IV for new encryption
+  const key = crypto.createHash('sha256').update(rawKey).digest(); // Derive a 32-byte key
+
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+    let decrypted = decipher.update(data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    // If decryption fails, fall back to old key derivation
+    const { key: oldKey, iv: oldIv } = deriveKeyAndIv(rawKey, 32, 16);
+    const decipher = crypto.createDecipheriv('aes-256-cbc', oldKey, oldIv);
+    let decrypted = decipher.update(data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  }
 }
+
 
 // electron safe storage encryption and decryption functions
 function safeStorageEncrypt(str) {
