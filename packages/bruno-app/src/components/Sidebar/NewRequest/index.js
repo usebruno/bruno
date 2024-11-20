@@ -48,18 +48,6 @@ const NewRequest = ({ collection, item, isEphemeral, onClose }) => {
       return;
     }
 
-    if (body.json) {
-      try {
-        const parsedJson = JSON.parse(body.json);
-        if (parsedJson && (parsedJson.query || parsedJson.variables || parsedJson.mutation)) {
-          setCurlRequestTypeDetected('graphql-request');
-          return;
-        }
-      } catch (err) {
-        console.error('Failed to parse JSON body:', err);
-      }
-    }
-
     setCurlRequestTypeDetected('http-request');
   };
 
