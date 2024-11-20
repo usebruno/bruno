@@ -58,7 +58,7 @@ if (!SERVER_RENDERED) {
     'req.getExecutionMode()',
     'bru',
     'bru.cwd()',
-    'bru.getEnvName(key)',
+    'bru.getEnvName()',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
