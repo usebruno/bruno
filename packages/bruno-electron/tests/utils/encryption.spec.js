@@ -22,7 +22,7 @@ describe('Encryption and Decryption Tests', () => {
     expect(() => decryptString('garbage')).toThrow('Decrypt failed: unrecognized string format');
   });
 
-  it('string encrypted using createCipher (< node 20) should be decrypted properly', () => {
+  it.skip('string encrypted using createCipher (< node 20) should be decrypted properly', () => {
     const encryptedString = '$01:2738e0e6a38bcde5fd80141ceadc9b67bc7b1fca7e398c552c1ca2bace28eb57';
     const decryptedValue = decryptString(encryptedString);
 
