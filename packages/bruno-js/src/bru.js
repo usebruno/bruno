@@ -4,7 +4,7 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables, setCookiesForUrl, getCookiesForUrl) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
@@ -13,6 +13,8 @@ class Bru {
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.collectionPath = collectionPath;
+    this.setCookiesForUrl = setCookiesForUrl;
+    this.getCookiesForUrl = getCookiesForUrl;
   }
 
   _interpolate = (str) => {
@@ -137,6 +139,26 @@ class Bru {
 
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  getCookie(url) {
+    let interpolatedUrl = this._interpolate(url);
+    try {
+      return this.getCookiesForUrl?.(interpolatedUrl);
+    }
+    catch(error) {
+      console.error(error);
+    }
+  }
+
+  setCookie(cookie, url) {
+    let interpolatedUrl = this._interpolate(url);
+    try {
+      this.setCookiesForUrl?.(cookie, interpolatedUrl);
+    }
+    catch(error) {
+      console.error(error);
+    }
   }
 }
 

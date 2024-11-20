@@ -128,6 +128,18 @@ const addBruShimToContext = (vm, bru) => {
   });
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
+  let getCookie = vm.newFunction('getCookie', function (url) {
+    return marshallToVm(bru.getCookie(vm.dump(url)), vm);
+  });
+  vm.setProp(bruObject, 'getCookie', getCookie);
+  getCookie.dispose();
+
+  let setCookie = vm.newFunction('setCookie', function (cookie, url) {
+    return marshallToVm(bru.setCookie(vm.dump(cookie), vm.dump(url)), vm);
+  });
+  vm.setProp(bruObject, 'setCookie', setCookie);
+  setCookie.dispose();
+
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 };

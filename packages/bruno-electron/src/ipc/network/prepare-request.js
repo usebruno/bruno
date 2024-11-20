@@ -7,6 +7,7 @@ const path = require('path');
 const crypto = require('node:crypto');
 const { getTreePathFromCollectionToItem } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload } = require('../../utils/common');
+const { addCookieToJar, getCookiesForUrl } = require('../../utils/cookies');
 
 const mergeFolderLevelHeaders = (request, requestTreePath) => {
   let folderHeaders = new Map();
@@ -464,6 +465,9 @@ const prepareRequest = (item, collection) => {
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.assertions = request.assertions;
+
+  axiosRequest.setCookiesForUrl = (cookie, url) => addCookieToJar(cookie, url);
+  axiosRequest.getCookiesForUrl = (cookie, url) => getCookiesForUrl(cookie, url);
 
   return axiosRequest;
 };

@@ -75,7 +75,9 @@ if (!SERVER_RENDERED) {
     'bru.getRequestVar(key)',
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)'
+    'bru.setGlobalEnvVar(key, value)',
+    'bru.setCookie(cookieString, url);',
+    'bru.getCookie(url);'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
