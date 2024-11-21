@@ -259,14 +259,14 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
-    .option('omit-headers', {
+    .option('reporter-omit-headers', {
       type: 'boolean',
-      description: 'Omit headers in the output',
+      description: 'Omit headers from the reporter output',
       default: false
     })
-    .option('skip-headers', {
+    .option('reporter-skip-headers', {
       type: 'array',
-      description: 'Skip specific headers in the output',
+      description: 'Skip specific headers from the reporter output',
       default: []
     })
 
@@ -274,10 +274,10 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
-    .example('$0 run --omit-headers', 'Run all requests in a folder recursively with omitted headers in the output')
+    .example('$0 run --reporter-omit-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
     .example(
-      '$0 run --skip-headers "Authorization"',
-      'Run all requests in a folder recursively with skipped headers in the output'
+      '$0 run --reporter-skip-headers "Authorization"',
+      'Run all requests in a folder recursively with skipped headers from the reporter output'
     )
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
@@ -329,8 +329,8 @@ const handler = async function (argv) {
       sandbox,
       testsOnly,
       bail,
-      omitHeaders,
-      skipHeaders
+      reporterOmitHeaders,
+      reporterSkipHeaders
     } = argv;
     const collectionPath = process.cwd();
 
@@ -543,7 +543,7 @@ const handler = async function (argv) {
         suitename: bruFilepath.replace('.bru', '')
       });
 
-      if (omitHeaders) {
+      if (reporterOmitHeaders) {
         results.forEach((result) => {
           result.request.headers = {};
           result.response.headers = {};
@@ -556,15 +556,15 @@ const handler = async function (argv) {
         }
       };
 
-      if (skipHeaders?.length) {
+      if (reporterSkipHeaders?.length) {
         results.forEach((result) => {
           if (result.request?.headers) {
-            skipHeaders.forEach((header) => {
+            reporterSkipHeaders.forEach((header) => {
               deleteHeaderIfExists(result.request.headers, header);
             });
           }
           if (result.response?.headers) {
-            skipHeaders.forEach((header) => {
+            reporterSkipHeaders.forEach((header) => {
               deleteHeaderIfExists(result.response.headers, header);
             });
           }
