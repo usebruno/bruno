@@ -39,6 +39,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruObject, 'setEnvVar', setEnvVar);
   setEnvVar.dispose();
 
+  let deleteEnvVar = vm.newFunction('deleteEnvVar', function (key) {
+    return marshallToVm(bru.deleteEnvVar(vm.dump(key)), vm);
+  });
+  vm.setProp(bruObject, 'deleteEnvVar', deleteEnvVar);
+  deleteEnvVar.dispose();
+
   let getGlobalEnvVar = vm.newFunction('getGlobalEnvVar', function (key) {
     return marshallToVm(bru.getGlobalEnvVar(vm.dump(key)), vm);
   });

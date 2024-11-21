@@ -26,6 +26,12 @@ const StyledWrapper = styled.div`
 
   .CodeMirror-dialog {
     overflow: visible;
+    input {
+      background: transparent;
+      border: 1px solid #d3d6db;
+      outline: none;
+      border-radius: 0px;
+    }
   }
 
   #search-results-count {
@@ -81,6 +87,14 @@ const StyledWrapper = styled.div`
 
   .CodeMirror-search-hint {
     display: inline;
+  }
+
+  .cm-s-default span.cm-property {
+    color: #1f61a0 !important;
+  }
+
+  .cm-s-default span.cm-variable {
+    color: #397d13 !important;
   }
 `;
 
