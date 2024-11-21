@@ -211,7 +211,7 @@ const builder = async (yargs) => {
       description:
         'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
     })
-    .option('use-cookies', {
+    .option('disable-cookies', {
       type: 'boolean',
       default: false,
       description: 'Automatically save and sent cookies with requests'
@@ -306,7 +306,7 @@ const handler = async function (argv) {
       filename,
       cacert,
       ignoreTruststore,
-      useCookies,
+      disableCookies,
       env,
       envVar,
       insecure,
@@ -398,8 +398,8 @@ const handler = async function (argv) {
     if (insecure) {
       options['insecure'] = true;
     }
-    if (useCookies) {
-      options['useCookies'] = true;
+    if (disableCookies) {
+      options['disableCookies'] = true;
     }
     if (cacert && cacert.length) {
       if (insecure) {
