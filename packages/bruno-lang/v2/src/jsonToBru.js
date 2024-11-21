@@ -165,6 +165,18 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
 `;
   }
 
+
+  if (auth && auth.ntlm) {
+    bru += `auth:ntlm {
+${indentString(`username: ${auth?.ntlm?.username || ''}`)}
+${indentString(`password: ${auth?.ntlm?.password || ''}`)}
+${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
+
+}
+
+`;
+  }  
+
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
       case 'password':

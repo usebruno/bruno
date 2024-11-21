@@ -21,6 +21,8 @@ const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util'
 const path = require('path');
 const { createFormData } = require('../utils/common');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
+const { NtlmClient } = require('axios-ntlm');
+
 
 const onConsoleLog = (type, args) => {
   console[type](...args);
@@ -193,8 +195,13 @@ const runSingleRequest = async function (
 
     let response, responseTime;
     try {
-      // run request
-      const axiosInstance = makeAxiosInstance();
+      
+      let axiosInstance = makeAxiosInstance();
+      if (request.ntlmConfig) {
+        axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
+        delete request.ntlmConfig;
+      }
+    
 
       if (request.awsv4config) {
         // todo: make this happen in prepare-request.js
