@@ -180,7 +180,7 @@ const runSingleRequest = async function (
     }
 
     //set cookies if enabled
-    if (options.useCookies) {
+    if (!options.disableCookies) {
       const cookieString = getCookieStringForUrl(request.url);
       if (cookieString && typeof cookieString === 'string' && cookieString.length) {
         request.headers['cookie'] = cookieString;
@@ -231,7 +231,7 @@ const runSingleRequest = async function (
       response.headers.delete('request-duration');
 
       //save cookies if enabled
-      if (options.useCookies) {
+      if (!options.disableCookies) {
         saveCookies(request.url, response.headers);
       }
     } catch (err) {
