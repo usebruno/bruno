@@ -264,6 +264,11 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('client-cert-config', {
+      type: 'string',
+      description: 'Path to the Client certificate config file used for securing the connection in the request'
+    })
+
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
@@ -297,7 +302,8 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
-    );
+    )
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations');
 };
 
 const handler = async function (argv) {
@@ -318,7 +324,8 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      clientCertConfig
     } = argv;
     const collectionPath = process.cwd();
 
@@ -335,6 +342,41 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+
+    if (clientCertConfig) {
+      try {
+        const clientCertConfigExists = await exists(clientCertConfig);
+        if (!clientCertConfigExists) {
+          console.error(chalk.red(`Client Certificate Config file "${clientCertConfig}" does not exist.`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
+
+        const clientCertConfigFileContent = fs.readFileSync(clientCertConfig, 'utf8');
+        let clientCertConfigJson;
+
+        try {
+          clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+        }
+
+        if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
+          if (brunoConfig.clientCertificates) {
+            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
+          } else {
+            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
+          }
+          console.log(chalk.green(`Client certificates has been added`));
+        } else {
+          console.warn(chalk.yellow(`Client certificate configuration is enabled, but it either contains no valid "certs" array or the added configuration has been set to false`));
+        }
+      } catch (err) {
+        console.error(chalk.red(`Unexpected error: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+      }
+    }
+
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
