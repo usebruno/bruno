@@ -132,7 +132,7 @@
 }
 
 .graphiql-container {
-  background: transparent;
+  background: transparent !important;
 }
 
 html,
