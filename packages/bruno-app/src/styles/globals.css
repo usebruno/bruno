@@ -131,6 +131,10 @@
   --px-12: 2px !important;
 }
 
+.graphiql-container {
+  background: transparent !important;
+}
+
 html,
 body {
   margin: 0;
