@@ -49,7 +49,7 @@ Bruno is offline-only. There are no plans to add cloud-sync to Bruno, ever. We v
 Majority of our features are free and open source.
 We strive to strike a harmonious balance between [open-source principles and sustainability](https://github.com/usebruno/bruno/discussions/269)
 
-You explore our [paid verisons](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
+You can explore our [paid versions](https://www.usebruno.com/pricing) to see if there are additional features that you or your team may find useful! <br/>
 
 ## Table of Contents
 - [Installation](#installation)
