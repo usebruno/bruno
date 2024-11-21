@@ -1,0 +1,30 @@
+meta {
+  name: ping
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://www.usebruno.com/features-product.svg
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  const { expect } = require("chai");
+  
+  expect(1).to.equal(1);
+}
+
+script:post-response {
+  // const { expect } = require("chai");
+  // 
+  // expect(1).to.equal(1);
+}
+
+tests {
+  test("res.status should be 200", function() {
+    const data = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+  });
+}
