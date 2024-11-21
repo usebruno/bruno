@@ -264,6 +264,16 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('reporter-skip-all-headers', {
+      type: 'boolean',
+      description: 'Omit headers from the reporter output',
+      default: false
+    })
+    .option('reporter-skip-headers', {
+      type: 'array',
+      description: 'Skip specific headers from the reporter output',
+      default: []
+    })
     .option('client-cert-config', {
       type: 'string',
       description: 'Path to the Client certificate config file used for securing the connection in the request'
@@ -273,6 +283,11 @@ const builder = async (yargs) => {
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
+    .example(
+      '$0 run --reporter-skip-headers "Authorization"',
+      'Run all requests in a folder recursively with skipped headers from the reporter output'
+    )
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -325,6 +340,8 @@ const handler = async function (argv) {
       sandbox,
       testsOnly,
       bail,
+      reporterSkipAllHeaders,
+      reporterSkipHeaders,
       clientCertConfig
     } = argv;
     const collectionPath = process.cwd();
@@ -575,6 +592,35 @@ const handler = async function (argv) {
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: bruFilepath.replace('.bru', '')
       });
+
+      if (reporterSkipAllHeaders) {
+        results.forEach((result) => {
+          result.request.headers = {};
+          result.response.headers = {};
+        });
+      }
+
+      const deleteHeaderIfExists = (headers, header) => {
+        if (headers && headers[header]) {
+          delete headers[header];
+        }
+      };
+
+      if (reporterSkipHeaders?.length) {
+        results.forEach((result) => {
+          if (result.request?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.request.headers, header);
+            });
+          }
+          if (result.response?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.response.headers, header);
+            });
+          }
+        });
+      }
+
 
       // bail if option is set and there is a failure
       if (bail) {
