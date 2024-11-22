@@ -13,7 +13,7 @@ import platformLib from 'platform';
 import { uuid } from 'utils/common';
 
 const { publicRuntimeConfig } = getConfig();
-const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
+const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 let posthogClient = null;
 
 const isPlaywrightTestRunning = () => {
@@ -60,7 +60,7 @@ const trackStart = () => {
     event: 'start',
     properties: {
       os: platformLib.os.family,
-      version: '1.34.0'
+      version: '1.34.2'
     }
   });
 };

@@ -20,6 +20,7 @@ const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-he
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
 const { createFormData } = require('../utils/common');
+const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const onConsoleLog = (type, args) => {
@@ -178,6 +179,14 @@ const runSingleRequest = async function (
       });
     }
 
+    //set cookies if enabled
+    if (!options.disableCookies) {
+      const cookieString = getCookieStringForUrl(request.url);
+      if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+        request.headers['cookie'] = cookieString;
+      }
+    }
+
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
@@ -220,6 +229,11 @@ const runSingleRequest = async function (
       // Prevents the duration on leaking to the actual result
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
+
+      //save cookies if enabled
+      if (!options.disableCookies) {
+        saveCookies(request.url, response.headers);
+      }
     } catch (err) {
       if (err?.response) {
         response = err.response;
@@ -246,7 +260,7 @@ const runSingleRequest = async function (
             data: null,
             responseTime: 0
           },
-          error: err.message,
+          error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
           testResults: [],
           nextRequestName: nextRequestName

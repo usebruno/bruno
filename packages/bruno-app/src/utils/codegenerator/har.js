@@ -19,16 +19,23 @@ const createContentType = (mode) => {
   }
 };
 
+/**
+ * Creates a list of enabled headers for the request, ensuring no duplicate content-type headers.
+ *
+ * @param {Object} request - The request object.
+ * @param {Object[]} headers - The array of header objects, each containing name, value, and enabled properties.
+ * @returns {Object[]} - An array of enabled headers with normalized names and values.
+ */
 const createHeaders = (request, headers) => {
   const enabledHeaders = headers
     .filter((header) => header.enabled)
     .map((header) => ({
-      name: header.name,
+      name: header.name.toLowerCase(),
       value: header.value
     }));
 
   const contentType = createContentType(request.body?.mode);
-  if (contentType !== '') {
+  if (contentType !== '' && !enabledHeaders.some((header) => header.name === 'content-type')) {
     enabledHeaders.push({ name: 'content-type', value: contentType });
   }
 
