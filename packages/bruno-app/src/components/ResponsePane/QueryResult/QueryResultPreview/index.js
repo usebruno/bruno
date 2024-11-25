@@ -9,7 +9,6 @@ import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
 import 'react-pdf/dist/esm/Page/TextLayer.css';
 import { GlobalWorkerOptions } from 'pdfjs-dist/build/pdf';
 GlobalWorkerOptions.workerSrc = 'pdfjs-dist/legacy/build/pdf.worker.min.mjs';
-import ReactPlayer from 'react-player';
 
 const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
   const [videoUrl, setVideoUrl] = useState(null);
@@ -25,16 +24,7 @@ const VideoPreview = React.memo(({ contentType, dataBuffer }) => {
 
   if (!videoUrl) return <div>Loading video...</div>;
 
-  return (
-    <ReactPlayer
-      url={videoUrl}
-      controls
-      muted={true}
-      width="100%"
-      height="100%"
-      onError={(e) => console.error('Error loading video:', e)}
-    />
-  );
+  return <video width="100%" height="100%" muted controls src={videoUrl} />;
 });
 
 const QueryResultPreview = ({
