@@ -106,7 +106,8 @@ const configureRequest = async (
   envVars,
   runtimeVariables,
   processEnvVars,
-  collectionPath
+  collectionPath,
+  mainWindow
 ) => {
   if (!protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
@@ -141,6 +142,7 @@ const configureRequest = async (
 
   // client certificate config
   const clientCertConfig = get(brunoConfig, 'clientCertificates.certs', []);
+  const clientCertificates = [];
 
   for (let clientCert of clientCertConfig) {
     const domain = interpolateString(clientCert?.domain, interpolationOptions);
@@ -148,6 +150,7 @@ const configureRequest = async (
     if (domain) {
       const hostRegex = '^https:\\/\\/' + domain.replaceAll('.', '\\.').replaceAll('*', '.*');
       if (request.url.match(hostRegex)) {
+        clientCertificates.push(clientCert);
         if (type === 'cert') {
           try {
             let certFilePath = interpolateString(clientCert?.certFilePath, interpolationOptions);
@@ -175,6 +178,13 @@ const configureRequest = async (
         break;
       }
     }
+  }
+
+  if (clientCertificates.length && mainWindow) {
+      mainWindow.webContents.send('main:console-log', {
+        type: 'log',
+        args: [{"Client Certificates": clientCertificates}]
+      });
   }
 
   /**
@@ -575,7 +585,8 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         runtimeVariables,
         processEnvVars,
-        collectionPath
+        collectionPath,
+        mainWindow
       );
 
       mainWindow.webContents.send('main:run-request-event', {
@@ -768,7 +779,8 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         collection.runtimeVariables,
         processEnvVars,
-        collectionPath
+        collectionPath,
+        mainWindow
       );
 
       try {
@@ -874,7 +886,8 @@ const registerNetworkIpc = (mainWindow) => {
         envVars,
         collection.runtimeVariables,
         processEnvVars,
-        collectionPath
+        collectionPath,
+        mainWindow
       );
       const response = await axiosInstance(request);
 
@@ -1029,7 +1042,8 @@ const registerNetworkIpc = (mainWindow) => {
               envVars,
               runtimeVariables,
               processEnvVars,
-              collectionPath
+              collectionPath,
+              mainWindow
             );
 
             timeStart = Date.now();
