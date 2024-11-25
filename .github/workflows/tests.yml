@@ -9,10 +9,10 @@ jobs:
   unit-test:
     name: Unit Tests
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: blacksmith
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: useblacksmith/setup-node@v5.1.0
         with:
           node-version-file: '.nvmrc'
       - name: Install dependencies
@@ -44,10 +44,10 @@ jobs:
 
   cli-test:
     name: CLI Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: useblacksmith/setup-node@v5.1.0
         with:
           node-version-file: '.nvmrc'
 
@@ -73,10 +73,10 @@ jobs:
           comment_mode: always
   prettier:
     name: Prettier
-    runs-on: ubuntu-latest
+    runs-on: blacksmith
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: useblacksmith/setup-node@v5.1.0
         with:
           node-version-file: '.nvmrc'
       - name: Install dependencies
