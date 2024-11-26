@@ -12,7 +12,7 @@ import brunoCommon from '@usebruno/common';
 const { interpolate } = brunoCommon;
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const { get } = require('lodash');
 
 if (!SERVER_RENDERED) {

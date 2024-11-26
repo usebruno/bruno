@@ -7,6 +7,7 @@ import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
 import ImportEnvironment from '../ImportEnvironment';
+import { isEqual } from 'lodash';
 
 const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -20,18 +21,28 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
+    if (!environments?.length) {
+      setSelectedEnvironment(null);
+      setOriginalEnvironmentVariables([]);
+      return;
+    }
+
     if (selectedEnvironment) {
+      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
+      if (hasSelectedEnvironmentChanged) {
+        setSelectedEnvironment(_selectedEnvironment);
+      }
       setOriginalEnvironmentVariables(selectedEnvironment.variables);
       return;
     }
 
-    const environment = environments?.find(env => env?.uid === activeEnvironmentUid);
-    if (environment) {
-      setSelectedEnvironment(environment);
-    } else {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
-    }
-  }, [environments, selectedEnvironment]);
+    const environment = environments?.find(env => env.uid === activeEnvironmentUid) || environments?.[0];
+
+    setSelectedEnvironment(environment);
+    setOriginalEnvironmentVariables(environment?.variables || []);
+  }, [environments, activeEnvironmentUid]);
+  
 
   useEffect(() => {
     if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {

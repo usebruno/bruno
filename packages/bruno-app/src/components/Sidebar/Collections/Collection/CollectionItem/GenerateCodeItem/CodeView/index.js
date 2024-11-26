@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { IconCopy } from '@tabler/icons';
 import { findCollectionByItemUid, getGlobalEnvironmentVariables } from '../../../../../../../utils/collections/index';
 import { getAuthHeaders } from '../../../../../../../utils/codegenerator/auth';
+import { cloneDeep } from 'lodash';
 
 const CodeView = ({ language, item }) => {
   const { displayedTheme } = useTheme();
@@ -17,10 +18,12 @@ const CodeView = ({ language, item }) => {
   const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
   const { target, client, language: lang } = language;
   const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
-  let collection = findCollectionByItemUid(
+  let _collection = findCollectionByItemUid(
     useSelector((state) => state.collections.collections),
     item.uid
   );
+
+  let collection = cloneDeep(_collection);
 
   // add selected global env variables to the collection object
   const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });

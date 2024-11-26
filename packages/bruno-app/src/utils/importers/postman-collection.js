@@ -97,6 +97,75 @@ const constructUrl = (url) => {
 
 let translationLog = {};
 
+/* struct of translation log
+  {
+    [collectionName]: {
+      script: [index1, index2],
+      test: [index1, index2]
+    }
+  }
+  */
+
+const pushTranslationLog = (type, index) => {
+  if (!translationLog[i.name]) {
+    translationLog[i.name] = {};
+  }
+  if (!translationLog[i.name][type]) {
+    translationLog[i.name][type] = [];
+  }
+  translationLog[i.name][type].push(index + 1);
+};
+
+const importScriptsFromEvents = (events, requestObject, options, pushTranslationLog) => {
+  events.forEach((event) => {
+    if (event.script && event.script.exec) {
+      if (event.listen === 'prerequest') {
+        if (!requestObject.script) {
+          requestObject.script = {};
+        }
+
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.script.req = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('script', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else if (typeof event.script.exec === 'string') {
+          requestObject.script.req = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+            : `// ${event.script.exec}`;
+        } else {
+          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+        }
+      }
+
+      if (event.listen === 'test') {
+        if (!requestObject.tests) {
+          requestObject.tests = {};
+        }
+
+        if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
+          requestObject.tests = event.script.exec
+            .map((line, index) =>
+              options.enablePostmanTranslations.enabled
+                ? postmanTranslation(line, () => pushTranslationLog('test', index))
+                : `// ${line}`
+            )
+            .join('\n');
+        } else if (typeof event.script.exec === 'string') {
+          requestObject.tests = options.enablePostmanTranslations.enabled
+            ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+            : `// ${event.script.exec}`;
+        } else {
+          console.warn('Unexpected event.script.exec type', typeof event.script.exec);
+        }
+      }
+    }
+  });
+};
+
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
   brunoParent.items = brunoParent.items || [];
   const folderMap = {};
@@ -117,13 +186,35 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         uid: uuid(),
         name: folderName,
         type: 'folder',
-        items: []
+        items: [],
+        root: {
+          meta: {
+            name: folderName
+          },
+          request: {
+            auth: {
+              mode: 'none',
+              basic: null,
+              bearer: null,
+              awsv4: null
+            },
+            headers: [],
+            script: {},
+            tests: '',
+            vars: {}
+          }
+        }
       };
-      brunoParent.items.push(brunoFolderItem);
-      folderMap[folderName] = brunoFolderItem;
       if (i.item && i.item.length) {
         importPostmanV2CollectionItem(brunoFolderItem, i.item, i.auth ?? parentAuth, options);
       }
+
+      if (i.event) {
+        importScriptsFromEvents(i.event, brunoFolderItem.root.request, options, pushTranslationLog);
+      }
+
+      brunoParent.items.push(brunoFolderItem);
+      folderMap[folderName] = brunoFolderItem;
     } else {
       if (i.request) {
         const baseRequestName = i.name;
@@ -163,32 +254,14 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
             docs: i.request.description
           }
         };
-        /* struct of translation log
-        {
-         [collectionName]: {
-            script: [index1, index2],
-            test: [index1, index2]
-         }
-        }
-        */
 
-        // type could be script or test
-        const pushTranslationLog = (type, index) => {
-          if (!translationLog[i.name]) {
-            translationLog[i.name] = {};
-          }
-          if (!translationLog[i.name][type]) {
-            translationLog[i.name][type] = [];
-          }
-          translationLog[i.name][type].push(index + 1);
-        };
         if (i.event) {
           i.event.forEach((event) => {
             if (event.listen === 'prerequest' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.script) {
                 brunoRequestItem.request.script = {};
               }
-              if (Array.isArray(event.script.exec)) {
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.script.req = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -196,17 +269,19 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
-              } else {
+              } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.script.req = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('script', 0))
-                  : `// ${event.script.exec[0]} `;
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('script', 0))
+                  : `// ${event.script.exec}`;
+              } else {
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
             if (event.listen === 'test' && event.script && event.script.exec) {
               if (!brunoRequestItem.request.tests) {
                 brunoRequestItem.request.tests = {};
               }
-              if (Array.isArray(event.script.exec)) {
+              if (Array.isArray(event.script.exec) && event.script.exec.length > 0) {
                 brunoRequestItem.request.tests = event.script.exec
                   .map((line, index) =>
                     options.enablePostmanTranslations.enabled
@@ -214,10 +289,12 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
                       : `// ${line}`
                   )
                   .join('\n');
-              } else {
+              } else if (typeof event.script.exec === 'string') {
                 brunoRequestItem.request.tests = options.enablePostmanTranslations.enabled
-                  ? postmanTranslation(event.script.exec[0], () => pushTranslationLog('test', 0))
-                  : `// ${event.script.exec[0]} `;
+                  ? postmanTranslation(event.script.exec, () => pushTranslationLog('test', 0))
+                  : `// ${event.script.exec}`;
+              } else {
+                console.warn('Unexpected event.script.exec type', typeof event.script.exec);
               }
             }
           });
@@ -393,8 +470,29 @@ const importPostmanV2Collection = (collection, options) => {
     uid: uuid(),
     version: '1',
     items: [],
-    environments: []
+    environments: [],
+    root: {
+      meta: {
+        name: collection.info.name
+      },
+      request: {
+        auth: {
+          mode: 'none',
+          basic: null,
+          bearer: null,
+          awsv4: null
+        },
+        headers: [],
+        script: {},
+        tests: '',
+        vars: {}
+      }
+    }
   };
+
+  if (collection.event) {
+    importScriptsFromEvents(collection.event, brunoCollection.root.request, options, pushTranslationLog);
+  }
 
   importPostmanV2CollectionItem(brunoCollection, collection.item, collection.auth, options);
 
