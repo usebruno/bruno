@@ -77,7 +77,6 @@ const CreateEnvironment = ({ collection, onClose }) => {
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
                 value={formik.values.name || ''}
               />
             </div>
