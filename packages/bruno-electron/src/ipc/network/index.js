@@ -107,7 +107,7 @@ const configureRequest = async (
   runtimeVariables,
   processEnvVars,
   collectionPath,
-  mainWindow
+  onConsoleLog
 ) => {
   if (!protocolRegex.test(request.url)) {
     request.url = `http://${request.url}`;
@@ -181,10 +181,7 @@ const configureRequest = async (
   }
 
   if (clientCertificates.length && mainWindow) {
-      mainWindow.webContents.send('main:console-log', {
-        type: 'log',
-        args: [{"Client Certificates": clientCertificates}]
-      });
+    onConsoleLog('log', ["Client Certificates", clientCertificates]);
   }
 
   /**
@@ -586,7 +583,7 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables,
         processEnvVars,
         collectionPath,
-        mainWindow
+        onConsoleLog
       );
 
       mainWindow.webContents.send('main:run-request-event', {
@@ -780,7 +777,7 @@ const registerNetworkIpc = (mainWindow) => {
         collection.runtimeVariables,
         processEnvVars,
         collectionPath,
-        mainWindow
+        onConsoleLog
       );
 
       try {
@@ -887,7 +884,7 @@ const registerNetworkIpc = (mainWindow) => {
         collection.runtimeVariables,
         processEnvVars,
         collectionPath,
-        mainWindow
+        onConsoleLog
       );
       const response = await axiosInstance(request);
 
