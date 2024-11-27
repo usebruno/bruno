@@ -180,7 +180,7 @@ const configureRequest = async (
     }
   }
 
-  if (clientCertificates.length && mainWindow) {
+  if (clientCertificates.length) {
     onConsoleLog('log', ["Client Certificates", clientCertificates]);
   }
 
