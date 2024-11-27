@@ -1040,7 +1040,7 @@ const registerNetworkIpc = (mainWindow) => {
               runtimeVariables,
               processEnvVars,
               collectionPath,
-              mainWindow
+              onConsoleLog
             );
 
             timeStart = Date.now();
