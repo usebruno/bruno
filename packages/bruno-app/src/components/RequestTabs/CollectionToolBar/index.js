@@ -1,6 +1,6 @@
 import React from 'react';
 import { uuid } from 'utils/common';
-import { IconFiles, IconRun, IconEye, IconSettings } from '@tabler/icons';
+import { IconRun, IconEye, IconSettings, IconAB2 } from '@tabler/icons';
 import EnvironmentSelector from 'components/Environments/EnvironmentSelector';
 import GlobalEnvironmentSelector from 'components/GlobalEnvironments/EnvironmentSelector';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -9,7 +9,7 @@ import ToolHint from 'components/ToolHint';
 import StyledWrapper from './StyledWrapper';
 import JsSandboxMode from 'components/SecuritySettings/JsSandboxMode';
 
-const CollectionToolBar = ({ collection }) => {
+const CollectionToolBar = ({ collection, onClick }) => {
   const dispatch = useDispatch();
 
   const handleRun = () => {
@@ -45,9 +45,9 @@ const CollectionToolBar = ({ collection }) => {
   return (
     <StyledWrapper>
       <div className="flex items-center p-2">
-        <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={viewCollectionSettings}>
-          <IconFiles size={18} strokeWidth={1.5} />
-          <span className="ml-2 mr-4 font-semibold">{collection?.name}</span>
+      <div className="flex flex-1 items-center cursor-pointer hover:underline" onClick={onClick} >
+          <span className="ml-2 mr-2 font-semibold" >{collection?.name}</span>
+          <IconAB2 size={18} strokeWidth={1.5} />
         </div>
         <div className="flex flex-3 items-center justify-end">
           <span className="mr-2">
