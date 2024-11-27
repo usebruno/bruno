@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
-// const isValidPathname = require('is-valid-path');
+const isValidPathname = require('is-valid-path');
 const os = require('os');
 
 const exists = async (p) => {
@@ -13,71 +13,6 @@ const exists = async (p) => {
     return false;
   }
 };
-
-const isValidPathname = (pathname) => {
-
-  pathname = pathname.replace(/\\/g, '\\\\');
-  pathname = isWSLPath(pathname) ? normalizeWslPath(pathname) : pathname;
-
-  // Common invalid characters for file and folder names
-  const invalidChars = /[<>:"|?*\x00-\x1F]/;
-
-  // Reserved names on Windows
-  const reservedNames = [
-    'CON', 'PRN', 'AUX', 'NUL',
-    'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9',
-    'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9'
-  ];
-
-  const maxLength = 255;
-
-  // Trim the path to avoid trailing spaces and ensure valid length
-  const trimmedPath = pathname.trim();
-  if (!trimmedPath || trimmedPath.length > maxLength) {
-    return false;
-  }
-
-  // Check if the path is a Windows-style path (starts with a drive letter)
-  const isWindowsPath = os.platform() === 'win32' && /^[A-Za-z]:\\/.test(trimmedPath);
-  
-  let parts;
-  if (isWindowsPath) {
-    const driveLetter = trimmedPath.substring(0, 2); // C: -> special case
-    const remainingPath = trimmedPath.substring(2); // rest of the path
-    parts = [driveLetter, ...remainingPath.split('\\')];
-  } else {
-    // UNIX paths, split by /
-    parts = trimmedPath.split('/');
-  }
-
-  // Validate each component, skipping the drive letter
-  for (let i = (isWindowsPath ? 1 : 0); i < parts.length; i++) {
-    const part = parts[i];
-
-    if (!part) continue;
-
-    // Check for invalid characters
-    if (invalidChars.test(part)) {
-      return false;
-    }
-
-    // Windows-specific checks
-    if (os.platform() === 'win32') {
-      if (reservedNames.includes(part.toUpperCase())) {
-        return false;
-      }
-
-      if (part.endsWith(' ') || part.endsWith('.')) {
-        return false;
-      }
-    }
-  }
-
-  // Path is valid
-  return true;
-};
-
-
 
 const isSymbolicLink = (filepath) => {
   try {
