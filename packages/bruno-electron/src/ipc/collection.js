@@ -17,7 +17,8 @@ const {
   isWSLPath,
   normalizeWslPath,
   normalizeAndResolvePath,
-  safeToRename
+  safeToRename,
+  sanitizeCollectionName
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -63,6 +64,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
+        collectionFolderName = sanitizeDirectoryName(collectionFolderName);
+        collectionName = sanitizeCollectionName(collectionName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           const files = fs.readdirSync(dirPath);
@@ -101,6 +104,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
+      collectionFolderName = sanitizeCollectionName(collectionFolderName);
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
@@ -146,6 +150,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
+      newName = sanitizeCollectionName(newName);
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
       const json = JSON.parse(content);
@@ -385,6 +390,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, pathname) => {
+    const resolvedFolderName = sanitizeDirectoryName(path.basename(pathname));
+    pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
@@ -443,7 +450,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = sanitizeDirectoryName(collection.name);
+      let collectionName = sanitizeCollectionName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
@@ -459,6 +466,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
+            item.name = sanitizeDirectoryName(item.name);
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
