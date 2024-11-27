@@ -10,6 +10,12 @@ import Modal from 'components/Modal';
 const CreateEnvironment = ({ collection, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
+
+  // todo: Add this to global env too.
+ const validateEnvironmentName = (name) => {
+   return !collection.environments.some((env) => env?.name?.toLowerCase() === name?.toLowerCase().trim());
+ };
+
   const formik = useFormik({
     enableReinitialize: true,
     initialValues: {
@@ -17,9 +23,10 @@ const CreateEnvironment = ({ collection, onClose }) => {
     },
     validationSchema: Yup.object({
       name: Yup.string()
-        .min(1, 'must be at least 1 character')
-        .max(50, 'must be 50 characters or less')
-        .required('name is required')
+        .min(1, 'Must be at least 1 character')
+        .max(50, 'Must be 50 characters or less')
+        .required('Name is required')
+        .test('duplicate-name', 'Environment with the same name already exists', validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addEnvironment(values.name, collection.uid))
@@ -27,7 +34,10 @@ const CreateEnvironment = ({ collection, onClose }) => {
           toast.success('Environment created in collection');
           onClose();
         })
-        .catch(() => toast.error('An error occurred while creating the environment'));
+        .catch(() => {
+          // No action needed here. Validation for duplicate environment names is handled in the form itself.
+          // If an error occurs, it is already displayed near the input field (given that the error is caused because of duplicate naming).
+        });
     }
   });
 
@@ -67,6 +77,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
                 autoCapitalize="off"
                 spellCheck="false"
                 onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
                 value={formik.values.name || ''}
               />
             </div>
