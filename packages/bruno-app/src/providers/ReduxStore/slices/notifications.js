@@ -59,7 +59,7 @@ export const notificationSlice = createSlice({
       });
     },
     markNotificationAsRead: (state, action) => {
-        const { notificationId } = action.payload;
+      const { notificationId } = action.payload;
 
       if (state.readNotificationIds.includes(notificationId)) return;
 
