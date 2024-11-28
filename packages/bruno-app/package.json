@@ -66,6 +66,7 @@
     "react-i18next": "^15.0.1",
     "react-inspector": "^6.0.2",
     "react-pdf": "9.1.1",
+    "react-player": "^2.16.0",
     "react-redux": "^7.2.6",
     "react-tooltip": "^5.5.2",
     "sass": "^1.46.0",
