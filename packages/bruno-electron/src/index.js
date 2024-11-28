@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const isDev = require('electron-is-dev');
+const { produce } = require('immer');
 
 if (isDev) {
-  if(!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
+  if (!fs.existsSync(path.join(__dirname, '../../bruno-js/src/sandbox/bundle-browser-rollup.js'))) {
     console.log('JS Sandbox libraries have not been bundled yet');
     console.log('Please run the below command \nnpm run sandbox:bundle-libraries --workspace=packages/bruno-js');
     throw new Error('JS Sandbox libraries have not been bundled yet');
@@ -19,13 +20,43 @@ const { openCollection } = require('./app/collections');
 const LastOpenedCollections = require('./store/last-opened-collections');
 const registerNetworkIpc = require('./ipc/network');
 const registerCollectionsIpc = require('./ipc/collection');
-const registerPreferencesIpc = require('./ipc/preferences');
+const { registerPreferencesIpc, initRendererIpc } = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 
 const lastOpenedCollections = new LastOpenedCollections();
+
+let isMainWindowClosed = false;
+
+// Create an Immer proxy state to store mainWindow
+let state = {
+  mainWindow: null,
+};
+
+// Proxy to dynamically forward all properties and methods to the current mainWindow
+let mainWindow = new Proxy({}, {
+  get(target, prop) {
+    if (!state.mainWindow) {
+      throw new Error(`mainWindow is not set. cannot access property '${prop}'`);
+    }
+    const value = Reflect.get(state.mainWindow, prop);
+    if (typeof value === 'function') {
+      return value.bind(state.mainWindow);
+    }
+    return value;
+  },
+  set() {
+    throw new Error("use 'setMainWindow()' function to update mainWindow.");
+  }
+});
+
+function setMainWindow(newWindow) {
+  state = produce(state, (draft) => {
+    draft.mainWindow = newWindow;
+  });
+}
 
 // Reference: https://content-security-policy.com/
 const contentSecurityPolicy = [
@@ -45,16 +76,14 @@ const contentSecurityPolicy = [
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
 const menu = Menu.buildFromTemplate(menuTemplate);
-
-let mainWindow;
 let watcher;
+let ipcsRegistered = false;
 
-// Prepare the renderer once the app is ready
-app.on('ready', async () => {
+const createWindow = () => {
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
 
-  mainWindow = new BrowserWindow({
+  let _mainWindow = new BrowserWindow({
     x,
     y,
     width,
@@ -74,6 +103,9 @@ app.on('ready', async () => {
     // see https://github.com/usebruno/bruno/issues/440
     // autoHideMenuBar: true
   });
+
+  setMainWindow(_mainWindow);
+  isMainWindowClosed = false;
 
   if (maximized) {
     mainWindow.maximize();
@@ -121,6 +153,7 @@ app.on('ready', async () => {
   mainWindow.on('close', (e) => {
     e.preventDefault();
     ipcMain.emit('main:start-quit-flow');
+    isMainWindowClosed = true;
   });
 
   mainWindow.webContents.on('will-redirect', (event, url) => {
@@ -142,18 +175,58 @@ app.on('ready', async () => {
     return { action: 'deny' };
   });
 
+  initRendererIpc(mainWindow, watcher, lastOpenedCollections);
+
+  if(ipcsRegistered) return;
+
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
   registerGlobalEnvironmentsIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
-  registerNotificationsIpc(mainWindow, watcher);
-});
+  registerNotificationsIpc();
+  ipcsRegistered = true;
+}
 
-// Quit the app once all windows are closed
-app.on('window-all-closed', app.quit);
+const gotTheLock = app.requestSingleInstanceLock();
 
-// Open collection from Recent menu (#1521)
-app.on('open-file', (event, path) => {
-  openCollection(mainWindow, watcher, path);
-});
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow && !isMainWindowClosed) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
+      }
+      mainWindow.focus();
+    }
+  });
+
+  app.on('ready', createWindow);
+
+  app.on('activate', () => {
+    if (isMainWindowClosed) {
+      createWindow();
+    }
+
+    if (process.platform !== 'darwin') {
+      if (mainWindow && !isMainWindowClosed) {
+        mainWindow?.show?.();
+        mainWindow?.focus?.();
+      }
+    }
+  });
+
+  // Quit the app once all windows are closed
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  // Open collection from Recent menu (#1521)
+  app.on('open-file', (event, path) => {
+    openCollection(mainWindow, watcher, path);
+  });
+
+}
