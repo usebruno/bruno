@@ -160,6 +160,24 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
+const isWindowsOS = () => {
+  return os.platform() === 'win32';
+}
+
+const isValidFilename = (fileName) => {
+  const inValidChars = /[\\/:*?"<>|]/;
+
+  if (!fileName || inValidChars.test(fileName)) {
+    return false;
+  }
+
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
+    return false;
+  }
+
+  return true;
+};
+
 const safeToRename = (oldPath, newPath) => {
   try {
     // If the new path doesn't exist, it's safe to rename
@@ -170,7 +188,7 @@ const safeToRename = (oldPath, newPath) => {
     const oldStat = fs.statSync(oldPath);
     const newStat = fs.statSync(newPath);
 
-    if (os.platform() === 'win32') {
+    if (isWindowsOS()) {
       // Windows-specific comparison:
       // Check if both files have the same birth time, size (Since, Win FAT-32 doesn't use inodes)
 
@@ -204,5 +222,7 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  safeToRename
+  isWindowsOS,
+  safeToRename,
+  isValidFilename
 };
