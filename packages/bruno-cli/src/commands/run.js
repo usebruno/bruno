@@ -211,6 +211,11 @@ const builder = async (yargs) => {
       description:
         'The specified custom CA certificate (--cacert) will be used exclusively and the default truststore is ignored, if this option is specified. Evaluated in combination with "--cacert" only.'
     })
+    .option('disable-cookies', {
+      type: 'boolean',
+      default: false,
+      description: 'Automatically save and sent cookies with requests'
+    })
     .option('env', {
       describe: 'Environment variables',
       type: 'string'
@@ -259,10 +264,30 @@ const builder = async (yargs) => {
       type: 'boolean',
       description: 'Stop execution after a failure of a request, test, or assertion'
     })
+    .option('reporter-skip-all-headers', {
+      type: 'boolean',
+      description: 'Omit headers from the reporter output',
+      default: false
+    })
+    .option('reporter-skip-headers', {
+      type: 'array',
+      description: 'Skip specific headers from the reporter output',
+      default: []
+    })
+    .option('client-cert-config', {
+      type: 'string',
+      description: 'Path to the Client certificate config file used for securing the connection in the request'
+    })
+
     .example('$0 run request.bru', 'Run a request')
     .example('$0 run request.bru --env local', 'Run a request with the environment set to local')
     .example('$0 run folder', 'Run all requests in a folder')
     .example('$0 run folder -r', 'Run all requests in a folder recursively')
+    .example('$0 run --reporter-skip-all-headers', 'Run all requests in a folder recursively with omitted headers from the reporter output')
+    .example(
+      '$0 run --reporter-skip-headers "Authorization"',
+      'Run all requests in a folder recursively with skipped headers from the reporter output'
+    )
     .example(
       '$0 run request.bru --env local --env-var secret=xxx',
       'Run a request with the environment set to local and overwrite the variable secret with value xxx'
@@ -292,7 +317,8 @@ const builder = async (yargs) => {
     .example(
       '$0 run folder --cacert myCustomCA.pem --ignore-truststore',
       'Use a custom CA certificate exclusively when validating the peers of the requests in the specified folder.'
-    );
+    )
+    .example('$0 run --client-cert-config client-cert-config.json', 'Run a request with Client certificate configurations');
 };
 
 const handler = async function (argv) {
@@ -301,6 +327,7 @@ const handler = async function (argv) {
       filename,
       cacert,
       ignoreTruststore,
+      disableCookies,
       env,
       envVar,
       insecure,
@@ -312,7 +339,10 @@ const handler = async function (argv) {
       reporterHtml,
       sandbox,
       testsOnly,
-      bail
+      bail,
+      reporterSkipAllHeaders,
+      reporterSkipHeaders,
+      clientCertConfig
     } = argv;
     const collectionPath = process.cwd();
 
@@ -329,6 +359,41 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+
+    if (clientCertConfig) {
+      try {
+        const clientCertConfigExists = await exists(clientCertConfig);
+        if (!clientCertConfigExists) {
+          console.error(chalk.red(`Client Certificate Config file "${clientCertConfig}" does not exist.`));
+          process.exit(constants.EXIT_STATUS.ERROR_FILE_NOT_FOUND);
+        }
+
+        const clientCertConfigFileContent = fs.readFileSync(clientCertConfig, 'utf8');
+        let clientCertConfigJson;
+
+        try {
+          clientCertConfigJson = JSON.parse(clientCertConfigFileContent);
+        } catch (err) {
+          console.error(chalk.red(`Failed to parse Client Certificate Config JSON: ${err.message}`));
+          process.exit(constants.EXIT_STATUS.ERROR_INVALID_JSON);
+        }
+
+        if (clientCertConfigJson?.enabled && Array.isArray(clientCertConfigJson?.certs)) {
+          if (brunoConfig.clientCertificates) {
+            brunoConfig.clientCertificates.certs.push(...clientCertConfigJson.certs);
+          } else {
+            brunoConfig.clientCertificates = { certs: clientCertConfigJson.certs };
+          }
+          console.log(chalk.green(`Client certificates has been added`));
+        } else {
+          console.warn(chalk.yellow(`Client certificate configuration is enabled, but it either contains no valid "certs" array or the added configuration has been set to false`));
+        }
+      } catch (err) {
+        console.error(chalk.red(`Unexpected error: ${err.message}`));
+        process.exit(constants.EXIT_STATUS.ERROR_UNKNOWN);
+      }
+    }
+
 
     if (filename && filename.length) {
       const pathExists = await exists(filename);
@@ -391,6 +456,9 @@ const handler = async function (argv) {
     }
     if (insecure) {
       options['insecure'] = true;
+    }
+    if (disableCookies) {
+      options['disableCookies'] = true;
     }
     if (cacert && cacert.length) {
       if (insecure) {
@@ -524,6 +592,35 @@ const handler = async function (argv) {
         runtime: process.hrtime(start)[0] + process.hrtime(start)[1] / 1e9,
         suitename: bruFilepath.replace('.bru', '')
       });
+
+      if (reporterSkipAllHeaders) {
+        results.forEach((result) => {
+          result.request.headers = {};
+          result.response.headers = {};
+        });
+      }
+
+      const deleteHeaderIfExists = (headers, header) => {
+        if (headers && headers[header]) {
+          delete headers[header];
+        }
+      };
+
+      if (reporterSkipHeaders?.length) {
+        results.forEach((result) => {
+          if (result.request?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.request.headers, header);
+            });
+          }
+          if (result.response?.headers) {
+            reporterSkipHeaders.forEach((header) => {
+              deleteHeaderIfExists(result.response.headers, header);
+            });
+          }
+        });
+      }
+
 
       // bail if option is set and there is a failure
       if (bail) {

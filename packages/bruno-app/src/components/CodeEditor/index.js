@@ -15,7 +15,7 @@ import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
 
 let CodeMirror;
-const SERVER_RENDERED = typeof navigator === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
+const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
 const TAB_SIZE = 2;
 
 if (!SERVER_RENDERED) {
@@ -58,13 +58,14 @@ if (!SERVER_RENDERED) {
     'req.getExecutionMode()',
     'bru',
     'bru.cwd()',
-    'bru.getEnvName(key)',
+    'bru.getEnvName()',
     'bru.getProcessEnv(key)',
     'bru.hasEnvVar(key)',
     'bru.getEnvVar(key)',
     'bru.getFolderVar(key)',
     'bru.getCollectionVar(key)',
     'bru.setEnvVar(key,value)',
+    'bru.deleteEnvVar(key)',
     'bru.hasVar(key)',
     'bru.getVar(key)',
     'bru.setVar(key,value)',
@@ -189,32 +190,8 @@ export default class CodeEditor extends React.Component {
         'Cmd-Y': 'foldAll',
         'Ctrl-I': 'unfoldAll',
         'Cmd-I': 'unfoldAll',
-        'Cmd-/': (cm) => {
-          // comment/uncomment every selected line(s)
-          const selections = cm.listSelections();
-          selections.forEach((range) => {
-            for (let i = range.from().line; i <= range.to().line; i++) {
-              const selectedLine = cm.getLine(i);
-              // if commented line, remove comment
-              if (selectedLine.trim().startsWith('//')) {
-                cm.replaceRange(
-                  selectedLine.replace(/^(\s*)\/\/\s?/, '$1'),
-                  { line: i, ch: 0 },
-                  { line: i, ch: selectedLine.length }
-                );
-                continue;
-              }
-              // otherwise add comment
-              cm.replaceRange(
-                selectedLine.search(/\S|$/) >= TAB_SIZE
-                  ? ' '.repeat(TAB_SIZE) + '// ' + selectedLine.trim()
-                  : '// ' + selectedLine,
-                { line: i, ch: 0 },
-                { line: i, ch: selectedLine.length }
-              );
-            }
-          });
-        }
+        'Ctrl-/': 'toggleComment',
+        'Cmd-/': 'toggleComment'
       },
       foldOptions: {
         widget: (from, to) => {
@@ -281,9 +258,9 @@ export default class CodeEditor extends React.Component {
         while (end < currentLine.length && /[^{}();\s\[\]\,]/.test(currentLine.charAt(end))) ++end;
         while (start && /[^{}();\s\[\]\,]/.test(currentLine.charAt(start - 1))) --start;
         let curWord = start != end && currentLine.slice(start, end);
-        //Qualify if autocomplete will be shown
+        // Qualify if autocomplete will be shown
         if (
-          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|\s)\w*/.test(event.key) &&
+          /^(?!Shift|Tab|Enter|Escape|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Meta|Alt|Home|End\s)\w*/.test(event.key) &&
           curWord.length > 0 &&
           !/\/\/|\/\*|.*{{|`[^$]*{|`[^{]*$/.test(currentLine.slice(0, end)) &&
           /(?<!\d)[a-zA-Z\._]$/.test(curWord)
