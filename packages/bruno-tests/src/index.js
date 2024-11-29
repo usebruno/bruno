@@ -1,21 +1,20 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const xmlparser = require('express-xml-bodyparser');
 const cors = require('cors');
 const multer = require('multer');
+const authRouter = require('./auth');
+const echoRouter = require('./echo');
+const xmlParser = require('./utils/xmlParser');
 
 const app = new express();
 const port = process.env.PORT || 8080;
 const upload = multer();
 
 app.use(cors());
-app.use(xmlparser());
+app.use(xmlParser());
 app.use(bodyParser.text());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
-const authRouter = require('./auth');
-const echoRouter = require('./echo');
 
 app.use('/api/auth', authRouter);
 app.use('/api/echo', echoRouter);

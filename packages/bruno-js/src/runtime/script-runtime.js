@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const path = require('path');
 const http = require('http');
 const https = require('https');
@@ -47,10 +47,11 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -102,6 +103,7 @@ class ScriptRuntime {
         request,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest
       };
     }
@@ -149,6 +151,7 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest
     };
   }
@@ -164,10 +167,11 @@ class ScriptRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -216,6 +220,7 @@ class ScriptRuntime {
         response,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
         nextRequestName: bru.nextRequest
       };
     }
@@ -263,6 +268,7 @@ class ScriptRuntime {
       response,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       nextRequestName: bru.nextRequest
     };
   }

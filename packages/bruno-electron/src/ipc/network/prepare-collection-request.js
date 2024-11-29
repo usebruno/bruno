@@ -1,7 +1,8 @@
 const { get, each } = require('lodash');
 const { setAuthHeaders } = require('./prepare-request');
 
-const prepareCollectionRequest = (request, collectionRoot) => {
+const prepareCollectionRequest = (request, collection) => {
+  const collectionRoot = get(collection, 'root', {});
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
@@ -34,6 +35,8 @@ const prepareCollectionRequest = (request, collectionRoot) => {
   };
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
+  
+  axiosRequest.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
 
   if (request.script) {
     axiosRequest.script = request.script;

@@ -233,6 +233,10 @@ const configureRequest = async (
         );
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -257,6 +261,10 @@ const configureRequest = async (
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
@@ -409,6 +417,10 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
 
     // interpolate variables inside request
@@ -469,6 +481,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
       }
 
       if (result?.error) {
@@ -503,6 +519,10 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
+      });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
     }
     return scriptResult;
@@ -691,6 +711,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
+        });
       }
 
       return {
@@ -717,7 +741,7 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const request = prepareCollectionRequest(_request, collection, collectionPath);
       request.__bruno__executionMode = 'standalone';
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
@@ -1159,6 +1183,10 @@ const registerNetworkIpc = (mainWindow) => {
                 envVariables: testResults.envVariables,
                 runtimeVariables: testResults.runtimeVariables,
                 collectionUid
+              });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
             }
           } catch (error) {

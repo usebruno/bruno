@@ -20,7 +20,8 @@ const {
   normalizeWslPath,
   normalizeAndResolvePath,
   safeToRename,
-  isWindowsOS
+  isWindowsOS,
+  isValidFilename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -28,11 +29,11 @@ const { moveRequestUid, deleteRequestUid } = require('../cache/requestUids');
 const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cookies');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
-const UiStateSnapshot = require('../store/ui-state-snapshot');
+const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
-const UiStateSnapshotStore = new UiStateSnapshot();
+const uiStateSnapshotStore = new UiStateSnapshotStore();
 
 const envHasSecrets = (environment = {}) => {
   const secrets = _.filter(environment.variables, (v) => v.secret);
@@ -68,14 +69,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       try {
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
-          throw new Error(`collection: ${dirPath} already exists`);
+          const files = fs.readdirSync(dirPath);
+
+          if (files.length > 0) {
+            throw new Error(`collection: ${dirPath} already exists and is not empty`);
+          }
         }
 
         if (!isValidPathname(dirPath)) {
           throw new Error(`collection: invalid pathname - ${dir}`);
         }
 
-        await createDirectory(dirPath);
+        if (!fs.existsSync(dirPath)) {
+          await createDirectory(dirPath);
+        }
 
         const uid = generateUidBasedOnHash(dirPath);
         const brunoConfig = {
@@ -198,7 +205,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-
+      if (!isValidFilename(request.name)) {
+        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      }
       const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -370,6 +379,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       if (!hasBruExtension(oldPath)) {
         throw new Error(`path: ${oldPath} is not a bru file`);
+      }
+
+      if (!isValidFilename(newName)) {
+        throw new Error(`path: ${newName} is not a valid filename`);
       }
 
       // update name in file and save new copy, then delete old copy
@@ -711,7 +724,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:update-ui-state-snapshot', (event, { type, data }) => {
     try {
-      UiStateSnapshotStore.update({ type, data });
+      uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
     }

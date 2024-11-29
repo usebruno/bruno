@@ -158,3 +158,11 @@ export const humanizeDate = (dateString) => {
     day: 'numeric'
   });
 };
+
+export const generateUidBasedOnHash = (str) => {
+  const hash = simpleHash(str);
+
+  return `${hash}`.padEnd(21, '0');
+};
+
+export const stringifyIfNot = v => typeof v === 'string' ? v : String(v);

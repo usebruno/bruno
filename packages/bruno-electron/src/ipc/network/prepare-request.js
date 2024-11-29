@@ -224,17 +224,17 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         const password = get(request, 'auth.wsse.password', '');
 
         const ts = new Date().toISOString();
-        const nonce = crypto.randomBytes(16).toString('base64');
+        const nonce = crypto.randomBytes(16).toString('hex');
 
-        // Create the password digest using SHA-256
-        const hash = crypto.createHash('sha256');
+        // Create the password digest using SHA-1 as required for WSSE
+        const hash = crypto.createHash('sha1');
         hash.update(nonce + ts + password);
-        const digest = hash.digest('base64');
+        const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
 
         // Construct the WSSE header
         axiosRequest.headers[
           'X-WSSE'
-        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(collectionAuth, 'apikey');
@@ -318,17 +318,17 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         const password = get(request, 'auth.wsse.password', '');
 
         const ts = new Date().toISOString();
-        const nonce = crypto.randomBytes(16).toString('base64');
+        const nonce = crypto.randomBytes(16).toString('hex');
 
-        // Create the password digest using SHA-256
-        const hash = crypto.createHash('sha256');
+        // Create the password digest using SHA-1 as required for WSSE
+        const hash = crypto.createHash('sha1');
         hash.update(nonce + ts + password);
-        const digest = hash.digest('base64');
+        const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
 
         // Construct the WSSE header
         axiosRequest.headers[
           'X-WSSE'
-        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Created="${ts}", Nonce="${nonce}"`;
+        ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
         break;
       case 'apikey':
         const apiKeyAuth = get(request, 'auth.apikey');
@@ -370,6 +370,7 @@ const prepareRequest = (item, collection) => {
     mergeFolderLevelHeaders(request, requestTreePath);
     mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
+    request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
   }
 
   // Request level headers
@@ -461,6 +462,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
+  axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;
