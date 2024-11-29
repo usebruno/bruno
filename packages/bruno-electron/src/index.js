@@ -27,8 +27,10 @@ const registerNotificationsIpc = require('./ipc/notifications');
 const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 
 const lastOpenedCollections = new LastOpenedCollections();
-
 let isMainWindowClosed = false;
+const menu = Menu.buildFromTemplate(menuTemplate);
+let watcher;
+let ipcsRegistered = false;
 
 // Create an Immer proxy state to store mainWindow
 let state = {
@@ -75,10 +77,63 @@ const contentSecurityPolicy = [
 
 setContentSecurityPolicy(contentSecurityPolicy.join(';') + ';');
 
-const menu = Menu.buildFromTemplate(menuTemplate);
-let watcher;
-let ipcsRegistered = false;
+const gotTheLock = app.requestSingleInstanceLock();
 
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    createOrFocusMainWindow();
+  });
+
+  app.on('ready', () => {
+    if (!BrowserWindow?.getAllWindows?.()?.length) {
+      createWindow();
+    }
+  });
+
+  app.on('activate', () => {
+    createOrFocusMainWindow();
+  });
+
+  // Quit the app once all windows are closed
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
+
+  app.on('before-quit', () => {
+    const allWindows = BrowserWindow.getAllWindows();
+    allWindows?.forEach?.(window => {
+      window?.close?.();
+    });
+  });
+
+  // Open collection from Recent menu (#1521)
+  app.on('open-file', (event, path) => {
+    openCollection(mainWindow, watcher, path);
+  });
+}
+
+const createOrFocusMainWindow = () => {
+  if (isMainWindowClosed) {
+    if (!BrowserWindow?.getAllWindows?.()?.length) {
+      createWindow();
+    }
+  }
+
+  if (mainWindow && !isMainWindowClosed) {
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
+    mainWindow?.show?.();
+    mainWindow?.focus?.();
+  }
+}
+
+
+// Create new BrowserWindow instance
 const createWindow = () => {
   Menu.setApplicationMenu(menu);
   const { maximized, x, y, width, height } = loadWindowState();
@@ -186,47 +241,4 @@ const createWindow = () => {
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc();
   ipcsRegistered = true;
-}
-
-const gotTheLock = app.requestSingleInstanceLock();
-
-if (!gotTheLock) {
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (mainWindow && !isMainWindowClosed) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      mainWindow.focus();
-    }
-  });
-
-  app.on('ready', createWindow);
-
-  app.on('activate', () => {
-    if (isMainWindowClosed) {
-      createWindow();
-    }
-
-    if (process.platform !== 'darwin') {
-      if (mainWindow && !isMainWindowClosed) {
-        mainWindow?.show?.();
-        mainWindow?.focus?.();
-      }
-    }
-  });
-
-  // Quit the app once all windows are closed
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
-  });
-
-  // Open collection from Recent menu (#1521)
-  app.on('open-file', (event, path) => {
-    openCollection(mainWindow, watcher, path);
-  });
-
 }
