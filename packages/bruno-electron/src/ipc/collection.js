@@ -17,7 +17,8 @@ const {
   isWSLPath,
   normalizeWslPath,
   normalizeAndResolvePath,
-  safeToRename
+  safeToRename,
+  isValidFilename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -201,7 +202,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-
+      if (!isValidFilename(request.name)) {
+        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      }
       const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -364,6 +367,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const isBru = hasBruExtension(oldPath);
       if (!isBru) {
         throw new Error(`path: ${oldPath} is not a bru file`);
+      }
+
+      if (!isValidFilename(newName)) {
+        throw new Error(`path: ${newName} is not a valid filename`);
       }
 
       // update name in file and save new copy, then delete old copy

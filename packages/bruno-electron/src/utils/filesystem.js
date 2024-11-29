@@ -160,6 +160,20 @@ const sanitizeDirectoryName = (name) => {
   return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
 };
 
+const isValidFilename = (fileName) => {
+  const inValidChars = /[\\/:*?"<>|]/;
+
+  if (!fileName || inValidChars.test(fileName)) {
+    return false;
+  }
+
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
+    return false;
+  }
+
+  return true;
+};
+
 const safeToRename = (oldPath, newPath) => {
   try {
     // If the new path doesn't exist, it's safe to rename
@@ -204,5 +218,6 @@ module.exports = {
   searchForFiles,
   searchForBruFiles,
   sanitizeDirectoryName,
-  safeToRename
+  safeToRename,
+  isValidFilename
 };
