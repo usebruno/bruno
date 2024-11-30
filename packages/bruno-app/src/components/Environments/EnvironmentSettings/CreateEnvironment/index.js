@@ -34,10 +34,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
           toast.success('Environment created in collection');
           onClose();
         })
-        .catch(() => {
-          // No action needed here. Validation for duplicate environment names is handled in the form itself.
-          // If an error occurs, it is already displayed near the input field (given that the error is caused because of duplicate naming).
-        });
+        .catch(() => toast.error('An error occurred while creating the environment'));
     }
   });
 
