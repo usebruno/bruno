@@ -13,7 +13,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
 
   // todo: Add this to global env too.
  const validateEnvironmentName = (name) => {
-   return !collection.environments.some((env) => env?.name?.toLowerCase() === name?.toLowerCase().trim());
+   return !collection.environments.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
  };
 
   const formik = useFormik({
@@ -26,7 +26,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
         .min(1, 'Must be at least 1 character')
         .max(50, 'Must be 50 characters or less')
         .required('Name is required')
-        .test('duplicate-name', 'Environment name already exists', validateEnvironmentName)
+        .test('duplicate-name', 'Environment already exists', validateEnvironmentName)
     }),
     onSubmit: (values) => {
       dispatch(addEnvironment(values.name, collection.uid))
