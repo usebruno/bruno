@@ -13,7 +13,7 @@ const CreateEnvironment = ({ collection, onClose }) => {
 
   // todo: Add this to global env too.
  const validateEnvironmentName = (name) => {
-   return !collection.environments.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+   return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
  };
 
   const formik = useFormik({
