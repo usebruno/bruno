@@ -162,11 +162,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   if (searchText && searchText.length) {
     if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
+      if (!doesRequestMatchSearchText(item, searchText, preferences.viewRequestBy)) {
         return null;
       }
     } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText, preferences.viewRequestBy)) {
         return null;
       }
     }

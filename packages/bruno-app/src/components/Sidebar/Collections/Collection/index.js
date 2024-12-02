@@ -7,7 +7,7 @@ import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
-import { useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
 import NewFolder from 'components/Sidebar/NewFolder';
@@ -30,6 +30,7 @@ const Collection = ({ collection, searchText }) => {
   const [showExportCollectionModal, setShowExportCollectionModal] = useState(false);
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
+  const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
   const menuDropdownTippyRef = useRef();
@@ -104,7 +105,7 @@ const Collection = ({ collection, searchText }) => {
   });
 
   if (searchText && searchText.length) {
-    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
+    if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText, preferences.viewRequestBy)) {
       return null;
     }
   }
