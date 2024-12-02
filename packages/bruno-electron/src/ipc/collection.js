@@ -459,100 +459,103 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
-    try {
-      let collectionName = sanitizeDirectoryName(collection.name);
-      let collectionPath = path.join(collectionLocation, collectionName);
+  ipcMain.handle(
+    'renderer:import-collection',
+    async (event, collection, collectionLocation, updateExistingCollection = false) => {
+      try {
+        let collectionName = sanitizeDirectoryName(collection.name);
+        let collectionPath = path.join(collectionLocation, collectionName);
 
-      if (fs.existsSync(collectionPath)) {
-        throw new Error(`collection: ${collectionPath} already exists`);
-      }
+        if (fs.existsSync(collectionPath)) {
+          throw new Error(`collection already exists: ${collectionPath}`);
+        }
 
-      // Recursive function to parse the collection items and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach((item) => {
-          if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+        // Recursive function to parse the collection items and create files/folders
+        const parseCollectionItems = (items = [], currentPath) => {
+          items.forEach((item) => {
+            if (['http-request', 'graphql-request'].includes(item.type)) {
+              const content = jsonToBru(item);
+              const filePath = path.join(currentPath, `${item.name}.bru`);
+              fs.writeFileSync(filePath, content);
+            }
+            if (item.type === 'folder') {
+              const folderPath = path.join(currentPath, item.name);
+              fs.mkdirSync(folderPath);
+
+              if (item?.root?.meta?.name) {
+                const folderBruFilePath = path.join(folderPath, 'folder.bru');
+                const folderContent = jsonToCollectionBru(
+                  item.root,
+                  true // isFolder
+                );
+                fs.writeFileSync(folderBruFilePath, folderContent);
+              }
+
+              if (item.items && item.items.length) {
+                parseCollectionItems(item.items, folderPath);
+              }
+            }
+            // Handle items of type 'js'
+            if (item.type === 'js') {
+              const filePath = path.join(currentPath, `${item.name}.js`);
+              fs.writeFileSync(filePath, item.fileContent);
+            }
+          });
+        };
+
+        const parseEnvironments = (environments = [], collectionPath) => {
+          const envDirPath = path.join(collectionPath, 'environments');
+          if (!fs.existsSync(envDirPath)) {
+            fs.mkdirSync(envDirPath);
+          }
+
+          environments.forEach((env) => {
+            const content = envJsonToBru(env);
+            const filePath = path.join(envDirPath, `${env.name}.bru`);
             fs.writeFileSync(filePath, content);
+          });
+        };
+
+        const getBrunoJsonConfig = (collection) => {
+          let brunoConfig = collection.brunoConfig;
+
+          if (!brunoConfig) {
+            brunoConfig = {
+              version: '1',
+              name: collection.name,
+              type: 'collection',
+              ignore: ['node_modules', '.git']
+            };
           }
-          if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
-            fs.mkdirSync(folderPath);
 
-            if (item?.root?.meta?.name) {
-              const folderBruFilePath = path.join(folderPath, 'folder.bru');
-              const folderContent = jsonToCollectionBru(
-                item.root,
-                true // isFolder
-              );
-              fs.writeFileSync(folderBruFilePath, folderContent);
-            }
+          return brunoConfig;
+        };
 
-            if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
-            }
-          }
-          // Handle items of type 'js'
-          if (item.type === 'js') {
-            const filePath = path.join(currentPath, `${item.name}.js`);
-            fs.writeFileSync(filePath, item.fileContent);
-          }
-        });
-      };
+        await createDirectory(collectionPath);
 
-      const parseEnvironments = (environments = [], collectionPath) => {
-        const envDirPath = path.join(collectionPath, 'environments');
-        if (!fs.existsSync(envDirPath)) {
-          fs.mkdirSync(envDirPath);
-        }
+        const uid = generateUidBasedOnHash(collectionPath);
+        const brunoConfig = getBrunoJsonConfig(collection);
+        const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
 
-        environments.forEach((env) => {
-          const content = envJsonToBru(env);
-          const filePath = path.join(envDirPath, `${env.name}.bru`);
-          fs.writeFileSync(filePath, content);
-        });
-      };
+        // Write the Bruno configuration to a file
+        await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-      const getBrunoJsonConfig = (collection) => {
-        let brunoConfig = collection.brunoConfig;
+        const collectionContent = jsonToCollectionBru(collection.root);
+        await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
-        if (!brunoConfig) {
-          brunoConfig = {
-            version: '1',
-            name: collection.name,
-            type: 'collection',
-            ignore: ['node_modules', '.git']
-          };
-        }
+        mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
-        return brunoConfig;
-      };
+        lastOpenedCollections.add(collectionPath);
 
-      await createDirectory(collectionPath);
-
-      const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = getBrunoJsonConfig(collection);
-      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
-
-      // Write the Bruno configuration to a file
-      await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
-
-      const collectionContent = jsonToCollectionBru(collection.root);
-      await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
-
-      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
-
-      lastOpenedCollections.add(collectionPath);
-
-      // create folder and files based on collection
-      await parseCollectionItems(collection.items, collectionPath);
-      await parseEnvironments(collection.environments, collectionPath);
-    } catch (error) {
-      return Promise.reject(error);
+        // create folder and files based on collection
+        await parseCollectionItems(collection.items, collectionPath);
+        await parseEnvironments(collection.environments, collectionPath);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
-  });
+  );
 
   ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
     try {

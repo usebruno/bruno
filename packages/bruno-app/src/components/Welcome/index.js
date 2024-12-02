@@ -10,15 +10,18 @@ import CreateCollection from 'components/Sidebar/CreateCollection';
 import ImportCollection from 'components/Sidebar/ImportCollection';
 import ImportCollectionLocation from 'components/Sidebar/ImportCollectionLocation';
 import StyledWrapper from './StyledWrapper';
+import ConfirmCollectionImportUpdate from 'components/ConfirmCollectionImportUpdate/index';
 
 const Welcome = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation();
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedCollectionLocation, setImportedCollectionLocation] = useState(null);
   const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [confirmCollectionImportUpdateModalOpen, setConfirmCollectionImportUpdateModalOpen] = useState(false);
 
   const handleOpenCollection = () => {
     dispatch(openCollection()).catch((err) => console.log(err) && toast.error(t('WELCOME.COLLECTION_OPEN_ERROR')));
@@ -33,18 +36,53 @@ const Welcome = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
+  const cleanupAfterSuccessfulImport = () => {
+    setImportCollectionLocationModalOpen(false);
+    setImportedCollection(null);
+    setImportedCollectionLocation(null);
+    toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
+  };
+
+  const cleanupAndShowImportError = (err) => {
+    setImportCollectionLocationModalOpen(false);
+    setImportedCollection(null);
+    setImportedCollectionLocation(null);
+    console.error(err);
+    toast.error(t('WELCOME.COLLECTION_IMPORT_ERROR'));
+  };
+
   const handleImportCollectionLocation = (collectionLocation) => {
+    setImportedCollectionLocation(collectionLocation);
+    setImportCollectionLocationModalOpen(false);
     dispatch(importCollection(importedCollection, collectionLocation))
       .then(() => {
-        setImportCollectionLocationModalOpen(false);
-        setImportedCollection(null);
-        toast.success(t('WELCOME.COLLECTION_IMPORT_SUCCESS'));
+        cleanupAfterSuccessfulImport();
       })
       .catch((err) => {
-        setImportCollectionLocationModalOpen(false);
-        console.error(err);
-        toast.error(t('WELCOME.COLLECTION_IMPORT_ERROR'));
+        // Note: the string here must exactly match the start of the error thrown in
+        // `bruno-electron/src/ipc/collection.js` when the folder already exists
+        if (err instanceof Error && err.message.includes('collection already exists')) {
+          setConfirmCollectionImportUpdateModalOpen(true);
+        } else {
+          cleanupAndShowImportError(err);
+        }
       });
+  };
+
+  const handleConfirmCollectionImportUpdate = (shouldUpdate) => {
+    setConfirmCollectionImportUpdateModalOpen(false);
+    setImportCollectionLocationModalOpen(false);
+    if (shouldUpdate) {
+      dispatch(importCollection(importedCollection, importedCollectionLocation, true))
+        .then(() => {
+          cleanupAfterSuccessfulImport();
+        })
+        .catch((err) => {
+          cleanupAndShowImportError(err);
+        });
+    } else {
+      cleanupAndShowImportError();
+    }
   };
 
   return (
@@ -59,6 +97,12 @@ const Welcome = () => {
           collectionName={importedCollection.name}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
+        />
+      ) : null}
+      {confirmCollectionImportUpdateModalOpen ? (
+        <ConfirmCollectionImportUpdate
+          onConfirm={() => handleConfirmCollectionImportUpdate(true)}
+          onCancel={() => handleConfirmCollectionImportUpdate(false)}
         />
       ) : null}
 
