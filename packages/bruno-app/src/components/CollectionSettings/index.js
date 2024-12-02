@@ -40,7 +40,7 @@ const CollectionSettings = ({ collection }) => {
   };
 
   const root = collection?.root;
-  const hasScripts = root?.request?.script.res || root?.request?.script.req;
+  const hasScripts = root?.request?.script?.res || root?.request?.script?.req;
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 

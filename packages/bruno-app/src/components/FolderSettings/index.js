@@ -27,7 +27,7 @@ const FolderSettings = ({ collection, folder }) => {
   }
 
   const folderRoot = collection?.items.find((item) => item.uid === folder?.uid)?.root;
-  const hasScripts = folderRoot?.request?.script.res || folderRoot?.request?.script.req;
+  const hasScripts = folderRoot?.request?.script?.res || folderRoot?.request?.script?.req;
   const hasTests = folderRoot?.request?.tests;
 
   const headers = folderRoot?.request?.headers || [];
