@@ -9,6 +9,7 @@
   "scripts": {
     "clean": "rimraf dist",
     "dev": "electron .",
+    "debug": "electron . --inspect=9229",
     "dist:mac": "electron-builder --mac --config electron-builder-config.js",
     "dist:win": "electron-builder --win --config electron-builder-config.js",
     "dist:linux": "electron-builder --linux AppImage --config electron-builder-config.js",
@@ -19,7 +20,9 @@
     "test": "node --experimental-vm-modules $(npx which jest)"
   },
   "jest": {
-    "modulePaths": ["node_modules"]
+    "modulePaths": [
+      "node_modules"
+    ]
   },
   "dependencies": {
     "@aws-sdk/credential-providers": "3.658.1",
