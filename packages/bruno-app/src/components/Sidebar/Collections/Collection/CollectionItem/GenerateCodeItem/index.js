@@ -63,9 +63,20 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     tabIndex={0}
                     onClick={() => setSelectedLanguage(language)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        setSelectedLanguage(language);
+                      if (e.key === 'Tab') {
                         e.preventDefault();
+                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
+                        const nextIndex = e.shiftKey
+                          ? (currentIndex - 1 + languages.length) % languages.length
+                          : (currentIndex + 1) % languages.length;
+                        setSelectedLanguage(languages[nextIndex]);
+                      }
+
+                      if (e.shiftKey && e.key === 'Tab') {
+                        e.preventDefault();
+                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
+                        const nextIndex = (currentIndex - 1 + languages.length) % languages.length;
+                        setSelectedLanguage(languages[nextIndex]);
                       }
                     }}
                     aria-pressed={language.name === selectedLanguage.name}
