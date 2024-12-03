@@ -106,7 +106,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       }
 
       if (!isValidPathname(path.basename(dirPath))) {
-        throw new Error(`collection: invalid pathname - ${dir}`);
+        throw new Error(`collection: invalid pathname - ${dirPath}`);
       }
 
       // create dir
