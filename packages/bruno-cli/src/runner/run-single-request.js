@@ -11,7 +11,7 @@ const interpolateVars = require('./interpolate-vars');
 const { interpolateString } = require('./interpolate-string');
 const { ScriptRuntime, TestRuntime, VarsRuntime, AssertRuntime } = require('@usebruno/js');
 const { stripExtension } = require('../utils/filesystem');
-const { getOptions } = require('../utils/bru');
+const { bruToJson, getOptions } = require('../utils/bru');
 const https = require('https');
 const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -272,7 +272,7 @@ const runSingleRequest = async function (
 
     console.log(
       chalk.green(stripExtension(filename)) +
-      chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
+        chalk.dim(` (${response.status} ${response.statusText}) - ${responseTime} ms`)
     );
 
     // run post-response vars
@@ -339,7 +339,36 @@ const runSingleRequest = async function (
 
     // run tests
     let testResults = [];
-    const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
+
+    let testFileArray = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]);
+
+    // this goes backwards from the filename directory to the root collection directory and concatenates
+    // tests onto the testFileArray, in order to preserve the same test order as the UI
+    function checkForFolderTests(dir) {
+      const folderBru = path.join(dir, 'folder.bru');
+
+      if (fs.existsSync(folderBru)) {
+        const bruContent = fs.readFileSync(folderBru, 'utf8');
+        const bruJson = bruToJson(bruContent);
+        const requestHasTests = bruJson.request?.tests;
+        if (requestHasTests) {
+          testFileArray = [...testFileArray, get(bruJson, 'request.tests')];
+        }
+      }
+      const parentDir = path.resolve(dir, '..');
+
+      if (parentDir === collectionPath) {
+        return;
+      } else {
+        return checkForFolderTests(parentDir);
+      }
+    }
+
+    const filenameDir = path.dirname(fs.realpathSync(filename));
+    checkForFolderTests(filenameDir);
+
+    const testFile = testFileArray.join(os.EOL);
+
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
