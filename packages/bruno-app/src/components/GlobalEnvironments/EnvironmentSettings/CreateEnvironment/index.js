@@ -8,10 +8,11 @@ import Modal from 'components/Modal';
 import { addGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
 
 const CreateEnvironment = ({ onClose }) => {
-  const global_envs = useSelector((state) => state?.globalEnvironments.globalEnvironments);
-  
+  const global_envs = useSelector((state) => state?.globalEnvironments?.globalEnvironments);
+
   const validateEnvironmentName = (name) => {
-    return !global_envs.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
+    const trimmedName = name?.toLowerCase().trim();
+    return global_envs.every((env) => env?.name?.toLowerCase().trim() !== trimmedName);
   };
 
   const dispatch = useDispatch();
