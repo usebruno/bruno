@@ -5,6 +5,7 @@ import AwsV4Auth from './AwsV4Auth';
 import BearerAuth from './BearerAuth';
 import BasicAuth from './BasicAuth';
 import DigestAuth from './DigestAuth';
+import WsseAuth from './WsseAuth';
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
 import { humanizeRequestAuthMode } from 'utils/collections/index';
@@ -32,6 +33,9 @@ const Auth = ({ item, collection }) => {
       }
       case 'oauth2': {
         return <OAuth2 collection={collection} item={item} />;
+      }
+      case 'wsse': {
+        return <WsseAuth collection={collection} item={item} />;
       }
       case 'apikey': {
         return <ApiKeyAuth collection={collection} item={item} />;

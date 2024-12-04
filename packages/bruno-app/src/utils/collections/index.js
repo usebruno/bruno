@@ -132,6 +132,10 @@ export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
 };
 
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
+};
+
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
   let draggedItemParent = findParentItemInCollection(collection, draggedItem.uid);
 
@@ -299,7 +303,8 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           script: si.request.script,
           vars: si.request.vars,
           assertions: si.request.assertions,
-          tests: si.request.tests
+          tests: si.request.tests,
+          docs: si.request.docs
         };
 
         // Handle auth object dynamically
@@ -379,7 +384,12 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
               placement: get(si.request, 'auth.apikey.placement', 'header')
             };
             break;
-
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
           default:
             break;
         }
@@ -669,6 +679,10 @@ export const humanizeRequestAuthMode = (mode) => {
       label = 'OAuth 2.0';
       break;
     }
+    case 'wsse': {
+      label = 'WSSE Auth';
+      break;
+    }
     case 'apikey': {
       label = 'API Key';
       break;
@@ -773,6 +787,19 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  let variables = {};
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  if (environment) {
+    each(environment.variables, (variable) => {
+      if (variable.name && variable.value && variable.enabled) {
+        variables[variable.name] = variable.value;
+      }
+    });
+  }
+  return variables;
+};
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -787,6 +814,24 @@ export const getEnvironmentVariables = (collection) => {
   }
 
   return variables;
+};
+
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
 };
 
 const getPathParams = (item) => {
@@ -815,14 +860,24 @@ export const getTotalRequestCountInCollection = (collection) => {
 };
 
 export const getAllVariables = (collection, item) => {
+  if(!collection) return {};
   const envVariables = getEnvironmentVariables(collection);
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
   const pathParams = getPathParams(item);
+  const { globalEnvironmentVariables = {} } = collection;
 
   const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection);
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
 
   return {
+    ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
     ...folderVariables,
@@ -831,6 +886,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
+    maskedEnvVariables: filteredMaskedEnvVariables,
     process: {
       env: {
         ...processEnvVariables

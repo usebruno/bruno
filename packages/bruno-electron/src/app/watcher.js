@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension } = require('../utils/filesystem');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -12,6 +12,7 @@ const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const UiStateSnapshot = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -201,7 +202,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -331,7 +331,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -423,6 +422,13 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
+const onWatcherSetupComplete = (win, collectionPath) => {
+  const UiStateSnapshotStore = new UiStateSnapshot();
+  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
+  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == collectionPath);
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
+};
+
 class Watcher {
   constructor() {
     this.watchers = {};
@@ -439,11 +445,11 @@ class Watcher {
         ignoreInitial: false,
         usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = filepath.replace(/\\/g, '/');
+          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
           });
         },
@@ -458,6 +464,7 @@ class Watcher {
 
       let startedNewWatcher = false;
       watcher
+        .on('ready', () => onWatcherSetupComplete(win, watchPath))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))

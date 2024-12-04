@@ -10,6 +10,15 @@ const StyledWrapper = styled.div`
     flex: 1 1 0;
   }
 
+  /* Removes the glow outline around the folded json */
+  .CodeMirror-foldmarker {
+    text-shadow: none;
+    color: ${(props) => props.theme.textLink};
+    background: none;
+    padding: 0;
+    margin: 0;
+  }
+
   .CodeMirror-overlayscroll-horizontal div,
   .CodeMirror-overlayscroll-vertical div {
     background: #d2d7db;
@@ -17,6 +26,12 @@ const StyledWrapper = styled.div`
 
   .CodeMirror-dialog {
     overflow: visible;
+    input {
+      background: transparent;
+      border: 1px solid #d3d6db;
+      outline: none;
+      border-radius: 0px;
+    }
   }
 
   #search-results-count {
@@ -68,6 +83,18 @@ const StyledWrapper = styled.div`
   }
   .cm-variable-invalid {
     color: red;
+  }
+
+  .CodeMirror-search-hint {
+    display: inline;
+  }
+
+  .cm-s-default span.cm-property {
+    color: #1f61a0 !important;
+  }
+
+  .cm-s-default span.cm-variable {
+    color: #397d13 !important;
   }
 `;
 

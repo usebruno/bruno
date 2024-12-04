@@ -3,15 +3,20 @@ import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
 import { isValidUrl } from 'utils/url';
-import { find, get } from 'lodash';
+import { get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
+import { useSelector } from 'react-redux';
+import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
   const languages = getLanguages();
 
-  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  const { globalEnvironments, activeGlobalEnvironmentUid } = useSelector((state) => state.globalEnvironments);
+  const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+
+  const environment = findEnvironmentInCollection(collection, collection?.activeEnvironmentUid);
   let envVars = {};
   if (environment) {
     const vars = get(environment, 'variables', []);
@@ -27,6 +32,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   // interpolate the url
   const interpolatedUrl = interpolateUrl({
     url: requestUrl,
+    globalEnvironmentVariables,
     envVars,
     runtimeVariables: collection.runtimeVariables,
     processEnvVars: collection.processEnvVariables

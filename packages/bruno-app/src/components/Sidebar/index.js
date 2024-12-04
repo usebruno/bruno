@@ -1,7 +1,6 @@
 import TitleBar from './TitleBar';
 import Collections from './Collections';
 import StyledWrapper from './StyledWrapper';
-import GitHubButton from 'react-github-btn';
 import Preferences from 'components/Preferences';
 import Cookies from 'components/Cookies';
 import ToolHint from 'components/ToolHint';
@@ -185,7 +184,7 @@ const Sidebar = () => {
                   Star
                 </GitHubButton> */}
               </div>
-              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.30.1</div>
+              <div className="flex flex-grow items-center justify-end text-xs mr-2">v1.34.2</div>
             </div>
           </div>
         </div>
