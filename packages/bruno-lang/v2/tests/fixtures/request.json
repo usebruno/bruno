@@ -24,6 +24,24 @@
       "enabled": true
     },
     {
+      "name" : "colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "nested escaped \"quote\"",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": true
+    },
+    {
+      "name" : "disabled:colon:parameter",
+      "value" : "is allowed",
+      "type": "query",
+      "enabled": false
+    },
+    {
       "name": "message",
       "value": "hello",
       "type": "query",
@@ -110,8 +128,18 @@
         "enabled": true
       },
       {
+        "name": "colon:parameter",
+        "value": "is allowed",
+        "enabled": true
+      },
+      {
         "name": "message",
         "value": "hello",
+        "enabled": false
+      },
+      {
+        "name": "disabled colon:parameter",
+        "value": "is allowed",
         "enabled": false
       }
     ],
@@ -129,8 +157,20 @@
         "type": "text"
       },
       {
+        "name": "colon:part",
+        "value": "is allowed",
+        "enabled": true,
+        "type": "text"
+      },
+      {
         "name": "message",
         "value": "hello",
+        "enabled": false,
+        "type": "text"
+      },
+      {
+        "name": "disabled colon:part",
+        "value": "is allowed",
         "enabled": false,
         "type": "text"
       }
