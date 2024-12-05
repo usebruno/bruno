@@ -372,7 +372,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           await fsExtra.move(tempDir, newPath, { overwrite: true });
           await fsExtra.remove(oldPath);
         } else {
-          await fs.rename(oldPath, newPath);
+          await fs.renameSync(oldPath, newPath);
         }
         return newPath;
       }
