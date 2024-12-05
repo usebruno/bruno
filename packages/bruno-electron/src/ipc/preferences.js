@@ -3,9 +3,9 @@ const { getPreferences, savePreferences, preferencesUtil } = require('../store/p
 const { isDirectory } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-``;
-const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
-  ipcMain.handle('renderer:ready', async (event) => {
+
+const initRendererIpc = (mainWindow, watcher, lastOpenedCollections) => {
+  ipcMain.handleOnce('renderer:ready', async (event) => {
     // load preferences
     const preferences = getPreferences();
     mainWindow.webContents.send('main:load-preferences', preferences);
@@ -34,7 +34,10 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
       }
     }
   });
+}
 
+
+const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
   ipcMain.on('main:open-preferences', () => {
     mainWindow.webContents.send('main:open-preferences');
   });
@@ -48,4 +51,7 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
   });
 };
 
-module.exports = registerPreferencesIpc;
+module.exports = {
+  initRendererIpc,
+  registerPreferencesIpc
+}
