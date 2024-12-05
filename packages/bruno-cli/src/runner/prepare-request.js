@@ -398,6 +398,10 @@ const prepareRequest = (item = {}, collection = {}) => {
     axiosRequest.script = request.script;
   }
 
+  if (request.tests) {
+    axiosRequest.tests = request.tests;
+  }
+
   axiosRequest.vars = request.vars;
   axiosRequest.collectionVariables = request.collectionVariables;
   axiosRequest.folderVariables = request.folderVariables;
