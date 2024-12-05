@@ -57,6 +57,8 @@ function getDataString(request) {
       console.error('Failed to parse JSON data:', error);
       return { data: request.data.toString() };
     }
+  } else if (contentType && contentType.includes('application/xml')) {
+    return { data: request.data };
   }
 
   const parsedQueryString = querystring.parse(request.data, { sort: false });

@@ -1,0 +1,13 @@
+script:pre-request {
+  console.log("collection pre");
+}
+
+script:post-response {
+  {
+    console.log("collection post");
+    const sequence = bru.getVar('sequence') || [];
+    sequence.push(1);
+    bru.setVar('sequence', sequence);
+    console.log("sequence", bru.getVar('sequence'));
+  }
+}
