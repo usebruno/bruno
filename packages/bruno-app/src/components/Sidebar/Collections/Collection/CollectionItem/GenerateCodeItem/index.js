@@ -2,13 +2,14 @@ import Modal from 'components/Modal/index';
 import { useState } from 'react';
 import CodeView from './CodeView';
 import StyledWrapper from './StyledWrapper';
-import { isValidUrl } from 'utils/url';
+import { interpolateHeaders, isValidUrl } from 'utils/url';
 import { get } from 'lodash';
 import { findEnvironmentInCollection } from 'utils/collections';
 import { interpolateUrl, interpolateUrlPathParams } from 'utils/url/index';
 import { getLanguages } from 'utils/codegenerator/targets';
 import { useSelector } from 'react-redux';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getAuthHeaders } from 'utils/codegenerator/auth';
 
 const GenerateCodeItem = ({ collection, item, onClose }) => {
   const languages = getLanguages();
@@ -44,6 +45,25 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
     get(item, 'draft.request.params') !== undefined ? get(item, 'draft.request.params') : get(item, 'request.params')
   );
 
+
+  const collectionRootAuth = collection?.root?.request?.auth;
+  const requestAuth = item.draft ? get(item, 'draft.request.auth') : get(item, 'request.auth');
+  const requestHeaders = item.draft ? get(item, 'draft.request.headers') : get(item, 'request.headers');
+  const headers = [
+    ...getAuthHeaders(collectionRootAuth, requestAuth),
+    ...(collection?.root?.request?.headers || []),
+    ...(requestHeaders || [])
+  ];
+
+  const finalHeaders = interpolateHeaders({
+    header: headers,
+    globalEnvironmentVariables,
+    envVars,
+    runtimeVariables: collection.runtimeVariables,
+    processEnvVars: collection.processEnvVariables
+  });
+
+
   const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
@@ -76,11 +96,13 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     item.request.url !== ''
                       ? {
                           ...item.request,
-                          url: finalUrl
+                          url: finalUrl,
+                          headers: finalHeaders
                         }
                       : {
                           ...item.draft.request,
-                          url: finalUrl
+                          url: finalUrl,
+                          headers: finalHeaders
                         }
                 }}
               />
