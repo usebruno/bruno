@@ -45,9 +45,9 @@ const RequestTabPanel = () => {
     if (collection) {
       // add selected global env variables to the collection object
       const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
-      const globalEnvironmentVariablesMasked = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
+      const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
       collection.globalEnvironmentVariables = globalEnvironmentVariables;
-      collection.globalEnvironmentVariablesMasked = globalEnvironmentVariablesMasked;
+      collection.globalEnvSecrets = globalEnvSecrets;
     }
   });
 
