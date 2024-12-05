@@ -93,13 +93,13 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
       {openManageSecretsModal && <ManageSecrets onClose={() => setOpenManageSecretsModal(false)} />}
 
       <div className="flex">
-        <div>
+        <div className="environment-list-divider">
           {switchEnvConfirmClose && (
             <div className="flex items-center justify-between tab-container px-1">
               <ConfirmSwitchEnv onCancel={() => handleConfirmSwitch(false)} />
             </div>
           )}
-          <div className="environments-sidebar flex flex-col">
+          <div className="flex flex-col justify-around h-full">
             {environments &&
               environments.length &&
               environments.map((env) => (

@@ -22,6 +22,7 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { produce } from 'immer';
+import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -155,6 +156,10 @@ const RequestTabPanel = () => {
 
   if (focusedTab.type === 'security-settings') {
     return <SecuritySettings collection={collection} />;
+  }
+
+  if (focusedTab.type === 'environment-settings') {
+    return <EnvironmentSettings collection={collection} />;
   }
 
   const item = findItemInCollection(collection, activeTabUid);
