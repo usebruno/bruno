@@ -164,44 +164,22 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   }
 };
 
-const findItemInCollection = (collection, itemId) => {
-  let item = null;
-
-  if (collection.uid === itemId) {
-    return collection;
-  }
-
-  if (collection.items && collection.items.length) {
-    collection.items.forEach((item) => {
-      if (item.uid === itemId) {
-        item = item;
-      } else if (item.type === 'folder') {
-        item = findItemInCollection(item, itemId);
-      }
-    });
-  }
-
-  return item;
+const findItem = (items = [], pathname) => {
+  return find(items, (i) => i.pathname === pathname);
 };
 
-const findItemInCollectionByPath = (collection, pathname) => {
-  let item = null;
+const findItemInCollection = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
 
-  if (collection.pathname === pathname) {
-    return collection;
-  }
+  return findItem(flattenedItems, pathname);
+};
 
-  if (collection.items && collection.items.length) {
-    collection.items.forEach((_item) => {
-      if (_item.pathname === pathname) {
-        item = _item;
-      } else if (_item.type === 'folder') {
-        item = findItemInCollectionByPath(_item, pathname);
-      }
-    });
-  }
+const findParentItemInCollection = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
 
-  return item;
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
 };
 
 const flattenItems = (items = []) => {
@@ -222,22 +200,13 @@ const flattenItems = (items = []) => {
   return flattenedItems;
 };
 
-const findParentItemInCollectionByPath = (collection, pathname) => {
-  let flattenedItems = flattenItems(collection.items);
-
-  return find(flattenedItems, (item) => {
-    return item.items && find(item.items, (i) => i.pathname === pathname);
-  });
-};
-
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
-  let item = findItemInCollectionByPath(collection, _item.pathname);
+  let item = findItemInCollection(collection, _item.pathname);
   while (item) {
     path.unshift(item);
-    item = findParentItemInCollectionByPath(collection, item.pathname);
+    item = findParentItemInCollection(collection, item.pathname);
   }
-
   return path;
 };
 

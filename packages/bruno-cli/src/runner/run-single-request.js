@@ -43,10 +43,9 @@ const runSingleRequest = async function (
     let request;
     let nextRequestName;
     let item = { 
-      pathname: `${collectionPath}/${filename}`,
+      pathname: path.join(collectionPath, filename),
       ...bruJson
     }
-
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
