@@ -21,8 +21,8 @@ const replaceTabsWithSpaces = (str, numSpaces = 2) => {
 };
 
 export const addDepth = (items = []) => {
-  const depth = (itms, initialDepth) => {
-    each(itms, (i) => {
+  const depth = (items, initialDepth) => {
+    each(items, (i) => {
       i.depth = initialDepth;
 
       if (i.items && i.items.length) {
@@ -65,8 +65,8 @@ export const sortItems = (collection) => {
 export const flattenItems = (items = []) => {
   const flattenedItems = [];
 
-  const flatten = (itms, flattened) => {
-    each(itms, (i) => {
+  const flatten = (items, flattened) => {
+    each(items, (i) => {
       flattened.push(i);
 
       if (i.items && i.items.length) {

@@ -39,7 +39,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [newRequestModalOpen, setNewRequestModalOpen] = useState(false);
   const [newFolderModalOpen, setNewFolderModalOpen] = useState(false);
   const [runCollectionModalOpen, setRunCollectionModalOpen] = useState(false);
-  const [itemIsCollapsed, setItemisCollapsed] = useState(item.collapsed);
+  const [itemIsCollapsed, setItemIsCollapsed] = useState(item.collapsed);
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION_ITEM_${collection.uid}`,
@@ -66,9 +66,9 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   useEffect(() => {
     if (searchText && searchText.length) {
-      setItemisCollapsed(false);
+      setItemIsCollapsed(false);
     } else {
-      setItemisCollapsed(item.collapsed);
+      setItemIsCollapsed(item.collapsed);
     }
   }, [searchText, item]);
 

@@ -4,8 +4,8 @@ const find = require('lodash/find');
 const flattenItems = (items = []) => {
   const flattenedItems = [];
 
-  const flatten = (itms, flattened) => {
-    each(itms, (i) => {
+  const flatten = (items, flattened) => {
+    each(items, (i) => {
       flattened.push(i);
 
       if (i.items && i.items.length) {

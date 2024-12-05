@@ -130,7 +130,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // write the bruno.json to new dir
       await writeFile(path.join(dirPath, 'bruno.json'), cont);
 
-      // Now copy all the files with extension name .bru along with there dir
+      // Now copy all the files with extension name .bru along with the dir
       const files = searchForBruFiles(previousPath);
 
       for (const sourceFilePath of files) {
