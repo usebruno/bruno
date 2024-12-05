@@ -889,6 +889,9 @@ export const getAllVariables = (collection, item) => {
   const mergedVariablesGlobal = {
     ...collectionVariables,
     ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
   }
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
