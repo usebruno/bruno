@@ -94,7 +94,7 @@ const printRunSummary = (results) => {
 };
 
 const createCollectionFromPath = (collectionPath) => {
-  const environmentsPath = `${collectionPath}/environments`;
+  const environmentsPath = path.join(collectionPath, `environments`);
   const getFilesInOrder = (collectionPath) => {
     let collection = {
       pathname: collectionPath
