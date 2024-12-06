@@ -50,11 +50,11 @@ const EnvironmentSelector = ({ collection }) => {
   };
 
   return (
-    <StyledWrapper>
+    <StyledWrapper color={activeEnvironment?.color}>
       <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
           <div className="label-item font-medium">Collection Environments</div>
-          {environments && environments.length
+          {environments?.length
             ? environments.map((e) => (
                 <div
                   className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
@@ -64,7 +64,8 @@ const EnvironmentSelector = ({ collection }) => {
                     dropdownTippyRef.current.hide();
                   }}
                 >
-                  <IconDatabase size={18} strokeWidth={1.5} /> <span className="ml-2 break-all">{e.name}</span>
+                  <IconDatabase color={e.color == '' ? undefined : e.color} size={18} strokeWidth={1.5} />
+                  <span className="ml-2 break-all">{e.name}</span>
                 </div>
               ))
             : null}
