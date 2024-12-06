@@ -986,6 +986,26 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveAssertion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          const { updateReorderedItem } = action.payload;
+          const assertions = item.draft.request.assertions;
+
+          item.draft.request.assertions = updateReorderedItem.map((uid) => {
+            return assertions.find((assertion) => assertion.uid === uid);
+          });
+        }
+      }
+    },
     updateAssertion: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1790,6 +1810,7 @@ export const {
   updateRequestTests,
   updateRequestMethod,
   addAssertion,
+  moveAssertion,
   updateAssertion,
   deleteAssertion,
   addVar,
