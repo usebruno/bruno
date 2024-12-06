@@ -800,6 +800,19 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
   return variables;
 };
 
+export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+
+  if (environment && Array.isArray(environment.variables)) {
+    return environment.variables
+      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .map((variable) => variable.name);
+  }
+
+  return [];
+};
+
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -873,8 +886,22 @@ export const getAllVariables = (collection, item) => {
     ...requestVariables,
     ...runtimeVariables
   };
-  const maskedEnvVariables = getEnvironmentVariablesMasked(collection);
+
+  const mergedVariablesGlobal = {
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+  }
+
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvironmentVariablesMasked || [];
+
   const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
+  const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
+
+  const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
   return {
     ...globalEnvironmentVariables,
@@ -886,7 +913,7 @@ export const getAllVariables = (collection, item) => {
     pathParams: {
       ...pathParams
     },
-    maskedEnvVariables: filteredMaskedEnvVariables,
+    maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
         ...processEnvVariables
