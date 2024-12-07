@@ -466,9 +466,35 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         let collectionName = sanitizeDirectoryName(collection.name);
         let collectionPath = path.join(collectionLocation, collectionName);
 
-        if (fs.existsSync(collectionPath)) {
+        if (fs.existsSync(collectionPath) && !updateExistingCollection) {
           throw new Error(`collection already exists: ${collectionPath}`);
         }
+
+        /**
+         * @returns whether the the given file was written. If this method returns,
+         * the file now definitely exists
+         */
+        const writeContentIfFileDoesNotExist = (filePath, content) => {
+          if (fs.existsSync(filePath)) {
+            return false;
+          } else {
+            fs.writeFileSync(filePath, content);
+            return true;
+          }
+        };
+
+        /**
+         * @returns whether the the given directory was created. If this method returns,
+         * the directory now definitely exists
+         */
+        const createDirectoryIfDirectoryDoesNotExist = (folderPath) => {
+          if (!fs.existsSync(folderPath)) {
+            fs.mkdirSync(folderPath);
+            return true;
+          } else {
+            return false;
+          }
+        };
 
         // Recursive function to parse the collection items and create files/folders
         const parseCollectionItems = (items = [], currentPath) => {
@@ -476,11 +502,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             if (['http-request', 'graphql-request'].includes(item.type)) {
               const content = jsonToBru(item);
               const filePath = path.join(currentPath, `${item.name}.bru`);
-              fs.writeFileSync(filePath, content);
+              writeContentIfFileDoesNotExist(filePath, content);
             }
             if (item.type === 'folder') {
               const folderPath = path.join(currentPath, item.name);
-              fs.mkdirSync(folderPath);
+              createDirectoryIfDirectoryDoesNotExist(folderPath);
 
               if (item?.root?.meta?.name) {
                 const folderBruFilePath = path.join(folderPath, 'folder.bru');
@@ -488,7 +514,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
                   item.root,
                   true // isFolder
                 );
-                fs.writeFileSync(folderBruFilePath, folderContent);
+                writeContentIfFileDoesNotExist(folderBruFilePath, folderContent);
               }
 
               if (item.items && item.items.length) {
@@ -498,21 +524,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             // Handle items of type 'js'
             if (item.type === 'js') {
               const filePath = path.join(currentPath, `${item.name}.js`);
-              fs.writeFileSync(filePath, item.fileContent);
+              writeContentIfFileDoesNotExist(filePath, item.fileContent);
             }
           });
         };
 
         const parseEnvironments = (environments = [], collectionPath) => {
           const envDirPath = path.join(collectionPath, 'environments');
-          if (!fs.existsSync(envDirPath)) {
-            fs.mkdirSync(envDirPath);
-          }
+          createDirectoryIfDirectoryDoesNotExist(envDirPath);
 
           environments.forEach((env) => {
             const content = envJsonToBru(env);
             const filePath = path.join(envDirPath, `${env.name}.bru`);
-            fs.writeFileSync(filePath, content);
+            writeContentIfFileDoesNotExist(filePath, content);
           });
         };
 
@@ -531,17 +555,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           return brunoConfig;
         };
 
-        await createDirectory(collectionPath);
+        createDirectoryIfDirectoryDoesNotExist(collectionPath);
 
         const uid = generateUidBasedOnHash(collectionPath);
         const brunoConfig = getBrunoJsonConfig(collection);
         const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
 
         // Write the Bruno configuration to a file
-        await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
+        writeContentIfFileDoesNotExist(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
         const collectionContent = jsonToCollectionBru(collection.root);
-        await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
+        writeContentIfFileDoesNotExist(path.join(collectionPath, 'collection.bru'), collectionContent);
 
         mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
         ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
@@ -549,8 +573,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         lastOpenedCollections.add(collectionPath);
 
         // create folder and files based on collection
-        await parseCollectionItems(collection.items, collectionPath);
-        await parseEnvironments(collection.environments, collectionPath);
+        parseCollectionItems(collection.items, collectionPath);
+        parseEnvironments(collection.environments, collectionPath);
       } catch (error) {
         return Promise.reject(error);
       }
