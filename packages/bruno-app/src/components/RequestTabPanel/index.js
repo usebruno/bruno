@@ -22,6 +22,8 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { produce } from 'immer';
+import get from 'lodash/get';
+import { replacePlaceholders } from 'utils/common/variable-replacer'; 
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -163,7 +165,47 @@ const RequestTabPanel = () => {
   }
 
   const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid)).catch((err) =>
+    let newItem = JSON.parse(JSON.stringify(item));
+
+    // Use lodash get to extract body mode
+    const bodyMode = newItem.draft
+      ? get(newItem, 'draft.request.body.mode')
+      : get(newItem, 'request.body.mode');
+
+    let bodyContent;
+    if (bodyMode === 'json') {
+      bodyContent = newItem.draft ? newItem.draft.request.body.json : newItem.request.body.json;
+    } else if (bodyMode === 'text') {
+      bodyContent = newItem.draft ? newItem.draft.request.body.text : newItem.request.body.text;
+    } else if (bodyMode === 'xml') {
+      bodyContent = newItem.draft ? newItem.draft.request.body.xml : newItem.request.body.xml;
+    } else if (bodyMode === 'sparql') {
+      bodyContent = newItem.draft ? newItem.draft.request.body.sparql : newItem.request.body.sparql;
+    } else {
+      dispatch(sendRequest(item, collection.uid)).catch(err => { /* handle error */ });
+      return;
+    }
+
+    // Perform placeholder replacements
+    bodyContent = replacePlaceholders(bodyContent);
+
+    // Assign updated content back to the item
+    if (bodyMode === 'json') {
+      if (newItem.draft) newItem.draft.request.body.json = bodyContent;
+      else newItem.request.body.json = bodyContent;
+    } else if (bodyMode === 'text') {
+      if (newItem.draft) newItem.draft.request.body.text = bodyContent;
+      else newItem.request.body.text = bodyContent;
+    } else if (bodyMode === 'xml') {
+      if (newItem.draft) newItem.draft.request.body.xml = bodyContent;
+      else newItem.request.body.xml = bodyContent;
+    } else if (bodyMode === 'sparql') {
+      if (newItem.draft) newItem.draft.request.body.sparql = bodyContent;
+      else newItem.request.body.sparql = bodyContent;
+    }
+
+    // Send the modified request
+    dispatch(sendRequest(newItem, collection.uid)).catch((err) =>
       toast.custom((t) => <NetworkError onClose={() => toast.dismiss(t.id)} />, {
         duration: 5000
       })
