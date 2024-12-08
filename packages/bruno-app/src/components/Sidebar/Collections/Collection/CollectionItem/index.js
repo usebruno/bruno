@@ -3,7 +3,7 @@ import range from 'lodash/range';
 import filter from 'lodash/filter';
 import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
-import { IconChevronRight, IconDots } from '@tabler/icons';
+import { IconChevronRight, IconDots, IconLoader2, IconRefresh } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
 import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
@@ -280,7 +280,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
             </div>
 
             <div className="ml-1 flex items-center overflow-hidden">
-              <RequestMethod item={item} />
+              {item?.partial && !item?.loading ? 
+                <IconRefresh size={18} className="w-fit mr-2" strokeWidth={1.5} />
+              : null}
+              {item?.loading ? 
+                <IconLoader2 className="animate-spin w-fit mr-2" size={18} strokeWidth={1.5} />
+              : null}
+              {!item?.partial && !item?.loading ? 
+                <RequestMethod item={item} />
+              : null}
               <span className="item-name" title={item.name}>
                 {item.name}
               </span>

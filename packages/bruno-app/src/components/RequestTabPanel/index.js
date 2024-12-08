@@ -8,7 +8,7 @@ import ResponsePane from 'components/ResponsePane';
 import Welcome from 'components/Welcome';
 import { findItemInCollection } from 'utils/collections';
 import { updateRequestPaneTabWidth } from 'providers/ReduxStore/slices/tabs';
-import { sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { loadRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import RequestNotFound from './RequestNotFound';
 import QueryUrl from 'components/RequestPane/QueryUrl';
 import NetworkError from 'components/ResponsePane/NetworkError';
@@ -22,6 +22,7 @@ import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
 import { getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { produce } from 'immer';
+import { IconLoader2 } from '@tabler/icons';
 
 const MIN_LEFT_PANE_WIDTH = 300;
 const MIN_RIGHT_PANE_WIDTH = 350;
@@ -170,8 +171,22 @@ const RequestTabPanel = () => {
     );
   };
 
+  const handleLoadRequest = () => {
+    dispatch(loadRequest({ collectionUid: collection?.uid, pathname: item?.pathname }));
+  }
+
   return (
     <StyledWrapper className={`flex flex-col flex-grow relative ${dragging ? 'dragging' : ''}`}>
+      {item?.partial ?
+        <>
+          <div className='partial-request-overlay absolute top-0 left-0 blur-lg z-10 opacity-60 h-full w-full'>
+          </div>
+          <button className="submit btn btn-sm btn-secondary w-fit h-fit z-20 m-auto absolute top-0 bottom-0 left-0 right-0 flex flex-row gap-2" onClick={handleLoadRequest}>
+              {item?.loading ? `Loading Request` : `Load Request`}
+              {item?.loading ? <IconLoader2 className="animate-spin" size={18} strokeWidth={1.5} /> : null}
+          </button>
+        </>
+      : null}
       <div className="pt-4 pb-3 px-4">
         <QueryUrl item={item} collection={collection} handleRun={handleRun} />
       </div>
