@@ -1,4 +1,5 @@
 const { Worker } = require('worker_threads');
+const path = require('path');
 
 class WorkerQueue {
   constructor() {
@@ -41,24 +42,7 @@ class WorkerQueue {
 
   async runBruToJsonV2Worker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        bruToJsonV2,
-      } = require('@usebruno/lang');
-  
-      try {
-        const bru = workerData;
-        const json = bruToJsonV2(bru);
-        parentPort.postMessage(json);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
+      const worker = new Worker(path.join(__dirname, './workerScripts/bruToJsonV2Worker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
@@ -76,24 +60,7 @@ class WorkerQueue {
 
   async runJsonToBruV2Worker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        jsonToBruV2,
-      } = require('@usebruno/lang');
-  
-      try {
-        const json = workerData;
-        const bru = jsonToBruV2(json);
-        parentPort.postMessage(bru);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
+      const worker = new Worker(path.join(__dirname, './workerScripts/jsonToBruV2Worker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
@@ -111,25 +78,7 @@ class WorkerQueue {
 
   async runBruToEnvJsonV2Worker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        bruToEnvJsonV2,
-      } = require('@usebruno/lang');
-  
-      try {
-        const bru = workerData;
-        const json = bruToEnvJsonV2(bru);
-        parentPort.postMessage(json);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
-
+      const worker = new Worker(path.join(__dirname, './workerScripts/bruToEnvJsonV2Worker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
@@ -149,24 +98,7 @@ class WorkerQueue {
 
   async runEnvJsonToBruV2Worker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        envJsonToBruV2,
-      } = require('@usebruno/lang');
-  
-      try {
-        const json = workerData;
-        const bru = envJsonToBruV2(json);
-        parentPort.postMessage(bru);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
+      const worker = new Worker(path.join(__dirname, './workerScripts/envJsonToBruV2Worker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
@@ -184,24 +116,7 @@ class WorkerQueue {
 
   async runCollectionBruToJsonWorker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        collectionBruToJson,
-      } = require('@usebruno/lang');
-  
-      try {
-        const bru = workerData;
-        const json = collectionBruToJson(bru);
-        parentPort.postMessage(json);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
+      const worker = new Worker(path.join(__dirname, './workerScripts/collectionBruToJsonWorker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
@@ -219,24 +134,7 @@ class WorkerQueue {
 
   async runJsonToCollectionBruWorker(data) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(`
-      const { workerData, parentPort } = require('worker_threads');
-      const {
-        jsonToCollectionBru,
-      } = require('@usebruno/lang');
-  
-      try {
-        const json = workerData;
-        const bru = jsonToCollectionBru(json);
-        parentPort.postMessage(bru);
-      }
-      catch(error) {
-        console.error(error);
-      }
-    `, {
-        eval: true,
-        workerData: data,
-      });
+      const worker = new Worker(path.join(__dirname, './workerScripts/jsonToCollectionBruWorker.js'), { workerData: data });
       worker.on('message', (data) => {
         resolve(data);
         worker.terminate();
