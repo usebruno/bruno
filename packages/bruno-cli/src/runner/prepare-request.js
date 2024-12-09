@@ -143,24 +143,18 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
     }
   }
 
-  if (combinedPreReqScript.length) {
-    request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+  request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
+
+  if (scriptFlow === 'sequential') {
+    request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
+  } else {
+    request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
   }
 
-  if (combinedPostResScript.length) {
-    if (scriptFlow === 'sequential') {
-      request.script.res = compact([collectionPostResScript, ...combinedPostResScript, request?.script?.res || '']).join(os.EOL);
-    } else {
-      request.script.res = compact([request?.script?.res || '', ...combinedPostResScript.reverse(), collectionPostResScript]).join(os.EOL);
-    }
-  }
-
-  if (combinedTests.length) {
-    if (scriptFlow === 'sequential') {
-      request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
-    } else {
-      request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
-    }
+  if (scriptFlow === 'sequential') {
+    request.tests = compact([collectionTests, ...combinedTests, request?.tests || '']).join(os.EOL);
+  } else {
+    request.tests = compact([request?.tests || '', ...combinedTests.reverse(), collectionTests]).join(os.EOL);
   }
 };
 
