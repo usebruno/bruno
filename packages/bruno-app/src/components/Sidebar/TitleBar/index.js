@@ -11,13 +11,16 @@ import { useDispatch } from 'react-redux';
 import { showHomePage } from 'providers/ReduxStore/slices/app';
 import { openCollection, importCollection } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import ConfirmCollectionImportUpdate from 'components/ConfirmCollectionImportUpdate/index';
 
 const TitleBar = () => {
   const [importedCollection, setImportedCollection] = useState(null);
+  const [importedCollectionLocation, setImportedCollectionLocation] = useState(null);
   const [importedTranslationLog, setImportedTranslationLog] = useState({});
   const [createCollectionModalOpen, setCreateCollectionModalOpen] = useState(false);
   const [importCollectionModalOpen, setImportCollectionModalOpen] = useState(false);
   const [importCollectionLocationModalOpen, setImportCollectionLocationModalOpen] = useState(false);
+  const [confirmCollectionImportUpdateModalOpen, setConfirmCollectionImportUpdateModalOpen] = useState(false);
   const dispatch = useDispatch();
   const { ipcRenderer } = window;
 
@@ -30,18 +33,53 @@ const TitleBar = () => {
     setImportCollectionLocationModalOpen(true);
   };
 
+  const cleanupAfterSuccessfulImport = () => {
+    setImportCollectionLocationModalOpen(false);
+    setImportedCollection(null);
+    setImportedCollectionLocation(null);
+    toast.success('Collection imported successfully');
+  };
+
+  const cleanupAndShowImportError = (err) => {
+    setImportCollectionLocationModalOpen(false);
+    setImportedCollection(null);
+    setImportedCollectionLocation(null);
+    console.error(err);
+    toast.error('An error occurred while importing the collection. Check the logs for more information.');
+  };
+
   const handleImportCollectionLocation = (collectionLocation) => {
+    setImportedCollectionLocation(collectionLocation);
+    setImportCollectionLocationModalOpen(false);
     dispatch(importCollection(importedCollection, collectionLocation))
       .then(() => {
-        setImportCollectionLocationModalOpen(false);
-        setImportedCollection(null);
-        toast.success('Collection imported successfully');
+        cleanupAfterSuccessfulImport();
       })
       .catch((err) => {
-        setImportCollectionLocationModalOpen(false);
-        console.error(err);
-        toast.error('An error occurred while importing the collection. Check the logs for more information.');
+        // Note: the string here must exactly match the start of the error thrown in
+        // `bruno-electron/src/ipc/collection.js` when the folder already exists
+        if (err instanceof Error && err.message.includes('collection already exists')) {
+          setConfirmCollectionImportUpdateModalOpen(true);
+        } else {
+          cleanupAndShowImportError(err);
+        }
       });
+  };
+
+  const handleConfirmCollectionImportUpdate = (shouldUpdate) => {
+    setConfirmCollectionImportUpdateModalOpen(false);
+    setImportCollectionLocationModalOpen(false);
+    if (shouldUpdate) {
+      dispatch(importCollection(importedCollection, importedCollectionLocation, true))
+        .then(() => {
+          cleanupAfterSuccessfulImport();
+        })
+        .catch((err) => {
+          cleanupAndShowImportError(err);
+        });
+    } else {
+      cleanupAndShowImportError();
+    }
   };
 
   const menuDropdownTippyRef = useRef();
@@ -78,6 +116,12 @@ const TitleBar = () => {
           translationLog={importedTranslationLog}
           onClose={() => setImportCollectionLocationModalOpen(false)}
           handleSubmit={handleImportCollectionLocation}
+        />
+      ) : null}
+      {confirmCollectionImportUpdateModalOpen ? (
+        <ConfirmCollectionImportUpdate
+          onConfirm={() => handleConfirmCollectionImportUpdate(true)}
+          onCancel={() => handleConfirmCollectionImportUpdate(false)}
         />
       ) : null}
 
