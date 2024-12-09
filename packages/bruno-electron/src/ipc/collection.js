@@ -13,6 +13,7 @@ const {
   isDirectory,
   browseDirectory,
   browseFiles,
+  browseFile,
   createDirectory,
   searchForBruFiles,
   sanitizeDirectoryName,
@@ -57,6 +58,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       const filePaths = await browseFiles(mainWindow, filters);
 
       return filePaths;
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  // browse directory for one file
+  ipcMain.handle('renderer:browse-file', async (event, pathname, request, filters) => {
+    try {
+      const filePath = await browseFile(mainWindow, filters);
+
+      return filePath;
     } catch (error) {
       return Promise.reject(error);
     }
