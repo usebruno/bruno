@@ -30,6 +30,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -179,7 +180,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         name: folderName
       };
 
-      const content = jsonToCollectionBru(
+      const content = await jsonToCollectionBru(
         folderRoot,
         true // isFolder
       );
@@ -192,7 +193,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     try {
       const collectionBruFilePath = path.join(collectionPathname, 'collection.bru');
 
-      const content = jsonToCollectionBru(collectionRoot);
+      const content = await jsonToCollectionBru(collectionRoot);
       await writeFile(collectionBruFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -208,7 +209,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!isValidFilename(request.name)) {
         throw new Error(`path: ${request.name}.bru is not a valid filename`);
       }
-      const content = jsonToBru(request);
+      const content = await jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -222,7 +223,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`path: ${pathname} does not exist`);
       }
 
-      const content = jsonToBru(request);
+      const content = await jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
       return Promise.reject(error);
@@ -240,7 +241,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           throw new Error(`path: ${pathname} does not exist`);
         }
 
-        const content = jsonToBru(request);
+        const content = await jsonToBru(request);
         await writeFile(pathname, content);
       }
     } catch (error) {
@@ -270,7 +271,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = envJsonToBru(environment);
+      const content = await envJsonToBru(environment);
 
       await writeFile(envFilePath, content);
     } catch (error) {
@@ -295,7 +296,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         environmentSecretsStore.storeEnvSecrets(collectionPathname, environment);
       }
 
-      const content = envJsonToBru(environment);
+      const content = await envJsonToBru(environment);
       await writeFile(envFilePath, content);
     } catch (error) {
       return Promise.reject(error);
@@ -387,11 +388,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // update name in file and save new copy, then delete old copy
       const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
-      const jsonData = bruToJson(data);
+      const jsonData = await bruToJson(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
-      const content = jsonToBru(jsonData);
+      const content = await jsonToBru(jsonData);
       await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
@@ -470,9 +471,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // Recursive function to parse the collection items and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach((item) => {
+        items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
+            const content = await jsonToBru(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -482,7 +483,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             if (item?.root?.meta?.name) {
               const folderBruFilePath = path.join(folderPath, 'folder.bru');
-              const folderContent = jsonToCollectionBru(
+              const folderContent = await jsonToCollectionBru(
                 item.root,
                 true // isFolder
               );
@@ -507,8 +508,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           fs.mkdirSync(envDirPath);
         }
 
-        environments.forEach((env) => {
-          const content = envJsonToBru(env);
+        environments.forEach(async (env) => {
+          const content = await envJsonToBru(env);
           const filePath = path.join(envDirPath, `${env.name}.bru`);
           fs.writeFileSync(filePath, content);
         });
@@ -538,7 +539,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       // Write the Bruno configuration to a file
       await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-      const collectionContent = jsonToCollectionBru(collection.root);
+      const collectionContent = await jsonToCollectionBru(collection.root);
       await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
 
       mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
@@ -562,9 +563,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // Recursive function to parse the folder and create files/folders
       const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach((item) => {
+        items.forEach(async (item) => {
           if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
+            const content = await jsonToBru(item);
             const filePath = path.join(currentPath, `${item.name}.bru`);
             fs.writeFileSync(filePath, content);
           }
@@ -574,7 +575,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
             // If folder has a root element, then I should write its folder.bru file
             if (item.root) {
-              const folderContent = jsonToCollectionBru(item.root, true);
+              const folderContent = await jsonToCollectionBru(item.root, true);
               if (folderContent) {
                 const bruFolderPath = path.join(folderPath, `folder.bru`);
                 fs.writeFileSync(bruFolderPath, folderContent);
@@ -592,7 +593,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       // If initial folder has a root element, then I should write its folder.bru file
       if (itemFolder.root) {
-        const folderContent = jsonToCollectionBru(itemFolder.root, true);
+        const folderContent = await jsonToCollectionBru(itemFolder.root, true);
         if (folderContent) {
           const bruFolderPath = path.join(collectionPath, `folder.bru`);
           fs.writeFileSync(bruFolderPath, folderContent);
@@ -608,13 +609,13 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:resequence-items', async (event, itemsToResequence) => {
     try {
-      for (let item of itemsToResequence) {
+      for await (let item of itemsToResequence) {
         const bru = fs.readFileSync(item.pathname, 'utf8');
-        const jsonData = bruToJson(bru);
+        const jsonData = await bruToJson(bru);
 
         if (jsonData.seq !== item.seq) {
           jsonData.seq = item.seq;
-          const content = jsonToBru(jsonData);
+          const content = await jsonToBru(jsonData);
           await writeFile(item.pathname, content);
         }
       }
@@ -727,6 +728,65 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
+    }
+  });
+
+  ipcMain.handle('renderer:load-request-init', async (event, { collectionUid, pathname }) => {
+    try {
+      if (hasBruExtension(pathname)) {
+        const file = {
+          meta: {
+            collectionUid,
+            pathname,
+            name: path.basename(pathname)
+          }
+        };
+        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        file.data = metaJson;
+        file.loading = true;
+        file.partial = true;
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:load-request', async (event, { collectionUid, pathname }) => {
+    try {
+      if (hasBruExtension(pathname)) {
+        const file = {
+          meta: {
+            collectionUid,
+            pathname,
+            name: path.basename(pathname)
+          }
+        };
+        let bruContent = fs.readFileSync(pathname, 'utf8');
+        file.data = await bruToJson(bruContent);
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+    } catch (error) {
+      if (hasBruExtension(pathname)) {
+        const file = {
+          meta: {
+            collectionUid,
+            pathname,
+            name: path.basename(pathname)
+          }
+        };
+        let bruContent = fs.readFileSync(pathname, 'utf8');
+        const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+        file.data = metaJson;
+        file.partial = true;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        mainWindow.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
+      return Promise.reject(error);
     }
   });
 };
