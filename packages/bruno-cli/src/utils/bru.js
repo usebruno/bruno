@@ -68,7 +68,7 @@ const bruToJson = (bru) => {
 
     return transformedJson;
   } catch (err) {
-    return Promise.reject(err);
+    throw new Error(err);
   }
 };
 

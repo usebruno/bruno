@@ -136,12 +136,18 @@ const createCollectionFromPath = (collectionPath) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = bruToJson(bruContent);
-          currentDirItems.push({
-            name: file,
-            pathname: filePath,
-            ...bruJson
-          });
+          try {
+            let bruJson = bruToJson(bruContent);
+            currentDirItems.push({
+              name: file,
+              pathname: filePath,
+              ...bruJson
+            });
+          }
+          catch(error) {
+            console.error(chalk.red("Invalid bru file:", filePath));
+            console.error(chalk.red(error));
+          }
         }
       }
       return currentDirItems
