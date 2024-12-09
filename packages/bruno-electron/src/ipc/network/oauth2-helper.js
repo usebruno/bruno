@@ -3,6 +3,10 @@ const crypto = require('crypto');
 const { authorizeUserInWindow } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
 
+const encodeClientCredentials = (clientId, clientSecret) => {
+  return 'Basic ' + Buffer.from(clientId + ':' + clientSecret).toString('base64');
+};
+
 const generateCodeVerifier = () => {
   return crypto.randomBytes(22).toString('hex');
 };
@@ -23,22 +27,34 @@ const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid)
   let requestCopy = cloneDeep(request);
   const { authorizationCode } = await getOAuth2AuthorizationCode(requestCopy, codeChallenge, collectionUid);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, callbackUrl, scope, pkce } = oAuth;
-  const data = {
-    grant_type: 'authorization_code',
-    code: authorizationCode,
-    redirect_uri: callbackUrl,
-    client_id: clientId,
-    client_secret: clientSecret
-  };
-  if (pkce) {
-    data['code_verifier'] = codeVerifier;
+  const { clientId, clientSecret, clientSecretMethod, callbackUrl, pkce } = oAuth;
+
+  const accessTokenRequestHeaders = request.headers;
+  accessTokenRequestHeaders['content-type'] = 'application/x-www-form-urlencoded';
+  if (clientSecretMethod === 'client_credentials_basic') {
+    accessTokenRequestHeaders['authorization'] = encodeClientCredentials(clientId, clientSecret);
   }
 
-  const url = requestCopy?.oauth2?.accessTokenUrl;
+  const accessTokenRequestData = {
+    grant_type: 'authorization_code',
+    code: authorizationCode,
+    redirect_uri: callbackUrl
+  };
+
+  if (clientSecretMethod === 'client_credentials_post') {
+    accessTokenRequestData['client_id'] = clientId;
+    accessTokenRequestData['client_secret'] = clientSecret;
+  }
+
+  if (pkce) {
+    accessTokenRequestData['code_verifier'] = codeVerifier;
+  }
+
+  const accessTokenRequestUrl = requestCopy?.oauth2?.accessTokenUrl;
   return {
-    data,
-    url
+    accessTokenRequestHeaders,
+    accessTokenRequestData,
+    accessTokenRequestUrl
   };
 };
 
@@ -82,19 +98,30 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 const transformClientCredentialsRequest = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, scope } = oAuth;
-  const data = {
-    grant_type: 'client_credentials',
-    client_id: clientId,
-    client_secret: clientSecret
+  const { clientId, clientSecret, clientSecretMethod, scope } = oAuth;
+
+  const accessTokenRequestHeaders = request.headers;
+  accessTokenRequestHeaders['content-type'] = 'application/x-www-form-urlencoded';
+  if (clientSecretMethod === 'client_credentials_basic') {
+    accessTokenRequestHeaders['authorization'] = encodeClientCredentials(clientId, clientSecret);
+  }
+
+  const accessTokenRequestData = {
+    grant_type: 'client_credentials'
   };
   if (scope) {
-    data.scope = scope;
+    accessTokenRequestData.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
+  if (clientSecretMethod === 'client_credentials_post') {
+    accessTokenRequestData['client_id'] = clientId;
+    accessTokenRequestData['client_secret'] = clientSecret;
+  }
+
+  const accessTokenRequestUrl = requestCopy?.oauth2?.accessTokenUrl;
   return {
-    data,
-    url
+    accessTokenRequestHeaders,
+    accessTokenRequestData,
+    accessTokenRequestUrl
   };
 };
 
@@ -103,21 +130,34 @@ const transformClientCredentialsRequest = async (request) => {
 const transformPasswordCredentialsRequest = async (request) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, clientId, clientSecret, scope } = oAuth;
-  const data = {
+  const { username, password, clientId, clientSecret, clientSecretMethod, scope } = oAuth;
+
+  const accessTokenRequestHeaders = request.headers;
+  accessTokenRequestHeaders['content-type'] = 'application/x-www-form-urlencoded';
+  if (clientSecretMethod === 'client_credentials_basic') {
+    accessTokenRequestHeaders['authorization'] = encodeClientCredentials(clientId, clientSecret);
+  }
+
+  const accessTokenRequestData = {
     grant_type: 'password',
     username,
-    password,
-    client_id: clientId,
-    client_secret: clientSecret
+    password
   };
   if (scope) {
-    data.scope = scope;
+    accessTokenRequestData.scope = scope;
   }
-  const url = requestCopy?.oauth2?.accessTokenUrl;
+  if (clientSecretMethod === 'client_credentials_post') {
+    accessTokenRequestData['client_id'] = clientId;
+    if(clientSecret) {
+      accessTokenRequestData['client_secret'] = clientSecret;
+    }
+  }
+
+  const accessTokenRequestUrl = requestCopy?.oauth2?.accessTokenUrl;
   return {
-    data,
-    url
+    accessTokenRequestHeaders,
+    accessTokenRequestData,
+    accessTokenRequestUrl
   };
 };
 
