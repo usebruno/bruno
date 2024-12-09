@@ -65,6 +65,10 @@ class Bru {
     this.envVariables[key] = value;
   }
 
+  deleteEnvVar(key) {
+    delete this.envVariables[key];
+  }
+
   getGlobalEnvVar(key) {
     return this._interpolate(this.globalEnvironmentVariables[key]);
   }
