@@ -30,9 +30,9 @@ Libraries we use
 - CSS - Tailwind
 - Code Editors - Codemirror
 - State Management - Redux
-- Icons - Tabler Icons
-- Forms - formik
-- Schema Validation - Yup
+- Icons - [Tabler Icons](https://tabler.io/icons)
+- Forms - [formik](https://formik.org/docs/examples/basic)
+- Schema Validation - [Yup](https://github.com/jquense/yup)
 - Request Client - axios
 - Filesystem Watcher - chokidar
 - i18n - i18next

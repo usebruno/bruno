@@ -155,6 +155,13 @@ const darkTheme = {
     }
   },
 
+  markDownEditor: {
+    hoverBg: '#2A2A2A',
+    hr: {
+      border: '1px solid #d3d3d3'
+    }
+  },
+
   modal: {
     title: {
       color: '#ccc',

@@ -159,6 +159,13 @@ const lightTheme = {
     }
   },
 
+  markDownEditor: {
+    hoverBg: '#f4f4f4',
+    hr: {
+      border: '1px solid #d3d3d3'
+    }
+  },
+
   modal: {
     title: {
       color: 'rgb(86 86 86)',
