@@ -120,8 +120,16 @@ const createCollectionFromPath = (collectionPath) => {
           const folderBruFileExists = fs.existsSync(folderBruFilePath);
           if(folderBruFileExists) {
             const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
-            let folderBruJson = collectionBruToJson(folderBruContent);
-            folderItem.root = folderBruJson;
+            try {
+              let folderBruJson = collectionBruToJson(folderBruContent, true);
+              folderItem.root = folderBruJson;              
+            }
+            catch(err) {
+              console.error(chalk.red("Invalid folder bru file:", filePath));
+              console.error(chalk.red(err));
+              folderItem.error = true;
+              folderItem.errorMessage = `Invalid folder.bru bru file:", ${filePath} \n ${err?.message}`;
+            }
           }
           currentDirItems.push(folderItem);
         }
@@ -136,12 +144,24 @@ const createCollectionFromPath = (collectionPath) => {
 
         if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
           const bruContent = fs.readFileSync(filePath, 'utf8');
-          const bruJson = bruToJson(bruContent);
-          currentDirItems.push({
-            name: file,
-            pathname: filePath,
-            ...bruJson
-          });
+          try {
+            const bruJson = bruToJson(bruContent, true);
+            currentDirItems.push({
+              name: file,
+              pathname: filePath,
+              ...bruJson
+            });
+          }
+          catch(err) {
+            console.error(chalk.red("Invalid bru file:", filePath));
+            console.error(chalk.red(err));
+            currentDirItems.push({
+              name: file,
+              pathname: filePath,
+              error: true,
+              errorMessage: `Invalid bru file:", ${filePath} \n ${err?.message}`
+            });
+          }
         }
       }
       return currentDirItems

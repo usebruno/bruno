@@ -1,7 +1,7 @@
 const _ = require('lodash');
 const { bruToEnvJsonV2, bruToJsonV2, collectionBruToJson: _collectionBruToJson } = require('@usebruno/lang');
 
-const collectionBruToJson = (bru) => {
+const collectionBruToJson = (bru, throwOnError) => {
   try {
     const json = _collectionBruToJson(bru);
 
@@ -16,8 +16,9 @@ const collectionBruToJson = (bru) => {
     };
 
     return transformedJson;
-  } catch (error) {
-    return Promise.reject(error);
+  } catch (err) {
+    if (throwOnError) throw new Error(err);
+    return Promise.reject(err);
   }
 };
 
@@ -30,7 +31,7 @@ const collectionBruToJson = (bru) => {
  * @param {string} bru The BRU file content.
  * @returns {object} The JSON representation of the BRU file.
  */
-const bruToJson = (bru) => {
+const bruToJson = (bru, throwOnError) => {
   try {
     const json = bruToJsonV2(bru);
 
@@ -68,14 +69,16 @@ const bruToJson = (bru) => {
 
     return transformedJson;
   } catch (err) {
+    if (throwOnError) throw new Error(err);
     return Promise.reject(err);
   }
 };
 
-const bruToEnvJson = (bru) => {
+const bruToEnvJson = (bru, throwOnError) => {
   try {
     return bruToEnvJsonV2(bru);
   } catch (err) {
+    if (throwOnError) throw new Error(err);
     return Promise.reject(err);
   }
 };
