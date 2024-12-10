@@ -3,18 +3,30 @@ const each = require('lodash/each');
 
 const cookieJar = new CookieJar();
 
-const addCookieToJar = (setCookieHeader, requestUrl) => {
+const normalizeUrl = (url) => {
+  try {
+    return new URL(url)?.toString?.();
+  }
+  catch(error) {
+    return url;
+  }
+}
+
+const addCookieToJar = (setCookieHeader, _url) => {
+  const url = normalizeUrl(_url);
   const cookie = Cookie.parse(setCookieHeader, { loose: true });
-  cookieJar.setCookieSync(cookie, requestUrl, {
+  cookieJar.setCookieSync(cookie, url, {
     ignoreError: true // silently ignore things like parse errors and invalid domains
   });
 };
 
-const getCookiesForUrl = (url) => {
+const getCookiesForUrl = (_url) => {
+  const url = normalizeUrl(_url);
   return cookieJar.getCookiesSync(url);
 };
 
-const getCookieStringForUrl = (url) => {
+const getCookieStringForUrl = (_url) => {
+  const url = normalizeUrl(_url);
   const cookies = getCookiesForUrl(url);
 
   if (!Array.isArray(cookies) || !cookies.length) {

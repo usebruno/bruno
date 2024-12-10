@@ -319,14 +319,6 @@ const configureRequest = async (
 
   request.timeout = preferencesUtil.getRequestTimeout();
 
-  // add cookies to request
-  if (preferencesUtil.shouldSendCookies()) {
-    const cookieString = getCookieStringForUrl(request.url);
-    if (cookieString && typeof cookieString === 'string' && cookieString.length) {
-      request.headers['cookie'] = cookieString;
-    }
-  }
-
   // Add API key to the URL
   if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
     const urlObj = new URL(request.url);
@@ -442,6 +434,14 @@ const registerNetworkIpc = (mainWindow) => {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
+      }
+    }
+
+    // add cookies to request
+    if (preferencesUtil.shouldSendCookies()) {
+      const cookieString = getCookieStringForUrl(request.url);
+      if (cookieString && typeof cookieString === 'string' && cookieString.length) {
+        request.headers['cookie'] = cookieString;
       }
     }
 
