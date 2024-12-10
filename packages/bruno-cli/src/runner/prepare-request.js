@@ -213,6 +213,11 @@ const prepareRequest = (item = {}, collection = {}) => {
   const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
+    requestTreePath?.forEach((r) => {
+      if(r?.error) {
+        throw new Error(r?.errorMessage);
+      }
+    });
     mergeHeaders(collection, request, requestTreePath);
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
