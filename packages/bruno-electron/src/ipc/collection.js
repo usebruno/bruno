@@ -369,7 +369,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
 
           await fsExtra.copy(oldPath, tempDir);
-          await fsExtra.remove(oldPath);
+          await fsExtra.remove(oldPath);    // Remove the old folder before moving the new one because there might be cases where oldPath.toLowerCase() and newPath.toLowerCase() are the same.
           await fsExtra.move(tempDir, newPath, { overwrite: true });
         } else {
           await fs.renameSync(oldPath, newPath);
