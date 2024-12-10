@@ -728,6 +728,22 @@ export const humanizeGrantType = (mode) => {
   return label;
 };
 
+export const humanizeOAuth2ClientSecretMethod = (mode) => {
+  let label = 'N/A';
+  switch (mode) {
+    case 'client_credentials_basic': {
+      label = 'As Basic Auth Header';
+      break;
+    }
+    case 'client_credentials_post': {
+      label = 'In Request Body';
+      break;
+    }
+  }
+
+  return label;
+};
+
 export const refreshUidsInItem = (item) => {
   item.uid = uuid();
 
