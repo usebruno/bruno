@@ -1,6 +1,7 @@
 import React from 'react';
 import Font from './Font/index';
 import Theme from './Theme/index';
+import RequestView from './RequestView/index';
 
 const Display = ({ close }) => {
   return (
@@ -10,6 +11,12 @@ const Display = ({ close }) => {
             Theme
           </span>
           <Theme close={close} />
+        </div>
+        <div className='w-full flex flex-col gap-2'>
+          <span>
+            Request View
+          </span>
+          <RequestView close={close} />
         </div>
         <div className='h-[1px] bg-[#aaa5] w-full'></div>
         <div className='w-fit flex flex-col gap-2'>
