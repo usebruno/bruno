@@ -17,7 +17,7 @@ const Wrapper = styled.div`
 
     li {
       display: inline-flex;
-      max-width: 150px;
+      max-width: 250px;
       border: 1px solid transparent;
       list-style: none;
       padding-top: 8px;
