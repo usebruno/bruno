@@ -895,7 +895,7 @@ export const getAllVariables = (collection, item) => {
   }
 
   const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
-  const maskedGlobalEnvVariables = collection?.globalEnvironmentVariablesMasked || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
 
   const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
   const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
