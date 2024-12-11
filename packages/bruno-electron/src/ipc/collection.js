@@ -1,5 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsExtra = require('fs-extra');
+const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
@@ -17,7 +19,9 @@ const {
   isWSLPath,
   normalizeWslPath,
   normalizeAndResolvePath,
-  safeToRename
+  safeToRename,
+  isWindowsOS,
+  isValidFilename
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -201,7 +205,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-
+      if (!isValidFilename(request.name)) {
+        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      }
       const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -358,23 +364,35 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const newBruFilePath = bruFile.replace(oldPath, newPath);
           moveRequestUid(bruFile, newBruFilePath);
         }
-        return fs.renameSync(oldPath, newPath);
+
+        if (isWindowsOS() && !isWSLPath(oldPath)) {
+          const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
+
+          await fsExtra.copy(oldPath, tempDir);
+          await fsExtra.move(tempDir, newPath, { overwrite: true });
+          await fsExtra.remove(oldPath);
+        } else {
+          await fs.rename(oldPath, newPath);
+        }
+        return newPath;
       }
 
-      const isBru = hasBruExtension(oldPath);
-      if (!isBru) {
+      if (!hasBruExtension(oldPath)) {
         throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
-      // update name in file and save new copy, then delete old copy
-      const data = fs.readFileSync(oldPath, 'utf8');
-      const jsonData = bruToJson(data);
+      if (!isValidFilename(newName)) {
+        throw new Error(`path: ${newName} is not a valid filename`);
+      }
 
+      // update name in file and save new copy, then delete old copy
+      const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
+      const jsonData = bruToJson(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await fs.unlinkSync(oldPath);
+      await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
       return newPath;
