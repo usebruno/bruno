@@ -343,6 +343,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
+    const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     try {
       // Normalize paths if they are WSL paths
       oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
@@ -365,15 +366,16 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           moveRequestUid(bruFile, newBruFilePath);
         }
 
+        watcher.unlink(path.dirname(oldPath));
         if (isWindowsOS() && !isWSLPath(oldPath)) {
-          const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
-
           await fsExtra.copy(oldPath, tempDir);
-          await fsExtra.move(tempDir, newPath, { overwrite: true });
           await fsExtra.remove(oldPath);
+          await fsExtra.move(tempDir, newPath, { overwrite: true });
+          await fsExtra.remove(tempDir);
         } else {
           await fs.renameSync(oldPath, newPath);
         }
+        watcher.add(path.dirname(oldPath));
         return newPath;
       }
 
@@ -397,6 +399,20 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       return newPath;
     } catch (error) {
+      // add path back to watcher in case an error during the rename file operations
+      // adds unlinked path back to watcher if doesn't exist
+      watcher.add(path.dirname(oldPath));
+      
+      if (isWindowsOS() && !isWSLPath(oldPath)) {
+        if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
+          try {
+            await fsExtra.copy(tempDir, oldPath);
+            await fsExtra.remove(tempDir);
+          } catch (err) {
+            console.error("Failed to restore data to the old path:", err);
+          }
+        }
+      }
       return Promise.reject(error);
     }
   });
