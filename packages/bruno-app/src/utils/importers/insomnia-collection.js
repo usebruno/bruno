@@ -58,9 +58,14 @@ const addSuffixToDuplicateName = (item, index, allItems) => {
   return nameSuffix !== 0 ? `${item.name}_${nameSuffix}` : item.name;
 };
 
-const regexVariable = new RegExp('{{.*?}}', 'g');
-const regexToRemove = new RegExp('(?:_\\.|[\\s\\]]+)', 'g');
-const regexToUnderscore = new RegExp('[.\\[]', 'g');
+// Matches any string that starts with '{{' and ends with '}}', capturing everything in between.
+const regexVariable = /{{.*?}}/g;
+
+// Matches any sequence that starts with '_', followed by a dot '.', and then one or more whitespace characters or closing square brackets.
+const regexToRemove = /(?:_\.[\s\]]+)/g;
+
+// Matches any dot '.' or opening square bracket '['.
+const regexToUnderscore = /[.\[]/g;
 
 const normalizeVariables = (value = "") => {
   const variables = value.match(regexVariable) || [];
