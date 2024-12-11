@@ -531,9 +531,12 @@ class Watcher {
     const watcherPath = this.getWatcherForPath(_path);
     if (watcherPath) {
       const _watcher = this.watchers[watcherPath];
-      _watcher.add(_path);
+      if (!_watcher?.has?.(_path)) {
+        _watcher?.add?.(_path);
+      }
     }
-  }  
+  }
+   
 }
 
 module.exports = Watcher;

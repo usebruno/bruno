@@ -399,6 +399,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       return newPath;
     } catch (error) {
+      // add path back to watcher in case an error during the rename file operations
+      // adds unlinked path back to watcher if doesn't exist
+      watcher.add(path.dirname(oldPath));
       return Promise.reject(error);
     }
   });
