@@ -404,9 +404,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       watcher.add(path.dirname(oldPath));
       
       if (isWindowsOS() && !isWSLPath(oldPath)) {
-        if (fsExtra.pathExistsSync(tempDir)) {
+        if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
           try {
             await fsExtra.copy(tempDir, oldPath);
+            await fsExtra.remove(tempDir);
           } catch (err) {
             console.error("Failed to restore data to the old path:", err);
           }
