@@ -44,6 +44,13 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
+const isPathInside = (childPath, parentPath) => {
+  const absoluteChildPath = path.resolve(childPath);
+  const absoluteParentPath = path.resolve(parentPath);
+  return absoluteChildPath.startsWith(absoluteParentPath);
+}
+
+
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
@@ -506,6 +513,27 @@ class Watcher {
       this.watchers[watchPath] = null;
     }
   }
+
+  getWatcherForPath(_path) {
+    const paths = Object.keys(this.watchers);
+    return paths.find(parentFolder => isPathInside(_path, parentFolder));
+  }
+  
+  unlink(_path) {
+    const watcherPath = this.getWatcherForPath(_path);
+    if (watcherPath) {
+      const _watcher = this.watchers[watcherPath];
+      _watcher.unwatch(_path);
+    }
+  }
+  
+  add(_path) {
+    const watcherPath = this.getWatcherForPath(_path);
+    if (watcherPath) {
+      const _watcher = this.watchers[watcherPath];
+      _watcher.add(_path);
+    }
+  }  
 }
 
 module.exports = Watcher;

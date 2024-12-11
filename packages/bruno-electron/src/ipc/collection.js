@@ -365,15 +365,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           moveRequestUid(bruFile, newBruFilePath);
         }
 
+        watcher.unlink(path.dirname(oldPath));
         if (isWindowsOS() && !isWSLPath(oldPath)) {
           const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
 
           await fsExtra.copy(oldPath, tempDir);
-          await fsExtra.move(tempDir, newPath, { overwrite: true });
           await fsExtra.remove(oldPath);
+          await fsExtra.move(tempDir, newPath, { overwrite: true });
         } else {
           await fs.renameSync(oldPath, newPath);
         }
+        watcher.add(path.dirname(oldPath));
         return newPath;
       }
 
