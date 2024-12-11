@@ -62,8 +62,7 @@ const regexVariable = new RegExp('{{.*?}}', 'g');
 const regexToRemove = new RegExp('(?:_\\.|[\\s\\]]+)', 'g');
 const regexToUnderscore = new RegExp('[.\\[]', 'g');
 
-const normalizeVariables = (value) => {
-  value = value || '';
+const normalizeVariables = (value = "") => {
   const variables = value.match(regexVariable) || [];
   each(variables, (variable) => {
     value = value.replaceAll(variable, variable.replaceAll(regexToRemove, '').replaceAll(regexToUnderscore, '_'));
