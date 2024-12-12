@@ -9,7 +9,7 @@ describe('prepare-request: prepareRequest', () => {
       const expected = `{
 \"test\": \"{{someVar}}\" 
 }`;
-      const result = prepareRequest({ body });
+      const result = prepareRequest({ request: { body } });
       expect(result.data).toEqual(expected);
     });
 
@@ -18,7 +18,7 @@ describe('prepare-request: prepareRequest', () => {
       const expected = `{
 \"test\": {{someVar}} 
 }`;
-      const result = prepareRequest({ body });
+      const result = prepareRequest({ request: { body } });
       expect(result.data).toEqual(expected);
     });
   });

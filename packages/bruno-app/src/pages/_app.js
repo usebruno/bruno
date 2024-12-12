@@ -8,7 +8,6 @@ import ReduxStore from 'providers/ReduxStore';
 import ThemeProvider from 'providers/Theme/index';
 import ErrorBoundary from './ErrorBoundary';
 
-import '../styles/app.scss';
 import '../styles/globals.css';
 import 'codemirror/lib/codemirror.css';
 import 'graphiql/graphiql.min.css';
@@ -31,7 +30,7 @@ function SafeHydrate({ children }) {
 }
 
 function NoSsr({ children }) {
-  const SERVER_RENDERED = typeof navigator === 'undefined';
+  const SERVER_RENDERED = typeof window === 'undefined';
 
   if (SERVER_RENDERED) {
     return null;
