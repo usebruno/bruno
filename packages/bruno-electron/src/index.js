@@ -11,7 +11,7 @@ if (isDev) {
 }
 
 const { format } = require('url');
-const { BrowserWindow, app, Menu, ipcMain } = require('electron');
+const { BrowserWindow, app, Menu, ipcMain, globalShortcut } = require('electron');
 const { setContentSecurityPolicy } = require('electron-util');
 
 const menuTemplate = require('./app/menu-template');
@@ -140,6 +140,11 @@ app.on('ready', async () => {
       console.error(e);
     }
     return { action: 'deny' };
+  });
+  
+  // Quick fix for Electron issue #29996: https://github.com/electron/electron/issues/29996
+  globalShortcut.register('Ctrl+=', () => {
+    mainWindow.webContents.setZoomLevel(mainWindow.webContents.getZoomLevel() + 1);
   });
 
   // register all ipc handlers
