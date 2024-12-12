@@ -8,7 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
-const posthogApiKey = process.env.POSTHOG_API_KEY;
+const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
 const getPosthogClient = () => {
   if (posthogClient) {
     return posthogClient;
