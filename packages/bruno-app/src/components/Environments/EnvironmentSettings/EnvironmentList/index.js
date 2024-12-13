@@ -9,8 +9,9 @@ import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
+const EnvironmentList = ({ collection, isModified, setIsModified }) => {
   const { environments } = collection;
+  const [selectedEnvironment, setSelectedEnvironment] = useState(null);
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
   const [openManageSecretsModal, setOpenManageSecretsModal] = useState(false);
@@ -18,7 +19,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
   const [switchEnvConfirmClose, setSwitchEnvConfirmClose] = useState(false);
   const [originalEnvironmentVariables, setOriginalEnvironmentVariables] = useState([]);
 
-  const envUids = environments ? environments.map((env) => env.uid) : [];
+  const envUids = environments?.map((env) => env.uid) ?? [];
   const prevEnvUids = usePrevious(envUids);
 
   useEffect(() => {
@@ -31,22 +32,28 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
     if (environment) {
       setSelectedEnvironment(environment);
     } else {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+      setSelectedEnvironment(environments?.length ? environments[0] : null);
     }
-  }, [collection, environments, selectedEnvironment]);
+  }, [collection, selectedEnvironment]);
 
   useEffect(() => {
-    if (prevEnvUids && prevEnvUids.length && envUids.length > prevEnvUids.length) {
+    if (selectedEnvironment) {
+      setSelectedEnvironment(findEnvironmentInCollection(collection, selectedEnvironment.uid));
+    }
+  }, [environments]);
+
+  useEffect(() => {
+    if (prevEnvUids?.length && envUids.length > prevEnvUids.length) {
       const newEnv = environments.find((env) => !prevEnvUids.includes(env.uid));
       if (newEnv) {
         setSelectedEnvironment(newEnv);
       }
     }
 
-    if (prevEnvUids && prevEnvUids.length && envUids.length < prevEnvUids.length) {
-      setSelectedEnvironment(environments && environments.length ? environments[0] : null);
+    if (prevEnvUids?.length && envUids.length < prevEnvUids.length) {
+      setSelectedEnvironment(environments?.length ? environments[0] : null);
     }
-  }, [envUids, environments, prevEnvUids]);
+  }, [envUids, collection, prevEnvUids]);
 
   const handleEnvironmentClick = (env) => {
     if (!isModified) {
@@ -100,17 +107,15 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
             </div>
           )}
           <div className="environments-sidebar flex flex-col">
-            {environments &&
-              environments.length &&
-              environments.map((env) => (
-                <div
-                  key={env.uid}
-                  className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                  onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
-                >
-                  <span className="break-all">{env.name}</span>
-                </div>
-              ))}
+            {environments?.map((env) => (
+              <div
+                key={env.uid}
+                className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
+                onClick={() => handleEnvironmentClick(env)}
+              >
+                <span className="break-all">{env.name}</span>
+              </div>
+            ))}
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
             </div>

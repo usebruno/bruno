@@ -135,6 +135,17 @@ export const collectionsSlice = createSlice({
 
         if (environment) {
           environment.variables = variables;
+          environment.color = color;
+        }
+      }
+    },
+    saveEnvironmentColor: (state, action) => {
+      const { color, environmentUid, collectionUid } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (collection) {
+        const environment = findEnvironmentInCollection(collection, environmentUid);
+        if (environment) {
+          environment.color = color;
         }
       }
     },
@@ -1749,6 +1760,7 @@ export const {
   updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
+  saveEnvironmentColor,
   selectEnvironment,
   newItem,
   deleteItem,
