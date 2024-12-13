@@ -24,11 +24,28 @@ export const getSubdirectoriesFromRoot = (rootPath, pathname) => {
   return relativePath ? relativePath.split(path.sep) : [];
 };
 
+
+export const isWindowsPath = (pathname) => {
+
+  if (!isWindowsOS()) {
+    return false;
+  }
+
+  // Check for Windows drive letter format (e.g., "C:\")
+  const hasDriveLetter = /^[a-zA-Z]:\\/.test(pathname);
+  
+  // Check for UNC path format (e.g., "\\server\share") a.k.a. network path || WSL path
+  const isUNCPath = pathname.startsWith('\\\\');
+
+  return hasDriveLetter || isUNCPath;
+};
+
+
 export const getDirectoryName = (pathname) => {
   // convert to unix style path
-  pathname = slash(pathname);
+  // pathname = slash(pathname);
 
-  return path.dirname(pathname);
+  return isWindowsPath(pathname) ? path.win32.dirname(pathname) : path.dirname(pathname);
 };
 
 export const isWindowsOS = () => {
