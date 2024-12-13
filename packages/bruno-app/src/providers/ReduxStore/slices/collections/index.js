@@ -1218,6 +1218,21 @@ export const collectionsSlice = createSlice({
         set(folder, 'root.request.headers', headers);
       }
     },
+    cloneFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        const headers = get(folder, 'root.request.headers', []);
+        headers.push({
+          uid: uuid(),
+          name: action.payload.header.name,
+          value: action.payload.header.value,
+          description: action.payload.header.description,
+          enabled: action.payload.header.enabled
+        });
+        set(folder, 'root.request.headers', headers);
+      }
+    },
     updateFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
@@ -1343,6 +1358,21 @@ export const collectionsSlice = createSlice({
           value: '',
           description: '',
           enabled: true
+        });
+        set(collection, 'root.request.headers', headers);
+      }
+    },
+    cloneCollectionHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const headers = get(collection, 'root.request.headers', []);
+        headers.push({
+          uid: uuid(),
+          name: action.payload.header.name,
+          value: action.payload.header.value,
+          description: action.payload.header.description,
+          enabled: action.payload.header.enabled
         });
         set(collection, 'root.request.headers', headers);
       }
@@ -1818,6 +1848,7 @@ export const {
   updateVar,
   deleteVar,
   addFolderHeader,
+  cloneFolderHeader,
   updateFolderHeader,
   deleteFolderHeader,
   addFolderVar,
@@ -1827,6 +1858,7 @@ export const {
   updateFolderResponseScript,
   updateFolderTests,
   addCollectionHeader,
+  cloneCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
   addCollectionVar,

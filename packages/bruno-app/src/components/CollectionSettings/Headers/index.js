@@ -1,11 +1,12 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconCopy } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
   addCollectionHeader,
+  cloneCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader
 } from 'providers/ReduxStore/slices/collections';
@@ -49,6 +50,16 @@ const Headers = ({ collection }) => {
     dispatch(
       updateCollectionHeader({
         header: header,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  const cloneHeader = (header) => {
+    dispatch(
+      cloneCollectionHeader({
+        header: header,
+        itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
@@ -130,6 +141,10 @@ const Headers = ({ collection }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
+                        <button tabIndex="-1" onClick={() => cloneHeader(header)}>
+                          <IconCopy strokeWidth={1.5} size={20} />
+                        </button>
+                        &nbsp;
                         <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
