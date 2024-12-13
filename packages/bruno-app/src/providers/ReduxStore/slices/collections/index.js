@@ -656,6 +656,27 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    cloneRequestHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.headers = item.draft.request.headers || [];
+          item.draft.request.headers.push({
+            uid: uuid(),
+            name: action.payload.header.name,
+            value: action.payload.header.value,
+            description: action.payload.header.description,
+            enabled: action.payload.header.enabled
+          });
+        }
+      }
+    },
     updateRequestHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -1772,6 +1793,7 @@ export const {
   deleteQueryParam,
   updatePathParam,
   addRequestHeader,
+  cloneRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
   addFormUrlEncodedParam,
