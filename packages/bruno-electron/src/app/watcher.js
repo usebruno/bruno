@@ -44,13 +44,6 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
-const isPathInside = (childPath, parentPath) => {
-  const absoluteChildPath = path.resolve(childPath);
-  const absoluteParentPath = path.resolve(parentPath);
-  return absoluteChildPath.startsWith(absoluteParentPath);
-}
-
-
 const hydrateRequestWithUuid = (request, pathname) => {
   request.uid = getRequestUid(pathname);
 
@@ -396,6 +389,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher unlink: ${pathname}`);
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
@@ -514,29 +509,32 @@ class Watcher {
     }
   }
 
-  getWatcherForPath(_path) {
+  getWatcherByItemPath(itemPath) {
     const paths = Object.keys(this.watchers);
-    return paths.find(parentFolder => isPathInside(_path, parentFolder));
+
+    const watcherPath = paths?.find(collectionPath => {
+      const absCollectionPath = path.resolve(collectionPath);
+      const absItemPath = path.resolve(itemPath);
+
+      return absItemPath.startsWith(absCollectionPath);
+    });
+
+    return watcherPath ? this.watchers[watcherPath] : null;
   }
-  
-  unlink(_path) {
-    const watcherPath = this.getWatcherForPath(_path);
-    if (watcherPath) {
-      const _watcher = this.watchers[watcherPath];
-      _watcher.unwatch(_path);
+
+  unlinkItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher) {
+      watcher.unwatch(itemPath);
     }
   }
   
-  add(_path) {
-    const watcherPath = this.getWatcherForPath(_path);
-    if (watcherPath) {
-      const _watcher = this.watchers[watcherPath];
-      if (!_watcher?.has?.(_path)) {
-        _watcher?.add?.(_path);
-      }
+  addItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher && !watcher?.has?.(itemPath)) {
+      watcher?.add?.(itemPath);
     }
   }
-   
 }
 
 module.exports = Watcher;

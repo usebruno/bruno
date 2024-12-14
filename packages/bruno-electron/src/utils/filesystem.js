@@ -38,8 +38,7 @@ const isDirectory = (dirPath) => {
   }
 };
 
-const hasSubFolders = (dir) => {
-  console.log('Checking for subfolders in:', dir);
+const hasSubDirectories = (dir) => {
   const files = fs.readdirSync(dir);
   return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
 };
@@ -231,5 +230,5 @@ module.exports = {
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubFolders
+  hasSubDirectories
 };

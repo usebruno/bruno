@@ -22,7 +22,7 @@ const {
   safeToRename,
   isWindowsOS,
   isValidFilename,
-  hasSubFolders,
+  hasSubDirectories,
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -345,6 +345,11 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
+    const parentDir = path.dirname(oldPath);
+    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    let parentDirUnwatched = false;
+    let parentDirRewatched = false;
+
     try {
       // Normalize paths if they are WSL paths
       oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
@@ -367,10 +372,19 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           moveRequestUid(bruFile, newBruFilePath);
         }
 
-        watcher.unlink(path.dirname(oldPath));
+        watcher.unlinkItemPathInWatcher(parentDir);
+        parentDirUnwatched = true;
 
-        if (isWindowsOS() && !isWSLPath(oldPath) && hasSubFolders(oldPath)) {
-          console.log('Windows OS: Moving folder with subfolders');
+        /**
+         * If it is windows OS
+         * And it is not WSL path (meaning its not linux running on windows using WSL)
+         * And it has sub directories
+         * Only then we need to use the temp dir approach to rename the folder
+         * 
+         * Windows OS would sometimes throw error when renaming a folder with sub directories
+         * This is a alternative approach to avoid that error
+         */
+        if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
           await fsExtra.copy(oldPath, tempDir);
           await fsExtra.remove(oldPath);
           await fsExtra.move(tempDir, newPath, { overwrite: true });
@@ -378,7 +392,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           await fs.renameSync(oldPath, newPath);
         }
-        watcher.add(path.dirname(newPath));
+        watcher.addItemPathInWatcher(parentDir);
+        parentDirRewatched = true;
+
         return newPath;
       }
 
@@ -402,11 +418,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
       return newPath;
     } catch (error) {
-      // add path back to watcher in case an error during the rename file operations
-      // adds unlinked path back to watcher if doesn't exist
-      watcher.add(path.dirname(oldPath));
-      
-      if (isWindowsOS() && !isWSLPath(oldPath)) {
+      // in case an error occurs during the rename file operations after unlinking the parent dir
+      // and the rewatch fails, we need to add it back to watcher
+      if (parentDirUnwatched && !parentDirRewatched) {
+        watcher.addItemPathInWatcher(parentDir);
+      }
+
+      // in case the rename file operations fails, and we see that the temp dir exists
+      // and the old path does not exist, we need to restore the data from the temp dir to the old path
+      if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
         if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
           try {
             await fsExtra.copy(tempDir, oldPath);
@@ -416,6 +436,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           }
         }
       }
+
       return Promise.reject(error);
     }
   });
