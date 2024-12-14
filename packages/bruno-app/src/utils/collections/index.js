@@ -404,7 +404,7 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
           request: {}
         };
 
-        let { request, meta, root } = si?.root || {};
+        let { request, meta, docs } = si?.root || {};
         let { headers, script = {}, vars = {}, tests } = request || {};
 
         // folder level headers
