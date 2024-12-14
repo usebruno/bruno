@@ -38,6 +38,11 @@ const isDirectory = (dirPath) => {
   }
 };
 
+const hasSubDirectories = (dir) => {
+  const files = fs.readdirSync(dir);
+  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+};
+
 const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
@@ -224,5 +229,6 @@ module.exports = {
   sanitizeDirectoryName,
   isWindowsOS,
   safeToRename,
-  isValidFilename
+  isValidFilename,
+  hasSubDirectories
 };
