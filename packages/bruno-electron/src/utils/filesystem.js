@@ -38,6 +38,12 @@ const isDirectory = (dirPath) => {
   }
 };
 
+const hasSubFolders = (dir) => {
+  console.log('Checking for subfolders in:', dir);
+  const files = fs.readdirSync(dir);
+  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+};
+
 const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
@@ -224,5 +230,6 @@ module.exports = {
   sanitizeDirectoryName,
   isWindowsOS,
   safeToRename,
-  isValidFilename
+  isValidFilename,
+  hasSubFolders
 };
