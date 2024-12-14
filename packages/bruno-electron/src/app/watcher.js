@@ -13,6 +13,7 @@ const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const UiStateSnapshot = require('../store/ui-state-snapshot');
+const { getBruFileMeta, hydrateRequestWithUuid } = require('../utils/collection');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -42,28 +43,6 @@ const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
   return dirname === collectionPath && basename === 'collection.bru';
-};
-
-const hydrateRequestWithUuid = (request, pathname) => {
-  request.uid = getRequestUid(pathname);
-
-  const params = _.get(request, 'request.params', []);
-  const headers = _.get(request, 'request.headers', []);
-  const requestVars = _.get(request, 'request.vars.req', []);
-  const responseVars = _.get(request, 'request.vars.res', []);
-  const assertions = _.get(request, 'request.assertions', []);
-  const bodyFormUrlEncoded = _.get(request, 'request.body.formUrlEncoded', []);
-  const bodyMultipartForm = _.get(request, 'request.body.multipartForm', []);
-
-  params.forEach((param) => (param.uid = uuid()));
-  headers.forEach((header) => (header.uid = uuid()));
-  requestVars.forEach((variable) => (variable.uid = uuid()));
-  responseVars.forEach((variable) => (variable.uid = uuid()));
-  assertions.forEach((assertion) => (assertion.uid = uuid()));
-  bodyFormUrlEncoded.forEach((param) => (param.uid = uuid()));
-  bodyMultipartForm.forEach((param) => (param.uid = uuid()));
-
-  return request;
 };
 
 const hydrateBruCollectionFileWithUuid = (collectionRoot) => {
@@ -99,7 +78,7 @@ const addEnvironmentFile = async (win, pathname, collectionUid, collectionPath) 
 
     let bruContent = fs.readFileSync(pathname, 'utf8');
 
-    file.data = bruToEnvJson(bruContent);
+    file.data = await bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
 
@@ -134,7 +113,7 @@ const changeEnvironmentFile = async (win, pathname, collectionUid, collectionPat
     };
 
     const bruContent = fs.readFileSync(pathname, 'utf8');
-    file.data = bruToEnvJson(bruContent);
+    file.data = await bruToEnvJson(bruContent);
     file.data.name = basename.substring(0, basename.length - 4);
     file.data.uid = getRequestUid(pathname);
     _.each(_.get(file, 'data.variables', []), (variable) => (variable.uid = uuid()));
@@ -228,7 +207,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -254,7 +233,7 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
 
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
@@ -276,11 +255,25 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
 
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
-
-      file.data = bruToJson(bruContent);
-
+      const stats = fs.statSync(pathname);
+      const metaJson = await bruToJson(getBruFileMeta(bruContent), true);
+      file.data = metaJson;
+      file.partial = true;
+      file.loading = false;
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      if (stats.size < 1 * 1024 * 1024) {
+        file.data = metaJson;
+        file.partial = false;
+        file.loading = true;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+        file.data = await bruToJson(bruContent);
+        file.partial = false;
+        file.loading = false;
+        hydrateRequestWithUuid(file.data, pathname);
+        win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -357,7 +350,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
     try {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
-      file.data = collectionBruToJson(bruContent);
+      file.data = await collectionBruToJson(bruContent);
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -378,7 +371,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       };
 
       const bru = fs.readFileSync(pathname, 'utf8');
-      file.data = bruToJson(bru);
+      file.data = await bruToJson(bru);
 
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);

@@ -1,16 +1,9 @@
 const _ = require('lodash');
-const {
-  bruToJsonV2,
-  jsonToBruV2,
-  bruToEnvJsonV2,
-  envJsonToBruV2,
-  collectionBruToJson: _collectionBruToJson,
-  jsonToCollectionBru: _jsonToCollectionBru
-} = require('@usebruno/lang');
+const { runCollectionBruToJsonWorker, runJsonToCollectionBruWorker, runBruToEnvJsonV2Worker, runBruToJsonV2Worker, runJsonToBruV2Worker, runEnvJsonToBruV2Worker } = require('./workers');
 
-const collectionBruToJson = (bru) => {
+const collectionBruToJson = async (bru) => {
   try {
-    const json = _collectionBruToJson(bru);
+    const json = await runCollectionBruToJsonWorker(bru);
 
     const transformedJson = {
       request: {
@@ -38,7 +31,7 @@ const collectionBruToJson = (bru) => {
   }
 };
 
-const jsonToCollectionBru = (json, isFolder) => {
+const jsonToCollectionBru = async (json, isFolder) => {
   try {
     const collectionBruJson = {
       headers: _.get(json, 'request.headers', []),
@@ -67,15 +60,16 @@ const jsonToCollectionBru = (json, isFolder) => {
       collectionBruJson.auth = _.get(json, 'request.auth', {});
     }
 
-    return _jsonToCollectionBru(collectionBruJson);
+    const bru = await runJsonToCollectionBruWorker(collectionBruJson);
+    return bru;
   } catch (error) {
     return Promise.reject(error);
   }
 };
 
-const bruToEnvJson = (bru) => {
+const bruToEnvJson = async (bru) => {
   try {
-    const json = bruToEnvJsonV2(bru);
+    const json = await runBruToEnvJsonV2Worker(bru);
 
     // the app env format requires each variable to have a type
     // this need to be evaluated and safely removed
@@ -90,9 +84,9 @@ const bruToEnvJson = (bru) => {
   }
 };
 
-const envJsonToBru = (json) => {
+const envJsonToBru = async (json) => {
   try {
-    const bru = envJsonToBruV2(json);
+    const bru = await runEnvJsonToBruV2Worker(json);
     return bru;
   } catch (error) {
     return Promise.reject(error);
@@ -108,9 +102,15 @@ const envJsonToBru = (json) => {
  * @param {string} bru The BRU file content.
  * @returns {object} The JSON representation of the BRU file.
  */
-const bruToJson = (bru) => {
+const bruToJson = async (data, parsed = false) => {
   try {
-    const json = bruToJsonV2(bru);
+    let json;
+    if(parsed) {
+      json = data;
+    }
+    else {
+      json = await runBruToJsonV2Worker(data);
+    }
 
     let requestType = _.get(json, 'meta.type');
     if (requestType === 'http') {
@@ -158,7 +158,7 @@ const bruToJson = (bru) => {
  * @param {object} json The JSON representation of the BRU file.
  * @returns {string} The BRU file content.
  */
-const jsonToBru = (json) => {
+const jsonToBru = async (json) => {
   let type = _.get(json, 'type');
   if (type === 'http-request') {
     type = 'http';
@@ -195,7 +195,8 @@ const jsonToBru = (json) => {
     docs: _.get(json, 'request.docs', '')
   };
 
-  return jsonToBruV2(bruJson);
+  const bru = await runJsonToBruV2Worker(bruJson)
+  return bru;
 };
 
 module.exports = {
