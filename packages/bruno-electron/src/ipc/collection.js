@@ -499,100 +499,127 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     }
   });
 
-  ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
-    try {
-      let collectionName = sanitizeDirectoryName(collection.name);
-      let collectionPath = path.join(collectionLocation, collectionName);
+  ipcMain.handle(
+    'renderer:import-collection',
+    async (event, collection, collectionLocation, updateExistingCollection = false) => {
+      try {
+        let collectionName = sanitizeDirectoryName(collection.name);
+        let collectionPath = path.join(collectionLocation, collectionName);
 
-      if (fs.existsSync(collectionPath)) {
-        throw new Error(`collection: ${collectionPath} already exists`);
-      }
+        if (fs.existsSync(collectionPath) && !updateExistingCollection) {
+          throw new Error(`collection already exists: ${collectionPath}`);
+        }
 
-      // Recursive function to parse the collection items and create files/folders
-      const parseCollectionItems = (items = [], currentPath) => {
-        items.forEach((item) => {
-          if (['http-request', 'graphql-request'].includes(item.type)) {
-            const content = jsonToBru(item);
-            const filePath = path.join(currentPath, `${item.name}.bru`);
+        /**
+         * @returns whether the the given file was written. If this method returns,
+         * the file now definitely exists
+         */
+        const writeContentIfFileDoesNotExist = (filePath, content) => {
+          if (fs.existsSync(filePath)) {
+            return false;
+          } else {
             fs.writeFileSync(filePath, content);
+            return true;
           }
-          if (item.type === 'folder') {
-            const folderPath = path.join(currentPath, item.name);
+        };
+
+        /**
+         * @returns whether the the given directory was created. If this method returns,
+         * the directory now definitely exists
+         */
+        const createDirectoryIfDirectoryDoesNotExist = (folderPath) => {
+          if (!fs.existsSync(folderPath)) {
             fs.mkdirSync(folderPath);
-
-            if (item?.root?.meta?.name) {
-              const folderBruFilePath = path.join(folderPath, 'folder.bru');
-              const folderContent = jsonToCollectionBru(
-                item.root,
-                true // isFolder
-              );
-              fs.writeFileSync(folderBruFilePath, folderContent);
-            }
-
-            if (item.items && item.items.length) {
-              parseCollectionItems(item.items, folderPath);
-            }
+            return true;
+          } else {
+            return false;
           }
-          // Handle items of type 'js'
-          if (item.type === 'js') {
-            const filePath = path.join(currentPath, `${item.name}.js`);
-            fs.writeFileSync(filePath, item.fileContent);
+        };
+
+        // Recursive function to parse the collection items and create files/folders
+        const parseCollectionItems = (items = [], currentPath) => {
+          items.forEach((item) => {
+            if (['http-request', 'graphql-request'].includes(item.type)) {
+              const content = jsonToBru(item);
+              const filePath = path.join(currentPath, `${item.name}.bru`);
+              writeContentIfFileDoesNotExist(filePath, content);
+            }
+            if (item.type === 'folder') {
+              const folderPath = path.join(currentPath, item.name);
+              createDirectoryIfDirectoryDoesNotExist(folderPath);
+
+              if (item?.root?.meta?.name) {
+                const folderBruFilePath = path.join(folderPath, 'folder.bru');
+                const folderContent = jsonToCollectionBru(
+                  item.root,
+                  true // isFolder
+                );
+                writeContentIfFileDoesNotExist(folderBruFilePath, folderContent);
+              }
+
+              if (item.items && item.items.length) {
+                parseCollectionItems(item.items, folderPath);
+              }
+            }
+            // Handle items of type 'js'
+            if (item.type === 'js') {
+              const filePath = path.join(currentPath, `${item.name}.js`);
+              writeContentIfFileDoesNotExist(filePath, item.fileContent);
+            }
+          });
+        };
+
+        const parseEnvironments = (environments = [], collectionPath) => {
+          const envDirPath = path.join(collectionPath, 'environments');
+          createDirectoryIfDirectoryDoesNotExist(envDirPath);
+
+          environments.forEach((env) => {
+            const content = envJsonToBru(env);
+            const filePath = path.join(envDirPath, `${env.name}.bru`);
+            writeContentIfFileDoesNotExist(filePath, content);
+          });
+        };
+
+        const getBrunoJsonConfig = (collection) => {
+          let brunoConfig = collection.brunoConfig;
+
+          if (!brunoConfig) {
+            brunoConfig = {
+              version: '1',
+              name: collection.name,
+              type: 'collection',
+              ignore: ['node_modules', '.git']
+            };
           }
-        });
-      };
 
-      const parseEnvironments = (environments = [], collectionPath) => {
-        const envDirPath = path.join(collectionPath, 'environments');
-        if (!fs.existsSync(envDirPath)) {
-          fs.mkdirSync(envDirPath);
-        }
+          return brunoConfig;
+        };
 
-        environments.forEach((env) => {
-          const content = envJsonToBru(env);
-          const filePath = path.join(envDirPath, `${env.name}.bru`);
-          fs.writeFileSync(filePath, content);
-        });
-      };
+        createDirectoryIfDirectoryDoesNotExist(collectionPath);
 
-      const getBrunoJsonConfig = (collection) => {
-        let brunoConfig = collection.brunoConfig;
+        const uid = generateUidBasedOnHash(collectionPath);
+        const brunoConfig = getBrunoJsonConfig(collection);
+        const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
 
-        if (!brunoConfig) {
-          brunoConfig = {
-            version: '1',
-            name: collection.name,
-            type: 'collection',
-            ignore: ['node_modules', '.git']
-          };
-        }
+        // Write the Bruno configuration to a file
+        writeContentIfFileDoesNotExist(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
 
-        return brunoConfig;
-      };
+        const collectionContent = jsonToCollectionBru(collection.root);
+        writeContentIfFileDoesNotExist(path.join(collectionPath, 'collection.bru'), collectionContent);
 
-      await createDirectory(collectionPath);
+        mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
+        ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
 
-      const uid = generateUidBasedOnHash(collectionPath);
-      const brunoConfig = getBrunoJsonConfig(collection);
-      const stringifiedBrunoConfig = await stringifyJson(brunoConfig);
+        lastOpenedCollections.add(collectionPath);
 
-      // Write the Bruno configuration to a file
-      await writeFile(path.join(collectionPath, 'bruno.json'), stringifiedBrunoConfig);
-
-      const collectionContent = jsonToCollectionBru(collection.root);
-      await writeFile(path.join(collectionPath, 'collection.bru'), collectionContent);
-
-      mainWindow.webContents.send('main:collection-opened', collectionPath, uid, brunoConfig);
-      ipcMain.emit('main:collection-opened', mainWindow, collectionPath, uid, brunoConfig);
-
-      lastOpenedCollections.add(collectionPath);
-
-      // create folder and files based on collection
-      await parseCollectionItems(collection.items, collectionPath);
-      await parseEnvironments(collection.environments, collectionPath);
-    } catch (error) {
-      return Promise.reject(error);
+        // create folder and files based on collection
+        parseCollectionItems(collection.items, collectionPath);
+        parseEnvironments(collection.environments, collectionPath);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
-  });
+  );
 
   ipcMain.handle('renderer:clone-folder', async (event, itemFolder, collectionPath) => {
     try {
