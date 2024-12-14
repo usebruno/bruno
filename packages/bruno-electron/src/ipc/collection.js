@@ -21,7 +21,8 @@ const {
   normalizeAndResolvePath,
   safeToRename,
   isWindowsOS,
-  isValidFilename
+  isValidFilename,
+  hasSubFolders,
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -367,7 +368,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         }
 
         watcher.unlink(path.dirname(oldPath));
-        if (isWindowsOS() && !isWSLPath(oldPath)) {
+
+        if (isWindowsOS() && !isWSLPath(oldPath) && hasSubFolders(oldPath)) {
+          console.log('Windows OS: Moving folder with subfolders');
           await fsExtra.copy(oldPath, tempDir);
           await fsExtra.remove(oldPath);
           await fsExtra.move(tempDir, newPath, { overwrite: true });
@@ -375,7 +378,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           await fs.renameSync(oldPath, newPath);
         }
-        watcher.add(path.dirname(oldPath));
+        watcher.add(path.dirname(newPath));
         return newPath;
       }
 
