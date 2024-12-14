@@ -35,7 +35,6 @@ export const notificationSlice = createSlice({
       state.loading = action.payload.fetching;
     },
     setNotifications: (state, action) => {
-      console.log('notifications', notifications);
       let notifications = action.payload.notifications || [];
       let readNotificationIds = state.readNotificationIds;
 
