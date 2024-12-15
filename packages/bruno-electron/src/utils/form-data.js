@@ -22,26 +22,34 @@ const buildFormUrlEncodedPayload = (params) => {
 };
 
 
-const createFormData = (datas, collectionPath) => {
+const createFormData = (data, collectionPath) => {
   // make axios work in node using form data
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
-  forOwn(datas, (value, key) => {
-    if (typeof value == 'string') {
-      form.append(key, value);
+  forEach(data, (datum) => {
+    const { name, type, value } = datum;
+
+    if (type === 'text') {
+      if (Array.isArray(value)) {
+        value.forEach((val) => form.append(name, val));
+      } else {
+        form.append(name, value);
+      }
       return;
     }
 
-    const filePaths = value || [];
-    filePaths?.forEach?.((filePath) => {
-      let trimmedFilePath = filePath.trim();
+    if (type === 'file') {
+      const filePaths = value || [];
+      filePaths.forEach((filePath) => {
+        let trimmedFilePath = filePath.trim();
 
-      if (!path.isAbsolute(trimmedFilePath)) {
-        trimmedFilePath = path.join(collectionPath, trimmedFilePath);
-      }
+        if (!path.isAbsolute(trimmedFilePath)) {
+          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
+        }
 
-      form.append(key, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
-    });
+        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+      });
+    }
   });
   return form;
 };
