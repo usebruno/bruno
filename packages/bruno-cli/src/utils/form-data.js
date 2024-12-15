@@ -8,13 +8,16 @@ const createFormData = (data, collectionPath) => {
   // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
   const form = new FormData();
   forEach(data, (datum) => {
-    const { name, type, value } = datum;
-
+    const { name, type, value, contentType } = datum;
+    let options = {};
+    if (contentType) {
+      options.contentType = contentType;
+    }
     if (type === 'text') {
       if (Array.isArray(value)) {
-        value.forEach((val) => form.append(name, val));
+        value.forEach((val) => form.append(name, val, options));
       } else {
-        form.append(name, value);
+        form.append(name, value, options);
       }
       return;
     }
@@ -23,12 +26,11 @@ const createFormData = (data, collectionPath) => {
       const filePaths = value || [];
       filePaths.forEach((filePath) => {
         let trimmedFilePath = filePath.trim();
-        console.log(trimmedFilePath, collectionPath);
         if (!path.isAbsolute(trimmedFilePath)) {
           trimmedFilePath = path.join(collectionPath, trimmedFilePath);
         }
-
-        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
+        options.filename = path.basename(trimmedFilePath);
+        form.append(name, fs.createReadStream(trimmedFilePath), options);
       });
     }
   });

@@ -12,13 +12,13 @@ post {
 
 body:multipart-form {
   param1: test
-  param2: {"test":"i am json"} (Content-Type=application/json)
+  param2: {"test":"i am json"} @contentType(application/json)
   param3: @file(multipart/small.png)
 }
 
 assert {
   res.status: eq 200
-  res.body.find(p=>p.name === 'param1').contentType: isUndefined 
+  res.body.find(p=>p.name === 'param1').contentType: isUndefined
   res.body.find(p=>p.name === 'param2').contentType: eq application/json
   res.body.find(p=>p.name === 'param3').contentType: eq image/png
 }
