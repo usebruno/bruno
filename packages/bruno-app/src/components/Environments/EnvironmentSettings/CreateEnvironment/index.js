@@ -11,7 +11,6 @@ const CreateEnvironment = ({ collection, onClose }) => {
   const dispatch = useDispatch();
   const inputRef = useRef();
 
-  // todo: Add this to global env too.
  const validateEnvironmentName = (name) => {
    return !collection?.environments?.some((env) => env?.name?.toLowerCase().trim() === name?.toLowerCase().trim());
  };
