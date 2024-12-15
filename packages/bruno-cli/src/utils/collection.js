@@ -8,9 +8,6 @@ const mergeHeaders = (collection, request, requestTreePath) => {
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header.value);
-      if (header?.name?.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
     }
   });
 
@@ -157,6 +154,24 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   }
 };
 
+const findItem = (items = [], pathname) => {
+  return find(items, (i) => i.pathname === pathname);
+};
+
+const findItemInCollection = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return findItem(flattenedItems, pathname);
+};
+
+const findParentItemInCollection = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return find(flattenedItems, (item) => {
+    return item.items && find(item.items, (i) => i.pathname === pathname);
+  });
+};
+
 const flattenItems = (items = []) => {
   const flattenedItems = [];
 
@@ -175,30 +190,12 @@ const flattenItems = (items = []) => {
   return flattenedItems;
 };
 
-const findItem = (items = [], itemUid) => {
-  return find(items, (i) => i.uid === itemUid);
-};
-
-const findItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
-
-  return findItem(flattenedItems, itemUid);
-};
-
-const findParentItemInCollection = (collection, itemUid) => {
-  let flattenedItems = flattenItems(collection.items);
-
-  return find(flattenedItems, (item) => {
-    return item.items && find(item.items, (i) => i.uid === itemUid);
-  });
-};
-
 const getTreePathFromCollectionToItem = (collection, _item) => {
   let path = [];
-  let item = findItemInCollection(collection, _item.uid);
+  let item = findItemInCollection(collection, _item.pathname);
   while (item) {
     path.unshift(item);
-    item = findParentItemInCollection(collection, item.uid);
+    item = findParentItemInCollection(collection, item.pathname);
   }
   return path;
 };
