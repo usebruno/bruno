@@ -20,7 +20,7 @@ import { DocExplorer } from '@usebruno/graphql-docs';
 import StyledWrapper from './StyledWrapper';
 import SecuritySettings from 'components/SecuritySettings';
 import FolderSettings from 'components/FolderSettings';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, getGlobalEnvironmentVariablesMasked } from 'utils/collections/index';
 import { produce } from 'immer';
 
 const MIN_LEFT_PANE_WIDTH = 300;
@@ -45,7 +45,9 @@ const RequestTabPanel = () => {
     if (collection) {
       // add selected global env variables to the collection object
       const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+      const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
       collection.globalEnvironmentVariables = globalEnvironmentVariables;
+      collection.globalEnvSecrets = globalEnvSecrets;
     }
   });
 

@@ -1,20 +1,16 @@
-import Head from 'next/head';
 import Bruno from './Bruno';
 import GlobalStyle from '../globalStyles';
 import '../i18n';
+import Main from './Main';
 
-export default function Home() {
+export default function App() {
   return (
     <div>
-      <Head>
-        <title>Bruno</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <GlobalStyle />
-
       <main>
-        <Bruno />
+        <Main>
+          <GlobalStyle />
+          <Bruno />
+        </Main>
       </main>
     </div>
   );

@@ -38,7 +38,7 @@ const {
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
 const FormData = require('form-data');
-const { createFormData } = prepareRequest;
+const { createFormData } = require('../../utils/form-data');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -397,7 +397,7 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run pre-request script
     let scriptResult;
-    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
@@ -493,12 +493,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
-      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
-    ] : [
-      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
-    ]).join(os.EOL);
-
+    const responseScript = get(request, 'script.res');
     let scriptResult;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -675,14 +670,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      // run tests
-      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-        get(collectionRoot, 'request.tests'), testScript,
-      ] : [
-        testScript, get(collectionRoot, 'request.tests')
-      ]).join(os.EOL);
-
+      const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -1147,14 +1135,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            // run tests
-            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-              get(collectionRoot, 'request.tests'), testScript
-            ] : [
-              testScript, get(collectionRoot, 'request.tests')
-            ]).join(os.EOL);
-
+            const testFile = get(request, 'tests');
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
