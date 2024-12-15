@@ -281,7 +281,7 @@ ${indentString(body.sparql)}
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
             const contentType =
-              item.contentType && item.contentType !== '' ? ' (Content-Type=' + item.contentType + ')' : '';
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
 
             if (item.type === 'text') {
               return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
