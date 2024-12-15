@@ -166,8 +166,7 @@ const importScriptsFromEvents = (events, requestObject, options, pushTranslation
   });
 };
 
-const importCollectionLevelVariables = (variables, brunoObject) => {
-
+const importCollectionLevelVariables = (variables, requestObject) => {
   const vars = variables.map((v) => ({
     uid: uuid(),
     name: v.key,
@@ -175,7 +174,7 @@ const importCollectionLevelVariables = (variables, brunoObject) => {
     enabled: true
   }));
 
-  brunoObject.vars.req = vars;
+  requestObject.vars.req = vars;
 };
 
 const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) => {
