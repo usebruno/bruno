@@ -2,7 +2,7 @@ const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
+const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
