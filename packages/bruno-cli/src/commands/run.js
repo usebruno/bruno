@@ -93,8 +93,68 @@ const printRunSummary = (results) => {
   };
 };
 
+const createCollectionFromPath = (collectionPath) => {
+  const environmentsPath = path.join(collectionPath, `environments`);
+  const getFilesInOrder = (collectionPath) => {
+    let collection = {
+      pathname: collectionPath
+    };
+    const traverse = (currentPath) => {
+      const filesInCurrentDir = fs.readdirSync(currentPath);
+
+      if (currentPath.includes('node_modules')) {
+        return;
+      }
+      const currentDirItems = [];
+      for (const file of filesInCurrentDir) {
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+        if (
+          stats.isDirectory() &&
+          filePath !== environmentsPath &&
+          !filePath.startsWith('.git') &&
+          !filePath.startsWith('node_modules')
+        ) {
+          let folderItem = { name: file, pathname: filePath, type: 'folder', items: traverse(filePath) }
+          const folderBruFilePath = path.join(filePath, 'folder.bru');
+          const folderBruFileExists = fs.existsSync(folderBruFilePath);
+          if(folderBruFileExists) {
+            const folderBruContent = fs.readFileSync(folderBruFilePath, 'utf8');
+            let folderBruJson = collectionBruToJson(folderBruContent);
+            folderItem.root = folderBruJson;
+          }
+          currentDirItems.push(folderItem);
+        }
+      }
+
+      for (const file of filesInCurrentDir) {
+        if (['collection.bru', 'folder.bru'].includes(file)) {
+          continue;
+        }
+        const filePath = path.join(currentPath, file);
+        const stats = fs.lstatSync(filePath);
+
+        if (!stats.isDirectory() && path.extname(filePath) === '.bru') {
+          const bruContent = fs.readFileSync(filePath, 'utf8');
+          const bruJson = bruToJson(bruContent);
+          currentDirItems.push({
+            name: file,
+            pathname: filePath,
+            ...bruJson
+          });
+        }
+      }
+      return currentDirItems
+    };
+    collection.items = traverse(collectionPath);
+    return collection;
+  };
+  return getFilesInOrder(collectionPath);
+};
+
 const getBruFilesRecursively = (dir, testsOnly) => {
   const environmentsPath = 'environments';
+  const collection = {};
 
   const getFilesInOrder = (dir) => {
     let bruJsons = [];
@@ -359,6 +419,12 @@ const handler = async function (argv) {
     const brunoConfigFile = fs.readFileSync(brunoJsonPath, 'utf8');
     const brunoConfig = JSON.parse(brunoConfigFile);
     const collectionRoot = getCollectionRoot(collectionPath);
+    let collection = createCollectionFromPath(collectionPath);
+    collection = {
+      brunoConfig,
+      root: collectionRoot,
+      ...collection
+    }
 
     if (clientCertConfig) {
       try {
@@ -584,7 +650,8 @@ const handler = async function (argv) {
         processEnvVars,
         brunoConfig,
         collectionRoot,
-        runtime
+        runtime,
+        collection
       );
 
       results.push({

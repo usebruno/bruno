@@ -10,11 +10,11 @@ rm -rf packages/bruno-electron/web
 mkdir packages/bruno-electron/web
 
 # Copy build
-cp -r packages/bruno-app/out/* packages/bruno-electron/web
+cp -r packages/bruno-app/dist/* packages/bruno-electron/web
 
 
 # Change paths in next
-sed -i'' -e 's@/_next/@_next/@g' packages/bruno-electron/web/**.html
+sed -i'' -e 's@/static/@static/@g' packages/bruno-electron/web/**.html
 
 # Remove sourcemaps
 find packages/bruno-electron/web -name '*.map' -type f -delete

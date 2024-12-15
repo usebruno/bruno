@@ -36,13 +36,17 @@ const runSingleRequest = async function (
   processEnvVars,
   brunoConfig,
   collectionRoot,
-  runtime
+  runtime,
+  collection
 ) {
   try {
     let request;
     let nextRequestName;
-
-    request = prepareRequest(bruJson.request, collectionRoot);
+    let item = { 
+      pathname: path.join(collectionPath, filename),
+      ...bruJson
+    }
+    request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
 
@@ -50,10 +54,7 @@ const runSingleRequest = async function (
     scriptingConfig.runtime = runtime;
 
     // run pre request script
-    const requestScriptFile = compact([
-      get(collectionRoot, 'request.script.req'),
-      get(bruJson, 'request.script.req')
-    ]).join(os.EOL);
+    const requestScriptFile = get(request, 'script.req');
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -291,10 +292,7 @@ const runSingleRequest = async function (
     }
 
     // run post response script
-    const responseScriptFile = compact([
-      get(collectionRoot, 'request.script.res'),
-      get(bruJson, 'request.script.res')
-    ]).join(os.EOL);
+    const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runResponseScript(
@@ -339,7 +337,7 @@ const runSingleRequest = async function (
 
     // run tests
     let testResults = [];
-    const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
+    const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(
