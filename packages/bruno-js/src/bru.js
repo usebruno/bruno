@@ -4,13 +4,14 @@ const { interpolate } = require('@usebruno/common');
 const variableNameRegex = /^[\w-.]*$/;
 
 class Bru {
-  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables) {
+  constructor(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables) {
     this.envVariables = envVariables || {};
     this.runtimeVariables = runtimeVariables || {};
     this.processEnvVars = cloneDeep(processEnvVars || {});
     this.collectionVariables = collectionVariables || {};
     this.folderVariables = folderVariables || {};
     this.requestVariables = requestVariables || {};
+    this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.collectionPath = collectionPath;
   }
 
@@ -20,6 +21,7 @@ class Bru {
     }
 
     const combinedVars = {
+      ...this.globalEnvironmentVariables,
       ...this.collectionVariables,
       ...this.envVariables,
       ...this.folderVariables,
@@ -63,6 +65,22 @@ class Bru {
     this.envVariables[key] = value;
   }
 
+  deleteEnvVar(key) {
+    delete this.envVariables[key];
+  }
+
+  getGlobalEnvVar(key) {
+    return this._interpolate(this.globalEnvironmentVariables[key]);
+  }
+
+  setGlobalEnvVar(key, value) {
+    if (!key) {
+      throw new Error('Creating a env variable without specifying a name is not allowed.');
+    }
+
+    this.globalEnvironmentVariables[key] = value;
+  }
+
   hasVar(key) {
     return Object.hasOwn(this.runtimeVariables, key);
   }
@@ -95,6 +113,14 @@ class Bru {
 
   deleteVar(key) {
     delete this.runtimeVariables[key];
+  }
+
+  deleteAllVars() {
+    for (let key in this.runtimeVariables) {
+      if (this.runtimeVariables.hasOwnProperty(key)) {
+        delete this.runtimeVariables[key];
+      }
+    }
   }
 
   getCollectionVar(key) {

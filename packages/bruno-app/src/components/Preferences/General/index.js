@@ -100,7 +100,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center mt-2">
+        <div className="flex items-center my-2">
           <input
             id="sslVerification"
             type="checkbox"

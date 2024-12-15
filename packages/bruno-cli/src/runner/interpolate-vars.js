@@ -1,5 +1,6 @@
 const { interpolate } = require('@usebruno/common');
 const { each, forOwn, cloneDeep, find } = require('lodash');
+const FormData = require('form-data');
 
 const getContentType = (headers = {}) => {
   let contentType = '';
@@ -12,14 +13,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -35,7 +39,10 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
+      ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
       ...runtimeVariables,
       process: {
         env: {
@@ -73,9 +80,17 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
   } else if (contentType === 'application/x-www-form-urlencoded') {
     if (typeof request.data === 'object') {
       try {
-        let parsed = JSON.stringify(request.data);
-        parsed = _interpolate(parsed);
-        request.data = JSON.parse(parsed);
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
+      } catch (err) {}
+    }
+  } else if (contentType === 'multipart/form-data') {
+    if (typeof request.data === 'object' && !(request?.data instanceof FormData)) {
+      try {
+        forOwn(request?.data, (value, key) => {
+          request.data[key] = _interpolate(value);
+        });
       } catch (err) {}
     }
   } else {
@@ -113,7 +128,8 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
       })
       .join('');
 
-    request.url = url.origin + interpolatedUrlPath + url.search;
+    const trailingSlash = url.pathname.endsWith('/') ? '/' : '';
+    request.url = url.origin + interpolatedUrlPath + trailingSlash + url.search;
   }
 
   if (request.proxy) {

@@ -1,6 +1,5 @@
 import { uuid } from 'utils/common';
-import path from 'path';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -13,6 +12,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  isItemAFolder,
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
@@ -476,6 +476,14 @@ export const collectionsSlice = createSlice({
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
+              break;
+            case 'wsse':
+              item.draft.request.auth.mode = 'wsse';
+              item.draft.request.auth.wsse = action.payload.content;
+              break;
+            case 'apikey':
+              item.draft.request.auth.mode = 'apikey';
+              item.draft.request.auth.apikey = action.payload.content;
               break;
           }
         }
@@ -1139,6 +1147,12 @@ export const collectionsSlice = createSlice({
           case 'oauth2':
             set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
+          case 'wsse':
+            set(collection, 'root.request.auth.wsse', action.payload.content);
+            break;
+          case 'apikey':
+            set(collection, 'root.request.auth.apikey', action.payload.content);
+            break;
         }
       }
     },
@@ -1721,6 +1735,15 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    updateFolderDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        if (isItemAFolder(folder)) {
+          set(folder, 'root.docs', action.payload.docs);
+        }
+      }
     }
   }
 });
@@ -1815,7 +1838,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateFolderDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

@@ -23,6 +23,7 @@ const registerPreferencesIpc = require('./ipc/preferences');
 const Watcher = require('./app/watcher');
 const { loadWindowState, saveBounds, saveMaximized } = require('./utils/window');
 const registerNotificationsIpc = require('./ipc/notifications');
+const registerGlobalEnvironmentsIpc = require('./ipc/global-environments');
 
 const lastOpenedCollections = new LastOpenedCollections();
 
@@ -129,13 +130,21 @@ app.on('ready', async () => {
     }
   });
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
-    require('electron').shell.openExternal(details.url);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const { protocol } = new URL(url);
+      if (['https:', 'http:'].includes(protocol)) {
+        require('electron').shell.openExternal(url);
+      }
+    } catch (e) {
+      console.error(e);
+    }
     return { action: 'deny' };
   });
 
   // register all ipc handlers
   registerNetworkIpc(mainWindow);
+  registerGlobalEnvironmentsIpc(mainWindow);
   registerCollectionsIpc(mainWindow, watcher, lastOpenedCollections);
   registerPreferencesIpc(mainWindow, watcher, lastOpenedCollections);
   registerNotificationsIpc(mainWindow, watcher);

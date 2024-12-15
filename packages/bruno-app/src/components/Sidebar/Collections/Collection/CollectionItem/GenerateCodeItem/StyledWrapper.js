@@ -8,8 +8,9 @@ const StyledWrapper = styled.div`
   .generate-code-sidebar {
     background-color: ${(props) => props.theme.collection.environment.settings.sidebar.bg};
     border-right: solid 1px ${(props) => props.theme.collection.environment.settings.sidebar.borderRight};
-    min-height: 400px;
+    max-height: 80vh;
     height: 100%;
+    overflow-y: auto;
   }
 
   .generate-code-item {

@@ -9,7 +9,7 @@ const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -37,6 +37,8 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
+const FormData = require('form-data');
+const { createFormData } = require('../../utils/form-data');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -231,6 +233,10 @@ const configureRequest = async (
         );
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -255,6 +261,10 @@ const configureRequest = async (
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
@@ -317,8 +327,23 @@ const configureRequest = async (
     }
   }
 
+  // Add API key to the URL
+  if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    const urlObj = new URL(request.url);
+
+    // Interpolate key and value as they can be variables before adding to the URL.
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+    urlObj.searchParams.set(key, value);
+    request.url = urlObj.toString();
+  }
+
   // Remove pathParams, already in URL (Issue #2439)
   delete request.pathParams;
+
+  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
+  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };
@@ -372,7 +397,7 @@ const registerNetworkIpc = (mainWindow) => {
   ) => {
     // run pre-request script
     let scriptResult;
-    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
@@ -392,6 +417,10 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
 
     // interpolate variables inside request
@@ -406,6 +435,14 @@ const registerNetworkIpc = (mainWindow) => {
     // stringify the request url encoded params
     if (request.headers['content-type'] === 'application/x-www-form-urlencoded') {
       request.data = qs.stringify(request.data);
+    }
+
+    if (request.headers['content-type'] === 'multipart/form-data') {
+      if (!(request.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
     }
 
     return scriptResult;
@@ -444,6 +481,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
       }
 
       if (result?.error) {
@@ -452,12 +493,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
-      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
-    ] : [
-      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
-    ]).join(os.EOL);
-
+    const responseScript = get(request, 'script.res');
     let scriptResult;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -478,6 +514,10 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
+      });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
     }
     return scriptResult;
@@ -500,6 +540,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const request = prepareRequest(item, collection);
+    request.__bruno__executionMode = 'standalone';
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -629,14 +670,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      // run tests
-      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-        get(collectionRoot, 'request.tests'), testScript,
-      ] : [
-        testScript, get(collectionRoot, 'request.tests')
-      ]).join(os.EOL);
-
+      const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -665,6 +699,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
+        });
       }
 
       return {
@@ -691,7 +729,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const request = prepareCollectionRequest(_request, collection, collectionPath);
+      request.__bruno__executionMode = 'standalone';
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -935,6 +974,8 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = prepareRequest(item, collection);
+          request.__bruno__executionMode = 'runner';
+          
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
@@ -1094,14 +1135,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            // run tests
-            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-              get(collectionRoot, 'request.tests'), testScript
-            ] : [
-              testScript, get(collectionRoot, 'request.tests')
-            ]).join(os.EOL);
-
+            const testFile = get(request, 'tests');
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
@@ -1130,6 +1164,10 @@ const registerNetworkIpc = (mainWindow) => {
                 envVariables: testResults.envVariables,
                 runtimeVariables: testResults.runtimeVariables,
                 collectionUid
+              });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
               });
             }
           } catch (error) {

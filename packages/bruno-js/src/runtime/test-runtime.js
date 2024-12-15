@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const chai = require('chai');
 const path = require('path');
 const http = require('http');
@@ -48,10 +48,11 @@ class TestRuntime {
     processEnvVars,
     scriptingConfig
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -81,11 +82,11 @@ class TestRuntime {
         request,
         envVariables,
         runtimeVariables,
+        globalEnvironmentVariables,
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
       };
     }
-
 
     const context = {
       test,
@@ -162,6 +163,7 @@ class TestRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
       results: cleanJson(__brunoTestResults.getResults()),
       nextRequestName: bru.nextRequest
     };

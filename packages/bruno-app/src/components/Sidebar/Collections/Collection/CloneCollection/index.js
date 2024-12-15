@@ -41,7 +41,7 @@ const CloneCollection = ({ onClose, collection }) => {
         )
       )
         .then(() => {
-          toast.success('Collection created');
+          toast.success('Collection created!');
           onClose();
         })
         .catch((e) => toast.error('An error occurred while creating the collection - ' + e));
@@ -72,7 +72,7 @@ const CloneCollection = ({ onClose, collection }) => {
 
   return (
     <Modal size="sm" title="Clone Collection" confirmText="Create" handleConfirm={onSubmit} handleCancel={onClose}>
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={e => e.preventDefault()}>
         <div>
           <label htmlFor="collection-name" className="flex items-center font-semibold">
             Name

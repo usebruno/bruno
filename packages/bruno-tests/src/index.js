@@ -1,22 +1,20 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const xmlparser = require('express-xml-bodyparser');
 const cors = require('cors');
 const formDataParser = require('./multipart/form-data-parser');
+const authRouter = require('./auth');
+const echoRouter = require('./echo');
+const xmlParser = require('./utils/xmlParser');
 
 const app = new express();
 const port = process.env.PORT || 8080;
 
 app.use(cors());
-app.use(xmlparser());
+app.use(xmlParser());
 app.use(bodyParser.text());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 formDataParser.init(app, express);
-
-const authRouter = require('./auth');
-const echoRouter = require('./echo');
-const multipartRouter = require('./multipart');
 
 app.use('/api/auth', authRouter);
 app.use('/api/echo', echoRouter);
