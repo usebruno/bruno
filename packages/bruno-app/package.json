@@ -11,6 +11,7 @@
     "prettier": "prettier --write \"./src/**/*.{js,jsx,json,ts,tsx}\""
   },
   "dependencies": {
+    "@babel/preset-env": "^7.26.0",
     "@fontsource/inter": "^5.0.15",
     "@prantlf/jsonlint": "^16.0.0",
     "@reduxjs/toolkit": "^1.8.0",
