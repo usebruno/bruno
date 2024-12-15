@@ -76,9 +76,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             throw new Error(`collection: ${dirPath} already exists and is not empty`);
           }
         }
-
-        if (!isValidPathname(dirPath)) {
-          throw new Error(`collection: invalid pathname - ${dir}`);
+        if (!isValidPathname(path.basename(dirPath))) {
+          throw new Error(`collection: invalid pathname - ${dirPath}`);
         }
 
         if (!fs.existsSync(dirPath)) {
@@ -111,8 +110,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         throw new Error(`collection: ${dirPath} already exists`);
       }
 
-      if (!isValidPathname(dirPath)) {
-        throw new Error(`collection: invalid pathname - ${dir}`);
+      if (!isValidPathname(path.basename(dirPath))) {
+        throw new Error(`collection: invalid pathname - ${dirPath}`);
       }
 
       // create dir
