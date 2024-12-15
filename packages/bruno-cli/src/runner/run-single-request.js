@@ -19,7 +19,7 @@ const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
 const path = require('path');
-const { createFormData } = require('../utils/common');
+const { createFormData, parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
@@ -227,6 +227,9 @@ const runSingleRequest = async function (
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
+      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      response.data = data;
+
       // Prevents the duration on leaking to the actual result
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
@@ -237,6 +240,8 @@ const runSingleRequest = async function (
       }
     } catch (err) {
       if (err?.response) {
+        const { data } = parseDataFromResponse(err?.response);
+        err.response.data = data;
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
