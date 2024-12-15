@@ -13,14 +13,17 @@ const getContentType = (headers = {}) => {
   return contentType;
 };
 
-const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEnvVars = {}) => {
+const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
+  const collectionVariables = request?.collectionVariables || {};
+  const folderVariables = request?.folderVariables || {};
+  const requestVariables = request?.requestVariables || {};
   // we clone envVars because we don't want to modify the original object
-  envVars = cloneDeep(envVars);
+  envVariables = cloneDeep(envVariables);
 
   // envVars can inturn have values as {{process.env.VAR_NAME}}
   // so we need to interpolate envVars first with processEnvVars
-  forOwn(envVars, (value, key) => {
-    envVars[key] = interpolate(value, {
+  forOwn(envVariables, (value, key) => {
+    envVariables[key] = interpolate(value, {
       process: {
         env: {
           ...processEnvVars
@@ -36,7 +39,10 @@ const interpolateVars = (request, envVars = {}, runtimeVariables = {}, processEn
 
     // runtimeVariables take precedence over envVars
     const combinedVars = {
-      ...envVars,
+      ...collectionVariables,
+      ...envVariables,
+      ...folderVariables,
+      ...requestVariables,
       ...runtimeVariables,
       process: {
         env: {

@@ -1,202 +1,8 @@
-const os = require('os');
-const { get, each, filter, compact, forEach } = require('lodash');
+const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
-const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
 const crypto = require('node:crypto');
-const { getTreePathFromCollectionToItem } = require('../../utils/collection');
-const { buildFormUrlEncodedPayload } = require('../../utils/common');
-
-const mergeFolderLevelHeaders = (request, requestTreePath) => {
-  let folderHeaders = new Map();
-
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let headers = get(i, 'root.request.headers', []);
-      headers.forEach((header) => {
-        if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
-        }
-      });
-    } else if (i.uid === request.uid) {
-      const headers = i?.draft ? get(i, 'draft.request.headers', []) : get(i, 'request.headers', []);
-      headers.forEach((header) => {
-        if (header.enabled) {
-          folderHeaders.set(header.name, header.value);
-        }
-      });
-    }
-  }
-
-  let mergedFolderHeaders = Array.from(folderHeaders, ([name, value]) => ({ name, value, enabled: true }));
-  let requestHeaders = request.headers || [];
-  let requestHeadersMap = new Map();
-
-  for (let header of requestHeaders) {
-    if (header.enabled) {
-      requestHeadersMap.set(header.name, header.value);
-    }
-  }
-
-  mergedFolderHeaders.forEach((header) => {
-    requestHeadersMap.set(header.name, header.value);
-  });
-
-  request.headers = Array.from(requestHeadersMap, ([name, value]) => ({ name, value, enabled: true }));
-};
-
-const mergeVars = (collection, request, requestTreePath) => {
-  let reqVars = new Map();
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
-  let collectionVariables = {};
-  collectionRequestVars.forEach((_var) => {
-    if (_var.enabled) {
-      reqVars.set(_var.name, _var.value);
-      collectionVariables[_var.name] = _var.value;
-    }
-  });
-  let folderVariables = {};
-  let requestVariables = {};
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.req', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          folderVariables[_var.name] = _var.value;
-        }
-      });
-    } else {
-      const vars = i?.draft ? get(i, 'draft.request.vars.req', []) : get(i, 'request.vars.req', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          reqVars.set(_var.name, _var.value);
-          requestVariables[_var.name] = _var.value;
-        }
-      });
-    }
-  }
-
-  request.collectionVariables = collectionVariables;
-  request.folderVariables = folderVariables;
-  request.requestVariables = requestVariables;
-
-  request.vars.req = Array.from(reqVars, ([name, value]) => ({
-    name,
-    value,
-    enabled: true,
-    type: 'request'
-  }));
-
-  let resVars = new Map();
-  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
-  collectionResponseVars.forEach((_var) => {
-    if (_var.enabled) {
-      resVars.set(_var.name, _var.value);
-    }
-  });
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let vars = get(i, 'root.request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    } else {
-      const vars = i?.draft ? get(i, 'draft.request.vars.res', []) : get(i, 'request.vars.res', []);
-      vars.forEach((_var) => {
-        if (_var.enabled) {
-          resVars.set(_var.name, _var.value);
-        }
-      });
-    }
-  }
-
-  request.vars.res = Array.from(resVars, ([name, value]) => ({
-    name,
-    value,
-    enabled: true,
-    type: 'response'
-  }));
-};
-
-const mergeFolderLevelScripts = (request, requestTreePath, scriptFlow) => {
-  let folderCombinedPreReqScript = [];
-  let folderCombinedPostResScript = [];
-  let folderCombinedTests = [];
-  for (let i of requestTreePath) {
-    if (i.type === 'folder') {
-      let preReqScript = get(i, 'root.request.script.req', '');
-      if (preReqScript && preReqScript.trim() !== '') {
-        folderCombinedPreReqScript.push(preReqScript);
-      }
-
-      let postResScript = get(i, 'root.request.script.res', '');
-      if (postResScript && postResScript.trim() !== '') {
-        folderCombinedPostResScript.push(postResScript);
-      }
-
-      let tests = get(i, 'root.request.tests', '');
-      if (tests && tests?.trim?.() !== '') {
-        folderCombinedTests.push(tests);
-      }
-    }
-  }
-
-  if (folderCombinedPreReqScript.length) {
-    request.script.req = compact([...folderCombinedPreReqScript, request?.script?.req || '']).join(os.EOL);
-  }
-
-  if (folderCombinedPostResScript.length) {
-    if (scriptFlow === 'sequential') {
-      request.script.res = compact([...folderCombinedPostResScript, request?.script?.res || '']).join(os.EOL);
-    } else {
-      request.script.res = compact([request?.script?.res || '', ...folderCombinedPostResScript.reverse()]).join(os.EOL);
-    }
-  }
-
-  if (folderCombinedTests.length) {
-    if (scriptFlow === 'sequential') {
-      request.tests = compact([...folderCombinedTests, request?.tests || '']).join(os.EOL);
-    } else {
-      request.tests = compact([request?.tests || '', ...folderCombinedTests.reverse()]).join(os.EOL);
-    }
-  }
-};
-
-const createFormData = (data, collectionPath) => {
-  // make axios work in node using form data
-  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-  const form = new FormData();
-  forEach(data, (datum) => {
-    const { name, type, value } = datum;
-
-    if (type === 'text') {
-      if (Array.isArray(value)) {
-        value.forEach((val) => form.append(name, val));
-      } else {
-        form.append(name, value);
-      }
-      return;
-    }
-
-    if (type === 'file') {
-      const filePaths = value || [];
-      filePaths.forEach((filePath) => {
-        let trimmedFilePath = filePath.trim();
-
-        if (!path.isAbsolute(trimmedFilePath)) {
-          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
-        }
-
-        form.append(name, fs.createReadStream(trimmedFilePath), path.basename(trimmedFilePath));
-      });
-    }
-  });
-  return form;
-};
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
+const { buildFormUrlEncodedPayload } = require('../../utils/form-data');
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -360,29 +166,25 @@ const prepareRequest = (item, collection) => {
   const headers = {};
   let contentTypeDefined = false;
   let url = request.url;
-
-  // Collection level headers
+  
   each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled && h.name.length > 0) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
+    if (h.enabled && h.name?.toLowerCase() === 'content-type') {
+      contentTypeDefined = true;
+      return false;
     }
   });
-
-  // scriptFlow is either "sandwich" or "sequential"
+  
   const scriptFlow = collection.brunoConfig?.scripts?.flow ?? 'sandwich';
   const requestTreePath = getTreePathFromCollectionToItem(collection, item);
   if (requestTreePath && requestTreePath.length > 0) {
-    mergeFolderLevelHeaders(request, requestTreePath);
-    mergeFolderLevelScripts(request, requestTreePath, scriptFlow);
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
   }
 
-  // Request level headers
-  each(request.headers, (h) => {
+
+  each(get(request, 'headers', []), (h) => {
     if (h.enabled && h.name.length > 0) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
@@ -422,7 +224,7 @@ const prepareRequest = (item, collection) => {
 
   if (request.body.mode === 'xml') {
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'text/xml';
+      axiosRequest.headers['content-type'] = 'application/xml';
     }
     axiosRequest.data = request.body.xml;
   }
@@ -478,4 +280,3 @@ const prepareRequest = (item, collection) => {
 
 module.exports = prepareRequest;
 module.exports.setAuthHeaders = setAuthHeaders;
-module.exports.createFormData = createFormData;
