@@ -18,8 +18,8 @@ const JS_KEYWORDS = `
  * ```js
  * res.data.pets.map(pet => pet.name.toUpperCase())
  *
- * function(_BrunoNewFunctionInnerContext) {
- *   const { res, pet } = _BrunoNewFunctionInnerContext;
+ * function(__bruno__functionInnerContext) {
+ *   const { res, pet } = __bruno__functionInnerContext;
  *   return res.data.pets.map(pet => pet.name.toUpperCase())
  * }
  * ```
@@ -46,7 +46,7 @@ const compileJsExpression = (expr) => {
   };
 
   // param name that is unlikely to show up as a var in an expression
-  const param = `_BrunoNewFunctionInnerContext`;
+  const param = `__bruno__functionInnerContext`;
   const body = `let { ${code.vars} } = ${param}; ${code.globals}; return ${expr}`;
 
   return new Function(param, body);
