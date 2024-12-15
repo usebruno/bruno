@@ -48,7 +48,7 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
   return (
     <Modal size="lg" title="Generate Code" handleCancel={onClose} hideFooter={true}>
       <StyledWrapper>
-        <div className="flex w-full">
+        <div className="flex w-full flexible-container">
           <div>
             <div className="generate-code-sidebar">
               {languages &&
@@ -59,7 +59,27 @@ const GenerateCodeItem = ({ collection, item, onClose }) => {
                     className={
                       language.name === selectedLanguage.name ? 'generate-code-item active' : 'generate-code-item'
                     }
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedLanguage(language)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Tab') {
+                        e.preventDefault();
+                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
+                        const nextIndex = e.shiftKey
+                          ? (currentIndex - 1 + languages.length) % languages.length
+                          : (currentIndex + 1) % languages.length;
+                        setSelectedLanguage(languages[nextIndex]);
+                      }
+
+                      if (e.shiftKey && e.key === 'Tab') {
+                        e.preventDefault();
+                        const currentIndex = languages.findIndex((lang) => lang.name === selectedLanguage.name);
+                        const nextIndex = (currentIndex - 1 + languages.length) % languages.length;
+                        setSelectedLanguage(languages[nextIndex]);
+                      }
+                    }}
+                    aria-pressed={language.name === selectedLanguage.name}
                   >
                     <span className="capitalize">{language.name}</span>
                   </div>
