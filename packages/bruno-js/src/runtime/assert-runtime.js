@@ -350,12 +350,7 @@ class AssertRuntime {
             expect(lhs).to.be.empty;
             break;
           case 'isNotEmpty':
-            expect(lhs).to.not.be.oneOf([null, 0, false, '', []]);
-            if (Array.isArray(lhs)) {
-              expect(lhs).to.have.length.above(0);
-            } else if (typeof lhs === 'object' && lhs !== null) {
-              expect(Object.keys(lhs)).to.have.length.above(0);
-            }
+            expect(lhs).to.not.be.empty;
             break;
           case 'isNull':
             expect(lhs).to.be.null;
