@@ -18,7 +18,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map(env => {
       const variables = env.variables?.map(v => ({
         ...v,
-        value: v?.secret ? (this.isValidValue(v.value) ? encryptString(v.value) : '') : (v?.value || '')
+        value: v?.secret ? (this.isValidValue(v.value) ? encryptString(v.value) : '') : v?.value
       })) || [];
   
       return {
@@ -32,7 +32,7 @@ class GlobalEnvironmentsStore {
     return globalEnvironments?.map(env => {
       const variables = env.variables?.map(v => ({
         ...v,
-        value: v?.secret ? (this.isValidValue(v.value) ? decryptString(v.value) : '') : (v?.value || '')
+        value: v?.secret ? (this.isValidValue(v.value) ? decryptString(v.value) : '') : v?.value
       })) || [];
   
       return {
