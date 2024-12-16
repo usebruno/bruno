@@ -349,10 +349,10 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
-    const parentDir = path.dirname(oldPath);
+    // const parentDir = path.dirname(oldPath);
     const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
-    let parentDirUnwatched = false;
-    let parentDirRewatched = false;
+    // let parentDirUnwatched = false;
+    // let parentDirRewatched = false;
 
     try {
       // Normalize paths if they are WSL paths
@@ -376,8 +376,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           moveRequestUid(bruFile, newBruFilePath);
         }
 
-        watcher.unlinkItemPathInWatcher(parentDir);
-        parentDirUnwatched = true;
+        // watcher.unlinkItemPathInWatcher(parentDir);
+        // parentDirUnwatched = true;
 
         /**
          * If it is windows OS
@@ -396,8 +396,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
         } else {
           await fs.renameSync(oldPath, newPath);
         }
-        watcher.addItemPathInWatcher(parentDir);
-        parentDirRewatched = true;
+        // watcher.addItemPathInWatcher(parentDir);
+        // parentDirRewatched = true;
 
         return newPath;
       }
@@ -424,9 +424,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     } catch (error) {
       // in case an error occurs during the rename file operations after unlinking the parent dir
       // and the rewatch fails, we need to add it back to watcher
-      if (parentDirUnwatched && !parentDirRewatched) {
-        watcher.addItemPathInWatcher(parentDir);
-      }
+      // if (parentDirUnwatched && !parentDirRewatched) {
+      //   watcher.addItemPathInWatcher(parentDir);
+      // }
 
       // in case the rename file operations fails, and we see that the temp dir exists
       // and the old path does not exist, we need to restore the data from the temp dir to the old path
