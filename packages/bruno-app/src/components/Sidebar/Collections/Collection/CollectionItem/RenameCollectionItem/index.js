@@ -34,7 +34,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       }
       dispatch(renameItem(values.name, item.uid, collection.uid))
         .then(() => {
-          dispatch(closeTabs({ tabUids: [item.uid] }));
+          isFolder && dispatch(closeTabs({ tabUids: [item.uid] }));
           toast.success(isFolder ? 'Folder renamed' : 'Request renamed');
           onClose();
         })

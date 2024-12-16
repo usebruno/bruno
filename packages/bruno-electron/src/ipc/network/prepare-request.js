@@ -249,7 +249,7 @@ const prepareRequest = (item, collection) => {
       axiosRequest.headers['content-type'] = 'multipart/form-data';
     }
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    axiosRequest.data = createFormData(enabledParams);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'graphql') {
@@ -266,6 +266,10 @@ const prepareRequest = (item, collection) => {
 
   if (request.script) {
     axiosRequest.script = request.script;
+  }
+
+  if (request.tests) {
+    axiosRequest.tests = request.tests;
   }
 
   axiosRequest.vars = request.vars;

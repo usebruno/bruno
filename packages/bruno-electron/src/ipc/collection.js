@@ -350,7 +350,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
     const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
     // const parentDir = path.dirname(oldPath);
-    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
     // let parentDirUnwatched = false;
     // let parentDirRewatched = false;
 

@@ -5,6 +5,7 @@ const formDataParser = require('./multipart/form-data-parser');
 const authRouter = require('./auth');
 const echoRouter = require('./echo');
 const xmlParser = require('./utils/xmlParser');
+const multipartRouter = require('./multipart');
 
 const app = new express();
 const port = process.env.PORT || 8080;

@@ -2,35 +2,7 @@ const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
 const crypto = require('node:crypto');
 const { mergeHeaders, mergeScripts, mergeVars, getTreePathFromCollectionToItem } = require('../utils/collection');
-
-const createFormData = (datas, collectionPath) => {
-  // make axios work in node using form data
-  // reference: https://github.com/axios/axios/issues/1006#issuecomment-320165427
-  const form = new FormData();
-  datas.forEach((item) => {
-    const value = item.value;
-    const name = item.name;
-    let options = {};
-    if (item.contentType) {
-      options.contentType = item.contentType;
-    }
-    if (item.type === 'file') {
-      const filePaths = value || [];
-      filePaths.forEach((filePath) => {
-        let trimmedFilePath = filePath.trim();
-
-        if (!path.isAbsolute(trimmedFilePath)) {
-          trimmedFilePath = path.join(collectionPath, trimmedFilePath);
-        }
-        options.filename = path.basename(trimmedFilePath);
-        form.append(name, fs.createReadStream(trimmedFilePath), options);
-      });
-    } else {
-      form.append(name, value, options);
-    }
-  });
-  return form;
-};
+const { createFormData } = require('../utils/form-data');
 
 const prepareRequest = (item = {}, collection = {}) => {
   const request = item?.request;
@@ -164,7 +136,8 @@ const prepareRequest = (item = {}, collection = {}) => {
   if (request.body.mode === 'multipartForm') {
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    axiosRequest.data = createFormData(enabledParams);
+    const collectionPath = process.cwd();
+    axiosRequest.data = createFormData(enabledParams, collectionPath);
   }
 
   if (request.body.mode === 'graphql') {
