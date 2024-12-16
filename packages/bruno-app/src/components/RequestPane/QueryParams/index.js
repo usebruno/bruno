@@ -121,8 +121,8 @@ const QueryParams = ({ item, collection }) => {
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Path', accessor: 'path', width: '56%' },
-            { name: '', accessor: '', width: '13%' }
+            { name: 'Path', accessor: 'path', width: '50%' },
+            { name: '', accessor: '', width: '19%' }
           ]}
         >
           <ReorderTable updateReorderedItem={handleParamDrag}>
@@ -153,12 +153,12 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
                           checked={param.enabled}
                           tabIndex="-1"
-                          className="mr-3 mousetrap"
+                          className="mr-1.5 mousetrap"
                           onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
                         />
                         <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
