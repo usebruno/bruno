@@ -797,8 +797,8 @@ export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobal
   const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
   if (environment) {
     each(environment.variables, (variable) => {
-      if (variable.name && variable.value && variable.enabled) {
-        variables[variable.name] = variable.value;
+      if (variable.name && variable.enabled) {
+        variables[variable.name] = variable.value || '';
       }
     });
   }
