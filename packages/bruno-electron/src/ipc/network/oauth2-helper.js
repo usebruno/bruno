@@ -1,6 +1,6 @@
 const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
-const { authorizeUserInWindow } = require('./authorize-user-in-window');
+const { authorizeUserInWindow, authorizeUserInWindowImplicit } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
 
 const generateCodeVerifier = () => {
@@ -121,9 +121,42 @@ const transformPasswordCredentialsRequest = async (request) => {
   };
 };
 
+// IMPLICIT
+
+const getOAuth2ImplicitToken = async (request, collectionUid) => {
+  return new Promise(async (resolve, reject) => {
+    const { oauth2 } = request;
+    const { callbackUrl, authorizationUrl, clientId, scope, state } = oauth2;
+    let oauth2QueryParams =
+      (authorizationUrl.indexOf('?') > -1 ? '&' : '?') + `client_id=${clientId}&response_type=token`;
+    if (callbackUrl) {
+      oauth2QueryParams += `&redirect_uri=${callbackUrl}`;
+    }
+    if (scope) {
+      oauth2QueryParams += `&scope=${scope}`;
+    }
+    if (state) {
+      oauth2QueryParams += `&state=${state}`;
+    }
+    const authorizationUrlWithQueryParams = authorizationUrl + oauth2QueryParams;
+    try {
+      const oauth2Store = new Oauth2Store();
+      const { accessToken } = await authorizeUserInWindowImplicit({
+        authorizeUrl: authorizationUrlWithQueryParams,
+        callbackUrl: callbackUrl,
+        session: oauth2Store.getSessionIdOfCollection(collectionUid)
+      });
+      resolve({ accessToken });
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
 module.exports = {
   resolveOAuth2AuthorizationCodeAccessToken,
   getOAuth2AuthorizationCode,
   transformClientCredentialsRequest,
-  transformPasswordCredentialsRequest
+  transformPasswordCredentialsRequest,
+  getOAuth2ImplicitToken
 };
