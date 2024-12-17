@@ -166,7 +166,7 @@ const AssertionRow = ({
             handleAssertionChange(
               {
                 target: {
-                  value: `${op} ${value}`
+                  value: isUnaryOperator(op) ? op : `${op} ${value}`
                 }
               },
               assertion,
@@ -182,7 +182,7 @@ const AssertionRow = ({
             theme={storedTheme}
             readOnly={true}
             onSave={onSave}
-            onChange={(newValue) =>
+            onChange={(newValue) => {
               handleAssertionChange(
                 {
                   target: {
@@ -192,6 +192,7 @@ const AssertionRow = ({
                 assertion,
                 'value'
               )
+              }
             }
             onRun={handleRun}
             collection={collection}
