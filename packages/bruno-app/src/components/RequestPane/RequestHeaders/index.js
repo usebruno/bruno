@@ -1,10 +1,15 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
+import { IconCopy, IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
-import { addRequestHeader, updateRequestHeader, deleteRequestHeader } from 'providers/ReduxStore/slices/collections';
+import {
+  addRequestHeader,
+  cloneRequestHeader,
+  updateRequestHeader,
+  deleteRequestHeader
+} from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
@@ -46,6 +51,16 @@ const RequestHeaders = ({ item, collection }) => {
     }
     dispatch(
       updateRequestHeader({
+        header: header,
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
+  };
+
+  const cloneHeader = (header) => {
+    dispatch(
+      cloneRequestHeader({
         header: header,
         itemUid: item.uid,
         collectionUid: collection.uid
@@ -131,6 +146,10 @@ const RequestHeaders = ({ item, collection }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleHeaderValueChange(e, header, 'enabled')}
                         />
+                        <button tabIndex="-1" onClick={() => cloneHeader(header)}>
+                          <IconCopy strokeWidth={1.5} size={20} />
+                        </button>
+                        &nbsp;
                         <button tabIndex="-1" onClick={() => handleRemoveHeader(header)}>
                           <IconTrash strokeWidth={1.5} size={20} />
                         </button>
