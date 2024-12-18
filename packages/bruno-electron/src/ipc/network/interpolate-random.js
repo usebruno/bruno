@@ -155,13 +155,13 @@ function getRandomValue(variableName) {
     case "randomLastName":
       return faker.name.lastName(); // Random last name
     case "randomFullName":
-      return faker.name.findName(); // Random full name
+      return faker.name.fullName(); // Random full name
     case "randomNamePrefix":
       return faker.name.prefix(); // Random name prefix (e.g., Mr., Ms.)
     case "randomNameSuffix":
       return faker.name.suffix(); // Random name suffix (e.g., MD, Jr.)
     case "randomPhoneNumber":
-      return faker.phone.phoneNumber(); // Random phone number
+      return faker.phone.number(); // Random phone number
     case "randomCity":
       return faker.address.city(); // Random city name
     case "randomStreetName":
@@ -185,7 +185,7 @@ function getRandomValue(variableName) {
     case "randomProduct":
       return faker.commerce.productName(); // Random product name
     case "randomCompanyName":
-      return faker.company.companyName(); // Random company name
+      return faker.company.name(); // Random company name
     case "randomEmail":
       return faker.internet.email(); // Random email address
     default:
