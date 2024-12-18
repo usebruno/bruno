@@ -1,3 +1,4 @@
+const { cleanJson } = require('../../../utils');
 const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
@@ -122,6 +123,70 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'getCollectionVar', getCollectionVar);
   getCollectionVar.dispose();
+
+  let getTestResults = vm.newFunction('getTestResults', () => {
+    const promise = vm.newPromise();
+    bru.getTestResults()
+      .then((results) => {
+        promise.resolve(marshallToVm(cleanJson(results), vm));
+      })
+      .catch((err) => {
+        promise.resolve(
+          marshallToVm(
+            cleanJson({
+              message: err.message
+            }),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  getTestResults.consume((handle) => vm.setProp(bruObject, 'getTestResults', handle));
+
+  let getAssertionResults = vm.newFunction('getAssertionResults', () => {
+    const promise = vm.newPromise();
+    bru.getAssertionResults()
+      .then((results) => {
+        promise.resolve(marshallToVm(cleanJson(results), vm));
+      })
+      .catch((err) => {
+        promise.resolve(
+          marshallToVm(
+            cleanJson({
+              message: err.message
+            }),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  getAssertionResults.consume((handle) => vm.setProp(bruObject, 'getAssertionResults', handle));
+
+  let runRequestHandle = vm.newFunction('runRequest', (args) => {
+    const promise = vm.newPromise();
+    bru.runRequest(vm.dump(args))
+      .then((response) => {
+        const { status, headers, data, dataBuffer, size } = response || {};
+        promise.resolve(marshallToVm(cleanJson({ status, headers, data, dataBuffer, size }), vm));
+      })
+      .catch((err) => {
+        promise.resolve(
+          marshallToVm(
+            cleanJson({
+              message: err.message
+            }),
+            vm
+          )
+        );
+      });
+    promise.settled.then(vm.runtime.executePendingJobs);
+    return promise.handle;
+  });
+  runRequestHandle.consume((handle) => vm.setProp(bruObject, 'runRequest', handle));
 
   const sleep = vm.newFunction('sleep', (timer) => {
     const t = vm.getString(timer);

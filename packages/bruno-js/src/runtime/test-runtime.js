@@ -46,12 +46,14 @@ class TestRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
     const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
+    const assertionResults = request?.assertionResults || [];
     const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
@@ -75,6 +77,7 @@ class TestRuntime {
     }
 
     const __brunoTestResults = new TestResults();
+    
     const test = Test(__brunoTestResults, chai);
 
     if (!testsFile || !testsFile.length) {
@@ -86,6 +89,14 @@ class TestRuntime {
         results: __brunoTestResults.getResults(),
         nextRequestName: bru.nextRequest
       };
+    }
+
+    bru.getTestResults = async () => {
+      let results = __brunoTestResults.getResults();
+      return results;
+    }
+    bru.getAssertionResults = async () => {
+      return assertionResults
     }
 
     const context = {
@@ -111,6 +122,10 @@ class TestRuntime {
         debug: customLogger('debug'),
         error: customLogger('error')
       };
+    }
+
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
     }
 
     if (this.runtime === 'quickjs') {

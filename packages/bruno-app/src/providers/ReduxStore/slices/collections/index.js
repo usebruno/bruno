@@ -1712,6 +1712,12 @@ export const collectionsSlice = createSlice({
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
         }
+
+        if (type === 'request-skipped') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.status = 'skipped';
+          item.responseReceived = action.payload.responseReceived;
+        }
       }
     },
     resetCollectionRunner: (state, action) => {
