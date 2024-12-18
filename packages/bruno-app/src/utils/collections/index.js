@@ -644,6 +644,10 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'SPARQL';
       break;
     }
+    case 'binary': {
+      label = 'Binary';
+      break;
+    }
     case 'formUrlEncoded': {
       label = 'Form URL Encoded';
       break;

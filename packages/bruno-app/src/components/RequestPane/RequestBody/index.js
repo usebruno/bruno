@@ -8,6 +8,7 @@ import { useTheme } from 'providers/Theme';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
+import Binary from '../Binary/index';
 
 const RequestBody = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -59,6 +60,10 @@ const RequestBody = ({ item, collection }) => {
         />
       </StyledWrapper>
     );
+  }
+
+  if (bodyMode === 'binary') {
+    return <Binary item={item} collection={collection}/>
   }
 
   if (bodyMode === 'formUrlEncoded') {
