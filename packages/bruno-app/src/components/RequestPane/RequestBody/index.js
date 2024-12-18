@@ -62,7 +62,7 @@ const RequestBody = ({ item, collection }) => {
     );
   }
 
-  if (bodyMode === 'binary') {
+  if (bodyMode === 'binaryFile') {
     return <Binary item={item} collection={collection}/>
   }
 

@@ -121,9 +121,9 @@ const browseDirectory = async (win) => {
   return isDirectory(resolvedPath) ? resolvedPath : false;
 };
 
-const browseFiles = async (win, filters) => {
+const browseFiles = async (win, filters, properties) => {
   const { filePaths } = await dialog.showOpenDialog(win, {
-    properties: ['openFile', 'multiSelections'],
+    properties: ['openFile', ...properties],
     filters
   });
 

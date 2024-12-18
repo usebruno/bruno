@@ -132,7 +132,7 @@ const RequestBodyMode = ({ item, collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
-              onModeChange('binary');
+              onModeChange('binaryFile');
             }}
           >
             Binary

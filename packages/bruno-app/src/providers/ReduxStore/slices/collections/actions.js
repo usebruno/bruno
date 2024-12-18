@@ -1039,12 +1039,12 @@ export const browseDirectory = () => (dispatch, getState) => {
 };
 
 export const browseFiles =
-  (filters = []) =>
+  (filters = [], properties = ['multiSelections']) =>
   (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     return new Promise((resolve, reject) => {
-      ipcRenderer.invoke('renderer:browse-files', filters).then(resolve).catch(reject);
+      ipcRenderer.invoke('renderer:browse-files', undefined, undefined, undefined, filters, properties).then(resolve).catch(reject);
     });
   };
 

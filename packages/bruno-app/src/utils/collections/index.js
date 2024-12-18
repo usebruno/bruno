@@ -644,7 +644,7 @@ export const humanizeRequestBodyMode = (mode) => {
       label = 'SPARQL';
       break;
     }
-    case 'binary': {
+    case 'binaryFile': {
       label = 'Binary';
       break;
     }
