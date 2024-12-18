@@ -18,6 +18,8 @@ import {
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
 import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
 import toast from 'react-hot-toast';
+import mime from 'mime-types';
+import path from 'node:path';
 
 const initialState = {
   collections: [],
@@ -810,6 +812,78 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    addBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
+
+          item.draft.request.body.binaryFile = [{
+            uid: uuid(),
+            type: action.payload.type,
+            fileName: action.payload.fileName,
+            filePath: action.payload.filePath,
+            contentType: action.payload.contentType,
+            enabled: true
+          }];
+        }
+      }
+    },
+    updateBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
+
+          if (param) {
+
+            console.log('action.payload.param', action.payload.param);
+
+            const contentType = mime.contentType(path.extname(action.payload.param.filePath));
+
+            param.type = action.payload.param.type;
+            param.fileName = action.payload.param.fileName;
+            param.filePath = action.payload.param.filePath;
+            param.contentType = action.payload.param.contentType || contentType;
+            param.enabled = action.payload.param.enabled;
+          }
+        }
+      }
+    },
+    deleteBinaryFile: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+          
+          const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.paramUid);
+
+          if (param) {
+            param.fileName = '';
+            param.filePath = '';
+            param.contentType = '';
+            param.enabled = true;
+          }
+        }
+      }
+    },
     updateRequestAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -864,6 +938,10 @@ export const collectionsSlice = createSlice({
             }
             case 'sparql': {
               item.draft.request.body.sparql = action.payload.content;
+              break;
+            }
+            case 'binaryFile': {
+              item.draft.request.body.binaryFile = action.payload.content;
               break;
             }
             case 'formUrlEncoded': {
@@ -1791,6 +1869,9 @@ export const {
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  addBinaryFile,
+  updateBinaryFile,
+  deleteBinaryFile,
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
