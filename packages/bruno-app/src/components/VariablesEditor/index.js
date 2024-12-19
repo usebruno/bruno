@@ -15,7 +15,7 @@ const KeyValueExplorer = ({ data = [], theme }) => {
       <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
-          {data.map((envVar) => (
+          {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
             <tr key={envVar.name}>
               <td className="px-2 py-1">{envVar.name}</td>
               <td className="px-2 py-1">
