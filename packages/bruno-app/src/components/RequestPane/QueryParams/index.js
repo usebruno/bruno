@@ -117,7 +117,6 @@ const QueryParams = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col absolute">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
-
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
@@ -153,7 +152,7 @@ const QueryParams = ({ item, collection }) => {
                       />
                     </td>
                     <td>
-                      <div className="flex items-center">
+                      <div className="flex items-center justify-center">
                         <input
                           type="checkbox"
                           checked={param.enabled}
@@ -188,7 +187,7 @@ const QueryParams = ({ item, collection }) => {
               </code>
             </div>
           `}
-          infotipId="path-param-InfoTip"
+            infotipId="path-param-InfoTip"
           />
         </div>
         <table>
@@ -241,11 +240,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
-        {!(pathParams && pathParams.length) ?
-          <div className="title pr-2 py-3 mt-2 text-xs">
-            
-          </div>
-        : null}
+        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
   );
