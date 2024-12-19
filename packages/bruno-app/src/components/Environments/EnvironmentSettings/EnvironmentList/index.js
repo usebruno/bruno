@@ -8,6 +8,7 @@ import ImportEnvironment from '../ImportEnvironment';
 import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
+import ToolHint from 'components/ToolHint';
 
 const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
   const { environments } = collection;
@@ -108,7 +109,9 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
                   className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
                   onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
                 >
-                  <span className="break-all">{env.name}</span>
+                  <ToolHint text={env.name} toolhintId={env.uid} place="bottom">
+                    <span className="break-all">{env.name}</span>
+                  </ToolHint>
                 </div>
               ))}
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>

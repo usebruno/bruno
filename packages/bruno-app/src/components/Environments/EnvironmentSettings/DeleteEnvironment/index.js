@@ -27,7 +27,7 @@ const DeleteEnvironment = ({ onClose, environment, collection }) => {
           handleConfirm={onConfirm}
           handleCancel={onClose}
         >
-          <div className='flex gap-1'>Are you sure you want to delete <span className="font-semibold max-w-[200px] truncate inline-block">{environment.name}</span> ?</div>
+          Are you sure you want to delete <span className="font-semibold">{environment.name}</span> ?
         </Modal>
       </StyledWrapper>
     </Portal>

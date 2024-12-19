@@ -117,12 +117,11 @@ const QueryParams = ({ item, collection }) => {
     <StyledWrapper className="w-full flex flex-col absolute">
       <div className="flex-1 mt-2">
         <div className="mb-1 title text-xs">Query</div>
-
         <Table
           headers={[
             { name: 'Name', accessor: 'name', width: '31%' },
-            { name: 'Path', accessor: 'path', width: '50%' },
-            { name: '', accessor: '', width: '19%' }
+            { name: 'Path', accessor: 'path', width: '56%' },
+            { name: '', accessor: '', width: '13%' }
           ]}
         >
           <ReorderTable updateReorderedItem={handleParamDrag}>
@@ -158,7 +157,7 @@ const QueryParams = ({ item, collection }) => {
                           type="checkbox"
                           checked={param.enabled}
                           tabIndex="-1"
-                          className="mr-1.5 mousetrap"
+                          className="mr-3 mousetrap"
                           onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
                         />
                         <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
@@ -188,7 +187,7 @@ const QueryParams = ({ item, collection }) => {
               </code>
             </div>
           `}
-          infotipId="path-param-InfoTip"
+            infotipId="path-param-InfoTip"
           />
         </div>
         <table>
@@ -241,11 +240,7 @@ const QueryParams = ({ item, collection }) => {
               : null}
           </tbody>
         </table>
-        {!(pathParams && pathParams.length) ?
-          <div className="title pr-2 py-3 mt-2 text-xs">
-            
-          </div>
-        : null}
+        {!(pathParams && pathParams.length) ? <div className="title pr-2 py-3 mt-2 text-xs"></div> : null}
       </div>
     </StyledWrapper>
   );
