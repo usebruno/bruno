@@ -20,7 +20,7 @@ const formatResponse = (data, mode, filter) => {
   }
 
   if (data === null) {
-    return data;
+    return 'null';
   }
 
   if (mode.includes('json')) {
