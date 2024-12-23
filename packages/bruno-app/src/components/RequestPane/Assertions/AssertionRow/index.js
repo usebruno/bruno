@@ -90,7 +90,7 @@ const parseAssertionOperator = (str = '') => {
     'isArray'
   ];
 
-  const [operator, ...rest] = str.trim().split(' ');
+  const [operator, ...rest] = str.split(' ');
   const value = rest.join(' ');
 
   if (unaryOperators.includes(operator)) {
