@@ -27,11 +27,8 @@ const formatResponse = (data, mode, filter) => {
     let isValidJSON = false;
 
     try {
-      if (typeof data === 'string') {
-        isValidJSON = true;
-      } else {
-        isValidJSON = typeof JSON.parse(JSON.stringify(data)) === 'object';
-      }
+      isValidJSON =
+        typeof JSON.parse(JSON.stringify(data)) === 'object' || typeof JSON.parse(JSON.stringify(data)) === 'string';
     } catch (error) {
       console.log('Error parsing JSON: ', error.message);
     }
