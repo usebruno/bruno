@@ -39,12 +39,15 @@ const RequestTabPanel = () => {
   const _collections = useSelector((state) => state.collections.collections);
 
   // merge `globalEnvironmentVariables` into the active collection and rebuild `collections` immer proxy object
-  let collections = produce(_collections, draft => {
+  let collections = produce(_collections, (draft) => {
     let collection = find(draft, (c) => c.uid === focusedTab?.collectionUid);
 
     if (collection) {
       // add selected global env variables to the collection object
-      const globalEnvironmentVariables = getGlobalEnvironmentVariables({ globalEnvironments, activeGlobalEnvironmentUid });
+      const globalEnvironmentVariables = getGlobalEnvironmentVariables({
+        globalEnvironments,
+        activeGlobalEnvironmentUid
+      });
       const globalEnvSecrets = getGlobalEnvironmentVariablesMasked({ globalEnvironments, activeGlobalEnvironmentUid });
       collection.globalEnvironmentVariables = globalEnvironmentVariables;
       collection.globalEnvSecrets = globalEnvSecrets;

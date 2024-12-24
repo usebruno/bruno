@@ -19,7 +19,7 @@ const EnvironmentSelector = ({ collection }) => {
   const Icon = forwardRef((props, ref) => {
     return (
       <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        {activeEnvironment ? activeEnvironment.name : 'No Environment'}
+        <p className="text-nowrap truncate max-w-32">{activeEnvironment ? activeEnvironment.name : 'No Environment'}</p>
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
