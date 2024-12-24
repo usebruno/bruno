@@ -8,6 +8,7 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
+import { IconDeviceFloppy } from '@tabler/icons';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -15,6 +16,7 @@ const Documentation = ({ item, collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
+  const { theme } = useTheme();
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
@@ -38,8 +40,18 @@ const Documentation = ({ item, collection }) => {
 
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
-      <div className="editing-mode" role="tab" onClick={toggleViewMode}>
+      <div className="editing-mode mb-2 flex justify-between items-center" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
+        {isEditing ? (
+          <button onClick={onSave}>
+            <IconDeviceFloppy
+              className="absolute right-0 top-6 m-4 z-10"
+              strokeWidth={1.5}
+              size={22}
+              color={theme.colors.text.yellow}
+            />
+          </button>
+        ) : null}
       </div>
 
       {isEditing ? (
