@@ -37,11 +37,16 @@ const Docs = ({ collection }) => {
     <StyledWrapper className="mt-1 h-full w-full relative">
       <div className="editing-mode mb-2 flex justify-between items-center" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
-        {isEditing ? 
+        {isEditing ? (
           <button onClick={onSave}>
-            <IconDeviceFloppy color={theme.requestTabs.icon.color} />
+            <IconDeviceFloppy
+              className="absolute right-0 top-6 m-4 z-10"
+              strokeWidth={1.5}
+              size={22}
+              color={theme.colors.text.yellow}            
+            />
           </button>
-        : null}
+        ) : null}
       </div>
 
       {isEditing ? (
