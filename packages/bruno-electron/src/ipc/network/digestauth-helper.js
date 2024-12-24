@@ -45,9 +45,15 @@ function addDigestInterceptor(axiosInstance, request) {
         console.debug(error.response.headers['www-authenticate']);
 
         const authDetails = error.response.headers['www-authenticate']
-          .split(', ')
-          .map((v) => v.split('=').map(stripQuotes))
-          .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
+          .split(',')
+          .map((pair) => pair.split('=').map((item) => item.trim()).map(stripQuotes))
+          .reduce((acc, [key, value]) => {
+            if (key && value !== undefined) {
+              acc[key] = value;
+            }
+            return acc;
+          }, {});
+
         console.debug(authDetails);
 
         const nonceCount = '00000001';
