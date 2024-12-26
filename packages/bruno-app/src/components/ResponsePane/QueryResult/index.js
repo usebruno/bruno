@@ -19,8 +19,6 @@ const formatResponse = (data, mode, filter) => {
     return '';
   }
 
-  console.log(JSON.stringify(data), "data in formate")
-
   if (data === null) {
     return data;
   }
