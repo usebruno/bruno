@@ -776,6 +776,27 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       throw new Error(error.message);
     }
   });
+
+  ipcMain.handle('renderer:reveal-in-finder', async (event, filePath) => {
+    try {
+      if (!filePath) {
+        throw new Error('File path is required.');
+      }
+
+      const resolvedPath = path.resolve(filePath);
+
+      if (!fs.existsSync(resolvedPath)) {
+        throw new Error('The specified file does not exist.');
+      }
+
+      shell.showItemInFolder(resolvedPath);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error in reveal-in-finder:', error);
+      return { success: false, message: error.message };
+    }
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
