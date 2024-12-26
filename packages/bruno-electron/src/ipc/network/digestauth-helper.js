@@ -24,7 +24,6 @@ function md5(input) {
 
 function addDigestInterceptor(axiosInstance, request) {
   const { username, password } = request.digestConfig;
-
   console.debug(request);
 
   if (!isStrPresent(username) || !isStrPresent(password)) {
@@ -54,30 +53,36 @@ function addDigestInterceptor(axiosInstance, request) {
             return acc;
           }, {});
 
-        console.debug(authDetails);
+        console.debug("Auth Details: \n", authDetails);
 
         const nonceCount = '00000001';
         const cnonce = crypto.randomBytes(24).toString('hex');
 
         if (authDetails.algorithm && authDetails.algorithm.toUpperCase() !== 'MD5') {
-          console.warn(`Unsupported Digest algorithm: ${algo}`);
+          console.warn(`Unsupported Digest algorithm: ${authDetails.algorithm}`);
           return Promise.reject(error);
         } else {
           authDetails.algorithm = 'MD5';
         }
+
         const uri = new URL(request.url).pathname;
         const HA1 = md5(`${username}:${authDetails['Digest realm']}:${password}`);
         const HA2 = md5(`${request.method}:${uri}`);
-        const response = md5(`${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`);
+        const response = md5(
+          `${HA1}:${authDetails.nonce}:${nonceCount}:${cnonce}:auth:${HA2}`
+        );
 
         const authorizationHeader =
-          `Digest username="${username}",realm="${authDetails['Digest realm']}",` +
+          `Digest username="${username}",realm="${authDetails.realm}",` +
           `nonce="${authDetails.nonce}",uri="${uri}",qop="auth",algorithm="${authDetails.algorithm}",` +
-          `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"`;
+          `response="${response}",nc="${nonceCount}",cnonce="${cnonce}"` +
+          (authDetails.opaque ? `,opaque="${authDetails.opaque}"` : '');
+
         originalRequest.headers['Authorization'] = authorizationHeader;
         console.debug(`Authorization: ${originalRequest.headers['Authorization']}`);
 
         delete originalRequest.digestConfig;
+
         return axiosInstance(originalRequest);
       }
 
