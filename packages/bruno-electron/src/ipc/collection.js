@@ -3,6 +3,7 @@ const fs = require('fs');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
+const { exec } = require('child_process');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
 
@@ -782,21 +783,35 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (!filePath) {
         throw new Error('File path is required.');
       }
-
+  
       const resolvedPath = path.resolve(filePath);
-
+  
       if (!fs.existsSync(resolvedPath)) {
         throw new Error('The specified file does not exist.');
       }
 
-      shell.showItemInFolder(resolvedPath);
-
+      console.log(process.platform, "process.platform")
+  
+      switch (process.platform) {
+        case 'darwin': // macOS
+          shell.showItemInFolder(resolvedPath);
+          break;
+        case 'win32': // Windows
+          shell.showItemInFolder(resolvedPath);
+          break;
+        case 'linux': // Linux
+          exec(`xdg-open "${resolvedPath}"`);
+          break;
+        default:
+          throw new Error('Unsupported platform.');
+      }
+  
       return { success: true };
     } catch (error) {
       console.error('Error in reveal-in-finder:', error);
       return { success: false, message: error.message };
     }
-  });
+  });  
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
