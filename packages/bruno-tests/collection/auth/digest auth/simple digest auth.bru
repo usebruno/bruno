@@ -1,0 +1,20 @@
+meta {
+  name: simple digest auth
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://httpbin.org/digest-auth/qop/one/two
+  body: none
+  auth: digest
+}
+
+headers {
+  accept: application/json
+}
+
+auth:digest {
+  username: one
+  password: two
+}
