@@ -365,14 +365,17 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   try {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+
+    // a quoated string is also a vaild json but we want to show it as a quoated string only (parsing removes the quoates)
     data = data.replace(/^\uFEFF/, '');
-    if (
-      !disableParsingResponseJson
-      && !(data.startsWith("\"") && data.endsWith("\"")) // a quoated string is also a vaild json but we want to show it as a quoated string only (parsing removes the quoates)
-    ) {
+    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
+      data = JSON.parse(data);
+    } {
       data = JSON.parse(data);
     }
-  } catch { }
+  } catch { 
+    console.log('Failed to parse response data as JSON');
+   }
 
   return { data, dataBuffer };
 };
