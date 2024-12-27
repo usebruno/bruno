@@ -33,7 +33,7 @@ const formatResponse = (data, mode, filter) => {
     }
 
     if (!isValidJSON && typeof data === 'string') {
-      return JSON.stringify(data);
+      return data;
     }
 
     if (filter) {
