@@ -6,6 +6,7 @@ import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
+import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun,IconEyeOff } from '@tabler/icons';
 import slash from 'utils/common/slash';
 import ResponsePane from './ResponsePane';
 import StyledWrapper from './StyledWrapper';
@@ -183,10 +184,19 @@ export default function RunnerResults({ collection }) {
                     {item.status !== 'error' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
                     ) : item.responseReceived?.status ? (
+
+                      selectedItem && JSON.stringify(item) === JSON.stringify(selectedItem) ? (
+                        <span className="text-xs link cursor-pointer ml-2" onClick={() => setSelectedItem(null)}>
+                          <IconEyeOff size={20} strokeWidth={1.5} />
+                        </span>
+                      ) : (
+
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
                         (<span className="mr-1">{item.responseReceived?.status}</span>
                         <span>{item.responseReceived?.statusText}</span>)
                       </span>
+
+                        )
                     ) : (
                       <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
                         (request failed)
@@ -264,6 +274,9 @@ export default function RunnerResults({ collection }) {
                   ) : (
                     <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                   )}
+                </span>
+                <span className="text-xs link cursor-pointer ml-2" onClick={() => setSelectedItem(null)}>
+                  <IconEyeOff size={20} strokeWidth={1.5} />
                 </span>
               </div>
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
