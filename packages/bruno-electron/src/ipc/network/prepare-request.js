@@ -161,7 +161,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   return axiosRequest;
 };
 
-const prepareRequest = async (item, collection) => {
+const prepareRequest = async (item, collection, abortController) => {
   const request = item.draft ? item.draft.request : item.request;
   const collectionRoot = get(collection, 'root', {});
   const collectionPath = collection.pathname;
@@ -245,25 +245,23 @@ const prepareRequest = async (item, collection) => {
     }
 
     if (request.body.binaryFile && request.body.binaryFile.length > 0) {
-      
-      let filePath = request.body.binaryFile[0].filePath[0];
 
-      if (filePath !== '') {
-        
+      axiosRequest.headers['content-type'] = request.body.binaryFile[0].contentType;
+
+      let filePath = request.body.binaryFile[0].value;
+
+      if (filePath && filePath.length > 0 && filePath !== '') {
+
         if (!path.isAbsolute(filePath)) {
 
           filePath = path.join(collectionPath, filePath);
         }
 
-      }
-      const fileHandle = await fs.open(filePath)
-
-      const file = await fileHandle.readFile()
+      const file = await fs.readFile(filePath, abortController)
 
       axiosRequest.data = file
 
-      await fileHandle.close()
-
+      }
     }
   }
 

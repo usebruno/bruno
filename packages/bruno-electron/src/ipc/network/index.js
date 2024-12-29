@@ -538,19 +538,21 @@ const registerNetworkIpc = (mainWindow) => {
       cancelTokenUid
     });
 
-    const collectionRoot = get(collection, 'root', {});
-    const request = await prepareRequest(item, collection);
-    request.__bruno__executionMode = 'standalone';
-    const envVars = getEnvVars(environment);
-    const processEnvVars = getProcessEnvVars(collectionUid);
-    const brunoConfig = getBrunoConfig(collectionUid);
-    const scriptingConfig = get(brunoConfig, 'scripts', {});
-    scriptingConfig.runtime = getJsSandboxRuntime(collection);
+      const abortController = new AbortController();
+
+      const collectionRoot = get(collection, 'root', {});
+      const request = await prepareRequest(item, collection, abortController);
+      request.__bruno__executionMode = 'standalone';
+      const envVars = getEnvVars(environment);
+      const processEnvVars = getProcessEnvVars(collectionUid);
+      const brunoConfig = getBrunoConfig(collectionUid);
+      const scriptingConfig = get(brunoConfig, 'scripts', {});
+      scriptingConfig.runtime = getJsSandboxRuntime(collection);
 
     try {
-      const controller = new AbortController();
-      request.signal = controller.signal;
-      saveCancelToken(cancelTokenUid, controller);
+      request.signal = abortController.signal;
+      
+      saveCancelToken(cancelTokenUid, abortController);
 
       await runPreRequest(
         request,
@@ -572,14 +574,14 @@ const registerNetworkIpc = (mainWindow) => {
         processEnvVars,
         collectionPath
       );
-
+      
       mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
           url: request.url,
           method: request.method,
           headers: request.headers,
-          data: safeParseJSON(safeStringifyJSON(request.data)),
+          data: request.mode == 'binaryFile'? undefined: safeParseJSON(safeStringifyJSON(request.data)) ,
           timestamp: Date.now()
         },
         collectionUid,
@@ -587,6 +589,9 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         cancelTokenUid
       });
+
+      console.log('after main:run-request-event', request);
+
 
       let response, responseTime;
       try {
@@ -973,7 +978,7 @@ const registerNetworkIpc = (mainWindow) => {
             ...eventData
           });
 
-          const request = prepareRequest(item, collection);
+          const request = await prepareRequest(item, collection, abortController);
           request.__bruno__executionMode = 'runner';
           
           const requestUid = uuid();

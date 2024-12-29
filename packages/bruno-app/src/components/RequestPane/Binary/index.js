@@ -15,24 +15,24 @@ import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
 import { useEffect } from 'react';
 import SingleLineEditor from 'components/SingleLineEditor/index';
+import { isArray } from 'lodash';
+import path from 'node:path';
 
 const Binary = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.binaryFile') : get(item, 'request.body.binaryFile');
 
- useEffect(() => {
+  const addFile = () => {
     dispatch(
       addBinaryFile({
         itemUid: item.uid,
         collectionUid: collection.uid,
-        contentType: '',
         type: 'binaryFile',
-        fileName: '',
-        filePath: ''
+        value: [''],
       })
     );
-  }, []);
+  };
 
   const onSave = () => dispatch(saveRequest(item.uid, collection.uid));
   const handleRun = () => dispatch(sendRequest(item, collection.uid));
@@ -40,14 +40,12 @@ const Binary = ({ item, collection }) => {
   const handleParamChange = (e, _param, type) => {
 
     const param = cloneDeep(_param);
-    switch (type) {
-      case 'name': {
-        param.name = e.target.value;
-        break;
-      }
 
-      case 'filePath': {
-        param.filePath = e.target.value;
+    switch (type) {
+    
+      case 'value': {
+        param.value = isArray(e.target.value) && e.target.value.length > 0 ? e.target.value : [''];
+        param.name = param.value.length === 0  ? '': path.basename(param.value[0], path.extname(param.value[0]));
         break;
       }
       case 'contentType': {
@@ -64,7 +62,8 @@ const Binary = ({ item, collection }) => {
         param: param,
         itemUid: item.uid,
         collectionUid: collection.uid,
-        filePath: param.filePath,
+        name: param.name,
+        value: param.value,
         contentType: param.contentType,
       })
     );
@@ -87,7 +86,7 @@ const Binary = ({ item, collection }) => {
           <tr>
             <td><div className="flex items-center justify-center">File</div></td>
             <td><div className="flex items-center justify-center">Content-Type</div></td>
-            <td><div className="flex items-center justify-center">Ativo</div></td>
+            <td><div className="flex items-center justify-center">Enabled</div></td>
             <td></td>
           </tr>
         </thead>
@@ -99,7 +98,7 @@ const Binary = ({ item, collection }) => {
                     <td>
                         <FilePickerEditor
                           isSingleFilePicker={true}
-                          value={param.filePath}
+                          value={param.value}
                           onChange={(newValue) =>
                             handleParamChange(
                               {
@@ -108,7 +107,7 @@ const Binary = ({ item, collection }) => {
                                 }
                               },
                               param,
-                              'filePath'
+                              'value'
                             )
                           }
                           collection={collection}
@@ -139,7 +138,9 @@ const Binary = ({ item, collection }) => {
                     <td>
                       <div className="flex items-center justify-center">
                         <input
-                          type="checkbox"
+                          key={`radio-${param.uid}`}
+                          type="radio"
+                          name="enabled"
                           checked={param.enabled}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
@@ -160,6 +161,11 @@ const Binary = ({ item, collection }) => {
             : null}
         </tbody>
       </table>
+      <div>
+        <button className="btn-add-param text-link pr-2 pt-3 select-none" onClick={addFile}>
+          + Add File
+        </button>
+      </div>
     </StyledWrapper>
   );
 };

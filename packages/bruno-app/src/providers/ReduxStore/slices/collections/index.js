@@ -824,14 +824,19 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
 
-          item.draft.request.body.binaryFile = [{
+          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
+            p.enabled = false;
+            return p;
+          });
+
+          item.draft.request.body.binaryFile.push({
             uid: uuid(),
             type: action.payload.type,
-            fileName: action.payload.fileName,
-            filePath: action.payload.filePath,
-            contentType: action.payload.contentType,
+            name: '',
+            value: [''],
+            contentType: '',
             enabled: true
-          }];
+          });
         }
       }
     },
@@ -845,18 +850,21 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
 
           if (param) {
-
             console.log('action.payload.param', action.payload.param);
 
-            const contentType = mime.contentType(path.extname(action.payload.param.filePath));
+            const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
+
+            console.log('action.payload.contentType detected', contentType);
+            console.log('action.payload.contentType action', action.payload.param.contentType);
 
             param.type = action.payload.param.type;
-            param.fileName = action.payload.param.fileName;
-            param.filePath = action.payload.param.filePath;
-            param.contentType = action.payload.param.contentType || contentType;
+            param.name = action.payload.param.name;
+            param.value = action.payload.param.value;
+            param.contentType = action.payload.param.contentType || contentType || '';
             param.enabled = action.payload.param.enabled;
           }
         }
@@ -873,14 +881,11 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           
-          const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.paramUid);
-
-          if (param) {
-            param.fileName = '';
-            param.filePath = '';
-            param.contentType = '';
-            param.enabled = true;
-          }
+          item.draft.request.body.binaryFile = filter(
+            item.draft.request.body.binaryFile,
+            (p) => p.uid !== action.payload.paramUid
+          );
+          
         }
       }
     },

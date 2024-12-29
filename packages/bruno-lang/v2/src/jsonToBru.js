@@ -301,6 +301,39 @@ ${indentString(body.sparql)}
     bru += '\n}\n\n';
   }
 
+  console.log('jsonToBruV2 before binaryFile', bru);
+
+
+  if (body && body.binaryFile && body.binaryFile.length) {
+    bru += `body:binary-file {`;
+    const binaryFiles = enabled(body.binaryFile).concat(disabled(body.binaryFile));
+
+    console.log('binaryFiles', binaryFiles);
+
+    if (binaryFiles.length) {
+      bru += `\n${indentString(
+        binaryFiles
+          .map((item) => {
+            const enabled = item.enabled ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+
+            if (item.type === 'binaryFile') {
+              let filestr = item.value[0] || '';
+              const value = `@file(${filestr})`;
+              return `${enabled}${item.name}: ${value}${contentType}`;
+            }
+          })
+          .join('\n')
+      )}`;
+    }
+
+    bru += '\n}\n\n';
+  }
+
+  console.log('jsonToBruV2 after binaryFile', bru);
+
+
   if (body && body.graphql && body.graphql.query) {
     bru += `body:graphql {\n`;
     bru += `${indentString(body.graphql.query)}`;
