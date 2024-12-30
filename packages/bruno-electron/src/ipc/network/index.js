@@ -365,9 +365,9 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
   try {
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
+    data = data.replace(/^\uFEFF/, '');
 
     // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
-    data = data.replace(/^\uFEFF/, '');
     if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
       data = JSON.parse(data);
     }
