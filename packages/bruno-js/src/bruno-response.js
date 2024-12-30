@@ -1,3 +1,5 @@
+const { get } = require("lodash");
+
 class BrunoResponse {
   constructor(res) {
     this.res = res;
@@ -6,6 +8,12 @@ class BrunoResponse {
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
+      
+    const callable = (...args) => this.call(...args);
+    Object.setPrototypeOf(callable, this.constructor.prototype);
+    Object.assign(callable, this);
+
+    return callable;
   }
 
   getStatus() {
@@ -36,6 +44,10 @@ class BrunoResponse {
     this.body = data;
     this.res.data = data;
   }
+
+  call(expr, ...fns) {
+    return get(this.res.data, expr, ...fns);
+  };
 }
 
 module.exports = BrunoResponse;
