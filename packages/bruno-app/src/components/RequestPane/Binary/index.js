@@ -9,11 +9,9 @@ import {
   updateBinaryFile,
   deleteBinaryFile
 } from 'providers/ReduxStore/slices/collections';
-import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
-import { useEffect } from 'react';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isArray } from 'lodash';
 import path from 'node:path';
@@ -61,10 +59,7 @@ const Binary = ({ item, collection }) => {
       updateBinaryFile({
         param: param,
         itemUid: item.uid,
-        collectionUid: collection.uid,
-        name: param.name,
-        value: param.value,
-        contentType: param.contentType,
+        collectionUid: collection.uid
       })
     );
   };

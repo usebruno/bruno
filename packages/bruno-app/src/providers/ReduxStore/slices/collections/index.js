@@ -858,9 +858,6 @@ export const collectionsSlice = createSlice({
 
             const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
 
-            console.log('action.payload.contentType detected', contentType);
-            console.log('action.payload.contentType action', action.payload.param.contentType);
-
             param.type = action.payload.param.type;
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
