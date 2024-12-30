@@ -248,9 +248,9 @@ const prepareRequest = async (item, collection, abortController) => {
 
       axiosRequest.headers['content-type'] = request.body.binaryFile[0].contentType;
 
-      let filePath = request.body.binaryFile[0].value;
+      let filePath = request.body.binaryFile[0].value[0];
 
-      if (filePath && filePath.length > 0 && filePath !== '') {
+      if (filePath && filePath !== '') {
 
         if (!path.isAbsolute(filePath)) {
 
