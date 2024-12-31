@@ -141,16 +141,17 @@ const Collection = ({ collection, searchText }) => {
       <div className="flex py-1 collection-name items-center" ref={drop}>
         <div
           className="flex flex-grow items-center overflow-hidden"
-          onClick={handleClick}
-          onContextMenu={handleRightClick}
         >
           <IconChevronRight
             size={16}
             strokeWidth={2}
             className={iconClassName}
             style={{ width: 16, minWidth: 16, color: 'rgb(160 160 160)' }}
+            onClick={handleClick}
           />
-          <div className="ml-1" id="sidebar-collection-name">
+          <div className="ml-1" id="sidebar-collection-name"    
+            onClick={viewCollectionSettings}
+            onContextMenu={handleRightClick}>
             {collection.name}
           </div>
         </div>
