@@ -40,32 +40,27 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
+    <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
       <div className="editing-mode mb-2 flex justify-between items-center" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
-        {isEditing ? (
-          <button onClick={onSave}>
-            <IconDeviceFloppy
-              className="absolute right-0 top-6 m-4 z-10"
-              strokeWidth={1.5}
-              size={22}
-              color={theme.colors.text.yellow}            
-            />
-          </button>
-        ) : null}
       </div>
 
       {isEditing ? (
-        <CodeEditor
-          collection={collection}
-          theme={displayedTheme}
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
-          value={docs || ''}
-          onEdit={onEdit}
-          onSave={onSave}
-          mode="application/text"
-        />
+        <div className="flex-1 mt-2">
+          <CodeEditor
+            collection={collection}
+            theme={displayedTheme}
+            value={docs || ''}
+            onEdit={onEdit}
+            onSave={onSave}
+            mode="application/text"
+            font={get(preferences, 'font.codeFont', 'default')}
+            fontSize={get(preferences, 'font.codeFontSize')}
+          />
+          <button type="submit" className="submit btn btn-sm btn-secondary my-6" onClick={onSave}>
+            Save
+          </button>
+        </div>
       ) : (
         <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
       )}
