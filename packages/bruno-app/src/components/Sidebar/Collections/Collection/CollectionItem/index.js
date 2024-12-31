@@ -128,13 +128,29 @@ const CollectionItem = ({ item, collection, searchText }) => {
       );
       return;
     }
+      dispatch(
+        addTab({
+          uid: item.uid,
+          collectionUid: collection.uid,
+          type: 'folder-settings'
+        })
+      );
+      dispatch(
+        collectionFolderClicked({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
+  };
+
+  const handleFolderCollapse = () => {
     dispatch(
       collectionFolderClicked({
         itemUid: item.uid,
         collectionUid: collection.uid
       })
     );
-  };
+  }
 
   const handleRightClick = (event) => {
     const _menuDropdown = dropdownTippyRef.current;
@@ -260,9 +276,6 @@ const CollectionItem = ({ item, collection, searchText }) => {
               })
             : null}
           <div
-            onClick={handleClick}
-            onContextMenu={handleRightClick}
-            onDoubleClick={handleDoubleClick}
             className="flex flex-grow items-center h-full overflow-hidden"
             style={{
               paddingLeft: 8
@@ -275,11 +288,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   strokeWidth={2}
                   className={iconClassName}
                   style={{ color: 'rgb(160 160 160)' }}
+                  onClick={handleFolderCollapse}
                 />
               ) : null}
             </div>
 
-            <div className="ml-1 flex items-center overflow-hidden">
+            <div 
+              className="ml-1 flex items-center overflow-hidden flex-1" 
+              onClick={handleClick}
+              onContextMenu={handleRightClick}
+              onDoubleClick={handleDoubleClick}
+            >
               <RequestMethod item={item} />
               <span className="item-name" title={item.name}>
                 {item.name}
