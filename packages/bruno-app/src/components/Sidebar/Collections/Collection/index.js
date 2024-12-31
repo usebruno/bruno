@@ -68,6 +68,17 @@ const Collection = ({ collection, searchText }) => {
     dispatch(collectionClicked(collection.uid));
   };
 
+  const handleCollapseCollection = () => {
+    dispatch(collectionClicked(collection.uid));
+    dispatch(
+      addTab({
+        uid: uuid(),
+        collectionUid: collection.uid,
+        type: 'collection-settings'
+      })
+    );
+  }
+
   const handleRightClick = (event) => {
     const _menuDropdown = menuDropdownTippyRef.current;
     if (_menuDropdown) {
@@ -150,7 +161,7 @@ const Collection = ({ collection, searchText }) => {
             onClick={handleClick}
           />
           <div className="ml-1" id="sidebar-collection-name"    
-            onClick={viewCollectionSettings}
+            onClick={handleCollapseCollection}
             onContextMenu={handleRightClick}>
             {collection.name}
           </div>

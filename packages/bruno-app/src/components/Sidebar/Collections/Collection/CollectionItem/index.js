@@ -135,6 +135,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
           type: 'folder-settings'
         })
       );
+      dispatch(
+        collectionFolderClicked({
+          itemUid: item.uid,
+          collectionUid: collection.uid
+        })
+      );
   };
 
   const handleFolderCollapse = () => {
