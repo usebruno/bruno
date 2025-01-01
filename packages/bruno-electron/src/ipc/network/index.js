@@ -534,8 +534,12 @@ const registerNetworkIpc = (mainWindow) => {
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
-    const runRequestByItemPathname = async ({ itemPathname }) => {
+    const runRequestByItemPathname = async (relativeItemPathname) => {
       return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
         const _item = findItemInCollectionByPathname(collection, itemPathname);
         if(_item) {
           const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
@@ -938,6 +942,21 @@ const registerNetworkIpc = (mainWindow) => {
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
 
+      const runRequestByItemPathname = async (relativeItemPathname) => {
+        return new Promise(async (resolve, reject) => {
+          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+          if (itemPathname && !itemPathname?.endsWith('.bru')) {
+            itemPathname = `${itemPathname}.bru`;
+          }
+          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          if(_item) {
+            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            resolve(res);
+          }
+          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+        });
+      }
+
       if (!folder) {
         folder = collection;
       }
@@ -1015,7 +1034,8 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
@@ -1152,7 +1172,8 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
@@ -1210,7 +1231,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                scriptingConfig
+                scriptingConfig,
+                runRequestByItemPathname
               );
 
               if (testResults?.nextRequestName !== undefined) {

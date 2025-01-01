@@ -208,7 +208,7 @@ const slash = (path) => {
   if (isExtendedLengthPath) {
     return path;
   }
-  return path.replace(/\\/g, '/');
+  return path?.replace?.(/\\/g, '/');
 };
 
 const findItemByPathname = (items = [], pathname) => {
