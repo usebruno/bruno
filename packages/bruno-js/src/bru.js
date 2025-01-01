@@ -20,6 +20,9 @@ class Bru {
       stopExecution: () => {
         this.stopExecution = true;
       },
+      setNextRequest: (nextRequest) => {
+        this.nextRequest = nextRequest;
+      }
     };
   }
 

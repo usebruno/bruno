@@ -107,6 +107,12 @@ const addBruShimToContext = (vm, bru) => {
   vm.setProp(bruRunnerObject, 'stopExecution', runnerStopExecution);
   runnerStopExecution.dispose();
 
+  let runnerSetNextRequest = vm.newFunction('setNextRequest', function (nextRequest) {
+    bru?.runner?.setNextRequest(vm.dump(nextRequest));
+  });
+  vm.setProp(bruRunnerObject, 'setNextRequest', runnerSetNextRequest);
+  runnerSetNextRequest.dispose();
+
   let visualize = vm.newFunction('visualize', function (htmlString) {
     bru.visualize(vm.dump(htmlString));
   });

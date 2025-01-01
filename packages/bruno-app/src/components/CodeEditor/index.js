@@ -78,6 +78,7 @@ if (!SERVER_RENDERED) {
     'bru.getGlobalEnvVar(key)',
     'bru.setGlobalEnvVar(key, value)',
     'bru.runner',
+    'bru.runner.setNextRequest(requestName)',
     'bru.runner.skipRequest()',
     'bru.runner.stopExecution()'
   ];
