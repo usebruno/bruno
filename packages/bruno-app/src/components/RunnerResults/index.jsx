@@ -142,8 +142,6 @@ export default function RunnerResults({ collection }) {
     );
   }
 
-  console.log("results", items);
-
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
       <div className="flex flex-row">
