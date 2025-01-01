@@ -32,6 +32,25 @@ const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
+const summarizeResults = (results) => {
+  const summary = {
+    total: results.length,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+  };
+
+  results.forEach((r) => {
+    const passed = r.status === "pass";
+    if (passed) summary.passed += 1;
+    else if (r.status === "fail") summary.failed += 1;
+    else summary.skipped += 1;
+  });
+
+  return { summary, results };
+}
+
+
 class TestRuntime {
   constructor(props) {
     this.runtime = props?.runtime || 'vm2';
@@ -93,10 +112,10 @@ class TestRuntime {
 
     bru.getTestResults = async () => {
       let results = await __brunoTestResults.getResults();
-      return results;
+      return summarizeResults(results);
     }
     bru.getAssertionResults = async () => {
-      return assertionResults
+      return summarizeResults(assertionResults);
     }
 
     const context = {
