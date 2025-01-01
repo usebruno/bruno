@@ -933,6 +933,7 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
+      let stopRunnerExecution = false;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
@@ -979,6 +980,8 @@ const registerNetworkIpc = (mainWindow) => {
             throw error;
           }
 
+          stopRunnerExecution = false;
+
           const item = folderRequests[currentRequestIndex];
           let nextRequestName;
           const itemUid = item.uid;
@@ -1020,28 +1023,12 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (preRequestScriptResult?.stopExecution) {
-              deleteCancelToken(cancelTokenUid);
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
-                error: 'Request has been stopped from pre-request script',
-                responseReceived: {
-                  status: 'terminated',
-                  statusText: 'Request execution stopped!',
-                  data: null
-                },
-                ...eventData
-              });
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'testrun-ended',
-                collectionUid,
-                folderUid
-              });
-              break;
+              stopRunnerExecution = true;
             }
 
             if (preRequestScriptResult?.skipRequest) {
               mainWindow.webContents.send('main:run-folder-event', {
-                type: 'request-skipped',
+                type: 'runner-request-skipped',
                 error: 'Request has been skipped from pre-request script',
                 responseReceived: {
                   status: 'skipped',
@@ -1173,38 +1160,21 @@ const registerNetworkIpc = (mainWindow) => {
             }
 
             if (postRequestScriptResult?.stopExecution) {
-              deleteCancelToken(cancelTokenUid);
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'response-received',
-                error: 'Request has been stopped from post-response script',
-                responseReceived: {
-                  status: 'terminated',
-                  statusText: 'Request execution stopped!',
-                  data: null
-                },
-                ...eventData
-              });
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'testrun-ended',
-                collectionUid,
-                folderUid
-              });
-              break;
+              stopRunnerExecution = true;
             }
 
             if (postRequestScriptResult?.skipRequest) {
-              mainWindow.webContents.send('main:run-folder-event', {
-                type: 'request-skipped',
-                error: 'Request has been skipped from post-response script',
-                responseReceived: {
-                  status: 'skipped',
-                  statusText: 'request skipped via post-response script',
-                  data: null
-                },
-                ...eventData
-              });
-              currentRequestIndex++;
-              continue;
+              // mainWindow.webContents.send('main:run-folder-event', {
+              //   type: 'runner-request-skipped',
+              //   error: 'Request has been skipped from post-response script',
+              //   responseReceived: {
+              //     status: 'skipped',
+              //     statusText: 'request skipped via post-response script'
+              //   },
+              //   ...eventData
+              // });
+              // currentRequestIndex++;
+              // continue;
             }
 
             // run assertions
@@ -1271,6 +1241,18 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
+
+          if (stopRunnerExecution) {
+            deleteCancelToken(cancelTokenUid);
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'testrun-ended',
+              collectionUid,
+              folderUid,
+              statusText: 'collection run was terminated!'
+            });
+            break;
+          }
+
           if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
