@@ -3,6 +3,7 @@ const { marshallToVm } = require('../utils');
 
 const addBruShimToContext = (vm, bru) => {
   const bruObject = vm.newObject();
+  const bruRunnerObject = vm.newObject();
 
   let cwd = vm.newFunction('cwd', function () {
     return marshallToVm(bru.cwd(), vm);
@@ -93,6 +94,18 @@ const addBruShimToContext = (vm, bru) => {
   });
   vm.setProp(bruObject, 'setNextRequest', setNextRequest);
   setNextRequest.dispose();
+
+  let runnerSkipRequest = vm.newFunction('skipRequest', function () {
+    bru?.runner?.skipRequest();
+  });
+  vm.setProp(bruRunnerObject, 'skipRequest', runnerSkipRequest);
+  runnerSkipRequest.dispose();
+
+  let runnerStopExecution = vm.newFunction('stopExecution', function () {
+    bru?.runner?.stopExecution();
+  });
+  vm.setProp(bruRunnerObject, 'stopExecution', runnerStopExecution);
+  runnerStopExecution.dispose();
 
   let visualize = vm.newFunction('visualize', function (htmlString) {
     bru.visualize(vm.dump(htmlString));
@@ -199,6 +212,7 @@ const addBruShimToContext = (vm, bru) => {
   });
   sleep.consume((handle) => vm.setProp(bruObject, 'sleep', handle));
 
+  vm.setProp(bruObject, 'runner', bruRunnerObject);
   vm.setProp(vm.global, 'bru', bruObject);
   bruObject.dispose();
 };

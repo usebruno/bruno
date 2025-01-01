@@ -92,7 +92,7 @@ class TestRuntime {
     }
 
     bru.getTestResults = async () => {
-      let results = __brunoTestResults.getResults();
+      let results = await __brunoTestResults.getResults();
       return results;
     }
     bru.getAssertionResults = async () => {
