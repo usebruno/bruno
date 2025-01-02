@@ -874,6 +874,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.body.multipartForm = action.payload.content;
               break;
             }
+            case 'rawFile': {
+              item.draft.request.body.rawFile = action.payload.content;
+              break;
+            }
           }
         }
       }
