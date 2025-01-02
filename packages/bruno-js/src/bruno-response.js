@@ -1,4 +1,3 @@
-const jsonQuery = require('json-query');
 const { get } = require('@usebruno/query');
 
 class BrunoResponse {
@@ -45,11 +44,6 @@ class BrunoResponse {
 
     this.body = data;
     this.res.data = data;
-  }
-
-  jq(expr) {
-    const output = jsonQuery(expr, { data: this.body });
-    return output ? output.value : null;
   }
 }
 
