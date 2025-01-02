@@ -8,6 +8,7 @@ import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ManageSecrets from 'components/Environments/EnvironmentSettings/ManageSecrets/index';
 import ImportEnvironment from '../ImportEnvironment';
 import { isEqual } from 'lodash';
+import ToolHint from 'components/ToolHint/index';
 
 const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironment, setSelectedEnvironment, isModified, setIsModified }) => {
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -112,13 +113,15 @@ const EnvironmentList = ({ environments, activeEnvironmentUid, selectedEnvironme
             {environments &&
               environments.length &&
               environments.map((env) => (
-                <div
-                  key={env.uid}
-                  className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
-                  onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle clicks
-                >
-                  <span className="break-all">{env.name}</span>
-                </div>
+                <ToolHint key={env.uid} text={env.name} toolhintId={env.uid} place="right">
+                  <div
+                    id={env.uid}
+                    className={selectedEnvironment.uid === env.uid ? 'environment-item active' : 'environment-item'}
+                    onClick={() => handleEnvironmentClick(env)} // Use handleEnvironmentClick to handle click
+                  >
+                      <span className="break-all">{env.name}</span>
+                  </div>
+                </ToolHint>
               ))}
             <div className="btn-create-environment" onClick={() => handleCreateEnvClick()}>
               + <span>Create</span>
