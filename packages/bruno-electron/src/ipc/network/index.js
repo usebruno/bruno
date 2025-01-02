@@ -1184,20 +1184,6 @@ const registerNetworkIpc = (mainWindow) => {
               stopRunnerExecution = true;
             }
 
-            if (postRequestScriptResult?.skipRequest) {
-              // mainWindow.webContents.send('main:run-folder-event', {
-              //   type: 'runner-request-skipped',
-              //   error: 'Request has been skipped from post-response script',
-              //   responseReceived: {
-              //     status: 'skipped',
-              //     statusText: 'request skipped via post-response script'
-              //   },
-              //   ...eventData
-              // });
-              // currentRequestIndex++;
-              // continue;
-            }
-
             // run assertions
             const assertions = get(item, 'request.assertions');
             if (assertions) {
