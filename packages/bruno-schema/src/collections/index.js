@@ -68,6 +68,7 @@ const multipartFormSchema = Yup.object({
     otherwise: Yup.string().nullable()
   }),
   description: Yup.string().nullable(),
+  contentType: Yup.string().nullable(),
   enabled: Yup.boolean()
 })
   .noUnknown(true)
