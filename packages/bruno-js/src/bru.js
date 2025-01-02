@@ -13,6 +13,17 @@ class Bru {
     this.requestVariables = requestVariables || {};
     this.globalEnvironmentVariables = globalEnvironmentVariables || {};
     this.collectionPath = collectionPath;
+    this.runner = {
+      skipRequest: () => {
+        this.skipRequest = true;
+      },
+      stopExecution: () => {
+        this.stopExecution = true;
+      },
+      setNextRequest: (nextRequest) => {
+        this.nextRequest = nextRequest;
+      }
+    };
   }
 
   _interpolate = (str) => {
