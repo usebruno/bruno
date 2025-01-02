@@ -70,16 +70,26 @@ export const safeParseXML = (str, options) => {
   }
 };
 
-// Remove any characters that are not alphanumeric, spaces, hyphens, or underscores
 export const normalizeFileName = (name) => {
   if (!name) {
     return name;
   }
 
-  const validChars = /[^\w\s-]/g;
-  const formattedName = name.replace(validChars, '-');
+  // alphanumerics, spaces, underscores, hyphens
+  const baseValidExpression = '\\w\\s-';
+  const additionalValidExpressions = [
+    'ㄱ-ㅎ|ㅏ-ㅣ|가-힣',  // Korean
+  ];
 
-  return formattedName;
+  const validExpression = [
+    baseValidExpression,
+    ...additionalValidExpressions,
+  ].join('|');
+
+  const invalidCharRegex = new RegExp(`[^${validExpression}]`, 'g')
+  const normalizedFileName = name.replace(invalidCharRegex, '-');
+
+  return normalizedFileName;
 };
 
 export const getContentType = (headers) => {
