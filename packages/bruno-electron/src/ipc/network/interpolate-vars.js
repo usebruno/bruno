@@ -156,28 +156,15 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
   }
 
   if (request?.oauth2?.grantType) {
-    let username, password, scope, clientId, clientSecret;
     switch (request.oauth2.grantType) {
       case 'password':
-        username = _interpolate(request.oauth2.username) || '';
-        password = _interpolate(request.oauth2.password) || '';
-        clientId = _interpolate(request.oauth2.clientId) || '';
-        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.username = username;
-        request.oauth2.password = password;
-        request.oauth2.clientId = clientId;
-        request.oauth2.clientSecret = clientSecret;
-        request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'password',
-          username,
-          password,
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
+        request.oauth2.username = _interpolate(request.oauth2.username) || '';
+        request.oauth2.password = _interpolate(request.oauth2.password) || '';
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         break;
       case 'authorization_code':
         request.oauth2.callbackUrl = _interpolate(request.oauth2.callbackUrl) || '';
@@ -185,24 +172,17 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
         request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
         request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
         request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.state = _interpolate(request.oauth2.state) || '';
         request.oauth2.pkce = _interpolate(request.oauth2.pkce) || false;
         break;
       case 'client_credentials':
-        clientId = _interpolate(request.oauth2.clientId) || '';
-        clientSecret = _interpolate(request.oauth2.clientSecret) || '';
-        scope = _interpolate(request.oauth2.scope) || '';
         request.oauth2.accessTokenUrl = _interpolate(request.oauth2.accessTokenUrl) || '';
-        request.oauth2.clientId = clientId;
-        request.oauth2.clientSecret = clientSecret;
-        request.oauth2.scope = scope;
-        request.data = {
-          grant_type: 'client_credentials',
-          client_id: clientId,
-          client_secret: clientSecret,
-          scope
-        };
+        request.oauth2.clientId = _interpolate(request.oauth2.clientId) || '';
+        request.oauth2.clientSecret = _interpolate(request.oauth2.clientSecret) || '';
+        request.oauth2.clientSecretMethod = _interpolate(request.oauth2.clientSecretMethod) || '';
+        request.oauth2.scope = _interpolate(request.oauth2.scope) || '';
         break;
       default:
         break;
