@@ -1,4 +1,5 @@
-const { get } = require("lodash");
+const jsonQuery = require('json-query');
+const { get } = require('@usebruno/query');
 
 class BrunoResponse {
   constructor(res) {
@@ -8,8 +9,9 @@ class BrunoResponse {
     this.headers = res ? res.headers : null;
     this.body = res ? res.data : null;
     this.responseTime = res ? res.responseTime : null;
-      
-    const callable = (...args) => this.call(...args);
+
+    // Make the instance callable
+    const callable = (...args) => get(this.body, ...args);
     Object.setPrototypeOf(callable, this.constructor.prototype);
     Object.assign(callable, this);
 
@@ -45,9 +47,10 @@ class BrunoResponse {
     this.res.data = data;
   }
 
-  call(expr, ...fns) {
-    return get(this.res.data, expr, ...fns);
-  };
+  jq(expr) {
+    const output = jsonQuery(expr, { data: this.body });
+    return output ? output.value : null;
+  }
 }
 
 module.exports = BrunoResponse;
