@@ -32,7 +32,7 @@ const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
 const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
-const summarizeResults = (results) => {
+const getResultsSummary = (results) => {
   const summary = {
     total: results.length,
     passed: 0,
@@ -47,7 +47,7 @@ const summarizeResults = (results) => {
     else summary.skipped += 1;
   });
 
-  return { summary, results };
+  return summary;
 }
 
 
@@ -112,10 +112,32 @@ class TestRuntime {
 
     bru.getTestResults = async () => {
       let results = await __brunoTestResults.getResults();
-      return summarizeResults(results);
+      const summary = getResultsSummary(results);
+      return {
+        summary,
+        results: results?.map?.(r => ({
+          status: r?.status,
+          description: r?.description,
+          expected: r?.expected,
+          actual: r?.actual,
+          error: r?.error
+        }))
+      };
     }
     bru.getAssertionResults = async () => {
-      return summarizeResults(assertionResults);
+      let results = assertionResults;
+      const summary = getResultsSummary(results);
+      return {
+        summary,
+        results: results?.map?.(r => ({
+          status: r?.status,
+          lhsExpr: r?.lhsExpr,
+          rhsExpr: r?.rhsExpr,
+          operator: r?.operator,
+          rhsOperand: r?.rhsOperand,
+          error: r?.error
+        }))
+      };
     }
 
     const context = {
