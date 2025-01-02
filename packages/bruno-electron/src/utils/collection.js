@@ -203,9 +203,31 @@ const getTreePathFromCollectionToItem = (collection, _item) => {
   return path;
 };
 
+const slash = (path) => {
+  const isExtendedLengthPath = /^\\\\\?\\/.test(path);
+  if (isExtendedLengthPath) {
+    return path;
+  }
+  return path?.replace?.(/\\/g, '/');
+};
+
+const findItemByPathname = (items = [], pathname) => {
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
+};
+
+const findItemInCollectionByPathname = (collection, pathname) => {
+  let flattenedItems = flattenItems(collection.items);
+
+  return findItemByPathname(flattenedItems, pathname);
+};
+
+
 module.exports = {
   mergeHeaders,
   mergeVars,
   mergeScripts,
-  getTreePathFromCollectionToItem
+  getTreePathFromCollectionToItem,
+  slash,
+  findItemByPathname,
+  findItemInCollectionByPathname
 }
