@@ -21,7 +21,7 @@ import {
   transformRequestToSaveToFilesystem
 } from 'utils/collections';
 import { uuid, waitForNextTick } from 'utils/common';
-import { PATH_SEPARATOR, getDirectoryName } from 'utils/common/platform';
+import { PATH_SEPARATOR, getDirectoryName, isWindowsPath } from 'utils/common/platform';
 import { cancelNetworkRequest, sendNetworkRequest } from 'utils/network';
 
 import {
@@ -494,7 +494,7 @@ export const cloneItem = (newName, itemUid, collectionUid) => (dispatch, getStat
       );
       if (!reqWithSameNameExists) {
         const dirname = getDirectoryName(item.pathname);
-        const fullName = path.join(dirname, filename);
+        const fullName = isWindowsPath(item.pathname) ? path.win32.join(dirname, filename) : path.join(dirname, filename);
         const { ipcRenderer } = window;
         const requestItems = filter(parentItem.items, (i) => i.type !== 'folder');
         itemToSave.seq = requestItems ? requestItems.length + 1 : 1;
