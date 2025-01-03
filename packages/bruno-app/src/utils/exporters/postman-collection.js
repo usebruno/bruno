@@ -291,8 +291,9 @@ export const exportCollection = (collection) => {
         };
       }
       default: {
-        console.error('Unsupported auth mode:', itemAuth.mode);
-        return null;
+        return {
+          type: 'noauth'
+        };
       }
     }
   };
