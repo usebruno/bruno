@@ -1005,7 +1005,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           stopRunnerExecution = false;
 
-          const item = folderRequests[currentRequestIndex];
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
