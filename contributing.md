@@ -45,7 +45,7 @@ You would need [Node v20.x or the latest LTS version](https://nodejs.org/en/) an
 
 Bruno is being developed as a desktop app. You need to load the app by running the Next.js app in one terminal and then run the electron app in another terminal.
 
-### Local Development
+### Local Development - npm
 
 ```bash
 # use nodejs 20 version
@@ -67,6 +67,33 @@ npm run dev:web
 
 # run electron app (terminal 2)
 npm run dev:electron
+```
+
+### Local Development - Makefile
+
+```shell
+# install deps
+make install
+
+# build packages
+make build-graphql
+make build-query
+make build-common
+
+# build all packages
+make build-all
+
+# bundle js sandbox libraries
+make build-sandbox
+
+# run next app (terminal 1)
+make run-web
+
+# run electron app (terminal 2)
+make run-app
+
+# run full suite locally
+make run-dev 
 ```
 
 ### Troubleshooting
