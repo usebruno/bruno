@@ -44,7 +44,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 import slash from 'utils/common/slash';
-import { getGlobalEnvironmentVariables, transformCollectionRootToSave } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, transformCollectionRootToSave, transformFolderRootToSave } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -167,10 +167,14 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    const transformFolderRoot = transformFolderRootToSave(folder);
+
+    console.log({ transformFolderRoot })
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
-      root: folder.root
+      root: transformFolderRoot
     };
     console.log(folderData);
 

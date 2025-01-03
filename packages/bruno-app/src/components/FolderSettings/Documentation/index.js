@@ -15,7 +15,7 @@ const Documentation = ({ collection, folder }) => {
   const { displayedTheme } = useTheme();
   const preferences = useSelector((state) => state.app.preferences);
   const [isEditing, setIsEditing] = useState(false);
-  const docs = get(folder, 'root.docs', '');
+  const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
   const { theme } = useTheme();
 
 

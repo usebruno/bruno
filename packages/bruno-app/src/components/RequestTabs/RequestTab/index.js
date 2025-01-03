@@ -19,12 +19,14 @@ import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
 import ConfirmCollectionClose from './ConfirmCollectionClose/index';
+import ConfirmFolderClose from './ConfirmFolderClose/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
   const [showConfirmCloseCollection, setShowConfirmCloseCollection] = useState(false);
+  const [showConfirmCloseFolder, setShowConfirmCloseFolder] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -47,6 +49,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     event.stopPropagation();
     event.preventDefault();
     setShowConfirmCloseCollection(true);
+  }
+
+  const handleCloseFolderSettings = (event) => {
+    if(!folder.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCloseFolder(true);
   }
 
   const handleRightClick = (_event) => {
@@ -97,17 +109,27 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
     );
   }
 
-  if (['folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+  if(tab.type === 'folder-settings') {
+    return (
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={handleMouseUp}
+      >
+        {showConfirmCloseFolder && (
+          <ConfirmFolderClose onCancel={() => setShowConfirmCloseFolder(false)} collection={collection} folder={folder} tab={tab} />
+        )}
+        <SpecialTab handleCloseClick={handleCloseFolderSettings} type={tab.type} folder={folder} />
+      </StyledWrapper>
+    );
+  }
+
+  if (['variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container px-1"
         onMouseUp={handleMouseUp} // Add middle-click behavior here
       >
-        {tab.type === 'folder-settings' ? (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} tabName={folder?.name} />
-        ) : (
-          <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
-        )}
+        <SpecialTab handleCloseClick={handleCloseClick} type={tab.type} />
       </StyledWrapper>
     );
   }

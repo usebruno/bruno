@@ -1226,27 +1226,41 @@ export const collectionsSlice = createSlice({
         collection.draft.docs = action.payload.docs;     
       }
     },
+    deleteFolderDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+
+      if (folder) {
+        folder.draft = null;
+      }
+    },
     addFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      
       if (folder) {
-        const headers = get(folder, 'root.request.headers', []);
-        headers.push({
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.request.headers = folder.draft.request.headers || [];
+        folder.draft.request.headers.push({
           uid: uuid(),
           name: '',
           value: '',
           description: '',
           enabled: true
         });
-        set(folder, 'root.request.headers', headers);
       }
     },
     updateFolderHeader: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      
       if (folder) {
-        const headers = get(folder, 'root.request.headers', []);
-        const header = find(headers, (h) => h.uid === action.payload.header.uid);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        const header = find(folder.draft.request.headers, (h) => h.uid === action.payload.header.uid);
         if (header) {
           header.name = action.payload.header.name;
           header.value = action.payload.header.value;
@@ -1259,9 +1273,10 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        let headers = get(folder, 'root.request.headers', []);
-        headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
-        set(folder, 'root.request.headers', headers);
+        if (!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }        
+        folder.draft.request.headers = filter(folder.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
       }
     },
     addFolderVar: (state, action) => {
@@ -1269,24 +1284,27 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
         if (type === 'request') {
-          const vars = get(folder, 'root.request.vars.req', []);
-          vars.push({
+          folder.draft.request.vars = folder.draft.request.vars || {};
+          folder.draft.request.vars.req = folder.draft.request.vars.req || [];
+          folder.draft.request.vars.req.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(folder, 'root.request.vars.req', vars);
         } else if (type === 'response') {
-          const vars = get(folder, 'root.request.vars.res', []);
-          vars.push({
+          folder.draft.request.vars = folder.draft.request.vars || {};
+          folder.draft.request.vars.res = folder.draft.request.vars.res || [];
+          folder.draft.request.vars.res.push({
             uid: uuid(),
             name: '',
             value: '',
             enabled: true
           });
-          set(folder, 'root.request.vars.res', vars);
         }
       }
     },
@@ -1295,26 +1313,29 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
         if (type === 'request') {
-          let vars = get(folder, 'root.request.vars.req', []);
-          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          folder.draft.request.vars = folder.draft.request.vars || {};
+          folder.draft.request.vars.req = folder.draft.request.vars.req || [];
+          const _var = find(folder.draft.request.vars.req, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
             _var.value = action.payload.var.value;
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(folder, 'root.request.vars.req', vars);
         } else if (type === 'response') {
-          let vars = get(folder, 'root.request.vars.res', []);
-          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          folder.draft.request.vars = folder.draft.request.vars || {};
+          folder.draft.request.vars.res = folder.draft.request.vars.res || [];
+          const _var = find(folder.draft.request.vars.res, (h) => h.uid === action.payload.var.uid);
           if (_var) {
             _var.name = action.payload.var.name;
             _var.value = action.payload.var.value;
             _var.description = action.payload.var.description;
             _var.enabled = action.payload.var.enabled;
           }
-          set(folder, 'root.request.vars.res', vars);
         }
       }
     },
@@ -1323,14 +1344,15 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       const type = action.payload.type;
       if (folder) {
+
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+
         if (type === 'request') {
-          let vars = get(folder, 'root.request.vars.req', []);
-          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(folder, 'root.request.vars.req', vars);
+          folder.draft.request.vars.req = filter(folder.draft.request.vars.req, (h) => h.uid !== action.payload.varUid);
         } else if (type === 'response') {
-          let vars = get(folder, 'root.request.vars.res', []);
-          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
-          set(folder, 'root.request.vars.res', vars);
+          folder.draft.request.vars.res = filter(folder.draft.request.vars.res, (h) => h.uid !== action.payload.varUid);
         }
       }
     },
@@ -1338,21 +1360,30 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.script.req', action.payload.script);
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.request.script.req = action.payload.script;
       }
     },
     updateFolderResponseScript: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.script.res', action.payload.script);
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.request.script.res = action.payload.script;
       }
     },
     updateFolderTests: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
-        set(folder, 'root.request.tests', action.payload.tests);
+        if(!folder.draft) {
+          folder.draft = cloneDeep(folder.root);
+        }
+        folder.draft.request.tests = action.payload.tests;
       }
     },
     addCollectionHeader: (state, action) => {
@@ -1574,7 +1605,19 @@ export const collectionsSlice = createSlice({
               name: directoryName,
               collapsed: true,
               type: 'folder',
-              items: []
+              items: [],
+              draft: null, 
+              root: {
+                docs: "",
+                request: {
+                  auth: {
+                    mode: "none"
+                  },
+                  headers: [],
+                  script: { req: null, res: null },
+                  tests: null,
+                }
+              }
             };
             currentSubItems.push(childItem);
           }
@@ -1809,7 +1852,10 @@ export const collectionsSlice = createSlice({
       const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
       if (folder) {
         if (isItemAFolder(folder)) {
-          set(folder, 'root.docs', action.payload.docs);
+          if (!folder.draft) {
+            folder.draft = cloneDeep(folder.root);
+          }
+          folder.draft.docs = action.payload.docs;
         }
       }
     }
@@ -1908,7 +1954,8 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  deleteFolderDraft
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

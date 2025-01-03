@@ -3,7 +3,7 @@ import CloseTabIcon from './CloseTabIcon';
 import { IconVariable, IconSettings, IconRun, IconFolder, IconShieldLock } from '@tabler/icons';
 import DraftTabIcon from './DraftTabIcon';
 
-const SpecialTab = ({ handleCloseClick, type, tabName, collection }) => {
+const SpecialTab = ({ handleCloseClick, type, tabName, collection, folder }) => {
   const getTabInfo = (type, tabName) => {
     switch (type) {
       case 'collection-settings': {
@@ -53,10 +53,11 @@ const SpecialTab = ({ handleCloseClick, type, tabName, collection }) => {
     <>
       <div className="flex items-center tab-label pl-2">{getTabInfo(type, tabName)}</div>
       <div className="flex px-2 close-icon-container" onClick={(e) => handleCloseClick(e)}>
-       {type === 'collection-settings' && collection?.draft !== null ? 
+      {(type === 'folder-settings' && folder.draft !== null) || 
+         (type === 'collection-settings' && collection.draft !== null) ? 
           <DraftTabIcon />
         : <CloseTabIcon />
-        }
+      }
       </div>
     </>
   );
