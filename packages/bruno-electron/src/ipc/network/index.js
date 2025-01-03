@@ -39,6 +39,7 @@ const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
 const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
+const { findItemInCollectionByPathname } = require('../../utils/collection');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -366,10 +367,14 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if (!disableParsingResponseJson) {
+
+    // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
+    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
       data = JSON.parse(data);
     }
-  } catch { }
+  } catch { 
+    console.log('Failed to parse response data as JSON');
+   }
 
   return { data, dataBuffer };
 };
@@ -393,7 +398,8 @@ const registerNetworkIpc = (mainWindow) => {
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run pre-request script
     let scriptResult;
@@ -408,7 +414,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -458,7 +465,8 @@ const registerNetworkIpc = (mainWindow) => {
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -506,7 +514,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -523,14 +532,28 @@ const registerNetworkIpc = (mainWindow) => {
     return scriptResult;
   };
 
-  // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+  const runRequest = async ({ item, collection, environment, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
-    mainWindow.webContents.send('main:run-request-event', {
+    const runRequestByItemPathname = async (relativeItemPathname) => {
+      return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
+        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        if(_item) {
+          const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+          resolve(res);
+        }
+        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    }
+
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
       collectionUid,
@@ -561,7 +584,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid,
         runtimeVariables,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       const axiosInstance = await configureRequest(
@@ -573,7 +597,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      mainWindow.webContents.send('main:run-request-event', {
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
           url: request.url,
@@ -645,7 +669,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid,
         runtimeVariables,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       // run assertions
@@ -661,7 +686,7 @@ const registerNetworkIpc = (mainWindow) => {
           processEnvVars
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'assertion-results',
           results: results,
           itemUid: item.uid,
@@ -682,10 +707,11 @@ const registerNetworkIpc = (mainWindow) => {
           collectionPath,
           onConsoleLog,
           processEnvVars,
-          scriptingConfig
+          scriptingConfig,
+          runRequestByItemPathname
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
           results: testResults.results,
           itemUid: item.uid,
@@ -719,6 +745,11 @@ const registerNetworkIpc = (mainWindow) => {
 
       return Promise.reject(error);
     }
+  }
+
+  // handler for sending http request
+  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    return await runRequest({ item, collection, environment, runtimeVariables });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -910,9 +941,25 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
+      let stopRunnerExecution = false;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
+
+      const runRequestByItemPathname = async (relativeItemPathname) => {
+        return new Promise(async (resolve, reject) => {
+          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+          if (itemPathname && !itemPathname?.endsWith('.bru')) {
+            itemPathname = `${itemPathname}.bru`;
+          }
+          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          if(_item) {
+            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            resolve(res);
+          }
+          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+        });
+      }
 
       if (!folder) {
         folder = collection;
@@ -956,6 +1003,8 @@ const registerNetworkIpc = (mainWindow) => {
             throw error;
           }
 
+          stopRunnerExecution = false;
+
           const item = folderRequests[currentRequestIndex];
           let nextRequestName;
           const itemUid = item.uid;
@@ -989,11 +1038,31 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
+            }
+
+            if (preRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+
+            if (preRequestScriptResult?.skipRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'runner-request-skipped',
+                error: 'Request has been skipped from pre-request script',
+                responseReceived: {
+                  status: 'skipped',
+                  statusText: 'request skipped via pre-request script',
+                  data: null
+                },
+                ...eventData
+              });
+              currentRequestIndex++;
+              continue;
             }
 
             // todo:
@@ -1107,11 +1176,16 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postRequestScriptResult.nextRequestName;
+            }
+
+            if (postRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
             }
 
             // run assertions
@@ -1147,7 +1221,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                scriptingConfig
+                scriptingConfig,
+                runRequestByItemPathname
               );
 
               if (testResults?.nextRequestName !== undefined) {
@@ -1178,6 +1253,18 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
+
+          if (stopRunnerExecution) {
+            deleteCancelToken(cancelTokenUid);
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'testrun-ended',
+              collectionUid,
+              folderUid,
+              statusText: 'collection run was terminated!'
+            });
+            break;
+          }
+
           if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {
