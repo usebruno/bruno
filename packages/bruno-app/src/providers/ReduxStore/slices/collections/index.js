@@ -62,6 +62,13 @@ export const collectionsSlice = createSlice({
         state.collections.push(collection);
       }
     },
+    deleteCollectionDraft: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        collection.draft = null;
+      }
+    },
     setCollectionSecurityConfig: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       if (collection) {
@@ -1811,6 +1818,7 @@ export const collectionsSlice = createSlice({
 
 export const {
   createCollection,
+  deleteCollectionDraft,
   setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,

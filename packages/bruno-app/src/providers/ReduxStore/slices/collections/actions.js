@@ -132,8 +132,6 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
 
   const transformRoot = transformCollectionRootToSave(collection);
 
-  console.log({ transformRoot });
-
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));

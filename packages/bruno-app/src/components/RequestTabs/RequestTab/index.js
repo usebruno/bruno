@@ -18,11 +18,13 @@ import NewRequest from 'components/Sidebar/NewRequest/index';
 import CloseTabIcon from './CloseTabIcon';
 import DraftTabIcon from './DraftTabIcon';
 import { flattenItems } from 'utils/collections/index';
+import ConfirmCollectionClose from './ConfirmCollectionClose/index';
 
 const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUid }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [showConfirmCloseCollection, setShowConfirmCloseCollection] = useState(false);
 
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
@@ -36,6 +38,16 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
       })
     );
   };
+
+  const handleCloseCollectionSettings = (event) => {
+    if(!collection.draft) {
+      return handleCloseClick(event);
+    }
+
+    event.stopPropagation();
+    event.preventDefault();
+    setShowConfirmCloseCollection(true);
+  }
 
   const handleRightClick = (_event) => {
     const menuDropdown = dropdownTippyRef.current;
@@ -70,7 +82,22 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
   };
 
   const folder = folderUid ? findItemInCollection(collection, folderUid) : null;
-  if (['collection-settings', 'folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
+
+  if(tab.type === 'collection-settings') {
+    return (
+      <StyledWrapper
+        className="flex items-center justify-between tab-container px-1"
+        onMouseUp={handleMouseUp}
+      >
+        {showConfirmCloseCollection && (
+          <ConfirmCollectionClose onCancel={() => setShowConfirmCloseCollection(false)} collection={collection} tab={tab} />
+        )}
+        <SpecialTab handleCloseClick={handleCloseCollectionSettings} type={tab.type} collection={collection} />
+      </StyledWrapper>
+    );
+  }
+
+  if (['folder-settings', 'variables', 'collection-runner', 'security-settings'].includes(tab.type)) {
     return (
       <StyledWrapper
         className="flex items-center justify-between tab-container px-1"
