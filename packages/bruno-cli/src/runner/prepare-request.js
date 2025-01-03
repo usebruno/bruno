@@ -136,8 +136,7 @@ const prepareRequest = (item = {}, collection = {}) => {
   if (request.body.mode === 'multipartForm') {
     axiosRequest.headers['content-type'] = 'multipart/form-data';
     const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    const collectionPath = process.cwd();
-    axiosRequest.data = createFormData(enabledParams, collectionPath);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'graphql') {

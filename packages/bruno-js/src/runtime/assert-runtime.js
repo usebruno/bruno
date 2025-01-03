@@ -408,6 +408,8 @@ class AssertRuntime {
       }
     }
 
+    request.assertionResults = assertionResults;
+
     return assertionResults;
   }
 }
