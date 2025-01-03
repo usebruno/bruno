@@ -225,6 +225,10 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const readFile = (path) => {
+  return fs.readFileSync(path);
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -250,5 +254,6 @@ module.exports = {
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubDirectories
+  hasSubDirectories,
+  readFile
 };

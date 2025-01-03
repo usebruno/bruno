@@ -3,6 +3,11 @@ const decomment = require('decomment');
 const crypto = require('node:crypto');
 const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('../../utils/collection');
 const { buildFormUrlEncodedPayload, createFormData } = require('../../utils/form-data');
+const { readFile } = require('../../utils/filesystem');
+const { lookup } = require("mime-types")
+
+const GENERIC_FILE_CONTENT_TYPE = "application/octet-stream";
+
 
 const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
   const collectionAuth = get(collectionRoot, 'request.auth');
@@ -254,9 +259,13 @@ const prepareRequest = (item, collection) => {
 
   if(request.body.mode === 'rawFile') {
     if (request.body.rawFile) {
-      axiosRequest.data = fs.readFileSync(request.body.rawFile);
-      fileLength = axiosRequest.data.length;
-      axiosRequest.headers['content-length'] = fileLength;
+      axiosRequest.data =  readFile(request.body.rawFile) //Path to rawfile
+      
+      // Content type is automatically determined based on the file type.
+      if (!contentTypeDefined){
+        const newContentType = request.body.rawFile || GENERIC_FILE_CONTENT_TYPE;
+        axiosRequest.headers["content-type"] = newContentType;
+      };
     } else {
       axiosRequest.data = null;
     }
