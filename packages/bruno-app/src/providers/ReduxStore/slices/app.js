@@ -24,7 +24,8 @@ const initialState = {
     },
     font: {
       codeFont: 'default'
-    }
+    },
+    viewRequestBy: 'name'
   },
   cookies: [],
   taskQueue: [],

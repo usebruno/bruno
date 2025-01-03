@@ -30,6 +30,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const tabs = useSelector((state) => state.tabs.tabs);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isSidebarDragging = useSelector((state) => state.app.isDragging);
+  const preferences = useSelector((state) => state.app.preferences);
   const dispatch = useDispatch();
 
   const [renameItemModalOpen, setRenameItemModalOpen] = useState(false);
@@ -177,11 +178,11 @@ const CollectionItem = ({ item, collection, searchText }) => {
 
   if (searchText && searchText.length) {
     if (isItemARequest(item)) {
-      if (!doesRequestMatchSearchText(item, searchText)) {
+      if (!doesRequestMatchSearchText(item, searchText, preferences.viewRequestBy)) {
         return null;
       }
     } else {
-      if (!doesFolderHaveItemsMatchSearchText(item, searchText)) {
+      if (!doesFolderHaveItemsMatchSearchText(item, searchText, preferences.viewRequestBy)) {
         return null;
       }
     }
@@ -301,7 +302,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
             >
               <RequestMethod item={item} />
               <span className="item-name" title={item.name}>
-                {item.name}
+                { item.type === 'http-request' && preferences.viewRequestBy === 'url' ?
+                    item.request.url.substring(item.request.url.indexOf('/', 8),
+                                              (item.request.url.includes('?') ? item.request.url.indexOf('?') : item.request.url.length)
+                                              )
+                  : item.name
+                }
               </span>
             </div>
           </div>
