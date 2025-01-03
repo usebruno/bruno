@@ -11,7 +11,7 @@ const WsseAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const wsseAuth = get(collection, 'root.request.auth.wsse', {});
+  const wsseAuth = collection.draft ? get(collection, 'draft.request.auth.wsse', {}) : get(collection, 'root.request.auth.wsse', {});
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 

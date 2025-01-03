@@ -14,7 +14,7 @@ const GrantTypeSelector = ({ collection }) => {
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const oAuth = get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = collection.draft ? get(collection, "draft.request.auth.oauth2", {}) : get(collection, 'root.request.auth.oauth2', {});
 
   const Icon = forwardRef((props, ref) => {
     return (

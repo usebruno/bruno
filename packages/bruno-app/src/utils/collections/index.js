@@ -594,6 +594,32 @@ export const transformRequestToSaveToFilesystem = (item) => {
   return itemToSave;
 };
 
+export const transformCollectionRootToSave = (collection) => {
+  const _collection = collection.draft ? collection.draft : collection.root;
+  const collectionRootToSave = {
+    docs: _collection.docs,
+    request: {
+      auth: _collection?.request?.auth,
+      headers: [],
+      script: _collection?.request?.script,
+      vars: _collection?.request?.vars,
+      tests: _collection?.request?.tests
+    }
+  }
+
+  each(_collection.request.headers, (header) => {
+    collectionRootToSave.request.headers.push({
+      uid: header.uid,
+      name: header.name,
+      value: header.value,
+      description: header.description,
+      enabled: header.enabled
+    });
+  });
+
+  return collectionRootToSave;
+}
+
 // todo: optimize this
 export const deleteItemInCollection = (itemUid, collection) => {
   collection.items = filter(collection.items, (i) => i.uid !== itemUid);

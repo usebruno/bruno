@@ -14,7 +14,7 @@ const Docs = ({ collection }) => {
   const dispatch = useDispatch();
   const { displayedTheme } = useTheme();
   const [isEditing, setIsEditing] = useState(false);
-  const docs = get(collection, 'root.docs', '');
+  const docs = get(collection, 'draft.docs') || get(collection, 'root.docs', '');
   const preferences = useSelector((state) => state.app.preferences);
   const { theme, storedTheme } = useTheme();
 
