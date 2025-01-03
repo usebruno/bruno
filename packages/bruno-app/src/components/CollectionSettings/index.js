@@ -44,13 +44,13 @@ const CollectionSettings = ({ collection }) => {
   const hasTests = root?.request?.tests;
   const hasDocs = root?.docs;
 
-  const headers = get(collection, 'root.request.headers', []);
+  const headers = collection.draft ? get(collection, 'draft.request.headers') : get(collection, 'root.request.headers', []);
   const activeHeadersCount = headers.filter((header) => header.enabled).length;
 
-  const requestVars = get(collection, 'root.request.vars.req', []);
-  const responseVars = get(collection, 'root.request.vars.res', []);
+  const requestVars = collection.draft ? get(collection, 'draft.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
+  const responseVars = collection.draft ? get(collection, 'draft.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   const activeVarsCount = requestVars.filter((v) => v.enabled).length + responseVars.filter((v) => v.enabled).length;
-  const auth = get(collection, 'root.request.auth', {}).mode;
+  const auth = collection.draft ? get(collection, 'draft.request,auth', {}).mode : get(collection, 'root.request.auth', {}).mode;
 
   const proxyConfig = get(collection, 'brunoConfig.proxy', {});
   const clientCertConfig = get(collection, 'brunoConfig.clientCertificates.certs', []);
@@ -142,7 +142,7 @@ const CollectionSettings = ({ collection }) => {
       active: tabName === tab
     });
   };
-
+  
   return (
     <StyledWrapper className="flex flex-col h-full relative px-4 py-4">
       <div className="flex flex-wrap items-center tabs" role="tablist">

@@ -44,7 +44,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 import slash from 'utils/common/slash';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getGlobalEnvironmentVariables, transformCollectionRootToSave, transformFolderRootToSave } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -130,6 +130,8 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
   const state = getState();
   const collection = findCollectionByUid(state.collections.collections, collectionUid);
 
+  const transformRoot = transformCollectionRootToSave(collection);
+
   return new Promise((resolve, reject) => {
     if (!collection) {
       return reject(new Error('Collection not found'));
@@ -138,7 +140,7 @@ export const saveCollectionRoot = (collectionUid) => (dispatch, getState) => {
     const { ipcRenderer } = window;
 
     ipcRenderer
-      .invoke('renderer:save-collection-root', collection.pathname, collection.root)
+      .invoke('renderer:save-collection-root', collection.pathname, transformRoot)
       .then(() => toast.success('Collection Settings saved successfully'))
       .then(resolve)
       .catch((err) => {
@@ -165,10 +167,14 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const { ipcRenderer } = window;
 
+    const transformFolderRoot = transformFolderRootToSave(folder);
+
+    console.log({ transformFolderRoot })
+
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,
-      root: folder.root
+      root: transformFolderRoot
     };
     console.log(folderData);
 
