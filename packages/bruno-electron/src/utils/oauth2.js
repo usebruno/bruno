@@ -1,22 +1,11 @@
 const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
-const { authorizeUserInWindow } = require('./authorize-user-in-window');
-const Oauth2Store = require('../../store/oauth2');
-
-const generateCodeVerifier = () => {
-  return crypto.randomBytes(22).toString('hex');
-};
-
-const generateCodeChallenge = (codeVerifier) => {
-  const hash = crypto.createHash('sha256');
-  hash.update(codeVerifier);
-  const base64Hash = hash.digest('base64');
-  return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-};
+const { authorizeUserInWindow } = require('../ipc/network/authorize-user-in-window');
+const Oauth2Store = require('../store/oauth2');
 
 // AUTHORIZATION CODE
 
-const resolveOAuth2AuthorizationCodeAccessToken = async (request, collectionUid) => {
+const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
   let codeVerifier = generateCodeVerifier();
   let codeChallenge = generateCodeChallenge(codeVerifier);
 
@@ -121,8 +110,22 @@ const transformPasswordCredentialsRequest = async (request) => {
   };
 };
 
+
+// HELPER FUNCTIONS
+
+const generateCodeVerifier = () => {
+  return crypto.randomBytes(22).toString('hex');
+};
+
+const generateCodeChallenge = (codeVerifier) => {
+  const hash = crypto.createHash('sha256');
+  hash.update(codeVerifier);
+  const base64Hash = hash.digest('base64');
+  return base64Hash.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+};
+
 module.exports = {
-  resolveOAuth2AuthorizationCodeAccessToken,
+  getOAuth2TokenUsingAuthorizationCode,
   getOAuth2AuthorizationCode,
   transformClientCredentialsRequest,
   transformPasswordCredentialsRequest

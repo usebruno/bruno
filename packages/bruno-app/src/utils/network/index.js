@@ -36,10 +36,7 @@ const sendHttpRequest = async (item, collection, environment, runtimeVariables) 
 export const sendCollectionOauth2Request = async (collection, environment, runtimeVariables) => {
   return new Promise((resolve, reject) => {
     const { ipcRenderer } = window;
-    ipcRenderer
-      .invoke('send-collection-oauth2-request', collection, environment, runtimeVariables)
-      .then(resolve)
-      .catch(reject);
+    resolve({});
   });
 };
 
