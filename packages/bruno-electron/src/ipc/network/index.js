@@ -614,9 +614,6 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
-      console.log('after main:run-request-event', request);
-
-
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */

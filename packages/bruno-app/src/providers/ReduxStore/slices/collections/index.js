@@ -854,7 +854,6 @@ export const collectionsSlice = createSlice({
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
 
           if (param) {
-            console.log('action.payload.param', action.payload.param);
 
             const contentType = mime.contentType(path.extname(action.payload.param.value[0]));
 
