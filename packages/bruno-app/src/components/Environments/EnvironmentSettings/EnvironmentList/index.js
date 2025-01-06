@@ -9,6 +9,7 @@ import ManageSecrets from '../ManageSecrets';
 import StyledWrapper from './StyledWrapper';
 import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
+import { isEqual } from 'lodash';
 
 const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
   const { environments } = collection;
@@ -24,6 +25,11 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
 
   useEffect(() => {
     if (selectedEnvironment) {
+      const _selectedEnvironment = environments?.find(env => env?.uid === selectedEnvironment?.uid);
+      const hasSelectedEnvironmentChanged = !isEqual(selectedEnvironment, _selectedEnvironment);
+      if (hasSelectedEnvironmentChanged) {
+        setSelectedEnvironment(_selectedEnvironment);
+      }
       setOriginalEnvironmentVariables(selectedEnvironment.variables);
       return;
     }
