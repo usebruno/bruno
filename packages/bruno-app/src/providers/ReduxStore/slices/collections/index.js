@@ -1635,11 +1635,24 @@ export const collectionsSlice = createSlice({
       // check and update collection root
       if (collection && file.meta.collectionRoot) {
         collection.root = file.data;
+        collection.draft = null;
         return;
       }
 
       if (collection) {
         const item = findItemInCollection(collection, file.data.uid);
+        const isFolderRoot = file.meta.folderRoot ? true : false;
+
+
+        if (isFolderRoot) {
+          const folderPath = getDirectoryName(file.meta.pathname);
+          const folderItem = findItemInCollectionByPathname(collection, folderPath);
+          if (folderItem) {
+            folderItem.root = file.data;
+            folderItem.draft = null;
+          }
+          return;
+        }
 
         if (item) {
           // whenever a user attempts to sort a req within the same folder

@@ -169,8 +169,6 @@ export const saveFolderRoot = (collectionUid, folderUid) => (dispatch, getState)
 
     const transformFolderRoot = transformFolderRootToSave(folder);
 
-    console.log({ transformFolderRoot })
-
     const folderData = {
       name: folder.name,
       pathname: folder.pathname,

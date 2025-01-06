@@ -4,7 +4,7 @@ const os = require('os');
 const mergeHeaders = (collection, request, requestTreePath) => {
   let headers = new Map();
 
-  let collectionHeaders = get(collection, 'root.request.headers', []);
+  let collectionHeaders = collection.draft ? get(collection, 'draft.request.headers', []) : get(collection, 'root.request.headers', []);
   collectionHeaders.forEach((header) => {
     if (header.enabled) {
       headers.set(header.name, header.value);
@@ -34,7 +34,7 @@ const mergeHeaders = (collection, request, requestTreePath) => {
 
 const mergeVars = (collection, request, requestTreePath) => {
   let reqVars = new Map();
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionRequestVars = collection.draft ? get(collection, 'draft.request.vars.req', []) :  get(collection, 'root.request.vars.req', []);
   let collectionVariables = {};
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
@@ -78,7 +78,7 @@ const mergeVars = (collection, request, requestTreePath) => {
   }
 
   let resVars = new Map();
-  let collectionResponseVars = get(collection, 'root.request.vars.res', []);
+  let collectionResponseVars = collection.draft ? get(collection, 'draft.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, _var.value);
@@ -113,9 +113,9 @@ const mergeVars = (collection, request, requestTreePath) => {
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  let collectionPreReqScript = get(collection, 'root.request.script.req', '');
-  let collectionPostResScript = get(collection, 'root.request.script.res', '');
-  let collectionTests = get(collection, 'root.request.tests', '');
+  let collectionPreReqScript = collection.draft ? get(collection, 'draft.request.script.req') : get(collection, 'root.request.script.req', '');
+  let collectionPostResScript = collection.draft ? get(collection, 'draft.request.script.res') : get(collection, 'root.request.script.res', '');
+  let collectionTests = collection.draft ? get(collection, 'draft.request.tests', '') : get(collection, 'root.request.tests', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];
@@ -137,7 +137,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
         combinedTests.push(tests);
       }
     }
-  }
+  }s
 
   request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
 

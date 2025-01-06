@@ -1004,7 +1004,7 @@ const mergeVars = (collection, requestTreePath = []) => {
   let collectionVariables = {};
   let folderVariables = {};
   let requestVariables = {};
-  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  let collectionRequestVars = collection.draft ? get(collection, 'draft.request.vars.req', []) : get(collection, 'root.request.vars.req', []);
   collectionRequestVars.forEach((_var) => {
     if (_var.enabled) {
       collectionVariables[_var.name] = _var.value;

@@ -11,7 +11,7 @@ const DigestAuth = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const digestAuth = collection.draft ? get(collection, 'draft..request.auth.digest', {}) : get(collection, 'root.request.auth.digest', {});
+  const digestAuth = collection.draft ? get(collection, 'draft.request.auth.digest', {}) : get(collection, 'root.request.auth.digest', {});
 
   const handleSave = () => dispatch(saveCollectionRoot(collection.uid));
 
