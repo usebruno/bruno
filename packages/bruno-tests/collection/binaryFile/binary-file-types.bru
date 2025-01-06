@@ -1,0 +1,27 @@
+meta {
+  name: binary-files-types
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/api/binaryFile/binary-file-types
+  body: binaryFile
+  auth: none
+}
+
+body:binary-file {
+  file1: @file() @contentType()
+  file2: @file(binaryFile/binary-file.json) @contentType()
+  file3: @file(binaryFile/binary-file.json) @contentType(application/json)
+}
+
+assert {
+  res.status: eq 200
+  res.body.find(p=>p.name === 'file1').value[0]: isUndefined
+  res.body.find(p=>p.name === 'file1').contentType: isUndefined
+  res.body.find(p=>p.name === 'file2').value[0]: eq binaryFile/binary-file.json
+  res.body.find(p=>p.name === 'file2').contentType: eq isUndefined
+  res.body.find(p=>p.name === 'file3').value[0]: eq binaryFile/binary-file.json
+  res.body.find(p=>p.name === 'file3').contentType: eq application/json
+}
