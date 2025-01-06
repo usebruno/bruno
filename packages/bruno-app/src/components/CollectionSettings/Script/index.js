@@ -9,7 +9,7 @@ import StyledWrapper from './StyledWrapper';
 
 const Script = ({ collection }) => {
   const dispatch = useDispatch();
-  const requestScript = collection.draft ? get(collection, 'draft.request.script.res', '') : get(collection, 'root.request.script.req', '');
+  const requestScript = collection.draft ? get(collection, 'draft.request.script.req', '') : get(collection, 'root.request.script.req', '');
   const responseScript = collection.draft ? get(collection, 'draft.request.script.res', '') : get(collection, 'root.request.script.res', '');
 
   const { displayedTheme } = useTheme();

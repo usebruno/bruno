@@ -113,8 +113,8 @@ const mergeVars = (collection, request, requestTreePath) => {
 };
 
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
-  let collectionPreReqScript = collection.draft ? get(collection, 'draft.request.script.req') : get(collection, 'root.request.script.req', '');
-  let collectionPostResScript = collection.draft ? get(collection, 'draft.request.script.res') : get(collection, 'root.request.script.res', '');
+  let collectionPreReqScript = collection.draft ? get(collection, 'draft.request.script.req', '') : get(collection, 'root.request.script.req', '');
+  let collectionPostResScript = collection.draft ? get(collection, 'draft.request.script.res', '') : get(collection, 'root.request.script.res', '');
   let collectionTests = collection.draft ? get(collection, 'draft.request.tests', '') : get(collection, 'root.request.tests', '');
 
   let combinedPreReqScript = [];

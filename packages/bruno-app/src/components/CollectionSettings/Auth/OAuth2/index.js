@@ -24,7 +24,7 @@ const grantTypeComponentMap = (grantType, collection) => {
 };
 
 const OAuth2 = ({ collection }) => {
-  const oAuth = collection.draft ? get(collection, 'draft.request.auth.oauth', {}) : get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = collection.draft ? get(collection, 'draft.request.auth.oauth2', {}) : get(collection, 'root.request.auth.oauth2', {});
 
   return (
     <StyledWrapper className="mt-2 w-full">

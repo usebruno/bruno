@@ -81,7 +81,7 @@ const mergeVars = (collection, request, requestTreePath) => {
   }
 
   let resVars = new Map();
-  let collectionResponseVars = collection.draft ? get(collection, 'draft.request.vars.res') : get(collection, 'root.request.vars.res', []);
+  let collectionResponseVars = collection.draft ? get(collection, 'draft.request.vars.res', []) : get(collection, 'root.request.vars.res', []);
   collectionResponseVars.forEach((_var) => {
     if (_var.enabled) {
       resVars.set(_var.name, _var.value);
@@ -118,7 +118,7 @@ const mergeVars = (collection, request, requestTreePath) => {
 const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
   let collectionPreReqScript = collection.draft ? get(collection, 'draft.request.script.req', '') : get(collection, 'root.request.script.req', '');
   let collectionPostResScript = collection.draft ? get(collection, 'draft.request.script.res', '') : get(collection, 'root.request.script.res', '');
-  let collectionTests = collection.draft ? get(collection, 'draft.request.tests') : get(collection, 'root.request.tests', '');
+  let collectionTests = collection.draft ? get(collection, 'draft.request.tests', '') : get(collection, 'root.request.tests', '');
 
   let combinedPreReqScript = [];
   let combinedPostResScript = [];

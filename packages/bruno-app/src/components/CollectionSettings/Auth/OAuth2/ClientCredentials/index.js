@@ -12,7 +12,7 @@ const OAuth2ClientCredentials = ({ collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
 
-  const oAuth = collection.draft ? get(collection, 'draft.request.auth.oauth', {}) : get(collection, 'root.request.auth.oauth2', {});
+  const oAuth = collection.draft ? get(collection, 'draft.request.auth.oauth2', {}) : get(collection, 'root.request.auth.oauth2', {});
 
   const handleRun = async () => {
     dispatch(sendCollectionOauth2Request(collection.uid));
