@@ -55,7 +55,7 @@ const Wrapper = styled.div`
     }
   }
 
-  input[type='checkbox'] {
+  input[type='radio'] {
     cursor: pointer;
     position: relative;
     top: 1px;
