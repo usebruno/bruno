@@ -1755,6 +1755,9 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.statusText) {
+            info.statusText = action.payload.statusText;
+          }
         }
 
         if (type === 'request-queued') {
@@ -1791,6 +1794,12 @@ export const collectionsSlice = createSlice({
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
+        }
+
+        if (type === 'runner-request-skipped') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.status = 'skipped';
+          item.responseReceived = action.payload.responseReceived;
         }
       }
     },
