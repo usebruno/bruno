@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile, readFile, getFileSize } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile, readFileStream, getFileSize } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -460,7 +460,7 @@ const registerNetworkIpc = (mainWindow) => {
         const rawFilePath = request.data;
     
         try {
-          request.data = await readFile(rawFilePath);
+          request.data = await readFileStream(rawFilePath);
           const newContentType = mime.lookup(rawFilePath) || GENERIC_FILE_CONTENT_TYPE;
           const fileSize = await getFileSize(rawFilePath);
     

@@ -225,7 +225,7 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
-const readFile = (path) => {
+const readFileStream = (path) => {
   return new Promise((resolve, reject) => {
     const stream = fs.createReadStream(path);
     let data = '';
@@ -280,6 +280,6 @@ module.exports = {
   safeToRename,
   isValidFilename,
   hasSubDirectories,
-  readFile,
+  readFileStream,
   getFileSize
 };
