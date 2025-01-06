@@ -258,17 +258,11 @@ const prepareRequest = (item, collection) => {
   }
 
   if(request.body.mode === 'rawFile') {
-    if (request.body.rawFile) {
-      axiosRequest.data =  readFile(request.body.rawFile) //Path to rawfile
-      
-      // Content type is automatically determined based on the file type.
-      if (!contentTypeDefined){
-        const newContentType = request.body.rawFile || GENERIC_FILE_CONTENT_TYPE;
-        axiosRequest.headers["content-type"] = newContentType;
-      };
-    } else {
-      axiosRequest.data = null;
-    }
+    if (!contentTypeDefined){
+      axiosRequest.headers["content-type"] = GENERIC_FILE_CONTENT_TYPE;
+    };
+
+    axiosRequest.data = request.body.rawFile;
   }
 
   if (request.body.mode === 'graphql') {

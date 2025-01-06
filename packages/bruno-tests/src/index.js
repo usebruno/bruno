@@ -15,6 +15,7 @@ app.use(xmlParser());
 app.use(bodyParser.text());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.raw({type: '*/*', limit: '10mb'}));
 formDataParser.init(app, express);
 
 app.use('/api/auth', authRouter);

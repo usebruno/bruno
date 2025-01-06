@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile, readFile } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -40,6 +40,9 @@ const iconv = require('iconv-lite');
 const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname } = require('../../utils/collection');
+const { lookup } = require("mime-types")
+
+const GENERIC_FILE_CONTENT_TYPE = "application/octet-stream";
 
 const safeStringifyJSON = (data) => {
   try {
@@ -48,6 +51,7 @@ const safeStringifyJSON = (data) => {
     return data;
   }
 };
+
 
 const safeParseJSON = (data) => {
   try {
@@ -449,6 +453,16 @@ const registerNetworkIpc = (mainWindow) => {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
+      }
+    }
+
+    if (request.headers['content-type'] === GENERIC_FILE_CONTENT_TYPE){
+      if (!(request.data instanceof Buffer)){
+        const rawFilePath = request.data;
+        request.data = readFile(rawFilePath);        
+        const newContentType = lookup(rawFilePath) || GENERIC_FILE_CONTENT_TYPE
+        
+        extend(request.headers, {'content-type': newContentType});
       }
     }
 
