@@ -39,6 +39,11 @@ const Wrapper = styled.div`
     font-size: 0.8125rem;
   }
 
+  .tooltip-mod {
+    font-size: 11px !important;
+    width: 150px !important;
+  }
+
   input[type='text'] {
     width: 100%;
     border: solid 1px transparent;

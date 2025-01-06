@@ -30,6 +30,7 @@
     "ts-jest": "^29.0.5"
   },
   "scripts": {
+    "setup": "node ./scripts/setup.js",
     "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:electron\"",
     "dev:web": "npm run dev --workspace=packages/bruno-app",
     "build:web": "npm run build --workspace=packages/bruno-app",
@@ -51,10 +52,6 @@
     "prepare": "husky install"
   },
   "overrides": {
-    "rollup":"3.29.4"
-  },
-  "dependencies": {
-    "json-bigint": "^1.0.0",
-    "lossless-json": "^4.0.1"
+    "rollup": "3.29.5"
   }
 }

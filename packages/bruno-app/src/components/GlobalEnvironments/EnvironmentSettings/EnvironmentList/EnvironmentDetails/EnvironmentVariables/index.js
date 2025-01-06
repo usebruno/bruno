@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
+import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import SingleLineEditor from 'components/SingleLineEditor';
@@ -11,6 +11,7 @@ import * as Yup from 'yup';
 import { variableNameRegex } from 'utils/common/regex';
 import toast from 'react-hot-toast';
 import { saveGlobalEnvironment } from 'providers/ReduxStore/slices/global-environments';
+import { Tooltip } from 'react-tooltip';
 
 const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentVariables }) => {
   const dispatch = useDispatch();
@@ -62,14 +63,15 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
 
   const ErrorMessage = ({ name }) => {
     const meta = formik.getFieldMeta(name);
+    const id = uuid();
     if (!meta.error || !meta.touched) {
       return null;
     }
-
     return (
-      <label htmlFor={name} className="text-red-500">
-        {meta.error}
-      </label>
+      <span>
+        <IconAlertCircle id={id} className="text-red-600 cursor-pointer	" size={20} />
+        <Tooltip className="tooltip-mod" anchorId={id} html={meta.error || ''} />
+      </span>
     );
   };
 
@@ -127,19 +129,21 @@ const EnvironmentVariables = ({ environment, setIsModified, originalEnvironmentV
                   />
                 </td>
                 <td>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    spellCheck="false"
-                    className="mousetrap"
-                    id={`${index}.name`}
-                    name={`${index}.name`}
-                    value={variable.name}
-                    onChange={formik.handleChange}
-                  />
-                  <ErrorMessage name={`${index}.name`} />
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
+                      className="mousetrap"
+                      id={`${index}.name`}
+                      name={`${index}.name`}
+                      value={variable.name}
+                      onChange={formik.handleChange}
+                    />
+                    <ErrorMessage name={`${index}.name`} />
+                  </div>
                 </td>
                 <td className="flex flex-row flex-nowrap">
                   <div className="overflow-hidden grow w-full relative">

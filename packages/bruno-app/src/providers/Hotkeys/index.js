@@ -3,11 +3,15 @@ import toast from 'react-hot-toast';
 import find from 'lodash/find';
 import Mousetrap from 'mousetrap';
 import { useSelector, useDispatch } from 'react-redux';
-import SaveRequest from 'components/RequestPane/SaveRequest';
 import EnvironmentSettings from 'components/Environments/EnvironmentSettings';
 import NetworkError from 'components/ResponsePane/NetworkError';
 import NewRequest from 'components/Sidebar/NewRequest';
-import { sendRequest, saveRequest, saveCollectionRoot } from 'providers/ReduxStore/slices/collections/actions';
+import {
+  sendRequest,
+  saveRequest,
+  saveCollectionRoot,
+  saveFolderRoot
+} from 'providers/ReduxStore/slices/collections/actions';
 import { findCollectionByUid, findItemInCollection } from 'utils/collections';
 import { closeTabs, switchTab } from 'providers/ReduxStore/slices/tabs';
 import { getKeyBindingsForActionAllOS } from './keyMappings';
@@ -20,18 +24,8 @@ export const HotkeysProvider = (props) => {
   const collections = useSelector((state) => state.collections.collections);
   const activeTabUid = useSelector((state) => state.tabs.activeTabUid);
   const isEnvironmentSettingsModalOpen = useSelector((state) => state.app.isEnvironmentSettingsModalOpen);
-  const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [showEnvSettingsModal, setShowEnvSettingsModal] = useState(false);
   const [showNewRequestModal, setShowNewRequestModal] = useState(false);
-
-  const getCurrentCollectionItems = () => {
-    const activeTab = find(tabs, (t) => t.uid === activeTabUid);
-    if (activeTab) {
-      const collection = findCollectionByUid(collections, activeTab.collectionUid);
-
-      return collection ? collection.items : [];
-    }
-  };
 
   const getCurrentCollection = () => {
     const activeTab = find(tabs, (t) => t.uid === activeTabUid);
@@ -54,12 +48,13 @@ export const HotkeysProvider = (props) => {
           if (collection) {
             const item = findItemInCollection(collection, activeTab.uid);
             if (item && item.uid) {
-              dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+              if (activeTab.type === 'folder-settings') {
+                dispatch(saveFolderRoot(collection.uid, item.uid));
+              } else {
+                dispatch(saveRequest(activeTab.uid, activeTab.collectionUid));
+              }
             } else if (activeTab.type === 'collection-settings') {
               dispatch(saveCollectionRoot(collection.uid));
-            } else {
-              // todo: when ephermal requests go live
-              // setShowSaveRequestModal(true);
             }
           }
         }
@@ -218,9 +213,6 @@ export const HotkeysProvider = (props) => {
 
   return (
     <HotkeysContext.Provider {...props} value="hotkey">
-      {showSaveRequestModal && (
-        <SaveRequest items={getCurrentCollectionItems()} onClose={() => setShowSaveRequestModal(false)} />
-      )}
       {showEnvSettingsModal && (
         <EnvironmentSettings collection={getCurrentCollection()} onClose={() => setShowEnvSettingsModal(false)} />
       )}

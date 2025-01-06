@@ -8,7 +8,7 @@
     "package.json"
   ],
   "peerDependencies": {
-    "@n8n/vm2": "^3.9.23"
+    "@usebruno/vm2": "^3.9.13"
   },
   "scripts": {
     "test": "node --experimental-vm-modules $(npx which jest) --testPathIgnorePatterns test.js",
@@ -16,20 +16,20 @@
   },
   "dependencies": {
     "@usebruno/common": "0.1.0",
+    "@usebruno/crypto-js": "^3.1.9",
     "@usebruno/query": "0.1.0",
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "atob": "^2.1.2",
-    "axios": "^1.5.1",
+    "axios": "1.7.5",
     "btoa": "^1.2.1",
     "chai": "^4.3.7",
     "chai-string": "^1.5.0",
     "crypto-js": "^4.1.1",
-    "crypto-js-3.1.9-1": "npm:crypto-js@^3.1.9-1",
     "json-query": "^2.2.2",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
-    "nanoid": "3.3.4",
+    "nanoid": "3.3.8",
     "node-fetch": "^2.7.0",
     "node-vault": "^0.10.2",
     "path": "^0.12.7",
@@ -38,16 +38,10 @@
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^23.0.2",
-    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "rollup": "3.2.5",
-    "rollup-plugin-node-builtins": "^2.1.2",
-    "rollup-plugin-node-globals": "^1.4.0",
-    "rollup-plugin-polyfill-node": "^0.13.0",
+    "rollup": "3.29.5",
     "rollup-plugin-terser": "^7.0.2",
     "stream": "^0.0.2",
-    "terser": "^5.31.1",
-    "uglify-js": "^3.18.0",
     "util": "^0.12.5"
   }
 }

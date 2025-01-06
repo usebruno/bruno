@@ -280,15 +280,18 @@ ${indentString(body.sparql)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
               let filepaths = item.value || [];
               let filestr = filepaths.join('|');
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}`;
+              return `${enabled}${item.name}: ${value}${contentType}`;
             }
           })
           .join('\n')

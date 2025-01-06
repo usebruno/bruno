@@ -31,4 +31,6 @@ yarn-error.log*
 
 # next.js
 .next/
-out/
+dist/
+
+.env
