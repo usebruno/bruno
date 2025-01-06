@@ -226,7 +226,32 @@ const safeToRename = (oldPath, newPath) => {
 };
 
 const readFile = (path) => {
-  return fs.readFileSync(path);
+  return new Promise((resolve, reject) => {
+    const stream = fs.createReadStream(path);
+    let data = '';
+
+    stream.on('data', chunk => {
+      data += chunk;
+    });
+
+    stream.on('end', () => {
+      resolve(data);
+    });
+
+    stream.on('error', err => {
+      console.error("Error while reading the file", err);
+      reject(err);
+    });
+  });
+}
+
+const getFileSize = async (path) => {
+  try {
+    return stats = (await fs.stat(path)).size
+  } catch (err) {
+    console.log("Error while trying to get the file size", err);
+    throw err;
+  }
 }
 
 module.exports = {
@@ -255,5 +280,6 @@ module.exports = {
   safeToRename,
   isValidFilename,
   hasSubDirectories,
-  readFile
+  readFile,
+  getFileSize
 };
