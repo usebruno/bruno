@@ -15,11 +15,14 @@ import FilePickerEditor from 'components/FilePickerEditor';
 import SingleLineEditor from 'components/SingleLineEditor/index';
 import { isArray } from 'lodash';
 import path from 'node:path';
+import { useState } from 'react';
 
 const Binary = ({ item, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const params = item.draft ? get(item, 'draft.request.body.binaryFile') : get(item, 'request.body.binaryFile');
+
+  const [enabledFileUid, setEnableFileUid] = useState(params && params.length ? params[0].uid : '');
 
   const addFile = () => {
     dispatch(
@@ -52,6 +55,9 @@ const Binary = ({ item, collection }) => {
       }
       case 'enabled': {
         param.enabled = e.target.checked;
+
+        setEnableFileUid(param.uid);
+
         break;
       }
     }
@@ -133,10 +139,10 @@ const Binary = ({ item, collection }) => {
                     <td>
                       <div className="flex items-center justify-center">
                         <input
-                          key={`radio-${param.uid}`}
+                          key={param.uid}
                           type="radio"
                           name="enabled"
-                          checked={param.enabled}
+                          checked={enabledFileUid === param.uid || param.enabled}
                           tabIndex="-1"
                           className="mr-1 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'enabled')}

@@ -824,18 +824,13 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.body.binaryFile = item.draft.request.body.binaryFile || [];
 
-          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
-            p.enabled = false;
-            return p;
-          });
-
           item.draft.request.body.binaryFile.push({
             uid: uuid(),
             type: action.payload.type,
             name: '',
             value: [''],
             contentType: '',
-            enabled: true
+            enabled: false
           });
         }
       }
@@ -850,6 +845,11 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+
+          item.draft.request.body.binaryFile = item.draft.request.body.binaryFile.map((p) => {
+            p.enabled = false;
+            return p;
+          });
 
           const param = find(item.draft.request.body.binaryFile, (p) => p.uid === action.payload.param.uid);
 
