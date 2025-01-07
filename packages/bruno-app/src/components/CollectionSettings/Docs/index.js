@@ -34,7 +34,7 @@ const Docs = ({ collection }) => {
   const onSave = () => dispatch(saveCollectionRoot(collection.uid));
 
   return (
-    <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
+    <StyledWrapper className="mt-1 h-full w-full relative">
       <div className="editing-mode mb-2" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>

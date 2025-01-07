@@ -40,8 +40,8 @@ const Documentation = ({ collection, folder }) => {
   }
 
   return (
-    <StyledWrapper className="mt-1 h-full w-full relative flex flex-col">
-      <div className="editing-mode mb-2" role="tab" onClick={toggleViewMode}>
+    <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
+      <div className="editing-mode" role="tab" onClick={toggleViewMode}>
         {isEditing ? 'Preview' : 'Edit'}
       </div>
 
@@ -49,12 +49,12 @@ const Documentation = ({ collection, folder }) => {
         <CodeEditor
           collection={collection}
           theme={displayedTheme}
+          font={get(preferences, 'font.codeFont', 'default')}
+          fontSize={get(preferences, 'font.codeFontSize')}
           value={docs || ''}
           onEdit={onEdit}
           onSave={onSave}
           mode="application/text"
-          font={get(preferences, 'font.codeFont', 'default')}
-          fontSize={get(preferences, 'font.codeFontSize')}
         />
       ) : (
         <Markdown collectionPath={collection.pathname} onDoubleClick={toggleViewMode} content={docs} />
