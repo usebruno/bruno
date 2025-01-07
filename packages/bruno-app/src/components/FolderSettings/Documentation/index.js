@@ -8,7 +8,6 @@ import { saveFolderRoot } from 'providers/ReduxStore/slices/collections/actions'
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconDeviceFloppy } from '@tabler/icons';
 
 const Documentation = ({ collection, folder }) => {
   const dispatch = useDispatch();
@@ -16,8 +15,6 @@ const Documentation = ({ collection, folder }) => {
   const preferences = useSelector((state) => state.app.preferences);
   const [isEditing, setIsEditing] = useState(false);
   const docs = folder.draft ? get(folder, 'draft.docs', '') : get(folder, 'root.docs', '');
-  const { theme } = useTheme();
-
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);

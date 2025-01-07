@@ -8,7 +8,6 @@ import { saveCollectionRoot } from 'providers/ReduxStore/slices/collections/acti
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconDeviceFloppy } from '@tabler/icons';
 
 const Docs = ({ collection }) => {
   const dispatch = useDispatch();

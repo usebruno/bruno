@@ -8,7 +8,6 @@ import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import Markdown from 'components/MarkDown';
 import CodeEditor from 'components/CodeEditor';
 import StyledWrapper from './StyledWrapper';
-import { IconDeviceFloppy } from '@tabler/icons';
 
 const Documentation = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -16,7 +15,6 @@ const Documentation = ({ item, collection }) => {
   const [isEditing, setIsEditing] = useState(false);
   const docs = item.draft ? get(item, 'draft.request.docs') : get(item, 'request.docs');
   const preferences = useSelector((state) => state.app.preferences);
-  const { theme } = useTheme();
 
   const toggleViewMode = () => {
     setIsEditing((prev) => !prev);
