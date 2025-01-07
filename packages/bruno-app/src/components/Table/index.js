@@ -78,10 +78,8 @@ const Table = ({ minColumnWidth = 70, headers = [], children }) => {
   }, [removeListeners]);
 
   useEffect(() => {
-    if (activeColumnIndex !== null) {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    }
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
     return () => {
       removeListeners();
     };
