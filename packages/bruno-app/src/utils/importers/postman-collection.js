@@ -199,7 +199,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         type: 'folder',
         items: [],
         root: {
-          docs: i.description ? i.description : '',
+          docs: i.description || '',
           meta: {
             name: folderName
           },
@@ -485,7 +485,7 @@ const importPostmanV2Collection = (collection, options) => {
     items: [],
     environments: [],
     root: {
-      docs: collection.info.description ? collection.info.description :'',
+      docs: collection.info.description || '',
       meta: {
         name: collection.info.name
       },
