@@ -199,6 +199,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
         type: 'folder',
         items: [],
         root: {
+          docs: i.description || '',
           meta: {
             name: folderName
           },
@@ -226,6 +227,7 @@ const importPostmanV2CollectionItem = (brunoParent, item, parentAuth, options) =
 
       brunoParent.items.push(brunoFolderItem);
       folderMap[folderName] = brunoFolderItem;
+
     } else {
       if (i.request) {
         const baseRequestName = i.name;
@@ -483,6 +485,7 @@ const importPostmanV2Collection = (collection, options) => {
     items: [],
     environments: [],
     root: {
+      docs: collection.info.description || '',
       meta: {
         name: collection.info.name
       },
