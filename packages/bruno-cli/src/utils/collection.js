@@ -137,7 +137,7 @@ const mergeScripts = (collection, request, requestTreePath, scriptFlow) => {
         combinedTests.push(tests);
       }
     }
-  }s
+  }
 
   request.script.req = compact([collectionPreReqScript, ...combinedPreReqScript, request?.script?.req || '']).join(os.EOL);
 
