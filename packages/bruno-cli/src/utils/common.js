@@ -44,7 +44,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
       data = JSON.parse(data);
     }
   } catch {
-    console.log('Failed to parse response data as JSON');
+
   }
 
   return { data, dataBuffer };
