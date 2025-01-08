@@ -257,10 +257,13 @@ const prepareRequest = async (item, collection, abortController) => {
           filePath = path.join(collectionPath, filePath);
         }
 
-      const file = await fs.readFile(filePath, abortController)
+        const file = await fs.readFile(filePath, abortController)
 
-      axiosRequest.data = file
+        axiosRequest.data = file
 
+        if(axiosRequest.headers['content-type'].includes('application/json')) {
+          axiosRequest.data = JSON.parse(file)
+        }
       }
     }
   }
