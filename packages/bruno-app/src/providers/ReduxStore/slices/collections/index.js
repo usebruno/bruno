@@ -1,5 +1,5 @@
 import { uuid } from 'utils/common';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, findIndex } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -43,6 +43,7 @@ export const collectionsSlice = createSlice({
       // for example, when a env is created, we want to auto select it the env modal
       collection.importedAt = new Date().getTime();
       collection.lastAction = null;
+      collection.seq = state.collections.length + 1;
 
       collapseCollection(collection);
       addDepth(collection.items);
@@ -87,6 +88,16 @@ export const collectionsSlice = createSlice({
           state.collections = state.collections.sort((a, b) => b.name.localeCompare(a.name));
           break;
       }
+    },
+    resequenceCollection: (state, action) => {
+      const { draggedItem, targetItem } = action.payload;
+      console.log('draggedItem', draggedItem);
+      console.log('targetItem', targetItem);
+
+      state.collections = state.collections.sort((a, b) => a.seq - b.seq);
+      state.collections = filter(state.collections, (i) => i.uid !== draggedItem.uid);
+      let targetItemIndex = findIndex(state.collections, (i) => i.uid === targetItem.uid);
+      state.collections.splice(targetItemIndex + 1, 0, draggedItem);
     },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
@@ -1848,7 +1859,8 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  resequenceCollection
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

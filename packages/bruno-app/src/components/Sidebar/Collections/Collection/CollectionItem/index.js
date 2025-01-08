@@ -52,9 +52,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   const [{ isOver }, drop] = useDrop({
     accept: `COLLECTION_ITEM_${collection.uid}`,
     drop: (draggedItem) => {
-      if (draggedItem.uid !== item.uid) {
-        dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
-      }
+      dispatch(moveItem(collection.uid, draggedItem.uid, item.uid));
     },
     canDrop: (draggedItem) => {
       return draggedItem.uid !== item.uid;

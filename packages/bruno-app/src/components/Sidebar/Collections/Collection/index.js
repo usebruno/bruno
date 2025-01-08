@@ -5,7 +5,7 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collectionClicked } from 'providers/ReduxStore/slices/collections';
+import { collectionClicked, resequenceCollection} from 'providers/ReduxStore/slices/collections';
 import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
@@ -100,30 +100,35 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  const [{ isOver, getItemType }, drop] = useDrop({
+  const isCollectionItem = (itemType) => {
+    return itemType.startsWith('COLLECTION_ITEM');
+  };
+
+  const [{ isOver }, drop] = useDrop({
     accept: [`COLLECTION_ITEM_${collection.uid}`, `COLLECTION`],
-    drop: (draggedItem) => {
-      dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
-    },
-    canDrop: (draggedItem) => {
-      if (["COLLECTION", `COLLECTION_ITEM_${collection.uid}`].includes(getItemType)){
-        return true;
+    drop: (draggedItem, monitor) => {
+      const itemType = monitor.getItemType();
+      if (isCollectionItem(itemType)) {
+        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+      } else {
+        dispatch(resequenceCollection({draggedItem, targetItem: collection}))
       }
+    },
+    canDrop: (draggedItem, monitor) => {
+      // const itemType = monitor.getItemType();
+      // return [`COLLECTION_${collection.uid}`, `COLLECTION_ITEM_${collection.uid}`].includes(itemType);
+      return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
       isOver: monitor.isOver(),
-      getItemType: monitor.getItemType()
-    })
+    }),
   });
 
   const [{ isDragging }, drag] = useDrag({
     type: `COLLECTION`,
-    item: {
-      uid: collection.uid,
-      name: collection.name,
-    },
+    item: collection,
     collect: (monitor) => ({
-      isDragging: monitor.isDragging()
+      isDragging: monitor.isDragging(),
     }),
   });
 
