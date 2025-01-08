@@ -12,6 +12,17 @@ const Wrapper = styled.div`
       transform: rotateZ(90deg);
     }
 
+    &.item-hovered {
+      background: ${(props) => props.theme.sidebar.collection.item.hoverBg};
+      .menu-icon {
+        .dropdown {
+          div[aria-expanded='false'] {
+            visibility: visible;
+          }
+        }
+      }
+    }
+
     .collection-actions {
       .dropdown {
         div[aria-expanded='true'] {

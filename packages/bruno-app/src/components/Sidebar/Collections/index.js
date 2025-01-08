@@ -8,16 +8,12 @@ import {
   IconSortDescendingLetters,
   IconX
 } from '@tabler/icons';
-import Collection from '../Collections/Collection';
+import Collection from './Collection';
 import CreateCollection from '../CreateCollection';
 import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
 
-// todo: move this to a separate folder
-// the coding convention is to keep all the components in a folder named after the component
 const CollectionsBadge = () => {
   const dispatch = useDispatch();
   const { collections } = useSelector((state) => state.collections);
@@ -119,9 +115,7 @@ const Collections = () => {
         {collections && collections.length
           ? collections.map((c) => {
               return (
-                <DndProvider backend={HTML5Backend} key={c.uid}>
-                  <Collection searchText={searchText} collection={c} key={c.uid} />
-                </DndProvider>
+                <Collection searchText={searchText} collection={c} key={c.uid} />
               );
             })
           : null}

@@ -2,7 +2,7 @@ import React, { useState, forwardRef, useRef, useEffect } from 'react';
 import classnames from 'classnames';
 import { uuid } from 'utils/common';
 import filter from 'lodash/filter';
-import { useDrop } from 'react-dnd';
+import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import { collectionClicked } from 'providers/ReduxStore/slices/collections';
@@ -100,18 +100,31 @@ const Collection = ({ collection, searchText }) => {
     );
   };
 
-  const [{ isOver }, drop] = useDrop({
-    accept: `COLLECTION_ITEM_${collection.uid}`,
+  const [{ isOver, getItemType }, drop] = useDrop({
+    accept: [`COLLECTION_ITEM_${collection.uid}`, `COLLECTION`],
     drop: (draggedItem) => {
       dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
     },
     canDrop: (draggedItem) => {
-      // todo need to make sure that draggedItem belongs to the collection
-      return true;
+      if (["COLLECTION", `COLLECTION_ITEM_${collection.uid}`].includes(getItemType)){
+        return true;
+      }
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver()
+      isOver: monitor.isOver(),
+      getItemType: monitor.getItemType()
     })
+  });
+
+  const [{ isDragging }, drag] = useDrag({
+    type: `COLLECTION`,
+    item: {
+      uid: collection.uid,
+      name: collection.name,
+    },
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging()
+    }),
   });
 
   if (searchText && searchText.length) {
@@ -119,6 +132,10 @@ const Collection = ({ collection, searchText }) => {
       return null;
     }
   }
+
+  const collectionRowClassName = classnames('flex py-1 collection-name items-center', {
+      'item-hovered': isOver
+    });
 
   // we need to sort request items by seq property
   const sortRequestItems = (items = []) => {
@@ -149,7 +166,9 @@ const Collection = ({ collection, searchText }) => {
       {showCloneCollectionModalOpen && (
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
-      <div className="flex py-1 collection-name items-center" ref={drop}>
+      <div className={collectionRowClassName}
+      ref={(node) => drag(drop(node))}
+      >
         <div
           className="flex flex-grow items-center overflow-hidden"
         >
