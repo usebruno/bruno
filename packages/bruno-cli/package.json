@@ -59,6 +59,7 @@
     "fs-extra": "^10.1.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
+    "iconv-lite": "^0.6.3",
     "lodash": "^4.17.21",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
