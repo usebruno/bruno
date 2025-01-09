@@ -71,8 +71,6 @@ const Collections = () => {
       </StyledWrapper>
     );
   }
-  
-  const sortedCollections = collections.toSorted((a, b) => a.seq - b.seq);
 
   return (
     <StyledWrapper>
@@ -114,8 +112,8 @@ const Collections = () => {
       </div>
 
       <div className="mt-4 flex flex-col overflow-hidden hover:overflow-y-auto absolute top-32 bottom-10 left-0 right-0">
-        {sortedCollections && sortedCollections.length
-          ? sortedCollections.map((c) => {
+        {collections && collections.length
+          ? collections.map((c) => {
               return (
                 <Collection searchText={searchText} collection={c} key={c.uid} />
               );
