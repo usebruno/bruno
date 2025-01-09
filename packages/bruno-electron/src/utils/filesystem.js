@@ -134,6 +134,20 @@ const browseFiles = async (win, filters) => {
   return filePaths.map((path) => normalizeAndResolvePath(path)).filter((path) => isFile(path));
 };
 
+const browseFile = async (win, filters) => {
+  const { filePaths } = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters
+  });
+
+  if (!filePaths || !filePaths[0]) {
+    return false;
+  }
+
+  const resolvedPath = normalizeAndResolvePath(filePaths[0]);
+  return isFile(resolvedPath) ? resolvedPath : false;
+}
+
 const chooseFileToSave = async (win, preferredFileName = '') => {
   const { filePath } = await dialog.showSaveDialog(win, {
     defaultPath: preferredFileName
@@ -211,6 +225,35 @@ const safeToRename = (oldPath, newPath) => {
   }
 };
 
+const readFileStream = (path) => {
+  return new Promise((resolve, reject) => {
+    const stream = fs.createReadStream(path);
+    let data = '';
+
+    stream.on('data', chunk => {
+      data += chunk;
+    });
+
+    stream.on('end', () => {
+      resolve(data);
+    });
+
+    stream.on('error', err => {
+      console.error("Error while reading the file", err);
+      reject(err);
+    });
+  });
+}
+
+const getFileSize = async (path) => {
+  try {
+    return stats = (await fs.stat(path)).size
+  } catch (err) {
+    console.log("Error while trying to get the file size", err);
+    throw err;
+  }
+}
+
 module.exports = {
   isValidPathname,
   exists,
@@ -227,6 +270,7 @@ module.exports = {
   createDirectory,
   browseDirectory,
   browseFiles,
+  browseFile,
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
@@ -235,5 +279,7 @@ module.exports = {
   isWindowsOS,
   safeToRename,
   isValidFilename,
-  hasSubDirectories
+  hasSubDirectories,
+  readFileStream,
+  getFileSize
 };

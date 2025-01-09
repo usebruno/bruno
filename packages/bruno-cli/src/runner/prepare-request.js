@@ -139,6 +139,16 @@ const prepareRequest = (item = {}, collection = {}) => {
     axiosRequest.data = enabledParams;
   }
 
+  if(request.body.mode === 'rawFile') {
+    if (request.body.rawFile) {
+      axiosRequest.data = fs.readFileSync(request.body.rawFile);
+      fileLength = axiosRequest.data.length;
+      axiosRequest.headers['content-length'] = fileLength;
+    } else {
+      axiosRequest.data = null;
+    }
+  }
+
   if (request.body.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),

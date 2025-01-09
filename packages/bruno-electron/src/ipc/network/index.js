@@ -28,7 +28,7 @@ const { makeAxiosInstance } = require('./axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
 const { addDigestInterceptor } = require('./digestauth-helper');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../../utils/proxy-util');
-const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
+const { chooseFileToSave, writeBinaryFile, writeFile, readFileStream, getFileSize } = require('../../utils/filesystem');
 const { getCookieStringForUrl, addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
 const {
   resolveOAuth2AuthorizationCodeAccessToken,
@@ -41,6 +41,8 @@ const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
 const { findItemInCollectionByPathname } = require('../../utils/collection');
 
+const GENERIC_FILE_CONTENT_TYPE = "application/octet-stream";
+
 const safeStringifyJSON = (data) => {
   try {
     return JSON.stringify(data);
@@ -48,6 +50,7 @@ const safeStringifyJSON = (data) => {
     return data;
   }
 };
+
 
 const safeParseJSON = (data) => {
   try {
@@ -449,6 +452,22 @@ const registerNetworkIpc = (mainWindow) => {
         let form = createFormData(request.data, collectionPath);
         request.data = form;
         extend(request.headers, form.getHeaders());
+      }
+    }
+
+    if (request.headers['content-type'] === GENERIC_FILE_CONTENT_TYPE) {
+      if (!(request.data instanceof Buffer)) {
+        const rawFilePath = request.data;
+    
+        try {
+          request.data = await readFileStream(rawFilePath);
+          const newContentType = mime.lookup(rawFilePath) || GENERIC_FILE_CONTENT_TYPE;
+          const fileSize = await getFileSize(rawFilePath);
+    
+          extend(request.headers, { 'content-type': newContentType, 'content-length': fileSize });
+        } catch (err) {
+          console.error(err);
+        }
       }
     }
 

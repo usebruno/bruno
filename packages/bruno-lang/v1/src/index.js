@@ -11,6 +11,7 @@ const {
   bodyGraphqlVarsTag,
   bodyTextTag,
   bodyXmlTag,
+  bodyRawFileTag,
   bodyFormUrlEncodedTagDeprecated,
   bodyFormUrlEncodedTag,
   bodyMultipartFormTag
@@ -29,6 +30,7 @@ const bruToJson = (fileContents) => {
       bodyGraphqlVarsTag,
       bodyTextTag,
       bodyXmlTag,
+      bodyRawFileTag,
       bodyFormUrlEncodedTagDeprecated,
       bodyFormUrlEncodedTag,
       bodyMultipartFormTag,
@@ -148,6 +150,14 @@ ${indentString(body.text)}
     bru += `
 body(type=xml)
 ${indentString(body.xml)}
+/body
+`;
+  }
+
+  if (body && body.rawFile && body.rawFile.length) {
+    bru +=`
+body(type=raw-file)
+${indentString(body.rawFile)}
 /body
 `;
   }
