@@ -14,6 +14,8 @@ import StyledWrapper from './StyledWrapper';
 import CreateOrOpenCollection from './CreateOrOpenCollection';
 import { sortCollections } from 'providers/ReduxStore/slices/collections/actions';
 
+// todo: move this to a separate folder
+// the coding convention is to keep all the components in a folder named after the component
 const CollectionsBadge = () => {
   const dispatch = useDispatch();
   const { collections } = useSelector((state) => state.collections);

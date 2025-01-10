@@ -5,8 +5,8 @@ import filter from 'lodash/filter';
 import { useDrop, useDrag } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
-import { collectionClicked, resequenceCollection} from 'providers/ReduxStore/slices/collections';
-import { moveItemToRootOfCollection } from 'providers/ReduxStore/slices/collections/actions';
+import { collectionClicked } from 'providers/ReduxStore/slices/collections';
+import { moveItemToRootOfCollection, updateAndPersistCollectionSequence } from 'providers/ReduxStore/slices/collections/actions';
 import { useDispatch } from 'react-redux';
 import { addTab } from 'providers/ReduxStore/slices/tabs';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -31,6 +31,7 @@ const Collection = ({ collection, searchText }) => {
   const [showRemoveCollectionModal, setShowRemoveCollectionModal] = useState(false);
   const [collectionIsCollapsed, setCollectionIsCollapsed] = useState(collection.collapsed);
   const dispatch = useDispatch();
+  const collectionRef = useRef(null);
 
   const menuDropdownTippyRef = useRef();
   const onMenuDropdownCreate = (ref) => (menuDropdownTippyRef.current = ref);
@@ -101,22 +102,31 @@ const Collection = ({ collection, searchText }) => {
   };
 
   const isCollectionItem = (itemType) => {
-    return itemType.startsWith('COLLECTION_ITEM');
+    return itemType.startsWith('collection-item');
   };
-
+  
+  const [{ isDragging }, drag] = useDrag({
+    type: "collection",
+    item: collection,
+    collect: (monitor) => ({
+      isDragging: monitor.isDragging(),
+    }),
+    options: {
+      dropEffect: "move"
+    }
+  });
+  
   const [{ isOver }, drop] = useDrop({
-    accept: [`COLLECTION_ITEM_${collection.uid}`, `COLLECTION`],
+    accept: ["collection", `collection-item-${collection.uid}`],
     drop: (draggedItem, monitor) => {
       const itemType = monitor.getItemType();
       if (isCollectionItem(itemType)) {
-        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid));
+        dispatch(moveItemToRootOfCollection(collection.uid, draggedItem.uid))
       } else {
-        dispatch(resequenceCollection({draggedItem, targetItem: collection}))
+        dispatch(updateAndPersistCollectionSequence({draggedItem, targetItem: collection}));
       }
     },
-    canDrop: (draggedItem, monitor) => {
-      // const itemType = monitor.getItemType();
-      // return [`COLLECTION_${collection.uid}`, `COLLECTION_ITEM_${collection.uid}`].includes(itemType);
+    canDrop: (draggedItem) => {
       return draggedItem.uid !== collection.uid;
     },
     collect: (monitor) => ({
@@ -124,13 +134,7 @@ const Collection = ({ collection, searchText }) => {
     }),
   });
 
-  const [{ isDragging }, drag] = useDrag({
-    type: `COLLECTION`,
-    item: collection,
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
+  drag(drop(collectionRef));
 
   if (searchText && searchText.length) {
     if (!doesCollectionHaveItemsMatchingSearchText(collection, searchText)) {
@@ -172,7 +176,7 @@ const Collection = ({ collection, searchText }) => {
         <CloneCollection collection={collection} onClose={() => setShowCloneCollectionModalOpen(false)} />
       )}
       <div className={collectionRowClassName}
-      ref={(node) => drag(drop(node))}
+      ref={collectionRef}
       >
         <div
           className="flex flex-grow items-center overflow-hidden"

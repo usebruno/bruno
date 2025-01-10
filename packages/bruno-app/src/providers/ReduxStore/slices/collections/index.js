@@ -91,11 +91,11 @@ export const collectionsSlice = createSlice({
     },
     resequenceCollection: (state, action) => {
       const { draggedItem, targetItem } = action.payload;
-      state.collections.sort((a, b) => a.seq - b.seq);
-      state.collections = state.collections.filter(i => i.uid !== draggedItem.uid);
-      const targetItemIndex = state.collections.findIndex(i => i.uid === targetItem.uid);
-      state.collections.splice(targetItemIndex, 0, draggedItem);
-  },
+      state.collections.sort((a, b) => a.seq - b.seq); // Sort collections by sequence
+      state.collections = state.collections.filter((i) => i.uid !== draggedItem.uid); // Remove dragged item
+      const targetItemIndex = state.collections.findIndex((i) => i.uid === targetItem.uid); // Find target item
+      state.collections.splice(targetItemIndex, 0, draggedItem); // Insert dragged item
+    },
     updateLastAction: (state, action) => {
       const { collectionUid, lastAction } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
