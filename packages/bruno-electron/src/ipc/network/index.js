@@ -276,23 +276,33 @@ const configureRequest = async (
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-    let credentials, response;
+    let credentials, authResponse, authRequest;
     switch (request?.oauth2?.grantType) {
       case 'authorization_code': {
-        ({ credentials, response } = await oauth2AuthorizeWithAuthorizationCode(requestCopy, collectionUid));
+        ({ credentials, authRequest, authResponse } = await oauth2AuthorizeWithAuthorizationCode(
+          requestCopy,
+          collectionUid
+        ));
         break;
       }
       case 'client_credentials': {
-        ({ credentials, response } = await oauth2AuthorizeWithClientCredentials(requestCopy, collectionUid));
+        ({ credentials, authRequest, authResponse } = await oauth2AuthorizeWithClientCredentials(
+          requestCopy,
+          collectionUid
+        ));
         break;
       }
       case 'password': {
-        ({ credentials, response } = await oauth2AuthorizeWithPasswordCredentials(requestCopy, collectionUid));
+        ({ credentials, authRequest, authResponse } = await oauth2AuthorizeWithPasswordCredentials(
+          requestCopy,
+          collectionUid
+        ));
         break;
       }
     }
     request.credentials = credentials;
-    request.authRequestResponse = response;
+    request.authRequest = authRequest;
+    request.authResponse = authResponse;
 
     // Bruno can handle bearer token type automatically.
     // Other - more exotic token types are not touched
@@ -598,6 +608,24 @@ const registerNetworkIpc = (mainWindow) => {
           method: request.method,
           headers: request.headers,
           data: safeParseJSON(safeStringifyJSON(request.data)),
+          authRequest: request.authRequest
+            ? {
+                url: request.authRequest.url,
+                method: request.authRequest.method,
+                headers: request.authRequest.headers,
+                data: request.authRequest.data,
+                timestamp: request.authRequest.timestamp
+              }
+            : null,
+          authResponse: request.authResponse
+            ? {
+                headers: request.authResponse ? request.authResponse.headers : [],
+                data: request.authResponse.data ? parseDataFromResponse(request.authResponse).data : {},
+                status: request.authResponse.status,
+                statusText: request.authResponse.statusText,
+                timestamp: request.authResponse.timestamp
+              }
+            : null,
           timestamp: Date.now()
         },
         collectionUid,
@@ -784,8 +812,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      const response = request.authRequestResponse;
-      // When credentials are loaded from cache, authRequestResponse has no data
+      const response = request.authResponse;
+      // When credentials are loaded from cache, authResponse has no data
       if (response.data) {
         const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
         response.data = data;
