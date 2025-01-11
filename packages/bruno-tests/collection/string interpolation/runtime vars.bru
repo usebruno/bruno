@@ -31,12 +31,6 @@ body:text {
   I am {{rUser.age}} years old.
   My favorite food is {{rUser.fav-food[0]}} and {{rUser.fav-food[1]}}.
   I like attention: {{rUser.want.attention}}
-  
-  {{testvar}}
-}
-
-vars:pre-request {
-  testvar: testvar-value
 }
 
 assert {
@@ -50,8 +44,6 @@ script:pre-request {
     'fav-food': ['egg', 'meat'],
     'want.attention': true
   });
-  
-  console.log(bru.getRequestVar('testvar'));
 }
 
 tests {

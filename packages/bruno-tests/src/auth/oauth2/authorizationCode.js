@@ -138,8 +138,6 @@ router.post('/token', (req, res) => {
     }
   });
 
-  console.log("auth", authCodes, code, storedAuthCode);
-
   if (!storedAuthCode) {
     return res.status(401).json({ error: 'Invalid Authorization Code' });
   }

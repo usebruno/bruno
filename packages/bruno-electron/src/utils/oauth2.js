@@ -8,7 +8,6 @@ const { safeParseJSON } = require('./common');
 const oauth2Store = new Oauth2Store();
 
 const persistOauth2Credentials = ({ collectionUid, url, credentials, credentialsId }) => {
-  console.log("persist credentials", credentials, collectionUid, url);
   oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials, credentialsId });
 }
 
@@ -52,11 +51,8 @@ const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
   requestCopy.data = data;
   requestCopy.url = url;
 
-  console.log("get auth token", data, url, oAuth);
-
   const axiosInstance = makeAxiosInstance();
   const response = await axiosInstance(requestCopy);
-  console.log("response", response.data, response.data.toString());
   const parsedResponseData = safeParseJSON(response.data?.toString());
   persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
   return parsedResponseData;

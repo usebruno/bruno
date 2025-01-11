@@ -12,7 +12,6 @@ const Oauth2TokenViewer = ({ collection, item, url, credentialsId }) => {
   const fetchCredentials = async ({ collectionUid, url, credentialsId }) => {
     const interpolatedUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: url });
     const storedCredentials = await dispatch(getOauth2Credentials({ url: interpolatedUrl, collectionUid, credentialsId }));
-    console.log("stored credentials", storedCredentials);
     setCredentials(storedCredentials);
   }
 
