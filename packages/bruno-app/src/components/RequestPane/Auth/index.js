@@ -66,7 +66,7 @@ const Auth = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="w-full mt-1">
+    <StyledWrapper className="w-full mt-1 overflow-y-scroll">
       <div className="flex flex-grow justify-start items-center">
         <AuthMode item={item} collection={collection} />
       </div>

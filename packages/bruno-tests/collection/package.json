@@ -4,6 +4,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.0",
     "jsonwebtoken": "^9.0.2",
-    "lru-map-cache": "^0.1.0"
+    "lru-map-cache": "^0.1.0",
+    "mssql": "^11.0.1"
   }
 }

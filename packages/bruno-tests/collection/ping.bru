@@ -4,8 +4,24 @@ meta {
   seq: 1
 }
 
-get {
-  url: {{host}}/ping
-  body: none
+post {
+  url: {{echo-host}}
+  body: json
   auth: none
+}
+
+body:json {
+  pong
+}
+
+script:pre-request {
+  const events = require('node:events');
+  const EventEmitter = events.EventEmitter;
+  const emitter = new EventEmitter();
+  
+  emitter.on('foo', (message) => {
+      console.log(message);
+  });
+  
+  emitter.emit('foo', 'bar');
 }

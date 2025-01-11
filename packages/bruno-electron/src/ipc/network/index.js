@@ -8,7 +8,7 @@ const mime = require('mime-types');
 const { ipcMain } = require('electron');
 const { each, get, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
-const { prepareRequest, prepareGqlIntrospectionRequest, getJsSandboxRuntime, parseDataFromResponse, configureRequest } = require('../../utils/request');
+const { prepareRequest, prepareGqlIntrospectionRequest, getJsSandboxRuntime, configureRequest, parseDataFromResponse } = require('../../utils/request');
 const { cancelTokens, saveCancelToken, deleteCancelToken } = require('../../utils/cancel-token');
 const { uuid, safeStringifyJSON, safeParseJSON } = require('../../utils/common');
 const interpolateVars = require('./interpolate-vars');
@@ -242,6 +242,7 @@ const registerNetworkIpc = (mainWindow) => {
     });
 
     const collectionRoot = get(collection, 'root', {});
+
     const request = prepareRequest(item, collection);
     request.__bruno__executionMode = 'standalone';
     const envVars = getEnvVars(environment);

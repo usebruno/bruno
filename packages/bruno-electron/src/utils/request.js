@@ -14,7 +14,7 @@ const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars }
 const { buildFormUrlEncodedPayload } = require('./form-data');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('./proxy-util');
 const { makeAxiosInstance } = require('./axios-instance');
-const { getOAuth2TokenUsingAuthorizationCode, transformClientCredentialsRequest, transformPasswordCredentialsRequest } = require('./oauth2');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials } = require('./oauth2');
 const { resolveAwsV4Credentials, addAwsV4Interceptor, addDigestInterceptor } = require('./auth');
 const { getCookieStringForUrl } = require('./cookies');
 const { preferencesUtil } = require('../store/preferences');
@@ -118,7 +118,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               password: get(request, 'auth.oauth2.password'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
-              scope: get(request, 'auth.oauth2.scope')
+              scope: get(request, 'auth.oauth2.scope'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
           case 'authorization_code':
@@ -131,7 +136,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
               scope: get(request, 'auth.oauth2.scope'),
               state: get(request, 'auth.oauth2.state'),
-              pkce: get(request, 'auth.oauth2.pkce')
+              pkce: get(request, 'auth.oauth2.pkce'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
           case 'client_credentials':
@@ -140,7 +150,12 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
               accessTokenUrl: get(request, 'auth.oauth2.accessTokenUrl'),
               clientId: get(request, 'auth.oauth2.clientId'),
               clientSecret: get(request, 'auth.oauth2.clientSecret'),
-              scope: get(request, 'auth.oauth2.scope')
+              scope: get(request, 'auth.oauth2.scope'),
+              credentialsId: get(request, 'auth.oauth2.credentialsId'),
+              tokenPlacement: get(request, 'auth.oauth2.tokenPlacement'),
+              tokenPrefix: get(request, 'auth.oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(request, 'auth.oauth2.tokenQueryParamKey'),
+              reuseToken: get(request, 'auth.oauth2.reuseToken')
             };
             break;
         }
@@ -518,34 +533,56 @@ const configureRequest = async (
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
-    switch (request?.oauth2?.grantType) {
+    const { oauth2: { grantType, tokenPlacement, tokenPrefix, tokenQueryParamKey } = {} } = requestCopy || {};
+    let credentials;
+    switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: authorizationCodeData, url: authorizationCodeAccessTokenUrl } =
-          await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = authorizationCodeData;
-        request.url = authorizationCodeAccessTokenUrl;
+        (credentials = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
+        request.oauth2Credentials = credentials;
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: clientCredentialsData, url: clientCredentialsAccessTokenUrl } =
-          await transformClientCredentialsRequest(requestCopy);
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = clientCredentialsData;
-        request.url = clientCredentialsAccessTokenUrl;
+        (credentials = await getOAuth2TokenUsingClientCredentials(requestCopy));
+        request.oauth2Credentials = credentials;
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        const { data: passwordData, url: passwordAccessTokenUrl } = await transformPasswordCredentialsRequest(
-          requestCopy
-        );
-        request.method = 'POST';
-        request.headers['content-type'] = 'application/x-www-form-urlencoded';
-        request.data = passwordData;
-        request.url = passwordAccessTokenUrl;
+        (credentials = await getOAuth2TokenUsingPasswordCredentials(requestCopy));
+        request.oauth2Credentials = credentials;
+        if (tokenPlacement == 'header') {
+          request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
+        }
+        else {
+          try {
+            const url = new URL(request.url);
+            url?.searchParams?.set(tokenQueryParamKey, credentials?.access_token);
+            request.url = url?.toString();
+          }
+          catch(error) {}
+        }
         break;
     }
   }

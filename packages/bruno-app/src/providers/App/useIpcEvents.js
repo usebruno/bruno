@@ -160,7 +160,7 @@ const useIpcEvents = () => {
 
     const removeSnapshotHydrationListener = ipcRenderer.on('main:hydrate-app-with-ui-state-snapshot', (val) => {
       dispatch(hydrateCollectionWithUiStateSnapshot(val));
-    })
+    });
 
     return () => {
       removeCollectionTreeUpdateListener();

@@ -1193,3 +1193,15 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
       }
     });
   };
+
+export const getOauth2Credentials = (payload) => (dispatch, getState) => {
+  const { collectionUid, url, credentialsId } = payload;
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+    .invoke('renderer:get-stored-oauth2-credentials', collectionUid, url, credentialsId)
+    .then((credentials) => {
+      resolve(credentials);
+    })
+    .catch(reject);
+  })    
+}

@@ -32,6 +32,7 @@ const { deleteCookiesForDomain, getDomainsWithCookies } = require('../utils/cook
 const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
+const Oauth2Store = require('../store/oauth2');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -774,6 +775,15 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       uiStateSnapshotStore.update({ type, data });
     } catch (error) {
       throw new Error(error.message);
+    }
+  });
+
+  ipcMain.handle('renderer:get-stored-oauth2-credentials', async (event, collectionUid, url, credentialsId) => {
+    try {
+      const oauth2Store = new Oauth2Store();
+      return oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+    } catch (error) {
+      return Promise.reject(error);
     }
   });
 };

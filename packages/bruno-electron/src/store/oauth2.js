@@ -2,6 +2,23 @@ const _ = require('lodash');
 const Store = require('electron-store');
 const { uuid } = require('../utils/common');
 
+/**
+ * Sample secrets store file
+ *
+ * {
+ *   "collections": [{
+ *     "path": "/Users/anoop/Code/acme-acpi-collection",
+ *     "environments" : [{
+ *       "name": "Local",
+ *       "secrets": [{
+ *         "name": "token",
+ *         "value": "abracadabra"
+ *       }]
+ *     }]
+ *   }]
+ * }
+ */
+
 class Oauth2Store {
   constructor() {
     this.store = new Store({
@@ -92,6 +109,52 @@ class Oauth2Store {
       this.store.set('oauth2', updatedOauth2Data);
     } catch (err) {
       console.log('error while clearing the oauth2 session cache', err);
+    }
+  }
+
+  getCredentialsForCollection({ collectionUid, url, credentialsId }) {
+    try {
+      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
+      return credentials?.data;
+    } catch (err) {
+      console.log('error retrieving oauth2 credentials from cache', err);
+    }
+  }
+
+  updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
+    try {
+      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      if (!filteredCredentials) filteredCredentials = [];
+      filteredCredentials.push({
+        url,
+        data: credentials,
+        credentialsId
+      });
+      let newOauth2DataForCollection = {
+        ...oauth2DataForCollection,
+        credentials: filteredCredentials
+      };
+      this.updateOauth2DataOfCollection(collectionUid, newOauth2DataForCollection);
+      return newOauth2DataForCollection;
+    } catch (err) {
+      console.log('error updating oauth2 credentials from cache', err);
+    }
+  }
+
+  clearCredentialsForCollection({ collectionUid, url, credentialsId }) {
+    try {
+      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
+      let newOauth2DataForCollection = {
+        ...oauth2DataForCollection,
+        credentials: filteredCredentials
+      };
+      this.updateOauth2DataOfCollection(collectionUid, newOauth2DataForCollection);
+      return newOauth2DataForCollection;
+    } catch (err) {
+      console.log('error clearing oauth2 credentials from cache', err);
     }
   }
 }

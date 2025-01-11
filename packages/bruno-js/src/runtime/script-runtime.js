@@ -120,6 +120,7 @@ class ScriptRuntime {
       sandbox: context,
       require: {
         context: 'sandbox',
+        builtin: [ "*" ],
         external: true,
         root: [collectionPath, ...additionalContextRootsAbsolute],
         mock: {
@@ -246,6 +247,7 @@ class ScriptRuntime {
       sandbox: context,
       require: {
         context: 'sandbox',
+        builtin: [ "*" ],
         external: true,
         root: [collectionPath],
         mock: {

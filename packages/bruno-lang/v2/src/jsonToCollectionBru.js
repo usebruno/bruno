@@ -143,6 +143,11 @@ ${indentString(`password: ${auth?.oauth2?.password || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`credentialsId: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`tokenPlacement: ${auth?.oauth2?.tokenPlacement || ''}`)}
+${indentString(`tokenPrefix: ${auth?.oauth2?.tokenPrefix || ''}`)}
+${indentString(`tokenQueryParamKey: ${auth?.oauth2?.tokenQueryParamKey || ''}`)}
+${indentString(`reuseToken: ${auth?.oauth2?.reuseToken || ''}`)}
 }
 
 `;
@@ -158,6 +163,11 @@ ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 ${indentString(`state: ${auth?.oauth2?.state || ''}`)}
 ${indentString(`pkce: ${(auth?.oauth2?.pkce || false).toString()}`)}
+${indentString(`credentialsId: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`tokenPlacement: ${auth?.oauth2?.tokenPlacement || ''}`)}
+${indentString(`tokenPrefix: ${auth?.oauth2?.tokenPrefix || ''}`)}
+${indentString(`tokenQueryParamKey: ${auth?.oauth2?.tokenQueryParamKey || ''}`)}
+${indentString(`reuseToken: ${auth?.oauth2?.reuseToken || ''}`)}
 }
 
 `;
@@ -169,6 +179,11 @@ ${indentString(`access_token_url: ${auth?.oauth2?.accessTokenUrl || ''}`)}
 ${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
 ${indentString(`client_secret: ${auth?.oauth2?.clientSecret || ''}`)}
 ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+${indentString(`credentialsId: ${auth?.oauth2?.credentialsId || ''}`)}
+${indentString(`tokenPlacement: ${auth?.oauth2?.tokenPlacement || ''}`)}
+${indentString(`tokenPrefix: ${auth?.oauth2?.tokenPrefix || ''}`)}
+${indentString(`tokenQueryParamKey: ${auth?.oauth2?.tokenQueryParamKey || ''}`)}
+${indentString(`reuseToken: ${auth?.oauth2?.reuseToken || ''}`)}
 }
 
 `;

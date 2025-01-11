@@ -15,7 +15,7 @@
     "bypassProxy": ""
   },
   "scripts": {
-    "moduleWhitelist": ["crypto", "buffer", "form-data"],
+    "moduleWhitelist": ["crypto", "buffer", "form-data", "mssql"],
     "filesystemAccess": {
       "allow": true
     }
