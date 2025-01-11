@@ -1,6 +1,6 @@
 const { get, cloneDeep } = require('lodash');
 const crypto = require('crypto');
-const { authorizeUserInWindow } = require('./authorize-user-in-window');
+const { authorizeUserInWindow, authorizeUserInWindowImplicit } = require('./authorize-user-in-window');
 const Oauth2Store = require('../../store/oauth2');
 const { makeAxiosInstance } = require('./axios-instance');
 
@@ -168,8 +168,48 @@ const oauth2AuthorizeWithPasswordCredentials = async (request, collectionUid) =>
   persistOauth2Credentials(credentials, collectionUid);
   return { credentials, response };
 };
+
+// IMPLICIT
+
+const oauth2AuthorizeWithImplicitFlow = async (request, collectionUid) => {
+  const { cachedCredentials } = getPersistedOauth2Credentials(collectionUid);
+  if (cachedCredentials?.access_token) {
+    console.log('Reusing Stored access token');
+    return { credentials: cachedCredentials, authRequest: null, authResponse: null };
+  }
+
+  return new Promise(async (resolve, reject) => {
+    const { oauth2 } = request;
+    const { callbackUrl, authorizationUrl, clientId, scope, state } = oauth2;
+    const authorizationUrlWithQueryParams = new URL(authorizationUrl);
+    authorizationUrlWithQueryParams.searchParams.append('response_type', 'token');
+    authorizationUrlWithQueryParams.searchParams.append('client_id', clientId);
+    if (callbackUrl) {
+      authorizationUrlWithQueryParams.searchParams.append('redirect_uri', callbackUrl);
+    }
+    if (scope) {
+      authorizationUrlWithQueryParams.searchParams.append('scope', scope);
+    }
+    if (state) {
+      authorizationUrlWithQueryParams.searchParams.append('state', state);
+    }
+    try {
+      const { credentials } = await authorizeUserInWindowImplicit({
+        authorizeUrl: authorizationUrlWithQueryParams.toString(),
+        callbackUrl: callbackUrl,
+        session: oauth2Store.getSessionIdOfCollection(collectionUid)
+      });
+      resolve({ credentials, authRequest: null, authResponse: null });
+      persistOauth2Credentials(credentials, collectionUid);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
 module.exports = {
   oauth2AuthorizeWithAuthorizationCode,
   oauth2AuthorizeWithClientCredentials,
-  oauth2AuthorizeWithPasswordCredentials
+  oauth2AuthorizeWithPasswordCredentials,
+  oauth2AuthorizeWithImplicitFlow
 };

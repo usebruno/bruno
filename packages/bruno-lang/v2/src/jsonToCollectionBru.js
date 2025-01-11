@@ -173,6 +173,17 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 
 `;
         break;
+      case 'implicit':
+        bru += `auth:oauth2 {
+${indentString(`grant_type: implicit`)}
+${indentString(`callback_url: ${auth?.oauth2?.callbackUrl || ''}`)}
+${indentString(`authorization_url: ${auth?.oauth2?.authorizationUrl || ''}`)}
+${indentString(`client_id: ${auth?.oauth2?.clientId || ''}`)}
+${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
+}
+
+`;
+        break;
     }
   }
 
