@@ -59,6 +59,9 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
         }
         break;
+      case 'oauth2':
+        request.auth = collectionAuth;
+        break;
     }
   }
 
@@ -194,7 +197,7 @@ const prepareRequest = (item, collection) => {
   });
 
   let axiosRequest = {
-    mode: request.body.mode,
+    mode: request?.body?.mode,
     method: request.method,
     url,
     headers,
@@ -204,7 +207,7 @@ const prepareRequest = (item, collection) => {
 
   axiosRequest = setAuthHeaders(axiosRequest, request, collectionRoot);
 
-  if (request.body.mode === 'json') {
+  if (request.body?.mode === 'json') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/json';
     }
@@ -215,28 +218,28 @@ const prepareRequest = (item, collection) => {
     }
   }
 
-  if (request.body.mode === 'text') {
+  if (request.body?.mode === 'text') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'text/plain';
     }
     axiosRequest.data = request.body.text;
   }
 
-  if (request.body.mode === 'xml') {
+  if (request.body?.mode === 'xml') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/xml';
     }
     axiosRequest.data = request.body.xml;
   }
 
-  if (request.body.mode === 'sparql') {
+  if (request.body?.mode === 'sparql') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/sparql-query';
     }
     axiosRequest.data = request.body.sparql;
   }
 
-  if (request.body.mode === 'formUrlEncoded') {
+  if (request.body?.mode === 'formUrlEncoded') {
     if (!contentTypeDefined) {
       axiosRequest.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
@@ -252,7 +255,7 @@ const prepareRequest = (item, collection) => {
     axiosRequest.data = enabledParams;
   }
 
-  if (request.body.mode === 'graphql') {
+  if (request.body?.mode === 'graphql') {
     const graphqlQuery = {
       query: get(request, 'body.graphql.query'),
       // https://github.com/usebruno/bruno/issues/884 - we must only parse the variables after the variable interpolation
