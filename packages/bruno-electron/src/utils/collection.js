@@ -269,6 +269,37 @@ const getAllRequestsInFolderRecursively = (folder = {}) => {
   return requests;
 };
 
+const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    Object.entries(credentials).forEach(([key, value]) => {
+      credentialsVariables[`$auth.${credentialsId}.${key}`] = value;
+    });
+  });
+  return credentialsVariables;
+}
+
 
 module.exports = {
   mergeHeaders,
@@ -281,5 +312,7 @@ module.exports = {
   findItemInCollectionByPathname,
   sortCollection,
   sortFolder,
-  getAllRequestsInFolderRecursively
+  getAllRequestsInFolderRecursively,
+  getEnvVars,
+  getFormattedCollectionOauth2Credentials
 }

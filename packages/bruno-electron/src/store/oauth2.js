@@ -22,20 +22,20 @@ const { uuid } = require('../utils/common');
 class Oauth2Store {
   constructor() {
     this.store = new Store({
-      name: 'preferences',
+      name: 'oauth2',
       clearInvalidConfig: true
     });
   }
 
   // Get oauth2 data for all collections
   getAllOauth2Data() {
-    let oauth2Data = this.store.get('oauth2');
+    let oauth2Data = this.store.get('credentials');
     if (!Array.isArray(oauth2Data)) oauth2Data = [];
     return oauth2Data;
   }
 
   // Get oauth2 data for a collection
-  getOauth2DataOfCollection(collectionUid) {
+  getOauth2DataOfCollection({ collectionUid, url }) {
     let oauth2Data = this.getAllOauth2Data();
     let oauth2DataForCollection = oauth2Data.find((d) => d?.collectionUid == collectionUid);
 
@@ -45,7 +45,7 @@ class Oauth2Store {
         collectionUid
       };
       let updatedOauth2Data = [...oauth2Data, newOauth2DataForCollection];
-      this.store.set('oauth2', updatedOauth2Data);
+      this.store.set('credentials', updatedOauth2Data);
 
       return newOauth2DataForCollection;
     }
@@ -54,18 +54,18 @@ class Oauth2Store {
   }
 
   // Update oauth2 data of a collection
-  updateOauth2DataOfCollection(collectionUid, data) {
+  updateOauth2DataOfCollection({ collectionUid, url, data }) {
     let oauth2Data = this.getAllOauth2Data();
 
     let updatedOauth2Data = oauth2Data.filter((d) => d.collectionUid !== collectionUid);
     updatedOauth2Data.push({ ...data });
 
-    this.store.set('oauth2', updatedOauth2Data);
+    this.store.set('credentials', updatedOauth2Data);
   }
 
   // Create a new oauth2 Session Id for a collection
-  createNewOauth2SessionIdForCollection(collectionUid) {
-    let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+  createNewOauth2SessionIdForCollection({ collectionUid, url }) {
+    let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
 
     let newSessionId = uuid();
 
@@ -74,21 +74,21 @@ class Oauth2Store {
       sessionId: newSessionId
     };
 
-    this.updateOauth2DataOfCollection(collectionUid, newOauth2DataForCollection);
+    this.updateOauth2DataOfCollection({ collectionUid, data: newOauth2DataForCollection });
 
     return newOauth2DataForCollection;
   }
 
   // Get session id of a collection
-  getSessionIdOfCollection(collectionUid) {
+  getSessionIdOfCollection({ collectionUid, url }) {
     try {
-      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
 
       if (oauth2DataForCollection?.sessionId && typeof oauth2DataForCollection.sessionId === 'string') {
         return oauth2DataForCollection.sessionId;
       }
 
-      let newOauth2DataForCollection = this.createNewOauth2SessionIdForCollection(collectionUid);
+      let newOauth2DataForCollection = this.createNewOauth2SessionIdForCollection({ collectionUid, url });
       return newOauth2DataForCollection?.sessionId;
     } catch (err) {
       console.log('error retrieving session id from cache', err);
@@ -96,17 +96,18 @@ class Oauth2Store {
   }
 
   // clear session id of a collection
-  clearSessionIdOfCollection(collectionUid) {
+  clearSessionIdOfCollection({ collectionUid, url }) {
     try {
       let oauth2Data = this.getAllOauth2Data();
 
-      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       delete oauth2DataForCollection.sessionId;
+      delete oauth2DataForCollection.credentials;
 
       let updatedOauth2Data = oauth2Data.filter((d) => d.collectionUid !== collectionUid);
       updatedOauth2Data.push({ ...oauth2DataForCollection });
 
-      this.store.set('oauth2', updatedOauth2Data);
+      this.store.set('credentials', updatedOauth2Data);
     } catch (err) {
       console.log('error while clearing the oauth2 session cache', err);
     }
@@ -114,7 +115,7 @@ class Oauth2Store {
 
   getCredentialsForCollection({ collectionUid, url, credentialsId }) {
     try {
-      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let credentials = oauth2DataForCollection?.credentials?.find(c => (c?.url == url) && (c?.credentialsId == credentialsId));
       return credentials?.data;
     } catch (err) {
@@ -124,7 +125,7 @@ class Oauth2Store {
 
   updateCredentialsForCollection({ collectionUid, url, credentialsId, credentials = {} }) {
     try {
-      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       if (!filteredCredentials) filteredCredentials = [];
       filteredCredentials.push({
@@ -136,7 +137,7 @@ class Oauth2Store {
         ...oauth2DataForCollection,
         credentials: filteredCredentials
       };
-      this.updateOauth2DataOfCollection(collectionUid, newOauth2DataForCollection);
+      this.updateOauth2DataOfCollection({ collectionUid, data: newOauth2DataForCollection });
       return newOauth2DataForCollection;
     } catch (err) {
       console.log('error updating oauth2 credentials from cache', err);
@@ -145,13 +146,13 @@ class Oauth2Store {
 
   clearCredentialsForCollection({ collectionUid, url, credentialsId }) {
     try {
-      let oauth2DataForCollection = this.getOauth2DataOfCollection(collectionUid);
+      let oauth2DataForCollection = this.getOauth2DataOfCollection({ collectionUid, url });
       let filteredCredentials = oauth2DataForCollection?.credentials?.filter(c => (c?.url !== url) || (c?.credentialsId !== credentialsId));
       let newOauth2DataForCollection = {
         ...oauth2DataForCollection,
         credentials: filteredCredentials
       };
-      this.updateOauth2DataOfCollection(collectionUid, newOauth2DataForCollection);
+      this.updateOauth2DataOfCollection({ collectionUid, data: newOauth2DataForCollection });
       return newOauth2DataForCollection;
     } catch (err) {
       console.log('error clearing oauth2 credentials from cache', err);

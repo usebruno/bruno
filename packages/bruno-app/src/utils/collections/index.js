@@ -925,12 +925,15 @@ export const getAllVariables = (collection, item) => {
 
   const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
+  const oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials })
+
   return {
     ...globalEnvironmentVariables,
     ...collectionVariables,
     ...envVariables,
     ...folderVariables,
     ...requestVariables,
+    ...oauth2CredentialVariables,
     ...runtimeVariables,
     pathParams: {
       ...pathParams
@@ -1004,4 +1007,35 @@ export const interpolateStringUsingCollectionAndItem = ({ collection, item, stri
   const variables = getAllVariables(collection, item);
   const value = interpolate(string, variables);
   return value;
+}
+
+export const getEnvVars = (environment = {}) => {
+  const variables = environment.variables;
+  if (!variables || !variables.length) {
+    return {
+      __name__: environment.name
+    };
+  }
+
+  const envVars = {};
+  each(variables, (variable) => {
+    if (variable.enabled) {
+      envVars[variable.name] = variable.value;
+    }
+  });
+
+  return {
+    ...envVars,
+    __name__: environment.name
+  };
+};
+
+export const getFormattedCollectionOauth2Credentials = ({ oauth2Credentials = [] }) => {
+  let credentialsVariables = {};
+  oauth2Credentials.forEach(({ credentialsId, credentials }) => {
+    Object.entries(credentials).forEach(([key, value]) => {
+      credentialsVariables[`$auth.${credentialsId}.${key}`] = value;
+    });
+  });
+  return credentialsVariables;
 }

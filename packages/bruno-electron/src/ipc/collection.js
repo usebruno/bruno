@@ -33,6 +33,10 @@ const EnvironmentSecretsStore = require('../store/env-secrets');
 const CollectionSecurityStore = require('../store/collection-security');
 const UiStateSnapshotStore = require('../store/ui-state-snapshot');
 const Oauth2Store = require('../store/oauth2');
+const interpolateVars = require('./network/interpolate-vars');
+const { getEnvVars } = require('../utils/collection');
+const { getProcessEnvVars } = require('../store/process-env');
+const { getOAuth2TokenUsingAuthorizationCode, getOAuth2TokenUsingClientCredentials, getOAuth2TokenUsingPasswordCredentials, refreshOauth2Token } = require('../utils/oauth2');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 const collectionSecurityStore = new CollectionSecurityStore();
@@ -781,7 +785,57 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle('renderer:get-stored-oauth2-credentials', async (event, collectionUid, url, credentialsId) => {
     try {
       const oauth2Store = new Oauth2Store();
-      return oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+      const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
+      return { credentials, collectionUid, url };
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:fetch-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          const { oauth2: { grantType }} = requestCopy || {};
+          let credentials, url, credentialsId;
+          switch (grantType) {
+            case 'authorization_code':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
+              break;
+            case 'client_credentials':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingClientCredentials(requestCopy, collectionUid));
+              break;
+            case 'password':
+              interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+              ({ credentials, url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials(requestCopy, collectionUid));
+              break;
+          }
+          return { credentials, url, collectionUid, credentialsId };
+        }
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
+
+  ipcMain.handle('renderer:refresh-oauth2-credentials', async (event, { request, collection }) => {
+    try {
+        if (request.oauth2) {
+          let requestCopy = _.cloneDeep(request);
+          const { uid: collectionUid, runtimeVariables, environments = [], activeEnvironmentUid } = collection;
+          const environment = _.find(environments, (e) => e.uid === activeEnvironmentUid);
+          const envVars = getEnvVars(environment);
+          const processEnvVars = getProcessEnvVars(collectionUid);
+          interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
+          let { credentials, url, credentialsId } = await refreshOauth2Token(requestCopy, collectionUid);
+          return { credentials, url, collectionUid, credentialsId };
+        }
     } catch (error) {
       return Promise.reject(error);
     }

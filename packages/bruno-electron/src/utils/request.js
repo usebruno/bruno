@@ -10,7 +10,7 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const iconv = require('iconv-lite');
 const { interpolate } = require('@usebruno/common');
-const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars } = require('./collection');
+const { getTreePathFromCollectionToItem, mergeHeaders, mergeScripts, mergeVars, getFormattedCollectionOauth2Credentials } = require('./collection');
 const { buildFormUrlEncodedPayload } = require('./form-data');
 const { shouldUseProxy, PatchedHttpsProxyAgent } = require('./proxy-util');
 const { makeAxiosInstance } = require('./axios-instance');
@@ -75,6 +75,59 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
         } else if (apiKeyAuth.placement === 'queryparams') {
           // If the API key authentication is set and its placement is 'queryparams', add it to the axios request object. This will be used in the configureRequest function to append the API key to the query parameters of the request URL.
           axiosRequest.apiKeyAuthValueForQueryParams = apiKeyAuth;
+        }
+        break;
+      case 'oauth2':
+        const grantType = get(collectionAuth, 'oauth2.grantType');
+        switch (grantType) {
+          case 'password':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              username: get(collectionAuth, 'oauth2.username'),
+              password: get(collectionAuth, 'oauth2.password'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+            };
+            break;
+          case 'authorization_code':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              callbackUrl: get(collectionAuth, 'oauth2.callbackUrl'),
+              authorizationUrl: get(collectionAuth, 'oauth2.authorizationUrl'),
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              state: get(collectionAuth, 'oauth2.state'),
+              pkce: get(collectionAuth, 'oauth2.pkce'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+            };
+            break;
+          case 'client_credentials':
+            axiosRequest.oauth2 = {
+              grantType: grantType,
+              accessTokenUrl: get(collectionAuth, 'oauth2.accessTokenUrl'),
+              clientId: get(collectionAuth, 'oauth2.clientId'),
+              clientSecret: get(collectionAuth, 'oauth2.clientSecret'),
+              scope: get(collectionAuth, 'oauth2.scope'),
+              credentialsId: get(collectionAuth, 'oauth2.credentialsId'),
+              tokenPlacement: get(collectionAuth, 'oauth2.tokenPlacement'),
+              tokenPrefix: get(collectionAuth, 'oauth2.tokenPrefix'),
+              tokenQueryParamKey: get(collectionAuth, 'oauth2.tokenQueryParamKey'),
+              reuseToken: get(collectionAuth, 'oauth2.reuseToken')
+            };
+            break;
         }
         break;
     }
@@ -194,7 +247,7 @@ const setAuthHeaders = (axiosRequest, request, collectionRoot) => {
 
 const prepareRequest = (item, collection) => {
   const request = item.draft ? item.draft.request : item.request;
-  const collectionRoot = get(collection, 'root', {});
+  const collectionRoot = collection?.draft ? get(collection, 'draft', {}) : get(collection, 'root', {});
   const collectionPath = collection.pathname;
   const headers = {};
   let contentTypeDefined = false;
@@ -214,6 +267,7 @@ const prepareRequest = (item, collection) => {
     mergeScripts(collection, request, requestTreePath, scriptFlow);
     mergeVars(collection, request, requestTreePath);
     request.globalEnvironmentVariables = collection?.globalEnvironmentVariables;
+    request.oauth2CredentialVariables = getFormattedCollectionOauth2Credentials({ oauth2Credentials: collection?.oauth2Credentials });
   }
 
 
@@ -310,6 +364,7 @@ const prepareRequest = (item, collection) => {
   axiosRequest.folderVariables = request.folderVariables;
   axiosRequest.requestVariables = request.requestVariables;
   axiosRequest.globalEnvironmentVariables = request.globalEnvironmentVariables;
+  axiosRequest.oauth2CredentialVariables = request.oauth2CredentialVariables;
   axiosRequest.assertions = request.assertions;
 
   return axiosRequest;
@@ -534,12 +589,12 @@ const configureRequest = async (
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
     const { oauth2: { grantType, tokenPlacement, tokenPrefix, tokenQueryParamKey } = {} } = requestCopy || {};
-    let credentials;
+    let credentials, credentialsId;
     switch (grantType) {
       case 'authorization_code':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        (credentials = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
-        request.oauth2Credentials = credentials;
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingAuthorizationCode(requestCopy, collectionUid));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
         }
@@ -554,8 +609,8 @@ const configureRequest = async (
         break;
       case 'client_credentials':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        (credentials = await getOAuth2TokenUsingClientCredentials(requestCopy));
-        request.oauth2Credentials = credentials;
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingClientCredentials(requestCopy, collectionUid));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
         }
@@ -570,8 +625,8 @@ const configureRequest = async (
         break;
       case 'password':
         interpolateVars(requestCopy, envVars, runtimeVariables, processEnvVars);
-        (credentials = await getOAuth2TokenUsingPasswordCredentials(requestCopy));
-        request.oauth2Credentials = credentials;
+        ({ credentials, url: oauth2Url, credentialsId } = await getOAuth2TokenUsingPasswordCredentials(requestCopy, collectionUid));
+        request.oauth2Credentials = { credentials, url: oauth2Url, collectionUid, credentialsId };
         if (tokenPlacement == 'header') {
           request.headers['Authorization'] = `${tokenPrefix} ${credentials?.access_token}`;
         }
@@ -655,9 +710,10 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
 
     // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
     if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
-      data = JSON.parse(data);
+      data = Buffer?.isBuffer(data)? JSON.parse(data?.toString()) : JSON.parse(data);
     }
-  } catch { 
+  } catch(error) {
+    console.error(error);
     console.log('Failed to parse response data as JSON');
    }
 

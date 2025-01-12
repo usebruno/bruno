@@ -262,7 +262,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
     const tokenPlacementKey = _.find(auth, { name: 'tokenPlacement' });
     const tokenPrefixKey = _.find(auth, { name: 'tokenPrefix' });
     const tokenQueryParamKeyKey = _.find(auth, { name: 'tokenQueryParamKey' });
-    const reuseTokenKey = _.find(auth, { name: 'reuseTokenKey' });
+    const reuseTokenKey = _.find(auth, { name: 'reuseToken' });
     return {
       auth: {
         oauth2:
@@ -279,7 +279,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -296,7 +296,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -309,7 +309,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : {}
       }

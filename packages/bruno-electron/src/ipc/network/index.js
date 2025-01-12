@@ -16,32 +16,11 @@ const { preferencesUtil } = require('../../store/preferences');
 const { getProcessEnvVars } = require('../../store/process-env');
 const { getBrunoConfig } = require('../../store/bruno-config');
 const { chooseFileToSave, writeBinaryFile, writeFile } = require('../../utils/filesystem');
-const { addCookieToJar, getDomainsWithCookies } = require('../../utils/cookies');
+const { addCookieToJar, getDomainsWithCookies, getCookieStringForUrl } = require('../../utils/cookies');
 const Oauth2Store = require('../../store/oauth2');
 const FormData = require('form-data');
 const { createFormData } = require('../../utils/form-data');
-const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively } = require('../../utils/collection');
-
-const getEnvVars = (environment = {}) => {
-  const variables = environment.variables;
-  if (!variables || !variables.length) {
-    return {
-      __name__: environment.name
-    };
-  }
-
-  const envVars = {};
-  each(variables, (variable) => {
-    if (variable.enabled) {
-      envVars[variable.name] = variable.value;
-    }
-  });
-
-  return {
-    ...envVars,
-    __name__: environment.name
-  };
-};
+const { findItemInCollectionByPathname, sortFolder, getAllRequestsInFolderRecursively, getEnvVars } = require('../../utils/collection');
 
 const saveCookies = (url, headers) => {
   if (preferencesUtil.shouldStoreCookies()) {
@@ -293,6 +272,15 @@ const registerNetworkIpc = (mainWindow) => {
         cancelTokenUid
       });
 
+      if (request?.oauth2Credentials) {
+        mainWindow.webContents.send('main:credentials-update', {
+          credentials: request?.oauth2Credentials?.credentials,
+          url: request?.oauth2Credentials?.url,
+          collectionUid,
+          credentialsId: request?.oauth2Credentials?.credentialsId
+        });
+      }
+
       let response, responseTime;
       try {
         /** @type {import('axios').AxiosResponse} */
@@ -433,14 +421,25 @@ const registerNetworkIpc = (mainWindow) => {
     return await runRequest({ item, collection, environment, runtimeVariables });
   });
 
-  ipcMain.handle('clear-oauth2-cache', async (event, uid) => {
+  ipcMain.handle('clear-oauth2-cache', async (event, uid, url) => {
     return new Promise((resolve, reject) => {
       try {
         const oauth2Store = new Oauth2Store();
-        oauth2Store.clearSessionIdOfCollection(uid);
+        oauth2Store.clearSessionIdOfCollection({ collectionUid: uid, url });
         resolve();
       } catch (err) {
         reject(new Error('Could not clear oauth2 cache'));
+      }
+    });
+  });
+
+  ipcMain.handle('read-oauth2-cached-credentials', async (event, uid) => {
+    return new Promise((resolve, reject) => {
+      try {
+        const oauth2Store = new Oauth2Store();
+        return resolve(oauth2Store.getOauth2DataOfCollection(uid).credentials ?? {});
+      } catch (err) {
+        reject(new Error('Could not read cached oauth2 credentials'));
       }
     });
   });
@@ -611,7 +610,7 @@ const registerNetworkIpc = (mainWindow) => {
 
           stopRunnerExecution = false;
 
-          const item = folderRequests[currentRequestIndex];
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
@@ -694,6 +693,15 @@ const registerNetworkIpc = (mainWindow) => {
               processEnvVars,
               collectionPath
             );
+
+            if (request?.oauth2Credentials) {
+              mainWindow.webContents.send('main:credentials-update', {
+                credentials: request?.oauth2Credentials?.credentials,
+                url: request?.oauth2Credentials?.url,
+                collectionUid,
+                credentialsId: request?.oauth2Credentials?.credentialsId
+              });
+            }
 
             timeStart = Date.now();
             let response, responseTime;

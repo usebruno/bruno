@@ -1,7 +1,3 @@
-const fs = require('fs');
-const FormData = require('form-data');
-const { forOwn } = require('lodash');
-const path = require('path');
 const iconv = require('iconv-lite');
 
 const lpad = (str, width) => {
@@ -44,7 +40,7 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
       data = JSON.parse(data);
     }
   } catch {
-    console.log('Failed to parse response data as JSON');
+
   }
 
   return { data, dataBuffer };

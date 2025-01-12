@@ -15,6 +15,7 @@ const getContentType = (headers = {}) => {
 
 const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, processEnvVars = {}) => {
   const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+  const oauth2CredentialVariables = request?.oauth2CredentialVariables || {};
   const collectionVariables = request?.collectionVariables || {};
   const folderVariables = request?.folderVariables || {};
   const requestVariables = request?.requestVariables || {};
@@ -45,6 +46,7 @@ const interpolateVars = (request, envVariables = {}, runtimeVariables = {}, proc
       ...envVariables,
       ...folderVariables,
       ...requestVariables,
+      ...oauth2CredentialVariables,
       ...runtimeVariables,
       process: {
         env: {

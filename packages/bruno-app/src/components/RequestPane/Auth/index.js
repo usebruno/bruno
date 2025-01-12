@@ -8,7 +8,7 @@ import DigestAuth from './DigestAuth';
 import WsseAuth from './WsseAuth';
 import ApiKeyAuth from './ApiKeyAuth';
 import StyledWrapper from './StyledWrapper';
-import { humanizeRequestAuthMode } from 'utils/collections/index';
+import { humanizeRequestAuthMode } from 'utils/collections';
 import OAuth2 from './OAuth2/index';
 
 const Auth = ({ item, collection }) => {
@@ -42,24 +42,12 @@ const Auth = ({ item, collection }) => {
       }
       case 'inherit': {
         return (
-          <div className="flex flex-row w-full mt-2 gap-2">
-            {collectionAuth?.mode === 'oauth2' ? (
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-row gap-1">
-                  <div>Collection level auth is: </div>
-                  <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
-                </div>
-                <div className="text-sm opacity-50">
-                  Note: You need to use scripting to set the access token in the request headers.
-                </div>
-              </div>
-            ) : (
-              <>
-                <div>Auth inherited from the Collection: </div>
-                <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
-              </>
-            )}
-          </div>
+          <>
+            <div className="flex flex-row w-full mt-2 gap-2">
+              <div>Auth inherited from the Collection: </div>
+              <div className="inherit-mode-text">{humanizeRequestAuthMode(collectionAuth?.mode)}</div>
+            </div>
+          </>
         );
       }
     }

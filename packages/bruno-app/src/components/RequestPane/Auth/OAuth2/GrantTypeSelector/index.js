@@ -4,16 +4,15 @@ import Dropdown from 'components/Dropdown';
 import { useDispatch } from 'react-redux';
 import StyledWrapper from './StyledWrapper';
 import { IconCaretDown } from '@tabler/icons';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
 import { humanizeGrantType } from 'utils/collections';
 import { useEffect } from 'react';
 
-const GrantTypeSelector = ({ item, collection }) => {
+const GrantTypeSelector = ({ item = {}, request, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
-  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
+  const oAuth = get(request, 'auth.oauth2', {});
 
   const Icon = forwardRef((props, ref) => {
     return (

@@ -484,7 +484,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
             ? {
@@ -501,7 +501,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
             ? {
@@ -514,7 +514,7 @@ const sem = grammar.createSemantics().addAttribute('ast', {
                 tokenPlacement: tokenPlacementKey?.value ? tokenPlacementKey.value : 'header',
                 tokenPrefix: tokenPrefixKey?.value ? tokenPrefixKey.value : 'Bearer',
                 tokenQueryParamKey: tokenQueryParamKeyKey?.value ? tokenQueryParamKeyKey.value : 'access_token',
-                reuseToken: reuseTokenKey?.value ? reuseTokenKey.value : false
+                reuseToken: reuseTokenKey?.value ? JSON.parse(reuseTokenKey?.value || false) : false
               }
             : {}
       }

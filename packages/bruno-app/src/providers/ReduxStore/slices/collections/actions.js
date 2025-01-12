@@ -34,7 +34,8 @@ import {
   resetRunResults,
   responseReceived,
   updateLastAction,
-  setCollectionSecurityConfig
+  setCollectionSecurityConfig,
+  collectionAddOauth2CredentialsByUrl
 } from './index';
 
 import { each } from 'lodash';
@@ -44,7 +45,7 @@ import { parsePathParams, parseQueryParams, splitOnFirst } from 'utils/url/index
 import { sendCollectionOauth2Request as _sendCollectionOauth2Request } from 'utils/network/index';
 import { name } from 'file-loader';
 import slash from 'utils/common/slash';
-import { getGlobalEnvironmentVariables } from 'utils/collections/index';
+import { getEnvVars, getGlobalEnvironmentVariables } from 'utils/collections/index';
 import { findCollectionByPathname, findEnvironmentInCollectionByName } from 'utils/collections/index';
 
 export const renameCollection = (newName, collectionUid) => (dispatch, getState) => {
@@ -1194,14 +1195,36 @@ export const hydrateCollectionWithUiStateSnapshot = (payload) => (dispatch, getS
     });
   };
 
-export const getOauth2Credentials = (payload) => (dispatch, getState) => {
-  const { collectionUid, url, credentialsId } = payload;
+export const fetchOauth2Credentials = (payload) => async (dispatch, getState) => {
+  const { request, collection } = payload;
   return new Promise((resolve, reject) => {
     ipcRenderer
-    .invoke('renderer:get-stored-oauth2-credentials', collectionUid, url, credentialsId)
-    .then((credentials) => {
+    .invoke('renderer:fetch-oauth2-credentials', { request, collection })
+    .then(({ credentials, url, collectionUid, credentialsId }) => {
+      dispatch(collectionAddOauth2CredentialsByUrl({ credentials, url, collectionUid, credentialsId }));
       resolve(credentials);
     })
     .catch(reject);
   })    
 }
+
+export const refreshOauth2Credentials = (payload) => async (dispatch, getState) => {
+  const { request, collection } = payload;
+  return new Promise((resolve, reject) => {
+    ipcRenderer
+    .invoke('renderer:refresh-oauth2-credentials', { request, collection })
+    .then(({ credentials, url, collectionUid, credentialsId }) => {
+      dispatch(collectionAddOauth2CredentialsByUrl({ credentials, url, collectionUid, credentialsId }));
+      resolve(credentials);
+    })
+    .catch(reject);
+  })    
+}
+
+export const clearOauth2Cache = (payload) => async (dispatch, getState) => {
+  const { collectionUid, url } = payload;
+  return new Promise((resolve, reject) => {
+    const { ipcRenderer } = window;
+    ipcRenderer.invoke('clear-oauth2-cache', collectionUid, url).then(resolve).catch(reject);
+  });
+};

@@ -11,7 +11,11 @@ const persistOauth2Credentials = ({ collectionUid, url, credentials, credentials
   oauth2Store.updateCredentialsForCollection({ collectionUid, url, credentials, credentialsId });
 }
 
-const getOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
+const clearOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
+  oauth2Store.clearCredentialsForCollection({ collectionUid, url, credentialsId });
+}
+
+const getStoredOauth2Credentials = ({ collectionUid, url, credentialsId }) => {
   const credentials = oauth2Store.getCredentialsForCollection({ collectionUid, url, credentialsId });
   return credentials;
 }
@@ -28,9 +32,9 @@ const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
   if (reuseToken) {
-    const credentials = getOauth2Credentials({ collectionUid, url, credentialsId });
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
     if (credentials) {
-      return credentials;
+      return { collectionUid, url, credentials, credentialsId };
     }
   }
 
@@ -53,15 +57,16 @@ const getOAuth2TokenUsingAuthorizationCode = async (request, collectionUid) => {
 
   const axiosInstance = makeAxiosInstance();
   const response = await axiosInstance(requestCopy);
-  const parsedResponseData = safeParseJSON(response.data?.toString());
+  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+  const parsedResponseData = safeParseJSON(responseData);
   persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return parsedResponseData;
+  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
 };
 
 const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
   return new Promise(async (resolve, reject) => {
     const { oauth2 } = request;
-    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce } = oauth2;
+    const { callbackUrl, clientId, authorizationUrl, scope, state, pkce, accessTokenUrl } = oauth2;
 
     const authorizationUrlWithQueryParams = new URL(authorizationUrl);
     authorizationUrlWithQueryParams.searchParams.append('response_type', 'code');
@@ -84,7 +89,7 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
       const { authorizationCode } = await authorizeUserInWindow({
         authorizeUrl,
         callbackUrl,
-        session: oauth2Store.getSessionIdOfCollection(collectionUid)
+        session: oauth2Store.getSessionIdOfCollection({ collectionUid, url: accessTokenUrl })
       });
       resolve({ authorizationCode });
     } catch (err) {
@@ -95,10 +100,10 @@ const getOAuth2AuthorizationCode = (request, codeChallenge, collectionUid) => {
 
 // CLIENT CREDENTIALS
 
-const getOAuth2TokenUsingClientCredentials = async (request) => {
+const getOAuth2TokenUsingClientCredentials = async (request, collectionUid) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { clientId, clientSecret, scope, credentialsId } = oAuth;
+  const { clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
   const data = {
     grant_type: 'client_credentials',
     client_id: clientId,
@@ -110,24 +115,33 @@ const getOAuth2TokenUsingClientCredentials = async (request) => {
 
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
+  if (reuseToken) {
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    if (credentials) {
+      return { collectionUid, url, credentials, credentialsId };
+    }
+  }
+
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.data = data;
   requestCopy.url = url;
 
   const axiosInstance = makeAxiosInstance();
+
   const response = await axiosInstance(requestCopy);
-  const parsedResponseData = safeParseJSON(response.data);
+  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+  const parsedResponseData = safeParseJSON(responseData);
   persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return parsedResponseData;
+  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
 };
 
 // PASSWORD CREDENTIALS
 
-const getOAuth2TokenUsingPasswordCredentials = async (request) => {
+const getOAuth2TokenUsingPasswordCredentials = async (request, collectionUid) => {
   let requestCopy = cloneDeep(request);
   const oAuth = get(requestCopy, 'oauth2', {});
-  const { username, password, clientId, clientSecret, scope, credentialsId } = oAuth;
+  const { username, password, clientId, clientSecret, scope, credentialsId, reuseToken } = oAuth;
   const data = {
     grant_type: 'password',
     username,
@@ -140,6 +154,13 @@ const getOAuth2TokenUsingPasswordCredentials = async (request) => {
   }
   const url = requestCopy?.oauth2?.accessTokenUrl;
 
+  if (reuseToken) {
+    const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+    if (credentials) {
+      return { collectionUid, url, credentials, credentialsId };
+    }
+  }
+
   requestCopy.method = 'POST';
   requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
   requestCopy.data = data;
@@ -147,10 +168,50 @@ const getOAuth2TokenUsingPasswordCredentials = async (request) => {
 
   const axiosInstance = makeAxiosInstance();
   const response = await axiosInstance(requestCopy);
-  const parsedResponseData = safeParseJSON(response.data);
+  const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+  const parsedResponseData = safeParseJSON(responseData);
   persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
-  return parsedResponseData;
+  return { collectionUid, url, credentials: parsedResponseData, credentialsId };
 };
+
+const refreshOauth2Token = async (request, collectionUid) => {
+  let requestCopy = cloneDeep(request);
+  const oAuth = get(requestCopy, 'oauth2', {});
+  const { clientId, clientSecret, credentialsId } = oAuth;
+  const url = requestCopy?.oauth2?.accessTokenUrl;
+
+  const credentials = getStoredOauth2Credentials({ collectionUid, url, credentialsId });
+  if (!credentials?.refresh_token) {
+    clearOauth2Credentials({ collectionUid, url, credentialsId });
+    let error = new Error('no refresh token found');
+    return Promise.reject(error);
+  }
+  else {
+    const data = {
+      grant_type: 'refresh_token',
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: credentials?.refresh_token
+    };
+    requestCopy.method = 'POST';
+    requestCopy.headers['content-type'] = 'application/x-www-form-urlencoded';
+    requestCopy.data = data;
+    requestCopy.url = url;
+
+    const axiosInstance = makeAxiosInstance();
+    try {
+      const response = await axiosInstance(requestCopy);
+      const responseData = Buffer.isBuffer(response.data) ? response.data?.toString() : response.data;
+      const parsedResponseData = safeParseJSON(responseData);
+      persistOauth2Credentials({ collectionUid, url, credentials: parsedResponseData, credentialsId });
+      return { collectionUid, url, credentials: parsedResponseData, credentialsId };
+    }
+    catch(error) {
+      clearOauth2Credentials({ collectionUid, url, credentialsId });
+      return Promise.reject(error);
+    }
+  }
+}
 
 
 // HELPER FUNCTIONS
@@ -170,5 +231,6 @@ module.exports = {
   getOAuth2TokenUsingAuthorizationCode,
   getOAuth2AuthorizationCode,
   getOAuth2TokenUsingClientCredentials,
-  getOAuth2TokenUsingPasswordCredentials
+  getOAuth2TokenUsingPasswordCredentials,
+  refreshOauth2Token
 };

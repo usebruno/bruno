@@ -2,12 +2,13 @@ import styled from 'styled-components';
 
 const Wrapper = styled.div`
   label {
+    display: block;
     font-size: 0.8125rem;
   }
-  .single-line-editor-wrapper {
+
+  textarea {
+    height: fit-content;
     max-width: 400px;
-    padding: 0.15rem 0.4rem;
-    border-radius: 3px;
     border: solid 1px ${(props) => props.theme.input.border};
     background-color: ${(props) => props.theme.input.bg};
   }

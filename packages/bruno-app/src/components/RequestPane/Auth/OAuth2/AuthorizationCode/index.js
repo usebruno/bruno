@@ -1,27 +1,33 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
-import { IconCaretDown } from '@tabler/icons';
+import { IconCaretDown, IconLoader2 } from '@tabler/icons';
 import Dropdown from 'components/Dropdown';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { clearOauth2Cache, fetchOauth2Credentials, refreshOauth2Credentials } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
-import { clearOauth2Cache } from 'utils/network/index';
 import toast from 'react-hot-toast';
 import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
+import { cloneDeep, find } from 'lodash';
+import { collectionClearOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
+import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
-const OAuth2AuthorizationCode = ({ item, collection }) => {
+const OAuth2AuthorizationCode = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const [fetchingToken, toggleFetchingToken] = useState(false);
+  const [refreshingToken, toggleRefreshingToken] = useState(false);
 
-  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
-
+  const oAuth = get(request, 'auth.oauth2', {});
+  
   const { callbackUrl, authorizationUrl, accessTokenUrl, clientId, clientSecret, scope, state, pkce, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+
+  const interpolatedAccessTokenUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collection?.uid && creds?.credentialsId == credentialsId)?.credentials;
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -32,37 +38,41 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
     );
   });
 
-  const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid));
-  };
+  const handleFetchOauth2Credentials = async () => {
+    let requestCopy = cloneDeep(request);
+    requestCopy.oauth2 = requestCopy?.auth.oauth2;
+    requestCopy.headers = {};
+    toggleFetchingToken(true);
+    try {
+      await dispatch(fetchOauth2Credentials({ request: requestCopy, collection }));
+      toggleFetchingToken(false);
+    }
+    catch(error) {
+      console.error('could not fetch the token!');
+      console.error(error);
+      toggleFetchingToken(false);
+    }
+  }
 
   const handleRefreshToken = async () => {
-    dispatch(
-      updateAuth({
-        mode: 'oauth2',
-        collectionUid: collection.uid,
-        itemUid: item.uid,
-        content: {
-          grantType: 'authorization_code',
-          callbackUrl,
-          authorizationUrl,
-          accessTokenUrl,
-          clientId,
-          clientSecret,
-          state,
-          scope,
-          credentialsId,
-          tokenPlacement,
-          tokenPrefix,
-          tokenQueryParamKey,
-          reuseToken: false,
-          pkce
-        }
-      })
-    );
+    if (refreshingToken && !credentialsData?.refresh_token) return;
+    let requestCopy = cloneDeep(request);
+    requestCopy.oauth2 = requestCopy?.auth.oauth2;
+    requestCopy.headers = {};
+    toggleRefreshingToken(true);
+    try {
+      await dispatch(refreshOauth2Credentials({ request: requestCopy, collection }));
+      toggleRefreshingToken(false);
+    }
+    catch(error) {
+      await dispatch(collectionClearOauth2CredentialsByUrl({ url: interpolatedAccessTokenUrl, collectionUid: collection?.uid, credentialsId }));
+      console.error('unable to refresh the token!');
+      console.error(error);
+      toggleRefreshingToken(false);
+    }
   };
 
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const handleSave = () => {save();};
 
   const handleChange = (key, value) => {
     dispatch(
@@ -144,7 +154,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   };
 
   const handleClearCache = (e) => {
-    clearOauth2Cache(collection?.uid)
+    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: accessTokenUrl }))
       .then(() => {
         toast.success('cleared cache successfully');
       })
@@ -154,7 +164,7 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
   };
 
   return (
-    <StyledWrapper className="mt-2 flex w-full gap-4 flex-col h-[1px]">
+    <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <div className="flex flex-row w-full justify-start gap-2 mt-4" key="reuseToken">
         <input
           className="cursor-pointer"
@@ -164,10 +174,10 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
         />
         <label className="block font-medium">Use Existing Token</label>
       </div>
+      <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
       {
         reuseToken ?
           <>
-            <Oauth2TokenViewer collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
             <div className="flex flex-col w-full gap-1" key={`input-token-name`}>
               <label className="block font-medium">Credentials ID</label>
               <div className="single-line-editor-wrapper">
@@ -238,9 +248,16 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
                 </div>
             }
             <div className="flex flex-row gap-4">
-              <button onClick={handleRefreshToken} className="submit btn btn-sm btn-secondary w-fit">
-                Refresh Access Token
-              </button>
+              {
+                credentialsData?.refresh_token?
+                  <button onClick={handleRefreshToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row ${refreshingToken? 'opacity-50': ''}`}>
+                    Refresh Access Token{refreshingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+                  </button>
+                :
+                  <button onClick={handleFetchOauth2Credentials} className={`submit btn btn-sm btn-secondary w-fit flex flex-row ${refreshingToken? 'opacity-50': ''}`}>
+                    Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+                  </button>
+              }
               <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
                 Clear Cache
               </button>
@@ -347,8 +364,8 @@ const OAuth2AuthorizationCode = ({ item, collection }) => {
                 </div>
             }
             <div className="flex flex-row gap-4">
-              <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-                Get Access Token
+              <button onClick={handleFetchOauth2Credentials} className="submit btn btn-sm btn-secondary w-fit flex flex-row">
+                Get Access Token{fetchingToken? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
               </button>
               <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
                 Clear Cache

@@ -1753,6 +1753,35 @@ export const collectionsSlice = createSlice({
           set(folder, 'root.docs', action.payload.docs);
         }
       }
+    },
+    collectionAddOauth2CredentialsByUrl: (state, action) => {
+      const { collectionUid, url, credentials, credentialsId } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      if (!collection?.oauth2Credentials) {
+        collection.oauth2Credentials = [];
+      }
+      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
+      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
+      filterdOauth2Credentials.push({ collectionUid, url, credentials, credentialsId });
+      collection.oauth2Credentials = filterdOauth2Credentials;
+    },
+    collectionClearOauth2CredentialsByUrl: (state, action) => {
+      const { collectionUid, url, credentialsId } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      if (!collection) return;
+      if (!collection?.oauth2Credentials) {
+        collection.oauth2Credentials = [];
+      }
+      let collectionOauth2Credentials = cloneDeep(collection?.oauth2Credentials);
+      const filterdOauth2Credentials = filter(collectionOauth2Credentials, creds => !(creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
+      collection.oauth2Credentials = filterdOauth2Credentials;
+    },
+    collectionGetOauth2CredentialsByUrl: (state, action) => {
+      const { collectionUid, url, credentialsId } = action.payload;
+      const collection = findCollectionByUid(state.collections, collectionUid);
+      const oauth2Credentials = find(collection?.oauth2Credentials || [], creds => (creds?.url == url && creds?.collectionUid == collectionUid && creds?.credentialsId == credentialsId));
+      return oauth2Credentials;
     }
   }
 });
@@ -1848,7 +1877,10 @@ export const {
   runFolderEvent,
   resetCollectionRunner,
   updateRequestDocs,
-  updateFolderDocs
+  updateFolderDocs,
+  collectionAddOauth2CredentialsByUrl,
+  collectionClearOauth2CredentialsByUrl,
+  collectionGetOauth2CredentialsByUrl
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

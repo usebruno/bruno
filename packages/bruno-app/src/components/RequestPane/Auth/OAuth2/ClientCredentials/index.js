@@ -1,30 +1,69 @@
-import React, { useRef, forwardRef } from 'react';
+import React, { useRef, forwardRef, useState } from 'react';
 import get from 'lodash/get';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { IconCaretDown } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
-import { updateAuth } from 'providers/ReduxStore/slices/collections';
-import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { fetchOauth2Credentials, refreshOauth2Credentials, clearOauth2Cache } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import { inputsConfig } from './inputsConfig';
 import Dropdown from 'components/Dropdown';
+import Oauth2TokenViewer from '../Oauth2TokenViewer/index';
+import toast from 'react-hot-toast';
+import { cloneDeep } from 'lodash';
+import { collectionClearOauth2CredentialsByUrl } from 'providers/ReduxStore/slices/collections/index';
+import { interpolateStringUsingCollectionAndItem } from 'utils/collections/index';
 
-const OAuth2ClientCredentials = ({ item, collection }) => {
+const OAuth2ClientCredentials = ({ save, item = {}, request, handleRun, updateAuth, collection }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const dropdownTippyRef = useRef();
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
+  const [fetchingToken, toggleFetchingToken] = useState(false);
+  const [refreshingToken, toggleRefreshingToken] = useState(false);
 
-  const oAuth = item.draft ? get(item, 'draft.request.auth.oauth2', {}) : get(item, 'request.auth.oauth2', {});
-
-  const handleRun = async () => {
-    dispatch(sendRequest(item, collection.uid));
-  };
-
-  const handleSave = () => dispatch(saveRequest(item.uid, collection.uid));
+  const oAuth = get(request, 'auth.oauth2', {});
 
   const { accessTokenUrl, clientId, clientSecret, scope, credentialsId, tokenPlacement, tokenPrefix, tokenQueryParamKey, reuseToken } = oAuth;
+
+  const interpolatedAccessTokenUrl = interpolateStringUsingCollectionAndItem({ collection, item, string: accessTokenUrl });
+  const credentialsData = find(collection?.oauth2Credentials, creds => creds?.url == interpolatedAccessTokenUrl && creds?.collectionUid == collection?.uid && creds?.credentialsId == credentialsId)?.credentials;
+
+  const handleFetchOauth2Credentials = async () => {
+    let requestCopy = cloneDeep(request);
+    requestCopy.oauth2 = requestCopy?.auth.oauth2;
+    requestCopy.headers = {};
+    toggleFetchingToken(true);
+    try {
+      await dispatch(fetchOauth2Credentials({ request: requestCopy, collection }));
+      toggleFetchingToken(false);
+    }
+    catch (error) {
+      console.error('could not fetch the token!');
+      console.error(error);
+      toggleFetchingToken(false);
+    }
+  }
+
+  const handleRefreshToken = async () => {
+    if (refreshingToken && !credentialsData?.refresh_token) return;
+    let requestCopy = cloneDeep(request);
+    requestCopy.oauth2 = requestCopy?.auth.oauth2;
+    requestCopy.headers = {};
+    toggleRefreshingToken(true);
+    try {
+      await dispatch(refreshOauth2Credentials({ request: requestCopy, collection }));
+      toggleRefreshingToken(false);
+    }
+    catch (error) {
+      await dispatch(collectionClearOauth2CredentialsByUrl({ url: interpolatedAccessTokenUrl, collectionUid: collection?.uid, credentialsId }));
+      console.error('unable to refresh the token!');
+      console.error(error);
+      toggleRefreshingToken(false);
+    }
+  };
+
+  const handleSave = () => { save(); };
 
   const Icon = forwardRef((props, ref) => {
     return (
@@ -81,6 +120,17 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
     );
   };
 
+  const handleClearCache = (e) => {
+    dispatch(clearOauth2Cache({ collectionUid: collection?.uid, url: accessTokenUrl }))
+      .then(() => {
+        toast.success('cleared cache successfully');
+      })
+      .catch((err) => {
+        toast.error(err.message);
+      });
+  };
+  
+
   return (
     <StyledWrapper className="mt-2 flex w-full gap-4 flex-col">
       <div className="flex flex-row w-full justify-start gap-2 mt-4" key="reuseToken">
@@ -93,7 +143,18 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
         <label className="block font-medium">Use Existing Token</label>
       </div>
       {
-        reuseToken ? <Oauth2TokenViewer collection={collection} url={accessTokenUrl} credentialsId={credentialsId} />
+        reuseToken ?
+          <>
+            <Oauth2TokenViewer handleRun={handleRun} collection={collection} item={item} url={accessTokenUrl} credentialsId={credentialsId} />
+            <div className="flex flex-row gap-4">
+              <button onClick={handleRefreshToken} className={`submit btn btn-sm btn-secondary w-fit flex flex-row ${refreshingToken ? 'opacity-50' : ''}`}>
+                Refresh Access Token{refreshingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+              </button>
+              <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+                Clear Cache
+              </button>
+            </div>
+          </>
           :
           <>
             {inputsConfig.map((input) => {
@@ -185,11 +246,14 @@ const OAuth2ClientCredentials = ({ item, collection }) => {
                   </div>
                 </div>
             }
+            <button onClick={handleFetchOauth2Credentials} className="submit btn btn-sm btn-secondary w-fit flex flex-row">
+              Get Access Token{fetchingToken ? <IconLoader2 className="animate-spin ml-2" size={18} strokeWidth={1.5} /> : ""}
+            </button>
+            <button onClick={handleClearCache} className="submit btn btn-sm btn-secondary w-fit">
+              Clear Cache
+            </button>
           </>
       }
-      <button onClick={handleRun} className="submit btn btn-sm btn-secondary w-fit">
-        Get Access Token
-      </button>
     </StyledWrapper>
   );
 };
