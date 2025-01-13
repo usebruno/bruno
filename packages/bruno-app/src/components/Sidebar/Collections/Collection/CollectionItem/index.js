@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, revealInFinder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -220,6 +220,12 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
+  const handleReveal = () => {
+    dispatch(revealInFinder(item.pathname)).catch((error) => {
+      toast.error('Error revealing file:', error);
+    });
+  };
+
   const requestItems = sortRequestItems(filter(item.items, (i) => isItemARequest(i)));
   const folderItems = sortFolderItems(filter(item.items, (i) => isItemAFolder(i)));
 
@@ -369,6 +375,17 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   }}
                 >
                   Generate Code
+                </div>
+              )}
+              {!isFolder && (
+                <div
+                  className="dropdown-item"
+                  onClick={(e) => {
+                    dropdownTippyRef.current.hide();
+                    handleReveal();
+                  }}
+                >
+                  Reveal in Finder
                 </div>
               )}
               <div

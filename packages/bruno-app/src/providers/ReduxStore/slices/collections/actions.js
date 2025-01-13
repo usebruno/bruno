@@ -1219,3 +1219,12 @@ export const mountCollection = ({ collectionUid, collectionPathname, brunoConfig
       });
   });
 };
+
+  export const revealInFinder = (collectionPath) => () => {
+    return new Promise((resolve, reject) => {
+      const { ipcRenderer } = window;
+  
+      ipcRenderer.invoke('renderer:reveal-in-finder', collectionPath).then(resolve).catch(reject);
+    });
+  };
+  
