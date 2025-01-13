@@ -1,0 +1,16 @@
+meta {
+  name: folder
+}
+
+script:pre-request {
+  console.log("folder pre");
+}
+
+script:post-response {
+  {
+    const sequence = bru.getVar('sequence') || [];
+    sequence.push(2);
+    bru.setVar('sequence', sequence);
+  }
+  console.log("folder post");
+}

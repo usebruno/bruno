@@ -48,7 +48,7 @@ Bruno is being developed as a desktop app. You need to load the app by running t
 ### Local Development
 
 ```bash
-# use nodejs 18 version
+# use nodejs 20 version
 nvm use
 
 # install deps
