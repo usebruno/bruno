@@ -24,7 +24,15 @@ const Wrapper = styled.div`
         width: 30%;
       }
 
+      &:nth-child(2) {
+        width: 45%;
+      }
+
       &:nth-child(3) {
+        width: 25%;
+      }
+
+      &:nth-child(4) {
         width: 70px;
       }
     }

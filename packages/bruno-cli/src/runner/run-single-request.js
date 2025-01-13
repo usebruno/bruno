@@ -17,10 +17,11 @@ const { HttpProxyAgent } = require('http-proxy-agent');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const { makeAxiosInstance } = require('../utils/axios-instance');
 const { addAwsV4Interceptor, resolveAwsV4Credentials } = require('./awsv4auth-helper');
-const { shouldUseProxy, PatchedHttpsProxyAgent } = require('../utils/proxy-util');
+const { shouldUseProxy, PatchedHttpsProxyAgent, getSystemProxyEnvVariables } = require('../utils/proxy-util');
 const path = require('path');
-const { createFormData } = require('../utils/common');
+const { parseDataFromResponse } = require('../utils/common');
 const { getCookieStringForUrl, saveCookies, shouldUseCookies } = require('../utils/cookies');
+const { createFormData } = require('../utils/form-data');
 const protocolRegex = /^([-+\w]{1,25})(:?\/\/|:)/;
 
 const onConsoleLog = (type, args) => {
@@ -36,13 +37,17 @@ const runSingleRequest = async function (
   processEnvVars,
   brunoConfig,
   collectionRoot,
-  runtime
+  runtime,
+  collection
 ) {
   try {
     let request;
     let nextRequestName;
-
-    request = prepareRequest(bruJson.request, collectionRoot);
+    let item = {
+      pathname: path.join(collectionPath, filename),
+      ...bruJson
+    }
+    request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
 
@@ -50,10 +55,7 @@ const runSingleRequest = async function (
     scriptingConfig.runtime = runtime;
 
     // run pre request script
-    const requestScriptFile = compact([
-      get(collectionRoot, 'request.script.req'),
-      get(bruJson, 'request.script.req')
-    ]).join(os.EOL);
+    const requestScriptFile = get(request, 'script.req');
     if (requestScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runRequestScript(
@@ -139,39 +141,85 @@ const runSingleRequest = async function (
       }
     }
 
-    // set proxy if enabled
-    const proxyEnabled = get(brunoConfig, 'proxy.enabled', false);
-    const shouldProxy = shouldUseProxy(request.url, get(brunoConfig, 'proxy.bypassProxy', ''));
-    if (proxyEnabled && shouldProxy) {
-      const proxyProtocol = interpolateString(get(brunoConfig, 'proxy.protocol'), interpolationOptions);
-      const proxyHostname = interpolateString(get(brunoConfig, 'proxy.hostname'), interpolationOptions);
-      const proxyPort = interpolateString(get(brunoConfig, 'proxy.port'), interpolationOptions);
-      const proxyAuthEnabled = get(brunoConfig, 'proxy.auth.enabled', false);
-      const socksEnabled = proxyProtocol.includes('socks');
+    let proxyMode = 'off';
+    let proxyConfig = {};
 
-      let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
-      let proxyUri;
-      if (proxyAuthEnabled) {
-        const proxyAuthUsername = interpolateString(get(brunoConfig, 'proxy.auth.username'), interpolationOptions);
-        const proxyAuthPassword = interpolateString(get(brunoConfig, 'proxy.auth.password'), interpolationOptions);
-
-        proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
-      } else {
-        proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+    const collectionProxyConfig = get(brunoConfig, 'proxy', {});
+    const collectionProxyEnabled = get(collectionProxyConfig, 'enabled', false);
+    if (collectionProxyEnabled === true) {
+      proxyConfig = collectionProxyConfig;
+      proxyMode = 'on';
+    } else {
+      // if the collection level proxy is not set, pick the system level proxy by default, to maintain backward compatibility
+      const { http_proxy, https_proxy } = getSystemProxyEnvVariables();
+      if (http_proxy?.length || https_proxy?.length) {
+        proxyMode = 'system';
       }
+    }
 
-      if (socksEnabled) {
-        request.httpsAgent = new SocksProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new SocksProxyAgent(proxyUri);
+    if (proxyMode === 'on') {
+      const shouldProxy = shouldUseProxy(request.url, get(proxyConfig, 'bypassProxy', ''));
+      if (shouldProxy) {
+        const proxyProtocol = interpolateString(get(proxyConfig, 'protocol'), interpolationOptions);
+        const proxyHostname = interpolateString(get(proxyConfig, 'hostname'), interpolationOptions);
+        const proxyPort = interpolateString(get(proxyConfig, 'port'), interpolationOptions);
+        const proxyAuthEnabled = get(proxyConfig, 'auth.enabled', false);
+        const socksEnabled = proxyProtocol.includes('socks');
+        let uriPort = isUndefined(proxyPort) || isNull(proxyPort) ? '' : `:${proxyPort}`;
+        let proxyUri;
+        if (proxyAuthEnabled) {
+          const proxyAuthUsername = interpolateString(get(proxyConfig, 'auth.username'), interpolationOptions);
+          const proxyAuthPassword = interpolateString(get(proxyConfig, 'auth.password'), interpolationOptions);
+
+          proxyUri = `${proxyProtocol}://${proxyAuthUsername}:${proxyAuthPassword}@${proxyHostname}${uriPort}`;
+        } else {
+          proxyUri = `${proxyProtocol}://${proxyHostname}${uriPort}`;
+        }
+        if (socksEnabled) {
+          request.httpsAgent = new SocksProxyAgent(
+            proxyUri,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+          request.httpAgent = new SocksProxyAgent(proxyUri);
+        } else {
+          request.httpsAgent = new PatchedHttpsProxyAgent(
+            proxyUri,
+            Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+          );
+          request.httpAgent = new HttpProxyAgent(proxyUri);
+        }
       } else {
-        request.httpsAgent = new PatchedHttpsProxyAgent(
-          proxyUri,
-          Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
-        );
-        request.httpAgent = new HttpProxyAgent(proxyUri);
+        request.httpsAgent = new https.Agent({
+          ...httpsAgentRequestFields
+        });
+      }
+    } else if (proxyMode === 'system') {
+      const { http_proxy, https_proxy, no_proxy } = getSystemProxyEnvVariables();
+      const shouldUseSystemProxy = shouldUseProxy(request.url, no_proxy || '');
+      if (shouldUseSystemProxy) {
+        try {
+          if (http_proxy?.length) {
+            new URL(http_proxy);
+            request.httpAgent = new HttpProxyAgent(http_proxy);
+          }
+        } catch (error) {
+          throw new Error('Invalid system http_proxy');
+        }
+        try {
+          if (https_proxy?.length) {
+            new URL(https_proxy);
+            request.httpsAgent = new PatchedHttpsProxyAgent(
+              https_proxy,
+              Object.keys(httpsAgentRequestFields).length > 0 ? { ...httpsAgentRequestFields } : undefined
+            );
+          }
+        } catch (error) {
+          throw new Error('Invalid system https_proxy');
+        }
+      } else {
+        request.httpsAgent = new https.Agent({
+          ...httpsAgentRequestFields
+        });
       }
     } else if (Object.keys(httpsAgentRequestFields).length > 0) {
       request.httpsAgent = new https.Agent({
@@ -226,6 +274,9 @@ const runSingleRequest = async function (
       /** @type {import('axios').AxiosResponse} */
       response = await axiosInstance(request);
 
+      const { data } = parseDataFromResponse(response, request.__brunoDisableParsingResponseJson);
+      response.data = data;
+
       // Prevents the duration on leaking to the actual result
       responseTime = response.headers.get('request-duration');
       response.headers.delete('request-duration');
@@ -236,6 +287,8 @@ const runSingleRequest = async function (
       }
     } catch (err) {
       if (err?.response) {
+        const { data } = parseDataFromResponse(err?.response);
+        err.response.data = data;
         response = err.response;
 
         // Prevents the duration on leaking to the actual result
@@ -291,10 +344,7 @@ const runSingleRequest = async function (
     }
 
     // run post response script
-    const responseScriptFile = compact([
-      get(collectionRoot, 'request.script.res'),
-      get(bruJson, 'request.script.res')
-    ]).join(os.EOL);
+    const responseScriptFile = get(request, 'script.res');
     if (responseScriptFile?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       const result = await scriptRuntime.runResponseScript(
@@ -339,7 +389,7 @@ const runSingleRequest = async function (
 
     // run tests
     let testResults = [];
-    const testFile = compact([get(collectionRoot, 'request.tests'), get(bruJson, 'request.tests')]).join(os.EOL);
+    const testFile = get(request, 'tests');
     if (typeof testFile === 'string') {
       const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
       const result = await testRuntime.runTests(

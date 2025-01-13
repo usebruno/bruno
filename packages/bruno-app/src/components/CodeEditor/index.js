@@ -76,7 +76,11 @@ if (!SERVER_RENDERED) {
     'bru.getRequestVar(key)',
     'bru.sleep(ms)',
     'bru.getGlobalEnvVar(key)',
-    'bru.setGlobalEnvVar(key, value)'
+    'bru.setGlobalEnvVar(key, value)',
+    'bru.runner',
+    'bru.runner.setNextRequest(requestName)',
+    'bru.runner.skipRequest()',
+    'bru.runner.stopExecution()'
   ];
   CodeMirror.registerHelper('hint', 'brunoJS', (editor, options) => {
     const cursor = editor.getCursor();
@@ -98,7 +102,7 @@ if (!SERVER_RENDERED) {
     if (curWordBru) {
       hintWords.forEach((h) => {
         if (h.includes('.') == curWordBru.includes('.') && h.startsWith(curWordBru)) {
-          result.list.push(curWordBru.includes('.') ? h.split('.')[1] : h);
+          result.list.push(curWordBru.includes('.') ? h.split('.')?.at(-1) : h);
         }
       });
       result.list?.sort();

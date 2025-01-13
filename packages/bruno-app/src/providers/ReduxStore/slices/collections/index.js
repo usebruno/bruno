@@ -1,6 +1,5 @@
 import { uuid } from 'utils/common';
-import path from 'path';
-import { find, map, forOwn, concat, filter, each, cloneDeep, get, set, debounce } from 'lodash';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
 import {
   addDepth,
@@ -13,6 +12,7 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  isItemAFolder,
   isItemARequest
 } from 'utils/collections';
 import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
@@ -765,6 +765,7 @@ export const collectionsSlice = createSlice({
             name: '',
             value: action.payload.value,
             description: '',
+            contentType: '',
             enabled: true
           });
         }
@@ -786,6 +787,7 @@ export const collectionsSlice = createSlice({
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
+            param.contentType = action.payload.param.contentType;
             param.enabled = action.payload.param.enabled;
           }
         }
@@ -1673,6 +1675,9 @@ export const collectionsSlice = createSlice({
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.statusText) {
+            info.statusText = action.payload.statusText;
+          }
         }
 
         if (type === 'request-queued') {
@@ -1710,6 +1715,12 @@ export const collectionsSlice = createSlice({
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
         }
+
+        if (type === 'runner-request-skipped') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.status = 'skipped';
+          item.responseReceived = action.payload.responseReceived;
+        }
       }
     },
     resetCollectionRunner: (state, action) => {
@@ -1731,6 +1742,15 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.docs = action.payload.docs;
+        }
+      }
+    },
+    updateFolderDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        if (isItemAFolder(folder)) {
+          set(folder, 'root.docs', action.payload.docs);
         }
       }
     }
@@ -1827,7 +1847,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateFolderDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

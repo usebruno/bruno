@@ -57,6 +57,8 @@ function getDataString(request) {
       console.error('Failed to parse JSON data:', error);
       return { data: request.data.toString() };
     }
+  } else if (contentType && (contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+    return { data: request.data };
   }
 
   const parsedQueryString = querystring.parse(request.data, { sort: false });
@@ -172,14 +174,14 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    if(request.auth.mode === 'basic'){
+    if (request.auth.mode === 'basic') {
       requestJson.auth = {
         mode: 'basic',
         basic: {
           username: repr(request.auth.basic?.username),
           password: repr(request.auth.basic?.password)
         }
-      }
+      };
     }
   }
 
