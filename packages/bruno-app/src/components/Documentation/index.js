@@ -39,7 +39,7 @@ const Documentation = ({ item, collection }) => {
   return (
     <StyledWrapper className="flex flex-col gap-y-1 h-full w-full relative">
       <div className="editing-mode" role="tab" onClick={toggleViewMode}>
-        {isEditing ? 'Preview1' : 'Edit'}
+        {isEditing ? 'Preview' : 'Edit'}
       </div>
 
       {isEditing ? (
