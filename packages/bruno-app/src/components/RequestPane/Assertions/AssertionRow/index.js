@@ -1,8 +1,8 @@
 import React from 'react';
-import { IconTrash } from '@tabler/icons';
 import SingleLineEditor from 'components/SingleLineEditor';
 import AssertionOperator from '../AssertionOperator';
 import { useTheme } from 'providers/Theme';
+import RemoveButton from 'components/RemoveButton/index';
 
 /**
  * Assertion operators
@@ -211,9 +211,7 @@ const AssertionRow = ({
             className="mr-3 mousetrap"
             onChange={(e) => handleAssertionChange(e, assertion, 'enabled')}
           />
-          <button tabIndex="-1" onClick={() => handleRemoveAssertion(assertion)}>
-            <IconTrash strokeWidth={1.5} size={20} />
-          </button>
+          <RemoveButton onClick={() => handleRemoveAssertion(assertion)} />
         </div>
       </td>
     </tr>

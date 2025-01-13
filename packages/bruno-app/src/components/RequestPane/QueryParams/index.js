@@ -2,7 +2,6 @@ import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
 import InfoTip from 'components/InfoTip';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
@@ -18,6 +17,7 @@ import { saveRequest, sendRequest } from 'providers/ReduxStore/slices/collection
 import StyledWrapper from './StyledWrapper';
 import Table from 'components/Table/index';
 import ReorderTable from 'components/ReorderTable';
+import RemoveButton from 'components/RemoveButton';
 
 const QueryParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -160,9 +160,7 @@ const QueryParams = ({ item, collection }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleQueryParamChange(e, param, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveQueryParam(param)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
+                        <RemoveButton onClick={() => handleRemoveQueryParam(param)} />
                       </div>
                     </td>
                   </tr>
