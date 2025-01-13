@@ -3,7 +3,6 @@ const fs = require('fs');
 const fsExtra = require('fs-extra');
 const os = require('os');
 const path = require('path');
-const { exec } = require('child_process');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBruViaWorker, jsonToCollectionBru, bruToJsonViaWorker } = require('../bru');
 
@@ -911,40 +910,17 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     watcher.addWatcher(mainWindow, collectionPathname, collectionUid, brunoConfig, false, shouldLoadCollectionAsync);
   });
 
-  ipcMain.handle('renderer:reveal-in-finder', async (event, filePath) => {
+  ipcMain.handle('renderer:show-in-folder', async (event, filePath) => {
     try {
       if (!filePath) {
-        throw new Error('File path is required.');
+        throw new Error('File path is required');
       }
-  
-      const resolvedPath = path.resolve(filePath);
-  
-      if (!fs.existsSync(resolvedPath)) {
-        throw new Error('The specified file does not exist.');
-      }
-
-      console.log(process.platform, "process.platform")
-  
-      switch (process.platform) {
-        case 'darwin': // macOS
-          shell.showItemInFolder(resolvedPath);
-          break;
-        case 'win32': // Windows
-          shell.showItemInFolder(resolvedPath);
-          break;
-        case 'linux': // Linux
-          exec(`xdg-open "${resolvedPath}"`);
-          break;
-        default:
-          throw new Error('Unsupported platform.');
-      }
-  
-      return { success: true };
+      shell.showItemInFolder(filePath);
     } catch (error) {
-      console.error('Error in reveal-in-finder:', error);
-      return { success: false, message: error.message };
+      console.error('Error in show-in-folder: ', error);
+      throw error;
     }
-  });  
+  });
 };
 
 const registerMainEventHandlers = (mainWindow, watcher, lastOpenedCollections) => {
