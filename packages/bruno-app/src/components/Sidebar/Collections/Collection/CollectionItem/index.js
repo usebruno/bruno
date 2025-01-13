@@ -6,7 +6,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
-import { moveItem, revealInFinder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
+import { moveItem, showInFolder, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
 import NewRequest from 'components/Sidebar/NewRequest';
@@ -220,9 +220,10 @@ const CollectionItem = ({ item, collection, searchText }) => {
     }
   };
 
-  const handleReveal = () => {
-    dispatch(revealInFinder(item.pathname)).catch((error) => {
-      toast.error('Error revealing file:', error);
+  const handleShowInFolder = () => {
+    dispatch(showInFolder(item.pathname)).catch((error) => {
+      console.error('Error opening the folder', error);
+      toast.error('Error opening the folder');
     });
   };
 
@@ -377,17 +378,15 @@ const CollectionItem = ({ item, collection, searchText }) => {
                   Generate Code
                 </div>
               )}
-              {!isFolder && (
-                <div
-                  className="dropdown-item"
-                  onClick={(e) => {
-                    dropdownTippyRef.current.hide();
-                    handleReveal();
-                  }}
-                >
-                  Reveal in Finder
-                </div>
-              )}
+              <div
+                className="dropdown-item"
+                onClick={(e) => {
+                  dropdownTippyRef.current.hide();
+                  handleShowInFolder();
+                }}
+              >
+                Show in Folder
+              </div>
               <div
                 className="dropdown-item delete-item"
                 onClick={(e) => {
