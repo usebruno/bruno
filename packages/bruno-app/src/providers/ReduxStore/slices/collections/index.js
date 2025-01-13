@@ -473,6 +473,10 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
               break;
+            case 'ntlm':
+              item.draft.request.auth.mode = 'ntlm';
+              item.draft.request.auth.ntlm = action.payload.content;
+              break;              
             case 'oauth2':
               item.draft.request.auth.mode = 'oauth2';
               item.draft.request.auth.oauth2 = action.payload.content;
@@ -1144,6 +1148,9 @@ export const collectionsSlice = createSlice({
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
             break;
+          case 'ntlm':
+            set(collection, 'root.request.auth.ntlm', action.payload.content);
+            break;            
           case 'oauth2':
             set(collection, 'root.request.auth.oauth2', action.payload.content);
             break;
