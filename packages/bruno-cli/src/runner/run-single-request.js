@@ -38,11 +38,13 @@ const runSingleRequest = async function (
   brunoConfig,
   collectionRoot,
   runtime,
-  collection
+  collection,
+  runSingleRequestByPathname
 ) {
   try {
     let request;
     let nextRequestName;
+    let shouldStopRunnerExecution = false;
     let item = {
       pathname: path.join(collectionPath, filename),
       ...bruJson
@@ -66,10 +68,40 @@ const runSingleRequest = async function (
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runSingleRequestByPathname
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
+      }
+
+      if (result?.stopExecution) {
+        shouldStopRunnerExecution = true;
+      }
+
+      if (result?.skipRequest) {
+        return {
+          test: {
+            filename: filename
+          },
+          request: {
+            method: request.method,
+            url: request.url,
+            headers: request.headers,
+            data: request.data
+          },
+          response: {
+            status: 'skipped',
+            statusText: 'request skipped via pre-request script',
+            data: null,
+            responseTime: 0
+          },
+          error: 'Request has been skipped from pre-request script',
+          skipped: true,
+          assertionResults: [],
+          testResults: [],
+          shouldStopRunnerExecution
+        };
       }
     }
 
@@ -316,7 +348,8 @@ const runSingleRequest = async function (
           error: err?.message || err?.errors?.map(e => e?.message)?.at(0) || err?.code || 'Request Failed!',
           assertionResults: [],
           testResults: [],
-          nextRequestName: nextRequestName
+          nextRequestName: nextRequestName,
+          shouldStopRunnerExecution
         };
       }
     }
@@ -356,10 +389,15 @@ const runSingleRequest = async function (
         collectionPath,
         null,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runSingleRequestByPathname
       );
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
+      }
+
+      if (result?.stopExecution) {
+        shouldStopRunnerExecution = true;
       }
     }
 
@@ -401,12 +439,17 @@ const runSingleRequest = async function (
         collectionPath,
         null,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runSingleRequestByPathname
       );
       testResults = get(result, 'results', []);
 
       if (result?.nextRequestName !== undefined) {
         nextRequestName = result.nextRequestName;
+      }
+
+      if (result?.stopExecution) {
+        shouldStopRunnerExecution = true;
       }
     }
 
@@ -440,7 +483,8 @@ const runSingleRequest = async function (
       error: null,
       assertionResults,
       testResults,
-      nextRequestName: nextRequestName
+      nextRequestName: nextRequestName,
+      shouldStopRunnerExecution
     };
   } catch (err) {
     console.log(chalk.red(stripExtension(filename)) + chalk.dim(` (${err.message})`));
