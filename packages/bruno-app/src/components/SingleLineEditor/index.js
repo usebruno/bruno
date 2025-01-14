@@ -85,19 +85,9 @@ class SingleLineEditor extends Component {
       this.editor.on('keyup', (cm, event) => {
         // Only trigger autocomplete for alphanumeric keys
         const isValidTriggerKey = /^[a-zA-Z0-9]$/.test(event.key);
+        const ignoredKeys = ['Enter', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Backspace', 'Escape'];
 
-        if (
-          !cm.state.completionActive &&
-          isValidTriggerKey &&
-          event.key !== 'Enter' &&
-          event.key !== 'Tab' &&
-          event.key !== 'ArrowLeft' &&
-          event.key !== 'ArrowRight' &&
-          event.key !== 'ArrowUp' &&
-          event.key !== 'ArrowDown' &&
-          event.key !== 'Backspace' &&
-          event.key !== 'Escape'
-        ) {
+        if (!cm.state.completionActive && isValidTriggerKey && !ignoredKeys.includes(event.key)) {
           // Create a custom case-insensitive hint function
           const caseInsensitiveHint = (cm, options) => {
             const cursor = cm.getCursor();
