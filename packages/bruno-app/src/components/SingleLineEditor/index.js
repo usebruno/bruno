@@ -10,6 +10,7 @@ const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIR
 
 if (!SERVER_RENDERED) {
   CodeMirror = require('codemirror');
+  require('codemirror/addon/hint/show-hint');
 }
 
 class SingleLineEditor extends Component {
@@ -72,14 +73,57 @@ class SingleLineEditor extends Component {
         'Ctrl-F': noopHandler,
         // Tabbing disabled to make tabindex work
         Tab: false,
-        'Shift-Tab': false
+        'Shift-Tab': false,
+        Esc: (cm) => {
+          if (cm.state.completionActive) {
+            cm.state.completionActive.close();
+          }
+        }
       }
     });
     if (this.props.autocomplete) {
       this.editor.on('keyup', (cm, event) => {
-        if (!cm.state.completionActive /*Enables keyboard navigation in autocomplete list*/ && event.key !== 'Enter') {
-          /*Enter - do not open autocomplete list just after item has been selected in it*/
-          CodeMirror.commands.autocomplete(cm, CodeMirror.hint.anyword, { autocomplete: this.props.autocomplete });
+        // Only trigger autocomplete for alphanumeric keys
+        const isValidTriggerKey = /^[a-zA-Z0-9]$/.test(event.key);
+
+        if (
+          !cm.state.completionActive &&
+          isValidTriggerKey &&
+          event.key !== 'Enter' &&
+          event.key !== 'Tab' &&
+          event.key !== 'ArrowLeft' &&
+          event.key !== 'ArrowRight' &&
+          event.key !== 'ArrowUp' &&
+          event.key !== 'ArrowDown' &&
+          event.key !== 'Backspace' &&
+          event.key !== 'Escape'
+        ) {
+          // Create a custom case-insensitive hint function
+          const caseInsensitiveHint = (cm, options) => {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const start = cursor.ch;
+            const end = cursor.ch;
+
+            // Get all words from the autocomplete options
+            const words = options.autocomplete || [];
+            const currentWord = line.slice(Math.max(0, start - 100), start).match(/[\w$]+$/);
+            const wordStart = currentWord ? start - currentWord[0].length : start;
+
+            // Filter words case-insensitively
+            const searchTerm = currentWord ? currentWord[0].toLowerCase() : '';
+            const matches = words.filter((word) => word.toLowerCase().includes(searchTerm));
+
+            return {
+              list: matches,
+              from: CodeMirror.Pos(cursor.line, wordStart),
+              to: CodeMirror.Pos(cursor.line, end)
+            };
+          };
+
+          CodeMirror.commands.autocomplete(cm, caseInsensitiveHint, {
+            autocomplete: this.props.autocomplete
+          });
         }
       });
     }
