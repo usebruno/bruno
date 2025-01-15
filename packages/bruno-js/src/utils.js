@@ -85,13 +85,15 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
     return undefined;
   }
 
-  if (templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
-    return templateLiteral.slice(1, -1);
-  }
+  // This is commented out as part of the fix for #3758
+  // if (templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
+  //   return templateLiteral.slice(1, -1);
+  // }
 
-  if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
-    return templateLiteral.slice(1, -1);
-  }
+  // This is commented out as part of the fix for #3758
+  // if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
+  //   return templateLiteral.slice(1, -1);
+  // }
 
   if (!isNaN(templateLiteral)) {
     const number = Number(templateLiteral);
