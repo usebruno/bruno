@@ -38,6 +38,7 @@ describe('Properly maps inherited auth from collectionRoot', () => {
 
     request = {
       url: 'https://www.usebruno.com',
+      method: "GET",
       auth: {
         mode: "inherit"
       },
