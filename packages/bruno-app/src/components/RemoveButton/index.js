@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import ToolHint from 'components/ToolHint/index';
 
 const RemoveButton = ({ onClick }) => {
   const [isConfirming, setIsConfirming] = useState(false);
-  const CONFIRM_DURATION = 3000; // 3 seconds
+  const CONFIRM_DURATION = 1500; // 3 seconds
 
   useEffect(() => {
     let timer;
@@ -28,12 +29,13 @@ const RemoveButton = ({ onClick }) => {
     <button
       type="button"
       onClick={handleClick}
-      className={`flex items-center justify-center ${
-        isConfirming && 'text-red-400'
-      } focus:outline-none transition-colors duration-300`}
+      className={`flex items-center justify-center ${isConfirming && 'text-red-400'
+        } focus:outline-none`}
       aria-label={isConfirming ? 'Confirm delete' : 'Delete'}
     >
-      <IconTrash strokeWidth={1.5} size={20} />
+      {isConfirming ? <ToolHint text="Click again to delete" className='select-none' place='right' toolhintId="IconTrashToolhintId">
+        <IconTrash strokeWidth={1.5} size={20} />
+      </ToolHint> : <IconTrash strokeWidth={1.5} size={20} />}
     </button>
   );
 };
