@@ -37,6 +37,7 @@ describe('prepare-request: prepareRequest', () => {
 
       request = {
         url: 'https://www.usebruno.com',
+        method: 'POST',
         auth: {
           mode: "inherit"
         },
