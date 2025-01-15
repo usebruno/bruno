@@ -5,6 +5,7 @@ const authBearer = require('./bearer');
 const authBasic = require('./basic');
 const authWsse = require('./wsse');
 const authCookie = require('./cookie');
+const apiKey = require('./apiKey');
 const authOAuth2PasswordCredentials = require('./oauth2/passwordCredentials');
 const authOAuth2AuthorizationCode = require('./oauth2/authorizationCode');
 const authOAuth2ClientCredentials = require('./oauth2/clientCredentials');
@@ -16,5 +17,6 @@ router.use('/bearer', authBearer);
 router.use('/basic', authBasic);
 router.use('/wsse', authWsse);
 router.use('/cookie', authCookie);
+router.use('/apiKey', apiKey);
 
 module.exports = router;

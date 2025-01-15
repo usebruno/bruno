@@ -23,3 +23,116 @@ describe('prepare-request: prepareRequest', () => {
     });
   });
 });
+
+describe('Properly maps inherited auth from collectionRoot', () => {
+  // Initialize Test Fixtures
+  let collectionRoot, request;
+
+  beforeEach(() => {
+    // Reset test fixtures
+    collectionRoot = {
+      request: {
+        auth: {}
+      }
+    };
+
+    request = {
+      url: 'https://www.usebruno.com',
+      auth: {
+        mode: "inherit"
+      },
+      body: {
+        mode: 'json',
+        json: '{\n"test": {{someVar}} // comment\n}'
+      }
+    };
+  });
+
+  it('If collection auth is apikey in header', () => {
+    collectionRoot.request.auth = {
+      mode: "apikey",
+      apikey: {
+        key: "x-api-key",
+        value: "{{apiKey}}",
+        placement: "header"
+      }
+    };
+
+    const result = prepareRequest(request, collectionRoot);
+    expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+  });
+
+
+  it('If collection auth is apikey in header and request has existing headers', () => {
+    collectionRoot.request.auth = {
+      mode: "apikey",
+      apikey: {
+        key: "x-api-key",
+        value: "{{apiKey}}",
+        placement: "header"
+      }
+    };
+
+    request['headers'] = [{ name: 'Content-Type', value: 'application/json', enabled: true }];
+
+    const result = prepareRequest(request, collectionRoot);
+    expect(result.headers).toHaveProperty('Content-Type', 'application/json');
+    expect(result.headers).toHaveProperty('x-api-key', '{{apiKey}}');
+  });
+
+  it('If collection auth is apikey in query parameters', () => {
+    collectionRoot.request.auth = {
+      mode: "apikey",
+      apikey: {
+        key: "apiKey",
+        value: "{{apiKey}}",
+        placement: "queryparams"
+      }
+    };
+
+    const expected = `${request.url}?${collectionRoot.request.auth.apikey.key}=${collectionRoot.request.auth.apikey.value}`;
+    const result = prepareRequest(request, collectionRoot);
+    expect(result.url).toEqual(expected);
+  });
+
+  it('If collection auth is basic auth', () => {
+    collectionRoot.request.auth = {
+      mode: 'basic',
+      basic: {
+        username: 'testUser',
+        password: 'testPass123'
+      }
+    };
+
+    const result = prepareRequest(request, collectionRoot);
+    const expected = { username: 'testUser', password: 'testPass123' };
+    expect(result.auth).toEqual(expected);
+  });
+
+  it('If collection auth is bearer token', () => {
+    collectionRoot.request.auth = {
+      mode: 'bearer',
+      bearer: {
+        token: 'token'
+      }
+    };
+
+    const result = prepareRequest(request, collectionRoot);
+    expect(result.headers).toHaveProperty('Authorization', 'Bearer token');
+  });
+
+  it('If collection auth is bearer token and request has existing headers', () => {
+    collectionRoot.request.auth = {
+      mode: 'bearer',
+      bearer: {
+        token: 'token'
+      }
+    };
+
+    request['headers'] = [{ name: 'Content-Type', value: 'application/json', enabled: true }];
+
+    const result = prepareRequest(request, collectionRoot);
+    expect(result.headers).toHaveProperty('Authorization', 'Bearer token');
+    expect(result.headers).toHaveProperty('Content-Type', 'application/json');
+  });
+});
