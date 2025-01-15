@@ -85,16 +85,6 @@ const evaluateJsTemplateLiteral = (templateLiteral, context) => {
     return undefined;
   }
 
-  // This is commented out as part of the fix for #3758
-  // if (templateLiteral.startsWith('"') && templateLiteral.endsWith('"')) {
-  //   return templateLiteral.slice(1, -1);
-  // }
-
-  // This is commented out as part of the fix for #3758
-  // if (templateLiteral.startsWith("'") && templateLiteral.endsWith("'")) {
-  //   return templateLiteral.slice(1, -1);
-  // }
-
   if (!isNaN(templateLiteral)) {
     const number = Number(templateLiteral);
     // Check if the number is too high. Too high number might get altered, see #1000
