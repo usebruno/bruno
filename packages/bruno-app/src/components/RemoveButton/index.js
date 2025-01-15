@@ -29,15 +29,11 @@ const RemoveButton = ({ onClick }) => {
       type="button"
       onClick={handleClick}
       className={`flex items-center justify-center ${
-        isConfirming && 'text-yellow-500 hover:text-yellow-700'
+        isConfirming && 'text-red-400'
       } focus:outline-none transition-colors duration-300`}
       aria-label={isConfirming ? 'Confirm delete' : 'Delete'}
     >
-      {isConfirming ? (
-        <IconAlertCircle strokeWidth={1.5} size={20} />
-      ) : (
-        <IconTrash strokeWidth={1.5} size={20} />
-      )}
+      <IconTrash strokeWidth={1.5} size={20} />
     </button>
   );
 };
