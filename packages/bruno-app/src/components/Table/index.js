@@ -63,15 +63,15 @@ const Table = ({ minColumnWidth = 1, headers = [], children }) => {
     [activeColumnIndex, columns, minColumnWidth]
   );
 
-  const handleMouseUp = useCallback(() => {
-    setActiveColumnIndex(null);
-    removeListeners();
-  }, [removeListeners]);
-
   const removeListeners = useCallback(() => {
     window.removeEventListener('mousemove', handleMouseMove);
     window.removeEventListener('mouseup', removeListeners);
   }, [handleMouseMove]);
+
+  const handleMouseUp = useCallback(() => {
+    setActiveColumnIndex(null);
+    removeListeners?.();
+  }, [removeListeners]);
 
   useEffect(() => {
     if (activeColumnIndex !== null) {

@@ -1,5 +1,7 @@
 const _ = require('lodash');
 const fs = require('fs');
+const fsExtra = require('fs-extra');
+const os = require('os');
 const path = require('path');
 const { ipcMain, shell, dialog, app } = require('electron');
 const { envJsonToBru, bruToJson, jsonToBru, jsonToCollectionBru } = require('../bru');
@@ -17,7 +19,11 @@ const {
   isWSLPath,
   normalizeWslPath,
   normalizeAndResolvePath,
-  safeToRename
+  safeToRename,
+  sanitizeCollectionName,
+  isWindowsOS,
+  isValidFilename,
+  hasSubDirectories,
 } = require('../utils/filesystem');
 const { openCollectionDialog } = require('../app/collections');
 const { generateUidBasedOnHash, stringifyJson, safeParseJSON, safeStringifyJSON } = require('../utils/common');
@@ -63,6 +69,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
     'renderer:create-collection',
     async (event, collectionName, collectionFolderName, collectionLocation) => {
       try {
+        collectionFolderName = sanitizeDirectoryName(collectionFolderName);
+        collectionName = sanitizeCollectionName(collectionName);
         const dirPath = path.join(collectionLocation, collectionFolderName);
         if (fs.existsSync(dirPath)) {
           const files = fs.readdirSync(dirPath);
@@ -71,9 +79,8 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             throw new Error(`collection: ${dirPath} already exists and is not empty`);
           }
         }
-
-        if (!isValidPathname(dirPath)) {
-          throw new Error(`collection: invalid pathname - ${dir}`);
+        if (!isValidPathname(path.basename(dirPath))) {
+          throw new Error(`collection: invalid pathname - ${dirPath}`);
         }
 
         if (!fs.existsSync(dirPath)) {
@@ -101,13 +108,14 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   ipcMain.handle(
     'renderer:clone-collection',
     async (event, collectionName, collectionFolderName, collectionLocation, previousPath) => {
+      collectionFolderName = sanitizeCollectionName(collectionFolderName);
       const dirPath = path.join(collectionLocation, collectionFolderName);
       if (fs.existsSync(dirPath)) {
         throw new Error(`collection: ${dirPath} already exists`);
       }
 
-      if (!isValidPathname(dirPath)) {
-        throw new Error(`collection: invalid pathname - ${dir}`);
+      if (!isValidPathname(path.basename(dirPath))) {
+        throw new Error(`collection: invalid pathname - ${dirPath}`);
       }
 
       // create dir
@@ -146,6 +154,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
   // rename collection
   ipcMain.handle('renderer:rename-collection', async (event, newName, collectionPathname) => {
     try {
+      newName = sanitizeCollectionName(newName);
       const brunoJsonFilePath = path.join(collectionPathname, 'bruno.json');
       const content = fs.readFileSync(brunoJsonFilePath, 'utf8');
       const json = JSON.parse(content);
@@ -201,7 +210,9 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
       if (fs.existsSync(pathname)) {
         throw new Error(`path: ${pathname} already exists`);
       }
-
+      if (!isValidFilename(request.name)) {
+        throw new Error(`path: ${request.name}.bru is not a valid filename`);
+      }
       const content = jsonToBru(request);
       await writeFile(pathname, content);
     } catch (error) {
@@ -337,6 +348,12 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   // rename item
   ipcMain.handle('renderer:rename-item', async (event, oldPath, newPath, newName) => {
+    const tempDir = path.join(os.tmpdir(), `temp-folder-${Date.now()}`);
+    // const parentDir = path.dirname(oldPath);
+    const isWindowsOSAndNotWSLAndItemHasSubDirectories = isDirectory(oldPath) && isWindowsOS() && !isWSLPath(oldPath) && hasSubDirectories(oldPath);
+    // let parentDirUnwatched = false;
+    // let parentDirRewatched = false;
+
     try {
       // Normalize paths if they are WSL paths
       oldPath = isWSLPath(oldPath) ? normalizeWslPath(oldPath) : normalizeAndResolvePath(oldPath);
@@ -358,33 +375,80 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
           const newBruFilePath = bruFile.replace(oldPath, newPath);
           moveRequestUid(bruFile, newBruFilePath);
         }
-        return fs.renameSync(oldPath, newPath);
+
+        // watcher.unlinkItemPathInWatcher(parentDir);
+        // parentDirUnwatched = true;
+
+        /**
+         * If it is windows OS
+         * And it is not WSL path (meaning its not linux running on windows using WSL)
+         * And it has sub directories
+         * Only then we need to use the temp dir approach to rename the folder
+         * 
+         * Windows OS would sometimes throw error when renaming a folder with sub directories
+         * This is a alternative approach to avoid that error
+         */
+        if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
+          await fsExtra.copy(oldPath, tempDir);
+          await fsExtra.remove(oldPath);
+          await fsExtra.move(tempDir, newPath, { overwrite: true });
+          await fsExtra.remove(tempDir);
+        } else {
+          await fs.renameSync(oldPath, newPath);
+        }
+        // watcher.addItemPathInWatcher(parentDir);
+        // parentDirRewatched = true;
+
+        return newPath;
       }
 
-      const isBru = hasBruExtension(oldPath);
-      if (!isBru) {
+      if (!hasBruExtension(oldPath)) {
         throw new Error(`path: ${oldPath} is not a bru file`);
       }
 
-      // update name in file and save new copy, then delete old copy
-      const data = fs.readFileSync(oldPath, 'utf8');
-      const jsonData = bruToJson(data);
+      if (!isValidFilename(newName)) {
+        throw new Error(`path: ${newName} is not a valid filename`);
+      }
 
+      // update name in file and save new copy, then delete old copy
+      const data = await fs.promises.readFile(oldPath, 'utf8'); // Use async read
+      const jsonData = bruToJson(data);
       jsonData.name = newName;
       moveRequestUid(oldPath, newPath);
 
       const content = jsonToBru(jsonData);
-      await fs.unlinkSync(oldPath);
+      await fs.promises.unlink(oldPath);
       await writeFile(newPath, content);
 
       return newPath;
     } catch (error) {
+      // in case an error occurs during the rename file operations after unlinking the parent dir
+      // and the rewatch fails, we need to add it back to watcher
+      // if (parentDirUnwatched && !parentDirRewatched) {
+      //   watcher.addItemPathInWatcher(parentDir);
+      // }
+
+      // in case the rename file operations fails, and we see that the temp dir exists
+      // and the old path does not exist, we need to restore the data from the temp dir to the old path
+      if (isWindowsOSAndNotWSLAndItemHasSubDirectories) {
+        if (fsExtra.pathExistsSync(tempDir) && !fsExtra.pathExistsSync(oldPath)) {
+          try {
+            await fsExtra.copy(tempDir, oldPath);
+            await fsExtra.remove(tempDir);
+          } catch (err) {
+            console.error("Failed to restore data to the old path:", err);
+          }
+        }
+      }
+
       return Promise.reject(error);
     }
   });
 
   // new folder
   ipcMain.handle('renderer:new-folder', async (event, pathname) => {
+    const resolvedFolderName = sanitizeDirectoryName(path.basename(pathname));
+    pathname = path.join(path.dirname(pathname), resolvedFolderName);
     try {
       if (!fs.existsSync(pathname)) {
         fs.mkdirSync(pathname);
@@ -443,7 +507,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
 
   ipcMain.handle('renderer:import-collection', async (event, collection, collectionLocation) => {
     try {
-      let collectionName = sanitizeDirectoryName(collection.name);
+      let collectionName = sanitizeCollectionName(collection.name);
       let collectionPath = path.join(collectionLocation, collectionName);
 
       if (fs.existsSync(collectionPath)) {
@@ -459,6 +523,7 @@ const registerRendererEventHandlers = (mainWindow, watcher, lastOpenedCollection
             fs.writeFileSync(filePath, content);
           }
           if (item.type === 'folder') {
+            item.name = sanitizeDirectoryName(item.name);
             const folderPath = path.join(currentPath, item.name);
             fs.mkdirSync(folderPath);
 
