@@ -1,0 +1,36 @@
+meta {
+  name: getCollectionName
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+script:pre-request {
+  {
+    const collectionName = bru.getCollectionName();
+    bru.setVar("collectionName-request-level-scripts", collectionName);  
+  }
+  
+}
+
+tests {
+  test("should get collection name in request-level scripts", function() {
+    const collectionName = bru.getVar("collectionName-request-level-scripts");
+    expect(collectionName).to.equal("bruno-testbench");
+  });
+  
+  test("should get collection name in folder-level scripts", function() {
+    const collectionName = bru.getVar("collectionName-folder-level-scripts");
+    expect(collectionName).to.equal("bruno-testbench");
+  });
+  
+  test("should get collection name in collection-level scripts", function() {
+    const collectionName = bru.getVar("collectionName-collection-level-scripts");
+    expect(collectionName).to.equal("bruno-testbench");
+  });
+}
