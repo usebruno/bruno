@@ -553,7 +553,7 @@ const registerNetworkIpc = (mainWindow) => {
         if (itemPathname && !itemPathname?.endsWith('.bru')) {
           itemPathname = `${itemPathname}.bru`;
         }
-        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
         if(_item) {
           const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
           resolve(res);
@@ -961,7 +961,7 @@ const registerNetworkIpc = (mainWindow) => {
           if (itemPathname && !itemPathname?.endsWith('.bru')) {
             itemPathname = `${itemPathname}.bru`;
           }
-          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          const _item = cloneDeep(findItemInCollectionByPathname(collection, itemPathname));
           if(_item) {
             const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
             resolve(res);

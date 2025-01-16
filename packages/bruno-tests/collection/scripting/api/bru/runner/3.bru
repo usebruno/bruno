@@ -1,0 +1,21 @@
+meta {
+  name: 3
+  type: http
+  seq: 3
+}
+
+post {
+  url: https://echo.usebruno.com
+  body: none
+  auth: none
+}
+
+script:pre-request {
+}
+
+tests {
+  test("should skip the previous request ('2')", function() {
+    const wasRequestSkipped = bru.getVar('bru.runner.skipRequest');
+    expect(wasRequestSkipped).to.eql(true);
+  });
+}
