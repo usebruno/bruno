@@ -36,7 +36,7 @@ const prepareRequest = (item = {}, collection = {}) => {
   };
 
   const collectionAuth = get(collection, 'root.request.auth');
-  if (collectionAuth && request.auth.mode === 'inherit') {
+  if (collectionAuth && request?.auth?.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -64,11 +64,10 @@ const prepareRequest = (item = {}, collection = {}) => {
           console.error('Invalid URL:', request.url, error);
         }
       }
-    
     }
   }
 
-  if (request.auth) {
+  if (request?.auth) {
     if (request.auth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(request, 'auth.basic.username'),
