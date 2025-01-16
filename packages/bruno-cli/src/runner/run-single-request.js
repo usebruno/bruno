@@ -52,6 +52,8 @@ const runSingleRequest = async function (
     request = prepareRequest(item, collection);
 
     request.__bruno__executionMode = 'cli';
+    request.__bruno__collectionName = brunoConfig?.name;
+    request.__bruno__requestName = item?.name;
 
     const scriptingConfig = get(brunoConfig, 'scripts', {});
     scriptingConfig.runtime = runtime;
