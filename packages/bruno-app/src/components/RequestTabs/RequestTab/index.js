@@ -1,6 +1,6 @@
 import React, { useState, useRef, Fragment } from 'react';
 import get from 'lodash/get';
-import { closeTabs } from 'providers/ReduxStore/slices/tabs';
+import { closeTabs, stickTab } from 'providers/ReduxStore/slices/tabs';
 import { saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { deleteRequestDraft } from 'providers/ReduxStore/slices/collections';
 import { useTheme } from 'providers/Theme';
@@ -144,8 +144,9 @@ const RequestTab = ({ tab, collection, tabIndex, collectionRequestTabs, folderUi
         />
       )}
       <div
-        className="flex items-baseline tab-label pl-2"
+        className={`flex items-baseline tab-label pl-2 ${tab.isReplaceable ? "italic" : ""}`}
         onContextMenu={handleRightClick}
+        onDoubleClick={() => dispatch(stickTab({ uid: tab.uid }))}
         onMouseUp={(e) => {
           if (!item.draft) return handleMouseUp(e);
 
