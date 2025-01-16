@@ -5,7 +5,7 @@ import classnames from 'classnames';
 import { useDrag, useDrop } from 'react-dnd';
 import { IconChevronRight, IconDots } from '@tabler/icons';
 import { useSelector, useDispatch } from 'react-redux';
-import { addTab, focusTab } from 'providers/ReduxStore/slices/tabs';
+import { addTab, focusTab, stickTab } from 'providers/ReduxStore/slices/tabs';
 import { moveItem, sendRequest } from 'providers/ReduxStore/slices/collections/actions';
 import { collectionFolderClicked } from 'providers/ReduxStore/slices/collections';
 import Dropdown from 'components/Dropdown';
@@ -104,11 +104,28 @@ const CollectionItem = ({ item, collection, searchText }) => {
       })
     );
   };
+  const getItemByUid = (uid, collection) => {
+    const stack = [...collection.items];
+  
+    while (stack.length > 0) {
+      const item = stack.pop();
+  
+      if (item.uid === uid) {
+        return item;
+      }
+  
+      if (Array.isArray(item.items)) {
+        stack.push(...item.items);
+      }
+    }
+  
+    return null;
+  };
 
   const handleClick = (event) => {
     //scroll to the active tab
     setTimeout(scrollToTheActiveTab, 50);
-
+  
     if (isItemARequest(item)) {
       dispatch(hideHomePage());
       if (itemIsOpenedInTabs(item, tabs)) {
@@ -119,28 +136,51 @@ const CollectionItem = ({ item, collection, searchText }) => {
         );
         return;
       }
+  
+      // Determine whether to replace an existing tab
+      let replaceTabUid = null;
+  
+      // Find any replaceable tab that can be replaced
+      for (let tab of tabs) {
+        if (tab.isReplaceable) {
+          const tabCollection = collection;
+          if (tabCollection) {
+            const tabItem = getItemByUid(tab.uid, tabCollection);
+            if (tabItem && !tabItem.draft) {
+              replaceTabUid = tab.uid;
+              break;
+            }
+          }
+        }
+      }
+  
       dispatch(
         addTab({
           uid: item.uid,
           collectionUid: collection.uid,
-          requestPaneTab: getDefaultRequestPaneTab(item)
+          requestPaneTab: getDefaultRequestPaneTab(item),
+          type: 'request',
+          replaceTabUid
         })
       );
       return;
     }
-      dispatch(
-        addTab({
-          uid: item.uid,
-          collectionUid: collection.uid,
-          type: 'folder-settings'
-        })
-      );
-      dispatch(
-        collectionFolderClicked({
-          itemUid: item.uid,
-          collectionUid: collection.uid
-        })
-      );
+  
+    // For folders, tabs are non-replaceable
+    dispatch(
+      addTab({
+        uid: item.uid,
+        collectionUid: collection.uid,
+        type: 'folder-settings',
+        isReplaceable: false
+      })
+    );
+    dispatch(
+      collectionFolderClicked({
+        itemUid: item.uid,
+        collectionUid: collection.uid
+      })
+    );
   };
 
   const handleFolderCollapse = () => {
