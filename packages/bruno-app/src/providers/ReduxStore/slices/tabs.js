@@ -161,6 +161,13 @@ export const tabsSlice = createSlice({
       const collectionUid = action.payload.collectionUid;
       state.tabs = filter(state.tabs, (t) => t.collectionUid !== collectionUid);
       state.activeTabUid = null;
+    },
+    stickTab: (state, action) => {
+      const { uid } = action.payload;
+      const tab = find(state.tabs, (t) => t.uid === uid);
+      if (tab) {
+        tab.isReplaceable = false;
+      }
     }
   }
 });
@@ -173,7 +180,8 @@ export const {
   updateRequestPaneTab,
   updateResponsePaneTab,
   closeTabs,
-  closeAllCollectionTabs
+  closeAllCollectionTabs,
+  stickTab
 } = tabsSlice.actions;
 
 export default tabsSlice.reducer;
