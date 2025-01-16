@@ -12,6 +12,9 @@ import * as querystring from 'query-string';
 import yargs from 'yargs-parser';
 
 const parseCurlCommand = (curlCommand) => {
+  // catch escape sequences (e.g. -H $'cookie: it=\'\'')
+  curlCommand = curlCommand.replace(/\$('.*')/g, (match, group) => group);
+
   // Remove newlines (and from continuations)
   curlCommand = curlCommand.replace(/\\\r|\\\n/g, '');
 
@@ -30,10 +33,11 @@ const parseCurlCommand = (curlCommand) => {
   curlCommand = curlCommand.trim();
 
   const parsedArguments = yargs(curlCommand, {
-    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's'],
+    boolean: ['I', 'head', 'compressed', 'L', 'k', 'silent', 's', 'G', 'get'],
     alias: {
       H: 'header',
-      A: 'user-agent'
+      A: 'user-agent',
+      u: 'user'
     }
   });
 
@@ -69,11 +73,10 @@ const parseCurlCommand = (curlCommand) => {
     parsedArguments.header.forEach((header) => {
       if (header.indexOf('Cookie') !== -1) {
         cookieString = header;
-      } else {
-        const components = header.split(/:(.*)/);
-        if (components[1]) {
-          headers[components[0]] = components[1].trim();
-        }
+      }
+      const components = header.split(/:(.*)/);
+      if (components[1]) {
+        headers[components[0]] = components[1].trim();
       }
     });
   }
@@ -116,15 +119,16 @@ const parseCurlCommand = (curlCommand) => {
     cookies = cookie.parse(cookieString.replace(/^Cookie: /gi, ''), cookieParseOptions);
   }
   let method;
-  if (parsedArguments.X === 'POST') {
+  let parsedMethodArgument = parsedArguments.X || parsedArguments.request || parsedArguments.T;
+  if (parsedMethodArgument === 'POST') {
     method = 'post';
-  } else if (parsedArguments.X === 'PUT' || parsedArguments.T) {
+  } else if (parsedMethodArgument === 'PUT') {
     method = 'put';
-  } else if (parsedArguments.X === 'PATCH') {
+  } else if (parsedMethodArgument === 'PATCH') {
     method = 'patch';
-  } else if (parsedArguments.X === 'DELETE') {
+  } else if (parsedMethodArgument === 'DELETE') {
     method = 'delete';
-  } else if (parsedArguments.X === 'OPTIONS') {
+  } else if (parsedMethodArgument === 'OPTIONS') {
     method = 'options';
   } else if (
     (parsedArguments.d ||
@@ -150,7 +154,10 @@ const parseCurlCommand = (curlCommand) => {
   // NB: the -G flag does not change the http verb. It just moves the data into the url.
   if (parsedArguments.G || parsedArguments.get) {
     urlObject.query = urlObject.query ? urlObject.query : '';
-    const option = 'd' in parsedArguments ? 'd' : 'data' in parsedArguments ? 'data' : null;
+    let option = null;
+    if ('d' in parsedArguments) option = 'd';
+    if ('data' in parsedArguments) option = 'data';
+    if ('data-urlencode' in parsedArguments) option = 'data-urlencode';
     if (option) {
       let urlQueryString = '';
 
@@ -181,10 +188,21 @@ const parseCurlCommand = (curlCommand) => {
   }
 
   urlObject.search = null; // Clean out the search/query portion.
+
+  let urlWithoutQuery = URL.format(urlObject);
+  let urlHost = urlObject?.host;
+  if (!url?.includes(`${urlHost}/`)) {
+    if (urlWithoutQuery && urlHost) {
+      const [beforeHost, afterHost] = urlWithoutQuery.split(urlHost);
+      urlWithoutQuery = beforeHost + urlHost + afterHost?.slice(1);
+    }
+  }
+
   const request = {
-    url: url,
-    urlWithoutQuery: URL.format(urlObject)
+    url,
+    urlWithoutQuery
   };
+
   if (compressed) {
     request.compressed = true;
   }
@@ -216,14 +234,23 @@ const parseCurlCommand = (curlCommand) => {
   } else if (parsedArguments['data-raw']) {
     request.data = parsedArguments['data-raw'];
     request.isDataRaw = true;
+  } else if (parsedArguments['data-urlencode']) {
+    request.data = parsedArguments['data-urlencode'];
   }
 
-  if (parsedArguments.u) {
-    request.auth = parsedArguments.u;
+  if (parsedArguments.user && typeof parsedArguments.user === 'string') {
+    const basicAuth = parsedArguments.user.split(':')
+    const username = basicAuth[0] || ''
+    const password = basicAuth[1] || ''
+    request.auth = {
+      mode: 'basic',
+      basic: {
+        username,
+        password
+      }
+    }
   }
-  if (parsedArguments.user) {
-    request.auth = parsedArguments.user;
-  }
+
   if (Array.isArray(request.data)) {
     request.dataArray = request.data;
     request.data = request.data.join('&');

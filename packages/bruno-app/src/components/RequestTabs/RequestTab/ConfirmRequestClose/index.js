@@ -12,6 +12,7 @@ const ConfirmRequestClose = ({ item, onCancel, onCloseWithoutSave, onSaveAndClos
       disableEscapeKey={true}
       disableCloseOnOutsideClick={true}
       closeModalFadeTimeout={150}
+      handleCancel={onCancel}
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();

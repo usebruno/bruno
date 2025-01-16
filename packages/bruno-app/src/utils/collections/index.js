@@ -10,6 +10,7 @@ import isEqual from 'lodash/isEqual';
 import cloneDeep from 'lodash/cloneDeep';
 import { uuid } from 'utils/common';
 import path from 'path';
+import slash from 'utils/common/slash';
 
 const replaceTabsWithSpaces = (str, numSpaces = 2) => {
   if (!str || !str.length || !isString(str)) {
@@ -98,7 +99,7 @@ export const findCollectionByItemUid = (collections, itemUid) => {
 };
 
 export const findItemByPathname = (items = [], pathname) => {
-  return find(items, (i) => i.pathname === pathname);
+  return find(items, (i) => slash(i.pathname) === slash(pathname));
 };
 
 export const findItemInCollectionByPathname = (collection, pathname) => {
@@ -129,6 +130,10 @@ export const recursivelyGetAllItemUids = (items = []) => {
 
 export const findEnvironmentInCollection = (collection, envUid) => {
   return find(collection.environments, (e) => e.uid === envUid);
+};
+
+export const findEnvironmentInCollectionByName = (collection, name) => {
+  return find(collection.environments, (e) => e.name === name);
 };
 
 export const moveCollectionItem = (collection, draggedItem, targetItem) => {
@@ -228,13 +233,14 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
     });
   };
 
-  const copyQueryParams = (params) => {
+  const copyParams = (params) => {
     return map(params, (param) => {
       return {
         uid: param.uid,
         name: param.name,
         value: param.value,
         description: param.description,
+        type: param.type,
         enabled: param.enabled
       };
     });
@@ -267,6 +273,10 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
 
   const copyItems = (sourceItems, destItems) => {
     each(sourceItems, (si) => {
+      if (!isItemAFolder(si) && !isItemARequest(si) && si.type !== 'js') {
+        return;
+      }
+
       const di = {
         uid: si.uid,
         type: si.type,
@@ -274,80 +284,184 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
         seq: si.seq
       };
 
-      // if items is draft, then take data from draft to save
-      // The condition "!options.ignoreDraft" may appear confusing
-      // When saving a collection, this option allows the caller to specify to ignore any draft changes while still saving rest of the collection.
-      // This is useful for performing rename request/collections while still leaving changes in draft not making its way into the indexeddb
-      if (si.draft && !options.ignoreDraft) {
-        if (si.draft.request) {
-          di.request = {
-            url: si.draft.request.url,
-            method: si.draft.request.method,
-            headers: copyHeaders(si.draft.request.headers),
-            params: copyQueryParams(si.draft.request.params),
-            body: {
-              mode: si.draft.request.body.mode,
-              json: si.draft.request.body.json,
-              text: si.draft.request.body.text,
-              xml: si.draft.request.body.xml,
-              graphql: si.draft.request.body.graphql,
-              sparql: si.draft.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.draft.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.draft.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.draft.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.draft.request, 'auth.basic.username', ''),
-                password: get(si.draft.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.draft.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.draft.request.script,
-            vars: si.draft.request.vars,
-            assertions: si.draft.request.assertions,
-            tests: si.draft.request.tests
-          };
+      if (si.request) {
+        di.request = {
+          url: si.request.url,
+          method: si.request.method,
+          headers: copyHeaders(si.request.headers),
+          params: copyParams(si.request.params),
+          body: {
+            mode: si.request.body.mode,
+            json: si.request.body.json,
+            text: si.request.body.text,
+            xml: si.request.body.xml,
+            graphql: si.request.body.graphql,
+            sparql: si.request.body.sparql,
+            formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
+            multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
+          },
+          script: si.request.script,
+          vars: si.request.vars,
+          assertions: si.request.assertions,
+          tests: si.request.tests,
+          docs: si.request.docs
+        };
+
+        // Handle auth object dynamically
+        di.request.auth = {
+          mode: get(si.request, 'auth.mode', 'none')
+        };
+
+        switch (di.request.auth.mode) {
+          case 'awsv4':
+            di.request.auth.awsv4 = {
+              accessKeyId: get(si.request, 'auth.awsv4.accessKeyId', ''),
+              secretAccessKey: get(si.request, 'auth.awsv4.secretAccessKey', ''),
+              sessionToken: get(si.request, 'auth.awsv4.sessionToken', ''),
+              service: get(si.request, 'auth.awsv4.service', ''),
+              region: get(si.request, 'auth.awsv4.region', ''),
+              profileName: get(si.request, 'auth.awsv4.profileName', '')
+            };
+            break;
+          case 'basic':
+            di.request.auth.basic = {
+              username: get(si.request, 'auth.basic.username', ''),
+              password: get(si.request, 'auth.basic.password', '')
+            };
+            break;
+          case 'bearer':
+            di.request.auth.bearer = {
+              token: get(si.request, 'auth.bearer.token', '')
+            };
+            break;
+          case 'digest':
+            di.request.auth.digest = {
+              username: get(si.request, 'auth.digest.username', ''),
+              password: get(si.request, 'auth.digest.password', '')
+            };
+            break;
+          case 'ntlm':
+            di.request.auth.ntlm = {
+              username: get(si.request, 'auth.ntlm.username', ''),
+              password: get(si.request, 'auth.ntlm.password', ''),
+              domain: get(si.request, 'auth.ntlm.domain', '')
+            };
+            break;            
+          case 'oauth2':
+            let grantType = get(si.request, 'auth.oauth2.grantType', '');
+            switch (grantType) {
+              case 'password':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  username: get(si.request, 'auth.oauth2.username', ''),
+                  password: get(si.request, 'auth.oauth2.password', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+              case 'authorization_code':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  callbackUrl: get(si.request, 'auth.oauth2.callbackUrl', ''),
+                  authorizationUrl: get(si.request, 'auth.oauth2.authorizationUrl', ''),
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', ''),
+                  pkce: get(si.request, 'auth.oauth2.pkce', false)
+                };
+                break;
+              case 'client_credentials':
+                di.request.auth.oauth2 = {
+                  grantType: grantType,
+                  accessTokenUrl: get(si.request, 'auth.oauth2.accessTokenUrl', ''),
+                  clientId: get(si.request, 'auth.oauth2.clientId', ''),
+                  clientSecret: get(si.request, 'auth.oauth2.clientSecret', ''),
+                  scope: get(si.request, 'auth.oauth2.scope', '')
+                };
+                break;
+            }
+            break;
+          case 'apikey':
+            di.request.auth.apikey = {
+              key: get(si.request, 'auth.apikey.key', ''),
+              value: get(si.request, 'auth.apikey.value', ''),
+              placement: get(si.request, 'auth.apikey.placement', 'header')
+            };
+            break;
+          case 'wsse':
+            di.request.auth.wsse = {
+              username: get(si.request, 'auth.wsse.username', ''),
+              password: get(si.request, 'auth.wsse.password', '')
+            };
+            break;
+          default:
+            break;
         }
-      } else {
-        if (si.request) {
-          di.request = {
-            url: si.request.url,
-            method: si.request.method,
-            headers: copyHeaders(si.request.headers),
-            params: copyQueryParams(si.request.params),
-            body: {
-              mode: si.request.body.mode,
-              json: si.request.body.json,
-              text: si.request.body.text,
-              xml: si.request.body.xml,
-              graphql: si.request.body.graphql,
-              sparql: si.request.body.sparql,
-              formUrlEncoded: copyFormUrlEncodedParams(si.request.body.formUrlEncoded),
-              multipartForm: copyMultipartFormParams(si.request.body.multipartForm)
-            },
-            auth: {
-              mode: get(si.request, 'auth.mode', 'none'),
-              basic: {
-                username: get(si.request, 'auth.basic.username', ''),
-                password: get(si.request, 'auth.basic.password', '')
-              },
-              bearer: {
-                token: get(si.request, 'auth.bearer.token', '')
-              }
-            },
-            script: si.request.script,
-            vars: si.request.vars,
-            assertions: si.request.assertions,
-            tests: si.request.tests
-          };
+
+        if (di.request.body.mode === 'json') {
+          di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
         }
       }
 
-      if (di.request && di.request.body.mode === 'json') {
-        di.request.body.json = replaceTabsWithSpaces(di.request.body.json);
+      if (si.type == 'folder' && si?.root) {
+        di.root = {
+          request: {}
+        };
+
+        let { request, meta, docs } = si?.root || {};
+        let { headers, script = {}, vars = {}, tests } = request || {};
+
+        // folder level headers
+        if (headers?.length) {
+          di.root.request.headers = headers;
+        }
+        // folder level script
+        if (Object.keys(script)?.length) {
+          di.root.request.script = {};
+          if (script?.req?.length) {
+            di.root.request.script.req = script?.req;
+          }
+          if (script?.res?.length) {
+            di.root.request.script.res = script?.res;
+          }
+        }
+        // folder level vars
+        if (Object.keys(vars)?.length) {
+          di.root.request.vars = {};
+          if (vars?.req?.length) {
+            di.root.request.vars.req = vars?.req;
+          }
+          if (vars?.res?.length) {
+            di.root.request.vars.res = vars?.res;
+          }
+        }
+        // folder level tests
+        if (tests?.length) {
+          di.root.request.tests = tests;
+        }
+
+        // folder level docs
+        if (docs?.length) {
+          di.root.docs = docs;
+        }
+
+        if (meta?.name) {
+          di.root.meta = {};
+          di.root.meta.name = meta?.name;
+        }
+        if (!Object.keys(di.root.request)?.length) {
+          delete di.root.request;
+        }
+        if (!Object.keys(di.root)?.length) {
+          delete di.root;
+        }
+      }
+
+      if (si.type === 'js') {
+        di.fileContent = si.raw;
       }
 
       destItems.push(di);
@@ -369,8 +483,68 @@ export const transformCollectionToSaveToExportAsFile = (collection, options = {}
   collectionToSave.activeEnvironmentUid = collection.activeEnvironmentUid;
   collectionToSave.environments = collection.environments || [];
 
-  copyItems(collection.items, collectionToSave.items);
+  collectionToSave.root = {
+    request: {}
+  };
 
+  let { request, docs, meta } = collection?.root || {};
+  let { auth, headers, script = {}, vars = {}, tests } = request || {};
+
+  // collection level auth
+  if (auth?.mode) {
+    collectionToSave.root.request.auth = auth;
+  }
+  // collection level headers
+  if (headers?.length) {
+    collectionToSave.root.request.headers = headers;
+  }
+  // collection level script
+  if (Object.keys(script)?.length) {
+    collectionToSave.root.request.script = {};
+    if (script?.req?.length) {
+      collectionToSave.root.request.script.req = script?.req;
+    }
+    if (script?.res?.length) {
+      collectionToSave.root.request.script.res = script?.res;
+    }
+  }
+  // collection level vars
+  if (Object.keys(vars)?.length) {
+    collectionToSave.root.request.vars = {};
+    if (vars?.req?.length) {
+      collectionToSave.root.request.vars.req = vars?.req;
+    }
+    if (vars?.res?.length) {
+      collectionToSave.root.request.vars.res = vars?.res;
+    }
+  }
+  // collection level tests
+  if (tests?.length) {
+    collectionToSave.root.request.tests = tests;
+  }
+  // collection level docs
+  if (docs?.length) {
+    collectionToSave.root.docs = docs;
+  }
+  if (meta?.name) {
+    collectionToSave.root.meta = {};
+    collectionToSave.root.meta.name = meta?.name;
+  }
+  if (!Object.keys(collectionToSave.root.request)?.length) {
+    delete collectionToSave.root.request;
+  }
+  if (!Object.keys(collectionToSave.root)?.length) {
+    delete collectionToSave.root;
+  }
+
+  collectionToSave.brunoConfig = cloneDeep(collection?.brunoConfig);
+
+  // delete proxy password if present
+  if (collectionToSave?.brunoConfig?.proxy?.auth?.password) {
+    delete collectionToSave.brunoConfig.proxy.auth.password;
+  }
+
+  copyItems(collection.items, collectionToSave.items);
   return collectionToSave;
 };
 
@@ -402,6 +576,7 @@ export const transformRequestToSaveToFilesystem = (item) => {
       name: param.name,
       value: param.value,
       description: param.description,
+      type: param.type,
       enabled: param.enabled
     });
   });
@@ -417,7 +592,10 @@ export const transformRequestToSaveToFilesystem = (item) => {
   });
 
   if (itemToSave.request.body.mode === 'json') {
-    itemToSave.request.body.json = replaceTabsWithSpaces(itemToSave.request.body.json);
+    itemToSave.request.body = {
+      ...itemToSave.request.body,
+      json: replaceTabsWithSpaces(itemToSave.request.body.json)
+    };
   }
 
   return itemToSave;
@@ -489,6 +667,10 @@ export const humanizeRequestBodyMode = (mode) => {
 export const humanizeRequestAuthMode = (mode) => {
   let label = 'No Auth';
   switch (mode) {
+    case 'inherit': {
+      label = 'Inherit';
+      break;
+    }
     case 'awsv4': {
       label = 'AWS Sig V4';
       break;
@@ -503,6 +685,58 @@ export const humanizeRequestAuthMode = (mode) => {
     }
     case 'digest': {
       label = 'Digest Auth';
+      break;
+    }
+    case 'ntlm': {
+      label = 'NTLM';
+      break;
+    }     
+    case 'oauth2': {
+      label = 'OAuth 2.0';
+      break;
+    }
+    case 'wsse': {
+      label = 'WSSE Auth';
+      break;
+    }
+    case 'apikey': {
+      label = 'API Key';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeRequestAPIKeyPlacement = (placement) => {
+  let label = 'Header';
+  switch (placement) {
+    case 'header': {
+      label = 'Header';
+      break;
+    }
+    case 'queryparams': {
+      label = 'Query Params';
+      break;
+    }
+  }
+
+  return label;
+};
+
+export const humanizeGrantType = (mode) => {
+  let label = 'No Auth';
+  switch (mode) {
+    case 'password': {
+      label = 'Password Credentials';
+      break;
+    }
+    case 'authorization_code': {
+      label = 'Authorization Code';
+      break;
+    }
+    case 'client_credentials': {
+      label = 'Client Credentials';
       break;
     }
   }
@@ -569,6 +803,32 @@ export const getDefaultRequestPaneTab = (item) => {
   }
 };
 
+export const getGlobalEnvironmentVariables = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  let variables = {};
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+  if (environment) {
+    each(environment.variables, (variable) => {
+      if (variable.name && variable.enabled) {
+        variables[variable.name] = variable.value;
+      }
+    });
+  }
+  return variables;
+};
+
+export const getGlobalEnvironmentVariablesMasked = ({ globalEnvironments, activeGlobalEnvironmentUid }) => {
+  const environment = globalEnvironments?.find(env => env?.uid === activeGlobalEnvironmentUid);
+
+  if (environment && Array.isArray(environment.variables)) {
+    return environment.variables
+      .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+      .map((variable) => variable.name);
+  }
+
+  return [];
+};
+
+
 export const getEnvironmentVariables = (collection) => {
   let variables = {};
   if (collection) {
@@ -585,6 +845,36 @@ export const getEnvironmentVariables = (collection) => {
   return variables;
 };
 
+export const getEnvironmentVariablesMasked = (collection) => {
+  // Return an empty array if the collection is invalid or not provided
+  if (!collection || !collection.activeEnvironmentUid) {
+    return [];
+  }
+
+  // Find the active environment in the collection
+  const environment = findEnvironmentInCollection(collection, collection.activeEnvironmentUid);
+  if (!environment || !environment.variables) {
+    return [];
+  }
+
+  // Filter the environment variables to get only the masked (secret) ones
+  return environment.variables
+    .filter((variable) => variable.name && variable.value && variable.enabled && variable.secret)
+    .map((variable) => variable.name);
+};
+
+const getPathParams = (item) => {
+  let pathParams = {};
+  if (item && item.request && item.request.params) {
+    item.request.params.forEach((param) => {
+      if (param.type === 'path' && param.name && param.value) {
+        pathParams[param.name] = param.value;
+      }
+    });
+  }
+  return pathParams;
+};
+
 export const getTotalRequestCountInCollection = (collection) => {
   let count = 0;
   each(collection.items, (item) => {
@@ -598,16 +888,107 @@ export const getTotalRequestCountInCollection = (collection) => {
   return count;
 };
 
-export const getAllVariables = (collection) => {
-  const environmentVariables = getEnvironmentVariables(collection);
+export const getAllVariables = (collection, item) => {
+  if(!collection) return {};
+  const envVariables = getEnvironmentVariables(collection);
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  let { collectionVariables, folderVariables, requestVariables } = mergeVars(collection, requestTreePath);
+  const pathParams = getPathParams(item);
+  const { globalEnvironmentVariables = {} } = collection;
+
+  const { processEnvVariables = {}, runtimeVariables = {} } = collection;
+  const mergedVariables = {
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables
+  };
+
+  const mergedVariablesGlobal = {
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+  }
+
+  const maskedEnvVariables = getEnvironmentVariablesMasked(collection) || [];
+  const maskedGlobalEnvVariables = collection?.globalEnvSecrets || [];
+
+  const filteredMaskedEnvVariables = maskedEnvVariables.filter((key) => !(key in mergedVariables));
+  const filteredMaskedGlobalEnvVariables = maskedGlobalEnvVariables.filter((key) => !(key in mergedVariablesGlobal));
+
+  const uniqueMaskedVariables = [...new Set([...filteredMaskedEnvVariables, ...filteredMaskedGlobalEnvVariables])];
 
   return {
-    ...environmentVariables,
-    ...collection.collectionVariables,
+    ...globalEnvironmentVariables,
+    ...collectionVariables,
+    ...envVariables,
+    ...folderVariables,
+    ...requestVariables,
+    ...runtimeVariables,
+    pathParams: {
+      ...pathParams
+    },
+    maskedEnvVariables: uniqueMaskedVariables,
     process: {
       env: {
-        ...collection.processEnvVariables
+        ...processEnvVariables
       }
     }
+  };
+};
+
+export const maskInputValue = (value) => {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .split('')
+    .map(() => '*')
+    .join('');
+};
+
+const getTreePathFromCollectionToItem = (collection, _item) => {
+  let path = [];
+  let item = findItemInCollection(collection, _item?.uid);
+  while (item) {
+    path.unshift(item);
+    item = findParentItemInCollection(collection, item?.uid);
+  }
+  return path;
+};
+
+const mergeVars = (collection, requestTreePath = []) => {
+  let collectionVariables = {};
+  let folderVariables = {};
+  let requestVariables = {};
+  let collectionRequestVars = get(collection, 'root.request.vars.req', []);
+  collectionRequestVars.forEach((_var) => {
+    if (_var.enabled) {
+      collectionVariables[_var.name] = _var.value;
+    }
+  });
+  for (let i of requestTreePath) {
+    if (i.type === 'folder') {
+      let vars = get(i, 'root.request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          folderVariables[_var.name] = _var.value;
+        }
+      });
+    } else {
+      let vars = get(i, 'request.vars.req', []);
+      vars.forEach((_var) => {
+        if (_var.enabled) {
+          requestVariables[_var.name] = _var.value;
+        }
+      });
+    }
+  }
+  return {
+    collectionVariables,
+    folderVariables,
+    requestVariables
   };
 };

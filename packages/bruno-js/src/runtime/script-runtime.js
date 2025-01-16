@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const path = require('path');
 const http = require('http');
 const https = require('https');
@@ -16,6 +16,7 @@ const { cleanJson } = require('../utils');
 
 // Inbuilt Library Support
 const ajv = require('ajv');
+const addFormats = require('ajv-formats');
 const atob = require('atob');
 const btoa = require('btoa');
 const lodash = require('lodash');
@@ -27,9 +28,12 @@ const fetch = require('node-fetch');
 const chai = require('chai');
 const CryptoJS = require('crypto-js');
 const NodeVault = require('node-vault');
+const { executeQuickJsVmAsync } = require('../sandbox/quickjs');
 
 class ScriptRuntime {
-  constructor() {}
+  constructor(props) {
+    this.runtime = props?.runtime || 'vm2';
+  }
 
   // This approach is getting out of hand
   // Need to refactor this to use a single arg (object) instead of 7
@@ -37,13 +41,18 @@ class ScriptRuntime {
     script,
     request,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -84,6 +93,29 @@ class ScriptRuntime {
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+
+      return {
+        request,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
+    }
+
+    // default runtime is vm2
     const vm = new NodeVM({
       sandbox: context,
       require: {
@@ -102,6 +134,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
@@ -120,11 +153,15 @@ class ScriptRuntime {
     });
     const asyncVM = vm.run(`module.exports = async () => { ${script} }`, path.join(collectionPath, 'vm.js'));
     await asyncVM();
+
     return {
       request,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
-      nextRequestName: bru.nextRequest
+      runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 
@@ -133,13 +170,18 @@ class ScriptRuntime {
     request,
     response,
     envVariables,
-    collectionVariables,
+    runtimeVariables,
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
-    const bru = new Bru(envVariables, collectionVariables, processEnvVars, collectionPath);
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
+    const collectionVariables = request?.collectionVariables || {};
+    const folderVariables = request?.folderVariables || {};
+    const requestVariables = request?.requestVariables || {};
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -172,10 +214,34 @@ class ScriptRuntime {
         log: customLogger('log'),
         info: customLogger('info'),
         warn: customLogger('warn'),
-        error: customLogger('error')
+        error: customLogger('error'),
+        debug: customLogger('debug')
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
+    if (this.runtime === 'quickjs') {
+      await executeQuickJsVmAsync({
+        script: script,
+        context: context,
+        collectionPath
+      });
+
+      return {
+        response,
+        envVariables: cleanJson(envVariables),
+        runtimeVariables: cleanJson(runtimeVariables),
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
+      };
+    }
+
+    // default runtime is vm2
     const vm = new NodeVM({
       sandbox: context,
       require: {
@@ -194,6 +260,7 @@ class ScriptRuntime {
           zlib,
           // 3rd party libs
           ajv,
+          'ajv-formats': addFormats,
           atob,
           btoa,
           lodash,
@@ -216,8 +283,11 @@ class ScriptRuntime {
     return {
       response,
       envVariables: cleanJson(envVariables),
-      collectionVariables: cleanJson(collectionVariables),
-      nextRequestName: bru.nextRequest
+      runtimeVariables: cleanJson(runtimeVariables),
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 }

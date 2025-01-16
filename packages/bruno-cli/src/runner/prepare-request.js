@@ -1,21 +1,24 @@
 const { get, each, filter } = require('lodash');
 const decomment = require('decomment');
+const crypto = require('node:crypto');
+const { mergeHeaders, mergeScripts, mergeVars, getTreePathFromCollectionToItem } = require('../utils/collection');
+const { createFormData } = require('../utils/form-data');
 
-const prepareRequest = (request, collectionRoot) => {
+const prepareRequest = (item = {}, collection = {}) => {
+  const request = item?.request;
+  const brunoConfig = get(collection, 'brunoConfig', {});
   const headers = {};
   let contentTypeDefined = false;
 
-  // collection headers
-  each(get(collectionRoot, 'request.headers', []), (h) => {
-    if (h.enabled) {
-      headers[h.name] = h.value;
-      if (h.name.toLowerCase() === 'content-type') {
-        contentTypeDefined = true;
-      }
-    }
-  });
+  const scriptFlow = brunoConfig?.scripts?.flow ?? 'sandwich';
+  const requestTreePath = getTreePathFromCollectionToItem(collection, item);
+  if (requestTreePath && requestTreePath.length > 0) {
+    mergeHeaders(collection, request, requestTreePath);
+    mergeScripts(collection, request, requestTreePath, scriptFlow);
+    mergeVars(collection, request, requestTreePath);
+  }
 
-  each(request.headers, (h) => {
+  each(get(request, 'headers', []), (h) => {
     if (h.enabled) {
       headers[h.name] = h.value;
       if (h.name.toLowerCase() === 'content-type') {
@@ -27,15 +30,13 @@ const prepareRequest = (request, collectionRoot) => {
   let axiosRequest = {
     method: request.method,
     url: request.url,
-    headers: headers
+    headers: headers,
+    pathParams: request?.params?.filter((param) => param.type === 'path'),
+    responseType: 'arraybuffer'
   };
 
-  // Authentication
-  // A request can override the collection auth with another auth
-  // But it cannot override the collection auth with no auth
-  // We will provide support for disabling the auth via scripting in the future
-  const collectionAuth = get(collectionRoot, 'request.auth');
-  if (collectionAuth) {
+  const collectionAuth = get(collection, 'root.request.auth');
+  if (collectionAuth && request.auth.mode === 'inherit') {
     if (collectionAuth.mode === 'basic') {
       axiosRequest.auth = {
         username: get(collectionAuth, 'basic.username'),
@@ -44,7 +45,7 @@ const prepareRequest = (request, collectionRoot) => {
     }
 
     if (collectionAuth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(collectionAuth, 'bearer.token')}`;
     }
   }
 
@@ -56,8 +57,45 @@ const prepareRequest = (request, collectionRoot) => {
       };
     }
 
+    if (request.auth.mode === 'awsv4') {
+      axiosRequest.awsv4config = {
+        accessKeyId: get(request, 'auth.awsv4.accessKeyId'),
+        secretAccessKey: get(request, 'auth.awsv4.secretAccessKey'),
+        sessionToken: get(request, 'auth.awsv4.sessionToken'),
+        service: get(request, 'auth.awsv4.service'),
+        region: get(request, 'auth.awsv4.region'),
+        profileName: get(request, 'auth.awsv4.profileName')
+      };
+    }
+
+    if (request.auth.mode === 'ntlm') {
+      axiosRequest.ntlmConfig = {
+        username: get(request, 'auth.ntlm.username'),
+        password: get(request, 'auth.ntlm.password'),
+        domain: get(request, 'auth.ntlm.domain')
+      };
+    }
+
     if (request.auth.mode === 'bearer') {
-      axiosRequest.headers['authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+      axiosRequest.headers['Authorization'] = `Bearer ${get(request, 'auth.bearer.token')}`;
+    }
+
+    if (request.auth.mode === 'wsse') {
+      const username = get(request, 'auth.wsse.username', '');
+      const password = get(request, 'auth.wsse.password', '');
+
+      const ts = new Date().toISOString();
+      const nonce = crypto.randomBytes(16).toString('hex');
+
+      // Create the password digest using SHA-1 as required for WSSE
+      const hash = crypto.createHash('sha1');
+      hash.update(nonce + ts + password);
+      const digest = Buffer.from(hash.digest('hex').toString('utf8')).toString('base64');
+
+      // Construct the WSSE header
+      axiosRequest.headers[
+        'X-WSSE'
+      ] = `UsernameToken Username="${username}", PasswordDigest="${digest}", Nonce="${nonce}", Created="${ts}"`;
     }
   }
 
@@ -68,9 +106,9 @@ const prepareRequest = (request, collectionRoot) => {
       axiosRequest.headers['content-type'] = 'application/json';
     }
     try {
-      axiosRequest.data = JSON.parse(decomment(request.body.json));
-    } catch (ex) {
-      axiosRequest.data = request.body.json;
+      axiosRequest.data = decomment(request?.body?.json);
+    } catch (error) {
+      axiosRequest.data = request?.body?.json;
     }
   }
 
@@ -83,7 +121,7 @@ const prepareRequest = (request, collectionRoot) => {
 
   if (request.body.mode === 'xml') {
     if (!contentTypeDefined) {
-      axiosRequest.headers['content-type'] = 'text/xml';
+      axiosRequest.headers['content-type'] = 'application/xml';
     }
     axiosRequest.data = request.body.xml;
   }
@@ -102,14 +140,11 @@ const prepareRequest = (request, collectionRoot) => {
     each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.data = params;
   }
-
+  
   if (request.body.mode === 'multipartForm') {
-    const params = {};
-    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
-    each(enabledParams, (p) => (params[p.name] = p.value));
     axiosRequest.headers['content-type'] = 'multipart/form-data';
-    axiosRequest.data = params;
-    // TODO: Add support for file uploads
+    const enabledParams = filter(request.body.multipartForm, (p) => p.enabled);
+    axiosRequest.data = enabledParams;
   }
 
   if (request.body.mode === 'graphql') {
@@ -123,9 +158,18 @@ const prepareRequest = (request, collectionRoot) => {
     axiosRequest.data = graphqlQuery;
   }
 
-  if (request.script && request.script.length) {
+  if (request.script) {
     axiosRequest.script = request.script;
   }
+
+  if (request.tests) {
+    axiosRequest.tests = request.tests;
+  }
+
+  axiosRequest.vars = request.vars;
+  axiosRequest.collectionVariables = request.collectionVariables;
+  axiosRequest.folderVariables = request.folderVariables;
+  axiosRequest.requestVariables = request.requestVariables;
 
   return axiosRequest;
 };

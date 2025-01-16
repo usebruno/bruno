@@ -1,0 +1,25 @@
+meta {
+  name: google token with authorize
+  type: http
+  seq: 4
+}
+
+post {
+  url: 
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: {{authorization_code_callback_url}}
+  authorization_url: {{authorization_code_google_auth_url}}
+  access_token_url: {{authorization_code_google_access_token_url}}
+  client_id: {{authorization_code_google_client_id}}
+  client_secret: {{authorization_code_google_client_secret}}
+  scope: {{authorization_code_google_scope}}
+}
+
+script:post-response {
+  bru.setEnvVar('authorization_code_access_token', res.body.access_token);
+}

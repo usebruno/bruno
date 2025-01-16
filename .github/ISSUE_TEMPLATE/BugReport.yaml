@@ -1,0 +1,34 @@
+name: Bug Report
+description: File a bug report
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: checkboxes
+    attributes:
+      label: 'I have checked the following:'
+      options:
+        - label: I use the newest version of bruno.
+          required: true
+        - label: I've searched existing issues and found nothing related to my issue.
+          required: true
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of the bug.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: .bru file to reproduce the bug
+      description: Attach your .bru file here that can reqroduce the problem.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Screenshots/Live demo link
+      description: Add some screenshots to help explain the problem.
+    validations:
+      required: true

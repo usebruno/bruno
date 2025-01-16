@@ -1,5 +1,5 @@
 {
-  "version": "v1.8.0",
+  "version": "v1.38.1",
   "name": "bruno",
   "description": "Opensource API Client for Exploring and Testing APIs",
   "homepage": "https://www.usebruno.com",
@@ -16,17 +16,25 @@
     "dist:rpm": "electron-builder --linux rpm --config electron-builder-config.js",
     "dist:snap": "electron-builder --linux snap --config electron-builder-config.js",
     "pack": "electron-builder --dir",
-    "test": "jest"
+    "test": "node --experimental-vm-modules $(npx which jest)"
+  },
+  "jest": {
+    "modulePaths": [
+      "node_modules"
+    ]
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "^3.425.0",
+    "@aws-sdk/credential-providers": "3.658.1",
     "@usebruno/common": "0.1.0",
-    "@usebruno/js": "0.10.1",
-    "@usebruno/lang": "0.10.0",
-    "@usebruno/schema": "0.6.0",
+    "@usebruno/js": "0.12.0",
+    "@usebruno/lang": "0.12.0",
+    "@usebruno/node-machine-id": "^2.0.0",
+    "@usebruno/schema": "0.7.0",
+    "@usebruno/vm2": "^3.9.13",
     "about-window": "^1.15.2",
     "aws4-axios": "^3.3.0",
-    "axios": "^1.5.1",
+    "axios": "1.7.5",
+    "axios-ntlm": "^1.4.2",
     "chai": "^4.3.7",
     "chokidar": "^3.5.3",
     "content-disposition": "^0.5.4",
@@ -41,26 +49,24 @@
     "graphql": "^16.6.0",
     "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^7.0.2",
+    "iconv-lite": "^0.6.3",
     "is-valid-path": "^0.1.1",
     "js-yaml": "^4.1.0",
     "lodash": "^4.17.21",
     "mime-types": "^2.1.35",
-    "mustache": "^4.2.0",
-    "nanoid": "3.3.4",
-    "node-machine-id": "^1.1.12",
+    "nanoid": "3.3.8",
     "qs": "^6.11.0",
     "socks-proxy-agent": "^8.0.2",
     "tough-cookie": "^4.1.3",
     "uuid": "^9.0.0",
-    "vm2": "^3.9.13",
     "yup": "^0.32.11"
   },
   "optionalDependencies": {
     "dmg-license": "^1.0.11"
   },
   "devDependencies": {
-    "electron": "21.1.1",
-    "electron-builder": "23.0.2",
-    "electron-icon-maker": "^0.0.5"
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "electron-devtools-installer": "^4.0.0"
   }
 }

@@ -4,6 +4,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+
 jobs:
   unit-test:
     name: Unit Tests
@@ -11,9 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
@@ -22,8 +28,14 @@ jobs:
         run: |
           npm run build --workspace=packages/bruno-common
           npm run build --workspace=packages/bruno-query
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
-      # test
+      # tests
+      - name: Test Package bruno-js
+        run: npm run test --workspace=packages/bruno-js
+      - name: Test Package bruno-cli
+        run: npm run test --workspace=packages/bruno-cli
+
       - name: Test Package bruno-query
         run: npm run test --workspace=packages/bruno-query
       - name: Test Package bruno-lang
@@ -32,12 +44,8 @@ jobs:
         run: npm run test --workspace=packages/bruno-schema
       - name: Test Package bruno-app
         run: npm run test --workspace=packages/bruno-app
-      - name: Test Package bruno-js
-        run: npm run test --workspace=packages/bruno-js
       - name: Test Package bruno-common
         run: npm run test --workspace=packages/bruno-common
-      - name: Test Package bruno-cli
-        run: npm run test --workspace=packages/bruno-cli
       - name: Test Package bruno-electron
         run: npm run test --workspace=packages/bruno-electron
 
@@ -46,9 +54,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: './package-lock.json'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -57,6 +67,7 @@ jobs:
         run: |
           npm run build --workspace=packages/bruno-query
           npm run build --workspace=packages/bruno-common
+          npm run sandbox:bundle-libraries --workspace=packages/bruno-js
 
       - name: Run tests
         run: |
@@ -65,22 +76,8 @@ jobs:
           node ../../bruno-cli/bin/bru.js run --env Prod --output junit.xml --format junit
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@v1
-        if: success() || failure()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
         with:
-          name: Test Report
-          path: packages/bruno-tests/collection/junit.xml
-          reporter: java-junit
-
-  prettier:
-    name: Prettier
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-      - name: Run Prettier
-        run: npm run test:prettier:web
+          files: packages/bruno-tests/collection/junit.xml
+          comment_mode: always

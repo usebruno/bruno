@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
+const os = require('os');
 
 const exists = async (p) => {
   try {
@@ -37,6 +38,11 @@ const isDirectory = (dirPath) => {
   }
 };
 
+const hasSubDirectories = (dir) => {
+  const files = fs.readdirSync(dir);
+  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
+};
+
 const normalizeAndResolvePath = (pathname) => {
   if (isSymbolicLink(pathname)) {
     const absPath = path.dirname(pathname);
@@ -49,6 +55,18 @@ const normalizeAndResolvePath = (pathname) => {
   }
   return path.resolve(pathname);
 };
+
+function isWSLPath(pathname) {
+  // Check if the path starts with the WSL prefix
+  // eg. "\\wsl.localhost\Ubuntu\home\user\bruno\collection\scripting\api\req\getHeaders.bru"
+  return pathname.startsWith('/wsl.localhost/') || pathname.startsWith('\\wsl.localhost\\');
+}
+
+function normalizeWslPath(pathname) {
+  // Replace the WSL path prefix and convert forward slashes to backslashes
+  // This is done to achieve WSL paths (linux style) to Windows UNC equivalent (Universal Naming Conversion)
+  return pathname.replace(/^\/wsl.localhost/, '\\\\wsl.localhost').replace(/\//g, '\\');
+}
 
 const writeFile = async (pathname, content) => {
   try {
@@ -143,8 +161,54 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
+const sanitizeCollectionName = (name) => {
+  return name.trim();
+}
+
 const sanitizeDirectoryName = (name) => {
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
+};
+
+const isWindowsOS = () => {
+  return os.platform() === 'win32';
+}
+
+const isValidFilename = (fileName) => {
+  const inValidChars = /[\\/:*?"<>|]/;
+
+  if (!fileName || inValidChars.test(fileName)) {
+    return false;
+  }
+
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
+    return false;
+  }
+
+  return true;
+};
+
+const safeToRename = (oldPath, newPath) => {
+  try {
+    // If the new path doesn't exist, it's safe to rename
+    if (!fs.existsSync(newPath)) {
+      return true;
+    }
+
+    const oldStat = fs.statSync(oldPath);
+    const newStat = fs.statSync(newPath);
+
+    if (isWindowsOS()) {
+      // Windows-specific comparison:
+      // Check if both files have the same birth time, size (Since, Win FAT-32 doesn't use inodes)
+
+      return oldStat.birthtimeMs === newStat.birthtimeMs && oldStat.size === newStat.size;
+    }
+    // Unix/Linux/MacOS: Check inode to see if they are the same file
+    return oldStat.ino === newStat.ino;
+  } catch (error) {
+    console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
+    return false;
+  }
 };
 
 module.exports = {
@@ -154,6 +218,8 @@ module.exports = {
   isFile,
   isDirectory,
   normalizeAndResolvePath,
+  isWSLPath,
+  normalizeWslPath,
   writeFile,
   writeBinaryFile,
   hasJsonExtension,
@@ -164,5 +230,10 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  sanitizeCollectionName,
+  isWindowsOS,
+  safeToRename,
+  isValidFilename,
+  hasSubDirectories
 };

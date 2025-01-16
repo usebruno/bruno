@@ -1,4 +1,5 @@
 const { ipcMain } = require('electron');
+const os = require('os');
 const openAboutWindow = require('about-window').default;
 const { join } = require('path');
 
@@ -13,6 +14,17 @@ const template = [
         }
       },
       {
+        label: 'Open Recent',
+        role: 'recentdocuments',
+        visible: os.platform() == 'darwin',
+        submenu: [
+          {
+            label: 'Clear Recent',
+            role: 'clearrecentdocuments'
+          }
+        ]
+      },
+      {
         label: 'Preferences',
         accelerator: 'CommandOrControl+,',
         click() {
@@ -20,7 +32,13 @@ const template = [
         }
       },
       { type: 'separator' },
-      { role: 'quit' }
+      { role: 'quit' },
+      {
+        label: 'Force Quit',
+        click() {
+          process.exit();
+        }
+      }
     ]
   },
   {

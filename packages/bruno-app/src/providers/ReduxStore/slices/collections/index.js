@@ -1,13 +1,6 @@
+import { uuid } from 'utils/common';
+import { find, map, forOwn, concat, filter, each, cloneDeep, get, set } from 'lodash';
 import { createSlice } from '@reduxjs/toolkit';
-import cloneDeep from 'lodash/cloneDeep';
-import concat from 'lodash/concat';
-import each from 'lodash/each';
-import filter from 'lodash/filter';
-import find from 'lodash/find';
-import forOwn from 'lodash/forOwn';
-import get from 'lodash/get';
-import map from 'lodash/map';
-import set from 'lodash/set';
 import {
   addDepth,
   areItemsTheSameExceptSeqUpdate,
@@ -19,11 +12,12 @@ import {
   findEnvironmentInCollection,
   findItemInCollection,
   findItemInCollectionByPathname,
+  isItemAFolder,
   isItemARequest
 } from 'utils/collections';
-import { uuid } from 'utils/common';
-import { PATH_SEPARATOR, getDirectoryName, getSubdirectoriesFromRoot } from 'utils/common/platform';
-import { parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { parsePathParams, parseQueryParams, splitOnFirst, stringifyQueryParams } from 'utils/url';
+import { getDirectoryName, getSubdirectoriesFromRoot, PATH_SEPARATOR } from 'utils/common/platform';
+import toast from 'react-hot-toast';
 
 const initialState = {
   collections: [],
@@ -39,6 +33,7 @@ export const collectionsSlice = createSlice({
       const collection = action.payload;
 
       collection.settingsSelectedTab = 'headers';
+      collection.folderLevelSettingsSelectedTab = {};
 
       // TODO: move this to use the nextAction approach
       // last action is used to track the last action performed on the collection
@@ -53,6 +48,12 @@ export const collectionsSlice = createSlice({
       addDepth(collection.items);
       if (!collectionUids.includes(collection.uid)) {
         state.collections.push(collection);
+      }
+    },
+    setCollectionSecurityConfig: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      if (collection) {
+        collection.securityConfig = action.payload.securityConfig;
       }
     },
     brunoConfigUpdateEvent: (state, action) => {
@@ -96,12 +97,25 @@ export const collectionsSlice = createSlice({
       }
     },
     updateSettingsSelectedTab: (state, action) => {
-      const { collectionUid, tab } = action.payload;
+      const { collectionUid, folderUid, tab } = action.payload;
 
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
         collection.settingsSelectedTab = tab;
+      }
+    },
+    updatedFolderSettingsSelectedTab: (state, action) => {
+      const { collectionUid, folderUid, tab } = action.payload;
+
+      const collection = findCollectionByUid(state.collections, collectionUid);
+
+      if (collection) {
+        const folder = findItemInCollection(collection, folderUid);
+
+        if (folder) {
+          collection.folderLevelSettingsSelectedTab[folderUid] = tab;
+        }
       }
     },
     collectionUnlinkEnvFileEvent: (state, action) => {
@@ -191,7 +205,7 @@ export const collectionsSlice = createSlice({
       }
     },
     scriptEnvironmentUpdateEvent: (state, action) => {
-      const { collectionUid, envVariables, collectionVariables } = action.payload;
+      const { collectionUid, envVariables, runtimeVariables } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -221,7 +235,7 @@ export const collectionsSlice = createSlice({
           });
         }
 
-        collection.collectionVariables = collectionVariables;
+        collection.runtimeVariables = runtimeVariables;
       }
     },
     processEnvUpdateEvent: (state, action) => {
@@ -294,10 +308,35 @@ export const collectionsSlice = createSlice({
 
       if (collection && collection.items && collection.items.length) {
         const parts = splitOnFirst(action.payload.requestUrl, '?');
-        const params = parseQueryParams(parts[1]);
-        each(params, (urlParam) => {
-          urlParam.enabled = true;
-        });
+        const queryParams = parseQueryParams(parts[1]);
+
+        let pathParams = [];
+        try {
+          pathParams = parsePathParams(parts[0]);
+        } catch (err) {
+          console.error(err);
+          toast.error(err.message);
+        }
+
+        const queryParamObjects = queryParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'query',
+          enabled: true
+        }));
+
+        const pathParamObjects = pathParams.map((param) => ({
+          uid: uuid(),
+          name: param.key,
+          value: param.value,
+          description: '',
+          type: 'path',
+          enabled: true
+        }));
+
+        const params = [...queryParamObjects, ...pathParamObjects];
 
         const item = {
           uid: action.payload.uid,
@@ -349,27 +388,59 @@ export const collectionsSlice = createSlice({
           }
           item.draft.request.url = action.payload.url;
 
-          const parts = splitOnFirst(item.draft.request.url, '?');
-          const urlParams = parseQueryParams(parts[1]);
-          const disabledParams = filter(item.draft.request.params, (p) => !p.enabled);
-          let enabledParams = filter(item.draft.request.params, (p) => p.enabled);
+          const parts = splitOnFirst(item?.draft?.request?.url, '?');
+          const urlQueryParams = parseQueryParams(parts[1]);
+          let urlPathParams = [];
+
+          try {
+            urlPathParams = parsePathParams(parts[0]);
+          } catch (err) {
+            console.error(err);
+            toast.error(err.message);
+          }
+
+          const disabledQueryParams = filter(item?.draft?.request?.params, (p) => !p.enabled && p.type === 'query');
+          let enabledQueryParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'query');
+          let oldPathParams = filter(item?.draft?.request?.params, (p) => p.enabled && p.type === 'path');
+          let newPathParams = [];
 
           // try and connect as much as old params uid's as possible
-          each(urlParams, (urlParam) => {
-            const existingParam = find(enabledParams, (p) => p.name === urlParam.name || p.value === urlParam.value);
-            urlParam.uid = existingParam ? existingParam.uid : uuid();
-            urlParam.enabled = true;
+          each(urlQueryParams, (urlQueryParam) => {
+            const existingQueryParam = find(
+              enabledQueryParams,
+              (p) => p?.name === urlQueryParam?.name || p?.value === urlQueryParam?.value
+            );
+            urlQueryParam.uid = existingQueryParam?.uid || uuid();
+            urlQueryParam.enabled = true;
+            urlQueryParam.type = 'query';
 
-            // once found, remove it - trying our best here to accomodate duplicate query params
-            if (existingParam) {
-              enabledParams = filter(enabledParams, (p) => p.uid !== existingParam.uid);
+            // once found, remove it - trying our best here to accommodate duplicate query params
+            if (existingQueryParam) {
+              enabledQueryParams = filter(enabledQueryParams, (p) => p?.uid !== existingQueryParam?.uid);
             }
+          });
+
+          // filter the newest path param and compare with previous data that already inserted
+          newPathParams = filter(urlPathParams, (urlPath) => {
+            const existingPathParam = find(oldPathParams, (p) => p.name === urlPath.name);
+            if (existingPathParam) {
+              return false;
+            }
+            urlPath.uid = uuid();
+            urlPath.enabled = true;
+            urlPath.type = 'path';
+            return true;
+          });
+
+          // remove path param that not used or deleted when typing url
+          oldPathParams = filter(oldPathParams, (urlPath) => {
+            return find(urlPathParams, (p) => p.name === urlPath.name);
           });
 
           // ultimately params get replaced with params in url + the disabled ones that existed prior
           // the query params are the source of truth, the url in the queryurl input gets constructed using these params
           // we however are also storing the full url (with params) in the url itself
-          item.draft.request.params = concat(urlParams, disabledParams);
+          item.draft.request.params = concat(urlQueryParams, newPathParams, disabledQueryParams, oldPathParams);
         }
       }
     },
@@ -402,6 +473,22 @@ export const collectionsSlice = createSlice({
               item.draft.request.auth.mode = 'digest';
               item.draft.request.auth.digest = action.payload.content;
               break;
+            case 'ntlm':
+              item.draft.request.auth.mode = 'ntlm';
+              item.draft.request.auth.ntlm = action.payload.content;
+              break;              
+            case 'oauth2':
+              item.draft.request.auth.mode = 'oauth2';
+              item.draft.request.auth.oauth2 = action.payload.content;
+              break;
+            case 'wsse':
+              item.draft.request.auth.mode = 'wsse';
+              item.draft.request.auth.wsse = action.payload.content;
+              break;
+            case 'apikey':
+              item.draft.request.auth.mode = 'apikey';
+              item.draft.request.auth.apikey = action.payload.content;
+              break;
           }
         }
       }
@@ -422,11 +509,50 @@ export const collectionsSlice = createSlice({
             name: '',
             value: '',
             description: '',
+            type: 'query',
             enabled: true
           });
         }
       }
     },
+
+    moveQueryParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.params;
+
+          const queryParams = params.filter((param) => param.type === 'query');
+          const pathParams = params.filter((param) => param.type === 'path');
+    
+          // Reorder only query params based on updateReorderedItem
+          const reorderedQueryParams = updateReorderedItem.map((uid) => {
+            return queryParams.find((param) => param.uid === uid);
+          });
+          item.draft.request.params = [...reorderedQueryParams, ...pathParams];
+    
+          // Update request URL
+          const parts = splitOnFirst(item.draft.request.url, '?');
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
+          if (query && query.length) {
+            item.draft.request.url = parts[0] + '?' + query;
+          } else {
+            item.draft.request.url = parts[0];
+          }
+        }
+      }
+    },
+
     updateQueryParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -437,16 +563,20 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
-          const param = find(item.draft.request.params, (h) => h.uid === action.payload.param.uid);
-          if (param) {
-            param.name = action.payload.param.name;
-            param.value = action.payload.param.value;
-            param.description = action.payload.param.description;
-            param.enabled = action.payload.param.enabled;
+          const queryParam = find(
+            item.draft.request.params,
+            (h) => h.uid === action.payload.queryParam.uid && h.type === 'query'
+          );
+          if (queryParam) {
+            queryParam.name = action.payload.queryParam.name;
+            queryParam.value = action.payload.queryParam.value;
+            queryParam.enabled = action.payload.queryParam.enabled;
 
             // update request url
             const parts = splitOnFirst(item.draft.request.url, '?');
-            const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+            const query = stringifyQueryParams(
+              filter(item.draft.request.params, (p) => p.enabled && p.type === 'query')
+            );
 
             // if no query is found, then strip the query params in url
             if (!query || !query.length) {
@@ -482,11 +612,34 @@ export const collectionsSlice = createSlice({
 
           // update request url
           const parts = splitOnFirst(item.draft.request.url, '?');
-          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled));
+          const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
           if (query && query.length) {
             item.draft.request.url = parts[0] + '?' + query;
           } else {
             item.draft.request.url = parts[0];
+          }
+        }
+      }
+    },
+    updatePathParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          const param = find(
+            item.draft.request.params,
+            (p) => p.uid === action.payload.pathParam.uid && p.type === 'path'
+          );
+
+          if (param) {
+            param.name = action.payload.pathParam.name;
+            param.value = action.payload.pathParam.value;
           }
         }
       }
@@ -543,6 +696,28 @@ export const collectionsSlice = createSlice({
             item.draft = cloneDeep(item);
           }
           item.draft.request.headers = filter(item.draft.request.headers, (h) => h.uid !== action.payload.headerUid);
+        }
+      }
+    },
+    moveRequestHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.headers;
+
+          item.draft.request.headers = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
         }
       }
     },
@@ -604,6 +779,28 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveFormUrlEncodedParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.body.formUrlEncoded;
+
+          item.draft.request.body.formUrlEncoded = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+        }
+      }
+    },
     addMultipartFormParam: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -619,8 +816,9 @@ export const collectionsSlice = createSlice({
             uid: uuid(),
             type: action.payload.type,
             name: '',
-            value: '',
+            value: action.payload.value,
             description: '',
+            contentType: '',
             enabled: true
           });
         }
@@ -642,6 +840,7 @@ export const collectionsSlice = createSlice({
             param.name = action.payload.param.name;
             param.value = action.payload.param.value;
             param.description = action.payload.param.description;
+            param.contentType = action.payload.param.contentType;
             param.enabled = action.payload.param.enabled;
           }
         }
@@ -664,6 +863,28 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveMultipartFormParam: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.body.multipartForm;
+
+          item.draft.request.body.multipartForm = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+        }
+      }
+    },
     updateRequestAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
@@ -674,6 +895,7 @@ export const collectionsSlice = createSlice({
           if (!item.draft) {
             item.draft = cloneDeep(item);
           }
+          item.draft.request.auth = {};
           item.draft.request.auth.mode = action.payload.mode;
         }
       }
@@ -876,6 +1098,28 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveAssertion: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          const params = item.draft.request.assertions;
+
+          item.draft.request.assertions = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+        }
+      }
+    },
     addVar: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
       const type = action.payload.type;
@@ -970,10 +1214,42 @@ export const collectionsSlice = createSlice({
         }
       }
     },
+    moveVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+
+      if (collection) {
+        const item = findItemInCollection(collection, action.payload.itemUid);
+
+        if (item && isItemARequest(item)) {
+          // Ensure item.draft is a deep clone of item if not already present
+          if (!item.draft) {
+            item.draft = cloneDeep(item);
+          }
+
+          // Extract payload data
+          const { updateReorderedItem } = action.payload;
+          if(type == "request"){
+            const params = item.draft.request.vars.req;
+
+            item.draft.request.vars.req = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+          });
+          } else if (type === 'response') {
+            const params = item.draft.request.vars.res;
+
+            item.draft.request.vars.res = updateReorderedItem.map((uid) => {
+            return params.find((param) => param.uid === uid);
+            });
+          }
+        }
+      }
+    },
     updateCollectionAuthMode: (state, action) => {
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
         set(collection, 'root.request.auth.mode', action.payload.mode);
       }
     },
@@ -981,6 +1257,8 @@ export const collectionsSlice = createSlice({
       const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
 
       if (collection) {
+        set(collection, 'root.request.auth', {});
+        set(collection, 'root.request.auth.mode', action.payload.mode);
         switch (action.payload.mode) {
           case 'awsv4':
             set(collection, 'root.request.auth.awsv4', action.payload.content);
@@ -993,6 +1271,18 @@ export const collectionsSlice = createSlice({
             break;
           case 'digest':
             set(collection, 'root.request.auth.digest', action.payload.content);
+            break;
+          case 'ntlm':
+            set(collection, 'root.request.auth.ntlm', action.payload.content);
+            break;            
+          case 'oauth2':
+            set(collection, 'root.request.auth.oauth2', action.payload.content);
+            break;
+          case 'wsse':
+            set(collection, 'root.request.auth.wsse', action.payload.content);
+            break;
+          case 'apikey':
+            set(collection, 'root.request.auth.apikey', action.payload.content);
             break;
         }
       }
@@ -1023,6 +1313,135 @@ export const collectionsSlice = createSlice({
 
       if (collection) {
         set(collection, 'root.docs', action.payload.docs);
+      }
+    },
+    addFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        const headers = get(folder, 'root.request.headers', []);
+        headers.push({
+          uid: uuid(),
+          name: '',
+          value: '',
+          description: '',
+          enabled: true
+        });
+        set(folder, 'root.request.headers', headers);
+      }
+    },
+    updateFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        const headers = get(folder, 'root.request.headers', []);
+        const header = find(headers, (h) => h.uid === action.payload.header.uid);
+        if (header) {
+          header.name = action.payload.header.name;
+          header.value = action.payload.header.value;
+          header.description = action.payload.header.description;
+          header.enabled = action.payload.header.enabled;
+        }
+      }
+    },
+    deleteFolderHeader: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        let headers = get(folder, 'root.request.headers', []);
+        headers = filter(headers, (h) => h.uid !== action.payload.headerUid);
+        set(folder, 'root.request.headers', headers);
+      }
+    },
+    addFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          const vars = get(folder, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(folder, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+          if (_var) {
+            _var.name = action.payload.var.name;
+            _var.value = action.payload.var.value;
+            _var.description = action.payload.var.description;
+            _var.enabled = action.payload.var.enabled;
+          }
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    deleteFolderVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      const type = action.payload.type;
+      if (folder) {
+        if (type === 'request') {
+          let vars = get(folder, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(folder, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(folder, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateFolderRequestScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.req', action.payload.script);
+      }
+    },
+    updateFolderResponseScript: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.script.res', action.payload.script);
+      }
+    },
+    updateFolderTests: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        set(folder, 'root.request.tests', action.payload.tests);
       }
     },
     addCollectionHeader: (state, action) => {
@@ -1063,14 +1482,88 @@ export const collectionsSlice = createSlice({
         set(collection, 'root.request.headers', headers);
       }
     },
+    addCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          const vars = get(collection, 'root.request.vars.req', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          const vars = get(collection, 'root.request.vars.res', []);
+          vars.push({
+            uid: uuid(),
+            name: '',
+            value: '',
+            enabled: true
+          });
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
+    updateCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (type === 'request') {
+        let vars = get(collection, 'root.request.vars.req', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.req', vars);
+      } else if (type === 'response') {
+        let vars = get(collection, 'root.request.vars.res', []);
+        const _var = find(vars, (h) => h.uid === action.payload.var.uid);
+        if (_var) {
+          _var.name = action.payload.var.name;
+          _var.value = action.payload.var.value;
+          _var.description = action.payload.var.description;
+          _var.enabled = action.payload.var.enabled;
+        }
+        set(collection, 'root.request.vars.res', vars);
+      }
+    },
+    deleteCollectionVar: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const type = action.payload.type;
+      if (collection) {
+        if (type === 'request') {
+          let vars = get(collection, 'root.request.vars.req', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.req', vars);
+        } else if (type === 'response') {
+          let vars = get(collection, 'root.request.vars.res', []);
+          vars = filter(vars, (h) => h.uid !== action.payload.varUid);
+          set(collection, 'root.request.vars.res', vars);
+        }
+      }
+    },
     collectionAddFileEvent: (state, action) => {
       const file = action.payload.file;
       const isCollectionRoot = file.meta.collectionRoot ? true : false;
+      const isFolderRoot = file.meta.folderRoot ? true : false;
       const collection = findCollectionByUid(state.collections, file.meta.collectionUid);
-
       if (isCollectionRoot) {
         if (collection) {
           collection.root = file.data;
+        }
+        return;
+      }
+
+      if (isFolderRoot) {
+        const folderPath = getDirectoryName(file.meta.pathname);
+        const folderItem = findItemInCollectionByPathname(collection, folderPath);
+        if (folderItem) {
+          folderItem.root = file.data;
         }
         return;
       }
@@ -1098,7 +1591,7 @@ export const collectionsSlice = createSlice({
           currentSubItems = childItem.items;
         }
 
-        if (!currentSubItems.find((f) => f.name === file.meta.name)) {
+        if (file.meta.name != 'folder.bru' && !currentSubItems.find((f) => f.name === file.meta.name)) {
           // this happens when you rename a file
           // the add event might get triggered first, before the unlink event
           // this results in duplicate uids causing react renderer to go mad
@@ -1290,7 +1783,7 @@ export const collectionsSlice = createSlice({
       }
     },
     runFolderEvent: (state, action) => {
-      const { collectionUid, folderUid, itemUid, type, isRecursive, error } = action.payload;
+      const { collectionUid, folderUid, itemUid, type, isRecursive, error, cancelTokenUid } = action.payload;
       const collection = findCollectionByUid(state.collections, collectionUid);
 
       if (collection) {
@@ -1306,12 +1799,16 @@ export const collectionsSlice = createSlice({
           info.collectionUid = collectionUid;
           info.folderUid = folderUid;
           info.isRecursive = isRecursive;
+          info.cancelTokenUid = cancelTokenUid;
           info.status = 'started';
         }
 
         if (type === 'testrun-ended') {
           const info = collection.runnerResult.info;
           info.status = 'ended';
+          if (action.payload.statusText) {
+            info.statusText = action.payload.statusText;
+          }
         }
 
         if (type === 'request-queued') {
@@ -1322,32 +1819,38 @@ export const collectionsSlice = createSlice({
         }
 
         if (type === 'request-sent') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'running';
           item.requestSent = action.payload.requestSent;
         }
 
         if (type === 'response-received') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.status = 'completed';
           item.responseReceived = action.payload.responseReceived;
         }
 
         if (type === 'test-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.testResults = action.payload.testResults;
         }
 
         if (type === 'assertion-results') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.assertionResults = action.payload.assertionResults;
         }
 
         if (type === 'error') {
-          const item = collection.runnerResult.items.find((i) => i.uid === request.uid);
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
           item.error = action.payload.error;
           item.responseReceived = action.payload.responseReceived;
           item.status = 'error';
+        }
+
+        if (type === 'runner-request-skipped') {
+          const item = collection.runnerResult.items.findLast((i) => i.uid === request.uid);
+          item.status = 'skipped';
+          item.responseReceived = action.payload.responseReceived;
         }
       }
     },
@@ -1372,18 +1875,29 @@ export const collectionsSlice = createSlice({
           item.draft.request.docs = action.payload.docs;
         }
       }
+    },
+    updateFolderDocs: (state, action) => {
+      const collection = findCollectionByUid(state.collections, action.payload.collectionUid);
+      const folder = collection ? findItemInCollection(collection, action.payload.folderUid) : null;
+      if (folder) {
+        if (isItemAFolder(folder)) {
+          set(folder, 'root.docs', action.payload.docs);
+        }
+      }
     }
   }
 });
 
 export const {
   createCollection,
+  setCollectionSecurityConfig,
   brunoConfigUpdateEvent,
   renameCollection,
   removeCollection,
   sortCollections,
   updateLastAction,
   updateSettingsSelectedTab,
+  updatedFolderSettingsSelectedTab,
   collectionUnlinkEnvFileEvent,
   saveEnvironment,
   selectEnvironment,
@@ -1404,17 +1918,22 @@ export const {
   requestUrlChanged,
   updateAuth,
   addQueryParam,
+  moveQueryParam,
   updateQueryParam,
   deleteQueryParam,
+  updatePathParam,
   addRequestHeader,
   updateRequestHeader,
   deleteRequestHeader,
+  moveRequestHeader,
   addFormUrlEncodedParam,
   updateFormUrlEncodedParam,
   deleteFormUrlEncodedParam,
+  moveFormUrlEncodedParam,
   addMultipartFormParam,
   updateMultipartFormParam,
   deleteMultipartFormParam,
+  moveMultipartFormParam,
   updateRequestAuthMode,
   updateRequestBodyMode,
   updateRequestBody,
@@ -1427,12 +1946,26 @@ export const {
   addAssertion,
   updateAssertion,
   deleteAssertion,
+  moveAssertion,
   addVar,
   updateVar,
   deleteVar,
+  moveVar,
+  addFolderHeader,
+  updateFolderHeader,
+  deleteFolderHeader,
+  addFolderVar,
+  updateFolderVar,
+  deleteFolderVar,
+  updateFolderRequestScript,
+  updateFolderResponseScript,
+  updateFolderTests,
   addCollectionHeader,
   updateCollectionHeader,
   deleteCollectionHeader,
+  addCollectionVar,
+  updateCollectionVar,
+  deleteCollectionVar,
   updateCollectionAuthMode,
   updateCollectionAuth,
   updateCollectionRequestScript,
@@ -1450,7 +1983,8 @@ export const {
   runRequestEvent,
   runFolderEvent,
   resetCollectionRunner,
-  updateRequestDocs
+  updateRequestDocs,
+  updateFolderDocs
 } = collectionsSlice.actions;
 
 export default collectionsSlice.reducer;

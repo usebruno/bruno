@@ -36,6 +36,12 @@ function getQueries(request) {
   return queries;
 }
 
+/**
+ * Converts request data to a string based on its content type.
+ *
+ * @param {Object} request - The request object containing data and headers.
+ * @returns {Object} An object containing the data string.
+ */
 function getDataString(request) {
   if (typeof request.data === 'number') {
     request.data = request.data.toString();
@@ -44,10 +50,25 @@ function getDataString(request) {
   const contentType = getContentType(request.headers);
 
   if (contentType && contentType.includes('application/json')) {
-    return { data: request.data.toString() };
+    try {
+      const parsedData = JSON.parse(request.data);
+      return { data: JSON.stringify(parsedData) };
+    } catch (error) {
+      console.error('Failed to parse JSON data:', error);
+      return { data: request.data.toString() };
+    }
+  } else if (contentType && (contentType.includes('application/xml') || contentType.includes('text/plain'))) {
+    return { data: request.data };
   }
 
   const parsedQueryString = querystring.parse(request.data, { sort: false });
+  // if missing `=`, `query-string` will set value as `null`. Reset value as empty string ('') here.
+  // https://github.com/sindresorhus/query-string/blob/3d8fbf2328220c06e45f166cdf58e70617c7ee68/base.js#L364-L366
+  Object.keys(parsedQueryString).forEach((key) => {
+    if (parsedQueryString[key] === null) {
+      parsedQueryString[key] = '';
+    }
+  });
   const keyCount = Object.keys(parsedQueryString).length;
   const singleKeyOnly = keyCount === 1 && !parsedQueryString[Object.keys(parsedQueryString)[0]];
   const singularData = request.isDataBinary || singleKeyOnly;
@@ -116,7 +137,7 @@ const curlToJson = (curlCommand) => {
     request.urlWithoutQuery = 'http://' + request.urlWithoutQuery;
   }
 
-  requestJson.url = request.urlWithoutQuery.replace(/\/$/, '');
+  requestJson.url = request.urlWithoutQuery;
   requestJson.raw_url = request.url;
   requestJson.method = request.method;
 
@@ -153,14 +174,15 @@ const curlToJson = (curlCommand) => {
   }
 
   if (request.auth) {
-    const splitAuth = request.auth.split(':');
-    const user = splitAuth[0] || '';
-    const password = splitAuth[1] || '';
-
-    requestJson.auth = {
-      user: repr(user),
-      password: repr(password)
-    };
+    if (request.auth.mode === 'basic') {
+      requestJson.auth = {
+        mode: 'basic',
+        basic: {
+          username: repr(request.auth.basic?.username),
+          password: repr(request.auth.basic?.password)
+        }
+      };
+    }
   }
 
   return Object.keys(requestJson).length ? requestJson : {};

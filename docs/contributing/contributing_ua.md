@@ -1,4 +1,4 @@
-[English](/contributing.md) | **Українська** | [Русский](/contributing_ru.md) | [Türkçe](/contributing_tr.md) | [Deutsch](/contributing_de.md) | [Français](/contributing_fr.md) | [বাংলা](docs/contributing/contributing_bn.md)
+[English](../../contributing.md)
 
 ## Давайте зробимо Bruno краще, разом !!
 
@@ -21,7 +21,7 @@ Bruno побудований на Next.js та React. Також для деск
 
 ### Залежності
 
-Вам знадобиться [Node v18.x або остання LTS версія](https://nodejs.org/en/) та npm 8.x. Ми використовуєм npm workspaces в цьому проекті
+Вам знадобиться [Node v20.x або остання LTS версія](https://nodejs.org/en/) та npm 8.x. Ми використовуєм npm workspaces в цьому проекті
 
 ### Починаєм писати код
 

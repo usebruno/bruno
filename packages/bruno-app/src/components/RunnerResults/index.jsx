@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import path from 'path';
 import { useDispatch } from 'react-redux';
 import { get, cloneDeep } from 'lodash';
-import { runCollectionFolder } from 'providers/ReduxStore/slices/collections/actions';
+import { runCollectionFolder, cancelRunnerExecution } from 'providers/ReduxStore/slices/collections/actions';
 import { resetCollectionRunner } from 'providers/ReduxStore/slices/collections';
 import { findItemInCollection, getTotalRequestCountInCollection } from 'utils/collections';
 import { IconRefresh, IconCircleCheck, IconCircleX, IconCheck, IconX, IconRun } from '@tabler/icons';
@@ -23,15 +23,28 @@ const getRelativePath = (fullPath, pathname) => {
 export default function RunnerResults({ collection }) {
   const dispatch = useDispatch();
   const [selectedItem, setSelectedItem] = useState(null);
+  const [delay, setDelay] = useState(null);
+
+  // ref for the runner output body
+  const runnerBodyRef = useRef();
+
+  const autoScrollRunnerBody = () => {
+    if (runnerBodyRef?.current) {
+      // mimics the native terminal scroll style
+      runnerBodyRef.current.scrollTo(0, 100000);
+    }
+  };
 
   useEffect(() => {
     if (!collection.runnerResult) {
       setSelectedItem(null);
     }
+    autoScrollRunnerBody();
   }, [collection, setSelectedItem]);
 
   const collectionCopy = cloneDeep(collection);
   const runnerInfo = get(collection, 'runnerResult.info', {});
+
   const items = cloneDeep(get(collection, 'runnerResult.items', []))
     .map((item) => {
       const info = findItemInCollection(collectionCopy, item.uid);
@@ -46,7 +59,7 @@ export default function RunnerResults({ collection }) {
         pathname: info.pathname,
         relativePath: getRelativePath(collection.pathname, info.pathname)
       };
-      if (newItem.status !== 'error') {
+      if (newItem.status !== 'error' && newItem.status !== 'skipped') {
         if (newItem.testResults) {
           const failed = newItem.testResults.filter((result) => result.status === 'fail');
           newItem.testStatus = failed.length ? 'fail' : 'pass';
@@ -66,11 +79,11 @@ export default function RunnerResults({ collection }) {
     .filter(Boolean);
 
   const runCollection = () => {
-    dispatch(runCollectionFolder(collection.uid, null, true));
+    dispatch(runCollectionFolder(collection.uid, null, true, Number(delay)));
   };
 
   const runAgain = () => {
-    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive));
+    dispatch(runCollectionFolder(collection.uid, runnerInfo.folderUid, runnerInfo.isRecursive, Number(delay)));
   };
 
   const resetRunner = () => {
@@ -79,6 +92,10 @@ export default function RunnerResults({ collection }) {
         collectionUid: collection.uid
       })
     );
+  };
+
+  const cancelExecution = () => {
+    dispatch(cancelRunnerExecution(runnerInfo.cancelTokenUid));
   };
 
   const totalRequestsInCollection = getTotalRequestCountInCollection(collectionCopy);
@@ -91,14 +108,27 @@ export default function RunnerResults({ collection }) {
 
   if (!items || !items.length) {
     return (
-      <StyledWrapper className="px-4">
+      <StyledWrapper className="px-4 pb-4">
         <div className="font-medium mt-6 title flex items-center">
           Runner
           <IconRun size={20} strokeWidth={1.5} className="ml-2" />
         </div>
-
         <div className="mt-6">
           You have <span className="font-medium">{totalRequestsInCollection}</span> requests in this collection.
+        </div>
+
+        <div className="mt-6">
+          <label>Delay (in ms)</label>
+          <input
+            type="number"
+            className="block textbox mt-2 py-5"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            value={delay}
+            onChange={(e) => setDelay(e.target.value)}
+          />
         </div>
 
         <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runCollection}>
@@ -114,38 +144,58 @@ export default function RunnerResults({ collection }) {
 
   return (
     <StyledWrapper className="px-4 pb-4 flex flex-grow flex-col relative">
-      <div className="font-medium mt-6 mb-4 title flex items-center">
-        Runner
-        <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+      <div className="flex flex-row">
+        <div className="font-medium my-6 title flex items-center">
+          Runner
+          <IconRun size={20} strokeWidth={1.5} className="ml-2" />
+        </div>
+        {runnerInfo.status !== 'ended' && runnerInfo.cancelTokenUid && (
+          <button className="btn ml-6 my-4 btn-sm btn-danger" onClick={cancelExecution}>
+            Cancel Execution
+          </button>
+        )}
       </div>
-      <div className="flex flex-1">
-        <div className="flex flex-col flex-1">
-          <div className="py-2 font-medium test-summary">
+      <div className="flex flex-row gap-4">
+        <div
+          className="flex flex-col flex-1 overflow-y-auto h-[calc(100vh_-_12rem)] max-h-[calc(100vh_-_12rem)] w-full"
+          ref={runnerBodyRef}
+        >
+          <div className="pb-2 font-medium test-summary">
             Total Requests: {items.length}, Passed: {passedRequests.length}, Failed: {failedRequests.length}
           </div>
+          {runnerInfo?.statusText ? 
+            <div className="pb-2 font-medium danger">
+              {runnerInfo?.statusText}
+            </div>
+          : null}
           {items.map((item) => {
             return (
               <div key={item.uid}>
                 <div className="item-path mt-2">
                   <div className="flex items-center">
                     <span>
-                      {item.status !== 'error' && item.testStatus === 'pass' ? (
+                      {item.status !== 'error' && item.testStatus === 'pass' && item.status !== 'skipped' ? (
                         <IconCircleCheck className="test-success" size={20} strokeWidth={1.5} />
                       ) : (
                         <IconCircleX className="test-failure" size={20} strokeWidth={1.5} />
                       )}
                     </span>
                     <span
-                      className={`mr-1 ml-2 ${item.status == 'error' || item.testStatus == 'fail' ? 'danger' : ''}`}
+                      className={`mr-1 ml-2 ${item.status == 'error' || item.status == 'skipped' || item.testStatus == 'fail' ? 'danger' : ''}`}
                     >
                       {item.relativePath}
                     </span>
-                    {item.status !== 'error' && item.status !== 'completed' ? (
+                    {item.status !== 'error' && item.status !== 'skipped' && item.status !== 'completed' ? (
                       <IconRefresh className="animate-spin ml-1" size={18} strokeWidth={1.5} />
-                    ) : (
+                    ) : item.responseReceived?.status ? (
                       <span className="text-xs link cursor-pointer" onClick={() => setSelectedItem(item)}>
-                        (<span className="mr-1">{get(item.responseReceived, 'status')}</span>
-                        <span>{get(item.responseReceived, 'statusText')}</span>)
+                        <span className="mr-1">{item.responseReceived?.status}</span>
+                        -&nbsp;
+                        <span>{item.responseReceived?.statusText}</span>
+                      </span>
+                    ) : (
+                      <span className="danger text-xs cursor-pointer" onClick={() => setSelectedItem(item)}>
+                        (request failed)
                       </span>
                     )}
                   </div>
@@ -195,7 +245,6 @@ export default function RunnerResults({ collection }) {
               </div>
             );
           })}
-
           {runnerInfo.status === 'ended' ? (
             <div className="mt-2 mb-4">
               <button type="submit" className="submit btn btn-sm btn-secondary mt-6" onClick={runAgain}>
@@ -210,8 +259,8 @@ export default function RunnerResults({ collection }) {
             </div>
           ) : null}
         </div>
-        <div className="flex flex-1" style={{ width: '50%' }}>
-          {selectedItem ? (
+        {selectedItem ? (
+          <div className="flex flex-1 w-[50%]">
             <div className="flex flex-col w-full overflow-auto">
               <div className="flex items-center px-3 mb-4 font-medium">
                 <span className="mr-2">{selectedItem.relativePath}</span>
@@ -226,8 +275,8 @@ export default function RunnerResults({ collection }) {
               {/* <div className='px-3 mb-4 font-medium'>{selectedItem.relativePath}</div> */}
               <ResponsePane item={selectedItem} collection={collection} />
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
     </StyledWrapper>
   );

@@ -2,6 +2,7 @@ import React, { useRef, forwardRef, useState } from 'react';
 import find from 'lodash/find';
 import Dropdown from 'components/Dropdown';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
+import { updateEnvironmentSettingsModalVisibility } from 'providers/ReduxStore/slices/app';
 import { IconSettings, IconCaretDown, IconDatabase, IconDatabaseOff } from '@tabler/icons';
 import EnvironmentSettings from '../EnvironmentSettings';
 import toast from 'react-hot-toast';
@@ -17,12 +18,22 @@ const EnvironmentSelector = ({ collection }) => {
 
   const Icon = forwardRef((props, ref) => {
     return (
-      <div ref={ref} className="current-enviroment flex items-center justify-center pl-3 pr-2 py-1 select-none">
-        {activeEnvironment ? activeEnvironment.name : 'No Environment'}
+      <div ref={ref} className="current-environment flex items-center justify-center pl-3 pr-2 py-1 select-none">
+        <p className="text-nowrap truncate max-w-32">{activeEnvironment ? activeEnvironment.name : 'No Environment'}</p>
         <IconCaretDown className="caret" size={14} strokeWidth={2} />
       </div>
     );
   });
+
+  const handleSettingsIconClick = () => {
+    setOpenSettingsModal(true);
+    dispatch(updateEnvironmentSettingsModalVisibility(true));
+  };
+
+  const handleModalClose = () => {
+    setOpenSettingsModal(false);
+    dispatch(updateEnvironmentSettingsModalVisibility(false));
+  };
 
   const onDropdownCreate = (ref) => (dropdownTippyRef.current = ref);
 
@@ -42,10 +53,11 @@ const EnvironmentSelector = ({ collection }) => {
     <StyledWrapper>
       <div className="flex items-center cursor-pointer environment-selector">
         <Dropdown onCreate={onDropdownCreate} icon={<Icon />} placement="bottom-end">
+          <div className="label-item font-medium">Collection Environments</div>
           {environments && environments.length
             ? environments.map((e) => (
                 <div
-                  className="dropdown-item"
+                  className={`dropdown-item ${e?.uid === activeEnvironmentUid ? 'active' : ''}`}
                   key={e.uid}
                   onClick={() => {
                     onSelect(e);
@@ -66,7 +78,7 @@ const EnvironmentSelector = ({ collection }) => {
             <IconDatabaseOff size={18} strokeWidth={1.5} />
             <span className="ml-2">No Environment</span>
           </div>
-          <div className="dropdown-item border-top" onClick={() => setOpenSettingsModal(true)}>
+          <div className="dropdown-item border-top" onClick={handleSettingsIconClick}>
             <div className="pr-2 text-gray-600">
               <IconSettings size={18} strokeWidth={1.5} />
             </div>
@@ -74,7 +86,7 @@ const EnvironmentSelector = ({ collection }) => {
           </div>
         </Dropdown>
       </div>
-      {openSettingsModal && <EnvironmentSettings collection={collection} onClose={() => setOpenSettingsModal(false)} />}
+      {openSettingsModal && <EnvironmentSettings collection={collection} onClose={handleModalClose} />}
     </StyledWrapper>
   );
 };

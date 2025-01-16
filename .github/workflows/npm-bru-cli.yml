@@ -1,0 +1,51 @@
+name: Bru CLI Tests (npm)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'Test Bru CLI (npm)'
+        required: true
+        default: 'true'
+
+# Assign permissions for unit tests to be reported.
+# See https://github.com/dorny/test-reporter/issues/168
+permissions:
+  statuses: write
+  checks: write
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  test:
+    name: CLI Tests
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Install Bru CLI from NPM
+        run: npm install -g @usebruno/cli
+
+      - name: Display Bru CLI Version
+        run: bru --version
+
+      - name: Run tests
+        run: |
+          cd packages/bruno-tests/collection
+          npm install
+          bru run --env Prod --output junit.xml --format junit
+
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Report
+          path: packages/bruno-tests/collection/junit.xml
+          reporter: java-junit

@@ -56,6 +56,15 @@ const AuthMode = ({ collection }) => {
             className="dropdown-item"
             onClick={() => {
               dropdownTippyRef.current.hide();
+              onModeChange('wsse');
+            }}
+          >
+            WSSE Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
               onModeChange('bearer');
             }}
           >
@@ -69,6 +78,33 @@ const AuthMode = ({ collection }) => {
             }}
           >
             Digest Auth
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('ntlm');
+            }}
+          >
+            NTLM Auth
+          </div>          
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('oauth2');
+            }}
+          >
+            Oauth2
+          </div>
+          <div
+            className="dropdown-item"
+            onClick={() => {
+              dropdownTippyRef.current.hide();
+              onModeChange('apikey');
+            }}
+          >
+            API Key
           </div>
           <div
             className="dropdown-item"

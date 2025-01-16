@@ -1,0 +1,25 @@
+meta {
+  name: github token with authorize
+  type: http
+  seq: 1
+}
+
+post {
+  url: 
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: {{authorization_code_callback_url}}
+  authorization_url: {{authorization_code_github_authorize_url}}
+  access_token_url: {{authorization_code_github_access_token_url}}
+  client_id: {{authorization_code_github_client_id}}
+  client_secret: {{authorization_code_github_client_secret}}
+  scope: repo,gist
+}
+
+script:post-response {
+  bru.setEnvVar('github_access_token',res.body.split('access_token=')[1]?.split('&scope')[0]);
+}

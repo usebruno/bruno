@@ -1,0 +1,24 @@
+meta {
+  name: spacex
+  type: graphql
+  seq: 1
+}
+
+post {
+  url: https://spacex-production.up.railway.app/
+  body: graphql
+  auth: none
+}
+
+body:graphql {
+  {
+    company {
+      ceo
+    }
+  }
+  
+}
+
+assert {
+  res.status: eq 200
+}

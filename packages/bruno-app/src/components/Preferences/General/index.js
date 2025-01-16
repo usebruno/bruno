@@ -21,6 +21,9 @@ const General = ({ close }) => {
       enabled: Yup.boolean(),
       filePath: Yup.string().nullable()
     }),
+    keepDefaultCaCertificates: Yup.object({
+      enabled: Yup.boolean()
+    }),
     storeCookies: Yup.boolean(),
     sendCookies: Yup.boolean(),
     timeout: Yup.mixed()
@@ -42,6 +45,9 @@ const General = ({ close }) => {
       customCaCertificate: {
         enabled: get(preferences, 'request.customCaCertificate.enabled', false),
         filePath: get(preferences, 'request.customCaCertificate.filePath', null)
+      },
+      keepDefaultCaCertificates: {
+        enabled: get(preferences, 'request.keepDefaultCaCertificates.enabled', true)
       },
       timeout: preferences.request.timeout,
       storeCookies: get(preferences, 'request.storeCookies', true),
@@ -68,6 +74,9 @@ const General = ({ close }) => {
             enabled: newPreferences.customCaCertificate.enabled,
             filePath: newPreferences.customCaCertificate.filePath
           },
+          keepDefaultCaCertificates: {
+            enabled: newPreferences.keepDefaultCaCertificates.enabled
+          },
           timeout: newPreferences.timeout,
           storeCookies: newPreferences.storeCookies,
           sendCookies: newPreferences.sendCookies
@@ -81,7 +90,10 @@ const General = ({ close }) => {
   };
 
   const addCaCertificate = (e) => {
-    formik.setFieldValue('customCaCertificate.filePath', e.target.files[0]?.path);
+    const filePath = window?.ipcRenderer?.getFilePath(e?.target?.files?.[0]);
+    if (filePath) {
+      formik.setFieldValue('customCaCertificate.filePath', filePath);
+    }
   };
 
   const deleteCaCertificate = () => {
@@ -91,7 +103,7 @@ const General = ({ close }) => {
   return (
     <StyledWrapper>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
-        <div className="flex items-center mt-2">
+        <div className="flex items-center my-2">
           <input
             id="sslVerification"
             type="checkbox"
@@ -158,6 +170,23 @@ const General = ({ close }) => {
             </button>
           </div>
         )}
+        <div className="flex items-center mt-2">
+          <input
+            id="keepDefaultCaCertificatesEnabled"
+            type="checkbox"
+            name="keepDefaultCaCertificates.enabled"
+            checked={formik.values.keepDefaultCaCertificates.enabled}
+            onChange={formik.handleChange}
+            className={`mousetrap mr-0 ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            disabled={formik.values.customCaCertificate.enabled ? false : true}
+          />
+          <label
+            className={`block ml-2 select-none ${formik.values.customCaCertificate.enabled ? '' : 'opacity-25'}`}
+            htmlFor="keepDefaultCaCertificatesEnabled"
+          >
+            Keep default CA Certificates
+          </label>
+        </div>
         <div className="flex items-center mt-2">
           <input
             id="storeCookies"

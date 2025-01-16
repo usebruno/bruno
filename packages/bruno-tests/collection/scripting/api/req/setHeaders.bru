@@ -1,0 +1,37 @@
+meta {
+  name: setHeaders
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{host}}/ping
+  body: none
+  auth: none
+}
+
+headers {
+  bruno: is-awesome
+  della: is-beautiful
+}
+
+
+assert {
+  res.status: eq 200
+  res.body: eq pong
+}
+
+script:pre-request {
+  req.setHeaders({
+    "content-type": "application/text",
+    "transaction-id": "foobar"
+  });
+}
+
+tests {
+  test("req.setHeaders()", function() {
+    const h = req.getHeaders();
+    expect(h['content-type']).to.equal("application/text");
+    expect(h['transaction-id']).to.equal("foobar");
+  });
+}

@@ -1,23 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import get from 'lodash/get';
 import filter from 'lodash/filter';
 import { Inspector } from 'react-inspector';
 import { useTheme } from 'providers/Theme';
-import { findEnvironmentInCollection } from 'utils/collections';
+import { findEnvironmentInCollection, maskInputValue } from 'utils/collections';
 import StyledWrapper from './StyledWrapper';
+import { IconEye, IconEyeOff } from '@tabler/icons';
 
-const KeyValueExplorer = ({ data, theme }) => {
-  data = data || {};
+const KeyValueExplorer = ({ data = [], theme }) => {
+  const [showSecret, setShowSecret] = useState(false);
 
   return (
     <div>
+      <SecretToggle showSecret={showSecret} onClick={() => setShowSecret(!showSecret)} />
       <table className="border-collapse">
         <tbody>
-          {Object.entries(data).map(([key, value]) => (
-            <tr key={key}>
-              <td className="px-2 py-1">{key}</td>
+          {data.toSorted((a, b) => a.name.localeCompare(b.name)).map((envVar) => (
+            <tr key={envVar.name}>
+              <td className="px-2 py-1">{envVar.name}</td>
               <td className="px-2 py-1">
-                <Inspector data={value} theme={theme} />
+                <Inspector
+                  data={!showSecret && envVar.secret ? maskInputValue(envVar.value) : envVar.value}
+                  theme={theme}
+                />
               </td>
             </tr>
           ))}
@@ -41,10 +46,6 @@ const EnvVariables = ({ collection, theme }) => {
 
   const envVars = get(environment, 'variables', []);
   const enabledEnvVars = filter(envVars, (variable) => variable.enabled);
-  const envVarsObj = enabledEnvVars.reduce((acc, curr) => {
-    acc[curr.name] = curr.value;
-    return acc;
-  }, {});
 
   return (
     <>
@@ -53,7 +54,7 @@ const EnvVariables = ({ collection, theme }) => {
         <span className="muted ml-2">({environment.name})</span>
       </div>
       {enabledEnvVars.length > 0 ? (
-        <KeyValueExplorer data={envVarsObj} theme={theme} />
+        <KeyValueExplorer data={enabledEnvVars} theme={theme} />
       ) : (
         <div className="muted text-xs">No environment variables found</div>
       )}
@@ -61,16 +62,22 @@ const EnvVariables = ({ collection, theme }) => {
   );
 };
 
-const CollectionVariables = ({ collection, theme }) => {
-  const collectionVariablesFound = Object.keys(collection.collectionVariables).length > 0;
+const RuntimeVariables = ({ collection, theme }) => {
+  const runtimeVariablesFound = Object.keys(collection.runtimeVariables).length > 0;
+
+  const runtimeVariableArray = Object.entries(collection.runtimeVariables).map(([name, value]) => ({
+    name,
+    value,
+    secret: false
+  }));
 
   return (
     <>
-      <h1 className="font-semibold mb-2">Collection Variables</h1>
-      {collectionVariablesFound ? (
-        <KeyValueExplorer data={collection.collectionVariables} theme={theme} />
+      <h1 className="font-semibold mb-2">Runtime Variables</h1>
+      {runtimeVariablesFound ? (
+        <KeyValueExplorer data={runtimeVariableArray} theme={theme} />
       ) : (
-        <div className="muted text-xs">No collection variables found</div>
+        <div className="muted text-xs">No runtime variables found</div>
       )}
     </>
   );
@@ -83,16 +90,25 @@ const VariablesEditor = ({ collection }) => {
 
   return (
     <StyledWrapper className="px-4 py-4">
-      <CollectionVariables collection={collection} theme={reactInspectorTheme} />
+      <RuntimeVariables collection={collection} theme={reactInspectorTheme} />
       <EnvVariables collection={collection} theme={reactInspectorTheme} />
 
       <div className="mt-8 muted text-xs">
-        Note: As of today, collection variables can only be set via the API -{' '}
-        <span className="font-medium">getVar()</span> and <span className="font-medium">setVar()</span>. <br />
-        In the next release, we will add a UI to set and modify collection variables.
+        Note: As of today, runtime variables can only be set via the API - <span className="font-medium">getVar()</span>{' '}
+        and <span className="font-medium">setVar()</span>. <br />
+        In the next release, we will add a UI to set and modify runtime variables.
       </div>
     </StyledWrapper>
   );
 };
 
 export default VariablesEditor;
+
+const SecretToggle = ({ showSecret, onClick }) => (
+  <div className="cursor-pointer mb-2 text-xs" onClick={onClick}>
+    <div className="flex items-center">
+      {showSecret ? <IconEyeOff size={16} strokeWidth={1.5} /> : <IconEye size={16} strokeWidth={1.5} />}
+      <span className="pl-1">{showSecret ? 'Hide secret variable values' : 'Show secret variable values'}</span>
+    </div>
+  </div>
+);

@@ -4,7 +4,7 @@ const { outdentString } = require('../../v1/src/utils');
 
 const grammar = ohm.grammar(`Bru {
   BruFile = (meta | query | headers | auth | auths | vars | script | tests | docs)*
-  auths = authawsv4 | authbasic | authbearer | authdigest 
+  auths = authawsv4 | authbasic | authbearer | authdigest | authNTLM |authOAuth2 | authwsse | authapikey
 
   nl = "\\r"? "\\n"
   st = " " | "\\t"
@@ -42,6 +42,10 @@ const grammar = ohm.grammar(`Bru {
   authbasic = "auth:basic" dictionary
   authbearer = "auth:bearer" dictionary
   authdigest = "auth:digest" dictionary
+  authNTLM = "auth:ntlm" dictionary
+  authOAuth2 = "auth:oauth2" dictionary
+  authwsse = "auth:wsse" dictionary
+  authapikey = "auth:apikey" dictionary
 
   script = scriptreq | scriptres
   scriptreq = "script:pre-request" st* "{" nl* textblock tagend
@@ -238,6 +242,113 @@ const sem = grammar.createSemantics().addAttribute('ast', {
         digest: {
           username,
           password
+        }
+      }
+    };
+  },
+  authNTLM(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const domainKey = _.find(auth, { name: 'domain' });
+
+    const username = usernameKey ? usernameKey.value : '';
+    const password = passwordKey ? passwordKey.value : '';
+    const domain = domainKey ? domainKey.value : '';
+
+    return {
+      auth: {
+        ntlm: {
+          username,
+          password,
+          domain
+        }
+      }
+    };
+  },
+  authOAuth2(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const grantTypeKey = _.find(auth, { name: 'grant_type' });
+    const usernameKey = _.find(auth, { name: 'username' });
+    const passwordKey = _.find(auth, { name: 'password' });
+    const callbackUrlKey = _.find(auth, { name: 'callback_url' });
+    const authorizationUrlKey = _.find(auth, { name: 'authorization_url' });
+    const accessTokenUrlKey = _.find(auth, { name: 'access_token_url' });
+    const clientIdKey = _.find(auth, { name: 'client_id' });
+    const clientSecretKey = _.find(auth, { name: 'client_secret' });
+    const scopeKey = _.find(auth, { name: 'scope' });
+    const stateKey = _.find(auth, { name: 'state' });
+    const pkceKey = _.find(auth, { name: 'pkce' });
+    return {
+      auth: {
+        oauth2:
+          grantTypeKey?.value && grantTypeKey?.value == 'password'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                username: usernameKey ? usernameKey.value : '',
+                password: passwordKey ? passwordKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'authorization_code'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                callbackUrl: callbackUrlKey ? callbackUrlKey.value : '',
+                authorizationUrl: authorizationUrlKey ? authorizationUrlKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : '',
+                state: stateKey ? stateKey.value : '',
+                pkce: pkceKey ? JSON.parse(pkceKey?.value || false) : false
+              }
+            : grantTypeKey?.value && grantTypeKey?.value == 'client_credentials'
+            ? {
+                grantType: grantTypeKey ? grantTypeKey.value : '',
+                accessTokenUrl: accessTokenUrlKey ? accessTokenUrlKey.value : '',
+                clientId: clientIdKey ? clientIdKey.value : '',
+                clientSecret: clientSecretKey ? clientSecretKey.value : '',
+                scope: scopeKey ? scopeKey.value : ''
+              }
+            : {}
+      }
+    };
+  },
+  authwsse(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+    const userKey = _.find(auth, { name: 'username' });
+    const secretKey = _.find(auth, { name: 'password' });
+    const username = userKey ? userKey.value : '';
+    const password = secretKey ? secretKey.value : '';
+    return {
+      auth: {
+        wsse: {
+          username,
+          password
+        }
+      }
+    }
+  }, 
+  authapikey(_1, dictionary) {
+    const auth = mapPairListToKeyValPairs(dictionary.ast, false);
+
+    const findValueByName = (name) => {
+      const item = _.find(auth, { name });
+      return item ? item.value : '';
+    };
+
+    const key = findValueByName('key');
+    const value = findValueByName('value');
+    const placement = findValueByName('placement');
+
+    return {
+      auth: {
+        apikey: {
+          key,
+          value,
+          placement
         }
       }
     };

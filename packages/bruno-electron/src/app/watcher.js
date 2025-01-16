@@ -2,7 +2,7 @@ const _ = require('lodash');
 const fs = require('fs');
 const path = require('path');
 const chokidar = require('chokidar');
-const { hasBruExtension } = require('../utils/filesystem');
+const { hasBruExtension, isWSLPath, normalizeAndResolvePath, normalizeWslPath } = require('../utils/filesystem');
 const { bruToEnvJson, bruToJson, collectionBruToJson } = require('../bru');
 const { dotenvToJson } = require('@usebruno/lang');
 
@@ -12,6 +12,7 @@ const { decryptString } = require('../utils/encryption');
 const { setDotEnvVars } = require('../store/process-env');
 const { setBrunoConfig } = require('../store/bruno-config');
 const EnvironmentSecretsStore = require('../store/env-secrets');
+const UiStateSnapshot = require('../store/ui-state-snapshot');
 
 const environmentSecretsStore = new EnvironmentSecretsStore();
 
@@ -40,7 +41,6 @@ const isBruEnvironmentConfig = (pathname, collectionPath) => {
 const isCollectionRootBruFile = (pathname, collectionPath) => {
   const dirname = path.dirname(pathname);
   const basename = path.basename(pathname);
-
   return dirname === collectionPath && basename === 'collection.bru';
 };
 
@@ -202,7 +202,6 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -223,6 +222,32 @@ const add = async (win, pathname, collectionUid, collectionPath) => {
         pathname,
         name: path.basename(pathname),
         collectionRoot: true
+      }
+    };
+
+    try {
+      let bruContent = fs.readFileSync(pathname, 'utf8');
+
+      file.data = collectionBruToJson(bruContent);
+
+      hydrateBruCollectionFileWithUuid(file.data);
+      win.webContents.send('main:collection-tree-updated', 'addFile', file);
+      return;
+    } catch (err) {
+      console.error(err);
+      return;
+    }
+  }
+
+  // Is this a folder.bru file?
+  if (path.basename(pathname) === 'folder.bru') {
+    console.log('folder.bru file detected');
+    const file = {
+      meta: {
+        collectionUid,
+        pathname,
+        name: path.basename(pathname),
+        folderRoot: true
       }
     };
 
@@ -306,7 +331,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       const payload = {
         collectionUid,
         processEnvVariables: {
-          ...process.env,
           ...jsonData
         }
       };
@@ -334,7 +358,6 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
       let bruContent = fs.readFileSync(pathname, 'utf8');
 
       file.data = collectionBruToJson(bruContent);
-
       hydrateBruCollectionFileWithUuid(file.data);
       win.webContents.send('main:collection-tree-updated', 'change', file);
       return;
@@ -356,6 +379,7 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 
       const bru = fs.readFileSync(pathname, 'utf8');
       file.data = bruToJson(bru);
+
       hydrateRequestWithUuid(file.data, pathname);
       win.webContents.send('main:collection-tree-updated', 'change', file);
     } catch (err) {
@@ -365,6 +389,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher unlink: ${pathname}`);
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
@@ -398,28 +424,34 @@ const unlinkDir = (win, pathname, collectionUid, collectionPath) => {
   win.webContents.send('main:collection-tree-updated', 'unlinkDir', directory);
 };
 
+const onWatcherSetupComplete = (win, collectionPath) => {
+  const UiStateSnapshotStore = new UiStateSnapshot();
+  const collectionsSnapshotState = UiStateSnapshotStore.getCollections();
+  const collectionSnapshotState = collectionsSnapshotState?.find(c => c?.pathname == collectionPath);
+  win.webContents.send('main:hydrate-app-with-ui-state-snapshot', collectionSnapshotState);
+};
+
 class Watcher {
   constructor() {
     this.watchers = {};
   }
 
-  addWatcher(win, watchPath, collectionUid, brunoConfig) {
+  addWatcher(win, watchPath, collectionUid, brunoConfig, forcePolling = false) {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
     }
 
     const ignores = brunoConfig?.ignore || [];
-    const self = this;
     setTimeout(() => {
       const watcher = chokidar.watch(watchPath, {
         ignoreInitial: false,
-        usePolling: watchPath.startsWith('\\\\') ? true : false,
+        usePolling: watchPath.startsWith('\\\\') || forcePolling ? true : false,
         ignored: (filepath) => {
-          const normalizedPath = filepath.replace(/\\/g, '/');
+          const normalizedPath = isWSLPath(filepath) ? normalizeWslPath(filepath) : normalizeAndResolvePath(filepath);
           const relativePath = path.relative(watchPath, normalizedPath);
 
           return ignores.some((ignorePattern) => {
-            const normalizedIgnorePattern = ignorePattern.replace(/\\/g, '/');
+            const normalizedIgnorePattern = isWSLPath(ignorePattern) ? normalizeWslPath(ignorePattern) : ignorePattern.replace(/\\/g, '/');
             return relativePath === normalizedIgnorePattern || relativePath.startsWith(normalizedIgnorePattern);
           });
         },
@@ -432,14 +464,37 @@ class Watcher {
         depth: 20
       });
 
+      let startedNewWatcher = false;
       watcher
+        .on('ready', () => onWatcherSetupComplete(win, watchPath))
         .on('add', (pathname) => add(win, pathname, collectionUid, watchPath))
         .on('addDir', (pathname) => addDirectory(win, pathname, collectionUid, watchPath))
         .on('change', (pathname) => change(win, pathname, collectionUid, watchPath))
         .on('unlink', (pathname) => unlink(win, pathname, collectionUid, watchPath))
-        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath));
+        .on('unlinkDir', (pathname) => unlinkDir(win, pathname, collectionUid, watchPath))
+        .on('error', (error) => {
+          // `EMFILE` is an error code thrown when to many files are watched at the same time see: https://github.com/usebruno/bruno/issues/627
+          // `ENOSPC` stands for "Error No space" but is also thrown if the file watcher limit is reached.
+          // To prevent loops `!forcePolling` is checked.
+          if ((error.code === 'ENOSPC' || error.code === 'EMFILE') && !startedNewWatcher && !forcePolling) {
+            // This callback is called for every file the watcher is trying to watch. To prevent a spam of messages and
+            // Multiple watcher being started `startedNewWatcher` is set to prevent this.
+            startedNewWatcher = true;
+            watcher.close();
+            console.error(
+              `\nCould not start watcher for ${watchPath}:`,
+              'ENOSPC: System limit for number of file watchers reached!',
+              'Trying again with polling, this will be slower!\n',
+              'Update you system config to allow more concurrently watched files with:',
+              '"echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p"'
+            );
+            this.addWatcher(win, watchPath, collectionUid, brunoConfig, true);
+          } else {
+            console.error(`An error occurred in the watcher for: ${watchPath}`, error);
+          }
+        });
 
-      self.watchers[watchPath] = watcher;
+      this.watchers[watchPath] = watcher;
     }, 100);
   }
 
@@ -451,6 +506,33 @@ class Watcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
+    }
+  }
+
+  getWatcherByItemPath(itemPath) {
+    const paths = Object.keys(this.watchers);
+
+    const watcherPath = paths?.find(collectionPath => {
+      const absCollectionPath = path.resolve(collectionPath);
+      const absItemPath = path.resolve(itemPath);
+
+      return absItemPath.startsWith(absCollectionPath);
+    });
+
+    return watcherPath ? this.watchers[watcherPath] : null;
+  }
+
+  unlinkItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher) {
+      watcher.unwatch(itemPath);
+    }
+  }
+  
+  addItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher && !watcher?.has?.(itemPath)) {
+      watcher?.add?.(itemPath);
     }
   }
 }

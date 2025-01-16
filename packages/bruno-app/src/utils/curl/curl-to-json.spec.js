@@ -59,4 +59,31 @@ describe('curlToJson', () => {
       data: '{"email":"test@usebruno.com","password":"test"}'
     });
   });
+
+  it('should accept escaped curl string', () => {
+    const curlCommand = `curl https://www.usebruno.com
+    -H $'cookie: val_1=\'\'; val_2=\\^373:0\\^373:0; val_3=\u0068\u0065\u006C\u006C\u006F'
+    `;
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://www.usebruno.com',
+      raw_url: 'https://www.usebruno.com',
+      method: 'get',
+      headers: {
+        cookie: "val_1=''; val_2=\\^373:0\\^373:0; val_3=hello"
+      }
+    });
+  });
+
+  it('should return and parse a simple curl command with a trailing slash', () => {
+    const curlCommand = 'curl https://www.usebruno.com/';
+    const result = curlToJson(curlCommand);
+
+    expect(result).toEqual({
+      url: 'https://www.usebruno.com/',
+      raw_url: 'https://www.usebruno.com/',
+      method: 'get'
+    });
+  });
 });

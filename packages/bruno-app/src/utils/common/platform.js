@@ -46,3 +46,15 @@ export const isMacOS = () => {
 };
 
 export const PATH_SEPARATOR = isWindowsOS() ? '\\' : '/';
+
+export const getAppInstallDate = () => {
+  let dateString = localStorage.getItem('bruno.installedOn');
+
+  if (!dateString) {
+    dateString = new Date().toISOString();
+    localStorage.setItem('bruno.installedOn', dateString);
+  }
+
+  const date = new Date(dateString);
+  return date;
+};

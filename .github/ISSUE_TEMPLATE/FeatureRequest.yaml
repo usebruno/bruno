@@ -1,0 +1,26 @@
+name: Feature Request
+description: Suggest an idea for this project.
+labels: ['enhancement']
+body:
+  - type: checkboxes
+    attributes:
+      label: 'I have checked the following:'
+      options:
+        - label: I've searched existing issues and found nothing related to my issue.
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an idea for this project.
+  - type: textarea
+    attributes:
+      label: Describe the feature you want to add
+      description: A clear and concise description of the feature you want to be added.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Mockups or Images of the feature
+      description: Add some images to support your feature.
+    validations:
+      required: true

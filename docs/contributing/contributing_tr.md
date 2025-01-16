@@ -1,5 +1,5 @@
-[English](../../contributing.md) | [Українська](docs/contributing/contributing_ua.md) | [Русский](docs/contributing/contributing_ru.md) | **Türkçe** | [Deutsch](docs/contributing/contributing_de.md) | [Français](docs/contributing/contributing_fr.md) | [Português (BR)](docs/contributing/contributing_pt_br.md) | [বাংলা](docs/contributing/contributing_bn.md) | [Español](docs/contributing/contributing_es.md) | [Română](docs/contributing/contributing_ro.md) | [Polski](docs/contributing/contributing_pl.md)
- | [简体中文](docs/contributing/contributing_cn.md)
+[English](../../contributing.md)
+
 ## Bruno'yu birlikte daha iyi hale getirelim!!!
 
 bruno'yu geliştirmek istemenizden mutluluk duyuyoruz. Aşağıda, bruno'yu bilgisayarınıza getirmeye başlamak için yönergeler bulunmaktadır.
@@ -21,7 +21,7 @@ Kullandığımız kütüphaneler
 
 ### Bağımlılıklar
 
-[Node v18.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
+[Node v20.x veya en son LTS sürümüne](https://nodejs.org/en/) ve npm 8.x'e ihtiyacınız olacaktır. Projede npm çalışma alanlarını kullanıyoruz
 
 ## Gelişim
 
@@ -56,7 +56,6 @@ npm run dev:electron
 ### Sorun Giderme
 
 `npm install`'ı çalıştırdığınızda `Unsupported platform` hatası ile karşılaşabilirsiniz. Bunu düzeltmek için `node_modules` ve `package-lock.json` dosyalarını silmeniz ve `npm install` dosyasını çalıştırmanız gerekecektir. Bu, uygulamayı çalıştırmak için gereken tüm gerekli paketleri yüklemelidir.
-
 
 ```shell
 #  Alt dizinlerdeki node_modules öğelerini silme

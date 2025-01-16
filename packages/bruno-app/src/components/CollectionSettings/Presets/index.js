@@ -27,8 +27,10 @@ const PresetsSettings = ({ collection }) => {
   });
 
   return (
-    <StyledWrapper>
-      <h1 className="font-medium mb-3">Collection Presets</h1>
+    <StyledWrapper className="h-full w-full">
+      <div className="text-xs mb-4 text-muted">
+        These presets will be used as the default values for new requests in this collection.
+      </div>
       <form className="bruno-form" onSubmit={formik.handleSubmit}>
         <div className="mb-3 flex items-center">
           <label className="settings-label flex  items-center" htmlFor="enabled">
@@ -66,12 +68,13 @@ const PresetsSettings = ({ collection }) => {
           <label className="settings-label" htmlFor="requestUrl">
             Base URL
           </label>
-          <div className="flex items-center">
+          <div className="flex items-center w-full">
             <div className="flex items-center flex-grow input-container h-full">
               <input
                 id="request-url"
                 type="text"
                 name="requestUrl"
+                placeholder='Request URL'
                 className="block textbox"
                 autoComplete="off"
                 autoCorrect="off"
@@ -79,6 +82,7 @@ const PresetsSettings = ({ collection }) => {
                 spellCheck="false"
                 onChange={formik.handleChange}
                 value={formik.values.requestUrl || ''}
+                style={{ width: '100%' }}
               />
             </div>
           </div>

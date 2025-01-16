@@ -1,4 +1,4 @@
-[English](../../publishing.md) | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | **Türkçe** | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md)
+[English](../../publishing.md)
 
 ### Bruno'yu yeni bir paket yöneticisine yayınlama
 

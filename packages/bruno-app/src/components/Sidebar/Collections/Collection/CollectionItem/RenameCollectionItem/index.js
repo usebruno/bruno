@@ -4,7 +4,9 @@ import * as Yup from 'yup';
 import Modal from 'components/Modal';
 import { useDispatch } from 'react-redux';
 import { isItemAFolder } from 'utils/tabs';
-import { renameItem } from 'providers/ReduxStore/slices/collections/actions';
+import { renameItem, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
+import toast from 'react-hot-toast';
+import { closeTabs } from 'providers/ReduxStore/slices/tabs';
 
 const RenameCollectionItem = ({ collection, item, onClose }) => {
   const dispatch = useDispatch();
@@ -21,9 +23,24 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
         .max(50, 'must be 50 characters or less')
         .required('name is required')
     }),
-    onSubmit: (values) => {
-      dispatch(renameItem(values.name, item.uid, collection.uid));
-      onClose();
+    onSubmit: async (values) => {
+      // if there is unsaved changes in the request,
+      // save them before renaming the request
+      if (!isFolder && item.draft) {
+        await dispatch(saveRequest(item.uid, collection.uid, true));
+      }
+      if (item.name === values.name) {
+        return;
+      }
+      dispatch(renameItem(values.name, item.uid, collection.uid))
+        .then(() => {
+          isFolder && dispatch(closeTabs({ tabUids: [item.uid] }));
+          toast.success(isFolder ? 'Folder renamed' : 'Request renamed');
+          onClose();
+        })
+        .catch((err) => {
+          toast.error(err ? err.message : 'An error occurred while renaming the request');
+        });
     }
   });
 
@@ -43,7 +60,7 @@ const RenameCollectionItem = ({ collection, item, onClose }) => {
       handleConfirm={onSubmit}
       handleCancel={onClose}
     >
-      <form className="bruno-form" onSubmit={formik.handleSubmit}>
+      <form className="bruno-form" onSubmit={(e) => e.preventDefault()}>
         <div>
           <label htmlFor="name" className="block font-semibold">
             {isFolder ? 'Folder' : 'Request'} Name

@@ -1,0 +1,39 @@
+meta {
+  name: getHeaders
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{host}}/api/echo/json
+  body: json
+  auth: none
+}
+
+auth:basic {
+  username: asd
+  password: j
+}
+
+auth:bearer {
+  token: 
+}
+
+body:json {
+  {
+    "hello": "bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("res.getHeaders(name)", function() {
+    const h = res.getHeaders();
+    expect(h['x-powered-by']).to.eql('Express');
+    expect(h['content-length']).to.eql('17');
+  });
+  
+}

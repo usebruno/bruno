@@ -1,10 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import StyledWrapper from './StyledWrapper';
+import useFocusTrap from 'hooks/useFocusTrap';
 
-const ModalHeader = ({ title, handleCancel }) => (
+const ESC_KEY_CODE = 27;
+const ENTER_KEY_CODE = 13;
+
+const ModalHeader = ({ title, handleCancel, customHeader, hideClose }) => (
   <div className="bruno-modal-header">
-    {title ? <div className="bruno-modal-header-title">{title}</div> : null}
-    {handleCancel ? (
+    {customHeader ? customHeader : <>{title ? <div className="bruno-modal-header-title">{title}</div> : null}</>}
+    {handleCancel && !hideClose ? (
       <div className="close cursor-pointer" onClick={handleCancel ? () => handleCancel() : null}>
         ×
       </div>
@@ -54,6 +58,7 @@ const ModalFooter = ({
 const Modal = ({
   size,
   title,
+  customHeader,
   confirmText,
   cancelText,
   handleCancel,
@@ -62,30 +67,41 @@ const Modal = ({
   confirmDisabled,
   hideCancel,
   hideFooter,
+  hideClose,
   disableCloseOnOutsideClick,
   disableEscapeKey,
   onClick,
   closeModalFadeTimeout = 500
 }) => {
+  const modalRef = useRef(null);
   const [isClosing, setIsClosing] = useState(false);
-  const escFunction = (event) => {
-    const escKeyCode = 27;
-    if (event.keyCode === escKeyCode) {
-      closeModal({ type: 'esc' });
+
+  const handleKeydown = (event) => {
+    const { keyCode, shiftKey, ctrlKey, altKey, metaKey } = event;
+    switch (keyCode) {
+      case ESC_KEY_CODE: {
+        if (disableEscapeKey) return;
+        return closeModal({ type: 'esc' });
+      }
+      case ENTER_KEY_CODE: {
+        if (!shiftKey && !ctrlKey && !altKey && !metaKey && handleConfirm) {
+          return handleConfirm();
+        }
+      }
     }
   };
 
+  useFocusTrap(modalRef);
+  
   const closeModal = (args) => {
     setIsClosing(true);
     setTimeout(() => handleCancel(args), closeModalFadeTimeout);
   };
 
   useEffect(() => {
-    if (disableEscapeKey) return;
-    document.addEventListener('keydown', escFunction, false);
-
+    document.addEventListener('keydown', handleKeydown, false);
     return () => {
-      document.removeEventListener('keydown', escFunction, false);
+      document.removeEventListener('keydown', handleKeydown);
     };
   }, [disableEscapeKey, document]);
 
@@ -98,8 +114,19 @@ const Modal = ({
   }
   return (
     <StyledWrapper className={classes} onClick={onClick ? (e) => onClick(e) : null}>
-      <div className={`bruno-modal-card modal-${size}`}>
-        <ModalHeader title={title} handleCancel={() => closeModal({ type: 'icon' })} />
+      <div
+        className={`bruno-modal-card modal-${size}`}
+        ref={modalRef}
+        role="dialog"
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+        <ModalHeader
+          title={title}
+          hideClose={hideClose}
+          handleCancel={() => closeModal({ type: 'icon' })}
+          customHeader={customHeader}
+        />
         <ModalContent>{children}</ModalContent>
         <ModalFooter
           confirmText={confirmText}

@@ -1,4 +1,15 @@
-**English** | [Português (BR)](docs/publishing/publishing_pt_br.md) | [Română](docs/publishing/publishing_ro.md) | [Polski](docs/publishing/publishing_pl.md) | [বাংলা](docs/publishing/publishing_bn.md) | [Français](docs/publishing/publishing_fr.md) | [正體中文](docs/publishing/publishing_zhtw.md)
+**English**
+| [Türkçe](docs/publishing/publishing_tr.md)
+| [Deutsch](docs/publishing/publishing_de.md)
+| [Français](docs/publishing/publishing_fr.md)
+| [Português (BR)](docs/publishing/publishing_pt_br.md)
+| [বাংলা](docs/publishing/publishing_bn.md)
+| [Română](docs/publishing/publishing_ro.md)
+| [Polski](docs/publishing/publishing_pl.md)
+| [简体中文](docs/publishing/publishing_cn.md)
+| [正體中文](docs/publishing/publishing_zhtw.md)
+| [日本語](docs/publishing/publishing_ja.md)
+| [Nederlands](docs/publishing/publishing_nl.md)
 
 ### Publishing Bruno to a new package manager
 

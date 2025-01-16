@@ -8,7 +8,7 @@ import StyledWrapper from './StyledWrapper';
 import { useTheme } from 'providers/Theme/index';
 
 let posthogClient = null;
-const posthogApiKey = 'phc_7gtqSrrdZRohiozPMLIacjzgHbUlhalW1Bu16uYijMR';
+const posthogApiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
 const getPosthogClient = () => {
   if (posthogClient) {
     return posthogClient;
@@ -99,7 +99,7 @@ const GoldenEdition = ({ onClose }) => {
 
   const goldenEditonOrganizations = [
     'Centralized License Management',
-    'Intergration with Secret Managers',
+    'Integration with Secret Managers',
     'Private Collection Registry',
     'Request Forms',
     'Priority Support'
@@ -110,7 +110,6 @@ const GoldenEdition = ({ onClose }) => {
   const handlePricingOptionChange = (option) => {
     setPricingOption(option);
   };
-  console.log(displayedTheme);
 
   const themeBasedContainerClassNames = displayedTheme === 'light' ? 'text-gray-900' : 'text-white';
   const themeBasedTabContainerClassNames = displayedTheme === 'light' ? 'bg-gray-200' : 'bg-gray-800';
@@ -131,8 +130,7 @@ const GoldenEdition = ({ onClose }) => {
               target="_blank"
               className="flex text-white bg-yellow-600 hover:bg-yellow-700 font-medium rounded-lg text-sm px-4 py-2 text-center cursor-pointer"
             >
-              <IconHeart size={18} strokeWidth={1.5} />{' '}
-              <span className="ml-2">{pricingOption === 'individuals' ? 'Buy' : 'Subscribe'}</span>
+              <IconHeart size={18} strokeWidth={1.5} /> <span className="ml-2">Buy</span>
             </a>
           </div>
           {pricingOption === 'individuals' ? (
@@ -146,9 +144,11 @@ const GoldenEdition = ({ onClose }) => {
           ) : (
             <div>
               <div className="my-4">
-                <span className="text-3xl font-extrabold">$5</span>
+                <span className="text-3xl font-extrabold">$49</span>
+                <span className="ml-2">/&nbsp;user</span>
               </div>
-              <p>/user/month</p>
+              <p className="bg-yellow-200 text-black rounded-md px-2 py-1 mb-2 inline-flex text-sm">One Time Payment</p>
+              <p className="text-sm">perpetual license with 2 years of updates</p>
             </div>
           )}
           <div

@@ -1,0 +1,15 @@
+meta {
+  name: resource
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{host}}/api/auth/oauth2/authorization_code/resource?token={{access_token_set_by_collection}}
+  body: json
+  auth: none
+}
+
+query {
+  token: {{access_token_set_by_collection}}
+}

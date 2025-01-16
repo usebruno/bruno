@@ -5,15 +5,19 @@ meta {
 }
 
 get {
-  url: https://api.textlocal.in/send
+  url: https://api.textlocal.in/send/:id
   body: json
   auth: bearer
 }
 
-query {
+params:query {
   apiKey: secret
   numbers: 998877665
   ~message: hello
+}
+
+params:path {
+  id: 123
 }
 
 headers {
@@ -36,6 +40,11 @@ auth:basic {
   password: secret
 }
 
+auth:wsse {
+  username: john
+  password: secret
+}
+
 auth:bearer {
   token: 123
 }
@@ -43,6 +52,18 @@ auth:bearer {
 auth:digest {
   username: john
   password: secret
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: http://localhost:8080/api/auth/oauth2/authorization_code/callback
+  authorization_url: http://localhost:8080/api/auth/oauth2/authorization_code/authorize
+  access_token_url: http://localhost:8080/api/auth/oauth2/authorization_code/token
+  client_id: client_id_1
+  client_secret: client_secret_1
+  scope: read write
+  state: 807061d5f0be
+  pkce: false
 }
 
 body:json {

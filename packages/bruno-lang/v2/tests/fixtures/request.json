@@ -6,25 +6,34 @@
   },
   "http": {
     "method": "get",
-    "url": "https://api.textlocal.in/send",
+    "url": "https://api.textlocal.in/send/:id",
     "body": "json",
     "auth": "bearer"
   },
-  "query": [
+  "params": [
     {
       "name": "apiKey",
       "value": "secret",
+      "type": "query",
       "enabled": true
     },
     {
       "name": "numbers",
       "value": "998877665",
+      "type": "query",
       "enabled": true
     },
     {
       "name": "message",
       "value": "hello",
+      "type": "query",
       "enabled": false
+    },
+    {
+      "name": "id",
+      "value": "123",
+      "type": "path",
+      "enabled": true
     }
   ],
   "headers": [
@@ -63,6 +72,21 @@
     "digest": {
       "username": "john",
       "password": "secret"
+    },
+    "oauth2": {
+      "grantType": "authorization_code",
+      "clientId": "client_id_1",
+      "clientSecret": "client_secret_1",
+      "authorizationUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/authorize",
+      "callbackUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/callback",
+      "accessTokenUrl": "http://localhost:8080/api/auth/oauth2/authorization_code/token",
+      "scope": "read write",
+      "state": "807061d5f0be",
+      "pkce": false
+    },
+    "wsse": {
+      "username": "john",
+      "password": "secret"
     }
   },
   "body": {
@@ -93,18 +117,21 @@
     ],
     "multipartForm": [
       {
+        "contentType": "",
         "name": "apikey",
         "value": "secret",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "numbers",
         "value": "+91998877665",
         "enabled": true,
         "type": "text"
       },
       {
+        "contentType": "",
         "name": "message",
         "value": "hello",
         "enabled": false,
