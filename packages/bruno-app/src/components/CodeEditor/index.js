@@ -7,12 +7,12 @@
 
 import React from 'react';
 import { isEqual, escapeRegExp } from 'lodash';
-import { getEnvironmentVariables } from 'utils/collections';
 import { defineCodeMirrorBrunoVariablesMode } from 'utils/common/codemirror';
 import StyledWrapper from './StyledWrapper';
 import * as jsonlint from '@prantlf/jsonlint';
 import { JSHINT } from 'jshint';
 import stripJsonComments from 'strip-json-comments';
+import { getAllVariables } from 'utils/collections';
 
 let CodeMirror;
 const SERVER_RENDERED = typeof window === 'undefined' || global['PREVENT_CODEMIRROR_RENDER'] === true;
@@ -293,7 +293,7 @@ export default class CodeEditor extends React.Component {
     }
 
     if (this.editor) {
-      let variables = getEnvironmentVariables(this.props.collection);
+      let variables = getAllVariables(this.props.collection, this.props.item);
       if (!isEqual(variables, this.variables)) {
         this.addOverlay();
       }
@@ -333,7 +333,7 @@ export default class CodeEditor extends React.Component {
 
   addOverlay = () => {
     const mode = this.props.mode || 'application/ld+json';
-    let variables = getEnvironmentVariables(this.props.collection);
+    let variables = getAllVariables(this.props.collection, this.props.item);
     this.variables = variables;
 
     defineCodeMirrorBrunoVariablesMode(variables, mode);
