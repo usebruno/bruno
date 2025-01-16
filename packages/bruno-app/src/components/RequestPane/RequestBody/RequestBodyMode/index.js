@@ -9,7 +9,6 @@ import StyledWrapper from './StyledWrapper';
 import { updateRequestBody } from 'providers/ReduxStore/slices/collections/index';
 import { toastError } from 'utils/common/error';
 import { format, applyEdits } from 'jsonc-parser';
-import { parse, stringify } from 'lossless-json';
 import xmlFormat from 'xml-formatter';
 
 const RequestBodyMode = ({ item, collection }) => {

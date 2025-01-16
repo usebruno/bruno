@@ -139,6 +139,15 @@ ${indentString(`password: ${auth?.basic?.password || ''}`)}
 `;
   }
 
+  if (auth && auth.wsse) {
+    bru += `auth:wsse {
+${indentString(`username: ${auth?.wsse?.username || ''}`)}
+${indentString(`password: ${auth?.wsse?.password || ''}`)}
+}
+
+`;
+  }
+
   if (auth && auth.bearer) {
     bru += `auth:bearer {
 ${indentString(`token: ${auth?.bearer?.token || ''}`)}
@@ -155,6 +164,18 @@ ${indentString(`password: ${auth?.digest?.password || ''}`)}
 
 `;
   }
+
+
+  if (auth && auth.ntlm) {
+    bru += `auth:ntlm {
+${indentString(`username: ${auth?.ntlm?.username || ''}`)}
+${indentString(`password: ${auth?.ntlm?.password || ''}`)}
+${indentString(`domain: ${auth?.ntlm?.domain || ''}`)}
+
+}
+
+`;
+  }  
 
   if (auth && auth.oauth2) {
     switch (auth?.oauth2?.grantType) {
@@ -198,6 +219,16 @@ ${indentString(`scope: ${auth?.oauth2?.scope || ''}`)}
 `;
         break;
     }
+  }
+
+  if (auth && auth.apikey) {
+    bru += `auth:apikey {
+${indentString(`key: ${auth?.apikey?.key || ''}`)}
+${indentString(`value: ${auth?.apikey?.value || ''}`)}
+${indentString(`placement: ${auth?.apikey?.placement || ''}`)}
+}
+
+`;
   }
 
   if (body && body.json && body.json.length) {
@@ -261,15 +292,18 @@ ${indentString(body.sparql)}
         multipartForms
           .map((item) => {
             const enabled = item.enabled ? '' : '~';
+            const contentType =
+              item.contentType && item.contentType !== '' ? ' @contentType(' + item.contentType + ')' : '';
+
             if (item.type === 'text') {
-              return `${enabled}${item.name}: ${getValueString(item.value)}`;
+              return `${enabled}${item.name}: ${getValueString(item.value)}${contentType}`;
             }
 
             if (item.type === 'file') {
               let filepaths = item.value || [];
               let filestr = filepaths.join('|');
               const value = `@file(${filestr})`;
-              return `${enabled}${item.name}: ${value}`;
+              return `${enabled}${item.name}: ${value}${contentType}`;
             }
           })
           .join('\n')

@@ -58,6 +58,7 @@ chai.use(function (chai, utils) {
  * endsWith    : ends with
  * between     : between
  * isEmpty     : is empty
+ * isNotEmpty  : is not empty
  * isNull      : is null
  * isUndefined : is undefined
  * isDefined   : is defined
@@ -95,6 +96,7 @@ const parseAssertionOperator = (str = '') => {
     'endsWith',
     'between',
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -109,6 +111,7 @@ const parseAssertionOperator = (str = '') => {
 
   const unaryOperators = [
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -147,6 +150,7 @@ const parseAssertionOperator = (str = '') => {
 const isUnaryOperator = (operator) => {
   const unaryOperators = [
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -192,6 +196,7 @@ const evaluateRhsOperand = (rhsOperand, operator, context, runtime) => {
   }
 
   const interpolationContext = {
+    globalEnvironmentVariables: context.bru.globalEnvironmentVariables,
     collectionVariables: context.bru.collectionVariables,
     folderVariables: context.bru.folderVariables,
     requestVariables: context.bru.requestVariables,
@@ -240,6 +245,7 @@ class AssertRuntime {
   }
 
   runAssertions(assertions, request, response, envVariables, runtimeVariables, processEnvVars) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
@@ -255,7 +261,8 @@ class AssertRuntime {
       undefined,
       collectionVariables,
       folderVariables,
-      requestVariables
+      requestVariables,
+      globalEnvironmentVariables
     );
     const req = new BrunoRequest(request);
     const res = createResponseParser(response);
@@ -267,6 +274,7 @@ class AssertRuntime {
     };
 
     const context = {
+      ...globalEnvironmentVariables,
       ...collectionVariables,
       ...envVariables,
       ...folderVariables,
@@ -341,6 +349,9 @@ class AssertRuntime {
           case 'isEmpty':
             expect(lhs).to.be.empty;
             break;
+          case 'isNotEmpty':
+            expect(lhs).to.not.be.empty;
+            break;
           case 'isNull':
             expect(lhs).to.be.null;
             break;
@@ -396,6 +407,8 @@ class AssertRuntime {
         });
       }
     }
+
+    request.assertionResults = assertionResults;
 
     return assertionResults;
   }

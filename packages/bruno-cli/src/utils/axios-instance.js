@@ -9,11 +9,15 @@ const { CLI_VERSION } = require('../constants');
  */
 function makeAxiosInstance() {
   /** @type {axios.AxiosInstance} */
-  const instance = axios.create();
+  const instance = axios.create({
+    proxy: false,
+    headers: {
+      "User-Agent": `bruno-runtime/${CLI_VERSION}`
+    }
+  });
 
   instance.interceptors.request.use((config) => {
     config.headers['request-start-time'] = Date.now();
-    config.headers['user-agent'] = `bruno-runtime/${CLI_VERSION}`;
     return config;
   });
 

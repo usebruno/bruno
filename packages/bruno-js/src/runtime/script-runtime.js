@@ -1,4 +1,4 @@
-const { NodeVM } = require('vm2');
+const { NodeVM } = require('@usebruno/vm2');
 const path = require('path');
 const http = require('http');
 const https = require('https');
@@ -45,12 +45,14 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
     const moduleWhitelist = get(scriptingConfig, 'moduleWhitelist', []);
@@ -91,6 +93,10 @@ class ScriptRuntime {
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -102,7 +108,10 @@ class ScriptRuntime {
         request,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
-        nextRequestName: bru.nextRequest
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -149,7 +158,10 @@ class ScriptRuntime {
       request,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      nextRequestName: bru.nextRequest
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 
@@ -162,12 +174,14 @@ class ScriptRuntime {
     collectionPath,
     onConsoleLog,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) {
+    const globalEnvironmentVariables = request?.globalEnvironmentVariables || {};
     const collectionVariables = request?.collectionVariables || {};
     const folderVariables = request?.folderVariables || {};
     const requestVariables = request?.requestVariables || {};
-    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables);
+    const bru = new Bru(envVariables, runtimeVariables, processEnvVars, collectionPath, collectionVariables, folderVariables, requestVariables, globalEnvironmentVariables);
     const req = new BrunoRequest(request);
     const res = new BrunoResponse(response);
     const allowScriptFilesystemAccess = get(scriptingConfig, 'filesystemAccess.allow', false);
@@ -205,6 +219,10 @@ class ScriptRuntime {
       };
     }
 
+    if(runRequestByItemPathname) {
+      context.bru.runRequest = runRequestByItemPathname;
+    }
+
     if (this.runtime === 'quickjs') {
       await executeQuickJsVmAsync({
         script: script,
@@ -216,7 +234,10 @@ class ScriptRuntime {
         response,
         envVariables: cleanJson(envVariables),
         runtimeVariables: cleanJson(runtimeVariables),
-        nextRequestName: bru.nextRequest
+        globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+        nextRequestName: bru.nextRequest,
+        skipRequest: bru.skipRequest,
+        stopExecution: bru.stopExecution
       };
     }
 
@@ -263,7 +284,10 @@ class ScriptRuntime {
       response,
       envVariables: cleanJson(envVariables),
       runtimeVariables: cleanJson(runtimeVariables),
-      nextRequestName: bru.nextRequest
+      globalEnvironmentVariables: cleanJson(globalEnvironmentVariables),
+      nextRequestName: bru.nextRequest,
+      skipRequest: bru.skipRequest,
+      stopExecution: bru.stopExecution
     };
   }
 }

@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const fsPromises = require('fs/promises');
 const { dialog } = require('electron');
 const isValidPathname = require('is-valid-path');
+const os = require('os');
 
 const exists = async (p) => {
   try {
@@ -35,6 +36,11 @@ const isDirectory = (dirPath) => {
   } catch (_) {
     return false;
   }
+};
+
+const hasSubDirectories = (dir) => {
+  const files = fs.readdirSync(dir);
+  return files.some(file => fs.statSync(path.join(dir, file)).isDirectory());
 };
 
 const normalizeAndResolvePath = (pathname) => {
@@ -155,10 +161,54 @@ const searchForBruFiles = (dir) => {
   return searchForFiles(dir, '.bru');
 };
 
-// const isW
+const sanitizeCollectionName = (name) => {
+  return name.trim();
+}
 
 const sanitizeDirectoryName = (name) => {
-  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-');
+  return name.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-').trim();
+};
+
+const isWindowsOS = () => {
+  return os.platform() === 'win32';
+}
+
+const isValidFilename = (fileName) => {
+  const inValidChars = /[\\/:*?"<>|]/;
+
+  if (!fileName || inValidChars.test(fileName)) {
+    return false;
+  }
+
+  if (fileName.endsWith(' ') || fileName.endsWith('.') || fileName.startsWith('.')) {
+    return false;
+  }
+
+  return true;
+};
+
+const safeToRename = (oldPath, newPath) => {
+  try {
+    // If the new path doesn't exist, it's safe to rename
+    if (!fs.existsSync(newPath)) {
+      return true;
+    }
+
+    const oldStat = fs.statSync(oldPath);
+    const newStat = fs.statSync(newPath);
+
+    if (isWindowsOS()) {
+      // Windows-specific comparison:
+      // Check if both files have the same birth time, size (Since, Win FAT-32 doesn't use inodes)
+
+      return oldStat.birthtimeMs === newStat.birthtimeMs && oldStat.size === newStat.size;
+    }
+    // Unix/Linux/MacOS: Check inode to see if they are the same file
+    return oldStat.ino === newStat.ino;
+  } catch (error) {
+    console.error(`Error checking file rename safety for ${oldPath} and ${newPath}:`, error);
+    return false;
+  }
 };
 
 module.exports = {
@@ -180,5 +230,10 @@ module.exports = {
   chooseFileToSave,
   searchForFiles,
   searchForBruFiles,
-  sanitizeDirectoryName
+  sanitizeDirectoryName,
+  sanitizeCollectionName,
+  isWindowsOS,
+  safeToRename,
+  isValidFilename,
+  hasSubDirectories
 };

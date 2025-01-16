@@ -70,16 +70,15 @@ const ClientCertSettings = ({ root, clientCertConfig, onUpdate, onRemove }) => {
   });
 
   const getFile = (e) => {
-    if (e.files?.[0]?.path) {
-      let filePath;
+    const filePath = window?.ipcRenderer?.getFilePath(e?.files?.[0]);
+    if (filePath) {
+      let relativePath;
       if (pathType === 'relative') {
         if (isWindowsOS()) {
-          filePath = slash(path.win32.relative(root, e.files[0].path));
+          relativePath = slash(path.win32.relative(root, filePath));
         } else {
-          filePath = path.posix.relative(root, e.files[0].path);
+          relativePath = path.posix.relative(root, filePath);
         }
-      } else {
-        filePath = e.files[0].path;
       }
       formik.setFieldValue(e.name, filePath);
     }

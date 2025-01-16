@@ -83,7 +83,6 @@ const VarsTable = ({ collection, vars, varType }) => {
               <td>
                 <div className="flex items-center">
                   <span>Value</span>
-                  <InfoTip text="You can write any valid JS Template Literal here" infotipId="request-var" />
                 </div>
               </td>
             ) : (

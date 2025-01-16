@@ -24,7 +24,7 @@ get(data, '..items[?]', { id: 2, amount: 20 })
 ```
 Array mapping [?] with corresponding mapper function
 ```js
-get(data, '..items[?].amount', i => i.amount + 10) 
+get(data, '..items..amount[?]', amt => amt + 10) 
 ```
 
 ### Publish to Npm Registry

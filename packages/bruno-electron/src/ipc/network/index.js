@@ -9,7 +9,7 @@ const decomment = require('decomment');
 const contentDispositionParser = require('content-disposition');
 const mime = require('mime-types');
 const { ipcMain } = require('electron');
-const { isUndefined, isNull, each, get, compact, cloneDeep } = require('lodash');
+const { isUndefined, isNull, each, get, compact, cloneDeep, forOwn, extend } = require('lodash');
 const { VarsRuntime, AssertRuntime, ScriptRuntime, TestRuntime } = require('@usebruno/js');
 const prepareRequest = require('./prepare-request');
 const prepareCollectionRequest = require('./prepare-collection-request');
@@ -37,6 +37,10 @@ const {
 } = require('./oauth2-helper');
 const Oauth2Store = require('../../store/oauth2');
 const iconv = require('iconv-lite');
+const FormData = require('form-data');
+const { createFormData } = require('../../utils/form-data');
+const { findItemInCollectionByPathname } = require('../../utils/collection');
+const { NtlmClient } = require('axios-ntlm');
 
 const safeStringifyJSON = (data) => {
   try {
@@ -231,6 +235,10 @@ const configureRequest = async (
         );
         request.httpAgent = new HttpProxyAgent(proxyUri);
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (proxyMode === 'system') {
     const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables();
@@ -255,13 +263,25 @@ const configureRequest = async (
       } catch (error) {
         throw new Error('Invalid system https_proxy');
       }
+    } else {
+      request.httpsAgent = new https.Agent({
+        ...httpsAgentRequestFields
+      });
     }
   } else if (Object.keys(httpsAgentRequestFields).length > 0) {
     request.httpsAgent = new https.Agent({
       ...httpsAgentRequestFields
     });
   }
-  const axiosInstance = makeAxiosInstance();
+
+
+  let axiosInstance = makeAxiosInstance();
+  
+  if (request.ntlmConfig) {
+    axiosInstance=NtlmClient(request.ntlmConfig,axiosInstance)
+    delete request.ntlmConfig;
+  }
+
 
   if (request.oauth2) {
     let requestCopy = cloneDeep(request);
@@ -317,8 +337,23 @@ const configureRequest = async (
     }
   }
 
+  // Add API key to the URL
+  if (request.apiKeyAuthValueForQueryParams && request.apiKeyAuthValueForQueryParams.placement === 'queryparams') {
+    const urlObj = new URL(request.url);
+
+    // Interpolate key and value as they can be variables before adding to the URL.
+    const key = interpolateString(request.apiKeyAuthValueForQueryParams.key, interpolationOptions);
+    const value = interpolateString(request.apiKeyAuthValueForQueryParams.value, interpolationOptions);
+
+    urlObj.searchParams.set(key, value);
+    request.url = urlObj.toString();
+  }
+
   // Remove pathParams, already in URL (Issue #2439)
   delete request.pathParams;
+
+  // Remove apiKeyAuthValueForQueryParams, already interpolated and added to URL
+  delete request.apiKeyAuthValueForQueryParams;
 
   return axiosInstance;
 };
@@ -341,10 +376,14 @@ const parseDataFromResponse = (response, disableParsingResponseJson = false) => 
     // Filter out ZWNBSP character
     // https://gist.github.com/antic183/619f42b559b78028d1fe9e7ae8a1352d
     data = data.replace(/^\uFEFF/, '');
-    if (!disableParsingResponseJson) {
+
+    // If the response is a string and starts and ends with double quotes, it's a stringified JSON and should not be parsed
+    if ( !disableParsingResponseJson && ! (typeof data === 'string' && data.startsWith("\"") && data.endsWith("\""))) {
       data = JSON.parse(data);
     }
-  } catch { }
+  } catch { 
+    console.log('Failed to parse response data as JSON');
+   }
 
   return { data, dataBuffer };
 };
@@ -368,11 +407,12 @@ const registerNetworkIpc = (mainWindow) => {
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run pre-request script
     let scriptResult;
-    const requestScript = compact([get(collectionRoot, 'request.script.req'), get(request, 'script.req')]).join(os.EOL);
+    const requestScript = get(request, 'script.req');
     if (requestScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
       scriptResult = await scriptRuntime.runRequestScript(
@@ -383,7 +423,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -391,6 +432,10 @@ const registerNetworkIpc = (mainWindow) => {
         runtimeVariables: scriptResult.runtimeVariables,
         requestUid,
         collectionUid
+      });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
       });
     }
 
@@ -408,6 +453,14 @@ const registerNetworkIpc = (mainWindow) => {
       request.data = qs.stringify(request.data);
     }
 
+    if (request.headers['content-type'] === 'multipart/form-data') {
+      if (!(request.data instanceof FormData)) {
+        let form = createFormData(request.data, collectionPath);
+        request.data = form;
+        extend(request.headers, form.getHeaders());
+      }
+    }
+
     return scriptResult;
   };
 
@@ -421,7 +474,8 @@ const registerNetworkIpc = (mainWindow) => {
     collectionUid,
     runtimeVariables,
     processEnvVars,
-    scriptingConfig
+    scriptingConfig,
+    runRequestByItemPathname
   ) => {
     // run post-response vars
     const postResponseVars = get(request, 'vars.res', []);
@@ -444,6 +498,10 @@ const registerNetworkIpc = (mainWindow) => {
           requestUid,
           collectionUid
         });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: result.globalEnvironmentVariables
+        });
       }
 
       if (result?.error) {
@@ -452,12 +510,7 @@ const registerNetworkIpc = (mainWindow) => {
     }
 
     // run post-response script
-    const responseScript = compact(scriptingConfig.flow === 'sequential' ? [
-      get(collectionRoot, 'request.script.res'), get(request, 'script.res')
-    ] : [
-      get(request, 'script.res'), get(collectionRoot, 'request.script.res')
-    ]).join(os.EOL);
-
+    const responseScript = get(request, 'script.res');
     let scriptResult;
     if (responseScript?.length) {
       const scriptRuntime = new ScriptRuntime({ runtime: scriptingConfig?.runtime });
@@ -470,7 +523,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath,
         onConsoleLog,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       mainWindow.webContents.send('main:script-environment-update', {
@@ -479,18 +533,36 @@ const registerNetworkIpc = (mainWindow) => {
         requestUid,
         collectionUid
       });
+
+      mainWindow.webContents.send('main:global-environment-variables-update', {
+        globalEnvironmentVariables: scriptResult.globalEnvironmentVariables
+      });
     }
     return scriptResult;
   };
 
-  // handler for sending http request
-  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+  const runRequest = async ({ item, collection, environment, runtimeVariables, runInBackground = false }) => {
     const collectionUid = collection.uid;
     const collectionPath = collection.pathname;
     const cancelTokenUid = uuid();
     const requestUid = uuid();
 
-    mainWindow.webContents.send('main:run-request-event', {
+    const runRequestByItemPathname = async (relativeItemPathname) => {
+      return new Promise(async (resolve, reject) => {
+        let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+        if (itemPathname && !itemPathname?.endsWith('.bru')) {
+          itemPathname = `${itemPathname}.bru`;
+        }
+        const _item = findItemInCollectionByPathname(collection, itemPathname);
+        if(_item) {
+          const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+          resolve(res);
+        }
+        reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+      });
+    }
+
+    !runInBackground && mainWindow.webContents.send('main:run-request-event', {
       type: 'request-queued',
       requestUid,
       collectionUid,
@@ -500,6 +572,7 @@ const registerNetworkIpc = (mainWindow) => {
 
     const collectionRoot = get(collection, 'root', {});
     const request = prepareRequest(item, collection);
+    request.__bruno__executionMode = 'standalone';
     const envVars = getEnvVars(environment);
     const processEnvVars = getProcessEnvVars(collectionUid);
     const brunoConfig = getBrunoConfig(collectionUid);
@@ -520,7 +593,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid,
         runtimeVariables,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       const axiosInstance = await configureRequest(
@@ -532,7 +606,7 @@ const registerNetworkIpc = (mainWindow) => {
         collectionPath
       );
 
-      mainWindow.webContents.send('main:run-request-event', {
+      !runInBackground && mainWindow.webContents.send('main:run-request-event', {
         type: 'request-sent',
         requestSent: {
           url: request.url,
@@ -604,7 +678,8 @@ const registerNetworkIpc = (mainWindow) => {
         collectionUid,
         runtimeVariables,
         processEnvVars,
-        scriptingConfig
+        scriptingConfig,
+        runRequestByItemPathname
       );
 
       // run assertions
@@ -620,7 +695,7 @@ const registerNetworkIpc = (mainWindow) => {
           processEnvVars
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'assertion-results',
           results: results,
           itemUid: item.uid,
@@ -629,14 +704,7 @@ const registerNetworkIpc = (mainWindow) => {
         });
       }
 
-      // run tests
-      const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-      const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-        get(collectionRoot, 'request.tests'), testScript,
-      ] : [
-        testScript, get(collectionRoot, 'request.tests')
-      ]).join(os.EOL);
-
+      const testFile = get(request, 'tests');
       if (typeof testFile === 'string') {
         const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
         const testResults = await testRuntime.runTests(
@@ -648,10 +716,11 @@ const registerNetworkIpc = (mainWindow) => {
           collectionPath,
           onConsoleLog,
           processEnvVars,
-          scriptingConfig
+          scriptingConfig,
+          runRequestByItemPathname
         );
 
-        mainWindow.webContents.send('main:run-request-event', {
+        !runInBackground && mainWindow.webContents.send('main:run-request-event', {
           type: 'test-results',
           results: testResults.results,
           itemUid: item.uid,
@@ -664,6 +733,10 @@ const registerNetworkIpc = (mainWindow) => {
           runtimeVariables: testResults.runtimeVariables,
           requestUid,
           collectionUid
+        });
+
+        mainWindow.webContents.send('main:global-environment-variables-update', {
+          globalEnvironmentVariables: testResults.globalEnvironmentVariables
         });
       }
 
@@ -681,6 +754,11 @@ const registerNetworkIpc = (mainWindow) => {
 
       return Promise.reject(error);
     }
+  }
+
+  // handler for sending http request
+  ipcMain.handle('send-http-request', async (event, item, collection, environment, runtimeVariables) => {
+    return await runRequest({ item, collection, environment, runtimeVariables });
   });
 
   ipcMain.handle('send-collection-oauth2-request', async (event, collection, environment, runtimeVariables) => {
@@ -691,7 +769,8 @@ const registerNetworkIpc = (mainWindow) => {
 
       const collectionRoot = get(collection, 'root', {});
       const _request = collectionRoot?.request;
-      const request = prepareCollectionRequest(_request, collectionRoot, collectionPath);
+      const request = prepareCollectionRequest(_request, collection, collectionPath);
+      request.__bruno__executionMode = 'standalone';
       const envVars = getEnvVars(environment);
       const processEnvVars = getProcessEnvVars(collectionUid);
       const brunoConfig = getBrunoConfig(collectionUid);
@@ -871,9 +950,25 @@ const registerNetworkIpc = (mainWindow) => {
       const scriptingConfig = get(brunoConfig, 'scripts', {});
       scriptingConfig.runtime = getJsSandboxRuntime(collection);
       const collectionRoot = get(collection, 'root', {});
+      let stopRunnerExecution = false;
 
       const abortController = new AbortController();
       saveCancelToken(cancelTokenUid, abortController);
+
+      const runRequestByItemPathname = async (relativeItemPathname) => {
+        return new Promise(async (resolve, reject) => {
+          let itemPathname = path.join(collection?.pathname, relativeItemPathname);
+          if (itemPathname && !itemPathname?.endsWith('.bru')) {
+            itemPathname = `${itemPathname}.bru`;
+          }
+          const _item = findItemInCollectionByPathname(collection, itemPathname);
+          if(_item) {
+            const res = await runRequest({ item: _item, collection, environment, runtimeVariables, runInBackground: true });
+            resolve(res);
+          }
+          reject(`bru.runRequest: invalid request path - ${itemPathname}`);
+        });
+      }
 
       if (!folder) {
         folder = collection;
@@ -917,7 +1012,9 @@ const registerNetworkIpc = (mainWindow) => {
             throw error;
           }
 
-          const item = folderRequests[currentRequestIndex];
+          stopRunnerExecution = false;
+
+          const item = cloneDeep(folderRequests[currentRequestIndex]);
           let nextRequestName;
           const itemUid = item.uid;
           const eventData = {
@@ -935,6 +1032,8 @@ const registerNetworkIpc = (mainWindow) => {
           });
 
           const request = prepareRequest(item, collection);
+          request.__bruno__executionMode = 'runner';
+          
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
 
@@ -948,11 +1047,31 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (preRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = preRequestScriptResult.nextRequestName;
+            }
+
+            if (preRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
+            }
+
+            if (preRequestScriptResult?.skipRequest) {
+              mainWindow.webContents.send('main:run-folder-event', {
+                type: 'runner-request-skipped',
+                error: 'Request has been skipped from pre-request script',
+                responseReceived: {
+                  status: 'skipped',
+                  statusText: 'request skipped via pre-request script',
+                  data: null
+                },
+                ...eventData
+              });
+              currentRequestIndex++;
+              continue;
             }
 
             // todo:
@@ -1066,11 +1185,16 @@ const registerNetworkIpc = (mainWindow) => {
               collectionUid,
               runtimeVariables,
               processEnvVars,
-              scriptingConfig
+              scriptingConfig,
+              runRequestByItemPathname
             );
 
             if (postRequestScriptResult?.nextRequestName !== undefined) {
               nextRequestName = postRequestScriptResult.nextRequestName;
+            }
+
+            if (postRequestScriptResult?.stopExecution) {
+              stopRunnerExecution = true;
             }
 
             // run assertions
@@ -1094,14 +1218,7 @@ const registerNetworkIpc = (mainWindow) => {
               });
             }
 
-            // run tests
-            const testScript = item.draft ? get(item.draft, 'request.tests') : get(item, 'request.tests');
-            const testFile = compact(scriptingConfig.flow === 'sequential' ? [
-              get(collectionRoot, 'request.tests'), testScript
-            ] : [
-              testScript, get(collectionRoot, 'request.tests')
-            ]).join(os.EOL);
-
+            const testFile = get(request, 'tests');
             if (typeof testFile === 'string') {
               const testRuntime = new TestRuntime({ runtime: scriptingConfig?.runtime });
               const testResults = await testRuntime.runTests(
@@ -1113,7 +1230,8 @@ const registerNetworkIpc = (mainWindow) => {
                 collectionPath,
                 onConsoleLog,
                 processEnvVars,
-                scriptingConfig
+                scriptingConfig,
+                runRequestByItemPathname
               );
 
               if (testResults?.nextRequestName !== undefined) {
@@ -1131,6 +1249,10 @@ const registerNetworkIpc = (mainWindow) => {
                 runtimeVariables: testResults.runtimeVariables,
                 collectionUid
               });
+
+              mainWindow.webContents.send('main:global-environment-variables-update', {
+                globalEnvironmentVariables: testResults.globalEnvironmentVariables
+              });
             }
           } catch (error) {
             mainWindow.webContents.send('main:run-folder-event', {
@@ -1140,6 +1262,18 @@ const registerNetworkIpc = (mainWindow) => {
               ...eventData
             });
           }
+
+          if (stopRunnerExecution) {
+            deleteCancelToken(cancelTokenUid);
+            mainWindow.webContents.send('main:run-folder-event', {
+              type: 'testrun-ended',
+              collectionUid,
+              folderUid,
+              statusText: 'collection run was terminated!'
+            });
+            break;
+          }
+
           if (nextRequestName !== undefined) {
             nJumps++;
             if (nJumps > 10000) {

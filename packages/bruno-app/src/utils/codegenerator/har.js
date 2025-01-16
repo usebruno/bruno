@@ -19,18 +19,26 @@ const createContentType = (mode) => {
   }
 };
 
+/**
+ * Creates a list of enabled headers for the request, ensuring no duplicate content-type headers.
+ *
+ * @param {Object} request - The request object.
+ * @param {Object[]} headers - The array of header objects, each containing name, value, and enabled properties.
+ * @returns {Object[]} - An array of enabled headers with normalized names and values.
+ */
 const createHeaders = (request, headers) => {
   const enabledHeaders = headers
     .filter((header) => header.enabled)
     .map((header) => ({
-      name: header.name,
+      name: header.name.toLowerCase(),
       value: header.value
     }));
 
   const contentType = createContentType(request.body?.mode);
-  if (contentType !== '') {
+  if (contentType !== '' && !enabledHeaders.some((header) => header.name === 'content-type')) {
     enabledHeaders.push({ name: 'content-type', value: contentType });
   }
+
   return enabledHeaders;
 };
 
@@ -43,7 +51,14 @@ const createQuery = (queryParams = []) => {
     }));
 };
 
-const createPostData = (body) => {
+const createPostData = (body, type) => {
+  if (type === 'graphql-request') {
+    return {
+      mimeType: 'application/json',
+      text: JSON.stringify(body[body.mode])
+    };
+  }
+
   const contentType = createContentType(body.mode);
   if (body.mode === 'formUrlEncoded' || body.mode === 'multipartForm') {
     return {
@@ -64,7 +79,7 @@ const createPostData = (body) => {
   }
 };
 
-export const buildHarRequest = ({ request, headers }) => {
+export const buildHarRequest = ({ request, headers, type }) => {
   return {
     method: request.method,
     url: encodeURI(request.url),
@@ -72,7 +87,7 @@ export const buildHarRequest = ({ request, headers }) => {
     cookies: [],
     headers: createHeaders(request, headers),
     queryString: createQuery(request.params),
-    postData: createPostData(request.body),
+    postData: createPostData(request.body, type),
     headersSize: 0,
     bodySize: 0
   };

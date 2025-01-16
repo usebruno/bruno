@@ -42,14 +42,14 @@ export const parsePathParams = (url) => {
     uri = `http://${uri}`;
   }
 
+  let paths;
+
   try {
     uri = new URL(uri);
+    paths = uri.pathname.split('/');
   } catch (e) {
-    // URL is non-parsable, is it incomplete? Ignore.
-    return [];
+    paths = uri.split('/');
   }
-
-  let paths = uri.pathname.split('/');
 
   paths = paths.reduce((acc, path) => {
     if (path !== '' && path[0] === ':') {
@@ -63,7 +63,6 @@ export const parsePathParams = (url) => {
     }
     return acc;
   }, []);
-
   return paths;
 };
 
@@ -109,12 +108,13 @@ export const isValidUrl = (url) => {
   }
 };
 
-export const interpolateUrl = ({ url, envVars, runtimeVariables, processEnvVars }) => {
+export const interpolateUrl = ({ url, globalEnvironmentVariables = {}, envVars, runtimeVariables, processEnvVars }) => {
   if (!url || !url.length || typeof url !== 'string') {
     return;
   }
 
   return interpolate(url, {
+    ...globalEnvironmentVariables,
     ...envVars,
     ...runtimeVariables,
     process: {

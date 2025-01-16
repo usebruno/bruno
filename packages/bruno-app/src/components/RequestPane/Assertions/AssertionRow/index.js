@@ -24,6 +24,7 @@ import { useTheme } from 'providers/Theme';
  * endsWith    : ends with
  * between     : between
  * isEmpty     : is empty
+ * isNotEmpty  : is not empty
  * isNull      : is null
  * isUndefined : is undefined
  * isDefined   : is defined
@@ -61,6 +62,7 @@ const parseAssertionOperator = (str = '') => {
     'endsWith',
     'between',
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -75,6 +77,7 @@ const parseAssertionOperator = (str = '') => {
 
   const unaryOperators = [
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -87,7 +90,7 @@ const parseAssertionOperator = (str = '') => {
     'isArray'
   ];
 
-  const [operator, ...rest] = str.trim().split(' ');
+  const [operator, ...rest] = str.split(' ');
   const value = rest.join(' ');
 
   if (unaryOperators.includes(operator)) {
@@ -113,6 +116,7 @@ const parseAssertionOperator = (str = '') => {
 const isUnaryOperator = (operator) => {
   const unaryOperators = [
     'isEmpty',
+    'isNotEmpty',
     'isNull',
     'isUndefined',
     'isDefined',
@@ -162,7 +166,7 @@ const AssertionRow = ({
             handleAssertionChange(
               {
                 target: {
-                  value: `${op} ${value}`
+                  value: isUnaryOperator(op) ? op : `${op} ${value}`
                 }
               },
               assertion,
@@ -178,7 +182,7 @@ const AssertionRow = ({
             theme={storedTheme}
             readOnly={true}
             onSave={onSave}
-            onChange={(newValue) =>
+            onChange={(newValue) => {
               handleAssertionChange(
                 {
                   target: {
@@ -188,6 +192,7 @@ const AssertionRow = ({
                 assertion,
                 'value'
               )
+              }
             }
             onRun={handleRun}
             collection={collection}
