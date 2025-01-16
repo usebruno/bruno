@@ -5,7 +5,7 @@ import DeleteEnvironment from '../../DeleteEnvironment';
 import RenameEnvironment from '../../RenameEnvironment';
 import EnvironmentVariables from './EnvironmentVariables';
 
-const EnvironmentDetails = ({ environment, collection, setIsModified }) => {
+const EnvironmentDetails = ({ environment, collection, setIsModified, onClose }) => {
   const [openEditModal, setOpenEditModal] = useState(false);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [openCopyModal, setOpenCopyModal] = useState(false);
@@ -38,7 +38,7 @@ const EnvironmentDetails = ({ environment, collection, setIsModified }) => {
       </div>
 
       <div>
-        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} />
+        <EnvironmentVariables environment={environment} collection={collection} setIsModified={setIsModified} onClose={onClose} />
       </div>
     </div>
   );
