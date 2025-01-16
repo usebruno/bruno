@@ -204,7 +204,7 @@ const CollectionItem = ({ item, collection, searchText }) => {
   };
 
   const handleDoubleClick = (event) => {
-    setRenameItemModalOpen(true);
+    dispatch(stickTab({ uid: item.uid }))
   };
 
   let indents = range(item.depth);
