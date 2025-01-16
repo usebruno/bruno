@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { IconTrash, IconAlertCircle } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
+import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
 import SingleLineEditor from 'components/SingleLineEditor';
 import StyledWrapper from './StyledWrapper';
 import { uuid } from 'utils/common';
@@ -82,6 +83,18 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       enabled: true
     };
     formik.setFieldValue(formik.values.length, newVariable, false);
+  };
+
+  const onActivate = () => {
+    dispatch(selectEnvironment(environment ? environment.uid : null, collection.uid))
+      .then(() => {
+        if (environment) {
+          toast.success(`Environment changed to ${environment.name}`);
+        } else {
+          toast.success(`No Environments are active now`);
+        }
+      })
+      .catch((err) => console.log(err) && toast.error('An error occurred while selecting the environment'));
   };
 
   const handleRemoveVar = (id) => {
@@ -184,12 +197,19 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       </div>
 
       <div>
-        <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
-          Save
-        </button>
+        <span class="mr-2">
+          <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
+            Save
+          </button>
+        </span>
         <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
           Reset
         </button>
+        <span>
+          <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={onActivate}>
+            Activate
+          </button>
+        </span>
       </div>
     </StyledWrapper>
   );
