@@ -229,7 +229,6 @@ class TestRuntime {
           description: 'Invalid test script',
           status: 'fail',
           error: error.message || 'An unexpected error occurred.'
-          ]
         });
       }
     }
