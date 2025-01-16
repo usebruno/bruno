@@ -1,6 +1,5 @@
 import React from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import { addVar, updateVar, deleteVar } from 'providers/ReduxStore/slices/collections';
@@ -10,6 +9,7 @@ import InfoTip from 'components/InfoTip';
 import StyledWrapper from './StyledWrapper';
 import toast from 'react-hot-toast';
 import { variableNameRegex } from 'utils/common/regex';
+import RemoveButton from 'components/RemoveButton/index';
 
 const VarsTable = ({ item, collection, vars, varType }) => {
   const dispatch = useDispatch();
@@ -143,9 +143,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleVarChange(e, _var, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveVar(_var)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
+                        <RemoveButton onClick={() => handleRemoveVar(_var)} />
                       </div>
                     </td>
                   </tr>

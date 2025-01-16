@@ -1,7 +1,6 @@
 import React from 'react';
 import get from 'lodash/get';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash } from '@tabler/icons';
 import { useDispatch } from 'react-redux';
 import { useTheme } from 'providers/Theme';
 import {
@@ -13,6 +12,7 @@ import MultiLineEditor from 'components/MultiLineEditor';
 import { sendRequest, saveRequest } from 'providers/ReduxStore/slices/collections/actions';
 import StyledWrapper from './StyledWrapper';
 import FilePickerEditor from 'components/FilePickerEditor';
+import RemoveButton from 'components/RemoveButton';
 
 const MultipartFormParams = ({ item, collection }) => {
   const dispatch = useDispatch();
@@ -180,9 +180,7 @@ const MultipartFormParams = ({ item, collection }) => {
                           className="mr-3 mousetrap"
                           onChange={(e) => handleParamChange(e, param, 'enabled')}
                         />
-                        <button tabIndex="-1" onClick={() => handleRemoveParams(param)}>
-                          <IconTrash strokeWidth={1.5} size={20} />
-                        </button>
+                        <RemoveButton onClick={() => handleRemoveParams(param)} />
                       </div>
                     </td>
                   </tr>
