@@ -1037,6 +1037,8 @@ const registerNetworkIpc = (mainWindow) => {
 
           const request = prepareRequest(item, collection);
           request.__bruno__executionMode = 'runner';
+          request.__bruno__collectionName = collection?.name;
+          request.__bruno__requestName = item?.name;
           
           const requestUid = uuid();
           const processEnvVars = getProcessEnvVars(collectionUid);
