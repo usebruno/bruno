@@ -3,16 +3,15 @@ const { getPreferences, savePreferences, preferencesUtil } = require('../store/p
 const { isDirectory } = require('../utils/filesystem');
 const { openCollection } = require('../app/collections');
 const { globalEnvironmentsStore } = require('../store/global-environments');
-``;
+
 const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
-  ipcMain.handle('renderer:ready', async (event) => {
+  ipcMain.handle('renderer:ready', async () => {
     // load preferences
     const preferences = getPreferences();
     mainWindow.webContents.send('main:load-preferences', preferences);
 
     // load system proxy vars
-    const systemProxyVars = preferencesUtil.getSystemProxyEnvVariables();
-    const { http_proxy, https_proxy, no_proxy } = systemProxyVars || {};
+    const { http_proxy, https_proxy, no_proxy } = preferencesUtil.getSystemProxyEnvVariables() || {};
     mainWindow.webContents.send('main:load-system-proxy-env', { http_proxy, https_proxy, no_proxy });
 
     // load global environments
@@ -23,16 +22,20 @@ const registerPreferencesIpc = (mainWindow, watcher, lastOpenedCollections) => {
 
     // reload last opened collections
     const lastOpened = lastOpenedCollections.getAll();
+    const invalidDirectories = [];
 
     if (lastOpened && lastOpened.length) {
-      for (let collectionPath of lastOpened) {
+      for (const collectionPath of lastOpened) {
         if (isDirectory(collectionPath)) {
-          await openCollection(mainWindow, watcher, collectionPath, {
-            dontSendDisplayErrors: true
-          });
+          await openCollection(mainWindow, watcher, collectionPath, { dontSendDisplayErrors: true });
+        } else {
+          invalidDirectories.push(collectionPath);
         }
       }
     }
+
+    const updatedLastOpenedCollections = lastOpened.filter(coll => !invalidDirectories.includes(coll));
+    lastOpenedCollections.update(updatedLastOpenedCollections);
   });
 
   ipcMain.on('main:open-preferences', () => {
