@@ -60,7 +60,7 @@ const Assertions = ({ item, collection }) => {
     );
   };
 
-  const handleParamDrag = ({ updateReorderedItem }) => {
+  const handleAssertionDrag = ({ updateReorderedItem }) => {
     dispatch(
       moveAssertion({
         collectionUid: collection.uid,
@@ -80,7 +80,7 @@ const Assertions = ({ item, collection }) => {
           { name: '', accessor: '', width: '15%' }
         ]}
       >
-        <ReorderTable updateReorderedItem={handleParamDrag}>
+        <ReorderTable updateReorderedItem={handleAssertionDrag}>
           {assertions && assertions.length
             ? assertions.map((assertion) => {
               return (

@@ -65,7 +65,7 @@ const RequestHeaders = ({ item, collection }) => {
     );
   };
 
-    const handleParamDrag = ({ updateReorderedItem }) => {
+    const handleHeaderDrag = ({ updateReorderedItem }) => {
       dispatch(
         moveRequestHeader({
           collectionUid: collection.uid,
@@ -84,7 +84,7 @@ const RequestHeaders = ({ item, collection }) => {
           { name: '', accessor: '', width: '20%' }
         ]}
       >
-        <ReorderTable updateReorderedItem={handleParamDrag}>
+        <ReorderTable updateReorderedItem={handleHeaderDrag}>
         {headers && headers.length
             ? headers.map((header) => {
                 return (

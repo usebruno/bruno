@@ -75,7 +75,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
     );
   };
 
-  const handleParamDrag = ({ updateReorderedItem }) => {
+  const handleVarDrag = ({ updateReorderedItem }) => {
     dispatch(
       moveVar({
         type: varType,
@@ -104,7 +104,7 @@ const VarsTable = ({ item, collection, vars, varType }) => {
           { name: '', accessor: '', width: '14%' }
         ]}
       >
-        <ReorderTable updateReorderedItem={handleParamDrag}>
+        <ReorderTable updateReorderedItem={handleVarDrag}>
         {vars && vars.length
             ? vars.map((_var) => {
                 return (
