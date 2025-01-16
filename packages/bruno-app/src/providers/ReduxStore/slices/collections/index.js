@@ -532,11 +532,16 @@ export const collectionsSlice = createSlice({
           const { updateReorderedItem } = action.payload;
           const params = item.draft.request.params;
 
-          item.draft.request.params = updateReorderedItem.map((uid) => {
-            return params.find((param) => param.uid === uid);
+          const queryParams = params.filter((param) => param.type === 'query');
+          const pathParams = params.filter((param) => param.type === 'path');
+    
+          // Reorder only query params based on updateReorderedItem
+          const reorderedQueryParams = updateReorderedItem.map((uid) => {
+            return queryParams.find((param) => param.uid === uid);
           });
-
-          // update request url
+          item.draft.request.params = [...reorderedQueryParams, ...pathParams];
+    
+          // Update request URL
           const parts = splitOnFirst(item.draft.request.url, '?');
           const query = stringifyQueryParams(filter(item.draft.request.params, (p) => p.enabled && p.type === 'query'));
           if (query && query.length) {
