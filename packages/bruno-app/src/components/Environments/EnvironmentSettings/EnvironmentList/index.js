@@ -11,7 +11,7 @@ import ConfirmSwitchEnv from './ConfirmSwitchEnv';
 import ToolHint from 'components/ToolHint';
 import { isEqual } from 'lodash';
 
-const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified }) => {
+const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collection, isModified, setIsModified, onClose }) => {
   const { environments } = collection;
   const [openCreateModal, setOpenCreateModal] = useState(false);
   const [openImportModal, setOpenImportModal] = useState(false);
@@ -141,6 +141,7 @@ const EnvironmentList = ({ selectedEnvironment, setSelectedEnvironment, collecti
           collection={collection}
           setIsModified={setIsModified}
           originalEnvironmentVariables={originalEnvironmentVariables}
+          onClose={onClose}
         />
       </div>
     </StyledWrapper>

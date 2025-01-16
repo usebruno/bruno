@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import { IconTrash, IconAlertCircle } from '@tabler/icons';
+import { IconTrash, IconAlertCircle, IconDeviceFloppy, IconRefresh, IconCircleCheck } from '@tabler/icons';
 import { useTheme } from 'providers/Theme';
 import { useDispatch } from 'react-redux';
 import { selectEnvironment } from 'providers/ReduxStore/slices/collections/actions';
@@ -14,7 +14,7 @@ import { saveEnvironment } from 'providers/ReduxStore/slices/collections/actions
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 
-const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables }) => {
+const EnvironmentVariables = ({ environment, collection, setIsModified, originalEnvironmentVariables, onClose }) => {
   const dispatch = useDispatch();
   const { storedTheme } = useTheme();
   const addButtonRef = useRef(null);
@@ -90,6 +90,7 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
       .then(() => {
         if (environment) {
           toast.success(`Environment changed to ${environment.name}`);
+          onClose();
         } else {
           toast.success(`No Environments are active now`);
         }
@@ -196,20 +197,19 @@ const EnvironmentVariables = ({ environment, collection, setIsModified, original
         </div>
       </div>
 
-      <div>
-        <span class="mr-2">
-          <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={formik.handleSubmit}>
-            Save
-          </button>
-        </span>
-        <button type="submit" className="ml-2 px-1 submit btn btn-md btn-secondary mt-2" onClick={handleReset}>
+      <div className="flex items-center">
+        <button type="submit" className="submit btn btn-sm btn-secondary mt-2 flex items-center" onClick={formik.handleSubmit}>
+          <IconDeviceFloppy size={16} strokeWidth={1.5} className="mr-1" />
+          Save
+        </button>
+        <button type="submit" className="ml-2 px-1 submit btn btn-sm btn-close mt-2 flex items-center" onClick={handleReset}>
+          <IconRefresh size={16} strokeWidth={1.5} className="mr-1" />
           Reset
         </button>
-        <span>
-          <button type="submit" className="submit btn btn-md btn-secondary mt-2" onClick={onActivate}>
-            Activate
-          </button>
-        </span>
+        <button type="submit" className="submit btn btn-sm btn-close mt-2 flex items-center" onClick={onActivate}>
+          <IconCircleCheck size={16} strokeWidth={1.5} className="mr-1" />
+          Activate
+        </button>
       </div>
     </StyledWrapper>
   );
