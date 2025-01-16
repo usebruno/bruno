@@ -24,4 +24,16 @@ export default defineConfig({
   html: {
     title: 'Bruno'
   },
+  tools: {
+    rspack: {
+      module: {
+        parser: {
+          javascript: {
+            // This loads the JavaScript contents from a library along with the main JavaScript bundle.
+            dynamicImportMode: "eager",
+          },
+        },
+      },
+    },
+  }
 });
