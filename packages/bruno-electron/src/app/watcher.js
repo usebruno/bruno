@@ -382,6 +382,8 @@ const change = async (win, pathname, collectionUid, collectionPath) => {
 };
 
 const unlink = (win, pathname, collectionUid, collectionPath) => {
+  console.log(`watcher unlink: ${pathname}`);
+
   if (isBruEnvironmentConfig(pathname, collectionPath)) {
     return unlinkEnvironmentFile(win, pathname, collectionUid);
   }
@@ -497,6 +499,33 @@ class Watcher {
     if (this.watchers[watchPath]) {
       this.watchers[watchPath].close();
       this.watchers[watchPath] = null;
+    }
+  }
+
+  getWatcherByItemPath(itemPath) {
+    const paths = Object.keys(this.watchers);
+
+    const watcherPath = paths?.find(collectionPath => {
+      const absCollectionPath = path.resolve(collectionPath);
+      const absItemPath = path.resolve(itemPath);
+
+      return absItemPath.startsWith(absCollectionPath);
+    });
+
+    return watcherPath ? this.watchers[watcherPath] : null;
+  }
+
+  unlinkItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher) {
+      watcher.unwatch(itemPath);
+    }
+  }
+  
+  addItemPathInWatcher(itemPath) {
+    const watcher = this.getWatcherByItemPath(itemPath);
+    if (watcher && !watcher?.has?.(itemPath)) {
+      watcher?.add?.(itemPath);
     }
   }
 }
